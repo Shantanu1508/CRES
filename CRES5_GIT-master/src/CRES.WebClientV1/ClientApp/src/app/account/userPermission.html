@@ -1,0 +1,430 @@
+<div class="col-sm-12">
+  <div class="head fixheaderdiv">
+    <h1 style="display: inline-block;margin-top: 10px;">User Permission</h1>
+
+    <div *ngIf="_ShowSuccessmessagediv" class="alert alert-success fade in">
+      <strong>{{_ShowSuccessmessage}}</strong>
+    </div>
+    <div *ngIf="_Showmessagediv" class="alert alert-danger fade in">
+      <strong>{{Message}}</strong>
+    </div>
+  </div>
+
+
+  <div class="fmst fixheadercontent">
+    <div class="cssload-container" *ngIf="_isCalcListFetching">
+      <div class="cssload-whirlpool"></div>
+    </div>
+
+
+
+    <ul id="myTab" class="nav nav-tabs nav-tabs">
+      <li class="active"><a data-target="#userpermission" (click)="GetAllUser()" data-toggle="tab">User Management</a></li>
+      <li><a data-target="#rolepermission" (click)="GetUserPermission()" data-toggle="tab">Role Permission</a></li>
+      <li><a data-target="#allowbasiclogin" (click)="GetAllowBasicLogin()" data-toggle="tab">Manage App Setting</a></li>
+      <li><a data-target="#getwfapprover" (click)="GetWFApprover()" data-toggle="tab">Workflow Approver</a></li>
+      <!--<li><a data-target="#allowcalc" (click)="GetCalcManager()" data-toggle="tab">Manage Calc</a></li>-->
+      <!--<li><a data-target="#schedulerconfig" (click)="GetALLSchedulerConfig()" data-toggle="tab">Scheduler</a></li>-->
+    </ul>
+
+    <div class="tab-content" id="myTabContent">
+      <div class="tab-pane fade active in" id="userpermission">
+        <div class="box1a">
+          <h3>User Management</h3>
+          <div class="form-group row pD10">
+
+            <div class="col-sm-12 customgridpadding">
+
+
+              <button type="submit" class="custombutton" tabindex="1" (click)="AddUpdateUser()">Save</button>
+              <button type="submit" class="custombutton" tabindex="1" (click)="showForceLogoutDialog('null')">Force Logout All</button>
+
+              <wj-flex-grid id="flex" #flex [itemsSource]="data" [allowResizing]="'Both'" auto-generate-columns="true" allow-sorting="true" showFilterIcons="true" [headersVisibility]="1" [allowAddNew]="true" allow-add class="gridSize" style="height:calc(99.8vh - 283px);"
+                            (beginningEdit)="beginningEditEmailLogin($event)"
+                            (cellEditEnded)="cellEditEndedEmailLogin($event)"
+                            (pasted)="pastedEmailLogin($event)">
+
+
+                <wj-flex-grid-filter #filter></wj-flex-grid-filter>
+
+                <wj-flex-grid-column [header]="'FirstName'" [binding]="'FirstName'" [width]="'*'"></wj-flex-grid-column>
+                <wj-flex-grid-column [header]="'LastName'" [binding]="'LastName'" [width]="'*'"></wj-flex-grid-column>
+                <wj-flex-grid-column [header]="'Email'" [binding]="'Email'" [width]="'*'"></wj-flex-grid-column>
+                <wj-flex-grid-column [header]="'PrimaryContact'" [binding]="'ContactNo1'" [width]="'*'"></wj-flex-grid-column>
+                <wj-flex-grid-column [header]="'Login'" [binding]="'Login'" [width]="'*'"></wj-flex-grid-column>
+                <wj-flex-grid-column [header]="'Role'" [binding]="'RoleName'" [dataMapEditor]="true" [width]="'*'"></wj-flex-grid-column>
+                <wj-flex-grid-column [header]="'Status'" [binding]="'Status'" [dataMapEditor]="true" [width]="'*'"></wj-flex-grid-column>
+                <wj-flex-grid-column [header]="'Time Zone'" [binding]="'TimeZone'" [dataMapEditor]="true" [width]="200"></wj-flex-grid-column>
+
+
+                <wj-flex-grid-column [name]="'buttons'" [isReadOnly]="true" align="center" [width]="'*'">
+                  <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
+                    <a style="text-decoration: underline;" (click)="showDeleteDialog(cell.row.index)">Reset Password</a>
+                  </ng-template>
+                </wj-flex-grid-column>
+                <wj-flex-grid-column [name]="'buttons'" [isReadOnly]="true" align="center" [width]="'*'">
+                  <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
+                    <a style="text-decoration: underline;" (click)="showForceLogoutDialog(cell.row.index)">Force Logout</a>
+                  </ng-template>
+                </wj-flex-grid-column>
+
+              </wj-flex-grid>
+
+            </div>
+
+          </div>
+        </div>
+      </div>
+      <!--Pop up for Reset Password-->
+      <div id="myModalReset" class="modal">
+        <div class="modal-dialog" draggable="true" id="myModal-Delete" style="min-height:300px;width:500px">
+          <!-- Modal content -->
+          <div class="modal-content" style="padding:0px;border:0px;">
+            <div class="modal-header" style="background:#2196f3 !important">
+              <span class="customheading" style="color:white !important">Reset Password</span>
+              <span class="close" (click)="CloseResetPopUp()">×</span>
+            </div>
+
+            <div class="modal-body">
+              <span class="customheading">Are you sure you want to reset {{_loginID}} Password ?</span>
+
+            </div>
+
+            <div class="modal-footer" style="background-color:white !important;">
+              <button type="button" (click)="CloseResetPopUp()" class="custombutton" style="width:100px !important">Cancel</button>
+              <button type="button" (click)="ResetPassword()" class="custombutton" style="width:100px !important">Ok</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!--Pop up for Force Logout -->
+      <div id="myModalForceLogout" class="modal">
+        <div class="modal-dialog" draggable="true" id="myModal-ForceLogout" style="min-height:300px;width:500px">
+          <!-- Modal content -->
+          <div class="modal-content" style="padding:0px;border:0px;">
+            <div class="modal-header" style="background:#2196f3 !important">
+              <span class="customheading" style="color:white !important">Force Logout</span>
+              <span class="close" (click)="CloseForceLogoutPopUp()">×</span>
+            </div>
+
+            <div class="modal-body">
+              <span class="customheading">Are you sure you want to force logout {{_forceLogout.userName}}?</span>
+
+            </div>
+
+            <div class="modal-footer" style="background-color:white !important;">
+              <button type="button" (click)="CloseForceLogoutPopUp()" class="custombutton" style="width:100px !important">Cancel</button>
+              <button type="button" (click)="ForceLogout()" class="custombutton" style="width:100px !important">Ok</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+
+      <div class="tab-pane fade" id="rolepermission">
+        <div class="box1a">
+          <h3>Role Permission</h3>
+          <div class="form-group row pD10">
+            <div class="col-sm-1">
+              <label class="lab1">Select Role</label>
+            </div>
+            <div class="col-sm-3">
+              <select id="RoleID" name="RoleID" class="ibox1" (change)="RoleChange($event)">
+                <option *ngFor="let item of rolelist" value={{item.RoleID}}>
+                  {{item.RoleName}}
+                </option>
+              </select>
+
+              <span class="highlight"></span>
+              <span class="bar"></span>
+            </div>
+
+
+            <div class="col-sm-8">
+              <button type="submit" class="custombutton" tabindex="1" (click)="SavePermission()">Save Permission</button>
+              <button type="button" id="btnCreateRole" class="custombutton" (click)="showCreateRoleDialog()">Add New Role</button>
+            </div>
+
+            <div class="col-sm-12 customgridpadding">
+
+              <wj-flex-grid #flexpermission [itemsSource]="moduleTabMasterList" [allowAddNew]="false" [allowResizing]="'Both'" class="gridSize" style="height:calc(99.8vh - 288px);">
+                <wj-flex-grid-filter [filterColumns]="['ModuleTabMasterID','ModuleTabName','DisplayName','ModuleType','IsEdit','IsView','IsDelete']"></wj-flex-grid-filter>
+                <!--<wj-flex-grid-column [header]="'Module Tab MasterID'" [binding]="'ModuleTabMasterID'" show-filter="true" [isReadOnly]="true"></wj-flex-grid-column>-->
+                <!--<wj-flex-grid-column [header]="'Module Tab Name'" [binding]="'ModuleTabName'" [width]="'*'" show-filter="true" [isReadOnly]="true"></wj-flex-grid-column>-->
+                <wj-flex-grid-column [header]="'Module Name'" [binding]="'DisplayName'" [width]="'*'" show-filter="true" [isReadOnly]="true"></wj-flex-grid-column>
+                <wj-flex-grid-column [header]="'Module Type'" [binding]="'ModuleType'" [width]="'*'" show-filter="true" [isReadOnly]="true"></wj-flex-grid-column>
+
+                <wj-flex-grid-column [header]="'Show/Hide'" [binding]="'IsEdit'" show-filter="true" [width]="'*'">
+                  <ng-template wjFlexGridCellTemplate [cellType]="'ColumnHeader'" let cell="cell">
+                    <div>
+                      <label>
+                        Show/Hide <input (change)="SelectAll('IsEdit')" type="checkbox" id="chkSelectAllIsEdit" />
+                      </label>
+                    </div>
+                  </ng-template>
+                </wj-flex-grid-column>
+
+                <wj-flex-grid-column [header]="'Enable/Disable'" [binding]="'IsView'" show-filter="true" [width]="'*'">
+                  <ng-template wjFlexGridCellTemplate [cellType]="'ColumnHeader'" let cell="cell">
+                    <div>
+                      <label>
+                        Enable/Disable
+                        <input (change)="SelectAll('IsView')" type="checkbox" id="chkSelectAllIsView" />
+                      </label>
+                    </div>
+                  </ng-template>
+                </wj-flex-grid-column>
+
+              </wj-flex-grid>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="tab-pane fade" id="allowbasiclogin">
+        <div class="box1a" style="height:calc(99.8vh - 185px);">
+          <h3>Allow Basic Login</h3>
+          <div class="form-group row pD10">
+            <div class="col-sm-1">
+              <label></label>
+            </div>
+            <div class="col-sm-3">
+
+              <span class="highlight"></span>
+              <span class="bar"></span>
+            </div>
+
+
+            <!--<div class="col-sm-8">
+                <button type="submit" class="custombutton" tabindex="1" (click)="UpdateAllowBasicLogin(chkAllowBasicLogin.checked)">Update</button>
+            </div>-->
+
+            <div class="col-sm-12 customgridpadding">
+              <div>
+                <table>
+                  <tr>
+                    <td> Allow Basic Login </td>
+                    <td>
+                      <label class="switch">
+
+                        <input #chkAllowBasicLogin type="checkbox" id="chkAllowBasicLogin" [checked]="_isChecked" (change)="UpdateAllowBasicLogin(chkAllowBasicLogin.checked,'AllowBasicLogin')" />
+                        <span class="slider round"></span>
+                      </label>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td> Allow Calc Manager Debug</td>
+                    <td>
+                      <label class="switch">
+                        <input #chkCalcDebug type="checkbox" id="chkCalcDebug" [checked]="_isCalcChecked" (change)="UpdateAllowBasicLogin(chkCalcDebug.checked,'AllowDebugInCalc')" />
+                        <span class="slider round"></span>
+                      </label>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>Allow Manage Calc Booster</td>
+                    <td>
+                      <label class="switch">
+                        <input #chkcalcbooster type="checkbox" id="chkcalcbooster" [checked]="_iscalcboosterChecked" (change)="UpdateAllowBasicLogin(chkcalcbooster.checked,'AllowCalcBooster')" />
+                        <span class="slider round"></span>
+                      </label>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>Allow FF Save Json Into Blob</td>
+                    <td>
+                      <label class="switch">
+                        <input #chkAllowFFSaveJsonIntoBlob type="checkbox" id="chkAllowFFSaveJsonIntoBlob" [checked]="_isAllowFFSaveJsonIntoBlob" (change)="UpdateAllowBasicLogin(chkAllowFFSaveJsonIntoBlob.checked,'AllowFFSaveJsonIntoBlob')" />
+                        <span class="slider round"></span>
+                      </label>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>Export FF/PIK Transaction To Backshop</td>
+                    <td>
+                      <label class="switch">
+                        <input #chkAllowBackshopFFImport type="checkbox" id="chkAllowBackshopFFImport" [checked]="_isAllowBackshopFFImport" (change)="UpdateAllowBasicLogin(chkAllowBackshopFFImport.checked,'AllowBackshopFF')" />
+                        <span class="slider round"></span>
+                      </label>
+                    </td>
+                  </tr>
+
+                </table>
+
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+
+      <div class="tab-pane fade" id="getwfapprover">
+        <div class="box1a">
+          <h3>Workflow Approver</h3>
+          <div class="form-group row pD10">
+            <div class="col-sm-9 customgridpadding">
+
+              <button type="submit" class="custombutton" tabindex="1" (click)="AddUpdateWFApprover()">Save</button>
+
+
+              <wj-flex-grid id="userflexdata" #userflexdata [itemsSource]="userdata"
+                            auto-generate-columns="true"
+                            allow-sorting="true"
+                            showFilterIcons="true"
+                            [headersVisibility]="1"
+                            [allowAddNew]="true"
+                            allow-add class="gridSize"
+                            style="height:calc(99.8vh - 283px);">
+
+                <wj-flex-grid-filter #filter></wj-flex-grid-filter>
+                <wj-flex-grid-column [header]="'Name'" [binding]="'FirstName'" [isReadOnly]="true" [width]="170"></wj-flex-grid-column>
+                <wj-flex-grid-column [header]="'Login'" [binding]="'Login'" [isReadOnly]="true" [width]="135"></wj-flex-grid-column>
+                <wj-flex-grid-column [header]="'Email'" [binding]="'Email'" [width]="250"></wj-flex-grid-column>
+                <wj-flex-grid-column [header]="'Approver Type'" [binding]="'ModuleId'" [dataMapEditor]="true" [width]="160"></wj-flex-grid-column>
+                <wj-flex-grid-column [name]="'buttons'" [header]="'Send Email'" [isReadOnly]="true" [width]="115">
+                  <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
+                    <div>
+                      <a style="text-decoration: underline;cursor:pointer" (click)="SendWFApproverEmail(cell.row.index)">Send Email</a>
+                    </div>
+                  </ng-template>
+                </wj-flex-grid-column>
+                <wj-flex-grid-column [name]="'buttons'" [header]="'Delete'" [isReadOnly]="true" [width]="115">
+                  <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
+                    <div>
+                      <a style="text-decoration: underline;cursor:pointer" (click)="showDeleteDialogforwfapprover(cell.row.index)">Delete</a>
+                    </div>
+                  </ng-template>
+                </wj-flex-grid-column>
+              </wj-flex-grid>
+
+
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="tab-pane fade" id="schedulerconfig">
+        <div class="box1a">
+          <h3>Scheduler</h3>
+          <div class="form-group row pD10">
+
+            <div class="col-sm-12 customgridpadding">
+
+
+              <button type="submit" class="custombutton" tabindex="1" (click)="AddUpdateSchedulerConfig()">Save</button>
+
+              <wj-flex-grid id="flexScheduler" #flexScheduler [itemsSource]="schedulerdata" [allowResizing]="'Both'" auto-generate-columns="true" allow-sorting="true" showFilterIcons="true" [headersVisibility]="1" [allowAddNew]="true" allow-add class="gridSize" style="height:calc(99.8vh - 283px);">
+
+                <wj-flex-grid-filter #filter></wj-flex-grid-filter>
+                <wj-flex-grid-column [header]="'Scheduler Name'" [binding]="'SchedulerName'" [width]="300"></wj-flex-grid-column>
+                <wj-flex-grid-column [header]="'Execution Time'" [binding]="'ExecutionTime'" [width]="135"></wj-flex-grid-column>
+                <wj-flex-grid-column [header]="'Next Execution Date'" [binding]="'NextexecutionTime'" [width]="200" [dataType]="'Date'" [format]="'MM/dd/yyyy'" [isReadOnly]="true"></wj-flex-grid-column>
+                <wj-flex-grid-column [header]="'Frequency'" [binding]="'Frequency'" [dataMapEditor]="true" [width]="135">
+                </wj-flex-grid-column>
+                <wj-flex-grid-column [header]="'Status'" [binding]="'Status'" [dataMapEditor]="true" [width]="135"></wj-flex-grid-column>
+                <wj-flex-grid-column [name]="'buttons'" [isReadOnly]="true" [width]="50" [header]="'Action'">
+                  <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
+                    <a style="text-decoration: underline;" (click)="ShowRunSchedulerDialog(cell.row.index)">Run</a>
+                  </ng-template>
+                </wj-flex-grid-column>
+              </wj-flex-grid>
+
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="myModalDelete" class="modal">
+    <div class="modal-dialog" draggable="true" id="myModal-Delete" style="min-height:300px;width:500px">
+      <!-- Modal content -->
+      <div class="modal-content" style="padding:0px;border:0px;">
+        <div class="modal-header" style="background:#2196f3 !important">
+          <span class="customheading" style="color:white !important">Delete</span>
+          <span class="close" (click)="CloseDeletePopUp()">×</span>
+        </div>
+
+        <div class="modal-body">
+          <span class="customheading">Are you sure you want to delete it?</span>
+        </div>
+        <div class="modal-footer" style="background-color:white !important;">
+          <button type="button" (click)="CloseDeletePopUp()" class="custombutton" style="width:100px !important">Cancel</button>
+          <button type="button" (click)="deleteRow()" class="custombutton" style="width:100px !important">Ok</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div id="myModalScheduler" class="modal">
+    <div class="modal-dialog" draggable="true" id="myModal-Scheduler" style="min-height:300px;width:500px">
+      <!-- Modal content -->
+      <div class="modal-content" style="padding:0px;border:0px;">
+        <div class="modal-header" style="background:#2196f3 !important">
+          <span class="customheading" style="color:white !important">Name : {{SelectedSchedulerName}}</span>
+          <span class="close" (click)="CloseSchedulerPopUp()">×</span>
+        </div>
+
+        <div class="modal-body">
+          <span class="customheading">Are you sure you want to run this scheduler?</span>
+        </div>
+        <div class="modal-footer" style="background-color:white !important;">
+          <button type="button" (click)="CloseSchedulerPopUp()" class="custombutton" style="width:100px !important">Cancel</button>
+          <button type="button" (click)="RunScheduler()" class="custombutton" style="width:100px !important">Ok</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+
+  <div id="myModalCreateRole" class="modal">
+    <div class="modal-dialog" draggable="true" id="myModal-CreateRole" style="min-height:300px;width:500px">
+      <!-- Modal content -->
+      <div class="modal-content" style="padding:0px;border:0px;">
+        <div class="modal-header" style="background:#2196f3 !important">
+          <span class="customheading" style="color:white !important">Add Role</span>
+          <span class="close" (click)="CloseCreateRolePopUp()">×</span>
+        </div>
+
+        <div class="modal-body">
+          <div *ngIf="_alertinfodiv" class="alert alert-info fade in">
+            <strong>{{_alertinfomessage}}</strong>
+          </div>
+          <div *ngIf="_ShowSuccessmessageRolediv" class="alert alert-success fade in">
+            <strong>{{_ShowSuccessRolemessage}}</strong>
+          </div>
+          <div *ngIf="_IsShowMsg" class="alert alert-warning fade in">
+            <strong>{{_MsgText}}</strong>
+          </div>
+
+          <label class="lab1">Role name</label>
+          <input class="ibox1" type="text" required [(ngModel)]="role.NewRoleName" name="NewRoleName" #NewRoleName="ngModel" id="NewRoleName">
+
+
+
+        </div>
+        <div class="modal-footer" style="background-color:white !important;padding:5px">
+          <button type="button" (click)="CloseCreateRolePopUp()" class="custombutton" style="width:100px !important">Cancel</button>
+          <button type="button" (click)="CreateRole()" class="custombutton" style="width:100px !important">Add</button>
+        </div>
+
+
+      </div>
+    </div>
+  </div>
+
+  <div id="dialogoverlay"></div>
+
+  <div id="dialogbox">
+    <div>
+      <div id="dialogboxhead"></div>
+      <div id="dialogboxbody"></div>
+      <div id="dialogboxfoot"><span class="btn custombutton" (click)="ok()">Ok</span></div>
+    </div>
+  </div>
+
+
+
+</div>

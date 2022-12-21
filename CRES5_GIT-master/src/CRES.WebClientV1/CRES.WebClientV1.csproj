@@ -1,0 +1,274 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>netcoreapp3.1</TargetFramework>
+    <TypeScriptCompileBlocked>true</TypeScriptCompileBlocked>
+    <TypeScriptToolsVersion>Latest</TypeScriptToolsVersion>
+    <IsPackable>false</IsPackable>
+    <SpaRoot>ClientApp\</SpaRoot>
+    <DefaultItemExcludes>$(DefaultItemExcludes);$(SpaRoot)node_modules\**</DefaultItemExcludes>
+
+    <!-- Set this to true if you enable server-side prerendering -->
+    <BuildServerSideRenderer>false</BuildServerSideRenderer>
+    <UserSecretsId>2a0e699a-c34d-4543-b9b0-4229fe0dee3d</UserSecretsId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.SpaServices.Extensions" Version="3.1.4" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Don't publish the SPA source files, but do show them in the project files list -->
+    <Content Remove="$(SpaRoot)**" />
+    <None Remove="$(SpaRoot)**" />
+    <None Include="$(SpaRoot)**" Exclude="$(SpaRoot)node_modules\**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Remove="ClientApp\src\app\account\changePassword.component.ts" />
+    <None Remove="ClientApp\src\app\account\dataManagement.component.ts" />
+    <None Remove="ClientApp\src\app\account\forgotPassword.component.ts" />
+    <None Remove="ClientApp\src\app\account\login.component.ts" />
+    <None Remove="ClientApp\src\app\account\notificationSubscription.component.ts" />
+    <None Remove="ClientApp\src\app\account\resetPassword.component.ts" />
+    <None Remove="ClientApp\src\app\account\userPermission.component.ts" />
+    <None Remove="ClientApp\src\app\components\calculationManager.component.ts" />
+    <None Remove="ClientApp\src\app\components\dashboard.component.ts" />
+    <None Remove="ClientApp\src\app\components\deal.component.ts" />
+    <None Remove="ClientApp\src\app\components\devDashBoard.component.ts" />
+    <None Remove="ClientApp\src\app\components\feeConfiguration.component.ts" />
+    <None Remove="ClientApp\src\app\components\financingWarehouse.component.ts" />
+    <None Remove="ClientApp\src\app\components\financingWarehouseDetail.component.ts" />
+    <None Remove="ClientApp\src\app\components\function.component.ts" />
+    <None Remove="ClientApp\src\app\components\help.component.ts" />
+    <None Remove="ClientApp\src\app\components\impersonate-user\impersonate-user.module.ts" />
+    <None Remove="ClientApp\src\app\components\impersonate-user\select-user\selectUser.component.ts" />
+    <None Remove="ClientApp\src\app\components\indexes.component.ts" />
+    <None Remove="ClientApp\src\app\components\indexesDetail.component.ts" />
+    <None Remove="ClientApp\src\app\components\note.component.ts" />
+    <None Remove="ClientApp\src\app\components\pagenotfound.component.ts" />
+    <None Remove="ClientApp\src\app\components\scenario.component.ts" />
+    <None Remove="ClientApp\src\app\components\shared\busySpinner.component.ts" />
+    <None Remove="ClientApp\src\app\core\authorization\app-injector.ts" />
+    <None Remove="ClientApp\src\app\core\authorization\auth.guard.ts" />
+    <None Remove="ClientApp\src\app\core\authorization\auth.ts" />
+    <None Remove="ClientApp\src\app\core\authorization\authorizationGuard.ts" />
+    <None Remove="ClientApp\src\app\core\authorization\is-logged-in.ts" />
+    <None Remove="ClientApp\src\app\core\common\paginated.service.ts" />
+    <None Remove="ClientApp\src\app\core\domain\activityLog.model.ts" />
+    <None Remove="ClientApp\src\app\core\domain\batchCalculationMaster.model.ts" />
+    <None Remove="ClientApp\src\app\core\domain\botMessage.model.ts" />
+    <None Remove="ClientApp\src\app\core\domain\calculationManagerList.model.ts" />
+    <None Remove="ClientApp\src\app\core\domain\changePassword.model.ts" />
+    <None Remove="ClientApp\src\app\core\domain\deals.model.ts" />
+    <None Remove="ClientApp\src\app\core\domain\devDashBoard.model.ts" />
+    <None Remove="ClientApp\src\app\core\domain\document.model.ts" />
+    <None Remove="ClientApp\src\app\core\domain\exceptions.model.ts" />
+    <None Remove="ClientApp\src\app\core\domain\feeConfiguration.model.ts" />
+    <None Remove="ClientApp\src\app\core\domain\financingWarehouse.model.ts" />
+    <None Remove="ClientApp\src\app\core\domain\indexes.model.ts" />
+    <None Remove="ClientApp\src\app\core\domain\indexType.model.ts" />
+    <None Remove="ClientApp\src\app\core\domain\module.model.ts" />
+    <None Remove="ClientApp\src\app\core\domain\moduleTabMaster.model.ts" />
+    <None Remove="ClientApp\src\app\core\domain\note.model.ts" />
+    <None Remove="ClientApp\src\app\core\domain\noteAdditionalList.model.ts" />
+    <None Remove="ClientApp\src\app\core\domain\noteCashflowsExportDataList.model.ts" />
+    <None Remove="ClientApp\src\app\core\domain\notificationSubscription.model.ts" />
+    <None Remove="ClientApp\src\app\core\domain\operationResult.model.ts" />
+    <None Remove="ClientApp\src\app\core\domain\portfolio.model.ts" />
+    <None Remove="ClientApp\src\app\core\domain\reportFile.model.ts" />
+    <None Remove="ClientApp\src\app\core\domain\reportFileLog.model.ts" />
+    <None Remove="ClientApp\src\app\core\domain\Role.model.ts" />
+    <None Remove="ClientApp\src\app\core\domain\scenario.model.ts" />
+    <None Remove="ClientApp\src\app\core\domain\schedulerConfig.model.ts" />
+    <None Remove="ClientApp\src\app\core\domain\schedulerParam.model.ts" />
+    <None Remove="ClientApp\src\app\core\domain\search.model.ts" />
+    <None Remove="ClientApp\src\app\core\domain\taskManagement.model.ts" />
+    <None Remove="ClientApp\src\app\core\domain\testCase.model.ts" />
+    <None Remove="ClientApp\src\app\core\domain\timeZone.model.ts" />
+    <None Remove="ClientApp\src\app\core\domain\user.model.ts" />
+    <None Remove="ClientApp\src\app\core\domain\userDefaultSetting.model.ts" />
+    <None Remove="ClientApp\src\app\core\domain\userDelegateConfiguration.model.ts" />
+    <None Remove="ClientApp\src\app\core\domain\userNotification.model.ts" />
+    <None Remove="ClientApp\src\app\core\services\appInjector.service.ts" />
+    <None Remove="ClientApp\src\app\core\services\auth.ts" />
+    <None Remove="ClientApp\src\app\core\services\autoLogout.service.ts" />
+    <None Remove="ClientApp\src\app\core\services\busySpinner.service.ts" />
+    <None Remove="ClientApp\src\app\core\services\calculationManager.service.ts" />
+    <None Remove="ClientApp\src\app\core\services\chat.service.ts" />
+    <None Remove="ClientApp\src\app\core\services\dashBoard.service.ts" />
+    <None Remove="ClientApp\src\app\core\services\data.service.ts" />
+    <None Remove="ClientApp\src\app\core\services\deal.service.ts" />
+    <None Remove="ClientApp\src\app\core\services\devDashBoard.service.ts" />
+    <None Remove="ClientApp\src\app\core\services\feeConfiguration.service.ts" />
+    <None Remove="ClientApp\src\app\core\services\fileUpload.service.ts" />
+    <None Remove="ClientApp\src\app\core\services\financingWarehouse.service.ts" />
+    <None Remove="ClientApp\src\app\core\services\function.service.ts" />
+    <None Remove="ClientApp\src\app\core\services\indexes.service.ts" />
+    <None Remove="ClientApp\src\app\core\services\isLoggedIn.service.ts" />
+    <None Remove="ClientApp\src\app\core\services\logging.service.ts" />
+    <None Remove="ClientApp\src\app\core\services\membership.service.ts" />
+    <None Remove="ClientApp\src\app\core\services\note.service.ts" />
+    <None Remove="ClientApp\src\app\core\services\notification.service.ts" />
+    <None Remove="ClientApp\src\app\core\services\permission.service.ts" />
+    <None Remove="ClientApp\src\app\core\services\portfolio.service.ts" />
+    <None Remove="ClientApp\src\app\core\services\pushNotification.service.ts" />
+    <None Remove="ClientApp\src\app\core\services\report.service.ts" />
+    <None Remove="ClientApp\src\app\core\services\scenario.service.ts" />
+    <None Remove="ClientApp\src\app\core\services\search.service.ts" />
+    <None Remove="ClientApp\src\app\core\services\taskManager.service.ts" />
+    <None Remove="ClientApp\src\app\core\services\user.service.ts" />
+    <None Remove="ClientApp\src\app\core\services\utility.service.ts" />
+    <None Remove="ClientApp\src\app\getClocktime.model.ts" />
+    <None Remove="ClientApp\src\app\headerInterceptor.ts" />
+    <None Remove="ClientApp\src\app\ngAuth\authenticatedHttp.service.ts" />
+    <None Remove="ClientApp\src\app\ngAuth\authenticators\azureADAuth.service.ts" />
+    <None Remove="ClientApp\src\app\ngAuth\authenticators\AzureADServiceConstants.model.ts" />
+    <None Remove="ClientApp\src\app\ngAuth\authSettings.config.ts" />
+    <None Remove="ClientApp\src\app\ngAuth\JwtHelper.ts" />
+    <None Remove="ClientApp\src\app\Notification\notification.component.ts" />
+    <None Remove="ClientApp\src\app\Notification\signalR.service.ts" />
+    <None Remove="ClientApp\src\app\shared.module.ts" />
+    <None Remove="ClientApp\tsconfig.json" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="ClientApp\tsconfig.json" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <TypeScriptCompile Include="ClientApp\src\app\account\changePassword.component.ts" />
+    <TypeScriptCompile Include="ClientApp\src\app\account\dataManagement.component.ts" />
+    <TypeScriptCompile Include="ClientApp\src\app\account\forgotPassword.component.ts" />
+    <TypeScriptCompile Include="ClientApp\src\app\account\login.component.ts" />
+    <TypeScriptCompile Include="ClientApp\src\app\account\notificationSubscription.component.ts" />
+    <TypeScriptCompile Include="ClientApp\src\app\account\resetPassword.component.ts" />
+    <TypeScriptCompile Include="ClientApp\src\app\account\userPermission.component.ts" />
+    <TypeScriptCompile Include="ClientApp\src\app\components\calculationManager.component.ts" />
+    <TypeScriptCompile Include="ClientApp\src\app\components\dashboard.component.ts" />
+    <TypeScriptCompile Include="ClientApp\src\app\components\deal.component.ts" />
+    <TypeScriptCompile Include="ClientApp\src\app\components\devDashBoard.component.ts" />
+    <TypeScriptCompile Include="ClientApp\src\app\components\feeConfiguration.component.ts" />
+    <TypeScriptCompile Include="ClientApp\src\app\components\financingWarehouse.component.ts" />
+    <TypeScriptCompile Include="ClientApp\src\app\components\financingWarehouseDetail.component.ts" />
+    <TypeScriptCompile Include="ClientApp\src\app\components\function.component.ts" />
+    <TypeScriptCompile Include="ClientApp\src\app\components\help.component.ts" />
+    <TypeScriptCompile Include="ClientApp\src\app\components\impersonate-user\impersonate-user.module.ts" />
+    <TypeScriptCompile Include="ClientApp\src\app\components\impersonate-user\select-user\selectUser.component.ts" />
+    <TypeScriptCompile Include="ClientApp\src\app\components\indexes.component.ts" />
+    <TypeScriptCompile Include="ClientApp\src\app\components\indexesDetail.component.ts" />
+    <TypeScriptCompile Include="ClientApp\src\app\components\note.component.ts" />
+    <TypeScriptCompile Include="ClientApp\src\app\components\pagenotfound.component.ts" />
+    <TypeScriptCompile Include="ClientApp\src\app\components\scenario.component.ts" />
+    <TypeScriptCompile Include="ClientApp\src\app\components\shared\busySpinner.component.ts" />
+    <TypeScriptCompile Include="ClientApp\src\app\core\authorization\app-injector.ts" />
+    <TypeScriptCompile Include="ClientApp\src\app\core\authorization\auth.guard.ts" />
+    <TypeScriptCompile Include="ClientApp\src\app\core\authorization\auth.ts" />
+    <TypeScriptCompile Include="ClientApp\src\app\core\authorization\authorizationGuard.ts" />
+    <TypeScriptCompile Include="ClientApp\src\app\core\authorization\is-logged-in.ts" />
+    <TypeScriptCompile Include="ClientApp\src\app\core\common\paginated.service.ts" />
+    <TypeScriptCompile Include="ClientApp\src\app\core\domain\activityLog.model.ts" />
+    <TypeScriptCompile Include="ClientApp\src\app\core\domain\batchCalculationMaster.model.ts" />
+    <TypeScriptCompile Include="ClientApp\src\app\core\domain\botMessage.model.ts" />
+    <TypeScriptCompile Include="ClientApp\src\app\core\domain\calculationManagerList.model.ts" />
+    <TypeScriptCompile Include="ClientApp\src\app\core\domain\deals.model.ts" />
+    <TypeScriptCompile Include="ClientApp\src\app\core\domain\devDashBoard.model.ts" />
+    <TypeScriptCompile Include="ClientApp\src\app\core\domain\document.model.ts" />
+    <TypeScriptCompile Include="ClientApp\src\app\core\domain\exceptions.model.ts" />
+    <TypeScriptCompile Include="ClientApp\src\app\core\domain\feeConfiguration.model.ts" />
+    <TypeScriptCompile Include="ClientApp\src\app\core\domain\financingWarehouse.model.ts" />
+    <TypeScriptCompile Include="ClientApp\src\app\core\domain\indexes.model.ts" />
+    <TypeScriptCompile Include="ClientApp\src\app\core\domain\indexType.model.ts" />
+    <TypeScriptCompile Include="ClientApp\src\app\core\domain\module.model.ts" />
+    <TypeScriptCompile Include="ClientApp\src\app\core\domain\moduleTabMaster.model.ts" />
+    <TypeScriptCompile Include="ClientApp\src\app\core\domain\noteAdditionalList.model.ts" />
+    <TypeScriptCompile Include="ClientApp\src\app\core\domain\noteCashflowsExportDataList.model.ts" />
+    <TypeScriptCompile Include="ClientApp\src\app\core\domain\notificationSubscription.model.ts" />
+    <TypeScriptCompile Include="ClientApp\src\app\core\domain\portfolio.model.ts" />
+    <TypeScriptCompile Include="ClientApp\src\app\core\domain\reportFile.model.ts" />
+    <TypeScriptCompile Include="ClientApp\src\app\core\domain\reportFileLog.model.ts" />
+    <TypeScriptCompile Include="ClientApp\src\app\core\domain\role.model.ts" />
+    <TypeScriptCompile Include="ClientApp\src\app\core\domain\scenario.model.ts" />
+    <TypeScriptCompile Include="ClientApp\src\app\core\domain\schedulerConfig.model.ts" />
+    <TypeScriptCompile Include="ClientApp\src\app\core\domain\schedulerParam.model.ts" />
+    <TypeScriptCompile Include="ClientApp\src\app\core\domain\search.model.ts" />
+    <TypeScriptCompile Include="ClientApp\src\app\core\domain\taskManagement.model.ts" />
+    <TypeScriptCompile Include="ClientApp\src\app\core\domain\testCase.model.ts" />
+    <TypeScriptCompile Include="ClientApp\src\app\core\domain\userDelegateConfiguration.model.ts" />
+    <TypeScriptCompile Include="ClientApp\src\app\core\domain\userNotification.model.ts" />
+    <TypeScriptCompile Include="ClientApp\src\app\core\domain\changePassword.model.ts" />
+    <TypeScriptCompile Include="ClientApp\src\app\core\domain\note.model.ts" />
+    <TypeScriptCompile Include="ClientApp\src\app\core\domain\operationResult.model.ts" />
+    <TypeScriptCompile Include="ClientApp\src\app\core\domain\timeZone.model.ts" />
+    <TypeScriptCompile Include="ClientApp\src\app\core\domain\user.model.ts" />
+    <TypeScriptCompile Include="ClientApp\src\app\core\domain\userDefaultSetting.model.ts" />
+    <TypeScriptCompile Include="ClientApp\src\app\core\services\appInjector.service.ts" />
+    <TypeScriptCompile Include="ClientApp\src\app\core\services\auth.ts" />
+    <TypeScriptCompile Include="ClientApp\src\app\core\services\autoLogout.service.ts" />
+    <TypeScriptCompile Include="ClientApp\src\app\core\services\busySpinner.service.ts" />
+    <TypeScriptCompile Include="ClientApp\src\app\core\services\calculationManager.service.ts" />
+    <TypeScriptCompile Include="ClientApp\src\app\core\services\chat.service.ts" />
+    <TypeScriptCompile Include="ClientApp\src\app\core\services\dashBoard.service.ts" />
+    <TypeScriptCompile Include="ClientApp\src\app\core\services\data.service.ts" />
+    <TypeScriptCompile Include="ClientApp\src\app\core\services\deal.service.ts" />
+    <TypeScriptCompile Include="ClientApp\src\app\core\services\devDashBoard.service.ts" />
+    <TypeScriptCompile Include="ClientApp\src\app\core\services\feeConfiguration.service.ts" />
+    <TypeScriptCompile Include="ClientApp\src\app\core\services\fileUpload.service.ts" />
+    <TypeScriptCompile Include="ClientApp\src\app\core\services\financingWarehouse.service.ts" />
+    <TypeScriptCompile Include="ClientApp\src\app\core\services\function.service.ts" />
+    <TypeScriptCompile Include="ClientApp\src\app\core\services\indexes.service.ts" />
+    <TypeScriptCompile Include="ClientApp\src\app\core\services\isLoggedIn.service.ts" />
+    <TypeScriptCompile Include="ClientApp\src\app\core\services\logging.service.ts" />
+    <TypeScriptCompile Include="ClientApp\src\app\core\services\membership.service.ts" />
+    <TypeScriptCompile Include="ClientApp\src\app\core\services\note.service.ts" />
+    <TypeScriptCompile Include="ClientApp\src\app\core\services\notification.service.ts" />
+    <TypeScriptCompile Include="ClientApp\src\app\core\services\permission.service.ts" />
+    <TypeScriptCompile Include="ClientApp\src\app\core\services\portfolio.service.ts" />
+    <TypeScriptCompile Include="ClientApp\src\app\core\services\pushNotification.service.ts" />
+    <TypeScriptCompile Include="ClientApp\src\app\core\services\report.service.ts" />
+    <TypeScriptCompile Include="ClientApp\src\app\core\services\scenario.service.ts" />
+    <TypeScriptCompile Include="ClientApp\src\app\core\services\search.service.ts" />
+    <TypeScriptCompile Include="ClientApp\src\app\core\services\taskManager.service.ts" />
+    <TypeScriptCompile Include="ClientApp\src\app\core\services\user.service.ts" />
+    <TypeScriptCompile Include="ClientApp\src\app\core\services\utility.service.ts" />
+    <TypeScriptCompile Include="ClientApp\src\app\getClocktime.model.ts" />
+    <TypeScriptCompile Include="ClientApp\src\app\core\common\headerInterceptor.ts" />
+    <TypeScriptCompile Include="ClientApp\src\app\ngAuth\authenticatedHttp.service.ts" />
+    <TypeScriptCompile Include="ClientApp\src\app\ngAuth\authenticators\azureADAuth.service.ts" />
+    <TypeScriptCompile Include="ClientApp\src\app\ngAuth\authenticators\AzureADServiceConstants.model.ts" />
+    <TypeScriptCompile Include="ClientApp\src\app\ngAuth\authSettings.config.ts" />
+    <TypeScriptCompile Include="ClientApp\src\app\ngAuth\JwtHelper.ts" />
+    <TypeScriptCompile Include="ClientApp\src\app\Notification\notification.component.ts" />
+    <TypeScriptCompile Include="ClientApp\src\app\Notification\signalR.service.ts" />
+    <TypeScriptCompile Include="ClientApp\src\app\shared.module.ts" />
+  </ItemGroup>
+
+  <Target Name="DebugEnsureNodeEnv" BeforeTargets="Build" Condition=" '$(Configuration)' == 'Debug' And !Exists('$(SpaRoot)node_modules') ">
+    <!-- Ensure Node.js is installed -->
+    <Exec Command="node --version" ContinueOnError="true">
+      <Output TaskParameter="ExitCode" PropertyName="ErrorCode" />
+    </Exec>
+    <Error Condition="'$(ErrorCode)' != '0'" Text="Node.js is required to build and run this project. To continue, please install Node.js from https://nodejs.org/, and then restart your command prompt or IDE." />
+    <Message Importance="high" Text="Restoring dependencies using 'npm'. This may take several minutes..." />
+    <Exec WorkingDirectory="$(SpaRoot)" Command="npm install" />
+  </Target>
+
+  <Target Name="PublishRunWebpack" AfterTargets="ComputeFilesToPublish">
+    <!-- As part of publishing, ensure the JS resources are freshly built in production mode -->
+    <Exec WorkingDirectory="$(SpaRoot)" Command="npm install" />
+    <Exec WorkingDirectory="$(SpaRoot)" Command="npm run build -- --prod" />
+    <Exec WorkingDirectory="$(SpaRoot)" Command="npm run build:ssr -- --prod" Condition=" '$(BuildServerSideRenderer)' == 'true' " />
+
+    <!-- Include the newly-built files in the publish output -->
+    <ItemGroup>
+      <DistFiles Include="$(SpaRoot)dist\**; $(SpaRoot)dist-server\**" />
+      <DistFiles Include="$(SpaRoot)node_modules\**" Condition="'$(BuildServerSideRenderer)' == 'true'" />
+      <ResolvedFileToPublish Include="@(DistFiles->'%(FullPath)')" Exclude="@(ResolvedFileToPublish)">
+        <RelativePath>%(DistFiles.Identity)</RelativePath>
+        <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+        <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
+      </ResolvedFileToPublish>
+    </ItemGroup>
+  </Target>
+
+</Project>

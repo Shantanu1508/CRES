@@ -1,0 +1,20 @@
+﻿
+
+CREATE PROCEDURE [dbo].[usp_GetRole]  --'2CFCE55A-2449-4083-ADAE-0AC17388235C', '80E27BC4-B933-4724-9DB2-EF3CDB8ADB6B',1,10,''
+	
+AS
+BEGIN
+
+	SET NOCOUNT ON;
+	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
+ 
+ SELECT [RoleID]
+      ,[RoleName]
+      ,[StatusID]
+      ,[CreatedBy]
+      ,[CreatedDate]
+      ,[UpdatedBy]
+      ,[UpdatedDate]
+  FROM [App].[Role]
+ 	SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+END

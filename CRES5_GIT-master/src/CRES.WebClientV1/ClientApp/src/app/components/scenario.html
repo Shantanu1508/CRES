@@ -1,0 +1,65 @@
+<form #f="ngForm">
+  <div class="col-sm-12">
+    <div class="head fixheaderdiv">
+      <h1 style="display: inline-block;margin-top: 10px;">
+        Scenarios
+      </h1>
+      <span>
+        <button class="custombutton" style="margin-right:22px !important;" (click)="AddNewScenario()">
+          Add Scenario
+        </button>
+        <!--<button class="custombutton" style="width:200px !important;" (click)="ResetDefaultToActiveScenario()">
+            Reset to Default Scenario & Calc
+        </button>-->
+      </span>
+
+      <div *ngIf="_ShowSuccessmessagediv" class="alert alert-success fade in">
+        <strong>{{_ShowSuccessmessage}}</strong>
+      </div>
+      <div *ngIf="_Showmessagediv" class="alert alert-danger fade in">
+        <strong>{{Message}}</strong>
+      </div>
+
+
+      <div class="cssload-container" *ngIf="_isScenarioListFetching">
+        <div class="cssload-whirlpool"></div>
+      </div>
+
+    </div>
+
+    <!--<svg *ngIf="_isNoteListFetching" class="spinner" width="25px" height="25px" viewBox="0 0 66 66"><circle class="circle" fill="none" stroke-width="6" stroke-linecap="round" cx="33" cy="33" r="30"></circle></svg>-->
+
+
+    <div class="fmst fixheadercontent">
+
+      <div class="">
+        <div class="form-group row pD10 scenariostopdiv">
+          <div class="col-sm-12">
+            <wj-flex-grid id="flexscenario" #flexscenario [itemsSource]="lstScenarioData" [allowResizing]="'Both'" auto-generate-columns="true" allow-add-new="true" allow-sorting="true" showFilterIcons="true" class="scenariosgrid">
+              <wj-flex-grid-filter #filter></wj-flex-grid-filter>
+              <wj-flex-grid-column [header]="'Scenario name'" [isReadOnly]="true" [width]="'*'">
+                <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
+                  <div>
+                    <a href='/#/scenariodetail/{{cell.item.AnalysisID}}' routerLinkActive="active">{{cell.item.ScenarioName}}</a>
+                  </div>
+                </ng-template>
+              </wj-flex-grid-column>
+              <wj-flex-grid-column [header]="'Description'" [binding]="'Description'" [isReadOnly]="true" [width]="'*'"></wj-flex-grid-column>
+              <!--<wj-flex-grid-column [header]="'Active?'" [binding]="'StatusIDText'" [isReadOnly]="true" [width]="'*'"></wj-flex-grid-column>-->
+
+              <wj-flex-grid-column [name]="'buttons'" [header]="'Download Cashflow'" [isReadOnly]="true" align="left" [width]="'*'">
+                <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
+                  <a style="cursor: pointer;" (click)="DownloadScenario(cell.item)">Download</a>
+                </ng-template>
+              </wj-flex-grid-column>
+
+            </wj-flex-grid>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="cssload-container" *ngIf="_isShowLoader">
+      <div class="cssload-whirlpool"></div>
+    </div>
+  </div>
+</form>

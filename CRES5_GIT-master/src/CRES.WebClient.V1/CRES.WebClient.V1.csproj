@@ -1,0 +1,187 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>netcoreapp3.1</TargetFramework>
+    <TypeScriptCompileBlocked>true</TypeScriptCompileBlocked>
+    <TypeScriptToolsVersion>Latest</TypeScriptToolsVersion>
+    <IsPackable>false</IsPackable>
+    <SpaRoot>ClientApp\</SpaRoot>
+    <DefaultItemExcludes>$(DefaultItemExcludes);$(SpaRoot)node_modules\**</DefaultItemExcludes>
+
+    <!-- Set this to true if you enable server-side prerendering -->
+    <BuildServerSideRenderer>false</BuildServerSideRenderer>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.SpaServices.Extensions" Version="3.1.4" />
+    <PackageReference Include="Microsoft.TypeScript.MSBuild" Version="4.5.2">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Don't publish the SPA source files, but do show them in the project files list -->
+    <Content Remove="$(SpaRoot)**" />
+    <None Remove="$(SpaRoot)**" />
+    <None Include="$(SpaRoot)**" Exclude="$(SpaRoot)node_modules\**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Remove="ClientApp\src\app\components\AccountingReports\accountingReport.component.ts" />
+    <None Remove="ClientApp\src\app\components\AccountingReports\accountingReportHistory.component.ts" />
+    <None Remove="ClientApp\src\app\components\dealDetail.component.ts" />
+    <None Remove="ClientApp\src\app\components\importExport\importServicingLog.component.ts" />
+    <None Remove="ClientApp\src\app\components\importExport\importUnderwriting.component.ts" />
+    <None Remove="ClientApp\src\app\components\importExport\inUnderwritingDealDetail.component.ts" />
+    <None Remove="ClientApp\src\app\components\importExport\inUnderwritingNoteDetail.component.ts" />
+    <None Remove="ClientApp\src\app\components\importExport\transactionReconciliation.component.ts" />
+    <None Remove="ClientApp\src\app\components\noteDetail.component.ts" />
+    <None Remove="ClientApp\src\app\components\notification.component.ts" />
+    <None Remove="ClientApp\src\app\components\periodicClose.component.ts" />
+    <None Remove="ClientApp\src\app\components\portfolio.component.ts" />
+    <None Remove="ClientApp\src\app\components\portfolioDetail.component.ts" />
+    <None Remove="ClientApp\src\app\components\property.component.ts" />
+    <None Remove="ClientApp\src\app\components\reportDetail.component.ts" />
+    <None Remove="ClientApp\src\app\components\reportPage.component.ts" />
+    <None Remove="ClientApp\src\app\components\scenarioDetail.component.ts" />
+    <None Remove="ClientApp\src\app\components\shared\progress\progress.component.ts" />
+    <None Remove="ClientApp\src\app\components\tagMaster.component.ts" />
+    <None Remove="ClientApp\src\app\components\taskActivity.component.ts" />
+    <None Remove="ClientApp\src\app\components\taskDetail.component.ts" />
+    <None Remove="ClientApp\src\app\components\taskList.component.ts" />
+    <None Remove="ClientApp\src\app\components\transactionAudit.component.ts" />
+    <None Remove="ClientApp\src\app\components\transactionAuditDetail.component.ts" />
+    <None Remove="ClientApp\src\app\components\workFlow.component.ts" />
+    <None Remove="ClientApp\src\app\components\workFlowDetail.component.ts" />
+    <None Remove="ClientApp\src\app\core\common\appsettings.js" />
+    <None Remove="ClientApp\src\app\core\common\appsettings.js.map" />
+    <None Remove="ClientApp\src\app\core\common\appSettings.ts" />
+    <None Remove="ClientApp\src\app\core\domain\backshopImport.model.ts" />
+    <None Remove="ClientApp\src\app\core\domain\dealFunding.model.ts" />
+    <None Remove="ClientApp\src\app\core\domain\drawFeeInvoiceDetail.model.ts" />
+    <None Remove="ClientApp\src\app\core\domain\inUnderwritingDeal.model.ts" />
+    <None Remove="ClientApp\src\app\core\domain\noteAdditionalListObject.model.ts" />
+    <None Remove="ClientApp\src\app\core\domain\noteDateObjects.model.ts" />
+    <None Remove="ClientApp\src\app\core\domain\noteDetailFunding.model.ts" />
+    <None Remove="ClientApp\src\app\core\domain\periodic.model.ts" />
+    <None Remove="ClientApp\src\app\core\domain\property.model.ts" />
+    <None Remove="ClientApp\src\app\core\domain\QBDCompany.model.ts" />
+    <None Remove="ClientApp\src\app\core\domain\report.model.ts" />
+    <None Remove="ClientApp\src\app\core\domain\tagMaster.model.ts" />
+    <None Remove="ClientApp\src\app\core\domain\workFlow.model.ts" />
+    <None Remove="ClientApp\src\app\core\pipe\urlSafe.pipe.ts" />
+    <None Remove="ClientApp\src\app\core\services\importServicingLog.service.ts" />
+    <None Remove="ClientApp\src\app\core\services\importUnderwriting.service.ts" />
+    <None Remove="ClientApp\src\app\core\services\periodicData.service.ts" />
+    <None Remove="ClientApp\src\app\core\services\property.service.ts" />
+    <None Remove="ClientApp\src\app\core\services\tagMaster.service.ts" />
+    <None Remove="ClientApp\src\app\core\services\transactionReconciliation.service.ts" />
+    <None Remove="ClientApp\src\app\core\services\transcationreconciliation.service.ts" />
+    <None Remove="ClientApp\src\app\core\services\workFlow.service.ts" />
+    <None Remove="ClientApp\src\app\directives\dnd.directive.ts" />
+    <None Remove="ClientApp\src\assets\js\AceRuleEditor.js" />
+    <None Remove="ClientApp\src\assets\js\editorfunction.js" />
+    <None Remove="ClientApp\tsconfig.json" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="ClientApp\src\app\core\common\appsettings.js">
+      <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+    </Content>
+    <Content Include="ClientApp\src\app\core\common\appsettings.js.map">
+      <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+    </Content>
+    <Content Include="ClientApp\src\assets\js\AceRuleEditor.js">
+      <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+    </Content>
+    <Content Include="ClientApp\src\assets\js\editorfunction.js">
+      <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+    </Content>
+    <Content Include="ClientApp\tsconfig.json" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <TypeScriptCompile Include="ClientApp\src\app\components\AccountingReports\accountingReport.component.ts" />
+    <TypeScriptCompile Include="ClientApp\src\app\components\AccountingReports\accountingReportHistory.component.ts" />
+    <TypeScriptCompile Include="ClientApp\src\app\components\dealDetail.component.ts" />
+    <TypeScriptCompile Include="ClientApp\src\app\components\importExport\importServicingLog.component.ts" />
+    <TypeScriptCompile Include="ClientApp\src\app\components\importExport\importUnderwriting.component.ts" />
+    <TypeScriptCompile Include="ClientApp\src\app\components\importExport\inUnderwritingDealDetail.component.ts" />
+    <TypeScriptCompile Include="ClientApp\src\app\components\importExport\inUnderwritingNoteDetail.component.ts" />
+    <TypeScriptCompile Include="ClientApp\src\app\components\importExport\transactionReconciliation.component.ts" />
+    <TypeScriptCompile Include="ClientApp\src\app\components\noteDetail.component.ts" />
+    <TypeScriptCompile Include="ClientApp\src\app\components\notification.component.ts" />
+    <TypeScriptCompile Include="ClientApp\src\app\components\periodicClose.component.ts" />
+    <TypeScriptCompile Include="ClientApp\src\app\components\portfolio.component.ts" />
+    <TypeScriptCompile Include="ClientApp\src\app\components\portfolioDetail.component.ts" />
+    <TypeScriptCompile Include="ClientApp\src\app\components\property.component.ts" />
+    <TypeScriptCompile Include="ClientApp\src\app\components\reportDetail.component.ts" />
+    <TypeScriptCompile Include="ClientApp\src\app\components\reportPage.component.ts" />
+    <TypeScriptCompile Include="ClientApp\src\app\components\scenarioDetail.component.ts" />
+    <TypeScriptCompile Include="ClientApp\src\app\components\shared\progress\progress.component.ts" />
+    <TypeScriptCompile Include="ClientApp\src\app\components\tagMaster.component.ts" />
+    <TypeScriptCompile Include="ClientApp\src\app\components\taskActivity.component.ts" />
+    <TypeScriptCompile Include="ClientApp\src\app\components\taskDetail.component.ts" />
+    <TypeScriptCompile Include="ClientApp\src\app\components\taskList.component.ts" />
+    <TypeScriptCompile Include="ClientApp\src\app\components\transactionAudit.component.ts" />
+    <TypeScriptCompile Include="ClientApp\src\app\components\transactionAuditDetail.component.ts" />
+    <TypeScriptCompile Include="ClientApp\src\app\components\workFlow.component.ts" />
+    <TypeScriptCompile Include="ClientApp\src\app\components\workFlowDetail.component.ts" />
+    <TypeScriptCompile Include="ClientApp\src\app\core\domain\backshopImport.model.ts" />
+    <TypeScriptCompile Include="ClientApp\src\app\core\domain\dealFunding.model.ts" />
+    <TypeScriptCompile Include="ClientApp\src\app\core\domain\drawFeeInvoiceDetail.model.ts" />
+    <TypeScriptCompile Include="ClientApp\src\app\core\domain\inUnderwritingDeal.model.ts" />
+    <TypeScriptCompile Include="ClientApp\src\app\core\domain\noteDetailFunding.model.ts" />
+    <TypeScriptCompile Include="ClientApp\src\app\core\domain\noteAdditionalListObject.model.ts" />
+    <TypeScriptCompile Include="ClientApp\src\app\core\domain\noteDateObjects.model.ts" />
+    <TypeScriptCompile Include="ClientApp\src\app\core\domain\periodic.model.ts" />
+    <TypeScriptCompile Include="ClientApp\src\app\core\domain\property.model.ts" />
+    <TypeScriptCompile Include="ClientApp\src\app\core\domain\QBDCompany.model.ts" />
+    <TypeScriptCompile Include="ClientApp\src\app\core\domain\report.model.ts" />
+    <TypeScriptCompile Include="ClientApp\src\app\core\domain\tagMaster.model.ts" />
+    <TypeScriptCompile Include="ClientApp\src\app\core\domain\workFlow.model.ts" />
+    <TypeScriptCompile Include="ClientApp\src\app\core\services\importServicingLog.service.ts" />
+    <TypeScriptCompile Include="ClientApp\src\app\core\services\importUnderwriting.service.ts" />
+    <TypeScriptCompile Include="ClientApp\src\app\core\services\periodicData.service.ts" />
+    <TypeScriptCompile Include="ClientApp\src\app\core\services\property.service.ts" />
+    <TypeScriptCompile Include="ClientApp\src\app\core\services\tagMaster.service.ts" />
+    <TypeScriptCompile Include="ClientApp\src\app\core\services\transactionReconciliation.service.ts" />
+    <TypeScriptCompile Include="ClientApp\src\app\core\services\transcationreconciliation.service.ts" />
+    <TypeScriptCompile Include="ClientApp\src\app\core\services\workFlow.service.ts" />
+    <TypeScriptCompile Include="ClientApp\src\app\directives\dnd.directive.ts" />
+  </ItemGroup>
+
+  <Target Name="DebugEnsureNodeEnv" BeforeTargets="Build" Condition=" '$(Configuration)' == 'Debug' And !Exists('$(SpaRoot)node_modules') ">
+    <!-- Ensure Node.js is installed -->
+    <Exec Command="node --version" ContinueOnError="true">
+      <Output TaskParameter="ExitCode" PropertyName="ErrorCode" />
+    </Exec>
+    <Error Condition="'$(ErrorCode)' != '0'" Text="Node.js is required to build and run this project. To continue, please install Node.js from https://nodejs.org/, and then restart your command prompt or IDE." />
+    <Message Importance="high" Text="Restoring dependencies using 'npm'. This may take several minutes..." />
+    <Exec WorkingDirectory="$(SpaRoot)" Command="npm install" />
+  </Target>
+
+  <Target Name="PublishRunWebpack" AfterTargets="ComputeFilesToPublish">
+    <!-- As part of publishing, ensure the JS resources are freshly built in production mode -->
+    <Exec WorkingDirectory="$(SpaRoot)" Command="npm install" />
+    <Exec WorkingDirectory="$(SpaRoot)" Command="npm run build -- --prod" />
+    <Exec WorkingDirectory="$(SpaRoot)" Command="npm run build:ssr -- --prod" Condition=" '$(BuildServerSideRenderer)' == 'true' " />
+
+    <!-- Include the newly-built files in the publish output -->
+    <ItemGroup>
+      <DistFiles Include="$(SpaRoot)dist\**; $(SpaRoot)dist-server\**" />
+      <DistFiles Include="$(SpaRoot)node_modules\**" Condition="'$(BuildServerSideRenderer)' == 'true'" />
+      <ResolvedFileToPublish Include="@(DistFiles->'%(FullPath)')" Exclude="@(ResolvedFileToPublish)">
+        <RelativePath>%(DistFiles.Identity)</RelativePath>
+        <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+        <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
+      </ResolvedFileToPublish>
+    </ItemGroup>
+  </Target>
+
+</Project>

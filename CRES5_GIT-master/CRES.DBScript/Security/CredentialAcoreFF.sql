@@ -1,0 +1,3 @@
+﻿CREATE DATABASE SCOPED CREDENTIAL [CredentialAcoreFF]
+    WITH IDENTITY = N'ACOREAccounting';
+

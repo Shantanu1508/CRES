@@ -1,0 +1,109 @@
+<div class="col-sm-12">
+
+  <div class="head">
+    <h1 style="display: inline-block;margin-top: 10px;">Workflow tasks</h1>
+    <span style="float:right">
+      <table>
+        <tr>
+          <td><label> View all tasks </label></td>
+          <td>
+            <label class="switch">
+              <input #chkAllTask type="checkbox" id="chkAllTask" [checked]="_isChecked" (change)="FetchAllTask(chkAllTask.checked)" />
+              <span class="slider round"></span>
+            </label>
+          </td>
+        </tr>
+      </table>
+    </span>
+  </div>
+
+  <div *ngIf="_Showmessagediv" class="alert alert-success fade in">
+    <strong>{{_ShowmessagedivMsg}}</strong>
+  </div>
+
+  <div *ngIf="_ShowmessagedivMsgWar" class="alert alert-warning fade in">
+    <strong>{{_WaringMessage}}</strong>
+  </div>
+  <div class="cssload-container" *ngIf="_workflowListFetching">
+    <div class="cssload-whirlpool"></div>
+  </div>
+  <div class="fmst customlistpageheight">
+    <div class="row MG0">
+      <div *ngIf="_dvEmptyWFSearchMsg == true" class="alert alert-danger fade in" style="margin-top:5px;margin-bottom:-5px;">
+        <!--<a href="#" class="close" data-dismiss="alert" aria-label="close" title="close">×</a>-->
+        <strong>No matching records found</strong>
+      </div>
+      <div class="col-sm-12 customgridpadding" *ngIf="_dvEmptyWFSearchMsg == false">
+        <!--<center>
+            <svg *ngIf="_dealListFetching" class="spinner" width="25px" height="25px" viewBox="0 0 66 66"><circle class="circle" fill="none" stroke-width="6" stroke-linecap="round" cx="33" cy="33" r="30"></circle></svg>
+        </center>-->
+
+        <div class="clearfix"></div>
+        <div style="float:right !important;margin-left:0px !important;padding-bottom:10px;">
+          <wj-multi-select #multiselStatus id="multiselStatus"
+                           [placeholder]="'Select Status'"
+                           class="ibox1 multiselect-dropdown display-table-cell"
+                           [headerFormat]="'{count} Status Selected'"
+                           [displayMemberPath]="'StatusName'"
+                           [checkedMemberPath]="'selected'"
+                           [showDropDownButton] ="true"
+                           [itemsSource]="lststatus"
+                           (checkedItemsChanged)="onchangedcheckeditems('change')">
+          </wj-multi-select>
+        </div>
+
+        <wj-flex-grid id="flex" #flex [itemsSource]="lstworkflow" [allowResizing]="'Both'" auto-generate-columns="true" allow-add-new="true" allow-sorting="true" showFilterIcons="true" class="wijmogridcss">
+          <wj-flex-grid-filter #filter></wj-flex-grid-filter>
+          <wj-flex-grid-column [header]="''" [isReadOnly]="true" [width]="40">
+            <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
+              <div>
+                <a href='/#/workflowdetail/{{cell.item.TaskID}}' target="_blank">View</a>
+              </div>
+            </ng-template>
+          </wj-flex-grid-column>
+          <wj-flex-grid-column [header]="'Deal Name'" [binding]="'DealName'" [isReadOnly]="true" [width]="'*'">
+            <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
+              <div>
+                <a href='/#/dealdetail/{{cell.item.CREDealID}}' target="_blank">{{cell.item.DealName}}</a>
+              </div>
+            </ng-template>
+          </wj-flex-grid-column>
+
+
+
+
+          <wj-flex-grid-column [header]="'Approval Deadline'" [binding]="'Deadline'" [isReadOnly]="true" align="right" [width]="140"></wj-flex-grid-column>
+          <wj-flex-grid-column [header]="'Funding Date'" [binding]="'Fundingdate'" [isReadOnly]="true" align="right" [width]="110"></wj-flex-grid-column>
+
+          <wj-flex-grid-column [header]="'Funding Amount'" [binding]="'Amount'" [isReadOnly]="true" [dataType]="'Number'" [width]="'*'" align="right" format="n2" style="display:none">
+            <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
+              <div [ngStyle]="{color: cell.item.Amount < 0? 'red' : 'darkgreen'}">
+                {{cell.item.Amount | number:'1.2-2'}}
+              </div>
+            </ng-template>
+          </wj-flex-grid-column>
+          <!--<wj-flex-grid-column [header]="'Funding Amount'" [binding]="'Amount'" [isReadOnly]="true" align="right" [width]="'*'"></wj-flex-grid-column>-->
+          <wj-flex-grid-column [header]="'Purpose Type'" [binding]="'PurposeIDText'" [isReadOnly]="true" [width]="'*'"></wj-flex-grid-column>
+
+          <wj-flex-grid-column [header]="'Funding Status'" [binding]="'StatusName'" [isReadOnly]="true" [width]="'*'"></wj-flex-grid-column>
+          <wj-flex-grid-column [header]="'FC Team Approval Required'" [binding]="'FundingApprovalRequired'" [isReadOnly]="true" [width]="'*'"></wj-flex-grid-column>
+          <wj-flex-grid-column [header]="'Workflow Particpant'" [binding]="'Username'" [isReadOnly]="true" [width]="'*'"></wj-flex-grid-column>
+          <!--<wj-flex-grid-column [header]="'Comment'" [binding]="'Comment'" [isReadOnly]="true" align="right" [width]="'*'"></wj-flex-grid-column>-->
+          <!--<ng-template wjFlexGridDetail [maxHeight]="250" [detailVisibilityMode]="detailMode" let-item="item">
+              <wj-flex-grid [itemsSource]="getWorkflowdetailByFundingID(item.TaskID)"
+                            [headersVisibility]="'Column'">
+                  <wj-flex-grid-column [header]="'NoteID'" [binding]="'NoteName'" [width]="160">
+                      <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
+                          <div>
+                              <a href='/#/notedetail/{{cell.item.NoteID}}' routerLinkActive="active">{{cell.item.NoteName}}</a>
+                          </div>
+                      </ng-template>
+                  </wj-flex-grid-column>
+                  <wj-flex-grid-column [header]="'Amount'" [binding]="'FundingAmount'"></wj-flex-grid-column>
+              </wj-flex-grid>
+          </ng-template>-->
+        </wj-flex-grid>
+      </div>
+    </div>
+  </div>
+</div>

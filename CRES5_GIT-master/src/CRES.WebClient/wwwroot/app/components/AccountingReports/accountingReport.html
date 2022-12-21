@@ -1,0 +1,81 @@
+﻿<div class="col-sm-12">
+
+    <div class="head">
+        <h1 style="display: inline-block;margin-top: 10px;">Reports</h1>
+    </div>
+    <div *ngIf="_dvEmptyReportSearchMsg" class="alert alert-danger fade in" style="margin-top:18px;">
+        <!--<a href="#" class="close" data-dismiss="alert" aria-label="close" title="close">×</a>-->
+        <strong>No matching records found</strong>
+    </div>
+    <div *ngIf="_ShowmessagedivError" class="alert alert-danger fade in" style="margin-top:18px;">
+        <strong>{{_ShowmessagedivErrorMsg}}</strong>
+    </div>
+    <div *ngIf="_Showmessagediv" class="alert alert-success fade in">
+        <strong>{{_ShowmessagedivMsg}}</strong>
+    </div>
+
+    <div *ngIf="_ShowmessagedivMsgWar" class="alert alert-warning fade in">
+        <strong>{{_WaringMessage}}</strong>
+    </div>
+
+    <div *ngIf="_dvEmptyReportSearchMsg == 0" class="fmst customlistpageheight">
+        <div class="row MG0">
+            <div class="col-sm-12 customgridpadding">
+
+                <div class="cssload-container" *ngIf="_reportListFetching">
+                    <div class="cssload-whirlpool"></div>
+                </div>
+                <!--<center>
+                    <svg *ngIf="_dealListFetching" class="spinner" width="25px" height="25px" viewBox="0 0 66 66"><circle class="circle" fill="none" stroke-width="6" stroke-linecap="round" cx="33" cy="33" r="30"></circle></svg>
+                </center>-->
+
+                <div class="clearfix"></div>
+
+                <wj-flex-grid id="flex" #flex [itemsSource]="lstreports" auto-generate-columns="true" allow-add-new="true" allow-sorting="true" showFilterIcons="true" class="wijmogridcss">
+                    <!--(selectionChanged)="selectionChangedHandler()"-->
+                    <wj-flex-grid-filter #filter></wj-flex-grid-filter>
+
+                    <wj-flex-grid-column [header]="'Report Name'" [binding]="'ReportFileName'" [width]="250"></wj-flex-grid-column>
+                    <wj-flex-grid-column [header]="'Generate'" [width]="'*'">
+                        <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
+                            <div>
+                                <a (click)="GenearteAndDownloadReport(cell.item.ReportFileGUID)" routerLinkActive="active">Generate</a>
+                            </div>
+                        </ng-template>
+                        
+                    </wj-flex-grid-column>
+
+
+                </wj-flex-grid>
+            </div>
+        </div>
+    </div>
+    
+
+    <div id="ModalReportFileAttribute" class="modal">
+        <div class="modal-dialog" draggable="true" id="myModalgen" style="min-height:400px;width:60%">
+            <!-- Modal content -->
+            <div class="modal-content" style="padding:0px;border:0px;">
+                <div class="modal-header" style="background:#2196f3 !important">
+                    <span class="customheading" style="color:white !important"  id="spnHeader">CRES - Validation Error</span>
+                    <span class="close" (click)="ClosePopUpReportFileAttribute()">×</span>
+                </div>
+
+                <div class="modal-body" id="searchdialogmessage">
+
+                </div>
+                <div *ngIf="_dvInValidJson" class="alert alert-danger fade in">
+                    <!--<a href="#" class="close" data-dismiss="alert" aria-label="close" title="close">×</a>-->
+                    <strong>{{_dvInValidJsonMsg}}</strong>
+                </div>
+                <div class="modal-footer" style="background-color:white !important;">
+                    <!--<button type="button" (click)="ClosePopUpDialog()" class="custombutton" style="width:100px !important">Cancel</button>-->
+                    <textarea class="ibox1" rows="50" cols="150" style="height:300px;width: 95%;color:black" id="txtDefaultAttribute"></textarea>
+                    <button type="button" class="custombutton" style="width:100px !important" (click)="GenearteAndDownloadReportWithParam()">Generate</button>
+                </div>
+
+
+            </div>
+        </div>
+    </div>
+</div>

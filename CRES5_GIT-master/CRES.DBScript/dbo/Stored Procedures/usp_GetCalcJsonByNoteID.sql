@@ -1,0 +1,2118 @@
+﻿ 
+--[dbo].[usp_GetCalcJsonByNoteID] '','8901','c10f3372-0fc2-4861-a9f5-148f1f80804f',775
+--[dbo].[usp_GetCalcJsonByNoteID] '','4851','c10f3372-0fc2-4861-a9f5-148f1f80804f',775
+--[dbo].[usp_GetCalcJsonByNoteID] '','6155','c10f3372-0fc2-4861-a9f5-148f1f80804f',775
+--[dbo].[usp_GetCalcJsonByNoteID] '','7114','c10f3372-0fc2-4861-a9f5-148f1f80804f',775
+--[dbo].[usp_GetCalcJsonByNoteID] '','13684','c10f3372-0fc2-4861-a9f5-148f1f80804f',775
+--[dbo].[usp_GetCalcJsonByNoteID] '','10639','c10f3372-0fc2-4861-a9f5-148f1f80804f',775
+
+CREATE PROCEDURE [dbo].[usp_GetCalcJsonByNoteID] 
+(
+    @UserID NVARCHAR(256),
+    @NoteID_any NVARCHAR(256),
+	@Analysis_ID UNIQUEIDENTIFIER,
+	@CalcTypeID int
+
+)	
+
+AS
+BEGIN
+	SET NOCOUNT ON;
+
+
+	Declare @NoteID UNIQUEIDENTIFIER;
+	Declare @DealID UNIQUEIDENTIFIER;
+
+	
+	IF((SELECT 1 WHERE @NoteID_any LIKE REPLACE('00000000-0000-0000-0000-000000000000', '0', '[0-9a-fA-F]')) = 1)
+	BEGIN
+		---If @NoteID_any is guid
+		SET @NoteID = @NoteID_any
+	END
+	ELSE
+	BEGIN
+		SET @NoteID = (Select noteid from cre.note where crenoteid = @NoteID_any)
+	END
+
+
+	SET @DealID = (Select dealid from cre.note where noteid = @NoteID)
+
+	Declare @prepaydate date;
+	SET @prepaydate = (Select ISNULL(prepaydate,getdate()) from cre.deal where dealid = @DealID)
+
+
+	Declare @CalculationMode int;
+	SET @CalculationMode = (Select CalculationMode from core.analysisparameter where analysisid=@Analysis_ID)
+
+---==========================================================================================
+
+	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
+	DECLARE @AnalysisID UNIQUEIDENTIFIER = @Analysis_ID --'c10f3372-0fc2-4861-a9f5-148f1f80804f'
+	DECLARE @CRENoteID NVARCHAR(256)
+	DECLARE @NoteName NVARCHAR(256)	
+	DECLARE @AnalysisName NVARCHAR(256)
+
+	DECLARE @RateSpreadSchedule nvarchar(max)
+	declare @cnt int=1,@ValueTypeID nvarchar(50),@Name nvarchar(100),@totalCntRateSpread int,
+	@deal_min_effDate date,@TotalSequ1 as DECIMAL (28, 15)
+	declare @UseRuletoDetermineNoteFundingAsYES int=(Select LookupID from CORE.Lookup where Name = 'Y' and Parentid = 2)   
+
+	SET @AnalysisName = (Select [name] from core.analysis where AnalysisID = @AnalysisID)
+	
+
+	DECLARE @CalcStatus int
+	SET @CalcStatus = (Select top 1 statusid from core.CalculationRequests where AnalysisId = @AnalysisID and noteid = @NoteID)
+
+	---=============================
+	DECLARE @isCalcStarted bit
+	DECLARE @isCalcCancel bit
+	
+	set @isCalcStarted = 0
+	IF EXISTS(Select requestid from core.CalculationRequests where AnalysisId = @AnalysisID and noteid = @NoteID and Requestid is not null)
+	BEGIN
+		set @isCalcStarted = 1
+	END
+
+	set @isCalcCancel = 0
+	IF NOT EXISTS(Select CalculationRequestID from core.CalculationRequests where AnalysisId = @AnalysisID and noteid = @NoteID)
+	BEGIN
+		set @isCalcCancel = 1
+	END
+
+	---=============================
+
+
+	Declare @ExcludedForcastedPrePaymentText nvarchar(10);
+	Declare @UseServicingActual nvarchar(10);
+	Declare @DisableBusinessDay nvarchar(10);
+	Declare @MaturityScenarioOverride nvarchar(100);
+
+	Select @ExcludedForcastedPrePaymentText = ISNULL(lExcludedForcastedPrePayment.name,''),
+	@UseServicingActual = ISNULL(lUseActuals.name,''),
+	@DisableBusinessDay = ISNULL(lUseBusinessDayAdjustment.name,'N') ,
+	@MaturityScenarioOverride = ISNULL(lMaturityScenarioOverrideID.name,'')
+	from core.analysis a
+	inner join core.analysisparameter am on am.analysisid = a.analysisid
+	left join core.lookup lExcludedForcastedPrePayment on lExcludedForcastedPrePayment.lookupid = am.ExcludedForcastedPrePayment
+	left join core.lookup lUseActuals on lUseActuals.lookupid = am.UseActuals
+	left join core.lookup lUseBusinessDayAdjustment on lUseBusinessDayAdjustment.lookupid = am.UseBusinessDayAdjustment
+	left join core.lookup lMaturityScenarioOverrideID on lMaturityScenarioOverrideID.lookupid = am.MaturityScenarioOverrideID
+	where a.analysisid=@AnalysisID
+
+
+	Declare @calc_priority int;
+
+	sET @calc_priority = (Select top 1 cr.[PriorityID] as calc_priority
+	from core.calculationrequests cr
+	inner join cre.note n on n.noteid = cr.noteid
+	where analysisid=@AnalysisID
+	and n.noteid = @NoteID)
+
+
+
+	---===Root table variables========
+	Declare @calc_basis bit
+	Declare @calc_deffee_basis bit
+	Declare @calc_disc_basis bit
+	Declare @calc_capcosts_basis bit
+	Declare @batch bit
+	--Declare @init_logging bit
+	Declare @engine nvarchar(50)
+	Declare @debug bit
+
+	Select @calc_basis = calc_basis,
+	@calc_deffee_basis = calc_deffee_basis,
+	@calc_disc_basis = calc_disc_basis,
+	@calc_capcosts_basis = calc_capcosts_basis,
+	@batch = batch,
+	--@init_logging = init_logging,
+	@engine = (CASE WHEN @CalcTypeID = 776 THEN 'script' else  engine end)	
+	from [CRE].[RootV1Calc]
+
+	SET @debug = (Select top 1 [value] from app.AppConfig where [Key] = 'AllowDebugInCalc')
+	--=======================================
+
+	Declare @mat_Type nvarchar(256)
+
+	SET @mat_Type = (
+		Select MaturityType from(
+			Select a.AnalysisID,a.name,l.name as MaturityScenarioOverride,
+			(CASE WHEN l.name ='Initial or Actual Payoff Date' then 'Initial'
+			WHEN l.name ='Expected Maturity Date' then 'ExpectedMaturityDate'  
+			WHEN l.name ='Extended Maturity Date' then 'Extension'
+			WHEN l.name ='Open Prepayment Date' then 'OpenPrepaymentDate'
+			WHEN l.name ='Fully Extended Maturity Date' then 'Fully extended'
+			WHEN l.name ='Current Maturity Date' then 'Current Maturity Date'
+			end)  MaturityType
+			from core.Analysis a
+			inner join core.analysisparameter am on am.AnalysisID = a.AnalysisID
+			left join core.lookup l on l.lookupid = am.MaturityScenarioOverrideID
+			where a.AnalysisID = @AnalysisID
+		)a
+	)
+	--=======================================
+
+
+
+
+
+
+
+
+
+	--DECLARE @tNoteEffectiveDates as table
+	--(
+	--CRENoteID NVARCHAR(256),
+	--NoteID UNIQUEIDENTIFIER,
+	--EffectiveDate date
+	--)
+	create table  #tNoteEffectiveDates
+	(
+	CRENoteID NVARCHAR(256),
+	NoteID UNIQUEIDENTIFIER,
+	EffectiveDate date
+	)
+	DECLARE @tRateSpreadSchedule as table
+	(
+	ID int identity(1,1),
+	ValueTypeID int,
+	Name NVARCHAR(100)
+	)
+	DECLARE @tTableAlias as table
+	(
+	ID int identity(1,1),
+	[Name] NVARCHAR(100),
+	[GroupName] NVARCHAR(100)
+	)
+	
+		
+	
+
+	--#table
+	insert into #tNoteEffectiveDates	
+	Select Distinct CRENoteID,NoteID,effectivestartdate as effective_dates
+	From(
+		select n.CRENoteID,n.NoteID,n.ClosingDate as effectivestartdate,'ClosingDate' as [Type]
+		from cre.note n
+		inner join core.account acc on acc.accountid = n.account_accountid 
+		inner join cre.Deal d on d.DealID = n.DealID
+		where acc.IsDeleted <> 1  and n.noteid=@NoteID
+		
+		UNION
+
+		Select Distinct n.CRENoteID,n.NoteID,e.effectivestartdate,'DefaultSchedule' as [Type]
+		from [CORE].DefaultSchedule fs
+		INNER JOIN [CORE].[Event] e on e.EventID = fs.EventId
+		INNER JOIN [CORE].[Account] acc ON acc.AccountID = e.AccountID
+		INNER JOIN [CRE].[Note] n ON n.Account_AccountID = acc.AccountID
+		where e.StatusID = 1 and acc.IsDeleted = 0 
+		and n.noteid = @NoteID
+
+		UNION
+
+		Select Distinct n.CRENoteID,n.NoteID,e.effectivestartdate,'FeeCouponSchedule' as [Type]
+		from [CORE].FeeCouponSchedule fs
+		INNER JOIN [CORE].[Event] e on e.EventID = fs.EventId
+		INNER JOIN [CORE].[Account] acc ON acc.AccountID = e.AccountID
+		INNER JOIN [CRE].[Note] n ON n.Account_AccountID = acc.AccountID
+		where e.StatusID = 1 and acc.IsDeleted = 0 
+		and n.noteid = @NoteID
+
+		UNION
+
+		Select Distinct n.CRENoteID,n.NoteID,e.effectivestartdate,'FinancingFeeSchedule' as [Type]
+		from [CORE].FinancingFeeSchedule fs
+		INNER JOIN [CORE].[Event] e on e.EventID = fs.EventId
+		INNER JOIN [CORE].[Account] acc ON acc.AccountID = e.AccountID
+		INNER JOIN [CRE].[Note] n ON n.Account_AccountID = acc.AccountID
+		where e.StatusID = 1 and acc.IsDeleted = 0 
+		and n.noteid = @NoteID
+
+		UNION
+
+		Select Distinct n.CRENoteID,n.NoteID,e.effectivestartdate,'FinancingSchedule' as [Type]
+		from [CORE].FinancingSchedule fs
+		INNER JOIN [CORE].[Event] e on e.EventID = fs.EventId
+		INNER JOIN [CORE].[Account] acc ON acc.AccountID = e.AccountID
+		INNER JOIN [CRE].[Note] n ON n.Account_AccountID = acc.AccountID
+		where e.StatusID = 1 and acc.IsDeleted = 0 
+		and n.noteid = @NoteID
+
+		UNION
+
+		Select Distinct n.CRENoteID,n.NoteID,e.effectivestartdate,'FundingSchedule' as [Type]
+		from [CORE].FundingSchedule fs
+		INNER JOIN [CORE].[Event] e on e.EventID = fs.EventId
+		left JOIN [CORE].[Lookup] LPurposeID ON LPurposeID.LookupID = fs.PurposeID 
+		INNER JOIN [CORE].[Account] acc ON acc.AccountID = e.AccountID
+		INNER JOIN [CRE].[Note] n ON n.Account_AccountID = acc.AccountID
+		where e.StatusID = 1 and acc.IsDeleted = 0 
+		--and ISNULL(LPurposeID.name,'a') <> 'Amortization'
+		and n.noteid = @NoteID
+
+		UNION
+
+
+		Select Distinct n.CRENoteID,n.NoteID,e.effectivestartdate,'PIKSchedule' as [Type]
+		from [CORE].PIKSchedule fs
+		INNER JOIN [CORE].[Event] e on e.EventID = fs.EventId
+		INNER JOIN [CORE].[Account] acc ON acc.AccountID = e.AccountID
+		INNER JOIN [CRE].[Note] n ON n.Account_AccountID = acc.AccountID
+		where ISNULL(e.StatusID,1) = 1 and acc.IsDeleted = 0 
+		and n.noteid = @NoteID
+
+		UNION
+
+		Select Distinct n.CRENoteID,n.NoteID,e.effectivestartdate,'PrepayAndAdditionalFeeSchedule' as [Type]
+		from [CORE].PrepayAndAdditionalFeeSchedule fs
+		INNER JOIN [CORE].[Event] e on e.EventID = fs.EventId
+		INNER JOIN [CORE].[Account] acc ON acc.AccountID = e.AccountID
+		INNER JOIN [CRE].[Note] n ON n.Account_AccountID = acc.AccountID
+		where e.StatusID = 1 and acc.IsDeleted = 0 
+		and n.noteid = @NoteID
+
+
+		UNION
+
+		Select Distinct n.CRENoteID,n.NoteID,e.effectivestartdate,'RateSpreadSchedule' as [Type]
+		from [CORE].RateSpreadSchedule fs
+		INNER JOIN [CORE].[Event] e on e.EventID = fs.EventId
+		INNER JOIN [CORE].[Account] acc ON acc.AccountID = e.AccountID
+		INNER JOIN [CRE].[Note] n ON n.Account_AccountID = acc.AccountID
+		where e.StatusID = 1 and acc.IsDeleted = 0 
+		and n.noteid = @NoteID
+
+		UNION
+
+		Select Distinct n.CRENoteID,n.NoteID,e.effectivestartdate,'PIKScheduleDetail' as [Type]
+		from [CORE].PIKScheduleDetail fs
+		INNER JOIN [CORE].[Event] e on e.EventID = fs.EventId
+		INNER JOIN [CORE].[Account] acc ON acc.AccountID = e.AccountID
+		INNER JOIN [CRE].[Note] n ON n.Account_AccountID = acc.AccountID
+		where  ISNULL(e.StatusID,1) = 1 and acc.IsDeleted = 0 
+		and n.noteid = @NoteID
+
+		UNION
+
+		Select Distinct n.CRENoteID,n.NoteID,e.effectivestartdate ,'AmortSchedule' as [Type]
+		from [CORE].AmortSchedule fs
+		INNER JOIN [CORE].[Event] e on e.EventID = fs.EventId
+		INNER JOIN [CORE].[Account] acc ON acc.AccountID = e.AccountID
+		INNER JOIN [CRE].[Note] n ON n.Account_AccountID = acc.AccountID
+		where e.StatusID = 1 and acc.IsDeleted = 0 
+		and n.noteid = @NoteID
+
+		UNION
+
+		Select Distinct n.CRENoteID,n.NoteID,e.effectivestartdate ,'FeeCouponStripReceivable' as [Type]
+		from [CORE].FeeCouponStripReceivable fs
+		INNER JOIN [CORE].[Event] e on e.EventID = fs.EventId
+		INNER JOIN [CORE].[Account] acc ON acc.AccountID = e.AccountID
+		INNER JOIN [CRE].[Note] n ON n.Account_AccountID = acc.AccountID
+		where ISNULL(e.StatusID,1) = 1 and acc.IsDeleted = 0 
+		and n.noteid = @NoteID
+
+		--UNION
+
+		--Select Distinct n.CRENoteID,n.NoteID,e.effectivedate,'PrepayPremiumSchedule' as [Type]
+		--from [CORE].prepaySchedule ps
+		--INNER JOIN [CORE].[EventDeal] e on e.EventDealID = ps.EventDealID
+		--inner join cre.note n on n.dealid = e.dealid
+		--INNER JOIN [CORE].[Account] acc ON acc.AccountID = n.account_accountid
+		--where e.StatusID = 1  and acc.IsDeleted <> 1
+		--and e.dealid = @DealID
+		--and n.noteid = @NoteID
+
+		UNION
+
+		
+		Select Distinct crenoteid,noteid,[EffectiveDate] as effectivedate,'MaturitySchedule' as [Type]
+		From(
+			Select Distinct crenoteid,NoteID,[MaturityType],MIN([EffectiveDate]) as [EffectiveDate],[MaturityDate]
+			From(
+				Select n.crenoteid,n.NoteID,e.EffectiveStartDate  as [EffectiveDate],
+				lMaturityType.name as [MaturityType],
+				(CASE WHEN e.EffectiveStartDate = n.actualPayoffdate THEN n.actualPayoffdate ELSE mat.MaturityDate END)  as [MaturityDate],
+				---ISNULL(n.ActualPayoffDate,mat.MaturityDate) as [MaturityDate],
+				lApproved.name as Approved
+				from [CORE].Maturity mat  
+				INNER JOIN [CORE].[Event] e on e.EventID = mat.EventId  
+				Left JOin Core.lookup lMaturityType on lMaturityType.lookupid = mat.MaturityType
+				Left JOin Core.lookup lApproved on lApproved.lookupid = mat.Approved
+				INNER JOIN [CORE].[Account] acc ON acc.AccountID = e.AccountID
+				INNER JOIN [CRE].[Note] n ON n.Account_AccountID = acc.AccountID  
+				where e.StatusID = 1
+				and lMaturityType.name  = @mat_Type
+				and lApproved.name = 'Y'					
+				and n.noteid = @NoteID
+
+
+				--UNION ALL
+
+				--Select crenoteid,noteid,effectivestartdate as [EffectiveDate], MaturityType,MaturityDate,Approved
+				--from (
+				--	Select n.crenoteid,n.noteid,e.effectivestartdate,'Current Maturity Date' as [MaturityType],
+				--	ISNULL(n.ActualPayOffdate, mat.MaturityDate) as [MaturityDate],
+				--	lApproved.name as Approved,
+				--	ROW_NUMBER() Over(Partition by noteid,effectivestartdate order by noteid,(CASE WHEN lMaturityType.name = 'Initial' THEN 0 WHEN lMaturityType.name = 'Fully extended' THEN 9999 ELSE 1 END) ASC, mat.MaturityDate) rno
+				--	from [CORE].Maturity mat  
+				--	INNER JOIN [CORE].[Event] e on e.EventID = mat.EventId 			
+				--	INNER JOIN [CORE].[Account] acc ON acc.AccountID = e.AccountID
+				--	INNER JOIN [CRE].[Note] n ON n.Account_AccountID = acc.AccountID 	
+				--	Left JOin Core.lookup lMaturityType on lMaturityType.lookupid = mat.MaturityType
+				--	Left JOin Core.lookup lApproved on lApproved.lookupid = mat.Approved	
+				--	where mat.MaturityDate > getdate()
+				--	and lApproved.name = 'Y'
+				--	and n.noteid = @NoteID	
+				--)a 	
+				--where a.rno = 1
+				--and MaturityType = @mat_Type
+
+
+			)a
+			group by crenoteid,NoteID,[MaturityDate],[MaturityType]
+		)b
+
+
+		UNION
+
+		select Distinct n.crenoteid,n.noteid,n.ActualPayoffdate as effectivedate,'ActualPayoffdate' as [Type]
+		from cre.note n
+		inner join core.account acc on acc.accountid = n.account_accountid 
+		where acc.isdeleted <> 1
+		and n.ActualPayoffdate is not null
+		and noteid=@NoteID
+
+	)a where effectivestartdate is not null
+	
+
+
+	select @deal_min_effDate = min(distinct EffectiveDate) from #tNoteEffectiveDates
+
+	select @CRENoteID = CRENoteID,@NoteName=acc.name 
+	from cre.note n
+	inner join core.account acc on acc.accountid = n.account_accountid 
+	where noteid=@NoteID
+	
+		
+
+	Select 	CONVERT(VARCHAR, EffectiveDate,101) as effective_dates
+	From(
+		Select Distinct EffectiveDate from #tNoteEffectiveDates 
+	)a
+	order by a.EffectiveDate
+	insert into @tTableAlias([Name]) values('data.effective_dates')
+	
+
+
+	select CONVERT(VARCHAR, period_start_date ,101) AS period_start_date,
+	 CONVERT(VARCHAR,period_end_date,101) AS period_end_date,
+	 root_note_id,
+
+	 (CASE WHEN @CalculationMode = 503 THEN 0 ELSE 1 END) AS calc_basis,  ---Cash Flow Only = 503
+
+	 @calc_deffee_basis AS calc_deffee_basis,
+     @calc_disc_basis AS calc_disc_basis,
+     @calc_capcosts_basis AS calc_capcosts_basis ,
+	 LOWER(@AnalysisName) + '_' + LOWER(@CRENoteID) AS client_reference_id,
+	 @batch as [batch],
+	-- @init_logging AS init_logging,
+	 @engine as engine,
+	 @CalcStatus as CalcStatus,
+	@ExcludedForcastedPrePaymentText as ExcludedForcastedPrePaymentText,
+	 @UseServicingActual as UseServicingActual,
+	 @DisableBusinessDay as DisableBusinessDay,
+	 @MaturityScenarioOverride as MaturityScenarioOverride,
+	 @debug as debug,
+	 ISNULL(@calc_priority,273) as calc_priority,
+	 (CASE WHEN @calc_priority =  272 tHEN 0 ELSE 1 END) as batchType,
+	 @isCalcStarted as isCalcStarted,
+	 @isCalcCancel as isCalcCancel
+
+	 from
+	(
+	--root level info
+	select
+	--min of all notes closing date
+	(
+		select min(n.closingDate) as period_start_date
+		from [CRE].[Note] n 
+		INNER JOIN [CORE].[Account] acc ON acc.AccountID = n.Account_AccountID
+		inner join cre.deal d on d.DealID=n.DealID
+		where  acc.IsDeleted <> 1
+		and n.noteid = @NoteID
+
+	) as period_start_date,
+	
+	--max of all notes  maturity date based on scenario
+ --  (select max(maturity) as period_end_date from
+	--(
+	--	Select n1.dealid,n1.noteid,isnull(n1.ActualPayoffDate,
+	--			ISNULL(
+	--				(CASE WHEN Scenario.MaturityScenarioOverride ='Initial or Actual Payoff Date' then n1.ActualPayoffDate   
+	--				WHEN Scenario.MaturityScenarioOverride ='Expected Maturity Date' then n1.ExpectedMaturityDate   
+	--				WHEN Scenario.MaturityScenarioOverride ='Extended Maturity Date' then n1.ExtendedMaturityCurrent 
+	--				WHEN Scenario.MaturityScenarioOverride ='Open Prepayment Date' then n1.OpenPrepaymentDate   
+	--				WHEN Scenario.MaturityScenarioOverride ='Fully Extended Maturity Date' then n1.FullyExtendedMaturityDate 
+	--				Else ISNULL(n1.ActualPayOffDate,ISNULL(currMat.MaturityDate,n1.FullyExtendedMaturityDate))  end) 
+	--			,tblInitialMaturity.InitialMaturityDate)
+	--		)as maturity
+
+	--	from cre.note n1
+	--	Inner join core.account acc1 on acc1.Accountid = n1.Account_Accountid
+	--	Left Join(
+	--	Select noteid,MaturityType,MaturityDate,Approved
+	--	from (
+	--			Select n.noteid,lMaturityType.name as [MaturityType],mat.MaturityDate as [MaturityDate],lApproved.name as Approved,
+	--			ROW_NUMBER() Over(Partition by noteid order by noteid,(CASE WHEN lMaturityType.name = 'Initial' THEN 0 WHEN lMaturityType.name = 'Fully extended' THEN 9999 ELSE 1 END) ASC, mat.MaturityDate) rno
+	--			from [CORE].Maturity mat  
+	--			INNER JOIN [CORE].[Event] e on e.EventID = mat.EventId  
+	--			INNER JOIN   
+	--			(          
+	--				Select   
+	--				(Select AccountID from [CORE].[Account] ac where ac.AccountID = n.Account_AccountID) AccountID ,  
+	--				MAX(EffectiveStartDate) EffectiveStartDate,EventTypeID from [CORE].[Event] eve  
+	--				INNER JOIN [CRE].[Note] n ON n.Account_AccountID = eve.AccountID  
+	--				INNER JOIN [CORE].[Account] acc ON acc.AccountID = n.Account_AccountID  
+	--				where EventTypeID = 11 and eve.StatusID = 1
+	--				and n.noteid = @NoteID
+	--				and acc.IsDeleted = 0  
+	--				GROUP BY n.Account_AccountID,EventTypeID    
+	--			) sEvent    
+	--			ON sEvent.AccountID = e.AccountID and e.EffectiveStartDate = sEvent.EffectiveStartDate  and e.EventTypeID = sEvent.EventTypeID  and e.StatusID = 1
+	--			INNER JOIN [CORE].[Account] acc ON acc.AccountID = e.AccountID
+	--			INNER JOIN [CRE].[Note] n ON n.Account_AccountID = acc.AccountID 	
+	--			Left JOin Core.lookup lMaturityType on lMaturityType.lookupid = mat.MaturityType
+	--			Left JOin Core.lookup lApproved on lApproved.lookupid = mat.Approved	
+	--			where mat.MaturityDate > getdate()
+	--			and lApproved.name = 'Y'
+	--			and n.noteid = @NoteID
+	--	)a where a.rno = 1
+	--)currMat on currMat.noteid = n1.noteid
+
+	--Left JOin(
+	--	Select n.noteid,mat.MaturityDate as InitialMaturityDate
+	--	from [CORE].Maturity mat  
+	--	INNER JOIN [CORE].[Event] e on e.EventID = mat.EventId  
+	--	INNER JOIN   
+	--	(          
+	--		Select   
+	--		(Select AccountID from [CORE].[Account] ac where ac.AccountID = n.Account_AccountID) AccountID ,  
+	--		MAX(EffectiveStartDate) EffectiveStartDate,EventTypeID from [CORE].[Event] eve  
+	--		INNER JOIN [CRE].[Note] n ON n.Account_AccountID = eve.AccountID  
+	--		INNER JOIN [CORE].[Account] acc ON acc.AccountID = n.Account_AccountID  
+	--		where EventTypeID = 11  and eve.StatusID = 1
+	--		and acc.IsDeleted = 0  
+	--		and n.noteid = @NoteID
+	--		GROUP BY n.Account_AccountID,EventTypeID    
+	--	) sEvent    
+	--	ON sEvent.AccountID = e.AccountID and e.EffectiveStartDate = sEvent.EffectiveStartDate  and e.EventTypeID = sEvent.EventTypeID  and e.StatusID = 1
+	--	INNER JOIN [CORE].[Account] acc ON acc.AccountID = e.AccountID
+	--	INNER JOIN [CRE].[Note] n ON n.Account_AccountID = acc.AccountID 	
+	--	where mat.MaturityType = 708 and mat.Approved = 3
+	--)tblInitialMaturity on tblInitialMaturity.noteid = n1.noteid
+	--,(
+	--	Select a.AnalysisID,a.name,l.name as MaturityScenarioOverride from core.Analysis a
+	--	inner join core.analysisparameter am on am.AnalysisID = a.AnalysisID
+	--	left join core.lookup l on l.lookupid = am.MaturityScenarioOverrideID
+	--	where a.AnalysisID = @AnalysisID
+	--)Scenario
+	--where acc1.IsDeleted <> 1
+	--and n1.noteid = @NoteID
+	--) tbl
+	--) as	period_end_date
+
+
+	(
+		--Logic
+		--loanterm = YearMonthDiff(InitialInterestAccrualEndDate,SelectedMaturityDateLatest)
+		--period_end_date = InitialInterestAccrualEndDate.AddMonth(loanterm + 1)
+
+		Select DateAdd(month, DateDIff(month,n.InitialInterestAccrualEndDate,tblmatfull.FullyExtended) + (CASE WHEN DAY(tblmatfull.FullyExtended) <= DAY(n.InitialInterestAccrualEndDate) Then 0 ELSE ISNULL(n.AccrualFrequency,1) END),n.InitialInterestAccrualEndDate) period_end_date
+		
+		from cre.note n
+		left join(
+			Select n.noteid,MAX(mat.MaturityDate) as FullyExtended
+			from [CORE].Maturity mat  
+			INNER JOIN [CORE].[Event] e on e.EventID = mat.EventId 
+			 
+			--INNER JOIN   
+			--(          
+			--	Select   
+			--	(Select AccountID from [CORE].[Account] ac where ac.AccountID = n.Account_AccountID) AccountID ,  
+			--	MAX(EffectiveStartDate) EffectiveStartDate,EventTypeID from [CORE].[Event] eve  
+			--	INNER JOIN [CRE].[Note] n ON n.Account_AccountID = eve.AccountID  
+			--	INNER JOIN [CORE].[Account] acc ON acc.AccountID = n.Account_AccountID  
+			--	where EventTypeID = 11  and eve.StatusID = 1
+			--	and acc.IsDeleted = 0  
+			--	and n.noteid = @NoteID
+			--	GROUP BY n.Account_AccountID,EventTypeID    
+			--) sEvent    
+			--ON sEvent.AccountID = e.AccountID and e.EffectiveStartDate = sEvent.EffectiveStartDate  and e.EventTypeID = sEvent.EventTypeID  and e.StatusID = 1
+
+			INNER JOIN [CORE].[Account] acc ON acc.AccountID = e.AccountID
+			INNER JOIN [CRE].[Note] n ON n.Account_AccountID = acc.AccountID 	
+			where  n.noteid = @NoteID and mat.MaturityType = 710 and mat.Approved = 3
+			group by n.noteid
+		)tblmatfull on tblmatfull.noteid = n.noteid
+		where n.noteid = @NoteID
+	) as	period_end_date
+
+
+
+	,@CRENoteID as root_note_id
+	) as [data.rootinfo]
+	
+	insert into @tTableAlias([Name]) values('data.rootinfo')
+
+
+	----IF(@isCalcStarted = 1 or @isCalcCancel = 1) 
+	----BEGIN
+	--	INSERT INTO dbo.tempRequest(noteid,AnalysisID,isCalcStarted,isCalcCancel,CreatedDate)
+	--	VALUES(@NoteID,@AnalysisID,@isCalcStarted,@isCalcCancel,getdate())
+	----END
+
+
+--notes
+select Id,[name],[type],objectguid from
+(
+	--select @CRENoteID as Id,@NoteName as [name],'wholenote' as [type]
+	--union all
+	select CRENoteID as Id,ac.[Name] as [name],'legal' as [type] ,n.noteid as objectguid
+	from cre.note n join [CORE].[Account] ac 
+	on n.Account_AccountID=ac.AccountID 
+	where n.noteid = @NoteID
+) as [data.notes]
+insert into @tTableAlias([Name]) values('data.notes')
+
+--
+--data.notes.setup
+select CRENoteID,NoteID,CONVERT(VARCHAR, EffectiveDate,101) as effective_dates from #tNoteEffectiveDates
+as [data.notes.setup]
+order by CRENoteID,EffectiveDate
+
+insert into @tTableAlias([Name]) values('data.notes.setup')
+--
+
+--data.notes.setup.dictionary
+select CRENoteID,NoteID,
+CONVERT(VARCHAR, min_effective_dates,101) as min_effective_dates,
+CONVERT(VARCHAR, initaccenddt,101) as initaccenddt,
+CONVERT(VARCHAR, initmatdt,101) as initmatdt,
+CONVERT(VARCHAR, initpmtdt,101) as initpmtdt,
+ioterm,amterm,
+CONVERT(VARCHAR, clsdt,101) as clsdt
+,initbal
+--,totalcmt 
+,leaddays,
+CONVERT(VARCHAR, initresetdt,101) as initresetdt ,
+
+initindex,
+UPPER(roundmethod) as roundmethod,
+[precision],
+ISNULL(discount,0) as discount
+
+, stubintovrd
+, loanpurchase
+, purintovrd
+, insvrpayoverinlvly
+, intecalcrulepydn
+, capclscost
+, busidayrelapmtdt
+, dayofmnth
+, accfreq
+, determidtinterestaccper
+, determidayrefdayofmnth
+
+, rateindexresetfreq
+, accperpaydaywhennoteomnth
+, payfreq
+, paydatebusiessdaylag
+, stubpaidadv
+, CONVERT(VARCHAR, finalintaccenddtvrd,101) as finalintaccenddtvrd
+, stubonff
+, monamovrd
+, fixedamortsche
+, amortintcalcdaycnt
+, pikinteraddedtoblsbusiadvdate
+, piksepcomponding
+, intcalcruleforpydwnamort
+,CONVERT(VARCHAR, actualpayoffdate,101)  as actualpayoffdate
+,[priority]
+,lienpos
+
+from
+(
+	select CRENoteID,NoteID,min_effective_dates,
+	initaccenddt,
+	
+	--(Select  mat.maturityDate
+	--	from [CORE].Maturity mat  
+	--	INNER JOIN [CORE].[Event] e on e.EventID = mat.EventId  
+	--	INNER JOIN [CORE].[Account] acc ON acc.AccountID = e.AccountID
+	--	INNER JOIN [CRE].[Note] n ON n.Account_AccountID = acc.AccountID 		
+	--	where mat.maturityType = 708 
+	--	and	mat.Approved = 3
+	--	and e.statusid = 1
+	--	and n.noteid = tbldictionary.NoteID
+	--	and cast(e.effectivestartdate as date) = cast(min_effective_dates as date)
+	--) as initmatdt,
+	
+	initmatdt,
+
+	initpmtdt,
+	ioterm,
+	amterm,
+	clsdt,
+	initbal,
+	totalcmt,
+	leaddays,
+	initresetdt ,
+	initindex,
+	roundmethod,
+	[precision],
+	discount
+
+	, stubintovrd
+	, loanpurchase
+	, purintovrd
+	, insvrpayoverinlvly
+	, intecalcrulepydn
+	, capclscost
+	, busidayrelapmtdt
+	, dayofmnth
+	, accfreq
+	, determidtinterestaccper
+	, determidayrefdayofmnth
+	
+	, rateindexresetfreq
+	, accperpaydaywhennoteomnth
+	, payfreq
+	, paydatebusiessdaylag
+	, stubpaidadv
+	, finalintaccenddtvrd
+	, stubonff
+	, monamovrd
+	, fixedamortsche
+	, amortintcalcdaycnt
+	, pikinteraddedtoblsbusiadvdate
+	, piksepcomponding
+	, intcalcruleforpydwnamort
+	,actualpayoffdate
+	,[priority]
+	,lienpos
+	,lienposition
+	,NoteName
+	from 
+	(
+		select CRENoteID,nt.NoteID,
+		(Select 
+			min(EffectiveStartDate) as effective_dates
+			from [CORE].[Event] eve
+			INNER JOIN [CRE].[Note] n ON n.Account_AccountID = eve.AccountID
+			INNER JOIN [CORE].[Account] acc ON acc.AccountID = n.Account_AccountID
+			inner join cre.deal d on d.DealID=n.DealID
+			where  acc.IsDeleted=0
+			and isnull(eve.StatusID,1) = 1
+			and n.NoteID=nt.NoteID
+			and n.noteid = @NoteID
+		) min_effective_dates,
+
+		nt.InitialInterestAccrualEndDate as initaccenddt,
+		tblInitmat.InitialMat as initmatdt,
+		nt.FirstPaymentDate as initpmtdt,
+		isnull(nt.IOTerm,0) as ioterm,
+		isnull(nt.AmortTerm,0) as amterm,
+		nt.ClosingDate as clsdt,
+		isnull(nt.InitialFundingAmount,0) as initbal,
+		isnull(nt.TotalCommitment,0) as totalcmt,
+
+		ISNULL(nt.DeterminationDateLeadDays,0) as leaddays,
+		nt.FirstRateIndexResetDate as initresetdt,
+		isnull(nt.InitialIndexValueOverride,0) as initindex,
+		ISNULL(lRoundingMethod.name,'') as roundmethod,
+		
+		--ISNULL((LEN(nt.IndexRoundingRule) - 1) + 2, 5)  as [precision],
+		ISNULL(nt.IndexRoundingRule, 1000)  as [precision],
+
+		ISNULL(nt.discount,0) as discount 
+
+		,ISNULL(nt.StubIntOverride,0) as stubintovrd
+		,ISNULL(lLoanPurchase.name,'') as loanpurchase
+		,ISNULL(nt.PurchasedInterestOverride,0) as purintovrd
+		,ISNULL(lIncludeServicingPaymentOverrideinLevelYield.name,'') as insvrpayoverinlvly
+		,ISNULL(lInterestCalculationRuleForPaydowns.name,'') as intecalcrulepydn
+		,ISNULL(nt.CapitalizedClosingCosts,0) as capclscost
+		,ISNULL(nt.BusinessdaylafrelativetoPMTDate,0) as busidayrelapmtdt
+		,ISNULL(nt.DayoftheMonth,0) as dayofmnth
+		,ISNULL(nt.AccrualFrequency,0) as accfreq
+		,ISNULL(nt.DeterminationDateInterestAccrualPeriod,0) as determidtinterestaccper
+		,ISNULL(nt.DeterminationDateReferenceDayoftheMonth,0) as determidayrefdayofmnth
+	
+		,ISNULL(nt.RateIndexResetFreq,0) as rateindexresetfreq
+		,ISNULL(nt.AccrualPeriodPaymentDayWhenNotEOMonth,0) as accperpaydaywhennoteomnth
+		,ISNULL(ac.PayFrequency,0) as payfreq
+		,ISNULL(nt.PaymentDateBusinessDayLag,0) as paydatebusiessdaylag
+		,ISNULL(lStubPaidinAdvanceYN.name,'') as stubpaidadv
+		,nt.FinalInterestAccrualEndDateOverride as finalintaccenddtvrd  --dt
+		,ISNULL(lStubInterestPaidonFutureAdvances.name,'') as stubonff
+		,ISNULL(nt.MonthlyDSOverridewhenAmortizing,0) as monamovrd
+		,ISNULL(lFixedAmortScheduleCheck.name,'') as fixedamortsche
+		,ISNULL(nt.AmortIntCalcDayCount,0) as amortintcalcdaycnt
+		,ISNULL(lPIKInterestAddedToBalanceBasedOnBusinessAdjustedDate.name,'') as pikinteraddedtoblsbusiadvdate
+		,ISNULL(lPIKSeparateCompounding.name,'') as piksepcomponding
+		,ISNULL(lInterestCalculationRuleForPaydownsAmort.name,'') as intcalcruleforpydwnamort
+		
+		,nt.ActualPayOffDate as actualpayoffdate
+		,ISNULL(nt.[priority],0) as [priority]
+		,isnuLL(llienposition.name,'') as lienpos
+
+		,nt.lienposition
+		,ac.name as NoteName
+
+		from cre.note nt 
+		inner join [CORE].[Account] ac on nt.Account_AccountID=ac.AccountID 
+		left join core.lookup lRoundingMethod on lRoundingMethod.lookupid = nt.RoundingMethod
+		left JOin core.lookup lLoanPurchase on lLoanPurchase.lookupid = nt.LoanPurchase
+		left JOin core.lookup lIncludeServicingPaymentOverrideinLevelYield on lIncludeServicingPaymentOverrideinLevelYield.lookupid = nt.IncludeServicingPaymentOverrideinLevelYield
+		left JOin core.lookup lInterestCalculationRuleForPaydowns on lInterestCalculationRuleForPaydowns.lookupid = nt.InterestCalculationRuleForPaydowns
+		left JOin core.lookup lStubPaidinAdvanceYN on lStubPaidinAdvanceYN.lookupid = nt.StubPaidinAdvanceYN
+		left JOin core.lookup lStubInterestPaidonFutureAdvances on lStubInterestPaidonFutureAdvances.lookupid = nt.StubInterestPaidonFutureAdvances
+		left JOin core.lookup lFixedAmortScheduleCheck on lFixedAmortScheduleCheck.lookupid = nt.FixedAmortScheduleCheck
+		left JOin core.lookup lPIKInterestAddedToBalanceBasedOnBusinessAdjustedDate on lPIKInterestAddedToBalanceBasedOnBusinessAdjustedDate.lookupid = nt.PIKInterestAddedToBalanceBasedOnBusinessAdjustedDate
+		left JOin core.lookup lPIKSeparateCompounding on lPIKSeparateCompounding.lookupid = nt.PIKSeparateCompounding
+		left JOin core.lookup lInterestCalculationRuleForPaydownsAmort on lInterestCalculationRuleForPaydownsAmort.lookupid = nt.InterestCalculationRuleForPaydownsAmort
+		left join Core.Lookup llienposition ON nt.lienposition=llienposition.LookupID 
+		Left Join(
+			
+			Select  n.noteid,ISNULL(n.actualpayoffdate,tblmatfull.FullyExtended) InitialMat
+			from cre.note n
+			left join(
+				Select n.noteid,mat.MaturityDate as FullyExtended
+				from [CORE].Maturity mat  
+				INNER JOIN [CORE].[Event] e on e.EventID = mat.EventId  
+				INNER JOIN   
+				(          
+					Select   
+					(Select AccountID from [CORE].[Account] ac where ac.AccountID = n.Account_AccountID) AccountID ,  
+					MAX(EffectiveStartDate) EffectiveStartDate,EventTypeID from [CORE].[Event] eve  
+					INNER JOIN [CRE].[Note] n ON n.Account_AccountID = eve.AccountID  
+					INNER JOIN [CORE].[Account] acc ON acc.AccountID = n.Account_AccountID  
+					where EventTypeID = 11  and eve.StatusID = 1
+					and acc.IsDeleted = 0  
+					and n.noteid = @NoteID
+					GROUP BY n.Account_AccountID,EventTypeID    
+				) sEvent    
+				ON sEvent.AccountID = e.AccountID and e.EffectiveStartDate = sEvent.EffectiveStartDate  and e.EventTypeID = sEvent.EventTypeID  and e.StatusID = 1
+				INNER JOIN [CORE].[Account] acc ON acc.AccountID = e.AccountID
+				INNER JOIN [CRE].[Note] n ON n.Account_AccountID = acc.AccountID 	
+				where mat.MaturityType = 710 and mat.Approved = 3
+			)tblmatfull on tblmatfull.noteid = n.noteid
+			where n.noteid = @NoteID
+
+
+			--Select n.noteid,mat.MaturityDate as InitialMat
+			--from [CORE].Maturity mat  
+			--INNER JOIN [CORE].[Event] e on e.EventID = mat.EventId  
+			--INNER JOIN   
+			--(          
+			--	Select   
+			--	(Select AccountID from [CORE].[Account] ac where ac.AccountID = n.Account_AccountID) AccountID ,  
+			--	MIN(EffectiveStartDate) EffectiveStartDate,EventTypeID from [CORE].[Event] eve  
+			--	INNER JOIN [CRE].[Note] n ON n.Account_AccountID = eve.AccountID  
+			--	INNER JOIN [CORE].[Account] acc ON acc.AccountID = n.Account_AccountID  
+			--	where EventTypeID = 11  and eve.StatusID = 1
+			--	and acc.IsDeleted = 0  
+			--	and n.NoteID = @NoteID
+			--	GROUP BY n.Account_AccountID,EventTypeID    
+			--) sEvent    
+			--ON sEvent.AccountID = e.AccountID and e.EffectiveStartDate = sEvent.EffectiveStartDate  and e.EventTypeID = sEvent.EventTypeID  and e.StatusID = 1
+			--INNER JOIN [CORE].[Account] acc ON acc.AccountID = e.AccountID
+			--INNER JOIN [CRE].[Note] n ON n.Account_AccountID = acc.AccountID 	
+			--where mat.MaturityType = 708 and mat.Approved = 3
+			--and n.NoteID = @NoteID
+
+		)tblInitmat on tblInitmat.NoteID = nt.NoteID
+		where nt.noteid = @NoteID
+
+	) tbldictionary
+) as [data.notes.setup.dictionary]
+order by ISNULL(lienposition,99999), [Priority],initbal desc, NoteName
+insert into @tTableAlias([Name]) values('data.notes.setup.dictionary')
+--
+
+
+---==================================================================
+--data.notes.setup.tables.funiding
+--Select CRENoteID, noteid,
+--CONVERT(VARCHAR, effectivedate,101) as effectivedate,
+--CONVERT(VARCHAR, dt,101) as dt,
+--fundpydn,
+--purpose,
+--purposeText
+--from(
+--	Select n.CRENoteID, n.noteid,e.effectivestartdate as effectivedate,fs.date as dt,Cast(ROUND(ISNULL(fs.value,0),2) as decimal(28,2)) as fundpydn,fs.PurposeID as purpose,LPurposeID.name as purposeText
+--	from [CORE].FundingSchedule fs
+--	INNER JOIN [CORE].[Event] e on e.EventID = fs.EventId
+--	left JOIN [CORE].[Lookup] LEventTypeID ON LEventTypeID.LookupID = e.EventTypeID
+--	left JOIN [CORE].[Lookup] LPurposeID ON LPurposeID.LookupID = fs.PurposeID 
+--	INNER JOIN [CORE].[Account] acc ON acc.AccountID = e.AccountID
+--	INNER JOIN [CRE].[Note] n ON n.Account_AccountID = acc.AccountID
+--	where e.StatusID = 1 and acc.IsDeleted = 0 --and LPurposeID.name <> 'Amortization'
+--	and n.noteid = @NoteID
+--) as [data.notes.setup.tables.funding]
+--order by noteid,CAST(effectivedate as date),CAST(dt as date)
+--insert into @tTableAlias([Name]) values('data.notes.setup.tables.funding')
+
+--data.notes.setup.tables.funiding
+IF OBJECT_ID('tempdb..#tblFF ') IS NOT NULL             
+	DROP TABLE #tblFF
+
+CREATE TABLE #tblFF
+(
+	NoteID UNIQUEIDENTIFIER,
+	AccountID UNIQUEIDENTIFIER,
+	Date Date,
+	Value decimal(28,15) null,
+	EffectiveDate date,
+	EffectiveStartDate date,
+	EffectiveEndDate date,
+	EventTypeID int null,
+	EventTypeText nvarchar(256),
+	EventID UNIQUEIDENTIFIER null,
+	PurposeID int null,
+	PurposeText nvarchar(256),
+	Applied bit null,
+	CreatedBy nvarchar(256),
+	CreatedDate datetime,
+	UpdatedBy nvarchar(256),
+	UpdatedDate datetime
+)
+
+INSERT INTO #tblFF(NoteID,AccountID,Date,Value,EffectiveDate,EffectiveStartDate,EffectiveEndDate,EventTypeID,EventTypeText,EventID,PurposeID,PurposeText,Applied,CreatedBy,CreatedDate,UpdatedBy,UpdatedDate)
+exec [dbo].[usp_GetFutureFundingScheduleDataByDealId] @DealID
+
+
+----------Add PIK Tran in Last paydown in FF---------
+
+--Declare @tblFundingdataWithPIK as table
+--(
+--dealid UNIQUEIDENTIFIER,
+--noteid UNIQUEIDENTIFIER,
+--credealid nvarchar(256),
+--crenoteid nvarchar(256),
+--lastPayDown_Date date,
+--lastPayDown_Amount decimal(28,15),
+--Purposeid int,
+--PurposeTypeText nvarchar(256),
+--Lastest_EffectiveDate	 date,
+--PIKFunding_afterLastPyDn decimal(28,15)
+--)
+
+--INSERT INTO @tblFundingdataWithPIK (dealid,noteid,credealid,crenoteid,lastPayDown_Date,lastPayDown_Amount,Purposeid,PurposeTypeText,Lastest_EffectiveDate,PIKFunding_afterLastPyDn)
+--exec [dbo].[usp_GetLastPaydownandPIKTranForNote] @DealID, @AnalysisID
+
+--IF EXISTS(Select dealid from @tblFundingdataWithPIK)
+--BEGIN
+--	Select CRENoteID, noteid,
+--	CONVERT(VARCHAR, effectivedate,101) as effectivedate,
+--	CONVERT(VARCHAR, dt,101) as dt,
+--	fundpydn,
+--	purpose,
+--	purposeText
+--	from(
+--		Select n.CRENoteID, n.noteid,fs.effectivestartdate as effectivedate,fs.date as dt,
+--		Cast(ROUND(ISNULL(fs.value + ISNULL(pik.PIKFunding_afterLastPyDn,0)  ,0),2) as decimal(28,2)) as fundpydn  
+		
+--		,ISNULL(fs.PurposeID,0) as purpose,ISNULL(fs.purposeText,'') as purposeText
+		
+--		from #tblFF fs
+--		INNER JOIN [CRE].[Note] n ON n.noteid = fs.NoteID
+--		Left Join @tblFundingdataWithPIK pik on pik.noteid = fs.noteid and pik.Lastest_EffectiveDate = fs.effectivestartdate and pik.lastPayDown_Date = fs.date and pik.Purposeid = fs.PurposeID
+
+--		where n.noteid = @NoteID 
+--		and ISNULL(fs.purposeText,'a') <> 'Amortization'
+--	) as [data.notes.setup.tables.funding]
+--	order by noteid,CAST(effectivedate as date),CAST(dt as date)
+--	insert into @tTableAlias([Name]) values('data.notes.setup.tables.funding')
+--END
+--ELSE
+--BEGIN
+--	Select CRENoteID, noteid,
+--	CONVERT(VARCHAR, effectivedate,101) as effectivedate,
+--	CONVERT(VARCHAR, dt,101) as dt,
+--	fundpydn,
+--	purpose,
+--	purposeText
+--	from(
+--		Select n.CRENoteID, n.noteid,fs.effectivestartdate as effectivedate,fs.date as dt,Cast(ROUND(ISNULL(fs.value,0),2) as decimal(28,2)) as fundpydn,ISNULL(fs.PurposeID,0) as purpose,ISNULL(fs.purposeText,'') as purposeText
+--		from #tblFF fs
+--		INNER JOIN [CRE].[Note] n ON n.noteid = fs.NoteID	
+--		where n.noteid = @NoteID 
+--		and ISNULL(fs.purposeText,'a') <> 'Amortization'
+--	) as [data.notes.setup.tables.funding]
+--	order by noteid,CAST(effectivedate as date),CAST(dt as date)
+--	insert into @tTableAlias([Name]) values('data.notes.setup.tables.funding')
+--END
+
+
+Select CRENoteID, noteid,
+	CONVERT(VARCHAR, effectivedate,101) as effectivedate,
+	CONVERT(VARCHAR, dt,101) as dt,
+	fundpydn,
+	purpose,
+	purposeText
+	from(
+		Select n.CRENoteID, n.noteid,fs.effectivestartdate as effectivedate,fs.date as dt,Cast(ROUND(ISNULL(fs.value,0),2) as decimal(28,2)) as fundpydn,ISNULL(fs.PurposeID,0) as purpose,ISNULL(fs.purposeText,'') as purposeText
+		from #tblFF fs
+		INNER JOIN [CRE].[Note] n ON n.noteid = fs.NoteID	
+		where n.noteid = @NoteID 
+		and ISNULL(fs.purposeText,'a') <> 'Amortization'
+	) as [data.notes.setup.tables.funding]
+	order by noteid,CAST(effectivedate as date),CAST(dt as date)
+	insert into @tTableAlias([Name]) values('data.notes.setup.tables.funding')
+---==================================================================
+
+
+
+Select CRENoteID, noteid,
+CONVERT(VARCHAR, effectivedate,101) as effectivedate,
+CONVERT(VARCHAR, dt,101) as dt,
+val
+from(
+	Select n.CRENoteID, n.noteid,e.effectivestartdate as effectivedate,fs.date as dt,Cast(ROUND(ISNULL(fs.value,0),2) as decimal(28,2)) as val
+	from [CORE].AmortSchedule fs
+	INNER JOIN [CORE].[Event] e on e.EventID = fs.EventId
+	left JOIN [CORE].[Lookup] LEventTypeID ON LEventTypeID.LookupID = e.EventTypeID
+	INNER JOIN [CORE].[Account] acc ON acc.AccountID = e.AccountID
+	INNER JOIN [CRE].[Note] n ON n.Account_AccountID = acc.AccountID
+	where e.StatusID = 1 and acc.IsDeleted = 0 
+	and n.noteid = @NoteID
+) as [data.notes.setup.tables.amsch]
+order by noteid,CAST(effectivedate as date),CAST(dt as date)
+insert into @tTableAlias([Name]) values('data.notes.setup.tables.amsch')
+
+
+
+Select 
+crenoteid
+,noteid
+,CONVERT(VARCHAR, effectivedate,101) as effectivedate
+,CONVERT(VARCHAR, startdt,101) as startdt
+,CONVERT(VARCHAR, enddt,101) as enddt
+,ISNULL(rate,0) as rate
+,ISNULL(spread,0) as spread
+,ISNULL(index_floor,0) as index_floor
+,ISNULL(intcalcdays	,0) as intcalcdays
+,ISNULL(cap_bal,0) as cap_bal
+,ISNULL(acc_cap_bal,0) as acc_cap_bal
+,pik_sep_comp	
+,ISNULL(pik_reason_code	,'') as pik_reason_code
+,ISNULL(pik_comments,'') as pik_comments
+From(
+	Select   n.crenoteid,n.noteid,e.EffectiveStartDate as effectivedate  
+	,pik.[StartDate] as startdt
+	,pik.[EndDate] as enddt
+	,pik.[AdditionalIntRate]   as rate
+	,pik.[AdditionalSpread]  as spread
+	,pik.[IndexFloor] as index_floor
+	,PIKIntCalcMethodID as intcalcdays
+	,pik.[IntCapAmt]  as cap_bal
+	,pik.[AccCapBal] as acc_cap_bal
+	,CAST((CASE When lPIKSeparateCompounding.name = 'Y' THEN 1 else 0 end) as bit) as pik_sep_comp
+	,LPIKReasonCode.name as pik_reason_code 
+	,pik.PIKComments   as pik_comments
+	from [CORE].PikSchedule pik  
+	left JOIN [CORE].[Account] accsource ON accsource.AccountID = pik.SourceAccountID  
+	left JOIN [CORE].[Account] accDest ON accDest.AccountID = pik.TargetAccountID  
+	INNER JOIN [CORE].[Event] e on e.EventID = pik.EventId  
+	LEFT JOIN [CORE].[Lookup] LPIKReasonCode ON LPIKReasonCode.LookupID = pik.PIKReasonCodeID  
+	LEFT JOIN [CORE].[Lookup] LPIKIntCalcMethodID ON LPIKIntCalcMethodID.LookupID = pik.PIKIntCalcMethodID  
+	INNER JOIN [CORE].[Account] acc ON acc.AccountID = e.AccountID
+	INNER JOIN [CRE].[Note] n ON n.Account_AccountID = acc.AccountID
+	left JOin core.lookup lPIKSeparateCompounding on lPIKSeparateCompounding.lookupid =n.PIKSeparateCompounding
+	where ISNULL(e.StatusID,1) = 1 --and acc.IsDeleted = 0 
+	and n.noteid = @NoteID
+
+)as [data.notes.setup.tables.pikrate]
+order by noteid,CAST(effectivedate as date),CAST(startdt as date)
+insert into @tTableAlias([Name]) values('data.notes.setup.tables.pikrate')
+
+
+
+
+Select CRENoteID, noteid,
+CONVERT(VARCHAR, effectivedate,101) as effectivedate,
+CONVERT(VARCHAR, dt,101) as dt,
+val
+from(
+	Select n.CRENoteID, n.noteid,e.effectivestartdate as effectivedate,fs.date as dt,Cast(ROUND(ISNULL(fs.value,0),2) as decimal(28,2)) as val
+	from [CORE].PIKScheduleDetail fs
+	INNER JOIN [CORE].[Event] e on e.EventID = fs.EventId
+	left JOIN [CORE].[Lookup] LEventTypeID ON LEventTypeID.LookupID = e.EventTypeID
+	INNER JOIN [CORE].[Account] acc ON acc.AccountID = e.AccountID
+	INNER JOIN [CRE].[Note] n ON n.Account_AccountID = acc.AccountID
+	where e.StatusID = 1 and acc.IsDeleted = 0 
+	and n.noteid = @NoteID
+) as [data.notes.setup.tables.piksch]
+order by noteid,CAST(effectivedate as date),CAST(dt as date)
+insert into @tTableAlias([Name]) values('data.notes.setup.tables.piksch')
+
+
+--setup->tables->rate spread
+--select NoteID,EffectiveDate,startdt,valtype,val ,intcalcdays
+--from
+--(
+--Select tn.NoteID,tn.EffectiveDate,rs.Date as startdt,
+--replace(lower(tl.[Name]),' ','_') as valtype,rs.Value as val ,360 as intcalcdays
+--from core.RateSpreadSchedule rs  
+--INNER JOIN [CORE].[Event] e on e.EventID = rs.EventId  
+--INNER JOIN [CORE].[Account] acc ON acc.AccountID = e.AccountID
+--INNER JOIN [CRE].[Note] n ON n.Account_AccountID = acc.AccountID
+--LEFT JOIN core.Lookup tl ON tl.LookupID=rs.ValueTypeID
+--INNER JOIN @tNoteEffectiveDates tn on tn.NoteID=n.NoteID
+--and tn.EffectiveDate=e.effectivestartdate
+--) as [data.notes.setup.tables]
+-- order by NoteID,EffectiveDate
+
+ --
+ --setup->tables->all rate spread with one result set corresponding to each
+insert into @tRateSpreadSchedule
+Select distinct rs.ValuetypeID,replace(lower(tl.[Name]),' ','_')
+from core.RateSpreadSchedule rs  
+INNER JOIN [CORE].[Event] e on e.EventID = rs.EventId  
+INNER JOIN [CORE].[Account] acc ON acc.AccountID = e.AccountID
+INNER JOIN [CRE].[Note] n ON n.Account_AccountID = acc.AccountID
+LEFT JOIN core.Lookup tl ON tl.LookupID=rs.ValueTypeID
+INNER JOIN #tNoteEffectiveDates tn on tn.NoteID=n.NoteID and tn.EffectiveDate=e.effectivestartdate
+where e.statusid = 1
+
+
+select @totalCntRateSpread = count(1) from @tRateSpreadSchedule
+while (@cnt<=@totalCntRateSpread)
+BEGIN
+	 select @ValueTypeID=ValueTypeID,@Name=Name from @tRateSpreadSchedule where ID=@cnt
+	 set @RateSpreadSchedule='Select CRENoteID, NoteID,
+	 CONVERT(VARCHAR, EffectiveDate,101) as EffectiveDate,
+	 CONVERT(VARCHAR, startdt,101) as startdt,
+	 valtype,
+	 val,
+	 intcalcdays
+	 from
+	 (
+	 Select n.CRENoteID ,tn.NoteID,tn.EffectiveDate,rs.Date as startdt,
+	 '''+@Name+''' as valtype,isnull(rs.Value,0) as val ,
+	 ISNULL(IntCalcMethodID,0) as intcalcdays
+	from core.RateSpreadSchedule rs  
+	INNER JOIN [CORE].[Event] e on e.EventID = rs.EventId  
+	INNER JOIN [CORE].[Account] acc ON acc.AccountID = e.AccountID
+	INNER JOIN [CRE].[Note] n ON n.Account_AccountID = acc.AccountID
+	LEFT JOIN core.Lookup tl ON tl.LookupID=rs.ValueTypeID
+	INNER JOIN #tNoteEffectiveDates tn on tn.NoteID=n.NoteID and tn.EffectiveDate=e.effectivestartdate
+	where e.statusid = 1 and ValueTypeID='''+@ValueTypeID+'''
+	) as [data.notes.'''+@Name+''']'
+	insert into @tTableAlias ([Name],GroupName) values('data.notes.'+@Name,'rate')
+	EXEC (@RateSpreadSchedule)
+	set @cnt+=1
+END
+
+--
+ 
+ --data.notes.setup.tables.fees
+ select CRENoteID, NoteID,
+ CONVERT(VARCHAR, EffectiveDate,101) as EffectiveDate,
+ feename,
+ CONVERT(VARCHAR, startdt,101) as startdt,
+ CONVERT(VARCHAR, enddt,101) as enddt,
+ valtype,[type],
+ val ,ovrfeeamt,ovrbaseamt,trueupflag, levyldincl,basisincl, stripval
+ from
+ (
+	 Select n.CRENoteID, tn.NoteID,tn.EffectiveDate,
+	 ISNULL(rs.FeeName,'') as feename,
+	 ---rs.StartDate as startdt,
+	 (CASE WHEN rs.EndDate is not null and rs.StartDate < tn.EffectiveDate and rs.EndDate >= tn.EffectiveDate THEN tn.EffectiveDate 
+	 --WHEN rs.EndDate is null and rs.StartDate < tn.EffectiveDate THEN tn.EffectiveDate 	
+	ELSE rs.StartDate END) as startdt,
+
+	 rs.EndDate as enddt,
+	 rs.ValueTypeID as valtype,
+	 LValueTypeID.FeeTypeNameText as [type]  ,
+	 ISNULL(rs.Value,0) as val ,
+	 ISNULL(rs.FeeAmountOverride,0) as ovrfeeamt,
+	 ISNULL(rs.BaseAmountOverride,0) as ovrbaseamt,
+
+	 rs.ApplyTrueUpFeature as trueupflag,
+	 --ISNULL(tApplyTrueUpFeature.name,'') as trueupflag,
+
+	 ISNULL(rs.IncludedLevelYield,0) as levyldincl,
+	 ISNULL(rs.IncludedBasis,0) as basisincl,
+	 ISNULL(rs.FeetobeStripped,0) as stripval
+	from core.PrepayAndAdditionalFeeSchedule rs  
+	INNER JOIN [CORE].[Event] e on e.EventID = rs.EventId  
+	INNER JOIN [CORE].[Account] acc ON acc.AccountID = e.AccountID
+	INNER JOIN [CRE].[Note] n ON n.Account_AccountID = acc.AccountID
+	LEFT JOIN cre.FeeSchedulesConfig LValueTypeID ON LValueTypeID.FeeTypeNameID = rs.ValueTypeID 	
+	LEFT JOIN core.Lookup tApplyTrueUpFeature ON tApplyTrueUpFeature.LookupID=rs.ApplyTrueUpFeature	
+	INNER JOIN #tNoteEffectiveDates tn on tn.NoteID=n.NoteID and tn.EffectiveDate=e.effectivestartdate
+	where e.statusid = 1
+) as [data.notes.setup.tables.fees]
+ order by NoteID,EffectiveDate
+
+ insert into @tTableAlias([Name]) values('data.notes.setup.tables.fees')
+
+
+
+ --data.notes.setup.tables.fee_stripping
+ select CRENoteID,NoteID,[to],pct,feetype,feename
+ from
+ (
+	select n.CRENoteID,n.NoteID,nTo.CRENoteID as [to],ISNULL(Value,0) as pct ,fsc.feetypenametext as feetype,feesch.feename
+	from cre.note n join [CORE].[Account] ac 
+	on n.Account_AccountID=ac.AccountID 
+	join cre.payrulesetup p on p.StripTransferFrom = n.NoteID
+	left join cre.note nTo on p.StripTransferTo = nTo.NoteID
+	left join cre.feeschedulesconfig fsc on fsc.FeeTypeNameID = p.RuleID
+	Left JOin(
+		Select n.noteid,pafs.ValueTypeID  ,LValueTypeID.FeeTypeNameText,pafs.FeeName
+		from [CORE].PrepayAndAdditionalFeeSchedule pafs  
+		INNER JOIN [CORE].[Event] e on e.EventID = pafs.EventId 
+		LEFT JOIN cre.FeeSchedulesConfig LValueTypeID ON LValueTypeID.FeeTypeNameID = pafs.ValueTypeID  
+		INNER JOIN   (         
+			Select   
+			(Select AccountID from [CORE].[Account] ac where ac.AccountID = n.Account_AccountID) AccountID ,  
+			MAX(EffectiveStartDate) EffectiveStartDate,EventTypeID from [CORE].[Event] eve  
+			INNER JOIN [CRE].[Note] n ON n.Account_AccountID = eve.AccountID  
+			INNER JOIN [CORE].[Account] acc ON acc.AccountID = n.Account_AccountID  
+			where EventTypeID = 13
+			and eve.StatusID = 1	
+			and acc.IsDeleted = 0  			
+			GROUP BY n.Account_AccountID,EventTypeID    
+		) sEvent  ON sEvent.AccountID = e.AccountID and e.EffectiveStartDate = sEvent.EffectiveStartDate  and e.EventTypeID = sEvent.EventTypeID  
+		INNER JOIN [CORE].[Account] acc ON acc.AccountID = e.AccountID
+		INNER JOIN [CRE].[Note] n ON n.Account_AccountID = acc.AccountID
+		where e.StatusID = 1
+	)feesch on feesch.noteid = nTo.noteid and feesch.ValueTypeID = p.RuleID
+	where n.noteid = @NoteID and ac.IsDeleted=0
+) as [data.notes.setup.tables.fee_stripping]
+order by CRENoteID
+
+insert into @tTableAlias([Name]) values('data.notes.setup.tables.fee_stripping')
+--
+
+--data.deal.setup.min_effective_date
+select CONVERT(VARCHAR, @deal_min_effDate,101) as min_effective_dates,
+CONVERT(VARCHAR, clsdt,101) as clsdt,
+initbal,
+CONVERT(VARCHAR, initmatdt,101) as initmatdt
+from
+(
+	select
+	(select min(n.closingDate) as period_start_date
+		from [CORE].[Event] eve
+		INNER JOIN [CRE].[Note] n ON n.Account_AccountID = eve.AccountID
+		INNER JOIN [CORE].[Account] acc ON acc.AccountID = n.Account_AccountID
+		inner join cre.deal d on d.DealID=n.DealID
+		where  acc.IsDeleted=0
+		and isnull(eve.StatusID,1) = 1
+		and n.noteid = @NoteID
+	) as clsdt,
+	(select sum(isnull(InitialFundingAmount,0)) from cre.note where noteid = @NoteID) as initbal,
+	(Select  MIN(mat.maturityDate) 
+		from [CORE].Maturity mat  
+		INNER JOIN [CORE].[Event] e on e.EventID = mat.EventId  
+		INNER JOIN [CORE].[Account] acc ON acc.AccountID = e.AccountID
+		INNER JOIN [CRE].[Note] n ON n.Account_AccountID = acc.AccountID 		
+		where e.statusid = 1 and 
+		mat.maturityType = 708 
+		and	mat.Approved = 3
+		and n.noteid = @NoteID
+		and e.effectiveStartDate=@deal_min_effDate
+		group by n.dealid
+	) as initmatdt
+
+) as [data.deal.setup.min_effective_date]
+
+insert into @tTableAlias([Name]) values('data.deal.setup.min_effective_date')
+--
+
+
+----data.deal.setup.tables --deal funding
+--select 
+--CONVERT(VARCHAR, @deal_min_effDate,101) as min_effective_date,
+--CONVERT(VARCHAR, Date,101) as dt,
+--ISNULL(Amount,0) as fundpydn ,
+--PurposeID as purpose 
+--from cre.dealfunding as [data.deal.setup.tables]
+--where dealid=@DealID order by [date]
+--insert into @tTableAlias([Name]) values('data.deal.setup.tables.funding')
+
+
+
+
+--data.structure
+select CREDealID as [from],CRENoteID as [to]
+from
+(
+	select distinct(n.CRENoteID) as CRENoteID,d.CREDealID as CREDealID
+	from [CORE].[Event] eve
+	INNER JOIN [CRE].[Note] n ON n.Account_AccountID = eve.AccountID
+	INNER JOIN [CORE].[Account] acc ON acc.AccountID = n.Account_AccountID
+	inner join cre.deal d on d.DealID=n.DealID
+	where  acc.IsDeleted=0
+	and isnull(eve.StatusID,1) = 1
+	and n.noteid = @NoteID
+) as [data.structure]
+order by CRENoteID
+
+insert into @tTableAlias([Name]) values('data.structure')
+--
+
+--data.rulesets.pay
+Select @TotalSequ1 = sum(ISNULL(fs.Value,0))
+from [CRE].[FundingRepaymentSequence] fs
+INNER JOIN [CRE].[Note] n ON fs.NoteID=n.NoteID
+LEFT JOIN [CORE].[Lookup] LSequenceTypeID ON LSequenceTypeID.LookupID = fs.SequenceType
+where n.noteid = @NoteID
+and fs.SequenceNo=1 and fs.SequenceType=258
+
+select CRENoteID as note, CAST(ROUND(Value,2) as decimal(28,2))  as cumulative_threshold,[weight]
+from
+(
+	Select n.CRENoteID,isnull(fs.Value,0) as Value,
+	[weight]=case when isnull(fs.Value,0)=0 then 0 else isnull(fs.Value,0)/@TotalSequ1 end,
+	1 as sortorder
+	from [CRE].[FundingRepaymentSequence] fs
+	INNER JOIN [CRE].[Note] n ON fs.NoteID=n.NoteID
+	inner join Core.Account a on a.AccountID=n.Account_AccountID
+	LEFT JOIN [CORE].[Lookup] LSequenceTypeID ON LSequenceTypeID.LookupID = fs.SequenceType
+	where n.noteid = @NoteID
+	and fs.SequenceNo=1 and fs.SequenceType=258
+	and n.UseRuletoDetermineNoteFunding=@UseRuletoDetermineNoteFundingAsYES
+
+	union
+
+	select CRENoteID,Value, [weight],sortorder 
+	from (
+		Select top 1 n.CRENoteID,0 as Value,0 as [weight], 2 as sortorder
+		from [CRE].[FundingRepaymentSequence] fs
+		INNER JOIN [CRE].[Note] n ON fs.NoteID=n.NoteID
+		inner join Core.Account a on a.AccountID=n.Account_AccountID
+		LEFT JOIN [CORE].[Lookup] LSequenceTypeID ON LSequenceTypeID.LookupID = fs.SequenceType
+		where n.noteid = @NoteID
+		and fs.SequenceNo=1 and fs.SequenceType=258
+		and n.UseRuletoDetermineNoteFunding=@UseRuletoDetermineNoteFundingAsYES
+		order by ISNULL(n.lienposition,99999), n.Priority,n.InitialFundingAmount desc, a.Name
+	) tb1
+) as [data.rulesets.pay]
+order by sortorder
+
+insert into @tTableAlias([Name]) values('data.rulesets.pay')
+--
+
+
+
+--data.index
+Declare @min_closingDate date;
+	SET @min_closingDate = (select min(n.closingDate) min_closingDate
+		from [CRE].[Note] n
+		INNER JOIN [CORE].[Account] acc ON acc.AccountID = n.Account_AccountID
+		inner join cre.deal d on d.DealID=n.DealID
+		where  acc.IsDeleted=0	
+		and n.noteid = @NoteID)
+
+
+--====================================
+Declare @Min_IndexDate date;
+Declare @Max_IndexDate date;
+
+set @Min_IndexDate = DATEADD(day,-5,@min_closingDate)
+
+SET @Max_IndexDate = (Select  max(i.[date]) as Max_IndexDate
+from core.Indexes i
+Inner Join core.indexesmaster im on im.IndexesMasterID = i.IndexesMasterID
+left JOin core.lookup l on l.lookupid = i.IndexType
+where im.IndexesName = 'Default Index')
+
+
+declare @tblindexName as table 
+(
+	NoteID UNIQUEIDENTIFIER,
+	StartDate date,
+	Index_Name nvarchar(256),
+	
+	NewStartDate date,
+	NewEndDate date,
+	RowNo int
+) 
+
+Delete from @tblindexName
+INSERT INTO @tblindexName (NoteID,StartDate,Index_Name,NewStartDate,NewEndDate,RowNo)
+
+Select NoteID,StartDate,IndexName, --(CASE WHEN IndexName = 'N/A' THEN '1M LIBOR' ELSE IndexName END) as IndexName,
+StartDate as NewStartDate,
+dateadd(DAY,-1,lead(StartDate,1) OVER(PARTITION BY noteid ORDER BY noteid,Startdate)) AS NewEndDate,
+ROW_NUMBER() OVER(PARTITION BY noteid ORDER BY noteid,Startdate) AS RNO
+--noteid,IndexNameID,IndexName
+from(
+	Select n.noteid,n.crenoteid,rs.IndexNameID ,rs.date as StartDate,lindex.Name as IndexName ,ROW_NUMBER() Over(Partition by noteid order by noteid) rno 
+	from [CORE].RateSpreadSchedule rs  
+	INNER JOIN [CORE].[Event] e on e.EventID = rs.EventId  
+	LEFT JOIN [CORE].[Lookup] LValueTypeID ON LValueTypeID.LookupID = rs.ValueTypeID 
+	LEFT JOIN [CORE].[Lookup] lindex ON lindex.LookupID = rs.IndexNameID  
+	INNER JOIN   
+	(          
+		Select   
+		(Select AccountID from [CORE].[Account] ac where ac.AccountID = n.Account_AccountID) AccountID ,  
+		MAX(EffectiveStartDate) EffectiveStartDate,EventTypeID from [CORE].[Event] eve  
+		INNER JOIN [CRE].[Note] n ON n.Account_AccountID = eve.AccountID  
+		INNER JOIN [CORE].[Account] acc ON acc.AccountID = n.Account_AccountID  
+		where EventTypeID = 14
+		and eve.StatusID = 1
+		and acc.IsDeleted = 0 
+		and n.noteid = @NoteID
+		GROUP BY n.Account_AccountID,EventTypeID    
+	) sEvent    
+	ON sEvent.AccountID = e.AccountID and e.EffectiveStartDate = sEvent.EffectiveStartDate  and e.EventTypeID = sEvent.EventTypeID 
+	INNER JOIN [CORE].[Account] acc ON acc.AccountID = e.AccountID
+	INNER JOIN [CRE].[Note] n ON n.Account_AccountID = acc.AccountID
+	LEFT JOIN [CORE].[Lookup] Lratetype ON Lratetype.LookupID = n.RateType 
+	where e.StatusID = 1 and acc.isdeleted <> 1
+	and LValueTypeID.name = 'Index Name' 	
+	and n.noteid = @NoteID
+)a
+--where a.rno = 1
+
+
+--IF NOT EXISTS(Select noteid from @tblindexName)
+--BEGIN
+--	INSERT INTO @tblindexName (NoteID,StartDate,Index_Name,NewStartDate,NewEndDate,RowNo)
+--	VALUES(@NoteID,@Min_IndexDate,'1M LIBOR',@Min_IndexDate,@Max_IndexDate,1) 
+--END
+
+
+declare @min_rno int;
+declare @max_rno int; 
+
+SET @min_rno = (select min(RowNo) from  @tblindexName)
+SET @max_rno = (select max(RowNo) from  @tblindexName)
+
+update @tblindexName set NewStartDate = @Min_IndexDate where RowNo = @min_rno
+update @tblindexName set NewEndDate = @Max_IndexDate where RowNo = @max_rno
+
+select --NoteID,StartDate,Index_Name,NewStartDate,NewEndDate
+CONVERT(VARCHAR, x.[date],101) as date,
+Cast(ISNULL(x.[value],0) as decimal(28,7)) as [value]
+from  @tblindexName t
+Outer Apply(
+	Select 
+	CONVERT(VARCHAR, i.[date],101) as date,
+	Cast(ISNULL(i.[value],0) as decimal(28,7)) as [value],
+	l.name as IndexName
+	from core.Indexes i
+	Inner Join core.indexesmaster im on im.IndexesMasterID = i.IndexesMasterID
+	left JOin core.lookup l on l.lookupid = i.IndexType
+	where im.IndexesName = 'Default Index'
+	and l.name = t.Index_Name and (i.[date] >= t.NewStartDate and i.[date] <= NewEndDate)
+)x
+where x.[date] is not null
+order by cAST(x.[Date] as Date)
+insert into @tTableAlias([Name]) values('data.index')
+
+--declare @Index_Name nvarchar(256) = null ;
+
+--Select @Index_Name = (CASE WHEN IndexName = 'N/A' THEN '1M LIBOR' ELSE IndexName END)
+----noteid,IndexNameID,IndexName
+--from(
+--	Select n.noteid,n.crenoteid,rs.IndexNameID ,lindex.Name as IndexName ,ROW_NUMBER() Over(Partition by noteid order by noteid,rs.date desc) rno 
+--	from [CORE].RateSpreadSchedule rs  
+--	INNER JOIN [CORE].[Event] e on e.EventID = rs.EventId  
+--	LEFT JOIN [CORE].[Lookup] LValueTypeID ON LValueTypeID.LookupID = rs.ValueTypeID 
+--	LEFT JOIN [CORE].[Lookup] lindex ON lindex.LookupID = rs.IndexNameID  
+--	INNER JOIN   
+--	(          
+--		Select   
+--		(Select AccountID from [CORE].[Account] ac where ac.AccountID = n.Account_AccountID) AccountID ,  
+--		MAX(EffectiveStartDate) EffectiveStartDate,EventTypeID from [CORE].[Event] eve  
+--		INNER JOIN [CRE].[Note] n ON n.Account_AccountID = eve.AccountID  
+--		INNER JOIN [CORE].[Account] acc ON acc.AccountID = n.Account_AccountID  
+--		where EventTypeID = 14
+--		and eve.StatusID = 1
+--		and acc.IsDeleted = 0 
+--		and n.noteid = @NoteID
+--		GROUP BY n.Account_AccountID,EventTypeID    
+--	) sEvent    
+--	ON sEvent.AccountID = e.AccountID and e.EffectiveStartDate = sEvent.EffectiveStartDate  and e.EventTypeID = sEvent.EventTypeID 
+--	INNER JOIN [CORE].[Account] acc ON acc.AccountID = e.AccountID
+--	INNER JOIN [CRE].[Note] n ON n.Account_AccountID = acc.AccountID
+--	LEFT JOIN [CORE].[Lookup] Lratetype ON Lratetype.LookupID = n.RateType 
+--	where e.StatusID = 1 and acc.isdeleted <> 1
+--	and LValueTypeID.name = 'Index Name' 	
+--	and n.noteid = @NoteID
+--)a
+--where a.rno = 1
+
+
+--Select 
+--CONVERT(VARCHAR, i.[date],101) as date,
+--Cast(ISNULL(i.[value],0) as decimal(28,7)) as [value]
+--from core.Indexes i
+--Inner Join core.indexesmaster im on im.IndexesMasterID = i.IndexesMasterID
+--left JOin core.lookup l on l.lookupid = i.IndexType
+--where im.IndexesName = 'Default Index'
+--and l.name = ISNULL(@Index_Name,'1M LIBOR')   ---'1M LIBOR'
+--and i.[date] >= DATEADD(day,-5,@min_closingDate)
+--order by i.Date
+--insert into @tTableAlias([Name]) values('data.index')
+---------------------------------
+
+
+
+
+select CalendarName as HolidayTypeText,CONVERT(VARCHAR, HoliDayDate,101) HoliDayDate	
+from App.HoliDays hd 
+left join app.HoliDaysMaster hdm on hdm.HolidayMasterID = hd.HoliDayTypeID
+Order by CalendarName,CAST(HoliDayDate as date)
+insert into @tTableAlias([Name]) values('data.calendars')
+
+
+
+
+---==========================================
+    Declare @ServicerMasterID int;
+	Declare @ServicerModifiedID int;
+	Declare @ServicerManual int;
+
+IF (@UseServicingActual = 'Y')
+BEGIN
+	
+
+	SET @ServicerMasterID = (Select ServicerMasterID from cre.servicermaster where ServicerName = 'M61Addin')	
+	SET @ServicerModifiedID = (Select ServicerMasterID from cre.servicermaster where ServicerName = 'Modified')	
+	SET @ServicerManual = (Select ServicerMasterID from cre.servicermaster where ServicerName = 'ManualTransaction')
+
+	select  note.CRENoteID as CRENoteID,
+	ty.accountname as account,
+	CONVERT(VARCHAR, ntd.RelatedtoModeledPMTDate ,101) dt,
+	note.crenoteid as note,
+
+
+	--(CASE WHEN (ty.Calculated = 3 and IncludeServicingReconciliation = 3) THEN (Case When ntd.OverrideValue > 0 then ntd.OverrideValue When (isnull(ntd.M61Value,0) = 0 and isnull(ntd.ServicerValue,0) = 0 ) then ntd.OverrideValue When (isnull(ntd.M61Value,0) <> 0 ) Then ntd.CalculatedAmount	When (isnull(ntd.ServicerValue,0) <>0 ) Then ntd.ServicingAmount	When (isnull(ntd.Ignore,0) <> 0 ) Then ntd.OverrideValue	ELSE ntd.CalculatedAmount END) 
+	--WHEN (ty.Calculated = 3 and AllowCalculationOverride = 3) THEN ntd.CalculatedAmount
+	--WHEN (ty.Calculated = 4 and ServicerMasterID <> @ServicerManual) THEN ntd.CalculatedAmount	
+	--WHEN (ty.Calculated = 4 and ServicerMasterID = @ServicerManual) THEN (Case When ntd.OverrideValue > 0 then ntd.OverrideValue When (isnull(ntd.M61Value,0) = 0 and isnull(ntd.ServicerValue,0) = 0 ) then ntd.OverrideValue When (isnull(ntd.M61Value,0) <> 0 ) Then ntd.CalculatedAmount	When (isnull(ntd.ServicerValue,0) <>0 ) Then ntd.ServicingAmount	When (isnull(ntd.Ignore,0) <> 0 ) Then ntd.OverrideValue	ELSE ntd.CalculatedAmount END) 
+	--ELSE ntd.CalculatedAmount END) as [val],
+
+	(CASE WHEN (ty.Calculated = 3 and IncludeServicingReconciliation = 3) THEN (Case When ntd.OverrideValue > 0 then ntd.OverrideValue When (isnull(ntd.M61Value,0) = 0 and isnull(ntd.ServicerValue,0) = 0 ) then ntd.OverrideValue When (isnull(ntd.M61Value,0) <> 0 ) Then ntd.CalculatedAmount	When (isnull(ntd.ServicerValue,0) <>0 ) Then ntd.ServicingAmount	When (isnull(ntd.Ignore,0) <> 0 ) Then ntd.OverrideValue	ELSE ntd.CalculatedAmount END) 
+	WHEN (ty.Calculated = 3 and AllowCalculationOverride = 3) THEN ntd.CalculatedAmount
+	WHEN (ty.Calculated = 4 and ServicerMasterID <> @ServicerManual) 
+		THEN (CASE WHEN TransactionTypeText = 'PrepaymentFeeExcludedFromLevelYield' THEN (Case When ntd.OverrideValue > 0 then ntd.OverrideValue When (isnull(ntd.M61Value,0) = 0 and isnull(ntd.ServicerValue,0) = 0 ) then ntd.OverrideValue When (isnull(ntd.M61Value,0) <> 0 ) Then ntd.CalculatedAmount	When (isnull(ntd.ServicerValue,0) <>0 ) Then ntd.ServicingAmount	When (isnull(ntd.Ignore,0) <> 0 ) Then ntd.OverrideValue	ELSE ntd.CalculatedAmount END) ELSE ntd.CalculatedAmount END)
+	WHEN (ty.Calculated = 4 and ServicerMasterID = @ServicerManual) THEN (Case When ntd.OverrideValue > 0 then ntd.OverrideValue When (isnull(ntd.M61Value,0) = 0 and isnull(ntd.ServicerValue,0) = 0 ) then ntd.OverrideValue When (isnull(ntd.M61Value,0) <> 0 ) Then ntd.CalculatedAmount	When (isnull(ntd.ServicerValue,0) <>0 ) Then ntd.ServicingAmount	When (isnull(ntd.Ignore,0) <> 0 ) Then ntd.OverrideValue	ELSE ntd.CalculatedAmount END) 
+	ELSE ntd.CalculatedAmount END) as [val],
+
+	CAST((CASE WHEN Cash_NonCash = 'Cash' then 1 else 0 end) as bit) as cash,
+	CAST((CASE WHEN ty.Calculated = 3 THEN 1 ELSE 0 END) as bit) as calculated,
+
+	CONVERT(VARCHAR, ntd.TransactionDate ,101) as trans_dt,
+	CONVERT(VARCHAR, ntd.RemittanceDate ,101)  as remit_dt,
+
+	COnvert(VARCHAR,
+	Cast(	
+	(Case WHEN RemittanceDate <= dbo.Fn_GetnextWorkingDays(Cast(RelatedtoModeledPMTDate as datetime), (case when TransactionTypeText = 'ScheduledPrincipalPaid' then 10 else 5 end)  ,'PMT Date') THEN Cast(RelatedtoModeledPMTDate as datetime) 
+	WHEN RemittanceDate > dbo.Fn_GetnextWorkingDays(Cast(RelatedtoModeledPMTDate as datetime),(case when TransactionTypeText = 'ScheduledPrincipalPaid' then 10 else 5 end),'PMT Date') THEN RemittanceDate 
+	ELSE RelatedtoModeledPMTDate END) 	
+	as datetime)  
+	,101) as transdtbyrule_dt
+
+	,ntd.Adjustment as adjustment
+	,ntd.ActualDelta as actualdelta
+
+
+	from cre.NoteTransactionDetail ntd
+	inner join CRE.Note note on note.NoteID = ntd.NoteID 
+	inner join Core.Account ac on note.Account_AccountID=ac.AccountID
+	left join Core.Lookup l1 on l1.LookupID =ntd.TransactionType 
+	left join cre.TransactionTypes ty on ty.TransactionName = ntd.TransactionTypeText
+	where note.NoteID  = @NoteID
+	and ac.IsDeleted=0
+
+	and ((Calculated = 3 and IncludeServicingReconciliation = 3) 
+			or (Calculated = 3 and AllowCalculationOverride = 3 and ntd.ServicerMasterID = @ServicerModifiedID) 
+			or (Calculated = 4))
+
+	order by ntd.RelatedtoModeledPMTDate asc,ntd.TransactionDate asc
+
+	Insert into @tTableAlias([Name]) values('data.notes.actuals')
+END
+ELSE -- --for fetch M61Addin only
+BEGIN
+	--Declare @ServicerMasterID int;
+	--Declare @ServicerModifiedID int;
+	--Declare @ServicerManual int;
+
+	SET @ServicerMasterID = (Select ServicerMasterID from cre.servicermaster where ServicerName = 'M61Addin')	
+	SET @ServicerModifiedID = (Select ServicerMasterID from cre.servicermaster where ServicerName = 'Modified')	
+	SET @ServicerManual = (Select ServicerMasterID from cre.servicermaster where ServicerName = 'ManualTransaction')
+
+	select  note.CRENoteID as CRENoteID,
+	ty.accountname as account,
+	CONVERT(VARCHAR, ntd.RelatedtoModeledPMTDate ,101) dt,
+	note.crenoteid as note,
+	
+	--(CASE WHEN (ty.Calculated = 3 and IncludeServicingReconciliation = 3) THEN (Case When ntd.OverrideValue > 0 then ntd.OverrideValue When (isnull(ntd.M61Value,0) = 0 and isnull(ntd.ServicerValue,0) = 0 ) then ntd.OverrideValue When (isnull(ntd.M61Value,0) <> 0 ) Then ntd.CalculatedAmount	When (isnull(ntd.ServicerValue,0) <>0 ) Then ntd.ServicingAmount	When (isnull(ntd.Ignore,0) <> 0 ) Then ntd.OverrideValue	ELSE ntd.CalculatedAmount END) 
+	--WHEN (ty.Calculated = 3 and AllowCalculationOverride = 3) THEN ntd.CalculatedAmount
+	--WHEN (ty.Calculated = 4 and ServicerMasterID <> @ServicerManual) 
+	--	THEN (CASE WHEN TransactionTypeText = 'PrepaymentFeeExcludedFromLevelYield' THEN (Case When ntd.OverrideValue > 0 then ntd.OverrideValue When (isnull(ntd.M61Value,0) = 0 and isnull(ntd.ServicerValue,0) = 0 ) then ntd.OverrideValue When (isnull(ntd.M61Value,0) <> 0 ) Then ntd.CalculatedAmount	When (isnull(ntd.ServicerValue,0) <>0 ) Then ntd.ServicingAmount	When (isnull(ntd.Ignore,0) <> 0 ) Then ntd.OverrideValue	ELSE ntd.CalculatedAmount END) ELSE ntd.CalculatedAmount END)
+	--WHEN (ty.Calculated = 4 and ServicerMasterID = @ServicerManual) THEN (Case When ntd.OverrideValue > 0 then ntd.OverrideValue When (isnull(ntd.M61Value,0) = 0 and isnull(ntd.ServicerValue,0) = 0 ) then ntd.OverrideValue When (isnull(ntd.M61Value,0) <> 0 ) Then ntd.CalculatedAmount	When (isnull(ntd.ServicerValue,0) <>0 ) Then ntd.ServicingAmount	When (isnull(ntd.Ignore,0) <> 0 ) Then ntd.OverrideValue	ELSE ntd.CalculatedAmount END) 
+	--ELSE ntd.CalculatedAmount END) as [val],
+
+	(CASE 
+	---WHEN (ty.Calculated = 4 and ntd.ServicerMasterID <> @ServicerManual) THEN ntd.CalculatedAmount	
+	---WHEN (ty.Calculated = 4 and ntd.ServicerMasterID = @ServicerManual) THEN (Case When (isnull(ntd.OverrideValue,0) <> 0 ) Then ntd.OverrideValue When (isnull(ntd.M61Value,0) <> 0 ) Then ntd.CalculatedAmount	When (isnull(ntd.ServicerValue,0) <>0 ) Then ntd.ServicingAmount	When (isnull(ntd.Ignore,0) <>0 ) Then ntd.OverrideValue	ELSE ntd.CalculatedAmount END) 
+	WHEN (ty.Calculated = 4) THEN ntd.CalculatedAmount
+	ELSE
+		(Case When (isnull(ntd.OverrideValue,0) <> 0 ) Then ntd.OverrideValue
+		When (isnull(ntd.M61Value,0) <> 0 ) Then ntd.CalculatedAmount
+		When (isnull(ntd.ServicerValue,0) <>0 ) Then ntd.ServicingAmount
+		When (isnull(ntd.Ignore,0) <>0 ) Then ntd.OverrideValue
+		ELSE ntd.CalculatedAmount END) 
+	END)
+	as [val],
+
+	CAST((CASE WHEN Cash_NonCash = 'Cash' then 1 else 0 end) as bit) as cash,
+	CAST((CASE WHEN ty.Calculated = 3 THEN 1 ELSE 0 END) as bit) as calculated,
+
+	CONVERT(VARCHAR, ntd.TransactionDate ,101) as trans_dt,
+	CONVERT(VARCHAR, ntd.RemittanceDate ,101)  as remit_dt,
+
+	COnvert(VARCHAR,
+	Cast(	
+	(Case WHEN RemittanceDate <= dbo.Fn_GetnextWorkingDays(Cast(RelatedtoModeledPMTDate as datetime), (case when TransactionTypeText = 'ScheduledPrincipalPaid' then 10 else 5 end)  ,'PMT Date') THEN Cast(RelatedtoModeledPMTDate as datetime) 
+	WHEN RemittanceDate > dbo.Fn_GetnextWorkingDays(Cast(RelatedtoModeledPMTDate as datetime),(case when TransactionTypeText = 'ScheduledPrincipalPaid' then 10 else 5 end),'PMT Date') THEN RemittanceDate 
+	ELSE RelatedtoModeledPMTDate END) 	
+	as datetime)  
+	,101) as transdtbyrule_dt
+
+	,ntd.Adjustment as adjustment
+	,ntd.ActualDelta as actualdelta
+
+
+	from cre.NoteTransactionDetail ntd
+	inner join CRE.Note note on note.NoteID = ntd.NoteID 
+	inner join Core.Account ac on note.Account_AccountID=ac.AccountID
+	left join Core.Lookup l1 on l1.LookupID =ntd.TransactionType 
+	left join cre.TransactionTypes ty on ty.TransactionName = ntd.TransactionTypeText
+	where note.NoteID  = @NoteID	
+	and ac.IsDeleted=0
+	and ((ty.Calculated = 3 and ty.AllowCalculationOverride = 3 and ntd.ServicerMasterID = @ServicerModifiedID ) or (ty.Calculated = 4))	
+	order by ntd.RelatedtoModeledPMTDate asc,ntd.TransactionDate asc
+
+	Insert into @tTableAlias([Name]) values('data.notes.actuals')
+END
+
+--========================================
+
+
+ 
+Select   n.CRENoteID as CRENoteID
+,CONVERT(VARCHAR, ls.[Date],101) as dt
+,ls.StrippedAmount as val
+,LRuleTypeID.FeeTypeNameText+' '+ 'Strip' as [type]
+,ls.FeeName as feename
+from [CORE].FeeCouponStripReceivable ls
+INNER JOIN [CORE].[Event] e on e.EventID = ls.EventId
+INNER JOIN 
+(						
+	Select 
+	(Select AccountID from [CORE].[Account] ac where ac.AccountID = n.Account_AccountID) AccountID ,
+	MAX(EffectiveStartDate) EffectiveStartDate,EventTypeID from [CORE].[Event] eve
+	INNER JOIN [CRE].[Note] n ON n.Account_AccountID = eve.AccountID
+	INNER JOIN [CORE].[Account] acc ON acc.AccountID = n.Account_AccountID
+	where EventTypeID = (Select LookupID from CORE.[Lookup] where Name = 'FeeCouponStripReceivable')
+	and n.NoteID = @NoteID and acc.IsDeleted = 0
+	GROUP BY n.Account_AccountID,EventTypeID
+) sEvent
+ON sEvent.AccountID = e.AccountID and e.EffectiveStartDate = sEvent.EffectiveStartDate  and e.EventTypeID = sEvent.EventTypeID
+left JOIN [CORE].[Lookup] LEventTypeID ON LEventTypeID.LookupID = e.EventTypeID
+left JOIN [CRE].[FeeSchedulesConfig] LRuleTypeID ON LRuleTypeID.FeeTypeNameID = ls.RuleTypeID
+INNER JOIN [CORE].[Account] acc ON acc.AccountID = e.AccountID
+INNER JOIN [CRE].[Note] n ON n.Account_AccountID = acc.AccountID
+left JOIN [CRE].[Note] nSource ON nSource.noteid =ls.SourceNoteId
+Where   acc.IsDeleted = 0
+and ls.AnalysisID = @AnalysisID
+Order by n.CRENoteID,ls.[Date]
+
+ insert into @tTableAlias([Name]) values('data.notes.fee_strip_received')
+
+
+ 
+Select n.crenoteid,e.DealID
+,CONVERT(VARCHAR, e.EffectiveDate,101)  as EffectiveDate_Prepay
+--,CONVERT(VARCHAR, ps.[PrepayDate],101)  as [PrepayDate]
+,CONVERT(VARCHAR, ps.CalcThru,101)  as  CalcThru
+
+,ISNULL(PrepaymentMethod,0) as [PrepaymentMethod]
+,ISNULL(BaseAmountType,0) as BaseAmountType
+,ISNULL(SpreadCalcMethod,0) as [SpreadCalcMethod]
+
+,ISNULL(ps.[GreaterOfSMOrBaseAmtTimeSpread],0) as GreaterOfSMOrBaseAmtTimeSpread
+,ISNULL(ps.HasNoteLevelSMSchedule,0) as HasNoteLevelSMSchedule
+--,ISNULL(ps.[IncludeFee] ,0) as [IncludeFee]
+,(CASE when ps.IncludeFeesInCredits = 1 then 'true' else 'false' end) as IncludeFeesInCredits
+from [CORE].prepaySchedule ps
+INNER JOIN [CORE].[EventDeal] e on e.EventDealID = ps.EventDealID
+inner join cre.note n on n.dealid = e.dealid
+INNER JOIN [CORE].[Account] acc ON acc.AccountID = n.account_accountid
+where e.StatusID = 1  
+and e.dealid = @DealID
+and n.noteid = @NoteID
+ORDER BY n.crenoteid,e.EffectiveDate
+
+insert into @tTableAlias([Name]) values('data.notes.PrepayScheduleDict')
+
+Select n.crenoteid,
+e.DealID
+,CONVERT(VARCHAR, e.EffectiveDate,101) as EffectiveDate_Prepay
+,CONVERT(VARCHAR, sm.date,101) [Date]
+,sm.Spread as Spread
+,sm.CalcAfterPayoff
+from [CORE].SpreadMaintenanceSchedule sm
+inner join core.PrepaySchedule ps on sm.PrepayScheduleID = ps.PrepayScheduleID
+INNER JOIN [CORE].[EventDeal] e on e.EventDealID = ps.EventDealID
+left Join cre.note n on n.noteid = sm.noteid
+inner join core.account acc on acc.accountid = n.account_accountid
+where acc.isdeleted <> 1 
+and e.StatusID = 1  
+and e.dealid = @DealID
+and n.noteid = @NoteID
+
+and sm.date is not null
+order by e.EffectiveDate,n.crenoteid,sm.date
+
+insert into @tTableAlias([Name]) values('data.notes.SpreadMaintenanceSchedule')
+
+
+
+Select n.crenoteid,
+e.DealID
+,CONVERT(VARCHAR, e.EffectiveDate,101) as EffectiveDate_Prepay
+,CONVERT(VARCHAR, sm.date,101) [Date]
+,ISNULL(sm.PrepayAdjAmt,0) as PrepayAdjAmt 
+,ISNULL(sm.Comment,'') Comment
+from [CORE].PrepayAdjustment sm
+inner join core.PrepaySchedule ps on sm.PrepayScheduleID = ps.PrepayScheduleID
+INNER JOIN [CORE].[EventDeal] e on e.EventDealID = ps.EventDealID
+inner join cre.deal d on d.dealid =e.dealid
+left Join cre.note n on n.dealid = d.dealid
+inner join core.account acc on acc.accountid = n.account_accountid
+where acc.isdeleted <> 1 
+and e.StatusID = 1  
+and e.dealid = @DealID
+and n.noteid = @NoteID
+order by n.crenoteid,e.EffectiveDate,sm.date
+insert into @tTableAlias([Name]) values('data.notes.PrepayAdjustment')
+
+
+Select n.crenoteid,
+e.DealID
+,CONVERT(VARCHAR, e.EffectiveDate,101) as EffectiveDate_Prepay
+,CONVERT(VARCHAR, sm.date,101) [Date]
+,ISNULL(sm.MinMultAmount,0) as MinMultAmount
+from [CORE].MinMultSchedule sm
+inner join core.PrepaySchedule ps on sm.PrepayScheduleID = ps.PrepayScheduleID
+INNER JOIN [CORE].[EventDeal] e on e.EventDealID = ps.EventDealID
+inner join cre.deal d on d.dealid =e.dealid
+left Join cre.note n on n.dealid = d.dealid
+inner join core.account acc on acc.accountid = n.account_accountid
+where acc.isdeleted <> 1 
+and e.StatusID = 1  
+and sm.IsDeleted <> 1
+and e.dealid = @DealID
+and n.noteid = @NoteID
+order by n.crenoteid,e.EffectiveDate,sm.date
+insert into @tTableAlias([Name]) values('data.notes.MinMultSchedule')
+
+
+Select n.crenoteid,
+e.DealID
+,CONVERT(VARCHAR, e.EffectiveDate,101) as EffectiveDate_Prepay
+,iSNULL(f.FeeTypeNameText,'') as FeeType
+,ISNULL(sm.FeeCreditOverride,0) as OverrideFeeAmount
+,iSNULL(UseActualFees,0) as UseActualFees
+from [CORE].FeeCredits sm
+inner join core.PrepaySchedule ps on sm.PrepayScheduleID = ps.PrepayScheduleID
+INNER JOIN [CORE].[EventDeal] e on e.EventDealID = ps.EventDealID
+inner join cre.deal d on d.dealid =e.dealid
+left Join cre.note n on n.dealid = d.dealid
+inner join core.account acc on acc.accountid = n.account_accountid
+left join [CRE].[FeeSchedulesConfig] f on f.[FeeTypeNameID] = sm.FeeType
+where acc.isdeleted <> 1 
+and e.StatusID = 1  
+and sm.IsDeleted <> 1
+and iSNULL(UseActualFees,0) <> 1
+and e.dealid = @DealID
+and n.noteid = @NoteID
+order by n.crenoteid,e.EffectiveDate
+insert into @tTableAlias([Name]) values('data.notes.FeeCredits')
+
+
+
+select @DealID as DealID,eff.CRENoteID
+,eff.NoteID
+,CONVERT(VARCHAR,eff.EffectiveDate,101) EffectiveDate
+,CAST(ROUND(ISNULL(x.NoteAdjustedTotalCommitment,0),2) as decimal(28,2)) noteadjustedtotalcommitment
+,CAST(ROUND(ISNULL(x.NoteTotalCommitment,0),2) as decimal(28,2)) totalcmt
+from #tNoteEffectiveDates eff
+Outer Apply (
+	Select top 1 dealid,credealid,CRENoteID,Date,NoteAdjustedTotalCommitment,NoteTotalCommitment
+	From(			
+		SELECT d.dealid,d.CREDealID
+		,n.CRENoteID
+		,Date as Date
+		,nd.Type as Type
+		,NoteAdjustedTotalCommitment
+		,NoteTotalCommitment
+		,nd.NoteID
+		,ROW_NUMBER() OVER (PARTITION BY nd.NoteID order by nd.NoteID,nd.RowNo desc ,Date) as rno,
+		nd.Rowno
+		from cre.NoteAdjustedCommitmentMaster nm
+		left join cre.NoteAdjustedCommitmentDetail nd on nd.NoteAdjustedCommitmentMasterID = nm.NoteAdjustedCommitmentMasterID
+		right join cre.deal d on d.DealID=nm.DealID
+		Right join cre.note n on n.NoteID = nd.NoteID
+		inner join core.account acc on acc.AccountID = n.Account_AccountID
+		where d.IsDeleted<>1 and acc.IsDeleted<>1
+		and n.noteid =@NoteID
+	)a
+	where a.date <= eff.EffectiveDate
+	order by rno
+)x
+order by eff.CRENoteID,eff.EffectiveDate 
+insert into @tTableAlias([Name]) values('data.notes.NoteAdjustedCommitment')
+
+-------============================================================
+
+
+
+
+Declare @ScenarioId UNIQUEIDENTIFIER = @Analysis_ID  ---'C10F3372-0FC2-4861-A9F5-148F1F80804F'
+
+
+IF OBJECT_ID('tempdb..#tblTr ') IS NOT NULL             
+	DROP TABLE #tblTr
+
+CREATE TABLE #tblTr
+(
+crenoteid nvarchar(256),
+NoteID	UNIQUEIDENTIFIER,
+[Date]	Date,
+Amount	decimal(28,15),
+[Type]	nvarchar(256),
+LIBORPercentage	decimal(28,15),
+PIKInterestPercentage	decimal(28,15),
+SpreadPercentage	decimal(28,15),
+FeeName	nvarchar(256),
+TransactionDateByRule	Date,
+DueDate	 Date,
+RemitDate	Date,
+TransactionCategory	nvarchar(256),
+Comment nvarchar(256),
+FeeTypeName nvarchar(256)
+)
+
+Declare @tblTranType as Table(
+TransType nvarchar(256)
+)
+
+INSERT INTO @tblTranType(TransType)
+Select TransType from(
+	Select [Name] as TransType from core.Lookup where ParentID = 94
+	UNION ALL
+	Select 'InterestPaid' as TransType
+	UNION ALL
+	Select 'FloatInterest' as TransType
+	UNION ALL
+	Select 'PIKInterestPaid' as TransType
+)a
+
+
+INSERT INTO #tblTr(crenoteid,NoteID,Date,Amount,Type,LIBORPercentage,PIKInterestPercentage,SpreadPercentage,FeeName,TransactionDateByRule,DueDate,RemitDate,TransactionCategory,Comment,FeeTypeName)
+
+Select crenoteid,NoteID,Date,Amount,Type,LIBORPercentage,PIKInterestPercentage,SpreadPercentage,FeeName,TransactionDateByRule,DueDate,RemitDate,TransactionCategory,Comment ,FeeTypeName
+From
+(
+	Select n.crenoteid,
+	tt.NoteID, 
+	(CASE WHEN (Select Count(TransType) from @tblTranType where CHARINDEX(Replace(TransType,' ',''),Replace(tt.[Type],' ','')) = 1) > 0 
+		THEN ISNULL(TransactionDateByRule,tt.[Date])
+		ELSE tt.[Date]
+	END) AS [Date],
+	tt.Amount,
+	tt.Type,	
+	(case 
+	when tt.[Type] = 'InterestPaid' then tblTr.LIBORPercentage 
+	when tt.[Type] = 'StubInterest' then n.InitialIndexValueOverride --n.StubInterestRateOverride 
+	when tt.[Type] in ('PIKInterest','PIKInterestPaid') then tblTr.PIKLiborPercentage  
+	else null end) as LIBORPercentage,
+	(case when tt.[Type] = 'PIKInterest' then tblTr.PIKInterestPercentage else null end) as PIKInterestPercentage,
+	(case when tt.[Type] in ('InterestPaid','StubInterest') then tblTr.SpreadPercentage 
+		when tt.[Type] in ('PIKInterest','PIKInterestPaid') then tblTr.PIKInterestPercentage 
+		else null 
+		end
+	) as SpreadPercentage,
+	FeeName,
+	tt.TransactionDateServicingLog as TransactionDateByRule,
+	tt.[Date] as DueDate,
+	tt.RemitDate as RemitDate,
+	tym.TransactionCategory,
+	tt.comment,
+	tt.FeeTypeName
+	from cre.transactionentry tt
+	LEFT JOIN
+	(
+		Select Noteid,Date,LIBORPercentage,PIKInterestPercentage,SpreadPercentage,PIKLiborPercentage
+		from(
+			select  te.Noteid,te.[Date] ,te.Amount,te.[Type] ValueType
+			from  CRE.TransactionEntry te
+			where te.analysisID= @ScenarioId and te.NoteID=@NoteId
+			AND te.type in ('LIBORPercentage','PIKInterestPercentage','SpreadPercentage','PIKLiborPercentage')
+		)a
+		PIVOT (
+		SUM(Amount)
+		FOR ValueType in (LIBORPercentage,PIKInterestPercentage,SpreadPercentage,PIKLiborPercentage)
+		) pvt
+	)tblTr on tblTr.noteid = tt.noteid and tblTr.[Date] = tt.[Date]
+	left join cre.note n on n.noteid = tt.noteid
+	left join cre.transactiontypes tym on LOWER(tym.TransactionName) = LOWER(tt.[Type])
+	where tt.analysisID= @ScenarioId and tt.NoteID=@NoteId
+	AND tt.type not in ('LIBORPercentage','PIKInterestPercentage','SpreadPercentage','PIKLiborPercentage')	
+)a
+
+
+
+Select crenoteid,
+CONVERT(VARCHAR, Date,101) [Date],
+ISNULL(Amount,0) as Amount,
+Type,
+ISNULL(LIBORPercentage,0) as LIBORPercentage,
+ISNULL(LIBORPercentage,0) as PIKInterestPercentage,
+ISNULL(LIBORPercentage,0) as SpreadPercentage,
+ISNULL(FeeName,'') as FeeName,
+ISNULL(FeeTypeName,'') as FeeTypeName
+from #tblTr
+where [Type] not in ('EndingGAAPBookValue','EndingPVGAAPBookValue')
+insert into @tTableAlias([Name]) values('data.notes.cashflow')
+ 
+
+ 
+Select noteid
+,CRENoteID
+,CONVERT(VARCHAR, periodenddate,101) as [Date]
+,ISNULL(EndingBalance,0) as EndingBalance
+from(
+	select n.noteid,n.CRENoteID,np.periodenddate,EndingBalance ,ROW_NUMBER() OVER(Partition by n.noteid order by n.noteid,np.periodenddate desc) rno
+	from  cre.note n 
+	inner join [CRE].[NotePeriodicCalc] np  on n.noteid = np.noteid and np.analysisid = @ScenarioId
+	inner join core.account acc on acc.AccountID = n.Account_AccountID
+	where acc.IsDeleted <> 1 and np.periodenddate <= @prepaydate  --cast(getdate() as date)
+	and np.analysisid = @ScenarioId
+	and n.noteid = @NoteId
+)a where rno = 1
+insert into @tTableAlias([Name]) values('data.notes.notebalance')
+
+
+
+Select CRENoteID,[Date],[type],Typetext,Amount,TotalCommitmentAdjustment,TotalCommitment
+From(
+	SELECT n.CRENoteID
+	,CONVERT(VARCHAR, [Date],101) as [Date]
+	,ISNULL(nm.Type,0) as [type]
+	,ISNULL(l.name,'') as Typetext
+	,ISNULL(nd.Value,0) as Amount
+	,ISNULL(nd.NoteAdjustedTotalCommitment,0) as TotalCommitmentAdjustment
+	--,ISNULL(NoteAggregatedTotalCommitment,0) as NoteAggregatedTotalCommitment
+	,ISNULL(NoteTotalCommitment,0) as TotalCommitment
+	,ROW_NUMBER() Over(Partition by n.noteid,[date] order by n.noteid,[date],nd.Rowno desc) rno
+	from cre.NoteAdjustedCommitmentMaster nm
+	left join cre.NoteAdjustedCommitmentDetail nd on nd.NoteAdjustedCommitmentMasterID = nm.NoteAdjustedCommitmentMasterID
+	left join core.lookup l on l.LookupID=nm.Type
+	left join cre.note n on n.noteid = nd.noteid
+	WHERE nd.NoteID = @NoteId
+	--order by nd.Rowno
+)a where rno = 1
+insert into @tTableAlias([Name]) values('data.notes.notecommitment')
+
+--=======================================================
+Select crenoteid,NoteID,CONVERT(VARCHAR, [EffectiveDate],101) as [EffectiveDate],CONVERT(VARCHAR, initmatdt,101) as initmatdt
+From(
+	Select Distinct crenoteid,NoteID,[EffectiveDate],initmatdt
+	From(
+
+		Select Distinct crenoteid,NoteID,[MaturityType],MIN([EffectiveDate]) as [EffectiveDate],[MaturityDate] as initmatdt
+		From(
+			Select n.crenoteid,n.NoteID,e.EffectiveStartDate  as [EffectiveDate],
+			lMaturityType.name as [MaturityType],
+			(CASE WHEN e.EffectiveStartDate = n.actualPayoffdate THEN n.actualPayoffdate ELSE mat.MaturityDate END)  as [MaturityDate],
+			---ISNULL(n.ActualPayoffDate,mat.MaturityDate) as [MaturityDate],
+			lApproved.name as Approved
+			from [CORE].Maturity mat  
+			INNER JOIN [CORE].[Event] e on e.EventID = mat.EventId  
+			Left JOin Core.lookup lMaturityType on lMaturityType.lookupid = mat.MaturityType
+			Left JOin Core.lookup lApproved on lApproved.lookupid = mat.Approved
+			INNER JOIN [CORE].[Account] acc ON acc.AccountID = e.AccountID
+			INNER JOIN [CRE].[Note] n ON n.Account_AccountID = acc.AccountID  
+			where e.StatusID = 1
+			and lMaturityType.name  = @mat_Type
+			and lApproved.name = 'Y'					
+			and n.noteid = @NoteID
+
+			--UNION ALL
+
+			--Select crenoteid,noteid,effectivestartdate as [EffectiveDate], MaturityType,MaturityDate,Approved
+			--from (
+			--	Select n.crenoteid,n.noteid,e.effectivestartdate,'Current Maturity Date' as [MaturityType],
+			--	--ISNULL(n.ActualPayOffdate, mat.MaturityDate) as [MaturityDate],
+			--	mat.MaturityDate as [MaturityDate],
+			--	lApproved.name as Approved,
+			--	ROW_NUMBER() Over(Partition by noteid,effectivestartdate order by noteid,(CASE WHEN lMaturityType.name = 'Initial' THEN 0 WHEN lMaturityType.name = 'Fully extended' THEN 9999 ELSE 1 END) ASC, mat.MaturityDate) rno
+			--	from [CORE].Maturity mat  
+			--	INNER JOIN [CORE].[Event] e on e.EventID = mat.EventId 			
+			--	INNER JOIN [CORE].[Account] acc ON acc.AccountID = e.AccountID
+			--	INNER JOIN [CRE].[Note] n ON n.Account_AccountID = acc.AccountID 	
+			--	Left JOin Core.lookup lMaturityType on lMaturityType.lookupid = mat.MaturityType
+			--	Left JOin Core.lookup lApproved on lApproved.lookupid = mat.Approved	
+			--	where mat.MaturityDate > getdate()
+			--	and lApproved.name = 'Y'
+			--	and n.noteid = @NoteID	
+			--)a 	
+			--where a.rno = 1
+			--and MaturityType = @mat_Type
+
+		)a
+		group by crenoteid,NoteID,[MaturityDate],[MaturityType]
+
+		UNION
+	
+
+		Select Distinct crenoteid,NoteID,'ActualPayoffdate' as [MaturityType],n.ActualPayoffdate as [EffectiveDate],n.ActualPayoffdate as initmatdt
+		from cre.note n
+		inner join core.account acc on acc.accountid = n.account_accountid 
+		where acc.isdeleted <> 1
+		and n.ActualPayoffdate is not null
+		and noteid=@NoteID
+	)y
+
+)z
+Order by z.crenoteid,z.[EffectiveDate]
+
+insert into @tTableAlias([Name]) values('data.notes.maturity')
+
+
+--===================================================================================
+--JsonTemplate table
+--select [Id],[Key],[Value],[Type],[FileName] 
+--from CRE.JsonTemplate jt
+--left join [Core].[AnalysisParameter] ap on ap.JsonTemplateMasterID = jt.JsonTemplateMasterID
+--WHERE [Type] != 'BalanceAware'
+--and ap.AnalysisID = @Analysis_ID
+--insert into @tTableAlias([Name]) values('JsonTemplate')
+
+Declare @BalanceAware bit = 0;
+Declare @CalcType int;
+
+SET @BalanceAware = (Select top 1 ISNULL(BalanceAware,0) BalanceAware from cre.deal d
+inner join cre.note n on n.dealid = d.dealid
+where n.noteid = @NoteID)
+
+
+SET @CalcType = @CalcTypeID;  ---(Select CalcType from Core.CalculationRequests where noteid = @NoteID and AnalysisID = @Analysis_ID )
+
+
+
+Declare @JsonTemplate as table (
+Id	int,
+[Key]	nvarchar(256),
+[Value]	nvarchar(256),
+[Type]	nvarchar(256),
+[FileName]	nvarchar(256),
+DBFileName nvarchar(256)
+)
+
+
+
+
+
+IF EXISTS(Select 1 from [CRE].[DealNoteRuleTypeSetup] where AnalysisID = @Analysis_ID and noteid = @NoteID)
+BEGIN
+	IF(@BalanceAware = 1)
+	BEGIN
+		INSERT INTO @JsonTemplate (Id,[Key],[Value],[Type],[FileName],DBFileName)
+		Select c.RuleTypeMasterID as [Id],LOWER(c.RuleTypeName) as [Key],b.Content as [Value],b.[Type] as [Type],b.FileName as [FileName] ,b.[DBFileName]
+		from [CRE].[AnalysisRuleTypeSetup] a  
+		inner join [CRE].[RuleTypeDetail] b on a.RuleTypeDetailID=b.RuleTypeDetailID  
+		inner join [CRE].[RuleTypeMaster] c on a.RuleTypeMasterID=c.RuleTypeMasterID  
+		where a.AnalysisID=@Analysis_ID
+	END
+	ELSE
+	BEGIN
+		
+		INSERT INTO @JsonTemplate (Id,[Key],[Value],[Type],[FileName],DBFileName)
+		Select Id,[Key],[Value],[Type],[FileName],DBFileName 
+		From(
+			Select c.RuleTypeMasterID as [Id],LOWER(c.RuleTypeName) as [Key],b.Content as [Value],b.[Type] as [Type],b.FileName as [FileName] ,b.[DBFileName]
+			from [CRE].[DealNoteRuleTypeSetup] a  
+			inner join [CRE].[RuleTypeDetail] b on a.RuleTypeDetailID=b.RuleTypeDetailID  
+			inner join [CRE].[RuleTypeMaster] c on a.RuleTypeMasterID=c.RuleTypeMasterID  
+			where a.AnalysisID=@Analysis_ID
+			and a.noteid = @NoteID
+
+			UNION
+
+			Select c.RuleTypeMasterID as [Id],LOWER(c.RuleTypeName) as [Key],b.Content as [Value],b.[Type] as [Type],b.FileName as [FileName] ,b.[DBFileName]
+			from [CRE].[AnalysisRuleTypeSetup] a  
+			inner join [CRE].[RuleTypeDetail] b on a.RuleTypeDetailID=b.RuleTypeDetailID  
+			inner join [CRE].[RuleTypeMaster] c on a.RuleTypeMasterID=c.RuleTypeMasterID  
+			where a.AnalysisID=@Analysis_ID
+			and c.RuleTypeMasterID not in (Select RuleTypeMasterID from [CRE].[DealNoteRuleTypeSetup] where AnalysisID = @Analysis_ID and noteid = @NoteID and RuleTypeDetailID is not null)
+		)a
+
+	END
+
+END
+ELSE
+BEGIN
+	INSERT INTO @JsonTemplate (Id,[Key],[Value],[Type],[FileName],DBFileName)
+	Select c.RuleTypeMasterID as [Id],LOWER(c.RuleTypeName) as [Key],b.Content as [Value],b.[Type] as [Type],b.FileName as [FileName] ,b.[DBFileName]
+	from [CRE].[AnalysisRuleTypeSetup] a  
+	inner join [CRE].[RuleTypeDetail] b on a.RuleTypeDetailID=b.RuleTypeDetailID  
+	inner join [CRE].[RuleTypeMaster] c on a.RuleTypeMasterID=c.RuleTypeMasterID  
+	where a.AnalysisID=@Analysis_ID
+
+END
+
+
+
+Select Id,
+LOWER( 
+	CASE WHEN @CalcType = 776 THEN (CASE WHEN [Key] = 'prepay' THEN 'Rules' ELSE [Key] END)
+	ELSE (CASE WHEN [Key] = 'CashFlow' THEN 'Rules' ELSE [Key] END)
+	END
+) [Key],
+[Value],[Type],[FileName],DBFileName 
+from @JsonTemplate
+
+insert into @tTableAlias([Name]) values('JsonTemplate')
+
+
+
+
+Select [Type],[Key],Position,DataType,IsActive from [CRE].[JsonFormatCalcV1]
+insert into @tTableAlias([Name]) values('JsonFormat')
+
+--all table alias names
+select [Name] as table_name,GroupName from @tTableAlias order by ID
+
+drop table #tNoteEffectiveDates
+
+
+	SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+END
