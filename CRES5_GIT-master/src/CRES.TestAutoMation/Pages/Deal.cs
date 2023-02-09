@@ -156,6 +156,11 @@ namespace CRES.TestAutoMation.Pages
         public By totalCommitementTab1 = By.Id("aDealadjustedtotalcommitmenttab");
         public By totalCommitementTab = By.Id("aAdjustedTotalCommitment");
         public By batchLogElmnt = By.XPath("//*[@id=\"batchlog\"]/div/h3");
+
+        public By GenerateAutomationSave = By.XPath("(//button[@class='custombutton'])[2]");        
+        public By AutomationLogTab = By.XPath("/html/body/div/ng-component/div/div[2]/div/div/div[2]/ng-component/form/div/div[2]/ul/li[2]/a");
+        public By AutomationLogText = By.XPath("(//div[@class='box1a']//h3)[2]");
+
         public By refreshDataWarehouseBtn = By.ClassName("custombutton");
         public By reportName = By.Id("ddlReportName");
         public By addNewTagBtn = By.Id("btnCreateRole");
@@ -1254,7 +1259,16 @@ namespace CRES.TestAutoMation.Pages
             util.LongWaitForElementVisible(calculationStatusCompleted);
 
         }
+        public bool GenerateAutomationSaveButton()
+        {
+           return util.IsElementVisible(GenerateAutomationSave);
 
+        }
+        public bool AutomationLogTextDisplay()
+        {
+            return util.IsElementVisible(AutomationLogText);
+
+        }
     }
 
 

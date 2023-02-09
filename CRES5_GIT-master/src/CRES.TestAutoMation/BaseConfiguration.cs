@@ -492,6 +492,13 @@ namespace CRES.TestAutoMation
             setting = Builder["appSettings:IntCalculationManagerUrl"];
             return setting;
         }
+        public static string GenerateAutomationUrl()
+        {
+            string setting = "";
+            setting = Builder["appSettings:GenerateAutomationUrl"];
+            return setting;
+        }
+
 
         public static string ReportUrl()
         {

@@ -16,6 +16,7 @@ using System.Collections.Generic;
 using System.Data;
 //using java.nio.file;
 using System.IO;
+using System.Threading;
 
 
 // IntegrationGeneralVerification
@@ -139,7 +140,8 @@ namespace CRES.TestAutoMation.TestCases
 
                 if (loginValidation)
                 {
-                    test = extent.CreateTest("General verification ").Info("Test started");
+                    test = extent.CreateTest("General verification to load all the pages ").Info("Test started").AssignAuthor("Shantanu_Sharma");
+                
                     String DealUrl = BaseUrl + "#/dealdetail/FDD8EC03-9D63-4512-9990-89C508983EDC";
                     util.OpenUrl(DealUrl);
 
@@ -2190,9 +2192,103 @@ namespace CRES.TestAutoMation.TestCases
                         throw ex;
                     }
 
-                    //----------------------------------------Reports----------------------------------//
-                    // reports 
-                    String ReportUrl = BaseUrl + BaseConfiguration.ReportUrl();
+                    /*   //----------------------------------------Generate Automation----------------------------------//
+
+                       String GenerateAutomationUrl = BaseUrl + BaseConfiguration.GenerateAutomationUrl();
+                       util.OpenUrl(GenerateAutomationUrl);
+                       System.Threading.Thread.Sleep(8000);
+                       String GenerateAutomationText = "Automation Manager";
+                       try
+                       {
+                           GenerateAutomationText = driver.FindElement(deal.GenerateAutomationText).Text;
+                           Console.WriteLine("GenerateAutomation Text   = " + GenerateAutomationText);
+
+                           var printMessage = "<p><b>Test FAILED!</b></p>";
+                           if (GenerateAutomationText == "Automation Manager")
+                           {
+                               test.Log(Status.Pass, "Generate Automation loaded sucessfully");                            
+                           }
+                           else
+                           {
+                               addtolist("Generate Automation   ", " Generate Automation ", false);
+                               printMessage += $"Message: <br>{"Generate Automation Page Load Error"}<br>";
+                               test.Fail(printMessage);
+                           }
+                       }
+                       catch (Exception ex)
+                       {
+
+
+                           Console.WriteLine("Generate Automation Exception = " + ex.Message);
+
+                       }   
+                           */
+
+                    //----------------------------------------Generate Automation----------------------------------//
+
+                    String GenerateAutomationUrl = BaseUrl + BaseConfiguration.GenerateAutomationUrl();
+                    util.OpenUrl(GenerateAutomationUrl);
+                    System.Threading.Thread.Sleep(8000);
+                    bool GenerateAutomationSave = false;
+                    try
+                    {
+                        GenerateAutomationSave = deal.GenerateAutomationSaveButton();
+                        //GenerateAutomationSave = driver.FindElement(dealPage.GenerateAutomationSave).Displayed;
+                        Console.WriteLine("Generate Automation Save button is displayed = " + GenerateAutomationSave);
+                        addtolist("Generate Automation Page  ", " Generate Automation Page ", GenerateAutomationSave);
+
+                        var printMessage = "<p><b>Test FAILED!</b></p>";
+                        if (GenerateAutomationSave = true)
+                        {
+                            Console.WriteLine(" Generate Automation Page loaded successfully");
+                            test.Log(Status.Pass, "Generate Automation page loaded sucessfully");
+                        }
+                        else
+                        {
+                            Console.WriteLine(" Generate Automation Page is Filed to load");                            
+                            printMessage += $"Message: <br>{"Generate Automation Page Load Error"}<br>";
+                            test.Fail(printMessage);
+                        }
+                    }
+                    catch (Exception e)
+                    {
+                        Console.WriteLine("Generate Automation Page load exception" + e.ToString());
+                    }
+
+                    Thread.Sleep(8000);
+
+                    // Automation Log Tab
+
+                    driver.FindElement(deal.AutomationLogTab).Click();
+                    bool AutomationLogText = false;
+                    try
+                    {
+                        AutomationLogText = deal.AutomationLogTextDisplay();
+                        //AutomationLogText = driver.FindElement(dealPage.AutomationLogText).Displayed;
+                        Console.WriteLine("Generate Automation Log text is displayed = " + AutomationLogText);
+                        addtolist("Generate Automation Log Tab  ", " Generate Automation Log Tab", AutomationLogText);
+
+                        var printMessage = "<p><b>Test FAILED!</b></p>";
+                        if (AutomationLogText = true)
+                        {
+                            Console.WriteLine(" Generate Automation Log Tab loaded successfully");
+                            test.Log(Status.Pass, "Generate Automation Log Tab loaded sucessfully");
+                        }
+                        else
+                        {                            
+                            Console.WriteLine(" Generate Automation Log Tab is Filed to load");
+                            printMessage += $"Message: <br>{"Generate Automation Page Load Error"}<br>";
+                            test.Fail(printMessage);
+                        }
+                    }
+                    catch (Exception e)
+                    {
+                        Console.WriteLine("Generate Automation Log Page load exception" + e.ToString());
+                    }
+
+            //----------------------------------------Reports----------------------------------//
+            // reports 
+            String ReportUrl = BaseUrl + BaseConfiguration.ReportUrl();
                     util.OpenUrl(ReportUrl);
                     System.Threading.Thread.Sleep(8000);
                     bool refreshDataWarehouseBtn = false;
@@ -2486,30 +2582,32 @@ namespace CRES.TestAutoMation.TestCases
                     Console.WriteLine("Path of current directory " + pathNew);
 
                     // Email attachment 
+                    /*   // Email check point
+                        EmailDataContract emailDC = new EmailDataContract();
+                        emailDC.To = "shantanu@hvantage.com";//,rsahu@hvantage.com,msingh@hvantage.com,sbanerjee@hvantage.com,rsahu@hvantage.com,msingh@hvantage.com,sbanerjee@hvantage.com";
 
-                    EmailDataContract emailDC = new EmailDataContract();
-                    emailDC.To = "shantanu@hvantage.com";//,rsahu@hvantage.com,msingh@hvantage.com,sbanerjee@hvantage.com,rsahu@hvantage.com,msingh@hvantage.com,sbanerjee@hvantage.com";
+                        //optional
+                        //emailDC.Cc = "skhan@hvantage.com,rsahu@hvnatge.com";
+                        //emailDC.Bcc = "skhan@hvantage.com,rsahu@hvnatge.com";
+                        emailDC.ReceiverName = "All";
+                        emailDC.FileAttachment = new List<FileAttachmentDataContract>();
+                        emailDC.FileAttachment.Add(new FileAttachmentDataContract { FilePath = pathNew + "\\ExecutionReports\\ExcelReports\\" + pathExcel });
+                        string path = ProjectBaseConfiguration.ExecutionReportFolder;
+                        emailDC.FileAttachment.Add(new FileAttachmentDataContract { FilePath = path + "\\index.html" });
+                        emailDC.Subject = "General verification test report of new Angular version";
+                        emailDC.Body = "PFA the verification report.";
+                        emailDC.TemplatePath = ProjectBaseConfiguration.TemplatePath;
+                        emailDC.EmailSettings.Host = BaseConfiguration.Host;
+                        emailDC.EmailSettings.UserName = BaseConfiguration.UserName;
+                        emailDC.EmailSettings.Password = BaseConfiguration.Password;
+                        emailDC.EmailSettings.Port = BaseConfiguration.Port;
+                        //
+                        EmailAutomationLogic lg = new EmailAutomationLogic();
 
-                    //optional
-                    //emailDC.Cc = "skhan@hvantage.com,rsahu@hvnatge.com";
-                    //emailDC.Bcc = "skhan@hvantage.com,rsahu@hvnatge.com";
-                    emailDC.ReceiverName = "All";
-                    emailDC.FileAttachment = new List<FileAttachmentDataContract>();
-                    emailDC.FileAttachment.Add(new FileAttachmentDataContract { FilePath = pathNew + "\\ExecutionReports\\ExcelReports\\" + pathExcel });
-                    string path = ProjectBaseConfiguration.ExecutionReportFolder;
-                    emailDC.FileAttachment.Add(new FileAttachmentDataContract { FilePath = path + "\\index.html" });
-                    emailDC.Subject = "General verification test report of new Angular version";
-                    emailDC.Body = "PFA the verification report.";
-                    emailDC.TemplatePath = ProjectBaseConfiguration.TemplatePath;
-                    emailDC.EmailSettings.Host = BaseConfiguration.Host;
-                    emailDC.EmailSettings.UserName = BaseConfiguration.UserName;
-                    emailDC.EmailSettings.Password = BaseConfiguration.Password;
-                    emailDC.EmailSettings.Port = BaseConfiguration.Port;
-                    //
-                    EmailAutomationLogic lg = new EmailAutomationLogic();
+                        String response = lg.SendGenericEmail(emailDC);
+                        System.Threading.Thread.Sleep(10000);
 
-                    String response = lg.SendGenericEmail(emailDC);
-                    System.Threading.Thread.Sleep(10000);
+                    */  // Email check point
 
                     /* if (env == "QA" || env == "Integration")
                      {
@@ -2974,10 +3072,11 @@ namespace CRES.TestAutoMation.TestCases
             Console.WriteLine("Path of current directory " + pathNew);
             string path = ProjectBaseConfiguration.ExecutionReportFolder;
 
+          /*  // Email check point
 
             EmailDataContract emailDC = new EmailDataContract();
             emailDC.To = "shantanu@hvantage.com";//,rsahu@hvantage.com,msingh@hvantage.com,sbanerjee@hvantage.com";
-
+        
             //optional
             //emailDC.Cc = "ssingh@hvantage.com";
             //emailDC.Bcc = "skhan@hvantage.com,rsahu@hvnatge.com";
@@ -2997,6 +3096,9 @@ namespace CRES.TestAutoMation.TestCases
             EmailAutomationLogic lg = new EmailAutomationLogic();
 
             String response = lg.SendGenericEmail(emailDC);
+
+          */ // Email check point
+
         }
 
         //Read Deal funding grid's data

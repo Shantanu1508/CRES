@@ -4,7 +4,9 @@ using NUnit.Framework;
 using OpenQA.Selenium;
 using OpenQA.Selenium.Chrome;
 using OpenQA.Selenium.Interactions;
+using OpenQA.Selenium.Internal;
 using System;
+using System.Linq.Expressions;
 using System.Threading;
 using WebDriverManager.DriverConfigs.Impl;
 
@@ -23,7 +25,19 @@ namespace CRES.TestAutoMation.Practice
                 new WebDriverManager.DriverManager().SetUpDriver(new ChromeConfig());
                 IWebDriver driver = new ChromeDriver();
 
-                driver.Navigate().GoToUrl("https://qacres4-ng.azurewebsites.net/#/login");
+                string dealfunding = BaseConfiguration.GetURL() + BaseConfiguration.DealFunding();
+                string BaseUrl = null;
+                string env = BaseConfiguration.GetEnvironment();
+
+                BaseUrl = env switch
+                {
+                    "QA" => BaseConfiguration.GetQAUrl(),
+                    "Integration" => BaseConfiguration.GetIntUrl(),
+                    "Staging" => BaseConfiguration.GetStagingUrl(),
+                    _ => BaseConfiguration.GetQAUrl(),
+                };
+
+                driver.Navigate().GoToUrl(BaseUrl);
                 System.Threading.Thread.Sleep(10000);
 
                 driver.Manage().Window.Maximize();
@@ -49,11 +63,8 @@ namespace CRES.TestAutoMation.Practice
                 Util util = new Utility.Util(driver);
                 Deal dealPage = new Deal(driver);
                 Deal FundingPage = new Deal(driver);
-
+            /*
                 Actions actions = new Actions(driver);
-
-                driver.Navigate().GoToUrl("https://qacres4-ng.azurewebsites.net/#/dealdetail/00000000-0000-0000-0000-000000000000");
-
                 util.WaitForElementVisible(dealPage.mainTab);
                 IWebElement MainTab = driver.FindElement(dealPage.mainTab);
                 Thread.Sleep(3000);
@@ -72,19 +83,65 @@ namespace CRES.TestAutoMation.Practice
 
                 IWebElement DealSave = driver.FindElement(dealPage.btnSaveDeal);
                 DealSave.Click();
+            */
+                //----------------------------------------Generate Automation----------------------------------//
+
+                String GenerateAutomationUrl = BaseUrl + BaseConfiguration.GenerateAutomationUrl();
+                util.OpenUrl(GenerateAutomationUrl);
+                System.Threading.Thread.Sleep(8000);
+                bool GenerateAutomationSave = false;
+                try
+                {
+                    GenerateAutomationSave = dealPage.GenerateAutomationSaveButton();
+                    //GenerateAutomationSave = driver.FindElement(dealPage.GenerateAutomationSave).Displayed;
+                    Console.WriteLine("Generate Automation Save button display = " + GenerateAutomationSave);
+
+                    var printMessage = "<p><b>Test FAILED!</b></p>";
+                    if (GenerateAutomationSave = true)
+                    {
+                        Console.WriteLine(" Generate Automation Page loaded successfully");
+                    }
+                    else
+                    {
+                        Console.WriteLine(" Generate Automation Page Filed to load");
+                    }
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine("Generate Automation Page load exception" + e.ToString());
+                }
+
+                Thread.Sleep(8000);
+
+                // Automation Log Tab
+                driver.FindElement(dealPage.AutomationLogTab).Click();
+                bool AutomationLogText = false;
+                try
+                {
+                    AutomationLogText = dealPage.AutomationLogTextDisplay(); 
+                    //AutomationLogText = driver.FindElement(dealPage.AutomationLogText).Displayed;
+                    Console.WriteLine("Generate Automation Log text is displayed = " + AutomationLogText);
+
+                    var printMessage = "<p><b>Test FAILED!</b></p>";
+                    if (AutomationLogText = true)
+                    {
+                        Console.WriteLine(" Generate Automation Log Page loaded successfully");
+                    }
+                    else
+                    {
+                        Console.WriteLine(" Generate Automation Log Page Filed to load");
+                    }
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine("Generate Automation Log Page load exception" + e.ToString());
+                }
 
             }
             catch (Exception e)
             {
                 Console.WriteLine("Login Exception " + e.ToString());
             }
-
-
-
-
-
-
         }
-
     }
 }
