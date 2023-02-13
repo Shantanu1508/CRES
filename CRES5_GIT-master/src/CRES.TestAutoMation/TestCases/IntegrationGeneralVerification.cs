@@ -2582,9 +2582,9 @@ namespace CRES.TestAutoMation.TestCases
                     Console.WriteLine("Path of current directory " + pathNew);
 
                     // Email attachment 
-                    /*   // Email check point
+                       // Email check point
                         EmailDataContract emailDC = new EmailDataContract();
-                        emailDC.To = "shantanu@hvantage.com";//,rsahu@hvantage.com,msingh@hvantage.com,sbanerjee@hvantage.com,rsahu@hvantage.com,msingh@hvantage.com,sbanerjee@hvantage.com";
+                        emailDC.To = "shantanu@hvantage.com,rsahu@hvantage.com,msingh@hvantage.com,sbanerjee@hvantage.com,rsahu@hvantage.com,msingh@hvantage.com,sbanerjee@hvantage.com";
 
                         //optional
                         //emailDC.Cc = "skhan@hvantage.com,rsahu@hvnatge.com";
@@ -2594,7 +2594,7 @@ namespace CRES.TestAutoMation.TestCases
                         emailDC.FileAttachment.Add(new FileAttachmentDataContract { FilePath = pathNew + "\\ExecutionReports\\ExcelReports\\" + pathExcel });
                         string path = ProjectBaseConfiguration.ExecutionReportFolder;
                         emailDC.FileAttachment.Add(new FileAttachmentDataContract { FilePath = path + "\\index.html" });
-                        emailDC.Subject = "General verification test report of new Angular version";
+                        emailDC.Subject = "General verification test report";
                         emailDC.Body = "PFA the verification report.";
                         emailDC.TemplatePath = ProjectBaseConfiguration.TemplatePath;
                         emailDC.EmailSettings.Host = BaseConfiguration.Host;
@@ -2607,9 +2607,9 @@ namespace CRES.TestAutoMation.TestCases
                         String response = lg.SendGenericEmail(emailDC);
                         System.Threading.Thread.Sleep(10000);
 
-                    */  // Email check point
+                      // Email check point
 
-                    /* if (env == "QA" || env == "Integration")
+                  /*   if (env == "QA" || env == "Integration")
                      {
 
                          createDeal.TestCreateNewDeal();
@@ -3072,10 +3072,10 @@ namespace CRES.TestAutoMation.TestCases
             Console.WriteLine("Path of current directory " + pathNew);
             string path = ProjectBaseConfiguration.ExecutionReportFolder;
 
-          /*  // Email check point
+           
 
-            EmailDataContract emailDC = new EmailDataContract();
-            emailDC.To = "shantanu@hvantage.com";//,rsahu@hvantage.com,msingh@hvantage.com,sbanerjee@hvantage.com";
+          /*  EmailDataContract emailDC = new EmailDataContract();
+            emailDC.To = "shantanu@hvantage.com,rsahu@hvantage.com,msingh@hvantage.com,sbanerjee@hvantage.com";
         
             //optional
             //emailDC.Cc = "ssingh@hvantage.com";
@@ -3097,7 +3097,7 @@ namespace CRES.TestAutoMation.TestCases
 
             String response = lg.SendGenericEmail(emailDC);
 
-          */ // Email check point
+           */
 
         }
 
