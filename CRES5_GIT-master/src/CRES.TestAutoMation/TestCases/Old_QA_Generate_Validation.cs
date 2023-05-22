@@ -215,6 +215,7 @@ namespace CRES.TestAutoMation.TestCases
                                          IList<IWebElement> Validations = driver.FindElements(dealPage.validationMessages);
                                          numberOfValidations = Validations.Count;
 
+
                                          for (int j = 1; j <= numberOfValidations; j++)
                                          {
                                              String validation = driver.FindElement(By.XPath("//*[@id=\"dialogboxbody\"]/p[" + j + "]")).Text;

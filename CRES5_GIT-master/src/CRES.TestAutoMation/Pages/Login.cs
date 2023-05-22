@@ -25,6 +25,8 @@ namespace CRES.TestAutoMation.Pages
         private By txtName = By.Name("password");
         private By btnlogin = By.Id("login");
         private By addmenu = By.Id("addmenu");
+        private By HeaderLogo = By.Id("dvHeaderlogo");
+        private By LoginHeader = By.XPath("//div[@id='dvHeaderlogo']");
 
         private By btnaddmenu = By.XPath("/html/body/div/ng-component/div/div[1]/div/div/div[4]/div/ul/li[2]/a/i");
 
@@ -118,12 +120,13 @@ namespace CRES.TestAutoMation.Pages
                 util.WaitForElementVisible(btnlogin);
                 driver.FindElement(txtlogin).SendKeys(username);
                 driver.FindElement(txtName).SendKeys(password);
-                driver.FindElement(btnlogin).Click();
+                driver.FindElement(btnlogin).Click();                
                 util.WaitForElementVisible(addmenu);
                 res = true;
             }
             catch (Exception ex)
             {
+                Console.WriteLine("\n Login Status Exception = " + ex);
 
                 res = false;
 

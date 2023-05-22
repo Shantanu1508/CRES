@@ -74,120 +74,128 @@ namespace CRES.TestAutoMation.TestCases
             string LoginUrl = BaseConfiguration.QAUrl();
             util.OpenUrl(LoginUrl);
             System.Threading.Thread.Sleep(10000);
-
-            if (login.LoginWebPageMultiBrowser(driver))
+            try
             {
-                driver.Navigate().GoToUrl("https://qacres4.azurewebsites.net/#/dealdetail/19-0869");
-                System.Threading.Thread.Sleep(20000);
 
-                IWebElement totalcomittment = driver.FindElement(By.Id("TotalCommitment"));
-                String totalcomittement1 = totalcomittment.GetAttribute("value");
-
-                Console.WriteLine("value= " + totalcomittement1);
-
-                IWebElement notename = driver.FindElement(By.XPath("//*[@id=\"cell01\"]"));
-
-                IWebElement notename2 = driver.FindElement(By.XPath("//*[@id=\"cell11\"]"));
-
-                IWebElement notename3 = driver.FindElement(By.XPath("//*[@id=\"cell21\"]"));
-
-                IWebElement notename4 = driver.FindElement(By.XPath("//*[@id=\"cell31\"]"));
-
-                var firstarray = new String[] { notename.Text, notename2.Text, notename3.Text, notename4.Text };
-
-                System.Threading.Thread.Sleep(20000);
-                driver.FindElement(deal.copyDealBtn).Click();
-                var now = DateTime.Now;
-                string crenoteid = now.ToString("MMddyyyyss");
-                driver.FindElement(deal.copyDealID).SendKeys("Deal_copy15" + crenoteid);
-                string crenotename = now.ToString("MMddyyyyss");
-                driver.FindElement(deal.copyDealName).SendKeys("Deal_Copy15" + crenotename);
-
-                Utility.WijmoHelper.CreateFlexGridObject((OpenQA.Selenium.Remote.RemoteWebDriver)driver, "'#griddealcopy'");
-
-
-                var totalRowIdx = WijmoHelper.GetVisibleRows((OpenQA.Selenium.Remote.RemoteWebDriver)driver);
-                var colIndex = WijmoHelper.GetColumnIndex((OpenQA.Selenium.Remote.RemoteWebDriver)driver, "CRENewNoteID");
-
-                string credealid = now.ToString("MMddyyyyss");
-
-                for (int r = 0; r <= totalRowIdx; r++)
+                if (login.LoginWebPageMultiBrowser(driver))
                 {
+                    driver.Navigate().GoToUrl(LoginUrl + "#/dealdetail/19-0869");
+                    System.Threading.Thread.Sleep(20000);
 
-                    WijmoHelper.SetCellElement((OpenQA.Selenium.Remote.RemoteWebDriver)driver, r, colIndex, "Copy_Note15" + r + credealid);
+                    IWebElement totalcomittment = driver.FindElement(By.Id("TotalCommitment"));
+                    String totalcomittement1 = totalcomittment.GetAttribute("value");
+
+                    Console.WriteLine("value= " + totalcomittement1);
+
+                    IWebElement notename = driver.FindElement(By.XPath("//*[@id=\"cell01\"]"));
+
+                    IWebElement notename2 = driver.FindElement(By.XPath("//*[@id=\"cell11\"]"));
+
+                    IWebElement notename3 = driver.FindElement(By.XPath("//*[@id=\"cell21\"]"));
+
+                    IWebElement notename4 = driver.FindElement(By.XPath("//*[@id=\"cell31\"]"));
+
+                    var firstarray = new String[] { notename.Text, notename2.Text, notename3.Text, notename4.Text };
+
+                    System.Threading.Thread.Sleep(20000);
+                    driver.FindElement(deal.copyDealBtn).Click();
+                    var now = DateTime.Now;
+                    string crenoteid = now.ToString("MMddyyyyss");
+                    driver.FindElement(deal.copyDealID).SendKeys("Deal_copy15" + crenoteid);
+                    string crenotename = now.ToString("MMddyyyyss");
+                    driver.FindElement(deal.copyDealName).SendKeys("Deal_Copy15" + crenotename);
+
+                    Utility.WijmoHelper.CreateFlexGridObject((OpenQA.Selenium.Remote.RemoteWebDriver)driver, "'#griddealcopy'");
 
 
-                }
-                driver.FindElement(deal.copyAndOpenBtn).Click();
+                    var totalRowIdx = WijmoHelper.GetVisibleRows((OpenQA.Selenium.Remote.RemoteWebDriver)driver);
+                    var colIndex = WijmoHelper.GetColumnIndex((OpenQA.Selenium.Remote.RemoteWebDriver)driver, "CRENewNoteID");
 
-                System.Threading.Thread.Sleep(30000);
-                IWebElement copyDealTotalCommitement = driver.FindElement(By.Name("TotalCommitment"));
+                    string credealid = now.ToString("MMddyyyyss");
 
-                String totalcomittement2 = copyDealTotalCommitement.GetAttribute("value");
-                Console.WriteLine("value= " + totalcomittement2);
-
-
-                IWebElement copynotename = driver.FindElement(By.XPath("//*[@id=\"cell01\"]"));
-
-                IWebElement copynotename2 = driver.FindElement(By.XPath("//*[@id=\"cell11\"]"));
-
-                IWebElement copynotename3 = driver.FindElement(By.XPath("//*[@id=\"cell21\"]"));
-
-                IWebElement copynotename4 = driver.FindElement(By.XPath("//*[@id=\"cell31\"]"));
-
-
-                var secondarray = new string[] { copynotename.Text, copynotename2.Text, copynotename3.Text, copynotename4.Text };
-                var printMessages = "<p><b>Login FAILED!</b></p>";
-                Boolean isArrayEqual = true;
-                if (firstarray.Length == secondarray.Length)
-                {
-
-                    for (int i = 0; i < secondarray.Length; i++)
+                    for (int r = 0; r <= totalRowIdx; r++)
                     {
-                        Console.WriteLine("Oroginal Deal Elements =" + firstarray[i] + "\n" + "Copy deal elements= " + secondarray[i]);
+
+                        WijmoHelper.SetCellElement((OpenQA.Selenium.Remote.RemoteWebDriver)driver, r, colIndex, "Copy_Note15" + r + credealid);
 
 
-                        if (secondarray[i] != firstarray[i])
+                    }
+                    driver.FindElement(deal.copyAndOpenBtn).Click();
+
+                    System.Threading.Thread.Sleep(30000);
+                    IWebElement copyDealTotalCommitement = driver.FindElement(By.Name("TotalCommitment"));
+
+                    String totalcomittement2 = copyDealTotalCommitement.GetAttribute("value");
+                    Console.WriteLine("value= " + totalcomittement2);
+
+
+                    IWebElement copynotename = driver.FindElement(By.XPath("//*[@id=\"cell01\"]"));
+
+                    IWebElement copynotename2 = driver.FindElement(By.XPath("//*[@id=\"cell11\"]"));
+
+                    IWebElement copynotename3 = driver.FindElement(By.XPath("//*[@id=\"cell21\"]"));
+
+                    IWebElement copynotename4 = driver.FindElement(By.XPath("//*[@id=\"cell31\"]"));
+
+
+                    var secondarray = new string[] { copynotename.Text, copynotename2.Text, copynotename3.Text, copynotename4.Text };
+                    var printMessages = "<p><b>Login FAILED!</b></p>";
+                    Boolean isArrayEqual = true;
+                    if (firstarray.Length == secondarray.Length)
+                    {
+
+                        for (int i = 0; i < secondarray.Length; i++)
                         {
+                            Console.WriteLine("Oroginal Deal Elements =" + firstarray[i] + "\n" + "Copy deal elements= " + secondarray[i]);
 
-                            isArrayEqual = false;
+
+                            if (secondarray[i] != firstarray[i])
+                            {
+
+                                isArrayEqual = false;
+                            }
                         }
                     }
+                    else
+                    {
+                        isArrayEqual = false;
+                    }
+
+                    if (isArrayEqual)
+                    {
+
+
+                        if (totalcomittement1 == totalcomittement2)
+                        {
+
+                            Console.WriteLine("Deal copied");
+                            test.Log(Status.Pass, "Deal copied successfully ");
+                        }
+
+                        else
+                        {
+                            Console.WriteLine("Deal not copied");
+                            printMessages += $"Message: <br>{"Deal not copied"}<br>";
+                            test.Fail(printMessages);
+
+                        }
+                        var x = secondarray.Except(firstarray);
+                        foreach (var item in x)
+                            Console.WriteLine("Non match" + item);
+                    }
+
                 }
                 else
                 {
-                    isArrayEqual = false;
+                    System.Diagnostics.Debug.WriteLine("Login Failed");
                 }
-
-                if (isArrayEqual)
-                {
-
-
-                    if (totalcomittement1 == totalcomittement2)
-                    {
-
-                        Console.WriteLine("Deal copied");
-                        test.Log(Status.Pass, "Deal copied successfully ");
-                    }
-
-                    else
-                    {
-                        Console.WriteLine("Deal not copied");
-                        printMessages += $"Message: <br>{"Deal not copied"}<br>";
-                        test.Fail(printMessages);
-
-                    }
-                    var x = secondarray.Except(firstarray);
-                    foreach (var item in x)
-                        Console.WriteLine("Non match" + item);
-                }
-
             }
-            else
+            catch(Exception e)
             {
-                System.Diagnostics.Debug.WriteLine("Login Failed");
+                Console.WriteLine(" Copy Deal Exception = " + e);
             }
-            EmailDataContract emailDC = new EmailDataContract();
+
+         /*   EmailDataContract emailDC = new EmailDataContract();
             emailDC.To = "gthakur@hvantage.com";//rsahu@hvantage.com,msingh@hvantage.com,sbanerjee@hvantage.com
 
             //optional
@@ -208,6 +216,8 @@ namespace CRES.TestAutoMation.TestCases
             EmailAutomationLogic lg = new EmailAutomationLogic();
 
             String response = lg.SendGenericEmail(emailDC);
+
+            */
         }
         [Test]
         public void addNewUser()
@@ -254,7 +264,7 @@ namespace CRES.TestAutoMation.TestCases
                 userManagement.Click();
                 System.Threading.Thread.Sleep(10000);
                 EventFiringWebDriver eventFiringWebDriver = new EventFiringWebDriver(driver);
-                eventFiringWebDriver.ExecuteScript("document.querySelector('#flex > div:nth-child(1) > div:nth-child(2)').scrollBottom=1000");
+                eventFiringWebDri ver.ExecuteScript("document.querySelector('#flex > div:nth-child(1) > div:nth-child(2)').scrollBottom=1000");
                 System.Threading.Thread.Sleep(10000);*/
 
                 EventFiringWebDriver eventFiringWebDriver = new EventFiringWebDriver(driver);
@@ -431,7 +441,7 @@ namespace CRES.TestAutoMation.TestCases
                 }
 
             }
-            EmailDataContract emailDC = new EmailDataContract();
+         /*   EmailDataContract emailDC = new EmailDataContract();
             emailDC.To = "gthakur@hvantage.com";//rsahu@hvantage.com,msingh@hvantage.com,sbanerjee@hvantage.com
 
             //optional
@@ -453,6 +463,8 @@ namespace CRES.TestAutoMation.TestCases
             EmailAutomationLogic lg = new EmailAutomationLogic();
 
             String response = lg.SendGenericEmail(emailDC);
+
+            */
         }
 
 

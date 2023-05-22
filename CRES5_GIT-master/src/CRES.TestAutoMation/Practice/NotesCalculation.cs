@@ -12,6 +12,7 @@ using DocumentFormat.OpenXml.Presentation;
 using DocumentFormat.OpenXml.Spreadsheet;
 using java.util;
 using Microsoft.Office.Interop.Excel;
+using Microsoft.VisualStudio.TestPlatform.CoreUtilities.Extensions;
 using Newtonsoft.Json;
 using NPOI.SS.UserModel;
 using NPOI.SS.Util;
@@ -67,6 +68,7 @@ namespace CRES.TestAutoMation.Practice
         string CalcException = " ";
 
         
+
 
         //...................................................................
 
@@ -259,16 +261,17 @@ namespace CRES.TestAutoMation.Practice
                         Console.WriteLine("\nScenario Page Exception = " + ex.Message);
                         // throw ex;
                     }                   
-
+                
                     //................................To open Calculation Manager...................................
                     try
                     {
-                        String calculationManagerUrl = BaseUrl + BaseConfiguration.CalculationManagerUrl();
+                        String calculationManagerUrl = BaseUrl + BaseConfiguration.IntCalculationManagerUrl();
                         util.OpenUrl(calculationManagerUrl);
                         System.Threading.Thread.Sleep(5000);
 
                         string CalculationManagerTitle = driver.FindElement(deal.scenarioPage).Text;
                         Console.WriteLine("\nCalculation Manager Title Page =" + CalculationManagerTitle);
+                        List<string> NoteId = new List<string>();
 
                         if (CalculationManagerTitle == "Calculation Manager")
                         {
@@ -282,26 +285,46 @@ namespace CRES.TestAutoMation.Practice
                             IList<IWebElement> CalcCheckBoxes = driver.FindElements(deal.CalcCheckBox);
 
                             // To store all visible note id of calculation manager grid
+                            driver.Navigate().Refresh();
+                            Thread.Sleep(20000);
                             string href = "/#/notedetail/";
                             IList<IWebElement> NoteIdElem = driver.FindElements(By.CssSelector("a[href*='" + href + "']"));
+                           // IList<IWebElement> NoteIdElem = driver.FindElements(By.XPath("(//input[contains(@Class, 'wj-cell-check')])"));
+                            Console.WriteLine("\nNoteIdElem =" + NoteIdElem[0].Text);
+                           // NoteId.Insert(0, NoteIdElem[0].Text);
+
+                           // Console.WriteLine("\nNoteId at =" + NoteId[0]);
+                            //IList <IWebElement>NotId_href = driver.FindElements(By.XPath("//div[contains(@class,'wj-cell')]/div/div/div/div/a")); -- for Ng
                             Console.WriteLine("\nNoteid Count =" + NoteIdElem.Count);
-                            IList <IWebElement>NotId_href = driver.FindElements(By.XPath("//div[contains(@class,'wj-cell')]/div/div/div/div/a"));
-                            string Noteid_href = driver.FindElement(By.XPath("//div[contains(@class,'wj-cell')]/div/div/div/div/a")).GetAttribute("href");
+                            IList<IWebElement> NotId_href = driver.FindElements(By.XPath("//div[contains(@class,'wj-cell')]/div/div"));
+                            //string Noteid_href = driver.FindElement(By.XPath("//div[contains(@class,'wj-cell')]/div/div/div/div/a")).GetAttribute("href");
+                            string Noteid_href = driver.FindElement(By.XPath("(//div[contains(@class,'wj-cell')]/div/div/a)[2]")).GetAttribute("href");
                             Console.WriteLine("\nNote Id href = " + Noteid_href);
                             //To select specific notes for calculation
 
-                            for (int i = 0; i < 10; i = i + 2)   // i<10
+                            //for (int i = 0; i < 10; i = i + 2)   // i<10
+                            for (int i = 0; i < NoteIdElem.Count - 1; i= i+2)
                             {
+                                String Noteid = "";
                                 try
                                 {
-                                    driver.Navigate().Refresh();
-                                    Thread.Sleep(10000);
-                                    NoteIdElem = driver.FindElements(By.CssSelector("a[href*='" + href + "']"));
-                                    string NoteId = NoteIdElem[i].Text;
-                                    Console.WriteLine("\nSelected Note for Calculation = " + NoteId);
-                                    Console.WriteLine("\nNote Id href for "+i+"st Note = " + NotId_href[i].GetAttribute("href"));
-                                    printMessages = "<p><b> Note for Calculation = " + NoteId + " </b></p>";
-                                    test.Pass(printMessages);
+                                    Console.WriteLine("\n i = " + i);
+                                   // driver.Navigate().Refresh();
+                                  //  Thread.Sleep(10000);
+                                   // NoteIdElem = driver.FindElements(By.CssSelector("a[href*='" + href + "']"));
+                                  //  NoteIdElem = driver.FindElements(By.CssSelector("a[href*='" + href + "']"));
+                                    Console.WriteLine("\nSelected Note for Calculation = " + NoteIdElem[i].Text);
+                                    Noteid = NoteIdElem[i].Text;
+                                   // NoteId.Insert(i, NoteIdElem[i].Text);
+
+                                   // NoteId.Add(NoteIdElem[i].Text);
+
+                                    Console.WriteLine("\nSelected Note for Calculation = " + Noteid);
+                                    //Console.WriteLine("\nSelected Note for Calculation = " + NoteId[i]);
+                                   // Console.WriteLine("\nNote Id href for "+i+"st Note = " + NotId_href[i].GetAttribute("href"));
+                                   // printMessages = "<p><b> Note for Calculation = " + NoteId[i] + " </b></p>";
+                                    printMessages = "<p><b> Note for Calculation = " + Noteid + " </b></p>";
+                                    test.Pass(printMessages); 
 
                                     NoteIdElem[i].Click();
                                     Thread.Sleep(8000);
@@ -325,26 +348,30 @@ namespace CRES.TestAutoMation.Practice
                                     }
 
                                     // .............................Note Calculatio Completed.................................
+                                    string FullStatus = " ";
                                     if (calculationStatus == "Completed")
                                     {                                                                               
                                         Console.WriteLine("\n"+i + "th Note calculation is completed");                                        
                                         System.Threading.Thread.Sleep(10000);
                                         try
                                         {                                           
-                                            string FullStatus = driver.FindElement(deal.calculationFullStatus).Text;
+                                           FullStatus = driver.FindElement(deal.calculationFullStatus).Text;
                                             Console.WriteLine("\nCompleted Note's Full Status = " + FullStatus);
                                             test.Log(Status.Pass, "Full Status = " + FullStatus);
-                                            addtolist(NoteId, calculationStatus, FullStatus, "No Exception");
-                                            test.Log(Status.Pass, "Calculation has been Completed for Note = "+NoteId);
+                                            addtolist(NoteId[i], calculationStatus, FullStatus, "No Exception");
+                                           //test.Log(Status.Pass, "Calculation has been Completed for Note = "+NoteId);
+                                            test.Log(Status.Pass, "Calculation has been Completed for Note = " + Noteid); 
                                             Console.WriteLine("\nCompleted status Logged"); 
                                         }
                                         catch (Exception ex)
                                         {
                                             Console.WriteLine("\n Excel Report Exception =" + ex.Message);
-                                            addtolist(NoteId, calculationStatus, FullStatus, CalcException);
+                                           // addtolist(NoteId[i], calculationStatus, FullStatus, CalcException);
+                                            addtolist(Noteid, calculationStatus, FullStatus, CalcException); 
                                         }  
                                         driver.Navigate().Back();
                                         Thread.Sleep(10000);
+
                                         continue;
                                     }
 
@@ -356,11 +383,13 @@ namespace CRES.TestAutoMation.Practice
                                             printMessages = "<p><b>Test FAILED!</b></p>";
                                             test.Fail(printMessages);
                                             Console.WriteLine("\nCompleted status Log failed");
-                                            string FullStatus = driver.FindElement(deal.calculationFullStatus).Text;
+                                            FullStatus = driver.FindElement(deal.calculationFullStatus).Text;
                                             Console.WriteLine("\nCompleted Note's Full Status = " + FullStatus);
                                             Console.WriteLine("\n" + i + "the Note's calculation is failed");
-                                            test.Log(Status.Fail, "Calculation has been failed for Note = " + NoteId);
-                                            addtolist(NoteId, calculationStatus, FullStatus, "");
+                                           // test.Log(Status.Fail, "Calculation has been failed for Note = " + NoteId);
+                                            test.Log(Status.Fail, "Calculation has been failed for Note = " + Noteid);
+                                            // addtolist(NoteId[i], calculationStatus, FullStatus, "");
+                                            addtolist(Noteid, calculationStatus, FullStatus, "");
                                             Thread.Sleep(5000);
                                         }
                                         catch (Exception ex)
@@ -378,8 +407,15 @@ namespace CRES.TestAutoMation.Practice
                                 catch (Exception e)
                                 {
                                     Console.WriteLine("\nException =" + e.Message);                                    
-                                }                                
+                                }
+
+                                driver.Navigate().Refresh();
+                                Thread.Sleep(20000);
+                                href = "/#/notedetail/";
+                                NoteIdElem = driver.FindElements(By.CssSelector("a[href*='" + href + "']"));
+
                             } 
+
                             //............................Calling Excel Report creation.............................................
 
                             System.Threading.Thread.Sleep(3000);
@@ -397,9 +433,9 @@ namespace CRES.TestAutoMation.Practice
                             Console.WriteLine("\nPath of current directory " + pathNew);
 
                             //........................................Mail Send with Excel Report............................................................
-                         /*
+                         
                            EmailDataContract emailDC = new EmailDataContract();
-                            emailDC.To = "shantanu@hvantage.com,rsahu@hvantage.com,ssingh@hvantage.com,msingh@hvantage.com,sbanerjee@hvantage.com,rsahu@hvantage.com,msingh@hvantage.com,sbanerjee@hvantage.com";
+                            emailDC.To = "shantanu@hvantage.com ";//,rsahu@hvantage.com,ssingh@hvantage.com,msingh@hvantage.com,sbanerjee@hvantage.com,rsahu@hvantage.com,msingh@hvantage.com,sbanerjee@hvantage.com";
 
                             //optional
                             //emailDC.Cc = "skhan@hvantage.com,rsahu@hvnatge.com";
@@ -407,9 +443,9 @@ namespace CRES.TestAutoMation.Practice
                             emailDC.ReceiverName = "All";
                             emailDC.FileAttachment = new List<FileAttachmentDataContract>();
                             emailDC.FileAttachment.Add(new FileAttachmentDataContract { FilePath = pathNew + "\\ExecutionReports\\NoteCalculation\\" + pathExcel });
-                           // string path = ProjectBaseConfiguration.ExecutionReportFolder;
-                           // emailDC.FileAttachment.Add(new FileAttachmentDataContract { FilePath = path + "\\index.html" });    //  No need
-                            emailDC.Subject = "Notes Calculation test report";
+                            string path = ProjectBaseConfiguration.ExecutionReportFolder;
+                            emailDC.FileAttachment.Add(new FileAttachmentDataContract { FilePath = path + "\\index.html" });    //  No need
+                            emailDC.Subject = "Notes Calculation report";
                             emailDC.Body = "Please find an attachment of Notes calculation Report.";
                             emailDC.TemplatePath = ProjectBaseConfiguration.TemplatePath;
                             emailDC.EmailSettings.Host = BaseConfiguration.Host;

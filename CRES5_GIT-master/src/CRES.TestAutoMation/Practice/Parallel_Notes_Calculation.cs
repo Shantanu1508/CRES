@@ -21,9 +21,11 @@ using System.Collections.Generic;
 using System.Data;
 using System.IO;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
+using static CRES.DataContract.V1CalcDataContract;
 using static CRES.TestAutoMation.BaseConfiguration;
 using static CRES.TestAutoMation.Utility.ExcelUtility;
 using Util = CRES.TestAutoMation.Utility.Util;
@@ -89,13 +91,16 @@ namespace CRES.TestAutoMation.Practice
         string CalcException = " ";
         List<string> NoteId = new List<string>();
 
+        String Noteid = "";
+        String Noteid_href = "";
+
         //...................................................................
 
-       /* public static String Timestamp()
-        {
-            String timeStamp = Util.GetTimestamp(DateTime.Now);
-            return timeStamp;
-        }     */ 
+        /* public static String Timestamp()
+         {
+             String timeStamp = Util.GetTimestamp(DateTime.Now);
+             return timeStamp;
+         }     */
         //............................Creating Excel Report.................................................        
         public static void CreateExcelDataTableNewForInput(DataTable table, string ExcelNoteIDTab)
         {
@@ -467,7 +472,7 @@ namespace CRES.TestAutoMation.Practice
 
             System.Threading.Thread.Sleep(3000);
             //string times = NotesCalculation.Timestamp();
-            NotesCalculation.CreateExcelDataTableNew((DataTable)JsonConvert.DeserializeObject(JsonConvert.SerializeObject(NoteCalculationReport), (typeof(DataTable))), "NoteCalculationReport");
+            NotesCalculation.CreateExcelDataTableNew((DataTable)JsonConvert.DeserializeObject(JsonConvert.SerializeObject(NoteCalculationReport), (typeof(DataTable))), "ParallelNoteCalculationReport");
             System.Threading.Thread.Sleep(7000);
 
             // String FileName;
@@ -481,8 +486,9 @@ namespace CRES.TestAutoMation.Practice
         }               
 
         //................Note Calculation Method Block ....................................................................
-        public void noteCalculation(List<DealDataContract> _lstDeal,string NoteID,List< string> Noteid_Href, IWebDriver driver)
+        public void noteCalculation(List<DealDataContract> _lstDeal,string NoteID,string Noteid_Href, IWebDriver driver)
         {
+            driver = new ChromeDriver();
             Login login = new Login(driver);
             Utility.Util util = new Utility.Util(driver);
             Deal dealPage = new Deal(driver);
@@ -494,7 +500,7 @@ namespace CRES.TestAutoMation.Practice
             
 
             
-            List<AutoMationOutputData> _autoMationOutputDatalst = new List<AutoMationOutputData>();
+           // List<AutoMationOutputData> _autoMationOutputDatalst = new List<AutoMationOutputData>();
 
 
             //IWebElement AutospreadRepaymentButton;
@@ -703,7 +709,7 @@ namespace CRES.TestAutoMation.Practice
                     //................................To open Calculation Manager...................................
                     try
                     {
-                        String calculationManagerUrl = BaseUrl + BaseConfiguration.CalculationManagerUrl();
+                        String calculationManagerUrl = BaseUrl + BaseConfiguration.IntCalculationManagerUrl();
                         util.OpenUrl(calculationManagerUrl);
                         System.Threading.Thread.Sleep(5000);
 
@@ -728,27 +734,32 @@ namespace CRES.TestAutoMation.Practice
                             Console.WriteLine("\nNoteid Count =" + NoteIdElem.Count);
                             
                             try
-                            {  
+                            {
                                 
+
                                 Thread.Sleep(10000);
                                 NoteIdElem = driver.FindElements(By.CssSelector("a[href*='" + href + "']"));
 
                                 Console.WriteLine("\nNotElements count = " + NoteIdElem.Count);
                              
                                 DealDataContract ldc = new DealDataContract();
-                          
+                                
                                     for (int i = 0; i < NoteIdElem.Count - 1; i++)
                                     {                              
                                             
-                                            NoteId.Insert(i,NoteIdElem[i].Text);
-                                            Console.WriteLine("\nSelected Note for Calculation = " + NoteId[i]);
+                                            //NoteId.Insert(i,NoteIdElem[i].Text);
+                                            Noteid = NoteIdElem[i].Text;
+                                           Console.WriteLine("\nSelected Note for Calculation = " + Noteid);
+                                            //Console.WriteLine("\nSelected Note for Calculation = " + Noteid); 
 
-                                            NotId_href = driver.FindElements(By.XPath("//div[contains(@class,'wj-cell')]/div/div/div/div/a"));
-                                            Noteid_Href.Insert(i, NotId_href[i].GetAttribute("href"));
-                                            Console.WriteLine("Note Href = " + Noteid_Href[i]);
-                                            ldc.NoteHref = Noteid_Href[i];
+                                            NotId_href = driver.FindElements(By.XPath("//div[contains(@class,'wj-cell')]/div/div/div/a"));
+                                            Console.WriteLine("Note Href Count = " + NotId_href.Count); 
+                                            //Noteid_Href.Insert(i-2, NotId_href[i].GetAttribute("href"));
+                                            Noteid_href = NotId_href[i].GetAttribute("href");
+                                            Console.WriteLine("Note Href = " + Noteid_href);
+                                            ldc.NoteHref = Noteid_href;
                                             //ldc.NoteHref = dataTable.Rows[i].ItemArray[1].ToString();
-                                            addtolist(NoteId[i], Noteid_Href[i]);                                        
+                                            addtolist(Noteid, Noteid_href);                                        
 
                                     }
 
@@ -815,11 +826,14 @@ namespace CRES.TestAutoMation.Practice
 
                             }                            
                         }
-                        
-                        //set count for deal generate
-                        int cntNote = notelist.Count();
+                        try
+                        {
+                            //set count for deal generate
+                            int cntNote = notelist.Count();
                         Console.WriteLine("notelist count = " + cntNote);
+
                         notelist = notelist.Skip(0).Take(cntNote).ToList();
+
                         if (notelist != null)
                         {
                             test.Log(Status.Info, "Note Calculation automation started for " + notelist.Count + " Notes");
@@ -830,6 +844,7 @@ namespace CRES.TestAutoMation.Practice
                         List<DealDataContract> deallist4 = new List<DealDataContract>();
 
                         int itemCnt = 0;
+
                         deallist1 = notelist.Skip(itemCnt).Take(cntNote / browserCount).ToList();
                         Console.WriteLine("\ndeallist1 = " + deallist1);
                         itemCnt += deallist1.Count();
@@ -848,10 +863,7 @@ namespace CRES.TestAutoMation.Practice
                         var poptions = new ParallelOptions()
                         {
                             MaxDegreeOfParallelism = browserCount
-                        };
-                        try
-                        {
-                            
+                        };                                                    
                             Parallel.ForEach(integerList, poptions, i =>
                             {
                                 Console.WriteLine(@"value of new i = {0}", i);
@@ -879,11 +891,14 @@ namespace CRES.TestAutoMation.Practice
                                     Console.WriteLine("\n_lstDeal 4=" + _lstDeal);
                                 }
                                 Console.WriteLine("\n_lstDeal = " + _lstDeal.Count);
-                                Console.WriteLine("\nnotelist.Count() =" + notelist.Count);
+                                Console.WriteLine("\nnotelist.Count() =" + notelist.Count);                          
+
                                 //if (_lstDeal.Count() > 0)
-                                    if (notelist.Count > 0)
+                                if (notelist.Count > 0)
+                                {
+                                    try
                                     {
-                                    IWebDriver driver = null;
+                                        IWebDriver driver = null;
                                     if (browser == "Chrome")
                                     {
                                         ChromeOptions options = new ChromeOptions();
@@ -901,7 +916,7 @@ namespace CRES.TestAutoMation.Practice
                                         options.AddArguments("--disable-web-security");
                                         options.AddExcludedArgument("enable-automation");
                                         options.SetLoggingPreference(LogType.Browser, LogLevel.Warning);
-                                        driver = new ChromeDriver(ChromeDriverService.CreateDefaultService(), options, TimeSpan.FromMinutes(3));                                        
+                                        driver = new ChromeDriver(ChromeDriverService.CreateDefaultService(), options, TimeSpan.FromMinutes(3));
                                         options.AddArgument("no-sandbox");
                                         driver.Manage().Timeouts().PageLoad.Add(System.TimeSpan.FromSeconds(30));
                                         ((IJavaScriptExecutor)driver).ExecuteScript("document.body.style.zoom='90%';");
@@ -930,19 +945,26 @@ namespace CRES.TestAutoMation.Practice
                                         options.AddArguments("--disable-web-security");
                                         options.AddExcludedArgument("enable-automation");
                                         options.SetLoggingPreference(LogType.Browser, LogLevel.Warning);
-                                       driver = new ChromeDriver(ChromeDriverService.CreateDefaultService(), options, TimeSpan.FromMinutes(3));                                        
+                                        driver = new ChromeDriver(ChromeDriverService.CreateDefaultService(), options, TimeSpan.FromMinutes(3));
                                         options.AddArgument("no-sandbox");
                                         driver.Manage().Timeouts().PageLoad.Add(System.TimeSpan.FromSeconds(30));
                                         ((IJavaScriptExecutor)driver).ExecuteScript("document.body.style.zoom='90%';");
 
+                                    }
+                                    }
+                                    catch(Exception Ex){
+                                        Console.WriteLine("\n 948 Exception of parallel browser" + Ex);
                                     }
 
                                     //.....................Note Calculation method calling......................................
                                     System.Threading.Thread.Sleep(2000);
                                     try
                                     {
-                                        Console.WriteLine("\n note Calculation method is calling =" + NoteId[i]+"\n" +Noteid_Href[i]);
-                                        noteCalculation(_lstDeal, NoteId[i], Noteid_Href, driver);                                        
+
+                                       // String Noteid = "";
+                                       // String Noteid_href = "";
+                                        Console.WriteLine("\n note Calculation method is calling =" + Noteid + "\n" + Noteid_href);
+                                        noteCalculation(_lstDeal, Noteid, Noteid_href, driver);                                        
                                         Console.WriteLine("\nnoteCalculation method is called");
                                     }
                                     catch (Exception ex)
@@ -965,7 +987,7 @@ namespace CRES.TestAutoMation.Practice
                         {
                             Console.Write("Method calling Exception =" + ex.ToString());
                         }
-                        test.Log(Status.Pass, "Deal Funding Generated Successfully");
+                        test.Log(Status.Pass, "Notes are calculated  Successfully");
                         try
                         {
                             util = new Utility.Util(driver);

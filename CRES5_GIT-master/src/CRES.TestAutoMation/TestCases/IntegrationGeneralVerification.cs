@@ -2609,7 +2609,7 @@ namespace CRES.TestAutoMation.TestCases
 
                       // Email check point
 
-                  /*   if (env == "QA" || env == "Integration")
+                     if (env == "QA" || env == "Integration")
                      {
 
                          createDeal.TestCreateNewDeal();
@@ -2620,7 +2620,7 @@ namespace CRES.TestAutoMation.TestCases
                          Console.WriteLine("Method  not called");
                      }
 
-                     System.Threading.Thread.Sleep(10000);*/
+                     System.Threading.Thread.Sleep(10000);
                     //Console.WriteLine("Method called");
                     //System.Threading.Thread.Sleep(8000);
                 }

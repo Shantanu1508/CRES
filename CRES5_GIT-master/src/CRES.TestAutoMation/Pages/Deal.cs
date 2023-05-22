@@ -89,7 +89,7 @@ namespace CRES.TestAutoMation.Pages
         public By calculationStatus = By.XPath("//span[contains(@class,'badge badge')]");
         public By calculationStatusCompleted = By.XPath("//span[@class='badge badge-success']");
         public By calcButton = By.Id("btnCalcNote");
-        public By calculationFullStatus = By.XPath("(//label[@class='lab1 lab1size'])[5]");
+        public By calculationFullStatus = By.XPath("//*[@id=\"periodicoutput\"]/div/div/div[1]/table/tbody/tr/td[1]/label/span[1]");
         public By periodicOtpButton = By.Id("btnPeriodicOutput");
         public By exceptionTab = By.Id("aExceptions");
         public By exceptionElement = By.XPath("//*[@id=\"Exceptionstab\"]/div/h3");
@@ -118,6 +118,7 @@ namespace CRES.TestAutoMation.Pages
         public By scenarioName = By.Id("ScenarioName");
         public By scenarioPage = By.XPath("//div[@class='head fixheaderdiv']/h1");  // Scenario Page Titile
         public By defaultScenario = By.LinkText("Default");
+        public By defaultScenarioDownload = By.XPath("(//div[@class='wj-cell']//div)[3]");
         public By saveButton = By.XPath("(//button[@class='custombutton'])[3]");
         public By UseServicingData = By.XPath("//select[@name='UseActuals']");
         public By CalcEngineType = By.XPath("//select[@name='CalcEngineType']");
