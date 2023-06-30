@@ -2582,7 +2582,7 @@ namespace CRES.TestAutoMation.TestCases
                     Console.WriteLine("Path of current directory " + pathNew);
 
                     // Email attachment 
-                       // Email check point
+                   /*    // Email check point
                         EmailDataContract emailDC = new EmailDataContract();
                         emailDC.To = "shantanu@hvantage.com,rsahu@hvantage.com,msingh@hvantage.com,sbanerjee@hvantage.com,rsahu@hvantage.com,msingh@hvantage.com,sbanerjee@hvantage.com";
 
@@ -2607,7 +2607,7 @@ namespace CRES.TestAutoMation.TestCases
                         String response = lg.SendGenericEmail(emailDC);
                         System.Threading.Thread.Sleep(10000);
 
-                      // Email check point
+                      */// Email check point
 
                      if (env == "QA" || env == "Integration")
                      {

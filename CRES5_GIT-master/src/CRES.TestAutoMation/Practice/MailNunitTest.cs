@@ -13,6 +13,12 @@ using OpenQA.Selenium;
 using OpenQA.Selenium.Firefox;
 using sun.security.util;
 
+using mailslurp.Api;
+using mailslurp.Client;
+using mailslurp.Model;
+
+
+
 namespace CRES.TestAutoMation.Practice
 {
     // Example usage for MailSlurp email API plugin
@@ -21,7 +27,7 @@ namespace CRES.TestAutoMation.Practice
     [TestFixture]
     internal class MailNunitTest
     {
-
+        /*
         private static IWebDriver _webdriver;
         private static Configuration _mailslurpConfig;
 
@@ -29,6 +35,9 @@ namespace CRES.TestAutoMation.Practice
         private static readonly string YourApiKey = "your-api-key-here";
 
         private static readonly long TimeoutMillis = 30_000L;
+        
+        var config = new Configuration();
+        config.ApiKey.Add("x-api-key", "your_api_key_here");
 
         [SetUpFixture]
         public class NunitSetup
@@ -58,7 +67,7 @@ namespace CRES.TestAutoMation.Practice
                 _webdriver.Dispose();
             }
             //--------------------------------------Test loading the playground------------------------------------------------------------------------
-
+         
             [Test, Order(1)]
             public void CanLoadPlaygroundAppInBrowser_AndClickSignUp()
             {
@@ -71,84 +80,85 @@ namespace CRES.TestAutoMation.Practice
             }
 
             //--------------------------------------Create test email accounts-----------------------------------------------------------------
+           
+                private static Inbox _inbox;
 
-            private static Inbox _inbox;
+                [Test, Order(2)]
+                public void CanCreateTestEmail_AndStartSignUp()
+                {
+                    // first create a test email account
+                    var inboxControllerApi = new InboxControllerApi(_mailslurpConfig);
+                    _inbox = inboxControllerApi.CreateInbox();
 
-            [Test, Order(2)]
-            public void CanCreateTestEmail_AndStartSignUp()
-            {
-                // first create a test email account
-                var inboxControllerApi = new InboxControllerApi(_mailslurpConfig);
-                _inbox = inboxControllerApi.CreateInbox();
+                    // inbox has a real email address
+                    var emailAddress = _inbox.EmailAddress;
 
-                // inbox has a real email address
-                var emailAddress = _inbox.EmailAddress;
+                    // next fill out the sign-up form with email address and a password
+                    _webdriver.FindElement(By.Name("email")).SendKeys(emailAddress);
+                    //_webdriver.FindElement(By.Name("password")).SendKeys(Password);
 
-                // next fill out the sign-up form with email address and a password
-                _webdriver.FindElement(By.Name("email")).SendKeys(emailAddress);
-                _webdriver.FindElement(By.Name("password")).SendKeys(Password);
+                    // submit form
+                    _webdriver.FindElement(By.CssSelector("[data-test=sign-up-create-account-button]")).Click();
+                }
+                //---------------------------------------Receive confirmation email------------------------------------------------------------
 
-                // submit form
-                _webdriver.FindElement(By.CssSelector("[data-test=sign-up-create-account-button]")).Click();
+                private static Email _email;
+
+                [Test, Order(3)]
+                public void CanReceiveConfirmationEmail()
+                {
+                    // now fetch the email that playground sends us
+                    var waitForControllerApi = new WaitForControllerApi(_mailslurpConfig);
+                    _email = waitForControllerApi.WaitForLatestEmail(inboxId: _inbox.Id, timeout: TimeoutMillis, unreadOnly: true);
+
+                    // verify the contents
+                    Assert.IsTrue(_email.Subject.Contains("Please confirm your email address"));
+                }
+
+                //--------------------------------------------Extract content and confirm-------------------------------------------------------
+
+                private static String _confirmationCode;
+
+                [Test, Order(4)]
+                public void CanExtractConfirmationCode()
+                {
+                    // we need to get the confirmation code from the email
+                    var rx = new Regex(@".*verification code is (\d{6}).*", RegexOptions.Compiled);
+                    var match = rx.Match(_email.Body);
+                    _confirmationCode = match.Groups[1].Value;
+
+                    Assert.AreEqual(6, _confirmationCode.Length);
+                }
+
+                [Test, Order(5)]
+                public void CanConfirmUserWithEmailedCode()
+                {
+                    // fill the confirm user form with the confirmation code we got from the email
+                    _webdriver.FindElement(By.Name("code")).SendKeys(_confirmationCode);
+                    _webdriver.FindElement(By.CssSelector("[data-test=confirm-sign-up-confirm-button]")).Click();
+                }
+
+                //-----------------------------------------------------Sign in with confirmed user-----------------------------------------------
+
+                [Test, Order(6)]
+                public void CanLoginWithConfirmedUser()
+                {
+                    // load the main page again
+                    _webdriver.Navigate().GoToUrl("https://playground.mailslurp.com");
+
+                    // login with email and password (we expect it to work now that we are confirmed)
+                    _webdriver.FindElement(By.Name("username")).SendKeys(_inbox.EmailAddress);
+                    _webdriver.FindElement(By.Name("password")).SendKeys(Password);
+                    _webdriver.FindElement(By.CssSelector("[data-test=sign-in-sign-in-button]")).Click();
+
+                    // verify that user can see authenticated content
+                    Assert.IsTrue(_webdriver.FindElement(By.TagName("h1")).Text.Contains("Welcome"));
+                }
+
             }
 
-            //---------------------------------------Receive confirmation email------------------------------------------------------------
+            */
 
-            private static Email _email;
-
-            [Test, Order(3)]
-            public void CanReceiveConfirmationEmail()
-            {
-                // now fetch the email that playground sends us
-                var waitForControllerApi = new WaitForControllerApi(_mailslurpConfig);
-                _email = waitForControllerApi.WaitForLatestEmail(inboxId: _inbox.Id, timeout: TimeoutMillis, unreadOnly: true);
-
-                // verify the contents
-                Assert.IsTrue(_email.Subject.Contains("Please confirm your email address"));
-            }
-
-            //--------------------------------------------Extract content and confirm-------------------------------------------------------
-
-            private static String _confirmationCode;
-
-            [Test, Order(4)]
-            public void CanExtractConfirmationCode()
-            {
-                // we need to get the confirmation code from the email
-                var rx = new Regex(@".*verification code is (\d{6}).*", RegexOptions.Compiled);
-                var match = rx.Match(_email.Body);
-                _confirmationCode = match.Groups[1].Value;
-
-                Assert.AreEqual(6, _confirmationCode.Length);
-            }
-
-            [Test, Order(5)]
-            public void CanConfirmUserWithEmailedCode()
-            {
-                // fill the confirm user form with the confirmation code we got from the email
-                _webdriver.FindElement(By.Name("code")).SendKeys(_confirmationCode);
-                _webdriver.FindElement(By.CssSelector("[data-test=confirm-sign-up-confirm-button]")).Click();
-            }
-
-            //-----------------------------------------------------Sign in with confirmed user-----------------------------------------------
-
-            [Test, Order(6)]
-            public void CanLoginWithConfirmedUser()
-            {
-                // load the main page again
-                _webdriver.Navigate().GoToUrl("https://playground.mailslurp.com");
-
-                // login with email and password (we expect it to work now that we are confirmed)
-                _webdriver.FindElement(By.Name("username")).SendKeys(_inbox.EmailAddress);
-                _webdriver.FindElement(By.Name("password")).SendKeys(Password);
-                _webdriver.FindElement(By.CssSelector("[data-test=sign-in-sign-in-button]")).Click();
-
-                // verify that user can see authenticated content
-                Assert.IsTrue(_webdriver.FindElement(By.TagName("h1")).Text.Contains("Welcome"));
-            }
-
+        } 
+            
         }
-
-
-    }
-}

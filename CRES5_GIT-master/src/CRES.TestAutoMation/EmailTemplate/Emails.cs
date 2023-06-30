@@ -67,7 +67,7 @@ namespace CRES.TestAutoMation.EmailTemplate
             Utility.Util util = new Utility.Util(driver);
             string path = ProjectBaseConfiguration.ExecutionReportFolder;
             EmailDataContract emailDC = new EmailDataContract();
-            emailDC.To = "shantanu@hvantage.com,rsahu@hvantage.com,vbalapure@hvantage.com,ssingh@hvantage.com,sbanerjee@hvantage.com";
+            emailDC.To = "shantanu@hvantage.com,rsahu@hvantage.com,msingh@hvantage.com,vbalapure@hvantage.com,ssingh@hvantage.com,sbanerjee@hvantage.com";
             //emailDC.To = "rsahu@hvantage.com,krishna@hvantage.com";
             //emailDC.Cc = "sbanerjee@hvantage.com,msingh@hvantage.com,vbalapure@hvantage.com,ssingh@hvantage.com";
             string loggedInUserName = util.GetLoggedInUserName();

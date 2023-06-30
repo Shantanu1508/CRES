@@ -506,7 +506,7 @@ namespace CRES.TestAutoMation.TestCases
                         test.Fail(printMessage);
                         String Message = ex.ToString();
                         ExtentEnd();
-                        //SendEmail.MergeallFilesAndEmail(randomstring, Message, driver);
+                       // SendEmail.MergeallFilesAndEmail(randomstring, Message, driver);  // Check Point 
                     }
                 }
             }
@@ -520,7 +520,7 @@ namespace CRES.TestAutoMation.TestCases
                 test.Log(Status.Info, "Email sent with validation file attached.");
                 test.Log(Status.Info, "Ran By: " + loggedInUserName);
                 String FilePath = ExcelUtility.MergeAllFiles(randomstring);
-                //SendEmail.ValidationFile(FilePath, "", driver);
+              // SendEmail.ValidationFile(FilePath, "", driver);               // Check Point
                 driver.Quit();
                 ExtentEnd();
             }
@@ -580,7 +580,7 @@ namespace CRES.TestAutoMation.TestCases
                          int mod = DealsProcessed % SendProgressEmailDealCounter;
                          if (mod == 0)
                          {
-                             SendEmail.sendProgressEmail(deallist.Count, DealsProcessed, StartTime, driver);
+                           //  SendEmail.sendProgressEmail(deallist.Count, DealsProcessed, StartTime, driver);  //check Point 
                          }
                      } 
 
@@ -604,7 +604,7 @@ namespace CRES.TestAutoMation.TestCases
                         dealPage.CheckDealPageLoaded();
                         IWebElement DealType = driver.FindElement(By.Id("dealBtntype"));
                         string ButtonToClick = DealType.GetAttribute("innerHTML");
-                        // string i2 = driver.ExecuteJavaScript<string>("return arguments[0].innerHTML", DealType);
+                        //string i2 = driver.ExecuteJavaScript<string>("return arguments[0].innerHTML", DealType);
                         //string i3 = DealType.GetAttribute("textContent");
                         //string i4 = driver.ExecuteJavaScript<string>("return arguments[0].textContent", DealType);
                         //ButtonToClick = "";

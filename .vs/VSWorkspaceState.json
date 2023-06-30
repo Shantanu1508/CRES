@@ -4,8 +4,8 @@
     "\\CRES5_GIT-master",
     "\\CRES5_GIT-master\\src",
     "\\CRES5_GIT-master\\src\\CRES.TestAutoMation",
-    "\\CRES5_GIT-master\\src\\CRES.TestAutoMation\\TestCases"
+    "\\CRES5_GIT-master\\src\\CRES.TestAutoMation\\Pages"
   ],
-  "SelectedNode": "\\CRES5_GIT-master\\src\\CRES.TestAutoMation\\TestCases\\GeneralTests.cs",
+  "SelectedNode": "\\CRES5_GIT-master\\src\\CRES.TestAutoMation\\Pages\\Deal.cs",
   "PreviewInSolutionExplorer": false
 }

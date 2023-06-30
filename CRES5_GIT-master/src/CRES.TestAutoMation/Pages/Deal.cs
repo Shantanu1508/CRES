@@ -47,7 +47,14 @@ namespace CRES.TestAutoMation.Pages
         public By dealID = By.Id("CREDealID");
         public By dealName = By.Id("DealName");
         public By mainTab = By.Id("aMain");
-        public By fundingTab = By.Id("aFunding");
+        public By fundingTab = By.Id("aFunding");  
+        public By TotalFundingSequance = By.XPath("//*[@id=\"futureFunding\"]/div/div[4]/div[1]/wj-flex-grid/div[1]/div[5]/div/div[15]");
+        public By TotalReqEquityDealFunding = By.XPath("//*[@id=\"dealfunding\"]/div[1]/div[5]/div/div[5]");
+        public By ASTotalRequiredEquity = By.XPath("//*[@id=\"flexautospreadrule\"]/div[1]/div[5]/div/div[3]");
+        public By AsEndDate = By.XPath("//*[@id=\"flexautospreadrule\"]/div[1]/div[2]/div[1]/div[6]/div/div");
+        public By FullyExtMaturityDate = By.XPath("//*[@id=\"flexMaturity\"]/div[1]/div[2]/div[1]/div[13]");
+        public By Commitment_EquityTab = By.XPath("//*[@id=\"aAdjustedTotalCommitment\"]");
+        public By CommitmentRequiredEquity = By.XPath("//*[@id=\"DealAdjustedtotalCommitment\"]/div/div[1]/div[4]/wj-flex-grid/div[1]/div[5]/div/div[8]");
         public By enableFundingSchedule = By.ClassName("customheading");
         public By amortTab = By.Id("aDealAmorttab");
         public By amortizationMethodElement = By.Id("AmortizationMethod");

@@ -144,17 +144,17 @@ namespace CRES.TestAutoMation.Utility
 
         public void OpenUrl(string url)
         {
-            driver.Navigate().GoToUrl(url);
+                driver.Navigate().GoToUrl(url);
             driver.Manage().Window.Maximize();
         }
 
         public void OpenUrlMultiBrowser(string url, IWebDriver driver)
         {            
-            driver.Navigate().GoToUrl(url);
-            Console.WriteLine("\n OpenUrlMultiBrowser url = " + url);
-            driver.Manage().Window.Maximize();
-            Thread.Sleep(5000);
-        }
+                driver.Navigate().GoToUrl(url);
+                Console.WriteLine("\n OpenUrlMultiBrowser url = " + url);
+                driver.Manage().Window.Maximize();
+                Thread.Sleep(5000);
+            }
 
         //method
         public void ImplicitWait(double timeinsecs)
