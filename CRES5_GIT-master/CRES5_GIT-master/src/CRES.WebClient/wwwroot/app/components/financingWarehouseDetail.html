@@ -1,0 +1,107 @@
+﻿<form #f="ngForm">
+
+    <div class="col-sm-12">
+        <div class="head fixheaderdiv">
+            <h1 style="display: inline-block;margin-top: 10px;">Financing Details: {{_financingWarehouse.Name}}</h1>
+
+            <span>
+                <button type="button" class="custombutton" (click)="DiscardChanges()">Cancel</button>
+                <button type="submit" tooltip="Save" (click)="CustomValidator(Name)" class="custombutton">Save</button>
+            </span>
+
+            <div *ngIf="_Showmessagediv" class="alert alert-success fade in">
+                <strong>{{_ShowmessagedivMsg}}</strong>
+            </div>
+
+        </div>
+        
+        <div class="fmst fixheadercontent">
+
+            <div class="form-group row pD10">
+                <div class="col-sm-3">
+                    <label class="lab1">Facility name</label>
+
+                    <input class="ibox1" id="Name" type="text" required [(ngModel)]="_financingWarehouse.Name" name="Name" #Name="ngModel" id="Name">
+                </div>
+                <div class="col-sm-3">
+                    <label class="lab1">Status</label>
+                    <select [(ngModel)]="_financingWarehouse.StatusID" id="StatusID" name="StatusID" #StatusID="ngModel" class="ibox1">
+                        <option value=1>Active</option>
+                        <option value=2>Inactive</option>
+                    </select>
+                    <!--<input class="ibox1" type="text" [(ngModel)]="_financingWarehouse.StatusId" name="StatusId" #StatusId="ngForm" />-->
+                </div>
+                <div class="col-sm-3">
+                    <label class="lab1">Pay frequency</label>
+                    <select [(ngModel)]="_financingWarehouse.PayFrequency" id="PayFrequency" name="PayFrequency" #PayFrequency="ngModel" (change)="PayFrequencyChange($event.target.value)" class="ibox1">
+                        <option value=1>1 </option>
+                        <option value=2>2 </option>
+                        <option value=3>3 </option>
+                        <option value=4>4 </option>
+                        <option value=5>5 </option>
+                        <option value=6>6 </option>
+                        <option value=7>7 </option>
+                        <option value=8>8 </option>
+                        <option value=9>9 </option>
+                        <option value=10>10 </option>
+                        <option value=11>11 </option>
+                        <option value=12>12 </option>
+                    </select>
+                </div>
+                <div class="col-sm-3">
+                    <label class="lab1">Base currency</label>
+                    <select [(ngModel)]="_financingWarehouse.BaseCurrencyID" id="BaseCurrencyID" name="BaseCurrencyID" #BaseCurrencyID="ngModel" (change)="BaseCurrencyChange($event.target.value)" class="ibox1">
+                        <option value=187>USD</option>
+                        <option value=188>EUR</option>
+                        <option value=189>GBP</option>
+                        <option value=190>CAD</option>
+                    </select>
+                    <!--<input class="ibox1" type="text" [(ngModel)]="_financingWarehouse.BaseCurrencyID" name="BaseCurrencyID" #BaseCurrencyID="ngModel" />-->
+                </div>
+                <div class="col-sm-3">
+                    <label class="lab1">Is revolving</label>
+                    <select [(ngModel)]="_financingWarehouse.IsRevolving" id="IsRevolving" name="IsRevolving" #IsRevolving="ngModel" (change)="IsRevolvingChange($event.target.value)" class="ibox1">
+                        <option value=3>Y</option>
+                        <option value=4>N</option>
+                    </select>
+
+                </div>
+                <div class="col-sm-3">
+                    <label class="lab1">Origination fee</label>
+
+                    <wj-input-number [(value)]="_financingWarehouse.OriginationFee" id="OriginationFee" [isRequired]="false" class="ibox1 rightalign" [format]="'n2'"></wj-input-number>
+                </div>
+                <div class="col-sm-3">
+                    <label class="lab1">Total constraint</label>
+                    <!--<wj-input-number [(value)]="_financingWarehouse.TotalConstraint" [isRequired]="false" class="ibox1 rightalign" [format]="'n2'"></wj-input-number>-->
+
+                    <wj-input-number [(value)]="_financingWarehouse.TotalConstraint" id="TotalConstraint" [isRequired]="false" class="ibox1 rightalign" [format]="'n2'"></wj-input-number>
+
+                </div>
+            </div>
+
+
+            <div class="box1a">
+                <h3>Financing warehouse details </h3>
+                <div class="form-group row pD10">
+                    <div class="col-sm-12 customgridpadding">
+                        <wj-flex-grid id="flexfwh" #flexfwh [itemsSource]="_financingWarehouse.lstFinancingWarehouseDetail" [allowAddNew]="true" [allowResizing]="'Both'" class="gridSize"
+                                      (selectionChanged)="financingselectionChanged()" selection-mode="Row">
+                            <wj-flex-grid-column [header]="'Start date'" [binding]="'StartDate'" align="right" style="border:double" [width]="'*'"></wj-flex-grid-column>
+                            <wj-flex-grid-column [header]="'End date'" [binding]="'EndDate'" align="right" style="border:1px solid red" [width]="'*'"></wj-flex-grid-column>
+                            <wj-flex-grid-column [header]="'Amount'" [binding]="'Value'" align="right" style="border:1px solid red" [width]="'*'" format="n2"></wj-flex-grid-column>
+                        </wj-flex-grid>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div id="dialogoverlay"></div>
+        <div id="dialogbox">
+            <div>
+                <div id="dialogboxhead"></div>
+                <div id="dialogboxbody"></div>
+                <div id="dialogboxfoot"><span class="customOK" (click)="ok()">Ok</span></div>
+            </div>
+        </div>
+    </div>
+</form>

@@ -1,0 +1,198 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <meta name="viewport" content="user-scalable=no, initial-scale=1, maximum-scale=1, minimum-scale=1, width=320, height=device-height" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+
+    <meta http-equiv="cache-control" content="no-cache, no-store, must-revalidate" />
+    <meta http-equiv="pragma" content="no-cache" />
+    <meta http-equiv="expires" content="-1" />
+    <title>@ViewData["Title"]</title>
+    <environment names="Development">
+        <link href="~/css/bootstrap.css" rel="stylesheet" />
+        <link href="~/css/login_style.css" rel="stylesheet" />
+        <link href="~/css/CustomStylesheet.css" rel="stylesheet" />
+
+        <link rel="stylesheet" asp-href-include="~/css/*.css">
+        <link href="~/css/loader.css" rel="stylesheet" />
+
+
+        <link async href="~/css/PopUp/ModalPopup.css" rel="stylesheet" />
+
+        <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.2.1/jquery.js"></script>
+        <!-- 1. Load libraries -->
+        <!-- Polyfill(s) for older browsers -->
+        <script src="libs/core-js/shim.min.js"></script>
+        <script src="libs/zone.js/zone.js"></script>
+        <script src="libs/reflect-metadata/Reflect.js"></script>
+        <script src="libs/systemjs/system.src.js"></script>
+
+        <script src="~/js/alertify.min.js"></script>
+        <!-- Wijmo -->
+        <script src="/js/scripts/vendor/wijmo.min.js" type="text/javascript"></script>
+        <script async src="/js/scripts/vendor/wijmo.grid.min.js" type="text/javascript"></script>
+        <script src="/js/scripts/vendor/wijmo.input.min.js" type="text/javascript"></script>
+        <script async src="/js/scripts/vendor/wijmo.grid.filter.min.js" type="text/javascript"></script>
+        <script async src="/js/scripts/vendor/wijmo.xlsx.js" type="text/javascript"></script>
+        <script async src="/js/scripts/vendor/wijmo.grid.xlsx.js" type="text/javascript"></script>
+
+        <script async src="/js/scripts/vendor/jszip.min.js"></script>
+        <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js"></script>
+        <link href="~/css/styles/vendor/wijmo.min.css" rel="stylesheet" />
+        <script src="https://code.jquery.com/jquery-1.11.3.min.js"></script>
+
+        <!-- Wijmo Angular2 -->
+        <script src="js/scripts/vendor/wijmo.angular2.min.js" type="text/javascript"></script>
+        <!-- custom Wijmo themes -->
+        <link async id="activeThemeLink" href="" rel="stylesheet" />
+
+        <!-- custom themes -->
+        <link href="~/css/layout.css" rel="stylesheet" />
+        <link async href="~/font-awesome/css/font-awesome.css" rel="stylesheet" />
+        <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-social/5.1.1/bootstrap-social.css" rel="stylesheet">
+        <link href="~/css/newloader.css" rel="stylesheet" />
+
+        <link async rel="stylesheet" href="~/css/fileUploader/style.css" />
+
+        <link href="~/css/splitter/jquery.enhsplitter.css" rel="stylesheet" />
+        <script src="~/js/splitter/jquery.enhsplitter.js"></script>
+        <!--Editor js-->
+        @*<script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.2.9/ace.js" type="text/javascript" charset="utf-8"></script>
+            <script src="~/js/scripts/editor.js" type="text/javascript"></script>
+            <script src="~/js/scripts/fileManager.js" type="text/javascript"></script>*@
+
+        @*<script>
+                function setFileData() {
+                    data = window.localStorage.getItem("filedata");
+                    alert();
+
+                    var mode = 'ace/mode/python';
+                    var editor = ace.edit('editor', mode);
+                    editor.setTheme("ace/theme/monokai");
+                    editor.getSession().getDocument().setValue(data);
+                }
+            </script>*@
+
+        <!--MomentJS-->
+        <script src="/js/scripts/MomentJS/moment.js" type="text/javascript"></script>
+        <script src="/js/scripts/MomentJS/moment-timezone.js" type="text/javascript"></script>
+        <script src="/js/scripts/MomentJS/jstz.main.js" type="text/javascript"></script>
+
+        @*<script src="~/js/scripts/JsZip/jszip.js" type="text/javascript"></script>
+            <script src="~/js/scripts/JsZip/jszip.min.js" type="text/javascript"></script>
+            <script src="~/js/scripts/JsZip/FileSaver.min.js" type="text/javascript"></script>*@
+        <script src="~/js/scripts/JsZip/xlsx.full.min.js" type="text/javascript"></script>
+
+    </environment>
+    <environment names="Production">
+        <script async src="/js/scripts/vendor/jszip.min.js"></script>
+
+        <link href="~/css/bootstrap.css" rel="stylesheet" />
+        <link href="~/css/login_style.css" rel="stylesheet" />
+        <link href="~/css/CustomStylesheet.css" rel="stylesheet" />
+
+        <link rel="stylesheet" asp-href-include="~/css/*.css">
+        <link href="~/css/loader.css" rel="stylesheet" />
+
+
+        <link async href="~/css/PopUp/ModalPopup.css" rel="stylesheet" />
+
+        <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.2.1/jquery.js"></script>
+        <!-- 1. Load libraries -->
+        <!-- Polyfill(s) for older browsers -->
+        <script src="libs/core-js/shim.min.js"></script>
+        <script src="libs/zone.js/zone.js"></script>
+        <script src="libs/reflect-metadata/Reflect.js"></script>
+        <script src="libs/systemjs/system.src.js"></script>
+
+        <script src="~/js/alertify.min.js"></script>
+        <!-- Wijmo -->
+        <script src="/js/scripts/vendor/wijmo.min.js" type="text/javascript"></script>
+        <script src="/js/scripts/vendor/wijmo.input.min.js" type="text/javascript"></script>
+        <script async src="/js/scripts/vendor/wijmo.grid.min.js" type="text/javascript"></script>
+        <script async src="/js/scripts/vendor/wijmo.grid.filter.min.js" type="text/javascript"></script>
+        <script async src="/js/scripts/vendor/wijmo.xlsx.js" type="text/javascript"></script>
+        <script async src="/js/scripts/vendor/wijmo.grid.xlsx.js" type="text/javascript"></script>
+
+        <script async src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js"></script>
+        <link href="~/css/styles/vendor/wijmo.min.css" rel="stylesheet" />
+        <script src="https://code.jquery.com/jquery-1.11.3.min.js"></script>
+
+        <!-- Wijmo Angular2 -->
+
+        <script src="js/scripts/vendor/wijmo.angular2.min.js" type="text/javascript"></script>
+        <!-- custom Wijmo themes -->
+        <link async id="activeThemeLink" href="" rel="stylesheet" />
+
+        <!-- custom themes -->
+        <link href="~/css/layout.css" rel="stylesheet" />
+        <link async href="~/font-awesome/css/font-awesome.css" rel="stylesheet" />
+        <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-social/5.1.1/bootstrap-social.css" rel="stylesheet">
+        <link href="~/css/newloader.css" rel="stylesheet" />
+
+        <link async rel="stylesheet" href="~/css/fileUploader/style.css" />
+        <link href="~/css/splitter/jquery.enhsplitter.css" rel="stylesheet" />
+        <script src="~/js/splitter/jquery.enhsplitter.js"></script>
+        <script src="~/js/scripts/JsZip/xlsx.full.min.js" type="text/javascript"></script>
+    </environment>
+    <script type="text/javascript">
+        (function ($) {
+            if (!$.getVersion)
+                $.getVersion = function () {
+                    return "06252020";
+                    //  return new Date().getMonth().toString() + new Date().getDate().toString() + new Date().getFullYear().toString() + "0";
+                };
+        })(jQuery);
+    </script>
+
+    <!-- 2. Configure SystemJS -->
+    <script src="systemjs.config.js?v=12192017"></script>
+    <script>
+        System.import('app').catch(function (err) { console.error(err); });
+    </script>
+
+    <!-- 3. Push Notification -->
+    <script src="~/js/signalR/jquery.signalR-2.0.0.js"></script>
+    <link async href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <link async href="~/css/pushNotification.css" rel="stylesheet" />
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.2.9/ace.js" type="text/javascript" charset="utf-8"></script>
+    @*<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.1/css/bootstrap.min.css" integrity="sha384-WskhaSGFgHYWDcbwN70/dfYBj47jz9qbsMId/iRN3ewGhXQFZCSftd1LZCfmhktB" crossorigin="anonymous">*@
+    
+    <script>
+        $(document).ready(function () {
+            displaynotificationMsg()
+        });
+
+        function displaynotificationMsg() {
+            $("#displayNotification").unbind();
+            $("#displayNotification").bind("click", function () {
+                var hidden = $('.message-window');
+                hidden.animate({ "right": "1%" }, "slow");
+                setTimeout(function () {
+                    $('.message-window').css('right', '-40%');
+                    $('.message-window').css('display', '');
+                }, 5000);
+            });
+        }
+        function closeNotification() {
+            $('.message-window').css('right', '-40%'); $('.message-window').css('display', '');
+        }
+
+    </script>
+    <script src="~/js/src/ace.js" type="text/javascript" charset="utf-8"></script>
+    <script src="~/js/src/mode-python.js" type="text/javascript" charset="utf-8"></script>
+</head>
+<base href="/" />
+<body>
+    <input type="button" id="btnSendNotification" style="display:none" />
+    <input type="button" id="displayNotification" style="display:none" />
+    @*<input type="button" id="btnfucntion" style="display:none" onclick="setFileData();" />*@
+    <div>
+        @RenderBody()
+    </div>
+</body>
+</html>

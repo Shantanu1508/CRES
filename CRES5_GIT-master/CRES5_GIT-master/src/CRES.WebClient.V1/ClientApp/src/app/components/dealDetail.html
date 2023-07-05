@@ -1,0 +1,2424 @@
+<form id="form1" class="form1" #f="ngForm">
+  <div class="col-sm-12">
+    <div class="head fixheaderdiv">
+      <h1 style="display: inline-block;margin-top: 10px;">Deal Details: {{_deal.DealName}}</h1>
+
+      <span *ngIf="!_isListFetching">
+        <span *ngIf="HideNonSuperAdminUser()">
+          <div *ngIf="_showadminpanel" class="btn-group" style="float:right;margin-right:22px;">
+            <button type="button" id="btnAdmin" class="custombutton dropdown-toggle" data-toggle="dropdown">Admin <b class="caret"></b></button>
+            <ul class="dropdown-menu dropdown-menu-right">
+              <li class="dropdown-header customheader">Delete</li>
+              <li *ngFor="let item of lstDealDeleteFilter">
+                <a style="padding-left: 30px;" (click)="DeleteDataManagementDropdown($event)">
+                  {{item.Name}}
+                </a>
+              </li>
+            </ul>
+          </div>
+        </span>
+
+        <div class="btn-group" style="float:right" *ngIf="_isShowDownloadCashflows || _isShowDownloadExportToServicer">
+          <button type="button" id="btnDownload" class="custombutton dropdown-toggle" data-toggle="dropdown">Download <b class="caret"></b></button>
+          <ul class="dropdown-menu dropdown-menu-right">
+            <li class="dropdown-header customheader" *ngIf="_isShowDownloadCashflows">Cashflows</li>
+            <li *ngFor="let item of _lstScenario">
+              <a style="padding-left: 30px;" (click)="downloadNoteCashflowsExportData(item)">
+                {{item.ScenarioName}}
+              </a>
+            </li>
+            <li *ngIf="_isShowDownloadExportToServicer"><a (click)="downloadWellsExportData()">Export to Servicer</a></li>
+          </ul>
+        </div>
+
+        <span *ngIf="_isShowCopyDeal">
+          <button type="submit" id="btnCopyDeal" tooltip="Copy Deal" class="custombutton" (click)="CopyDeal()" [disabled]="!_disabled">Copy Deal</button>
+        </span>
+        <span *ngIf="_isShowCancel">
+          <button type="button" id="btnCancel" class="custombutton" (click)="DiscardChanges()">Cancel</button>
+        </span>
+        <span *ngIf="_isShowSaveDeal">
+          <button id="btnSaveDeal" type="submit" tooltip="Save Deal" class="custombutton" (click)="CheckDuplicateDealAndSave()" [disabled]="!_disabled">Save</button>
+        </span>
+        <span *ngIf="_isShowCalcScript">
+          <button id="btnCalJsonScriptEngine" style="width: 200px !important;" type="submit" tooltip="Run Calculation" class="custombutton" (click)="showDialogCalcJsonScriptEengine('CalculatorJson')" [disabled]="!_disabled">Calc Json Script-engine</button>
+        </span>
+      </span>
+
+      <div id="sucessmessagediv" *ngIf="_Showmessagediv" class="alert alert-success fade in">
+        <strong>{{_ShowmessagedivMsg }}</strong>
+      </div>
+
+      <div id="sucessmessagewar" *ngIf="_ShowmessagedivWar" class="alert alert-warning fade in">
+        <strong>{{_ShowmessagedivMsgWar }}</strong>
+      </div>
+
+      <strong>
+        <div id="Sucessdiv" *ngIf="_ShowSucessdiv" class="alert alert-success fade in" [innerHTML]="_ShowSucessdivMsg">
+        </div>
+      </strong>
+
+      <div id="messagedivinfo" *ngIf="_ShowmessagedivSequenceInfo" class="alert alert-info fade in">
+        <strong>{{_ShowmessagedivSequenceMsgInfo}}</strong>
+      </div>
+
+      <div id="BSdivmsg" *ngIf="_ShowBSData" class="alert alert-danger fade in">
+        <strong>{{showBSMsg}}</strong>
+      </div>
+    </div>
+
+    <div class="fmst fixheadercontent">
+      <div class="cssload-container" *ngIf="_isListFetching">
+        <div class="cssload-whirlpool"></div>
+      </div>
+      <div class="cssload-container" *ngIf="_isDeleteOPtionOk">
+        <div class="cssload-whirlpool"></div>
+      </div>
+      <div class="cssload-container" *ngIf="_isShowLoader">
+        <div class="cssload-whirlpool"></div>
+      </div>
+      <ul id="myTab" class="nav nav-tabs nav-tabs">
+
+        <li *ngIf="_isShowHome" class="active"><a id="aMain" data-target="#home" (click)="invalidateMain()" data-toggle="tab">Main &nbsp;&nbsp;</a></li>
+        <li *ngIf="_isShowFuturefunding"><a id="aFunding" data-target="#futureFunding" (click)="showfutureFundingGD()" data-toggle="tab">Funding &nbsp;&nbsp;</a></li>
+        <li *ngIf="_isShowDealAdjustedtotalcommitment"><a id="aAdjustedTotalCommitment" data-target="#DealAdjustedtotalCommitment" (click)="invalidateDealAdjustedTab()" data-toggle="tab">Commitment &nbsp;&nbsp;</a></li>
+        <li *ngIf="_isShowReserveTab"><a id="aReservetab" data-target="#reserveTab" (click)="invalidateReserveTab()" data-toggle="tab">Reserves &nbsp;&nbsp;</a></li>
+        <li *ngIf="_isShowFeeInvoice"><a id="aFeeInvoicetab" data-target="#FeeInvoicetab" (click)="invalidateFeeInvoicetab()" data-toggle="tab">Invoices &nbsp;&nbsp;</a></li>
+        <li *ngIf="_isShowDealAmort"><a id="aDealAmorttab" data-target="#DealAmorttab" (click)="invalidateDealAmorttab()" data-toggle="tab">Amort &nbsp;&nbsp;</a></li>
+        <li *ngIf="_isShowNotePayrule"><a id="aNotepayrule" data-target="#notepayrule" (click)="shownotepayruleGD()" data-toggle="tab">Payrules &nbsp;&nbsp;</a></li>
+        <li *ngIf="_isShowDealMaturity"><a id="aMaturitytab" data-target="#Maturitytab" (click)="invalidateMaturitytab()" data-toggle="tab">Maturity &nbsp;&nbsp;</a></li>
+        <li *ngIf="_isShowDealPrepaymentPremium"><a id="aPrepaymentPremiumtab" (click)="GetAllFeeType()" data-target="#PrepaymentPremiumtab" data-toggle="tab">Prepayment Premium &nbsp;&nbsp;</a></li>
+        <li *ngIf="_isShowDealRules"><a id="aRulestab" data-target="#Rulestab" (click)="invalidateRulestab()" data-toggle="tab">Rules &nbsp;&nbsp;</a></li>
+        <li *ngIf="_isShowPayoff"><a id="aPayOff" data-target="#Payofftab" (click)="getPayoffData()" data-toggle="tab">Payoff &nbsp;&nbsp;</a></li>
+        <li *ngIf="_isShowDocImport"><a id="aImport" data-target="#docImport" (click)="showDocImport()" data-toggle="tab">Documents &nbsp;&nbsp;</a></li>
+
+        <li *ngIf="_isShowActivityLog"><a id="aActivitytab" data-target="#Activitytab" (click)="getDealActivity()" data-toggle="tab">Activity &nbsp;&nbsp;</a></li>
+
+      </ul>
+
+      <div class="tab-content" id="myTabContent">
+        <div class="tab-pane fade active in" id="home" *ngIf="_isShowHome">
+          <div class="box1a">
+            <h3>Deal</h3>
+            <div class="form-group row pD10">
+              <!---------------Content Start---------------->
+              <div class="col-sm-3">
+                <label class="lab1">Deal Id</label>
+                <input class="ibox1" type="text" required [(ngModel)]="_deal.CREDealID" id="CREDealID" name="CREDealID" #CREDealID="ngModel" (change)="SetClientDealId()" id="CREDealID" (keyup)="IDorNameChanged()">
+              </div>
+              <div class="col-sm-3">
+                <label class="lab1">Deal name</label>
+                <input class="ibox1" type="text" required [(ngModel)]="_deal.DealName" id="DealName" name="DealName" #DealName="ngModel" id="DealName" (keyup)="IDorNameChanged()">
+              </div>
+              <div class="col-sm-3">
+                <label class="lab1">Deal status</label>
+                <select [(ngModel)]="_deal.Statusid" id="Statusid" name="Statusid" #Statusid="ngModel" (change)="StatusChange($event.target.value)" class="ibox1">
+                  <option *ngFor="let status of lststatus" value={{status.LookupID}}>
+                    {{status.Name}}
+                  </option>
+                </select>
+              </div>
+              <div class="col-sm-3">
+                <label class="lab1">City</label>
+                <input class="ibox1" type="text" [(ngModel)]="_deal.DealCity" id="DealCity" name="DealCity" #DealCity="ngModel">
+              </div>
+              <div class="col-sm-3">
+                <label class="lab1">State</label>
+                <input class="ibox1" type="text" [(ngModel)]="_deal.DealState" id="DealState" name="DealState" #DealState="ngModel">
+              </div>
+              <div class="col-sm-3">
+                <label class="lab1">Property Type</label>
+                <input class="ibox1" type="text" [(ngModel)]="_deal.DealPropertyType" id="DealPropertyType" name="DealPropertyType" #DealPropertyType="ngModel">
+              </div>
+              <div class="col-sm-3">
+                <label class="lab1">Total Commitment</label>
+                <!--<input class="ibox1" type="number" [readonly]="_isReadOnlyTotalCommitment" [(ngModel)]="dealTotalCommitmenttextboxvalue" id="TotalCommitment" name="TotalCommitment" #TotalCommitment="ngModel">-->
+                <wj-input-number [isRequired]="false" [(value)]="dealTotalCommitmenttextboxvalue" id="TotalCommitment"  class="ibox1 rightalign" [format]="'n2'"></wj-input-number>
+              </div>
+              <!--<input class="ibox1" (keyup)="CalculateAggregateTotal()" type="number" [readonly]="_isReadOnlyTotalCommitment" [(ngModel)]="_deal.TotalCommitment" id="TotalCommitment" name="TotalCommitment" #TotalCommitment="ngModel" class="ibox1 rightalign">
+        </div>-->
+              <div class="col-sm-3">
+                <label class="lab1">Fully Ext Maturity Date</label>
+                <wj-input-date [(value)]="_deal.FullyExtMaturityDate" id="FullyExtMaturityDate" [format]="'M/d/yyyy'" class="ibox1 rightalign" [isRequired]="false" [placeholder]="'M/d/yyyy'"></wj-input-date>
+              </div>
+              <div class="col-sm-3">
+                <label class="lab1">Client Deal Id</label>
+                <input class="ibox1" type="text" [(ngModel)]="_deal.ClientDealID" id="ClientDealID" name="ClientDealID" #ClientDealID="ngModel">
+              </div>
+              <div class="col-sm-3">
+                <label class="lab1">Linked Deal ID</label>
+                <input class="ibox1" type="text" [(ngModel)]="_deal.LinkedDealID" id="LinkedDealID" name="LinkedDealID" #LinkedDealID="ngModel">
+              </div>
+              <div class="col-sm-3">
+                <label class="lab1">Allow Sizer Upload</label>
+                <select [(ngModel)]="_deal.AllowSizerUpload" name="AllowSizerUpload" id="AllowSizerUpload" #AllowSizerUpload="ngModel" class="ibox1" (change)="AllowSizerUploadChange($event.target.value)">
+                  <option value=3>Y</option>
+                  <option value=4>N</option>
+                </select>
+              </div>
+              <div class="col-sm-3">
+                <label class="lab1">Comments</label>
+                <textarea class="ibox1 input-lg" style="font-family: inherit;font-size: inherit;height:42px;" rows="1" cols="10" [(ngModel)]="_deal.DealComment" name="DealComment" #Description="ngModel" id="DealComment"></textarea>
+              </div>
+              <div class="col-sm-3">
+                <label class="lab1">Asset Manager</label>
+                <!--<input class="ibox1" type="text" [(ngModel)]="_deal.AssetManager" id="AssetManager" name="AssetManager" #AssetManager="ngModel">-->
+
+                <select [(ngModel)]="_deal.AssetManagerID" id="AssetManagerID" name="AssetManagerID" #AssetManager="ngModel" class="ibox1" (change)="ChangeAM($event.target.value)">
+                  <option *ngFor="let item of lstAssetManagers" value={{item.UserID}}>
+                    {{item.FirstName}} {{item.LastName}}
+                  </option>
+                </select>
+              </div>
+              <div class="col-sm-3">
+                <label class="lab1">AM Oversight</label>
+                <select [(ngModel)]="_deal.AMTeamLeadUserID" id="AMTeamLeadUserID" name="AMTeamLeadUserID" #AMTeamLeadUserID="ngModel" class="ibox1" (change)="ChangeAMTeamLeadUserID($event.target.value)">
+                  <option *ngFor="let item of lstAssetManagers" value={{item.UserID}}>
+                    {{item.FirstName}} {{item.LastName}}
+                  </option>
+                </select>
+              </div>
+              <div class="col-sm-3">
+                <label class="lab1">Second Asset Manager Name</label>
+                <select [(ngModel)]="_deal.AMSecondUserID" id="AMSecondUserID" name="AMSecondUserID" #AMSecondUserID="ngModel" class="ibox1" (change)="ChangeAMSecondUserID($event.target.value)">
+                  <option *ngFor="let item of lstAssetManagers" value={{item.UserID}}>
+                    {{item.FirstName}} {{item.LastName}}
+                  </option>
+                </select>
+              </div>
+
+              <div class="col-sm-3">
+                <label class="lab1">Deal Group ID</label>
+                <input class="ibox1" type="text" [(ngModel)]="_deal.DealGroupID" id="DealGroupID" name="DealGroupID" #DealGroupID="ngModel">
+              </div>
+              <div class="col-sm-3">
+                <label class="lab1">Property Type</label>
+
+                <select [(ngModel)]="_deal.PropertyTypeID" id="PropertyTypeID" name="PropertyTypeID" #PropertyType="ngModel" disabled="true" style="color: black;" class="ibox1">
+                  <option *ngFor="let item of lstdealPropertyType" value={{item.PropertyTypeID}}>
+                    {{item.PropertyTypeMajorDesc}}
+                  </option>
+                </select>
+              </div>
+              <div class="col-sm-3">
+                <label class="lab1">Loan Status</label>
+                <select [(ngModel)]="_deal.LoanStatusID" id="LoanStatusID" name="LoanStatusID" #LoanStatus="ngModel" disabled="true" class="ibox1">
+                  <option *ngFor="let item of lstLoanStatus" value={{item.LoanStatusID}}>
+                    {{item.LoanStatusDesc}}
+                  </option>
+                </select>
+              </div>
+              <div class="col-sm-3" style="margin-top:10px;">
+                Balance Aware Deal
+                <input type="checkbox" [(ngModel)]="_deal.BalanceAware" id="BalanceAware"
+                       name="BalanceAware" #BalanceAware="ngModel" [checked]="BalanceAware.checked"
+                       (change)="onChangeBalanceAwareCheckbox($event)" />
+              </div>
+            </div>
+          </div>
+
+          <div class="box1a">
+            <h3>Notes</h3>
+            <div class="form-group row pD10">
+              <div class="col-sm-12">
+                <button type="button" id="btnOpenallNotes" class="custombutton" (click)="OpenNotes()">Open all Notes</button>
+                <wj-flex-grid #flex [itemsSource]="lstNote" [allowAddNew]="true" [allowResizing]="'Both'" class="gridSize grid" id="mainTabNoteGrid"
+                              (initialized)="addFooterRow(flex)"
+                              (beginningEdit)="cellNoteEditEndingHandler(flex,$event)"
+                              (cellEditEnded)="cellNoteEditfundingRule(flex,$event)"
+                              (pasted)="CopiedNotefundingrule(flex,$event)">
+                  <wj-flex-grid-column [header]="'Note Id'" [binding]="'CRENoteID'" [width]="'*'"></wj-flex-grid-column>
+                  <wj-flex-grid-column [header]="'Name'" [binding]="'Name'" [width]="'*'"></wj-flex-grid-column>
+                  <wj-flex-grid-column [header]="'Status'" [binding]="'StatusName'" [width]="'*'" [isReadOnly]="true">
+                    <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
+                      <div>
+                        {{(cell.item.StatusName=="Active" || cell.item.StatusName=="Inactive")?cell.item.StatusName:"Active"}}
+                      </div>
+                    </ng-template>
+                  </wj-flex-grid-column>
+
+                  <wj-flex-grid-column [header]="'Lien Position'" [binding]="'LienPositionText'" [isReadOnly]="true" [width]="'*'"></wj-flex-grid-column>
+
+                  <wj-flex-grid-column [header]="'Priority'" align="right" [binding]="'Priority'" [width]="'*'"></wj-flex-grid-column>
+
+                  <wj-flex-grid-column [header]="'Closing date'" [binding]="'ClosingDate'" align="right" [width]="'*'"></wj-flex-grid-column>
+                  <wj-flex-grid-column [header]="'Total commitment'" [binding]="'TotalCommitment'" [isReadOnly]="_isReadOnlyNoteLevelTotalCommitment" [aggregate]="'Sum'" align="right" format="n2" [width]="130">
+                    <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
+                      <div [ngStyle]="{color: cell.item.TotalCommitment < 0? 'red' : 'darkgreen'}">
+                        {{cell.item.TotalCommitment|number : '1.2-2'}}
+                      </div>
+                    </ng-template>
+                  </wj-flex-grid-column>
+                  <wj-flex-grid-column [header]="'Initial maturity date'" [binding]="'InitialMaturityDate'" align="right" [width]="'*'"></wj-flex-grid-column>
+                  <wj-flex-grid-column [header]="'Extended maturity scenario 1'" [binding]="'ExtendedMaturityScenario1'" align="right" [width]="'*'"></wj-flex-grid-column>
+
+                  <wj-flex-grid-column [header]="''">
+                    <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
+                      <div *ngIf="cell.item.NoteId != '00000000-0000-0000-0000-000000000000' && cell.item.NoteId != null">
+                        <a href='/#/notedetail/{{cell.item.NoteId}}' rel="nofollow">Edit</a>
+                      </div>
+                    </ng-template>
+                  </wj-flex-grid-column>
+                  <!--<wj-flex-grid-column [header]="''">
+                <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
+                    <div *ngIf="cell.item.NoteId != '00000000-0000-0000-0000-000000000000' && cell.item.NoteId != null">
+                        <a href='/#/notedetail/{{cell.item.NoteId}}' rel="nofollow" target="_blank">Open</a>
+                    </div>
+                </ng-template>
+            </wj-flex-grid-column>-->
+                </wj-flex-grid>
+              </div>
+            </div>
+          </div>
+
+          <div class="box1a">
+            <h3>Properties</h3>
+            <div class="form-group row pD10">
+              <div class="col-sm-12">
+                <wj-flex-grid #flexPro [itemsSource]="lstProperty" [allowAddNew]="true" [allowResizing]="'Both'" class="gridSize"
+                              (selectionChanged)="selectionChangedHandlerProperty()" (pasted)="setCopiedDataflexPro()">
+
+                  <wj-flex-grid-column [header]="'Property name'" [binding]="'PropertyName'" [width]="'*'"></wj-flex-grid-column>
+                  <wj-flex-grid-column [header]="'City'" [binding]="'City'" [width]="'*'"></wj-flex-grid-column>
+                  <wj-flex-grid-column [header]="'Address'" [binding]="'Address'"></wj-flex-grid-column>
+                  <wj-flex-grid-column [header]="'Property type'" [binding]="'PropertyTypeText'"  [width]="'*'"> </wj-flex-grid-column>
+                  <wj-flex-grid-column [header]="'UWNCF'" [binding]="'UWNCF'" [width]="'*'" [format]="'n2'" [dataType]="'Number'"></wj-flex-grid-column>
+                  <wj-flex-grid-column [header]="'Sqft'" [binding]="'SQFT'" [width]="'*'" [format]="'n2'" [dataType]="'Number'"></wj-flex-grid-column>
+
+                </wj-flex-grid>
+              </div>
+              <!--<div class="align-center" style="color:orangered">
+            {{message}}
+        </div>-->
+            </div>
+          </div>
+
+          <div id="dvFlexNoteCashflowsExportDataList" style="display:none">
+            <wj-flex-grid id="flexNoteCashflowsExportDataList" #flexNoteCashflowsExportDataList [itemsSource]="_noteCashflowsExportDataList.lstNoteCashflowsExportData" [allowAddNew]="true" [allowResizing]="'Both'" style="height:700px">
+              <wj-flex-grid-column [header]="'NoteID'" [binding]="'NoteID'" [width]="'*'"></wj-flex-grid-column>
+              <wj-flex-grid-column [header]="'NoteName'" [binding]="'NoteName'" [width]="'*'"></wj-flex-grid-column>
+              <wj-flex-grid-column [header]="'Date'" [binding]="'DisplayDate'" align="right" [width]="'*'"></wj-flex-grid-column>
+              <wj-flex-grid-column [header]="'Value'" [binding]="'Value'" align="right" [width]="'*'"></wj-flex-grid-column>
+              <wj-flex-grid-column [header]="'ValueType'" [binding]="'ValueType'" align="right" [width]="'*'"></wj-flex-grid-column>
+            </wj-flex-grid>
+          </div>
+        </div>
+
+        <div class="tab-pane fade" id="futureFunding" *ngIf="_isShowFuturefunding">
+          <div class="box1a">
+            <div class="form-group row pD10">
+              <div class="col-sm-3">
+                <label class="lab1"><b>M61 Total Commitment:</b> {{_totalcommitmenttextboxvalue}}</label>
+              </div>
+              <div class="col-sm-3">
+                <label class="lab1"><b>Adjusted Commitment:</b> {{_adjustedcommitmenttextboxvalue}}</label>
+              </div>
+              <div class="col-sm-3">
+                <label id="dealBtntype" style='display:none'>{{DealBtntype}}</label>
+              </div>
+
+              <div class="col-sm-3">
+                <button type="button" class="custombutton" style="width:200px !important;margin-top:0px !important;margin-right: -8px !important;" (click)="ViewCommitmentDetailsBtnClick()">View Commitment/Equity Details </button>
+              </div>
+
+              <div>
+                <div class="col-sm-3">
+                  <label class="lab1"><b>Fully Funded Equity:</b> {{_autoTotalComitted}}</label>
+                </div>
+                <div class="col-sm-3">
+                  <label class="lab1"><b>Equity Contributed to Date:</b> {{_autoTotalContriToDate}}</label>
+                </div>
+                <div class="col-sm-3">
+                  <label class="lab1"><b>Remaining Equity to Contribute:</b> {{_autoRemainingtoContribute}}</label>
+                </div>
+
+                <!--<div class="col-sm-3">
+            <button type="button" style="margin-top:0px !important;width:180px !important;margin-right: -8px !important;" class="custombutton viewScheduleButton" (click)="ShowAutoSpreadEquity()">View Equity Details</button>
+          </div>-->
+              </div>
+            </div>
+
+            <div class="form-group row pD10">
+              <div class="col-sm-12" style="padding-bottom:15px;" *ngIf="_isShowLastUpdateFFMsg">
+                <span style="font-weight:bold">Funding was last updated on </span>{{_deal.LastUpdatedFF | date: 'EEEE, MMMM d, y h:mm a'}}&nbsp;{{_timezoneAbbreviation}}
+                <span>by {{ _deal.LastUpdatedByFF}}</span> &nbsp;&nbsp; ||
+                <span style="font-weight:bold">Calculation Status : </span>
+                <span *ngIf="DealCalcuStatus=='Completed'" class="badge badge-success">Completed</span>
+                <span *ngIf="DealCalcuStatus=='Running'" class="badge badge-warning">Running</span>
+              </div>
+              <div class="col-sm-3">
+                <label class="lab1"> Box document link</label>
+                <input class="ibox1" id="BoxDocumentLink" type="text" [(ngModel)]="_deal.BoxDocumentLink" name="BoxDocumentLink" #ClientDealID="ngModel">
+              </div>
+
+              <div class="col-sm-6">
+                <label class="lab1">Comment</label>
+                <input class="ibox1" id="AssetManagerComment" type="text" [(ngModel)]="_deal.AssetManagerComment" name="AssetManagerComment" #ClientDealID="ngModel" [attr.disabled]="_disabledComment === true ? 'disabled' : null">
+              </div>
+            </div>
+
+            <div class="col-sm-12 ">
+              <span class="customheading"> Funding Rules</span>
+              <button type="button" class="custombutton" (click)="OpenFundingNotes()">Open all Notes</button>
+              <button type="button" (click)="NextSequenceToAdd('Repayment sequence ')" class="custombutton" style="width:160px !important" *ngIf="_isShowAddRePaymentSequence">Add repayment sequence</button>
+              <button type="button" (click)="NextSequenceToAdd('Funding sequence ')" class="custombutton" style="width:160px !important" *ngIf="_isShowAddFundingSequence">Add funding sequence</button>
+              <!--<div *ngIf="isShowgenerateButton">
+            <button type="button" id="btnAutospreadRepayment" (click)="generateAutospreadRepayment()" class="custombutton" style="width:160px !important" *ngIf="_isautospreadRepaymentshow">Autospread repayment</button>
+            <button type="button" id="btnGenerateFutureFunding" (click)="generateFutureFunding()" class="custombutton" style="width:160px !important" *ngIf="!ShowUseRuleN">Generate funding</button>
+
+        </div>-->
+              <button type="button" id="btnAutospreadRepayment" (click)="checkAndCallgenerateFutureFunding('Repayment')" class="custombutton" style="width:160px !important" *ngIf="_isautospreadRepaymentshow && isShowgenerateButton && !isShowGenerateAutospreadRepay">Generate funding</button>
+              <button type="button" id="btnGenerateFutureFunding" (click)="checkAndCallgenerateFutureFunding('Funding')" class="custombutton" style="width:160px !important" *ngIf="!ShowUseRuleN && isShowgenerateButton">Generate funding</button>
+
+            </div>
+            <div class="form-group row pD10">
+              <div class="col-sm-12">
+                <wj-flex-grid #flexDynamicColForSequence [allowResizing]="'Both'"
+                              [itemsSource]="lstSequenceHistory"
+                              [isReadOnly]="_isReadOnlyFundingRules"
+                              [frozenColumns]="3" auto-size-mode="Headers"
+                              (initialized)="addFooterRow(flexDynamicColForSequence)"
+                              (beginningEdit)="cellEditEndingHandler(flexDynamicColForSequence,$event)"
+                              (cellEditEnded)="celleditfundingRule(flexDynamicColForSequence,$event)"
+                              (copied)="CopyGridDataWithHeader(flexDynamicColForSequence,$event)"
+                              (pasted)="Copiedfundingrule(flexDynamicColForSequence,$event)" class="gridSize">
+                  <wj-flex-grid-column [header]="'Note Id'" [width]="'*'" [isReadOnly]="true">
+                    <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
+                      <div>
+                        <a routerLink='/notedetail/{{cell.item.NoteID}}' routerLinkActive="active">{{cell.item.CRENoteID}}</a>
+                      </div>
+                    </ng-template>
+                  </wj-flex-grid-column>
+                  <wj-flex-grid-column *ngFor="let col of columns"
+                                       [header]="col.header"
+                                       [binding]="col.binding"
+                                       [format]="col.format"
+                                       [width]="col.width"
+                                       [aggregate]="col.aggregate"
+                                       [isReadOnly]="!col.allowEditing"
+                                       [align]="col.align">
+                  </wj-flex-grid-column>
+                </wj-flex-grid>
+              </div>
+
+              <div class="form-group row pD10">
+                <div class="col-sm-4" *ngIf="_isautospreadshow">
+                  <span class="customheading">
+                    Autospread Fundings
+                    <input type="checkbox" [(ngModel)]="_deal.EnableAutoSpread" id="EnableAutoSpread"
+                           name="EnableAutoSpread" #EnableAutoSpread="ngModel" [checked]="EnableAutoSpread.checked"
+                           (change)="onChangeEnableAutoSpreadFundingsCheckbox($event)" />
+                  </span>
+                </div>
+                <div class="col-sm-4">
+                  <span class="customheading">
+                    Autospread Repayments
+                    <input type="checkbox" [disabled]="isroleAssetManager == true" [(ngModel)]="_deal.EnableAutospreadRepayments" id="EnableAutoSpreadRepayments"
+                           name="EnableAutoSpreadRepayments" #EnableAutoSpreadRepayments="ngModel" [checked]="EnableAutoSpreadRepayments.checked"
+                           (change)="onChangeEnableAutoSpreadRepaymentsCheckbox($event)" />
+                    <label *ngIf="_ispaidofdeal" class="lab1" style="display:inline-block;color:red;padding-left:30px;">Repayment auto spreading is not applicable for full payoff deal</label>
+                  </span>
+                </div>
+                <div class="col-sm-4" *ngIf="!_isshowApplyNoteLevelPaydowns">
+                  <span class="customheading">
+                    Apply note level paydowns
+                    <input type="checkbox" [(ngModel)]="_deal.ApplyNoteLevelPaydowns" id="ApplyNoteLevelPaydowns"
+                           [disabled]="isroleAssetManager == true || _ispaidofdeal == true" name="ApplyNoteLevelPaydowns" #ApplyNoteLevelPaydowns="ngModel" [checked]="ApplyNoteLevelPaydowns.checked" (change)="onChangeApplyNoteLevelPaydownsCheckbox($event)" />
+                  </span>
+                </div>
+              </div>
+
+              <div [hidden]="!_isautospreadshow">
+                <div [hidden]="!checked">
+                  <div class="col-sm-12" id="dealautospreadrule" style="margin-top:5px;">
+                    <wj-flex-grid id="flexautospreadrule" #flexautospreadrule
+                                  [itemsSource]="autospreadrulelist"
+                                  (initialized)="addFooterRow(flexautospreadrule)"
+                                  [allowResizing]="'Both'"
+                                  [allowDelete]="true"
+                                  (deletingRow)="deleteautospreadrule($event)"
+                                  [allowAddNew]="true" class="gridSize"
+                                  (cellEditEnded)="celleditautospread(flexautospreadrule,$event)"
+                                  (pasted)="Copiedautospreadrule(flexautospreadrule,$event)">
+
+                      <wj-flex-grid-filter #filter></wj-flex-grid-filter>
+                      <wj-flex-grid-column [name]="'PurposeType'" [header]="'Purpose Type'" [binding]="'PurposeTypeText'"  [width]="'*'" [isReadOnly]="false"></wj-flex-grid-column>
+                      <wj-flex-grid-column [header]="'Debt Amount'" [aggregate]="'Sum'" [format]="'n2'" [binding]="'DebtAmount'" [dataType]="'Number'" [width]="'*'" [isReadOnly]="false"></wj-flex-grid-column>
+                      <!--<wj-flex-grid-column [header]="'Equity Amount'" [aggregate]="'Sum'" [format]="'n2'" [binding]="'EquityAmount'" [dataType]="'Number'" [width]="'*'" [isReadOnly]="false"></wj-flex-grid-column>-->
+                      <wj-flex-grid-column [header]="'Required Equity'" [aggregate]="'Sum'" [format]="'n2'" [binding]="'RequiredEquity'" [dataType]="'Number'" [width]="'*'" [isReadOnly]="false"></wj-flex-grid-column>
+                      <wj-flex-grid-column [header]="'Additional Equity'" [aggregate]="'Sum'" [format]="'n2'" [binding]="'AdditionalEquity'" [dataType]="'Number'" [width]="'*'" [isReadOnly]="false"></wj-flex-grid-column>
+
+                      <wj-flex-grid-column [header]="'Start Date'" [binding]="'StartDate'" [dataType]="'Date'" [format]="'MM/dd/yyyy'" align="right" [width]="'*'" [isReadOnly]="false">
+                        <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
+                          <div [ngStyle]="{backgroundColor: cell.item.isValidStartDate==false ? '#FFB3A7' : ''}">
+                            {{cell.item.StartDate | date :'shortDate'}}
+                          </div>
+                        </ng-template>
+                      </wj-flex-grid-column>
+                      <wj-flex-grid-column [header]="'End Date'" [binding]="'EndDate'" [dataType]="'Date'" [format]="'MM/dd/yyyy'" align="right" [width]="'*'" [isReadOnly]="false">
+                        <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
+                          <div [ngStyle]="{backgroundColor: cell.item.isValidEndDate==false ? '#FFB3A7' : ''}">
+                            {{cell.item.EndDate | date :'shortDate'}}
+                          </div>
+                        </ng-template>
+                      </wj-flex-grid-column>
+                      <wj-flex-grid-column [name]="DistributionMethod" [header]="'Distribution Method'" [binding]="'DistributionMethodText'"  [width]="'*'" [isReadOnly]="false"></wj-flex-grid-column>
+                      <wj-flex-grid-column [header]="'Frequency Factor'" [binding]="'FrequencyFactor'" [format]="'n0'" [width]="'*'" [isReadOnly]="false" [dataType]="Number"></wj-flex-grid-column>
+                      <wj-flex-grid-column [header]="'Comments'" [binding]="'Comment'" [width]="'*'" align="right" [isReadOnly]="false"></wj-flex-grid-column>
+                      <wj-flex-grid-column [name]="'buttons'" [header]="'Delete'" [isReadOnly]="true" align="right" [width]="'*'">
+                        <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
+                          <div>
+                            <a style="text-decoration: underline;cursor:pointer" (click)="showDeleteDialog(cell.row.index,'Enable Auto Spread')">Delete</a>
+                          </div>
+                        </ng-template>
+                      </wj-flex-grid-column>
+                      <wj-flex-grid-column *ngFor="let col of columnsforautospreadrule"
+                                           [header]="col.header"
+                                           [binding]="col.binding"
+                                           [format]="col.format"
+                                           [width]="col.width"
+                                           [aggregate]="col.aggregate"
+                                           [isReadOnly]="!col.allowEditing">
+                      </wj-flex-grid-column>
+                    </wj-flex-grid>
+                  </div>
+                </div>
+              </div>
+
+
+              <div [hidden]="!repaymentchecked">
+                <div class="col-sm-12">
+                  <div class="col-sm-9" id="autospreadrepaymentdealfields">
+                    <div style="float:left;width:49%;">
+                      <table style="margin-top:5px;margin-bottom:5px;width:95%;">
+                        <tr>
+                          <td>
+                            <label class="lab1">Auto-spreading Method</label>
+                          </td>
+                          <td>
+                            <select [disabled]="isroleAssetManager == true" [(ngModel)]="_deal.RepaymentAutoSpreadMethodID" id="RepaymentAutoSpreadMethodID" name="RepaymentAutoSpreadMethodID" #RepaymentAutoSpreadMethodID="ngModel"
+                                    (change)="RepaymentAutoSpreadMethodIDChange($event.target.value)" class="ibox1">
+                              <option *ngFor="let repaymethod of lstAutospreadRepaymentMethodID"
+                                      value={{repaymethod.LookupID}}>
+                                {{repaymethod.Name}}
+                              </option>
+                            </select>
+                          </td>
+                        </tr>
+                        <tr>
+                          <td>
+                            <label class="lab1">Expected Full Repayment Date</label>
+                          </td>
+                          <td>
+                            <wj-input-date [(value)]="ExpectedDateBS" (change)="OnchangeExpectedfullrepayment($event.target.value)" [isReadOnly]="_isReadOnlyBSDatesFields || isroleAssetManager" id="ExpectedFullRepaymentDate" class="ibox1 rightalign" [isRequired]="false" [format]="'M/d/yyyy'" [placeholder]="'M/d/yyyy'"></wj-input-date>
+                          </td>
+                        </tr>
+
+                        <tr>
+                          <td>
+                            <label class="lab1">Possible Repayment day of the month</label>
+                          </td>
+                          <td>
+                            <wj-input-number [isRequired]="false" [(value)]="_deal.PossibleRepaymentdayofthemonth" (change)="OnchangePossiblerepayment($event.target.value)" [format]="'n0'" class="ibox1 rightalign" [isReadOnly]="isroleAssetManager"  id="PossibleRepaymentdayofthemonth"></wj-input-number>
+                          </td>
+                        </tr>
+                        <tr>
+                          <td>
+                            <label class="lab1">Frequency</label>
+                          </td>
+                          <td>
+                            <wj-input-number [isRequired]="false" [(value)]="_deal.Repaymentallocationfrequency" (change)="OnchangeRepaymentfrequency($event.target.value)" [format]="'n0'" class="ibox1 rightalign" [isReadOnly]="isroleAssetManager"  id="Repaymentallocationfrequency"></wj-input-number>
+                          </td>
+                        </tr>
+                      </table>
+                    </div>
+                    <div style="float:left;width:50%;">
+                      <table style="margin-top:5px;margin-bottom:5px;width:95%;">
+                        <tr>
+                          <td>
+                            <label class="lab1">Effective Date</label>
+                          </td>
+                          <td>
+                            <wj-input-date [(value)]="EffectiveDateBS" (change)="OnchangeEffectivedate($event.target.value)" [isRequired]="false" [isReadOnly]="_isReadOnlyBSDatesFields || isroleAssetManager" class="ibox1 rightalign" id="AutoPrepayEffectiveDate" [format]="'M/d/yyyy'" [placeholder]="'M/d/yyyy'"></wj-input-date>
+                          </td>
+                        </tr>
+
+                        <tr>
+                          <td>
+                            <label class="lab1">Earliest Possible Repayment Date</label>
+                          </td>
+                          <td>
+                            <wj-input-date [(value)]="EarliestPossibleRepaymentDateBS" (change)="OnchangeEarliestpossibleRepaymentdate($event.target.value)" [isRequired]="false" class="ibox1 rightalign" [isReadOnly]="_isReadOnlyBSDatesFields ||isroleAssetManager" id="EarliestPossibleRepaymentDate" [format]="'M/d/yyyy'" [placeholder]="'M/d/yyyy'"></wj-input-date>
+                          </td>
+                        </tr>
+                        <tr>
+                          <td>
+                            <label class="lab1">Latest Possible Repayment Date</label>
+                          </td>
+                          <td>
+                            <wj-input-date [(value)]="LatestPossibleRepaymentDateBS" (change)="OnchangeLatestpossibleRepaymentdate($event.target.value)" class="ibox1 rightalign" [isRequired]="false" [isReadOnly]="_isReadOnlyBSDatesFields || isroleAssetManager" id="LatestPossibleRepaymentDate" [format]="'M/d/yyyy'" [placeholder]="'M/d/yyyy'"></wj-input-date>
+                          </td>
+                        </tr>
+                        <tr>
+                          <td>
+                            <label class="lab1">Block out period</label>
+                          </td>
+                          <td>
+                            <wj-input-number [isRequired]="false" [(value)]="_deal.Blockoutperiod" (change)="OnchangeBlockoutperiod($event.target.value)" [isReadOnly]="isroleAssetManager"  id="Blockoutperiod" class="ibox1 rightalign" [format]="'n0'"></wj-input-number>
+                          </td>
+                        </tr>
+                      </table>
+                    </div>
+                  </div>
+                  <div class="col-sm-3" id="dealautospreadrepayment" style="margin-left:-17px !important;">
+                    <table>
+                      <tr>
+
+                        <td>   <label class="lab1">Auto-update from Underwriting </label></td>
+                        <td>
+                          <input type="checkbox" [(ngModel)]="_deal.AutoUpdateFromUnderwriting" id="AutoUpdateFromUnderwriting"
+                                 name="AutoUpdateFromUnderwriting" #AutoUpdateFromUnderwriting="ngModel" [checked]="AutoUpdateFromUnderwriting.checked"
+                                 (change)="onChangeAutoUpdateFromUnderwritingCheckbox($event)" [disabled]="isroleAssetManager == true" />
+                        </td>
+                      </tr>
+                      <tr>
+                        <td colspan="2">
+                          <wj-flex-grid id="flexautospreadrepayment" #flexautospreadrepayment
+                                        [itemsSource]="lstcumulativeprobabilitybyDate" [allowAddNew]="true"
+                                        (cellEditEnded)="celleditautospreadrepay(flexautospreadrepayment,$event)"
+                                        (pasted)="Copiedautospreadrepay(flexautospreadrepayment,$event)"
+                                        (initialized)="addFooterRowForAutospreadRepayment(flexautospreadrepayment)"
+                                        class="gridSize" style="margin-top:5px !important;max-height:220px;">
+                            <wj-flex-grid-column [header]="'As Of Date'" [format]="'MM/dd/yyyy'" [dataType]="'Date'" [isReadOnly]="_isReadOnlyBSDatesFields ||isroleAssetManager" align="right" [binding]="'ProjectedPayoffAsofDate'" [width]="100"></wj-flex-grid-column>
+                            <wj-flex-grid-column [header]="'Cumulative Probability'" [format]="'p0'" [binding]="'CumulativeProbability'" [isReadOnly]="_isReadOnlyBSDatesFields ||isroleAssetManager" [dataType]="'Number'" [width]="130"></wj-flex-grid-column>
+                            <wj-flex-grid-column *ngIf="_isReadOnlyBSDatesFields == false" [name]="'buttons'" [header]="'Delete'" align="left" [width]="47">
+                              <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
+                                <a style="text-decoration: underline;" (click)="showDeleteDialog(cell.row.index,'AutospreadRepayment')">Delete</a>
+                              </ng-template>
+                            </wj-flex-grid-column>
+                          </wj-flex-grid>
+                        </td>
+                      </tr>
+                    </table>
+                  </div>
+                </div>
+              </div>
+
+              <div class="form-group row pD10">
+                <div class="col-sm-7">
+                  <span class="customheading">
+                    Deal Funding Schedule
+                  </span>
+                </div>
+                <div class="col-sm-5">
+                  <button type="button" style="margin-right: -8px !important;" class="custombutton" (click)="dealfundingExporttoexcel()">Export to excel</button>
+                </div>
+              </div>
+              <!--Deal Funding Schedule-->
+              <div class="col-sm-12" id="dvdealfunding">
+                <wj-flex-grid id="dealfunding" #flexdealfunding [itemsSource]="cvDealFundingList" [allowAddNew]="true" [allowSorting]="false"
+                              (initialized)="fundingaddFooterRow(flexdealfunding)" [allowDelete]="false" class="gridSize"
+                              (pasted)="Copieddealfunding(flexdealfunding,$event)" (rowAdded)="Addnewfunding(flexdealfunding,$event)"
+                              (deletingRow)="deletedealfunding($event)" (cellEditEnded)="celleditfunding(flexdealfunding,$event)"
+                              (selectionChanged)="dealfundingselectionChanged()"
+                              style="height:calc(99.8vh - 190px);" (beginningEdit)="cellEditbeginDealfunding(flexdealfunding,$event)">
+                  <wj-flex-grid-column [name]="'buttons'" [header]="'Delete'" [isReadOnly]="true" align="left" [width]="60">
+                    <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
+                      <div *ngIf="cell.item.WF_IsFlowStart==0">
+                        <div *ngIf="!cell.item.Applied">
+                          <a style="text-decoration: underline;cursor:pointer" (click)="showDeleteDialog(cell.row.index,'Deal funding')">Delete</a>
+                        </div>
+                      </div>
+                    </ng-template>
+                  </wj-flex-grid-column>
+                  <wj-flex-grid-column [header]="'Workflow'" [isReadOnly]="true" [width]="80">
+                    <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
+                      <div *ngIf="cell.item.WF_isParticipate">
+                        <div *ngIf="_deal.Statusid != 325 ">
+                          <!--<div *ngIf="cell.item.Comment?.length >0 && cell.item.Comment==cell.item.OldComment && _deal.BoxDocumentLink != null">
+              <a (click)="showFundingCommentEmptyAlert(cell.item.Comment, _deal.BoxDocumentLink, cell.item.DealFundingID)">Open</a>
+          </div>-->
+                          <div>
+                            <a (click)="showFundingCommentEmptyAlert(cell.item.Comment, _deal.BoxDocumentLink, cell.item.DealFundingID,cell.item.Date,cell.item.Value,cell.item.PurposeID)" style="cursor:pointer">Open</a>
+                            <!--<a href='/#/workflow/{{cell.item.DealFundingID
+            }}' rel="nofollow" >Edit</a>-->
+                          </div>
+                        </div>
+                      </div>
+                    </ng-template>
+                  </wj-flex-grid-column>
+                  <!--<wj-flex-grid-column [header]="'Date'" [binding]="'Date'" [width]="120" align="right" [wordWrap]="true"></wj-flex-grid-column>-->
+                  <wj-flex-grid-column [header]="'Date'" [binding]="'Date'" [dataType]="'Date'" [width]="110" align="right" [format]="'MM/dd/yyyy'">
+                    <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
+                      <div [ngStyle]="{backgroundColor: cell.item.isValidDate==false ? '#FFB3A7' : ''}">
+                        {{cell.item.Date | date :'shortDate'}}
+                      </div>
+                    </ng-template>
+                  </wj-flex-grid-column>
+
+
+                  <wj-flex-grid-column [header]="'Debt Amount'" [binding]="'Value'" [dataType]="'Number'" [width]="188" align="right" [aggregate]="'Sum'" format="n2" style="display:none">
+                    <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
+                      <div [ngStyle]="{color: cell.item.Value < 0? 'red' : 'darkgreen'}">
+                        {{cell.item.Value | number:'1.2-2'}}
+                      </div>
+                    </ng-template>
+                  </wj-flex-grid-column>
+                  <wj-flex-grid-column [header]="'Required Equity'" [aggregate]="'Sum'" [format]="'n2'" [binding]="'RequiredEquity'" [dataType]="'Number'" [width]="125" [isReadOnly]="false"></wj-flex-grid-column>
+                  <wj-flex-grid-column [header]="'Additional Equity'" [aggregate]="'Sum'" [format]="'n2'" [binding]="'AdditionalEquity'" [dataType]="'Number'" [width]="125" [isReadOnly]="false"></wj-flex-grid-column>
+                  <wj-flex-grid-column [header]="'Purpose'" [binding]="'PurposeText'" [width]="175"></wj-flex-grid-column>
+                  <!--<wj-flex-grid-column [name]="'Purpose'" [header]="'Purpose'" [binding]="'PurposeText'" [showDropDown]="true" [width]="175"></wj-flex-grid-column>-->
+                  <!--<wj-flex-grid-column [header]="'Wire Confirm'" [binding]="'Applied'"  [width]="95" align="left" ></wj-flex-grid-column>-->
+
+
+                  <wj-flex-grid-column [header]="'Confirmed'" [binding]="'Applied'" [width]="95">
+                    <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
+
+                      <div *ngIf="cell.item.WF_CurrentStatusDisplayName=='Completed' && cell.item.WF_IsCompleted==1">
+                        <input #fundingappiedchk type="checkbox" [checked]="cell.item.Applied" (change)="ChangeFundingappied(cell.item.DealFundingID,fundingappiedchk.checked,cell.row)" id="fundingappiedchk" [disabled]="rolename=='Super Admin' || rolename=='Admin' ? false: cell.item.Issaved" />
+                      </div>
+                      <!--<div *ngIf="(cell.item.WF_CurrentStatusDisplayName!='Completed' && cell.item.WF_IsAllow==0)">
+          <input #fundingappiedchk type="checkbox" [checked]="cell.item.Applied" (change)="ChangeFundingappied(cell.item.DealFundingID,fundingappiedchk.checked,cell.row)" id="fundingappiedchk" [disabled]="rolename=='Super Admin' || rolename=='Admin' ? false: cell.item.Issaved" />
+      </div>-->
+
+                      <div *ngIf="(cell.item.WF_CurrentStatus == null)">
+                        <input #fundingappiedchk type="checkbox" [checked]="cell.item.Applied" (change)="ChangeFundingappied(cell.item.DealFundingID,fundingappiedchk.checked,cell.row)" id="fundingappiedchk" [disabled]="rolename=='Super Admin' || rolename=='Admin' ? false: cell.item.Issaved" />
+                      </div>
+                    </ng-template>
+                  </wj-flex-grid-column>
+                  <wj-flex-grid-column id="GeneratedBy" [header]="'Generated By'" [binding]="'GeneratedByText'" [width]="130" align="left" [isReadOnly]="false">
+                  </wj-flex-grid-column>
+                  <wj-flex-grid-column [header]="'Status'" [binding]="'WF_CurrentStatusDisplayName'" [isReadOnly]="true" [width]="130" align="left">
+                    <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
+                      <div innerHTML="{{FormatWFStatusName(cell.item.WF_CurrentStatusDisplayName)}}">
+                      </div>
+                    </ng-template>
+                  </wj-flex-grid-column>
+                  <wj-flex-grid-column id="DealfundingCommentColumn" [header]="'Comment'" [binding]="'Comment'" [width]="130" align="left" [isReadOnly]="false">
+                  </wj-flex-grid-column>
+                  <!--<wj-flex-grid-column id="DrawFeeStatus" [header]="'Draw Fee'" [binding]="'DrawFeeStatusName'" [width]="130" align="left" [isReadOnly]="false">
+  </wj-flex-grid-column>-->
+                  <wj-flex-grid-column [header]="'Draw Fee Status'" [isReadOnly]="true" [width]="80">
+                    <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
+                      <div *ngIf="(cell.item.IsShowDrawStatus == '1')">
+                        <a *ngIf="(cell.item.DrawFeeStatus != '696')" (click)="DownloadInvoice(cell.item.DrawFeeFile,cell.item.DrawFeeStatusName,cell.row.index)" style="cursor:pointer">{{cell.item.DrawFeeStatusName}}</a>
+                        <div *ngIf="(cell.item.DrawFeeStatus == '696')">
+                          {{cell.item.DrawFeeStatusName}}
+                        </div>
+                      </div>
+                    </ng-template>
+                  </wj-flex-grid-column>
+
+                  <!--<wj-flex-grid-column [header]="'Draw funding id'" [binding]="'DrawFundingId'" [width]="130" align="left"></wj-flex-grid-column>-->
+                  <wj-flex-grid-column *ngFor="let col of columnsForNoteDealFunding"
+                                       [header]="col.header"
+                                       [binding]="col.binding"
+                                       [format]="col.format"
+                                       [width]="col.width"
+                                       [aggregate]="col.aggregate"
+                                       [isReadOnly]="!col.allowEditing"
+                                       [dataType]="'Number'">
+                  </wj-flex-grid-column>
+                </wj-flex-grid>
+              </div>
+              <!--<div class="col-sm-5">
+            <div class="clearfix"></div>
+            <div class="test">
+                <table width="100%" cellpadding="0" cellspacing="0" border="0" class="table customtable" id="excelDataTable"></table>
+            </div>
+        </div>-->
+            </div>
+          </div>
+        </div>
+
+        <div class="tab-pane fade" id="notepayrule" *ngIf="_isShowNotePayrule">
+          <div class="box1a" style="min-height: calc(100vh - 190px);">
+            <div class="form-group row pD10">
+              <div class="col-sm-12">
+                <!-- the grid -->
+                <wj-flex-grid #flexDynamicColForNotePayruleSetup [allowResizing]="'Both'"
+                              [itemsSource]="cvNotePayruleSetup"
+                              [isReadOnly]="false"
+                              [frozenColumns]="2" auto-size-mode="Headers" [allowAddNew]="true"
+                              (cellEditEnded)="celleditPayrule(flexDynamicColForNotePayruleSetup,$event)">
+                  <wj-flex-grid-column *ngFor="let col of columnsForPayruleSetup"
+                                       [header]="col.header"
+                                       [binding]="col.binding"
+                                       [format]="col.format"
+                                       [width]="col.width">
+                  </wj-flex-grid-column>
+                  <wj-flex-grid-column [name]="'buttons'" [header]="'Delete'" [isReadOnly]="true" align="left" [width]="80">
+                    <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
+                      <a style="text-decoration: underline;" (click)="showDeleteDialog(cell.row.index,'Payrule')">Delete</a>
+                    </ng-template>
+                  </wj-flex-grid-column>
+                </wj-flex-grid>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="tab-pane fade" id="docImport" *ngIf="_isShowDocImport">
+          <div class="box1a" style="min-height: calc(100vh - 190px);">
+            <h3>Upload Document</h3>
+            <div class="form-group row pD10">
+              <div class="col-sm-12">
+                <!---------------Content Start---------------->
+                <div class="cssload-container" *ngIf="isProcessComplete">
+                  <div class="cssload-whirlpool"></div>
+                </div>
+                <div>
+                  <label class="lab1">Select File</label>
+                  <div class="fileinput" appDnd (fileDropped)="onFileDropped($event)">
+                    <input type="file" #myFileInputIdentifier id="myFileInputIdentifier" (change)="onAction($event,'change')" multiple style="display:none;" />
+                    <label for="myFileInputIdentifier" class="filebutton">
+                      Browse <span style="color:black !important;" class="dropfile">Drop file here</span>
+                    </label>
+                  </div>
+                </div>
+                <!--<button type="button" class="btn btn-default" (click)="resetFileInput()">Click to reset file input</button>-->
+                <!--<ng2-file-input style="min-height:150px" [id]="myFileInputIdentifier" (onCouldNotRemove)="onCouldNotRemove($event)" [multiple]="true" (onRemoved)="onRemoved($event)" (onAdded)="onAdded($event)" (onAction)="onAction($event)"></ng2-file-input>-->
+                <span class="highlight"></span>
+                <span class="bar"></span>
+              </div>
+              <div class="col-sm-12 importdoc-custom">
+                <div class="col-sm-3">
+                  <label class="lab1">Document Type</label>
+                  <select [(ngModel)]="_document.DocumentTypeID" id="ddlDocumentType" name="DocumentTypeID" #DocumentTypeID="ngModel" class="ibox1" (change)="DocumentTypeIDChange($event.target.value)">
+                    <option value=406>General</option>
+                    <option value=407>Loan</option>
+                    <option value=408>Closing</option>
+                    <option value=409>Finance</option>
+                    <option value=410>Settlement</option>
+                  </select>
+                </div>
+                <div class="col-sm-3">
+                  <label class="lab1">Comment</label>
+                  <textarea class="ibox1 input-lg" style="font-family: inherit;font-size: inherit;height:42px;" rows="1" cols="10" [(ngModel)]="_document.Comment" name="DocumentComment" #Description="ngModel" id="DocumentComment"></textarea>
+                </div>
+                <div class="col-sm-1 importdoc">
+                  <span>
+                    <button type="submit" tooltip="Import" class="custombutton" (click)="ImportDocument()">Upload</button>
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="box1a">
+            <h3>Uploaded documents</h3>
+            <div *ngIf="_dvEmptyDocumentMsg" class="alert alert-danger fade in" style="margin-top:18px;">
+              <strong>No document found</strong>
+            </div>
+            <div class="form-group row pD10" *ngIf="!_dvEmptyDocumentMsg">
+              <div class="col-sm-12">
+                <div class="clearfix"></div>
+                <wj-flex-grid id="flexDocument" #flexDocument [itemsSource]="lstDocuments" auto-generate-columns="true" allow-add-new="true" allow-sorting="true" showFilterIcons="true" class="wijmogridcss">
+                  <!--(selectionChanged)="selectionChangedHandler()"-->
+                  <wj-flex-grid-filter #filter></wj-flex-grid-filter>
+                  <wj-flex-grid-column [header]="'File Name'" [isReadOnly]="true" [width]="350">
+                    <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
+                      <div>
+                        <a class="cur-pointer" (click)="DownloadDocument(cell.item.FileName,cell.item.OriginalFileName,cell.item.Storagetype,cell.item.DocumentStorageID)" title="Click to download" routerLinkActive="active">
+                          {{
+                                                        cell.item.OriginalFileName
+                          }}
+                        </a>
+                      </div>
+                    </ng-template>
+                  </wj-flex-grid-column>
+
+                  <wj-flex-grid-column [header]="'Note Name'" [isReadOnly]="true" [width]="'*'">
+                    <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
+                      <div *ngIf="cell.item.ObjectTypeID == '182' && cell.item.ObjectID != null">
+                        <a href='/#/notedetail/{{cell.item.ObjectID}}' rel="nofollow">{{cell.item.Name}}</a>
+                      </div>
+                    </ng-template>
+                  </wj-flex-grid-column>
+
+                  <wj-flex-grid-column [header]="'Document Type'" [binding]="'DocumentType'" [width]="'*'"></wj-flex-grid-column>
+                  <wj-flex-grid-column [header]="'Comments'" [binding]="'Comment'" [width]="250"></wj-flex-grid-column>
+                  <wj-flex-grid-column [header]="'Uploaded By'" [binding]="'UserFullName'" [width]="'*'"></wj-flex-grid-column>
+                  <wj-flex-grid-column [header]="'Upload Date'" [binding]="'UploadedTime'" [width]="'*'" align="right"></wj-flex-grid-column>
+
+                  <wj-flex-grid-column [header]="''" [width]="'*'">
+                    <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
+                      <button type="button" tooltip="Archive " class="custombutton" (click)="ShowPopUpArchive(cell.item.UploadedDocumentLogID,cell.item.OriginalFileName)">Archive</button>
+                    </ng-template>
+                  </wj-flex-grid-column>
+
+
+                </wj-flex-grid>
+
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="tab-pane fade" id="Activitytab" *ngIf="_isShowActivityLog">
+          <div class="box1a" style="min-height: calc(100vh - 190px);">
+            <h3>Activity</h3>
+            <div class="alert alert-danger fade in" *ngIf="CurrentcountActivity==0" style="margin:18px;">
+              <strong>{{activityMessage}}</strong>
+            </div>
+
+            <div class="form-group row pD10 activitymaindivnoteanddeal" style="height:calc(99.8vh - 210px)">
+
+              <div (scroll)="onScrollActivity()" style="overflow-y:auto;height: 99% !important; " id="activityMainDiv">
+                <div id="activityTdate" *ngIf="isActivityTday">
+                  <table class="notepageactivitydivcommon" align="left">
+                    <tr>
+                      <td class="notepageactivityheader">
+                        <div>Today's activities</div>
+                      </td>
+                    </tr>
+                    <tr *ngFor="let comment of arrActivityToday" align="left">
+                      <td class="ts2">
+
+                        <div class="notificationmaindiv">
+                          <table>
+                            <tr align="center">
+                              <td width="2% !important">
+                                <div [ngClass]="comment.UColor">
+                                  {{comment.ActivityUserFirstLetter}}
+                                </div>
+                              </td>
+                              <td width="85% !important" align="left">
+                                <span class="notificationpara" [innerHTML]="comment.ActivityMessage"></span>
+                              </td>
+                              <td width="12% !important">
+                                <span class="divtime">{{comment.Currentdate}}</span>
+                              </td>
+                            </tr>
+                          </table>
+                        </div>
+                      </td>
+                    </tr>
+                  </table>
+
+
+                </div>
+                <div id="ActivityYdate" *ngIf="isActivityYday">
+                  <table class="notepageactivitydivcommon" align="left">
+                    <tr>
+                      <td class="notepageactivityheader">
+                        <div>Yesterday's activities</div>
+                      </td>
+                    </tr>
+                    <tr *ngFor="let comment of arrActivityYesterday" align="left">
+                      <td class="ts2">
+
+                        <div class="notificationmaindiv">
+                          <table>
+                            <tr align="center">
+                              <td width="2% !important">
+                                <div [ngClass]="comment.UColor">
+                                  {{comment.ActivityUserFirstLetter}}
+                                </div>
+                              </td>
+                              <td width="85% !important" align="left">
+                                <span class="notificationpara" [innerHTML]="comment.ActivityMessage"></span>
+                              </td>
+                              <td width="12% !important">
+                                <span class="divtime">{{comment.Currentdate}}</span>
+                              </td>
+                            </tr>
+                          </table>
+                        </div>
+                      </td>
+                    </tr>
+                  </table>
+                </div>
+                <div id="activitydiv" *ngIf="isActivityPday">
+                  <table class="notepageactivitydivcommon" align="left">
+                    <tr>
+                      <td class="notepageactivityheader">
+                        <div>Past days activities</div>
+                      </td>
+                    </tr>
+                    <tr *ngFor="let comment of arrActivity" align="left">
+                      <td class="ts2">
+                        <div class="notificationmaindiv">
+                          <table>
+                            <tr align="center">
+                              <td width="2% !important">
+                                <div [ngClass]="comment.UColor">
+                                  {{comment.ActivityUserFirstLetter}}
+                                </div>
+                              </td>
+                              <td width="85% !important" align="left">
+                                <span class="notificationpara" [innerHTML]="comment.ActivityMessage"></span>
+                              </td>
+                              <td width="12% !important">
+                                <span class="divtime">{{comment.CreatedDate| date : "MMM dd"}} {{comment.Currentdate}}</span>
+                              </td>
+                            </tr>
+                          </table>
+                        </div>
+                      </td>
+                    </tr>
+                  </table>
+
+
+                </div>
+              </div>
+
+
+
+            </div>
+          </div>
+        </div>
+
+        <div class="tab-pane fade" id="Rulestab" *ngIf="_isShowActivityLog">
+          <div class="box1a">
+            <h3>Rules</h3>
+            <div class="form-group row pD10" style="min-height: calc(100vh - 220px);">
+              <div *ngIf="_Showmessagedivrule" class="alert alert-info">
+                <span>
+                  {{_ShowmessagedivruleMsg}}
+                </span>
+              </div>
+              <div class="col-sm-1" style="width: 55px;" *ngIf="_isShowScenariodiv">
+                <label class="lab1">Scenario </label>
+              </div>
+              <div class="col-sm-3" *ngIf="_isShowScenariodiv">
+
+                <select [(ngModel)]="_ruletype.AnalysisID" id="AnalysisID" name="AnalysisID" class="ibox1" (change)="OnChangeScenarioName($event.target.value)">
+                  <option *ngFor="let item of _lstScenario" value={{item.AnalysisID}}>
+                    {{item.ScenarioName}}
+                  </option>
+                </select>
+              </div>
+
+              <div class="col-sm-2" *ngIf="_isShowbtnResetdiv">
+                <label class="lab1" style="display: inline!important"></label>
+                <button type="button" id="btnReset" class="custombutton" (click)="ResetRuleType()" style="width:160px !important">Reset Request File</button>
+              </div>
+              <div style="width:40%;float:left;" class="col-sm-12" *ngIf="_isShowRuleTypediv">
+                <br />
+                <wj-flex-grid #RuleTypeList [itemsSource]="_lstruletype" [allowAddNew]="false"
+                              (beginningEdit)="cellRuleTypeEditHandler(RuleTypeList,$event)"
+                              (cellEditEnded)="celleditRuleType(RuleTypeList,$event)"
+                              [allowResizing]="'Both'" class="gridSize grid">
+                  <wj-flex-grid-column [header]="'Ruleset Type'" [binding]="'RuleTypeName'" [isReadOnly]="_isReadOnlyRuleTypeName" [width]="205"></wj-flex-grid-column>
+                  <wj-flex-grid-column [header]="'Ruleset File'" [binding]="'FileName'"  [width]="300"></wj-flex-grid-column>
+                  <wj-flex-grid-column [header]="''">
+                    <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
+                      <a href='/#/datamanagement?tab=rule' rel="nofollow">View</a>
+                    </ng-template>
+                  </wj-flex-grid-column>
+                </wj-flex-grid>
+              </div>
+              <!--<div class="col-sm-3">
+          <label class="lab1" style="display: inline!important">Rule-Engine Version</label>
+          <select [(ngModel)]="foldername" id="foldername" name="foldername" class="ibox1" (change)="ChangeFolder($event.target.value)" style="display:inline!important;width:50%!important;">
+            <option *ngFor="let item of lstFolders" value={{item.FunctionName}}>
+              {{item.FunctionName}}
+            </option>
+          </select>
+
+        </div>
+        <div class="col-sm-12">
+          <br />
+          <wj-flex-grid #flexRules [itemsSource]="lstNote" [allowAddNew]="false" [isReadOnly]="true" [allowResizing]="'Both'" class="gridSize grid">
+            <wj-flex-grid-column [header]="'Note Id'" [binding]="'CRENoteID'" [width]="100"></wj-flex-grid-column>
+            <wj-flex-grid-column [header]="'Name'" [binding]="'Name'" [width]="100"></wj-flex-grid-column>
+            <wj-flex-grid-column [header]="'Status'" [binding]="'StatusName'" [width]="100" [showDropDown]="true">
+              <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
+                <div>
+                  {{(cell.item.StatusName=="Active" || cell.item.StatusName=="Inactive")?cell.item.StatusName:"Active"}}
+                </div>
+              </ng-template>
+            </wj-flex-grid-column>
+
+            <wj-flex-grid-column [header]="'CalculateNote Name'" [width]="250">
+              <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
+                <div *ngIf="cell.item.NoteId != '00000000-0000-0000-0000-000000000000' && cell.item.NoteId != null">
+                  <select [(ngModel)]="lstNote[cell.row.index].FunctionName" id="FunctionName" name="FunctionName" #FunctionName="ngModel" class="ibox1" (change)="ChangeNoteFunction($event.target.value,cell.row.index)" style="color:black!important;height:30px !important">
+                    <option value="CalculateNote">CalculateNote</option>
+                    <option value="NewCalc">NewCalc</option>
+                  </select>
+                </div>
+              </ng-template>
+            </wj-flex-grid-column>
+
+            <wj-flex-grid-column [header]="'Note Rules'" [width]="150">
+              <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
+                <div *ngIf="cell.item.NoteId != '00000000-0000-0000-0000-000000000000' && cell.item.NoteId != null">
+                  <a href='' (click)="Addupdaterules(cell.item.NoteRule,cell.row.index,cell.item.CRENoteID)" rel="Add/update rules">Edit Rule</a>
+                </div>
+              </ng-template>
+            </wj-flex-grid-column>
+          </wj-flex-grid>
+          <div class="box1a">
+            <div class="form-group row pD10">
+              <label class="lab1">Deal Rules</label>
+              <textarea style="width: 99%;height: 250px;" [(ngModel)]="_deal.DealRule" name="DealRule" #DealRule="ngModel" id="DealRule"></textarea>
+            </div>
+          </div>
+        </div>-->
+            </div>
+          </div>
+        </div>
+
+        <div class="tab-pane fade" id="DealAmorttab">
+          <div class="box1a">
+            <h3>Deal Amort</h3>
+            <div class="form-group row pD10">
+              <div class="col-sm-3">
+                <label class="lab1">Amortization Method</label>
+                <select [(ngModel)]="_deal.amort.AmortizationMethod" id="AmortizationMethod" name="AmortizationMethod" #AmortizationMethod="ngModel" (change)="AmortizationMethodChange($event.target.value)" class="ibox1">
+                  <option *ngFor="let item of listAmortizationMethod" value={{item.LookupID}}>
+                    {{item.Name}}
+                  </option>
+                </select>
+              </div>
+
+              <div class="col-sm-3">
+                <label class="lab1">Reduce Amortization for Curtailments</label>
+                <select [(ngModel)]="_deal.amort.ReduceAmortizationForCurtailments" id="ReduceAmortizationForCurtailments" name="ReduceAmortizationForCurtailments" #ReduceAmortizationForCurtailments="ngModel" (change)="ReduceAmortizationForCurtailmentsChange($event.target.value)" class="ibox1">
+                  <option *ngFor="let item of listReduceAmortizationForCurtailments" value={{item.LookupID}}>
+                    {{item.Name}}
+                  </option>
+                </select>
+              </div>
+
+              <div class="col-sm-3">
+                <label class="lab1">Business Day Adjustment for Amort</label>
+                <select [(ngModel)]="_deal.amort.BusinessDayAdjustmentForAmort" id="BusinessDayAdjustmentForAmort" name="BusinessDayAdjustmentForAmort" #BusinessDayAdjustmentForAmort="ngModel" (change)="BusinessDayAdjustmentForAmortChange($event.target.value)" class="ibox1">
+                  <option *ngFor="let item of listBusinessDayAdjustmentForAmort" value={{item.LookupID}}>
+                    {{item.Name}}
+                  </option>
+                </select>
+              </div>
+
+              <div class="col-sm-3">
+                <label class="lab1">Note Distribution Method</label>
+                <select [(ngModel)]="_deal.amort.NoteDistributionMethod" id="NoteDistributionMethod" name="NoteDistributionMethod" #NoteDistributionMethod="ngModel" (change)="NoteDistributionMethodChange($event.target.value)" class="ibox1">
+                  <option *ngFor="let item of listNoteDistributionMethod" value={{item.LookupID}}>
+                    {{item.Name}}
+                  </option>
+                </select>
+              </div>
+
+
+              <div class="col-sm-3">
+                <label class="lab1">Periodic Straight Line Amort Override</label>
+                <wj-input-number id="PeriodicStraightLineAmortOverride" [isReadOnly]="_isreadonlyforperiodicstraightline" [isRequired]="false" [(value)]="_deal.amort.PeriodicStraightLineAmortOverride"  class="ibox1 rightalign" [format]="'n2'"></wj-input-number>
+              </div>
+
+              <div class="col-sm-3">
+                <label class="lab1">Fixed Periodic Payment</label>
+                <wj-input-number id="FixedPeriodicPayment" [isReadOnly]="_isreadonlyforfixedpaymentamort" [isRequired]="false" [(value)]="_deal.amort.FixedPeriodicPayment"  class="ibox1 rightalign" [format]="'n2'"></wj-input-number>
+              </div>
+
+            </div>
+
+            <div class="col-sm-12 ">
+              <span class="customheading"> Amort Rules</span>
+              <button type="button" class="custombutton" (click)="OpenNotes()">Open all Notes</button>
+              <button type="button" (click)="NextAmortSequenceToAdd()" class="custombutton" style="width:160px !important" *ngIf="_isShowAddFundingSequence">Add sequence</button>
+              <button type="button" id="btnGenerateAmortization" (click)="generateAmortization()" class="custombutton" *ngIf="IsShowAmortGenerate" style="width:160px !important">Generate Amortization</button>
+
+            </div>
+
+            <div class="form-group row pD10">
+              <div class="col-sm-12">
+                <wj-flex-grid #flexNoteListForDealAmort [itemsSource]="lstNoteListForDealAmort" [allowResizing]="'Both'" class="gridSize grid"
+                              (initialized)="addFooterRow(flexNoteListForDealAmort)" (cellEditEnded)="celleditAmortRule(flexNoteListForDealAmort,$event)">
+                  <wj-flex-grid-column [header]="'Note Id'" [width]="80" [isReadOnly]="true">
+                    <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
+                      <div>
+                        <a routerLink='/notedetail/{{cell.item.NoteID}}' routerLinkActive="active">{{cell.item.CRENoteID}}</a>
+                      </div>
+                    </ng-template>
+                  </wj-flex-grid-column>
+                  <wj-flex-grid-column [header]="'Name'" [binding]="'Name'" [width]="100" [isReadOnly]="true"></wj-flex-grid-column>
+                  <wj-flex-grid-column [header]="'Maturity'" [binding]="'Maturity'" align="right" [width]="100" [isReadOnly]="true"></wj-flex-grid-column>
+                  <wj-flex-grid-column [header]="'Lien'" [binding]="'LienPositionText'" [width]="100" [isReadOnly]="true"></wj-flex-grid-column>
+                  <wj-flex-grid-column [header]="'Priority'" align="right" [binding]="'Priority'" [width]="80" [isReadOnly]="true"></wj-flex-grid-column>
+
+                  <wj-flex-grid-column [header]="'IO Term'" align="right" [binding]="'IOTerm'" [width]="70" [isReadOnly]="true"></wj-flex-grid-column>
+                  <wj-flex-grid-column [header]="'Amort Rate'" align="right" [binding]="'AmortRate'" [width]="80" [isReadOnly]="true" format="p9"></wj-flex-grid-column>
+                  <wj-flex-grid-column [header]="'Commitment'" [binding]="'TotalCommitment'" [aggregate]="'Sum'" align="right" format="n2" [width]="110" [isReadOnly]="true">
+                    <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
+                      <div [ngStyle]="{color: cell.item.TotalCommitment < 0? 'red' : 'darkgreen'}">
+                        {{cell.item.TotalCommitment|number : '1.2-2'}}
+                      </div>
+                    </ng-template>
+                  </wj-flex-grid-column>
+                  <wj-flex-grid-column [header]="'Balance'" align="right" [binding]="'EstBls'" [aggregate]="'Sum'" [width]="110" [isReadOnly]="true" format="n2">
+                    <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
+                      <div [ngStyle]="{color: cell.item.EstBls < 0? 'red' : 'darkgreen'}">
+                        {{cell.item.EstBls | number:'1.2-2'}}
+                      </div>
+                    </ng-template>
+                  </wj-flex-grid-column>
+                  <wj-flex-grid-column [header]="'Amort Term'" align="right" [binding]="'AmortTerm'" [width]="80" [isReadOnly]="true"></wj-flex-grid-column>
+                  <wj-flex-grid-column [header]="'Include'" [binding]="'UseRuletoDetermineAmortizationText'" [width]="80"></wj-flex-grid-column>
+                  <wj-flex-grid-column [header]="'Rounding Note'" [binding]="'RoundingNoteText'" [width]="102"></wj-flex-grid-column>
+                  <wj-flex-grid-column [header]="'Amort Override'" align="right" [binding]="'StraightLineAmortOverride'" [width]="102"></wj-flex-grid-column>
+
+                  <wj-flex-grid-column [dataType]="'Number'" *ngFor="let colseq of AmortSeqcolumns"
+                                       [header]="colseq.header"
+                                       [binding]="colseq.binding"
+                                       [format]="colseq.format"
+                                       [width]="colseq.width"
+                                       [aggregate]="colseq.aggregate">
+                  </wj-flex-grid-column>
+                </wj-flex-grid>
+              </div>
+              <div class="form-group row pD10">
+                <div class="col-sm-7">
+                  <span class="customheading">
+                    Amortization Schedule
+                  </span>
+                </div>
+              </div>
+              <div *ngIf="!_NoAmortSch" class="col-sm-12" id="dvDealAmortizationSchedule">
+                <wj-flex-grid id="DealAmortizationSchedule" #flexDealAmortizationSchedule [itemsSource]="lstAmortSchedule"
+                              [allowAddNew]="false" [allowSorting]="false"
+                              (initialized)="addFooterRow(flexDealAmortizationSchedule)" [allowDelete]="false" class="gridSize" style="height:calc(99.8vh - 190px);" (cellEditEnded)="celleditAmortSchedule(flexDealAmortizationSchedule,$event)" (pasted)="CopiedAmortSchedule(flexDealAmortizationSchedule,$event)">
+
+                  <wj-flex-grid-column [header]="'Due Date'" [binding]="'Date'" [dataType]="'Date'" [width]="110" align="right" [format]="'MM/dd/yyyy'">
+                    <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
+                      <div [ngStyle]="{backgroundColor: cell.item.isValidDate==false ? '#FFB3A7' : ''}">
+                        {{cell.item.Date | date :'shortDate'}}
+                      </div>
+                    </ng-template>
+                  </wj-flex-grid-column>
+
+                  <wj-flex-grid-column [header]="'Amount'" [binding]="'Amount'" [format]="'n2'" [dataType]="'Number'" [width]="110" align="right" [aggregate]="'Sum'">
+                    <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
+                      <div [ngStyle]="{color: cell.item.Amount < 0? 'red' : 'darkgreen'}">
+                        {{cell.item.Amount | number:'1.2-2'}}
+                      </div>
+                    </ng-template>
+                  </wj-flex-grid-column>
+
+                  <wj-flex-grid-column [dataType]="'Number'" *ngFor="let acol of columnsAmortSchedule"
+                                       [header]="acol.header"
+                                       [binding]="acol.binding"
+                                       [format]="acol.format"
+                                       [width]="acol.width"
+                                       [aggregate]="acol.aggregate">
+                  </wj-flex-grid-column>
+
+                </wj-flex-grid>
+              </div>
+              <div *ngIf="_NoAmortSch" class="alert alert-warning" style="margin-left:12px;">
+                <strong>{{amorterrormsg}}</strong>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="tab-pane fade" id="Payofftab">
+          <div class="box1a">
+            <h3>Payoff</h3>
+            <div class="col-sm-12 ">
+              <span *ngIf="_isShowDealCalcPayoffPenalty">
+                <!--<span class="customheading"> Payoff</span>-->
+                <button type="button" (click)="postPayoffData()" class="custombutton" style="width:160px !important; margin-right:3px !important;">Calc Payoff Penalty</button>
+              </span>
+            </div>
+            <div class="form-group row pD10">
+              <div class="col-sm-12">
+                <iframe #iframePayoffData id="iframePayoffData" [src]="urlSafe" frameborder="0" style="height:70vh; width: 99%">
+                </iframe>
+
+                <!--<iframe src="https://acore.m61systems.com?dealid=5233161b-b9b8-470c-a541-59d0463e0794&token==REVWOk1TaXh0eTFAMjAyMA=="
+                  style="height:70vh; width: 100vh"></iframe>
+
+          <iframe src="https://acore.m61systems.com?dealid=1fd23dfd-9739-48e5-8c4d-20a6015a77ae&token==REVWOk1TaXh0eTFAMjAyMA=="
+                  style="height:70vh; width: 100vh"></iframe>-->
+
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="tab-pane fade" id="DealAdjustedtotalCommitment">
+          <div class="box1a" style="min-height: calc(100vh - 190px);">
+            <h3>Commitment/Equity</h3>
+            <div class="form-group row pD10">
+              <div class="col-sm-3">
+                <label class="lab1" style="margin-top:10px !important;"><b>M61 Total Commitment:</b> {{_totalcommitmenttextboxvalue}}</label>
+              </div>
+              <div class="col-sm-3">
+                <label class="lab1" style="margin-top:10px !important;"><b>Adjusted Commitment:</b> {{_adjustedcommitmenttextboxvalue}}</label>
+              </div>
+
+              <div class="col-sm-offset-3 col-sm-3">
+                <span>
+                  <button type="button" class="custombutton" (click)="AddEquityRowforAM()" style="width:142px !important; margin-bottom:5px !important;margin-right:8px !important;">Add Equity Rebalancing</button>
+                </span>
+              </div>
+
+              <div class="col-sm-12">
+                <wj-flex-grid #flexDealForAdjustedTotalCommitment [allowResizing]="'Both'"
+                              [itemsSource]="lstAdjustedTotalCommitment"
+                              (initialized)="addFooterRow(flexDealForAdjustedTotalCommitment)"
+                              (pasted)="Copiedadjustedtotalcommitment(flexDealForAdjustedTotalCommitment,$event)"
+                              (cellEditEnded)="celleditadjustedtotalcommitment(flexDealForAdjustedTotalCommitment,$event)"
+                              (beginningEdit)="cellEditbeginAdjustedCommitment(flexDealForAdjustedTotalCommitment,$event)"
+                              (pastingCell)="cellPastingAdjustedCommitment(flexDealForAdjustedTotalCommitment,$event)"
+                              [allowAddNew]="true" [allowSorting]="false" [frozenColumns]="3">
+                  <wj-flex-grid-column [name]="'buttons'" [header]="'Delete'" [isReadOnly]="true" align="left" [width]="80">
+                    <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
+                      <div *ngIf="_showtotalcommitmentdelcol">
+                        <div *ngIf="cell.item.TypeText =='Upsize/Mod'||cell.item.TypeText =='Curtailment'||cell.item.TypeText =='Note Transfer'||cell.item.TypeText =='Equity Rebalancing'">
+                          <a style="text-decoration: underline;" (click)="showDeleteDialog(cell.row.index,'Total Commitment')">Delete</a>
+                        </div>
+                      </div>
+                    </ng-template>
+                  </wj-flex-grid-column>
+                  <wj-flex-grid-column [header]="'Date'" [binding]="'Date'" [dataType]="'Date'" [format]="'MM/dd/yyyy'" align="right" [width]="85"></wj-flex-grid-column>
+                  <wj-flex-grid-column [header]="'Type'" [binding]="'TypeText'" [showDropDown]="true" [isReadOnly]="false" [width]="110"></wj-flex-grid-column>
+                  <!--<wj-flex-grid-column [header]="'Exclude From Commitment Calculation'" [binding]="'ExcludeFromCommitmentCalculation'" [isReadOnly]="false" [width]="110"></wj-flex-grid-column>-->
+                  <wj-flex-grid-column [header]="'Adjustment History (Deal)'" [aggregate]="'Sum'" [cssClass]="'customgridrowcolor'" [binding]="'DealAdjustmentHistory'" [dataType]="'Number'" [format]="'n2'" [width]="180" [isReadOnly]="true"></wj-flex-grid-column>
+                  <wj-flex-grid-column [header]="'Adjusted Commitment'" [aggregate]="'Sum'" [cssClass]="'customgridrowcolor'" [format]="'n2'" [binding]="'AdjustedCommitment'" [dataType]="'Number'" [width]="180" [isReadOnly]="true"></wj-flex-grid-column>
+                  <wj-flex-grid-column [header]="'M61 Total Commitment'" [aggregate]="'Sum'" [cssClass]="'customgridrowcolor'" [format]="'n2'" [binding]="'TotalCommitment'" [dataType]="'Number'" [width]="180" [isReadOnly]="true"></wj-flex-grid-column>
+                  <wj-flex-grid-column [header]="'Total Equity at Closing'" [aggregate]="'Sum'" [format]="'n2'" [binding]="'TotalEquityatClosing'" [dataType]="'Number'" [width]="180" [isReadOnly]="true"></wj-flex-grid-column>
+                  <!--<wj-flex-grid-column [header]="'M61 Aggregate Commitment'" [aggregate]="'Sum'" [cssClass]="'customgridrowcolor'" [format]="'n2'" [binding]="'AggregatedCommitment'" [dataType]="'Number'" [width]="180" [isReadOnly]="true"></wj-flex-grid-column>-->
+                  <wj-flex-grid-column [header]="'Total Required Equity'" [aggregate]="'Sum'" [format]="'n2'" [binding]="'TotalRequiredEquity'" [dataType]="'Number'" [width]="180"></wj-flex-grid-column>
+                  <wj-flex-grid-column [header]="'Total Additional Equity'" [aggregate]="'Sum'" [format]="'n2'" [binding]="'TotalAdditionalEquity'" [dataType]="'Number'" [width]="180"></wj-flex-grid-column>
+                  <wj-flex-grid-column [header]="'Comments'" [binding]="'Comments'" [width]="100" [isReadOnly]="false">
+                  </wj-flex-grid-column>
+                  <wj-flex-grid-column *ngFor="let col of columnsforCommitmentAdjustment"
+                                       [header]="col.header"
+                                       [binding]="col.binding"
+                                       [width]="180"
+                                       [isReadOnly]="false"
+                                       [aggregate]="col.aggregate">
+
+                  </wj-flex-grid-column>
+                </wj-flex-grid>
+              </div>
+            </div>
+            <div class="box1a">
+              <h3>Equity</h3>
+              <div class="form-group row pD10">
+                <div class="col-sm-3">
+                  <label class="lab1">ICM Fully Funded Equity</label>
+                  <wj-input-number [isRequired]="false" [(value)]="_deal.ICMFullyFundedEquity" id="ICMFullyFundedEquity"  [(ngModel)]="_deal.ICMFullyFundedEquity" name="ICMFullyFundedEquity"
+                                    class="ibox1 rightalign" [format]="'n2'"></wj-input-number>
+                </div>
+                <div class="col-sm-3">
+                  <label class="lab1">Equity at Closing</label>
+                  <wj-input-number [isRequired]="false" [(value)]="_deal.EquityatClosing" id="EquityatClosing"  [(ngModel)]="_deal.EquityatClosing" name="EquityatClosing"
+                                   (keyup)="UpdateEquitySummary()"  class="ibox1 rightalign" [format]="'n2'"></wj-input-number>
+                </div>
+
+                <div class="col-sm-7" style="padding-top: 10px;">
+                  <wj-flex-grid id="Equitygrid" #Equitygrid [isReadOnly]="true"
+                                [itemsSource]="_lstEquitySummary"
+                                class="gridSize">
+                    <wj-flex-grid-column [header]="'Type'" [binding]="'Type'" [width]="'*'"></wj-flex-grid-column>
+                    <wj-flex-grid-column [header]="'Expected Equity'" [binding]="'ExpectedEquity'" align="right" [dataType]="'Number'" [format]="'n2'" [width]="140"></wj-flex-grid-column>
+                    <wj-flex-grid-column [header]="'Equity Contributed to Date'" [binding]="'EquityContributedToDate'" align="right" [dataType]="'Number'" [format]="'n2'" [width]="200"></wj-flex-grid-column>
+                    <wj-flex-grid-column [header]="'Remaining Equity'" [binding]="'RemainingEquity'" align="right" [dataType]="'Number'" [format]="'n2'" [width]="140"></wj-flex-grid-column>
+                    <wj-flex-grid-column [header]="'% Contributed to Date'" [binding]="'Per_ContributedToDate'" align="right" [width]="180"></wj-flex-grid-column>
+
+                  </wj-flex-grid>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="tab-pane fade" id="FeeInvoicetab">
+          <div class="box1a" style="min-height: calc(100vh - 190px);">
+            <!--<h3>Invoices</h3>-->
+            <div class="form-group row pD10">
+              <div class="col-sm-11" style="width:88%;">
+                <div *ngIf="_isShowMsgForInvoices" class="alert alert-info">
+                  <span>
+                    {{MsgForInvoices}}
+                  </span>
+                </div>
+              </div>
+
+              <div *ngIf="!_isShowMsgForInvoices">
+                <div class="col-sm-12">
+                  <wj-flex-grid #flexFeeInvoice [allowResizing]="'Both'"
+                                [itemsSource]="_lstFeeInvoice"
+                                (initialized)="addFooterRow(flexFeeInvoice)"
+                                (cellEditEnded)="celleditFeeInvoice(flexFeeInvoice,$event)"
+                                (pasted)="CopiedFeeInvoice(flexFeeInvoice,$event)"
+                                [allowSorting]="false" style="height:calc(99.8vh - 280px);">
+                    <wj-flex-grid-filter #filter></wj-flex-grid-filter>
+                    <wj-flex-grid-column [header]="'Invoice Type'" [binding]="'InvoiceType'" [width]="105" [isReadOnly]="true"></wj-flex-grid-column>
+                    <wj-flex-grid-column [header]="'Invoice Date'" [binding]="'Date'" [isReadOnly]="true" [dataType]="'Date'" [format]="'MM/dd/yyyy'" align="right" [width]="105"></wj-flex-grid-column>
+                    <wj-flex-grid-column [header]="'Name'" [binding]="'Name'" [width]="150" [isReadOnly]="true"></wj-flex-grid-column>
+                    <wj-flex-grid-column [header]="'Company Name'" [binding]="'CompanyName'" [width]="150" [isReadOnly]="true"></wj-flex-grid-column>
+                    <wj-flex-grid-column [header]="'Amount'" [binding]="'Amount'" [aggregate]="'Sum'" format="n2" [width]="100" [isReadOnly]="true">
+                      <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
+                        <div [ngStyle]="{color: cell.item.Amount < 0? 'red' : 'darkgreen'}">
+                          {{cell.item.Amount | number:'1.2-2'}}
+                        </div>
+                      </ng-template>
+                    </wj-flex-grid-column>
+                    <wj-flex-grid-column [header]="'Paid Amount'" [binding]="'AmountPaid'" [aggregate]="'Sum'" format="n2" [width]="110" [isReadOnly]="true">
+                      <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
+                        <div [ngStyle]="{color: cell.item.AmountPaid < 0? 'red' : 'darkgreen'}">
+                          {{cell.item.AmountPaid | number:'1.2-2'}}
+                        </div>
+                      </ng-template>
+                    </wj-flex-grid-column>
+                    <wj-flex-grid-column [header]="'Adjustment Amount'" [binding]="'AmountAdj'" [aggregate]="'Sum'" format="n2" [width]="150">
+                      <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
+                        <div [ngStyle]="{color: cell.item.AmountAdj < 0? 'red' : 'darkgreen'}">
+                          {{cell.item.AmountAdj | number:'1.2-2'}}
+                        </div>
+                      </ng-template>
+                    </wj-flex-grid-column>
+                    <wj-flex-grid-column [header]="'Unpaid Amount'" [binding]="'DeltaAmount'" [aggregate]="'Sum'" format="n2" [width]="120" [isReadOnly]="true">
+                      <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
+                        <div [ngStyle]="{color: cell.item.DeltaAmount < 0? 'red' : 'darkgreen'}">
+                          {{cell.item.DeltaAmount | number:'1.2-2'}}
+                        </div>
+                      </ng-template>
+                    </wj-flex-grid-column>
+                    <wj-flex-grid-column [header]="'Draw Fee Status'" [isReadOnly]="true" [width]="120">
+                      <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
+                        <div>
+                          <a *ngIf="(cell.item.DrawFeeStatus != '696')" (click)="DownloadInvoice(cell.item.FileName,cell.item.DrawFeeStatusText,cell.row.index)" style="cursor:pointer">{{cell.item.DrawFeeStatusText}}</a>
+                          <div *ngIf="(cell.item.DrawFeeStatus == '696')">
+                            {{cell.item.DrawFeeStatusText}}
+                          </div>
+                        </div>
+                      </ng-template>
+                    </wj-flex-grid-column>
+                    <wj-flex-grid-column [header]="'Comment'" [binding]="'InvoiceComment'" [width]="150"></wj-flex-grid-column>
+                    <wj-flex-grid-column [header]="'Invoice Comment'" [binding]="'BatchUploadComment'" [width]="150"></wj-flex-grid-column>
+                    <!--<wj-flex-grid-column [header]="'Date'" [binding]="'Date'" [isReadOnly]="true" [dataType]="'Date'" [format]="'MM/dd/yyyy'" align="right" [width]="100"></wj-flex-grid-column>-->
+                    <!--<wj-flex-grid-column [header]="'Object'" [binding]="'ObjectType'" [width]="180" [isReadOnly]="true"></wj-flex-grid-column>-->
+                  </wj-flex-grid>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="tab-pane fade" id="Maturitytab" *ngIf="_isShowDealMaturity">
+          <div class="box1a" style="min-height: calc(100vh - 190px);">
+            <div id="warningmessageMaturity" *ngIf="_ShowmaturitydivWar" class="alert alert-warning fade in">
+              <strong>{{_ShowmaturitydivMessageWar }}</strong>
+            </div>
+            <div class="form-group row pD10">
+              <div class="form-group">
+                <div class="col-sm-12">
+                  <div style="width:70%; float: left;" id="selecteddropdown">
+                    <table id="selecteddropdowntable" style="max-width:90% !important;">
+                      <tr>
+                        <td style="width:170px;">
+                          <label class="lab1">Select note group</label>
+                        </td>
+                        <td style="max-width:80% !important;">
+                          <select id="selectedNoteName" name="selectedNoteName" style="width:278px;"
+                                  (change)="onChangeMaturityGroup($event.target.value)" class="ibox1">
+                            <option class="selectedMaturityOption" *ngFor="let item of lstGroupName" value={{item.MaturityGroupName}}>{{item.MaturityGroupName}}</option>
+                          </select>
+                        </td>
+                      </tr>
+                    </table>
+                  </div>
+                  <div>
+                    <button type="button" class="custombutton" style="width:130px !important;margin-right:22px !important;" *ngIf="MaturityHistCount!=null" (click)="viewDealMaturityHistory()">View history({{MaturityHistCount }})</button>
+                    <button type="button" class="custombutton" style="width:130px !important;margin-right:22px !important;" *ngIf="MaturityHistCount==null" (click)="viewDealMaturityHistory()">View history</button>
+                    <button type="button" style="width: 140px!important;" (click)="OpenMaturityConfigPopUp()" class="custombutton">Maturity configuration</button>
+                  </div>
+                </div>
+              </div>
+
+              <br />
+              <br />
+
+              <div class="form-group">
+                <div class="col-sm-12">
+                  <div style="width:35%;float:left;">
+                    <table>
+                      <tr>
+                        <td style="width:170px;">
+                          <label class="lab1">Effective date</label>
+                        </td>
+                        <td style="width:284px;">
+                          <wj-input-date [(value)]="maturityEffectiveDate" (change)="openEffectiveDatepopup($event.target.value)" [isReadOnly]="_isActualpayoffDate || _isAMUser" id="EffectiveDate" class="ibox1 rightalign" [isRequired]="false" [format]="'M/d/yyyy'" [placeholder]="'M/d/yyyy'"></wj-input-date>
+                        </td>
+                      </tr>
+
+                      <tr>
+                        <td>
+                          <label class="lab1">Expected maturity</label>
+                        </td>
+                        <td>
+                          <wj-input-date (change)="OnchangeExpectedMaturityDate($event.target.value)" [ngStyle]="{backgroundColor: _deal.EnableAutospreadRepayments == true ? '#D3D3D3' : ''}" [(value)]="maturityExpectedMaturityDate" [isReadOnly]="_deal.EnableAutospreadRepayments == true? true : false" id="ExpectedMaturityDate" class="ibox1 rightalign" [isRequired]="false" [format]="'M/d/yyyy'" [placeholder]="'M/d/yyyy'"></wj-input-date>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td>
+                          <label class="lab1">Actual payoff</label>
+                        </td>
+                        <td>
+                          <wj-input-date [(value)]="maturityActualPayoffDate" (change)="OnchangeActualPayoffDate($event.target.value)" id="ActualPayoffDate" [isReadOnly]=" _isAMUser" class="ibox1 rightalign" [isRequired]="false" [format]="'M/d/yyyy'" [placeholder]="'M/d/yyyy'"></wj-input-date>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td>
+                          <label class="lab1">Open prepayment</label>
+                        </td>
+                        <td>
+                          <wj-input-date [(value)]="maturityOpenPrepaymentDate" (change)="OnchangeopenPrepaymentDate($event.target.value)" [isReadOnly]="_isActualpayoffDate|| _isAMUser" id="OpenPrepaymentDate" class="ibox1 rightalign" [isRequired]="false" [format]="'M/d/yyyy'" [placeholder]="'M/d/yyyy'"></wj-input-date>
+                        </td>
+                      </tr>
+                    </table>
+                  </div>
+                  <div style="width:64%;float:left;">
+                    <div style="margin-right:8px;">
+                      <wj-flex-grid id="flexMaturity" #flexMaturity
+                                    [itemsSource]="_lstMaturity" [allowAddNew]="true"
+                                    (initialized)="addFooterRowForAutospreadRepayment(flexMaturity)"
+                                    (cellEditEnded)="cellDealMaturityEdit(flexMaturity,$event)"
+                                    (pasted)="CopiedDealMaturity(flexMaturity,$event)"
+                                    (beginningEdit)="cellEditbeginMaturity(flexMaturity,$event)"
+                                    class="gridSize">
+                        <wj-flex-grid-column [header]="'Maturity date'" [binding]="'MaturityDate'" [dataType]="'Date'" [isReadOnly]="_isActualpayoffDate" [format]="'MM/dd/yyyy'" align="right" [width]="180">
+
+                        </wj-flex-grid-column>
+                        <wj-flex-grid-column [header]="'Type'" [binding]="'MaturityTypeText'"  [isReadOnly]="_isActualpayoffDate" [width]="'*'"></wj-flex-grid-column>
+                        <wj-flex-grid-column [header]="'Approved'" [binding]="'ApprovedText'"  [isReadOnly]="_isActualpayoffDate" [width]="205"></wj-flex-grid-column>
+                        <wj-flex-grid-column [name]="'buttons'" [header]="'Delete'" align="left" [width]="100" [isReadOnly]="true">
+                          <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
+                            <div *ngIf="(cell.item.MaturityTypeText == 'Extension'||cell.item.MaturityTypeText == '') && userRolename != 'Asset Manager'">
+                              <a *ngIf="_isActualpayoffDate == false" style="text-decoration: underline;cursor:pointer;" (click)="showDeleteDialog(cell.row.index,'Maturity')">Delete</a>
+                            </div>
+                          </ng-template>
+                        </wj-flex-grid-column>
+                      </wj-flex-grid>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+          <table class="tooltip_mat" id="maturityPopup">
+            <tr *ngFor="let item of tooltipList">
+              <td style="border-bottom: 1px dotted #decaca;">
+                <span style="margin-left:12px;">{{item}}</span>
+              </td>
+            </tr>
+          </table>
+        </div>
+        <!-- Prepay Premium style="min-height: calc(100vh - 50px);"-->
+        <div class="tab-pane fade" style="min-height: calc(100vh - 170px);" id="PrepaymentPremiumtab" *ngIf="_isShowDealPrepaymentPremium">
+          <div class="form-group row pD10">
+            <div class="col-sm-12">
+              <div class="col-sm-10" style="margin-left: -30px;">
+                <div class="col-sm-2">
+                  <label class="lab1">Prepay Date </label>
+                  <wj-input-date [(value)]="PrePayDate" [(ngModel)]="_deal.PrePayDate" id="PrePayDate" class="ibox1 rightalign" [isRequired]="false" name="PrePayDate"
+                                 [format]="'M/d/yyyy'" [placeholder]="'M/d/yyyy'" style=" margin-right: 15px !important;"></wj-input-date>
+                </div>
+                <div class="col-sm-2">
+                  <label class="lab1">Prepay rule template</label>
+                  <select [(ngModel)]="_prepaymentpremium.PrePaymentRuleType" id="PrePaymentRuleType" name="PrePaymentRuleType" (change)="PrePayRuleTypeChange($event.target.value)"
+                          style="width:278px;" class="ibox1">
+
+                    <option *ngFor="let item of lstPrepayRuleTemplate"
+                            value={{item.RuleTypeDetailID}}>
+                      {{item.FileName}}
+                    </option>
+                  </select>
+                </div>
+                <div class="col-sm-2" *ngIf="tdopenrules" style="margin-left: 120px; margin-top: 30px;">
+
+                  <a href='/#/datamanagement?tab=rule&ruletype=Prepay&filename={{_prepaymentpremium.PrePaymentRuleType}}' target="_blank" rel="nofollow">Open rules</a>
+                </div>
+                <div class="col-sm-3" *ngIf="divPrepayCalculationStatus" style="margin-top: 30px;">
+                  <span style="font-weight:bold">Calculation Status : </span>
+                  <span *ngIf="PrepayCalcStatus=='Completed'" class="badge badge-success"><a style="text-decoration: underline;cursor:pointer;color:white;" (click)="showprepaycalcstatusmessage('Completed')">Completed</a></span>
+                  <span *ngIf="PrepayCalcStatus=='Processing'" class="badge badge-warning">Processing</span>
+                  <span *ngIf="PrepayCalcStatus=='Failed'" class="badge badge-danger"><a style="text-decoration: underline; cursor: pointer;color: white;" (click)="showprepaycalcstatusmessage('Failed')">Failed</a></span>
+                  <span *ngIf="PrepayCalcStatus=='Running'" class="badge badge-secondary">Running</span>
+                  <span *ngIf="PrepayCalcStatus=='CalcSubmit'" class="badge badge-light">Calc Submit</span>
+                </div>
+              </div>
+
+              <div class="col-sm-2" style="float: right;">
+
+                <button class="custombutton" id='btnSubmitPrepayCalcRequest' (click)="SubmitPrepayCalcRequest()" style="line-height: 37px !important; width:125px !important; margin-left:100px !important;">
+                  Calculate Prepay
+                </button>
+
+              </div>
+            </div>
+          </div>
+
+          <div class="box1a">
+            <h3>Prepayment Setup</h3>
+
+            <div class="form-group row pD10">
+              <div class="form-group">
+                <div class="col-sm-12">
+                  <div style="width:35%;float:left;">
+                    <table>
+                      <tr>
+                        <td style="width:170px;">
+                          <label class="lab1">Effective date</label>
+                        </td>
+                        <td style="width:284px;">
+                          <wj-input-date [(value)]="PrepaymentPremiumEffectiveDate" [(ngModel)]="_prepaymentpremium.EffectiveDate" id="PrepaymentPremiumEffectiveDate" name="PrepaymentPremiumEffectiveDate"
+                                         class="ibox1 rightalign" [isRequired]="false" [format]="'M/d/yyyy'" [placeholder]="'M/d/yyyy'"></wj-input-date>
+                        </td>
+
+
+                      </tr>
+                      <tr>
+                        <td>
+                          <label class="lab1">Calc Thru</label>
+                        </td>
+                        <td>
+                          <wj-input-date [(value)]="CalcThru" [(ngModel)]="_prepaymentpremium.CalcThru" id="CalcThru" name="CalcThru" class="ibox1 rightalign" [isRequired]="false"
+                                         [format]="'M/d/yyyy'" [placeholder]="'M/d/yyyy'"></wj-input-date>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td>
+                          <label class="lab1">Prepayment Method</label>
+                        </td>
+                        <td>
+                          <select [(ngModel)]="_prepaymentpremium.PrepaymentMethod" id="PrePaymentMethodName" name="PrePaymentMethodName" (change)="PrePaymentMethodChange($event.target.value)" style="width:278px;" class="ibox1">
+                            <option *ngFor="let item of lstPrePaymentName"
+                                    value={{item.LookupID}}>
+                              {{item.Name}}
+                            </option>
+                          </select>
+
+                        </td>
+                      </tr>
+                    </table>
+                  </div>
+                  <div style="width:65%;float:right;">
+
+                    <label class="lab1">Prepayment Premium Adjustment</label>
+                    <wj-flex-grid id="prepayadjustment" #prepayadjustment
+                                  [itemsSource]="_lstprepayadjustment" [allowAddNew]="true"
+                                  class="gridSize">
+                      <wj-flex-grid-column [header]="'Date'" [binding]="'Date'" [dataType]="'Date'" [format]="'MM/dd/yyyy'" align="right" [width]="180"></wj-flex-grid-column>
+                      <wj-flex-grid-column [header]="'Prepay Adj Amt'" [binding]="'PrepayAdjAmt'" align="right" [dataType]="'Number'" [format]="'n2'" [width]="200"></wj-flex-grid-column>
+                      <wj-flex-grid-column [header]="'Comments'" [binding]="'Comment'" [width]="'*'"></wj-flex-grid-column>
+                    </wj-flex-grid>
+
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="box1a" *ngIf="spreadmaintenancediv">
+            <h3>Spread Maintenance Setup</h3>
+            <div class="form-group row pD10">
+              <div class="form-group">
+                <div class="col-sm-12">
+                  <div style="width:35%;float:left;">
+                    <table>
+                      <tr>
+                        <td style="width:170px;">
+                          <label class="lab1">Base Amount</label>
+                        </td>
+                        <td style="width:284px;">
+                          <select [(ngModel)]="_prepaymentpremium.BaseAmountType" id="BaseAmountName" name="BaseAmountName" style="width:278px;" class="ibox1">
+                            <option *ngFor="let item of lstBaseAmountName"
+                                    value={{item.LookupID}}>
+                              {{item.Name}}
+                            </option>
+                          </select>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td>
+                          <label class="lab1">Spread Calc Method</label>
+                        </td>
+                        <td>
+                          <select [(ngModel)]="_prepaymentpremium.SpreadCalcMethod" id="SpreadCalctMethodName" name="SpreadCalctMethodName" style="width:278px;" class="ibox1">
+                            <option *ngFor="let item of lstSpreadCalctMethodName"
+                                    value={{item.LookupID}}>
+                              {{item.Name}}
+                            </option>
+                          </select>
+                        </td>
+                      </tr>
+                    </table>
+
+                  </div>
+                  <div id="divSpreadMaintenance" style="float:left;">
+                    <table>
+                      <tr>
+                        <td>
+                          <label class="lab1" style="white-space:nowrap;">Greater of SM (Calc) or Base amt times spread %</label>
+                        </td>
+                        <td>
+                          <input type="checkbox" [(ngModel)]="_prepaymentpremium.GreaterOfSMOrBaseAmtTimeSpread " id="GreaterOfSMOrBaseAmtTimeSpread"
+                                 name="GreaterOfSMOrBaseAmtTimeSpread" #GreaterOfSMOrBaseAmtTimeSpread="ngModel" />
+
+
+                        </td>
+
+                        <td style="text-align: right; width: 500px;">
+                          Note Level
+
+                          <input #HasNoteLevelSMSchedule type="checkbox" [(ngModel)]="_prepaymentpremium.HasNoteLevelSMSchedule" id="NoteLevel" [checked]="_isnotelevelChecked" (change)="EnabledDisabledNoteColumn(HasNoteLevelSMSchedule.checked)"
+                                 name="NoteLevel" #NoteLevel="ngModel" />
+
+                        </td>
+                      </tr>
+                    </table>
+                    <div id="divgridSpreadMaintenance" style="margin-right:8px;">
+
+                      <wj-flex-grid id="SpreadMaintenance" #SpreadMaintenance
+                                    [itemsSource]="_lstSpreadMaintenance" [allowAddNew]="true" class="gridSize">
+                        <wj-flex-grid-column [header]="'Note Id'" [binding]="'CRENoteID'" [visible]="_showHidenote"  [width]="200"> </wj-flex-grid-column>
+                        <wj-flex-grid-column [header]="'Date'" [binding]="'SpreadDate'" [dataType]="'Date'" [format]="'MM/dd/yyyy'" align="right" [width]="155"></wj-flex-grid-column>
+                        <wj-flex-grid-column [header]="'Spread'" [binding]="'Spread'" align="right" [dataType]="'Number'" format="p2" [width]="154"></wj-flex-grid-column>
+                        <wj-flex-grid-column [header]="'Calc after payoff'" [binding]="'CalcAfterPayoff'" align="center" [width]="154"></wj-flex-grid-column>
+                      </wj-flex-grid>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+          </div>
+          <div class="box1a" *ngIf="minispreadinterestdiv">
+            <h3>Minimum Multiple Setup</h3>
+            <div class="form-group row pD10">
+              <div class="col-sm-2">
+                <label class="lab1">Minimum Multiple Due</label>
+                <input class="ibox1" type="text" [(ngModel)]="_prepaymentpremium.RemainingSpread" id="RemainingSpread" disabled="disabled"
+                       name="RemainingSpread" #RemainingSpread="ngModel">
+              </div>
+              <div class="col-sm-2">
+                <label class="lab1">Open Payment Date</label>
+                <wj-input-date [(value)]="OpenPaymentDate" [(ngModel)]="_prepaymentpremium.OpenPaymentDate" id="OpenPaymentDate" name="OpenPaymentDate" [isDisabled]="true"
+                               class="ibox1 rightalign" [isRequired]="false"></wj-input-date>
+              </div>
+              <div class="col-sm-2">
+                <label class="lab1">Include Fees in Credits</label>
+                <input #Includefeesincredits type="checkbox" [(ngModel)]="_prepaymentpremium.Includefeesincredits" id="Includefeesincredits" [checked]="_isincludefeeChecked" (change)="EnableDisableMiniFeeGrid(Includefeesincredits.checked)"
+                       name="IncludeFee" NoteLevel="ngModel" />
+                <!--(change)="EnableDisableMiniFeeGrid(IncludeFee.checked)"-->
+              </div>
+            </div>
+            <div class="form-group row pD10">
+              <div class="col-sm-4">
+                <label class="lab1">Min Mult</label>
+                <wj-flex-grid id="MinimumMult" #MinimumMult
+                              [itemsSource]="_lstMinimumMult" [allowAddNew]="true"
+                              class="gridSize">
+                  <wj-flex-grid-column [header]="'Date'" [binding]="'MiniSpreadDate'" [dataType]="'Date'" [format]="'MM/dd/yyyy'" align="right" [width]="210"></wj-flex-grid-column>
+                  <wj-flex-grid-column [header]="'Min Mult Amount'" [binding]="'MinMultAmount'" [dataType]="'Number'" [format]="'n2'" align="right" [width]="'*'"></wj-flex-grid-column>
+                  <!--<wj-flex-grid-column [header]="'MinSpreadInterestID'" [binding]="'MiniSpreadInterestID'" [width]="'*'"></wj-flex-grid-column>-->
+                </wj-flex-grid>
+              </div>
+              <div class="col-sm-5" *ngIf="_isShowMinimumFee">
+                <label class="lab1">Fee Credits</label>
+                <wj-flex-grid id="MinimumFee" #MinimumFee [itemsSource]="_lstMinimumFee" [allowAddNew]="true" class="gridSize">
+                  <wj-flex-grid-column [header]="'Fee Type Name'" [binding]="'FeeTypeNameText'"  [width]="'*'"> </wj-flex-grid-column>
+                  <wj-flex-grid-column [header]="'Fee Credit Override'" [binding]="'FeeCreditOverride'" align="right" [dataType]="'Number'" [format]="'n2'" [width]="'*'"></wj-flex-grid-column>
+                  <wj-flex-grid-column [header]="'Use Actual Fees'" [width]="150" [binding]="'UseActualFees'" align="center"></wj-flex-grid-column>
+
+                </wj-flex-grid>
+              </div>
+            </div>
+          </div>
+          <div id="divScroll"></div>
+          <div class="box1a">
+            <h3>Prepay premium</h3>
+            <div class="form-group row pD10">
+              <div class="col-sm-12" style="margin-bottom:5px;">
+                <div *ngIf="divPrepayLastUpdated">
+                  <span style="font-weight:bold">Prepay was last updated on </span>{{Prepaylastupdated | date: 'EEEE, MMMM d, y h:mm a'}}&nbsp;{{_timezoneAbbreviation}}
+                  <span>by {{PrepaylastupdatedBy}}</span>
+                </div>
+
+                <wj-flex-grid id="PrepayPremium" #PrepayPremium
+                              [itemsSource]="_lstPrepayPremiumnew" [allowAddNew]="true"
+                              class="gridSize">
+                  <wj-flex-grid-column [header]="'Prepay Date'" [binding]="'PrepayDate'" align="right" [width]="'*'"> </wj-flex-grid-column>
+                  <wj-flex-grid-column [header]="'Prepay Premium'" [binding]="'PrepayPremium_RemainingSpread'" align="right" [dataType]="'Number'" [format]="'n2'" [width]="'*'"></wj-flex-grid-column>
+                  <wj-flex-grid-column [header]="'UPB'" [width]="'*'" [binding]="'UPB'" [dataType]="'Number'" [format]="'n2'" align="right"></wj-flex-grid-column>
+                  <wj-flex-grid-column [header]="'Open Prepay Date'" [binding]="'OpenPrepaymentDate'" align="right" [width]="'*'"></wj-flex-grid-column>
+                  <wj-flex-grid-column [header]="'Total Payoff Amount'" [binding]="'TotalPayoff'" [dataType]="'Number'" [format]="'n2'" align="right" [width]="'*'"></wj-flex-grid-column>
+                  <!--<ng-template wjFlexGridDetail [maxHeight]="250" [detailVisibilityMode]="detailMode" let-item="item">
+                <wj-flex-grid [itemsSource]="getprepaypremiumbyprepaydate(item.PrepayDate)" [isReadOnly]="true"
+                              [headersVisibility]="'Column'">
+                    <wj-flex-grid-column [header]="'Note Id'" [binding]="'CRENoteID'" [width]="200"></wj-flex-grid-column>
+                    <wj-flex-grid-column [header]="'Prepay Premium Allocation'" [binding]="'MinmultDue'" [dataType]="'Number'" [format]="'n2'" [width]="250"></wj-flex-grid-column>
+
+                </wj-flex-grid>
+            </ng-template>-->
+                </wj-flex-grid>
+              </div>
+            </div>
+          </div>
+          <div class="box1a" *ngIf="divPrepaySystemLog">
+            <h3>System Log</h3>
+            <div class="form-group row pD10">
+              <div class="form-group">
+                <div class="col-sm-12">
+                  <div style="float:left;">
+                    <table>
+                      <tr>
+                        <td>
+                          {{PrepayFailedMessage}}
+                        </td>
+                      </tr>
+                      <tr *ngFor="let prepayCalc of _lstprepayCalculationLog">
+                        <td>
+                          {{prepayCalc.PrepayMessage}}
+                        </td>
+                      </tr>
+                    </table>
+                  </div>
+
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="box1a" *ngIf="divPrepayCalculationLog">
+            <h3>Calculation Log</h3>
+            <div class="form-group row pD10">
+              <div class="form-group">
+                <div class="col-sm-12">
+                  <div style="float:left;">
+                    <table>
+                      <tr *ngFor="let loggedfile of _lstloggedFile">
+                        <td>
+                          {{loggedfile.data}}
+                        </td>
+                      </tr>
+                    </table>
+                  </div>
+
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- reserve workflow -->
+        <div class="tab-pane fade" id="reserveTab" *ngIf="_isShowReserveTab">
+          <div class="box1a" style="min-height: calc(100vh - 190px);">
+            <div class="form-group row pD10">
+
+              <div class="col-sm-4">
+                <span class="customheading"> Reserve Accounts</span>
+              </div>
+              <div class="col-sm-5" style="margin-left: 3px !important;">
+                <label class="lab1" style="display: inline!important">REO Deal</label>
+                <input type="checkbox" [(ngModel)]="_deal.IsREODeal" id="IsREODeal"
+                       [disabled]="showREODealCheckbox == true" name="IsREODeal" #IsREODeal="ngModel" />
+              </div>
+            </div>
+            <div class="form-group row pD10">
+              <div class="col-sm-12">
+                <wj-flex-grid id="flexReserveAccounts" #flexReserveAccounts
+                              [itemsSource]="_listReserveAccounts" [allowAddNew]="true"
+                              (initialized)="addFooterRow(flexReserveAccounts)"
+                              (cellEditEnded)="cellReserveAccountsEdit(flexReserveAccounts,$event)"
+                              (pasted)="copiedReserveAccounts(flexReserveAccounts,$event)"
+                              (beginningEdit)="cellBeginEditReserveAccounts(flexReserveAccounts,$event)"
+                              (pastingCell)="cellPastingReserveAccounts(flexReserveAccounts,$event)"
+                              class="gridSize" style="max-height:300px;width:60%;">
+                  <wj-flex-grid-column [header]="'Reserve account name'" [binding]="'ReserveAccountName'" align="left" [isReadOnly]="false" [width]="'*'"></wj-flex-grid-column>
+                  <wj-flex-grid-column [header]="'Initial balance date'" [binding]="'InitialBalanceDate'" [dataType]="'Date'" [isReadOnly]="false" [format]="'MM/dd/yyyy'" align="right" [width]="169">
+                    <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
+                      <div [ngStyle]="{backgroundColor: cell.item.IsValidateHoliday == 'false' ? '#FFB3A7' : ''}">
+                        {{cell.item.InitialBalanceDate | date :'shortDate'}}
+                      </div>
+                    </ng-template>
+                  </wj-flex-grid-column>
+                  <wj-flex-grid-column [header]="'Initial reserve amount'" [binding]="'InitialFundingAmount'" [aggregate]="'Sum'" [format]="'n2'" [dataType]="'Number'" [isReadOnly]="false" align="right" [width]="146"></wj-flex-grid-column>
+                  <wj-flex-grid-column [header]="'Current reserve balance'" [binding]="'EstimatedReserveBalance'" [aggregate]="'Sum'" [format]="'n2'" [dataType]="'Number'" [isReadOnly]="false" align="right" [width]="183"></wj-flex-grid-column>
+                  <wj-flex-grid-column [header]="'Float interest rate'" [format]="'p9'" [binding]="'FloatInterestRate'" [isReadOnly]="false" [dataType]="'Number'" [width]="158"></wj-flex-grid-column>
+                </wj-flex-grid>
+              </div>
+
+
+
+            </div>
+
+            <div *ngIf="showReserveScheduleGrid" class="box1a">
+              <div class="form-group row pD10">
+                <div class="col-sm-12">
+                  <span class="customheading"> Reserve Schedule</span>
+                </div>
+                <div class="col-sm-12">
+                  <wj-flex-grid id="flexReserveSchedule" #flexReserveSchedule
+                                [itemsSource]="_listReserveSchedule" [allowAddNew]="true"
+                                (initialized)="addFooterRow(flexReserveSchedule)"
+                                (cellEditEnded)="cellReserveScheduleEdit(flexReserveSchedule,$event)"
+                                (pasted)="copiedReserveSchedule(flexReserveSchedule,$event)"
+                                (beginningEdit)="cellReserveBeginEdit(flexReserveSchedule,$event)"
+                                class="gridSize" style="max-height:350px;">
+                    <wj-flex-grid-column [name]="'buttons'" [header]="'Delete'" align="left" [width]="80" [isReadOnly]="true">
+                      <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
+                        <div *ngIf="cell.item.WF_IsFlowStart==0">
+                          <div *ngIf="!cell.item.Applied">
+                            <a style="text-decoration: underline;cursor:pointer" (click)="showDeleteDialog(cell.row.index,'ReserveSchedule')">Delete</a>
+                          </div>
+                        </div>
+
+                      </ng-template>
+                    </wj-flex-grid-column>
+                    <wj-flex-grid-column [header]="'Workflow'" [isReadOnly]="true" [width]="80">
+                      <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
+                        <div *ngIf="cell.item.WF_isParticipate">
+                          <div *ngIf="_deal.Statusid != 325 ">
+                            <div>
+                              <a (click)="showReserveCommentEmptyAlert(cell.item.Comment,cell.item.DealReserveScheduleGUID,cell.item.Date,cell.item.ReserveAmount,cell.item.PurposeTypeText)" style="cursor:pointer">Open</a>
+                            </div>
+                          </div>
+                        </div>
+
+                      </ng-template>
+                    </wj-flex-grid-column>
+                    <wj-flex-grid-column [header]="'Date'" [binding]="'Date'" [dataType]="'Date'" [isReadOnly]="false" [format]="'MM/dd/yyyy'" align="right" [width]="80">
+                      <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
+                        <div [ngStyle]="{backgroundColor: cell.item.IsValidateHoliday == 'false' ? '#FFB3A7' : ''}">
+                          {{cell.item.Date | date :'shortDate'}}
+                        </div>
+                      </ng-template>
+                    </wj-flex-grid-column>
+                    <wj-flex-grid-column [header]="'Reserve amount'" [binding]="'ReserveAmount'" [aggregate]="'Sum'" format="n2" [width]="120" [isReadOnly]="true">
+                      <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
+                        <div [ngStyle]="{color: cell.item.ReserveAmount < 0? 'red' : 'darkgreen'}">
+                          {{cell.item.ReserveAmount | number:'1.2-2'}}
+                        </div>
+                      </ng-template>
+                    </wj-flex-grid-column>
+                    <wj-flex-grid-column [header]="'Purpose'" [binding]="'PurposeTypeText'"  [isReadOnly]="false" [width]="132"></wj-flex-grid-column>
+                    <wj-flex-grid-column [header]="'Comment'" [binding]="'Comment'" [isReadOnly]="false" [width]="130"></wj-flex-grid-column>
+                    <wj-flex-grid-column [header]="'Confirmed'" [binding]="'Applied'" [isReadOnly]="false" [width]="95">
+                      <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
+                        <div *ngIf="cell.item.WF_CurrentStatusDisplayName=='Completed' && cell.item.WF_IsCompleted==1">
+                          <input #reserveappliedchk type="checkbox" [checked]="cell.item.Applied" (change)="changeReserveScheduleApplied(cell.item.DealReserveScheduleID,reserveappliedchk.checked,cell.row)" id="reserveappliedchk" />
+                        </div>
+                        <div *ngIf="(cell.item.WF_CurrentStatus == null)">
+                          <input #reserveappliedchk type="checkbox" [checked]="cell.item.Applied" (change)="changeReserveScheduleApplied(cell.item.DealReserveScheduleID,reserveappliedchk.checked,cell.row)" id="reserveappliedchk" />
+                        </div>
+                      </ng-template>
+                    </wj-flex-grid-column>
+                    <wj-flex-grid-column [header]="'Status'" [binding]="'WF_CurrentStatusDisplayName'" [isReadOnly]="true" [width]="140" align="left">
+                      <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
+                        <div innerHTML="{{FormatWFStatusName(cell.item.WF_CurrentStatusDisplayName)}}">
+                        </div>
+                      </ng-template>
+                    </wj-flex-grid-column>
+                    <wj-flex-grid-column *ngFor="let col of columnsforReserveSchedule"
+                                         [header]="col.header"
+                                         [binding]="col.binding"
+                                         [width]="130"
+                                         [isReadOnly]="false"
+                                         [aggregate]="col.aggregate" [format]="'n2'" [dataType]="'Number'">
+                    </wj-flex-grid-column>
+                  </wj-flex-grid>
+                </div>
+              </div>
+            </div>
+          </div>
+
+
+
+        </div>
+        <!-- reserve workflow end -->
+
+        <div id="myModalDelete" class="modal">
+          <div class="modal-dialog" draggable="true" id="myModal-Delete" style="min-height:300px;width:500px">
+            <!-- Modal content -->
+            <div class="modal-content" style="padding:0px;border:0px;">
+              <div class="modal-header" style="background:#2196f3 !important">
+                <span class="customheading" style="color:white !important">Delete: {{modulename}}</span>
+                <span class="close" (click)="CloseDeletePopUp()">×</span>
+              </div>
+
+              <div class="modal-body">
+                <span class="customheading">Are you sure you want to delete it?</span>
+
+              </div>
+              <div class="modal-footer" style="background-color:white !important;">
+                <button type="button" (click)="CloseDeletePopUp()" class="custombutton" style="width:100px !important">Cancel</button>
+                <button type="button" (click)="deleteRow()" class="custombutton" style="width:100px !important">Ok</button>
+              </div>
+
+
+            </div>
+          </div>
+        </div>
+
+        <div id="myGenericDialog" class="modal">
+          <div class="modal-dialog" draggable="true" id="myGeneric-Modal" style="min-height:300px;width:500px">
+            <!-- Modal content -->
+            <div class="modal-content" style="padding:0px;border:0px;">
+              <div class="modal-header" style="background:#2196f3 !important">
+                <span class="customheading" style="color:white !important">{{Dialogheader}}</span>
+                <span class="close" (click)="CloseDialogGeneric('myGenericDialog')">×</span>
+              </div>
+
+              <div class="modal-body" id="GenericDialogBody">
+              </div>
+              <div class="modal-footer" style="background-color:white !important;">
+                <button type="button" (click)="CloseDialogGeneric('myGenericDialog')" class="custombutton" style="width:100px !important">Cancel</button>
+                <button type="button" (click)="GenricOkButtonClick()" class="custombutton" style="width:100px !important">Ok</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div id="myModelConfirmInvoice" class="modal">
+          <div class="modal-dialog" draggable="true" id="myModelConfirm-Invoice" style="min-height:300px;width:500px">
+            <!-- Modal content -->
+            <div class="modal-content" style="padding:0px;border:0px;">
+              <div class="modal-header" style="background:#2196f3 !important">
+                <span class="customheading" style="color:white !important">Draw Fee Invoice Confirmation</span>
+                <span class="close" (click)="CloseInvoicePopUp()">×</span>
+              </div>
+
+              <div class="modal-body" id="myModelInvoiceBody">
+                Do you want to send the Draw Fee invoice?
+              </div>
+              <div class="modal-footer" style="background-color:white !important;">
+                <button type="button" (click)="CloseInvoicePopUp()" class="custombutton" style="width:100px !important">Cancel</button>
+                <button type="button" (click)="CreateInvoice()" class="custombutton" style="width:100px !important">Confirm</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+
+        <!--copy Deal-->
+        <div id="myModalCopyDeal" class="modal">
+          <div class="modal-dialog" draggable="true" id="myModalCopyDeal" style="width:1100px">
+            <div class="modal-content" style="padding:0px;border:0px;">
+              <div class="modal-header" style="background:#2196f3 !important;color:white !important;">
+                <span class="close" (click)="CloseCopyPopUp()">×</span>
+                Copy Deal
+              </div>
+
+              <div class="cssload-container" *ngIf="_isdealCopied">
+                <div class="cssload-whirlpool"></div>
+              </div>
+              <div class="modal-body">
+                <br />
+                <div class="form-group row pD10">
+                  <div class="col-sm-4">
+                    <label class="lab1">Deal Id</label>
+                    <input class="ibox1" type="text" [(ngModel)]="_deal.CopyDealID" name="CopyDealID" #CopyDealID="ngModel" id="CopyDealID">
+                  </div>
+
+                  <div class="col-sm-4">
+                    <label class="lab1">Deal Name</label>
+                    <input class="ibox1" type="text" [(ngModel)]="_deal.CopyDealName" name="CopyDealName" #CopyDealName="ngModel" id="CopyDealName">
+                  </div>
+
+                </div>
+                <div *ngIf="_ShowcopydivWar" class="alert alert-warning fade in">
+                  <strong>{{_dealcopymsg}}</strong>
+                </div>
+
+                <div class="form-group row pD10">
+                  <wj-flex-grid #flexCopy id="griddealcopy" [itemsSource]="lstCopyNote" [allowResizing]="'Both'" class="gridSize grid">
+                    <wj-flex-grid-column [header]="'Note Id'" [binding]="'CRENoteID'" [width]="'*'" [isReadOnly]="true"></wj-flex-grid-column>
+                    <wj-flex-grid-column [header]="'New Note Id'" [binding]="'CRENewNoteID'" [width]="'*'"></wj-flex-grid-column>
+                    <wj-flex-grid-column [header]="'Name'" [binding]="'Name'" [width]="'*'"></wj-flex-grid-column>
+                    <wj-flex-grid-column [header]="'Exclude'" [binding]="'Isexclude'" [width]="'*'"></wj-flex-grid-column>
+                  </wj-flex-grid>
+                </div>
+                <div class="form-group row pD10">
+                  <button type="button" id="btndealcopyaandopen" class="custombutton" [disabled]="_isdealCopied" style="position: relative;top:50%;right: 35%;width:150px!important " (click)="CopyToDeal(CopyDealID.value,CopyDealName.value,lstCopyNote,true)">Copy and Open</button>
+                  <button type="button" id="btndealcopy" class="custombutton" [disabled]="_isdealCopied" style="position: relative;top:50%;right: 35%;width:150px!important " (click)="CopyToDeal(CopyDealID.value,CopyDealName.value,lstCopyNote,false)">Copy</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div id="myModalScriptEngine" class="modal">
+          <div class="modal-dialog" draggable="true" id="modal-dialog" style="min-height:300px;width:1100px">
+            <!-- Modal content -->
+            <div class="modal-content">
+              <div class="modal-header">
+                {{modulename}}
+
+                <span class="close" (click)="ClosePopUpScriptEngine()">×</span>
+              </div>
+
+              <div class="modal-body">
+                <!--<svg *ngIf="_isPeriodicDataFetching" class="spinner" style="margin-left: 420px;" width="30px" height="30px" viewBox="0 0 66 66">
+              <circle class="circle" fill="none" stroke-width="6" stroke-linecap="round" cx="33" cy="33" r="30"></circle>
+          </svg>-->
+
+                <span *ngIf="_dvEmptyPeriodicDataMsg"><b> {{calcExceptionMsg}}</b></span>
+
+                <div class="cssload-container" *ngIf="_isPeriodicDataFetching">
+                  <div class="cssload-whirlpool"></div>
+                </div>
+
+                <div style="height:450px">
+                  <textarea class="ibox1" rows="50" cols="150" style="height:150px;width: 1020px;" id="txtNoteJsonForScriptEngine"></textarea>
+                  <button type="button" class="custombutton" (click)="invokeFunction()">Calc</button>
+                  <br />
+                  <div>
+                    <div class="modal-header">
+                      Calc Response
+                    </div>
+                    <br />
+                    <textarea class="ibox1" rows="50" cols="150" style="height:150px;width: 1020px;" id="txtNoteJsonResponseForScriptEngine"></textarea>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div id="myModalRules" class="modal">
+          <div class="modal-dialog" draggable="true" id="modal-dialog" style="min-height:200px;width:700px">
+            <!-- Modal content -->
+            <div class="modal-content">
+              <div class="modal-header" style="border:0;">
+                <span class="customheading">Add/Update Note Rules</span>
+                <span class="close" (click)="ClosePopUpRules()">×</span>
+              </div>
+
+              <div class="modal-body">
+                <!--<svg *ngIf="_isPeriodicDataFetching" class="spinner" style="margin-left: 420px;" width="30px" height="30px" viewBox="0 0 66 66">
+              <circle class="circle" fill="none" stroke-width="6" stroke-linecap="round" cx="33" cy="33" r="30"></circle>
+          </svg>-->
+
+                <span *ngIf="_dvEmptyPeriodicDataMsg"><b> {{calcExceptionMsg}}</b></span>
+
+                <div class="cssload-container" *ngIf="_isPeriodicDataFetching">
+                  <div class="cssload-whirlpool"></div>
+                </div>
+
+                <div style="height:430px">
+                  <textarea class="ibox1" rows="50" cols="150" style="height:396px;" id="txtrules"></textarea>
+                  <button type="button" class="custombutton" (click)="SaveRule()">Save</button>
+                  <br />
+
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+
+    <div id="dialogoverlay"></div>
+    <div id="dialogbox">
+      <div>
+        <div id="dialogboxhead"></div>
+        <div id="dialogboxbody"></div>
+        <div id="dialogboxfoot"><span class="btn custombutton" (click)="ok()">Ok</span></div>
+      </div>
+    </div>
+
+
+    <div id="customdialogbox" class="modal">
+      <div class="modal-dialog" draggable="true" id="myModal-Delete" style="min-height:300px;width:500px">
+        <!-- Modal content -->
+        <div class="modal-content" style="padding:0px;border:0px;">
+          <div class="modal-header" style="background:#2196f3 !important">
+            <span class="customheading" style="color:white !important">Delete</span>
+            <span class="close" (click)="ClosePopUpDeleteOption()">×</span>
+          </div>
+
+          <div class="modal-body">
+            <span class="customheading">
+              {{ _MsgText }}
+            </span>
+
+          </div>
+          <div class="modal-footer" style="background-color:white !important;">
+            <button type="button" (click)="ClosePopUpDeleteOption()" class="custombutton" style="width:100px !important">Cancel</button>
+            <button type="button" class="custombutton" style="width:100px !important" (click)="deleteModuleByID()">Ok</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="Genericdialogbox" class="modal">
+      <div class="modal-dialog" draggable="true" id="myModalgen" style="min-height:300px;width:500px">
+        <!-- Modal content -->
+        <div class="modal-content" style="padding:0px;border:0px;">
+          <div class="modal-header" style="background:#2196f3 !important">
+            <span class="customheading" style="color:white !important">CRES - Validation Error</span>
+            <span class="close" (click)="ClosePopUpDialog()">×</span>
+          </div>
+
+          <div class="modal-body" id="savedialogmessage">
+
+          </div>
+          <div class="modal-footer" style="background-color:white !important;">
+            <button type="button" id="btnCRESvalcancel" (click)="ClosePopUpDialog()" class="custombutton" style="width:100px !important">Cancel</button>
+            <button type="button" id="btnCRESvalOk" class="custombutton" style="width:100px !important" (click)="Savedialogbox()">Ok</button>
+
+          </div>
+
+
+        </div>
+      </div>
+    </div>
+    <div id="GenereateFundingDialogbox" class="modal">
+      <div class="modal-dialog" draggable="true" id="myModalGenereateFunding" style="min-height:300px;width:500px">
+        <!-- Modal content -->
+        <div class="modal-content" style="padding:0px;border:0px;">
+          <div class="modal-header" style="background:#2196f3 !important">
+            <span class="customheading" style="color:white !important">CRES - Validation Error</span>
+            <span class="close" (click)="ClosePopUpDialogPara('GenereateFundingDialogbox')">×</span>
+          </div>
+          <div class="modal-body" id="GenereateFundingDialogbody">
+            <p>
+              You have entered Paydown  without "comment", the updated record will get overridden by auto spreading amount. Do you want to proceed?
+            </p>
+          </div>
+          <div class="modal-footer" style="background-color:white !important;">
+            <button type="button" id="btnCRESfundcancel" (click)="ClosePopUpDialogPara('GenereateFundingDialogbox')" class="custombutton" style="width:100px !important">Cancel</button>
+            <button type="button" id="btnCRESfundOk" class="custombutton" style="width:100px !important" (click)="GenerateRepayOrFuding()">Ok</button>
+
+          </div>
+
+
+        </div>
+      </div>
+    </div>
+
+    <div id="GenereateFundingDialogboxFF" class="modal">
+      <div class="modal-dialog" draggable="true" id="myModalGenereateFundingFF" style="min-height:300px;width:500px">
+        <!-- Modal content -->
+        <div class="modal-content" style="padding:0px;border:0px;">
+          <div class="modal-header" style="background:#2196f3 !important">
+            <span class="customheading" style="color:white !important">CRES - Validation Error</span>
+            <span class="close" (click)="ClosePopUpDialogPara('GenereateFundingDialogboxFF')">×</span>
+          </div>
+          <div class="modal-body" id="GenereateFundingDialogbodyFF">
+            <div id="dialogboxbodyFF"></div>
+
+          </div>
+
+          <div class="modal-footer" style="background-color:white !important;">
+            <button type="button" id="btnCRESfundcancelFF" (click)="ClosePopUpDialogPara('GenereateFundingDialogboxFF')" class="custombutton" style="width:100px !important">Cancel</button>
+            <button type="button" id="btnCRESfundOkFF" class="custombutton" style="width:100px !important" (click)="GenerateRepayOrFuding()">Ok</button>
+
+          </div>
+
+
+        </div>
+      </div>
+    </div>
+    <div id="customdialogarchive" class="modal">
+      <div class="modal-dialog" draggable="true" id="myModal-archive" style="min-height:300px;width:500px">
+        <!-- Modal content -->
+        <div class="modal-content" style="padding:0px;border:0px;">
+          <div class="modal-header" style="background:#2196f3 !important">
+            <span class="customheading" style="color:white !important">Archive Document</span>
+            <span class="close" (click)="ClosePopUpArchive()">×</span>
+          </div>
+
+          <div class="modal-body">
+            <span class="customheading">
+              {{ _MsgText }}
+            </span>
+
+          </div>
+          <div class="modal-footer" style="background-color:white !important;">
+            <button type="button" (click)="ClosePopUpArchive()" class="custombutton" style="width:100px !important">Cancel</button>
+            <button type="button" class="custombutton" style="width:100px !important" (click)="ArchiveDocument()">Ok</button>
+          </div>
+
+
+        </div>
+      </div>
+    </div>
+
+    <div id="UseRuledialogbox" class="modal">
+      <div class="modal-dialog" draggable="true" id="myModalgen" style="width:500px">
+        <!-- Modal content -->
+        <div class="modal-content" style="padding:0px;border:0px;">
+          <div class="modal-header" style="background:#2196f3 !important">
+            <span class="customheading" style="color:white !important">CRES - Validation Error</span>
+            <span class="close" (click)="ClosePopUpUseRule()">×</span>
+          </div>
+
+          <div class="modal-body" id="userulemessage">
+
+          </div>
+          <div class="modal-footer" style="background-color:white !important;">
+            <button type="button" id="btnRulevalCancel" (click)="ClosePopUpUseRule()" class="custombutton" style="width:100px !important">Cancel</button>
+            <button type="button" id="btnRulevalok" class="custombutton" style="width:100px !important" (click)="UseRule()">Ok</button>
+
+          </div>
+
+
+        </div>
+      </div>
+    </div>
+
+    <div id="Amortdialogbox" class="modal">
+      <div class="modal-dialog" draggable="true" id="myModalgen" style="min-height:300px;width:500px">
+
+        <div class="modal-content" style="padding:0px;border:0px;">
+          <div class="modal-header" style="background:#2196f3 !important">
+            <span class="customheading" style="color:white !important">CRES - Validation Error</span>
+            <span class="close" (click)="ClosePopUpAmort()">×</span>
+          </div>
+
+          <div class="modal-body" id="Amortmessage">
+
+          </div>
+          <div class="modal-footer" style="background-color:white !important;">
+            <button type="button" id="btnamortvalcancel" (click)="ClosePopUpAmort()" class="custombutton" style="width:100px !important">Cancel</button>
+            <button type="button" id="btnamortvalok" class="custombutton" style="width:100px !important" (click)="ChangeAmortMethod()">Ok</button>
+
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!--<div id="AutospreadEquitydialogbox" class="modal">
+      <div class="modal-dialog" draggable="true" id="modal-dialog" style="height:50px;width:900px">-->
+    <!-- Modal content -->
+    <!--<div class="modal-content" style="padding:0px;border:0px;">
+          <div class="modal-header" style="background:#2196f3 !important;color:white !important;">
+            Equity
+
+            <span class="close" (click)="ClosePopUpAutospread()">×</span>
+          </div>
+
+          <div class="modal-body">
+
+            <wj-flex-grid id="grdAutoEquity" #grdAutoEquity [itemsSource]="lstAutoEquity" [allowResizing]="'Both'" [isReadOnly]="true" [frozenColumns]="1">
+              <wj-flex-grid-column [header]="' '" [binding]="'EquityName'" [width]="'*'"></wj-flex-grid-column>
+
+              <wj-flex-grid-column [header]="'Total Committed Reqd'" [binding]="'TotalCommitted'" [width]="'*'"></wj-flex-grid-column>
+              <wj-flex-grid-column [header]="'Total Contributed to Date'" [binding]="'TotalContibutedDate'" [width]="'*'"></wj-flex-grid-column>
+              <wj-flex-grid-column [header]="'Remaining to Contribute'" [binding]="'RemainingtoContribute'" [width]="'*'"></wj-flex-grid-column>
+              <wj-flex-grid-column [header]="'% Contributed to Date'" [binding]="'Percentcontributed'" [width]="'*'"></wj-flex-grid-column>
+            </wj-flex-grid>
+
+          </div>
+        </div>
+      </div>
+    </div>-->
+    <div id="myModal" class="modal">
+      <div class="modal-dialog" draggable="true" id="modal-dialog" style="min-height:295px;width:700px">
+        <!-- Modal content -->
+        <div class="modal-content" style="padding:0px;border:0px;">
+          <div class="modal-header" style="background:#2196f3 !important;color:white !important;">
+            {{modulename}}
+
+            <span class="close" (click)="ClosePopUp()">×</span>
+          </div>
+
+          <div class="modal-body">
+
+            <span *ngIf="_dvEmptyPeriodicDataMsg"><b> {{calcExceptionMsg}}</b></span>
+
+            <div class="cssload-container" *ngIf="_isPeriodicDataFetching">
+              <div class="cssload-whirlpool"></div>
+            </div>
+
+
+            <div *ngIf="_isPeriodicDataFetched">
+              <wj-flex-grid id="grdPeriodicData" #grdPeriodicData [itemsSource]="lstPeriodicDataList" [allowResizing]="'Both'" [isReadOnly]="true" class="popupGridSize" [frozenColumns]="1" [selectionMode]="'Row'">
+                <wj-flex-grid-filter #filter [filterColumns]="['Note Id','Effective Date','Maturity Type','Maturity Date','Approved']"></wj-flex-grid-filter>
+                <wj-flex-grid-column *ngFor="let col of columnsMatrity"
+                                     [header]="col.header"
+                                     [binding]="col.binding"
+                                     [format]="col.format">
+                </wj-flex-grid-column>
+              </wj-flex-grid>
+            </div>
+            <div *ngIf="_isCalcJsonFetched" style="height:450px">
+              <textarea class="ibox1" rows="50" cols="150" style="height:150px;width: 1020px;" id="txtNoteJson"></textarea>
+              <button type="button" class="custombutton" (click)="RunCalculatorByJsonRequest()">Calc</button>
+              <br />
+              <div>
+                <div class="modal-header" style="background:#2196f3 !important;color:white !important;">
+                  Calc Response
+                </div>
+                <br />
+                <textarea class="ibox1" rows="50" cols="150" style="height:150px;width: 1020px;" id="txtNoteJsonResponse"></textarea>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="maturityEffectiveDateDialogbox" class="modal">
+      <div class="modal-dialog" draggable="true" id="myModal-maturityEffectiveDate" style="min-height:300px;width:500px">
+        <!-- Modal content -->
+        <div class="modal-content" style="padding:0px;border:0px;">
+          <div class="modal-header" style="background:#2196f3 !important">
+            <span class="customheading" style="color:white !important">Confirmation</span>
+            <span class="close" (click)="ClosePopUpMaturityEffectiveDate()">×</span>
+          </div>
+
+          <div class="modal-body">
+            <span class="customheading">
+              Changing current effective date will invalidate the previous effective date. Do you want to proceed?
+            </span>
+
+          </div>
+          <div class="modal-footer" style="background-color:white !important;">
+            <button type="button" (click)="ClosePopUpMaturityEffectiveDate()" class="custombutton" style="width:100px !important">Cancel</button>
+            <button type="button" class="custombutton" style="width:100px !important" (click)="OnchangematurityEffectiveDate(maturityEffectiveDate)">Ok</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="maturityConfigModal" class="modal">
+      <div class="modal-dialog" draggable="true" id="modal-configdialog" style="min-height:295px;width:700px">
+        <!-- Modal content -->
+        <div class="modal-content" style="padding:0px;border:0px;">
+          <div class="modal-header" style="background:#2196f3 !important;color:white !important;">
+            <span class="customheading" style="color:white !important">Maturity configuration</span>
+            <span class="close" (click)="CloseMaturityConfigPopUp()">×</span>
+          </div>
+
+          <div class="modal-body">
+            <div class="form-group row pD10">
+              <wj-flex-grid #flexMaturityConfig id="flexMaturityConfig" [itemsSource]="lstMaturityConfiguration"
+                            (cellEditEnded)="cellEditMaturityConfig(flexMaturityConfig,$event)"
+                            (pasted)="copyMaturityConfig(flexMaturityConfig,$event)" class="gridSize" style="max-height:370px;">
+                <wj-flex-grid-filter #filter></wj-flex-grid-filter>
+                <wj-flex-grid-column [header]="'Note'" [binding]="'Note'" [isReadOnly]="true" [width]="234"></wj-flex-grid-column>
+                <wj-flex-grid-column [header]="'Group'" [binding]="'MaturityGroupName'" [isReadOnly]="false" [width]="'*'"></wj-flex-grid-column>
+                <wj-flex-grid-column [header]="'Method'"  [binding]="'MaturityMethodIDText'" [width]="'*'" [isReadOnly]="false"></wj-flex-grid-column>
+              </wj-flex-grid>
+            </div>
+          </div>
+
+          <div class="modal-footer" style="background-color:white !important;">
+            <button type="button" (click)="CloseMaturityConfigPopUp()" class="custombutton" style="width:100px !important">Cancel</button>
+            <button type="button" class="custombutton" (click)="maturityConfigurationSetup()" style="width:100px !important">Ok</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</form>
+
+<br />
+<!--<div class="form-row">
+  <div *ngIf="payLoad"><strong>The form contains the following values</strong></div>
+  <div>
+    {{payLoad}}
+  </div>
+
+</div>-->

@@ -1,0 +1,24 @@
+﻿
+CREATE PROCEDURE [APP].[usp_GetCalcLog] 
+
+AS
+BEGIN
+	SET NOCOUNT ON;
+	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
+
+  
+Select 
+Msg1+
+Msg2+
+Msg3+
+Msg4+
+Msg5+
+Msg6+
+Msg7+
+Msg8+
+Msg9+
+Msg10
+from [APP].[CalcLog] 
+order by CalcLogID desc
+	SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+END

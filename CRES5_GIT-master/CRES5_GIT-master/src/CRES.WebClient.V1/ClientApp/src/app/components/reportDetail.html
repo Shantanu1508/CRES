@@ -1,0 +1,26 @@
+<div class="col-sm-12" width="100%">
+
+  <div id="reportContainer" style="height:calc(100vh - 54px)!important"></div>
+
+</div>
+<div id="customdialogbox" class="modal">
+  <div class="modal-dialog" draggable="true" id="myModal-Delete" style="min-height:300px;width:400px">
+    <!-- Modal content -->
+    <div class="modal-content" style="padding:0px;border:0px;">
+      <div class="modal-header" style="background:#2196f3 !important;padding:6px !important">
+        <span class="customheading" style="color:white !important">Alert</span>
+        <span class="close" (click)="HideDialog()">×</span>
+      </div>
+
+      <div class="modal-body">
+        <span class="customheading">
+
+          {{ _MsgText }}
+        </span>
+        <div class="modal-footer" style="background-color:white !important;">
+          <button type="button" (click)="HideDialog()" class="custombutton" style="width:100px !important;margin-right: 120px !important;">Ok</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

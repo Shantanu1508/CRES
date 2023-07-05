@@ -1,0 +1,312 @@
+<form #f="ngForm">
+  <div class="col-sm-12">
+    <div class="head fixheaderdiv">
+      <h1 style="display: inline-block;margin-top: 10px;">Calculation Manager</h1>
+
+      <span *ngIf="_isShowDownloadCashflows">
+        <div style="float:right !important;margin-left:0px !important;">
+          <wj-multi-select #multiseltransactioncategory id="multiseltransactioncategory"
+                           [placeholder]="'Download Transactions'"
+                           class="multiselect-dropdown display-table-cell"
+                           [headerFormat]="'{count} Transactions selected'"
+                           [displayMemberPath]="'TransactionCategory'"
+                           [checkedMemberPath]="'selected'"
+                           [itemsSource]="listtransactioncategory"
+                           style="width:215px; height:30px !important;">
+          </wj-multi-select>
+          <button type="button" class="btn" style="background-color: #2196f3 !important;color:#ffffff!important;margin-right:10px !important;" id="btnDownloadNoteCashflowsExportData" (click)="downloadNoteCashflowsExportData()"><i class="fa fa-download" aria-hidden="true"></i></button>
+        </div>
+      </span>
+      <span>
+
+        <button type="button" class="custombutton" (click)="CalcAtServerDialog()">Calc</button>
+        <button type="button" class="custombutton" style="width:200px !important" (click)="CancelBatchCalculationRequest()">Cancel Batch Calculation</button>
+      </span>
+
+      <div *ngIf="_ShowSuccessmessagediv" class="alert alert-success fade in">
+        <strong>{{_ShowSuccessmessage}}</strong>
+      </div>
+      <div *ngIf="_Showmessagediv" class="alert alert-danger fade in">
+        <strong>{{Message}}</strong>
+      </div>
+    </div>
+
+    <div class="fmst fixheadercontent">
+      <div class="cssload-container" *ngIf="_isCalcListFetching">
+        <div class="cssload-whirlpool"></div>
+      </div>
+
+      <ul id="myTab" class="nav nav-tabs nav-tabs">
+        <li class="active"><a data-target="#calculationManager" (click)="invlaidatecalculationManagergrid()" data-toggle="tab">Calculation manager</a></li>
+        <li><a data-target="#exceptions" (click)="GetAllExceptions()" data-toggle="tab">Notes with exceptions</a></li>
+        <!--<li><a data-target="#testcase" (click)="GetTestcases(false)" data-toggle="tab">Test Cases</a></li>-->
+        <li *ngIf="HideMenu()"><a data-target="#batchlog" (click)="GetBatchLog()" data-toggle="tab">Batch Log</a></li>
+      </ul>
+
+      <div class="tab-content" id="myTabContent">
+        <div class="tab-pane fade active in" id="calculationManager">
+
+          <div class="box1a">
+            <h3>Calculation summary</h3>
+            <div class="form-group row pD10">
+
+              <!--<div class="col-sm-3">
+                  <select [(ngModel)]="_scenariodc.AnalysisID" id="AnalysisID" name="AnalysisID" #AnalysisID="ngModel" class="ibox1" (change)="ddlScenarioChange($event.target.value)">
+                      <option *ngFor="let item of _lstScenario" value={{item.AnalysisID}}>
+                          {{item.ScenarioName}}
+                      </option>
+                  </select>
+              </div>
+
+              <div class="col-sm-3">
+                  <select [(ngModel)]="_scenariodc.CalculationModeID" name="CalculationModeID" #CalculationModeID="ngModel" class="ibox1" (change)="ddlCalculationMode($event.target.value)">
+                      <option *ngFor="let Lcal of lstCalculationMode" value={{Lcal.LookupID}}>
+                          {{Lcal.Name}}
+                      </option>
+                  </select>
+              </div>
+
+              <div class="col-sm-3">
+              </div>-->
+
+              <div class="col-sm-12 pad-bottom-20">
+                <!--<div class="col-sm-3">-->
+                <select id="DefaultNoteTab" name="DefaultNoteTab" style="width:180px;float: right; margin-right: 25px;"
+                        class="ibox1" (change)="ChangeDynamicPortfolio($event)">
+                  <option value="00000000-0000-0000-0000-000000000000">
+                    <b> Filter By: Portfolio</b>
+                  </option>
+                  <option *ngFor="let item of lstPortfolio" value={{item.PortfolioMasterGuid}}>
+                    {{item.PortfolioName}}
+                  </option>
+                </select>
+                <select style="width:180px;float: right; margin-right: 25px;" class="ibox1" (change)="changeScenario($event)">
+                  <option *ngFor="let item of _lstScenario" value={{item.AnalysisID}} selected="{{item.ScenarioName=='Default'?'selected':''}}">
+                    {{item.ScenarioName}}
+                  </option>
+                </select>
+              </div>
+
+              <div class="col-sm-12 customgridpadding" *ngIf="_lstcalculationlistCount != 0">
+
+                <wj-flex-grid #flexcalculation [itemsSource]="lstcalculationlist"
+                              [allowAddNew]="false"
+                              [allowResizing]="'Both'"
+                              (beginningEdit)="cellEditbeginCalc(flex,$event)"
+                              class="gridSize Calculationmanagergrid">
+                  <wj-flex-grid-filter #filter [filterColumns]="['CRENoteID','NoteName','DealName','StatusText','StartTime','EndTime','ErrorMessage','FileName','EnableM61CalculationsText']"></wj-flex-grid-filter>
+                  <!--<wj-flex-grid-filter #filter></wj-flex-grid-filter>-->
+                  <wj-flex-grid-column [header]="'Calc'" [binding]="'Active'" [width]="60">
+                    <ng-template wjFlexGridCellTemplate [cellType]="'ColumnHeader'" let cell="cell">
+                      <input (change)="SelectAll(flex)" type="checkbox" id="chkSelectAll" /> Calc
+                    </ng-template>
+                  </wj-flex-grid-column>
+                  <wj-flex-grid-column [header]="'Cashflow'" [binding]="'downloadnote'" [width]="82">
+                    <ng-template wjFlexGridCellTemplate [cellType]="'ColumnHeader'" let cell="cell">
+                      <input (change)="SelectAllDownload(flex)" type="checkbox" id="chkSelectAlldownload" /> Cashflow
+                    </ng-template>
+                  </wj-flex-grid-column>
+                  <wj-flex-grid-column [header]="'Note Id'" [width]="100" [binding]="'CRENoteID'" [isReadOnly]="true">
+                    <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
+                      <div>
+                        <a href='/#/notedetail/{{cell.item.NoteId}}' rel="nofollow">{{cell.item.CRENoteID}}</a>
+                      </div>
+                    </ng-template>
+                  </wj-flex-grid-column>
+
+                  <!--<wj-flex-grid-column [header]="'Note ID'" [binding]="'CRENoteID'" [width]="'*'" show-filter="false"></wj-flex-grid-column>-->
+                  <wj-flex-grid-column [header]="'Note name'" [binding]="'NoteName'" [isReadOnly]="true" [width]="250" show-filter="true"></wj-flex-grid-column>
+                  <wj-flex-grid-column [header]="'Deal name'" [binding]="'DealName'" [isReadOnly]="true" [width]="250" show-filter="true"></wj-flex-grid-column>
+                  <wj-flex-grid-column [header]="'Status'" [binding]="'StatusText'" [isReadOnly]="true" [width]="100" show-filter="true">
+
+                    <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
+
+                      <div [ngStyle]="{color: cell.item.StatusText == 'Failed' ? 'red' : cell.item.StatusText == 'Completed'?'green': cell.item.StatusText == 'Running'? 'Orange':cell.item.StatusText == 'Processing'? 'blue':cell.item.StatusText == 'Dependents'? 'chocolate' :'White'}">
+
+                        {{cell.item.StatusText}}
+                      </div>
+                    </ng-template>
+                  </wj-flex-grid-column>
+                  <!--<wj-flex-grid-column [header]="'Request time'" [binding]="'RequestTime'" [width]="'*'" align="right"></wj-flex-grid-column>-->
+                  <wj-flex-grid-column [header]="'Start time'" [binding]="'StartTime'" type="datetime" format="MM-dd-yyyy hh:mm:ss" [isReadOnly]="true" [width]="'*'" align="right" show-filter="true"></wj-flex-grid-column>
+                  <wj-flex-grid-column [header]="'End time'" [binding]="'EndTime'" type="datetime" format="MM-dd-yyyy hh:mm:ss" [isReadOnly]="true" [width]="'*'" align="right" show-filter="true"></wj-flex-grid-column>
+                  <!--<wj-flex-grid-column [header]="'Application name'" [binding]="'ApplicationText'" [width]="'*'"></wj-flex-grid-column>
+                  <wj-flex-grid-column [header]="'Priority'" [binding]="'PriorityText'" [width]="'*'"></wj-flex-grid-column>-->
+                  <wj-flex-grid-column [header]="'Error message'" [binding]="'ErrorMessage'" [isReadOnly]="true" [width]="'*'" show-filter="true">
+                    <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
+                      <div data-toggle="tooltip" data-placement="top" title={{cell.item.ErrorMessage}}>
+                        {{cell.item.ErrorMessage}}
+                      </div>
+                    </ng-template>
+                  </wj-flex-grid-column>
+
+                  <wj-flex-grid-column [header]="'Download o/p'" [binding]="'FileName'" [isReadOnly]="true" [visible]=isAllowDebugInCalc [width]="150">
+                    <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
+                      <div *ngIf="cell.item.FileName">
+                        <a class="cur-pointer" (click)="DownloadCalcOutputExcel(cell.item.FileName)" title="Click to download" routerLinkActive="active"><img style="height:25px;width:25px;margin-left:75px;" src="../../images/icon_xls.png" /></a>
+                      </div>
+                    </ng-template>
+                  </wj-flex-grid-column>
+                  <wj-flex-grid-column [header]="'M61 Enable Calculation'" [binding]="'EnableM61CalculationsText'" [width]="'*'" [isReadOnly]="true"></wj-flex-grid-column>
+                </wj-flex-grid>
+
+                <!--<div id="dvFlexNoteCashflowsExportDataList" style="display:none">
+                    <wj-flex-grid id="flexNoteCashflowsExportDataList" #flexNoteCashflowsExportDataList [itemsSource]="_noteCashflowsExportDataList.lstNoteCashflowsExportData" [allowAddNew]="true" [allowResizing]="'Both'" style="height:700px">
+                        <wj-flex-grid-column [header]="'NoteID'" [binding]="'NoteID'" [width]="'*'"></wj-flex-grid-column>
+                        <wj-flex-grid-column [header]="'NoteName'" [binding]="'NoteName'" [width]="'*'"></wj-flex-grid-column>
+                        <wj-flex-grid-column [header]="'Date'" [binding]="'DisplayDate'" align="right" [width]="'*'"></wj-flex-grid-column>
+                        <wj-flex-grid-column [header]="'Value'" [binding]="'Value'" align="right" [width]="'*'"></wj-flex-grid-column>
+                        <wj-flex-grid-column [header]="'ValueType'" [binding]="'ValueType'" align="right" [width]="'*'"></wj-flex-grid-column>
+                    </wj-flex-grid>
+                </div>-->
+              </div>
+              <div *ngIf="_lstcalculationlistCount == 0" class="alert alert-danger fade in col-sm-12 customgridpadding">
+                <!--<a href="#" class="close" data-dismiss="alert" aria-label="close" title="close">×</a>-->
+                <strong>No matching records found</strong>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="tab-pane fade in" id="exceptions">
+          <div class="cssload-container" *ngIf="_isExceptionListFetching">
+            <div class="cssload-whirlpool"></div>
+          </div>
+          <div *ngIf="_ExceptionListCount == 0" class="alert alert-danger fade in" style="margin-top:18px;">
+            <!--<a href="#" class="close" data-dismiss="alert" aria-label="close" title="close">×</a>-->
+            <strong>No matching records found</strong>
+          </div>
+          <div class="box1a" *ngIf="_ExceptionListCount != 0">
+            <h3>Exceptions</h3>
+            <!--<div class="col-sm-12">
+                <button type="button" (click)="GetAllExceptions()" class="custombutton" style="width:160px !important">Get all exception</button>
+            </div>-->
+            <div>
+              <div>
+                <div>
+                  <wj-flex-grid #flexnoteexceptions [itemsSource]="lstnotesexceptions" [allowAddNew]="false"
+                                [allowResizing]="'Both'"
+                                class="gridSize Calculationmanagerexceptiongrid">
+                    <wj-flex-grid-filter #filter [filterColumns]="['CREID','Name','DealName','Summary','ActionLevelText']"></wj-flex-grid-filter>
+                    <wj-flex-grid-column [header]="'Note Id'" [isReadOnly]="true" [binding]="'CREID'">
+                      <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
+                        <div>
+                          <a href='/#/notedetail/{{cell.item.ObjectID}}' routerLinkActive="active">{{cell.item.CREID}}</a>
+                        </div>
+                      </ng-template>
+                    </wj-flex-grid-column>
+                    <wj-flex-grid-column [header]="'Name'" [binding]="'Name'" [isReadOnly]="true" [width]="'*'"></wj-flex-grid-column>
+                    <wj-flex-grid-column [header]="'Deal Name'" [binding]="'DealName'" [width]="'*'" [isReadOnly]="true">
+                      <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
+                        <div>
+                          <a href='/#/dealdetail/{{cell.item.CREDealID}}' routerLinkActive="active">{{cell.item.DealName}}</a>
+                        </div>
+                      </ng-template>
+                    </wj-flex-grid-column>
+                    <wj-flex-grid-column [header]="'Exception type'" [binding]="'ActionLevelText'" [isReadOnly]="true" align="left" [width]="150" format="n2"></wj-flex-grid-column>
+                    <wj-flex-grid-column [header]="'Summary'" [binding]="'Summary'" align="left" [isReadOnly]="true" [width]="'*'"></wj-flex-grid-column>
+                  </wj-flex-grid>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="tab-pane fade in" id="testcase">
+          <div *ngIf="_ShowSuccessmessageTestcasediv" class="alert alert-success fade in">
+            <strong>{{_ShowSuccessmessageTestcase}}</strong>
+          </div>
+          <div class="cssload-container" *ngIf="istestcasefetching">
+            <div class="cssload-whirlpool"></div>
+          </div>
+
+          <div *ngIf="_norecordtestcase" class="alert alert-danger fade in" style="margin-top:18px;">
+            <strong>No matching records found</strong>
+          </div>
+          <div class="box1a" *ngIf="!_norecordtestcase">
+            <h3>Test Cases</h3>
+            <div>
+              <div>
+                The test case was last executed on : <strong>{{_lastExecutedTime}}</strong>
+                <div *ngIf="!istestcasefetching">
+                  <button type="button" id="btnRuntestCase" class="custombutton_150px" (click)="GetTestcases(true)">Run Test case</button>
+                </div>
+              </div>
+              <div>
+                <div>
+                  <wj-flex-grid id="flextestcase" #flextestcase [itemsSource]="_testCaseData" class="gridSize" [frozenColumns]="2" allow-sorting="true" showFilterIcons="true" style="height:calc(99.8vh - 250px);">
+                    <wj-flex-grid-column [header]="'NoteID'" [isReadOnly]="true" [width]="'*'">
+                      <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
+                        <div>
+                          <a routerLink='/notedetail/{{cell.item.NoteID}}' routerLinkActive="active">{{cell.item.CRENoteID}}</a>
+                        </div>
+                      </ng-template>
+                    </wj-flex-grid-column>
+                  </wj-flex-grid>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="tab-pane fade" id="batchlog">
+
+          <div class="box1a">
+            <h3>Batch Log</h3>
+            <div class="form-group row pD10">
+
+              <div class="col-sm-12 customgridpadding" *ngIf="_lstlstbatchlogCount != 0">
+                <wj-flex-grid #flexbatch [itemsSource]="lstbatchlog"
+                              [allowAddNew]="false"
+                              [allowResizing]="'Both'"
+                              class="gridSize" style="height:calc(99.8vh - 250px);">
+                  <wj-flex-grid-filter #filter [filterColumns]="['BatchCalculationMasterID','Name','Total','TotalCompleted','TotalFailed','UserName','StartTime','EndTime']"></wj-flex-grid-filter>
+                  <wj-flex-grid-column [header]="'Batch ID'" [binding]="'BatchCalculationMasterID'" [isReadOnly]="true" show-filter="true" [width]="'*'" align="left"></wj-flex-grid-column>
+                  <wj-flex-grid-column [header]="'Total Notes'" [binding]="'Total'" [isReadOnly]="true" show-filter="true" [width]="'*'" align="left"></wj-flex-grid-column>
+                  <wj-flex-grid-column [header]="'Completed'" [binding]="'TotalCompleted'" [isReadOnly]="true" show-filter="true" [width]="'*'" align="left"></wj-flex-grid-column>
+                  <wj-flex-grid-column [header]="'Failed'" [binding]="'TotalFailed'" [isReadOnly]="true" show-filter="true" [width]="'*'" align="left"></wj-flex-grid-column>
+                  <wj-flex-grid-column [header]="'Scenario Name'" [binding]="'Name'" [isReadOnly]="true" [width]="'*'" show-filter="true"></wj-flex-grid-column>
+                  <wj-flex-grid-column [header]="'Requested By'" [binding]="'UserName'" [isReadOnly]="true" show-filter="true" [width]="'*'"></wj-flex-grid-column>
+                  <wj-flex-grid-column [header]="'Start Time'" [binding]="'StartTime'" type="datetime" format="MM-dd-yyyy hh:mm:ss" [isReadOnly]="true" [width]="250" show-filter="true"></wj-flex-grid-column>
+                  <wj-flex-grid-column [header]="'End Time'" [binding]="'EndTime'" type="datetime" format="MM-dd-yyyy hh:mm:ss" [isReadOnly]="true" [width]="250" show-filter="true"></wj-flex-grid-column>
+                </wj-flex-grid>
+              </div>
+              <div *ngIf="_lstlstbatchlogCount == 0" class="alert alert-danger fade in col-sm-12 customgridpadding">
+                <!--<a href="#" class="close" data-dismiss="alert" aria-label="close" title="close">×</a>-->
+                <strong>No matching records found</strong>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="dialogoverlay"></div>
+    <div id="dialogbox">
+      <div>
+        <div id="dialogboxhead"></div>
+        <div id="dialogboxbody"></div>
+        <div id="dialogboxfoot"><span class="btn custombutton" (click)="ok()">Ok</span></div>
+      </div>
+    </div>
+    <div id="myModalConfirmTag" class="modal">
+      <div class="modal-dialog" draggable="true" id="myModal-confirm-tag" style="min-height:300px;width:500px">
+        <!-- Modal content -->
+        <div class="modal-content" style="padding:0px;border:0px;">
+          <div class="modal-header" style="background:#2196f3 !important">
+            <span class="customheading" style="color:white !important">CRES</span>
+            <span class="close" (click)="CloseModalConfirmTag()">×</span>
+          </div>
+
+          <div class="modal-body">
+            <span class="customheading" style="padding:10px;">Do you want to tag the cashflow after the batch completes?</span>
+          </div>
+          <div class="modal-footer" style="background-color:white !important;">
+            <button type="button" (click)="CalcAtServerWithConfirm($event)" class="custombutton" style="width:100px !important" id="tagNo">No</button>
+            <button type="button" (click)="CalcAtServerWithConfirm($event)" class="custombutton" style="width:100px !important" id="tagYes">Yes</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</form>

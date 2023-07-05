@@ -1,0 +1,15 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netcoreapp3.1</TargetFramework>
+    <AssemblyName>CRES.NoteCalculator</AssemblyName>
+    <RootNamespace>CRES.NoteCalculator</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\CRES.DAL\CRES.DAL.csproj" />
+    <ProjectReference Include="..\CRES.DataContract\CRES.DataContract.csproj" />
+    <ProjectReference Include="..\CRES.Utilities\CRES.Utilities.csproj" />
+  </ItemGroup>
+
+</Project>

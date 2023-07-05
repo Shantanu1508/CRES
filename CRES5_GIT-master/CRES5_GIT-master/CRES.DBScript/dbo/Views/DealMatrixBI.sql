@@ -1,0 +1,22 @@
+﻿
+
+CREATE view [dbo].[DealMatrixBI]
+as 
+SELECT [DealID]
+      ,[DealName]
+      ,[Status]
+      ,[Fund]
+      ,[Commitment]
+      ,[Pool]
+      ,[BillingNotes]
+      ,[Initial]
+      ,[Extended]
+      ,[InitialFunding]
+      ,[InitialMaturity]
+      ,[ExtendedMaturity]
+      ,[PaidOffSold]
+      ,[DelphiFees]
+      ,[AssetManager]
+      ,[Banker]
+      ,[Underwritter]
+  FROM [DW].[DealMatrixBI]

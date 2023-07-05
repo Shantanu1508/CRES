@@ -1,0 +1,2 @@
+﻿CREATE USER [CRESAccountingUser] WITHOUT LOGIN;
+

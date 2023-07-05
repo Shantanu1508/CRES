@@ -1,0 +1,123 @@
+﻿
+<div class="col-sm-12" style="height:100%;">
+    <!--<div class="head fixheaderdiv">
+        <h1>Tags</h1>
+
+        <button type="button" id="btnCreateRole" class="custombutton" (click)="showCreateTagDialog()">Add New Tag</button>
+    </div>-->
+
+
+    <div class="head">
+        <button type="button" id="btnCreateRole" class="custombutton" (click)="showCreateTagDialog()" *ngIf="_isshowAddTag">Add New Tag</button>
+        <h1 style="display: inline-block;margin-top: 5px;">Tag</h1>
+
+        <strong>
+            <div *ngIf="_ShowSucessdiv" class="alert alert-success fade in" [innerHTML]="_ShowSucessdivMsg">
+            </div>
+        </strong>
+    </div>
+    <div class="fmst">       
+            <div class="form-group row MG0" style="height:calc(99.8vh - 110px);">
+                <div class="col-sm-12 customgridpadding" >
+                    <wj-flex-grid #flexTagMaster [itemsSource]="listTagMaster" [allowAddNew]="false" [allowResizing]="'Both'" style="height:calc(99.8vh - 120px);" [frozenColumns]="1" [frozenRows]="1" >
+                        <wj-flex-grid-filter [filterColumns]="['TagName','TagDesc','AnalysisName']"></wj-flex-grid-filter>
+
+                        <wj-flex-grid-column [header]="'Tag Name'" [binding]="'TagName'" [isReadOnly]="true" [width]="200" show-filter="true"></wj-flex-grid-column>
+                        <wj-flex-grid-column [header]="'Tag Description'" [binding]="'TagDesc'" [isReadOnly]="true" [width]="270" show-filter="true"></wj-flex-grid-column>
+                        <wj-flex-grid-column [header]="'Scenario'" [binding]="'AnalysisName'" [isReadOnly]="true" [width]="160" show-filter="true"></wj-flex-grid-column>
+                        <wj-flex-grid-column [header]="'Created By'" [binding]="'FullName'" [isReadOnly]="true" [width]="160" show-filter="true"></wj-flex-grid-column>
+                        <wj-flex-grid-column [header]="'Created Date'" [binding]="'CreatedDate'" [isReadOnly]="true" [width]="160" show-filter="true"></wj-flex-grid-column>
+                        <wj-flex-grid-column [header]="'Status'" [binding]="'StatusText'" [isReadOnly]="true" [width]="160" show-filter="true"></wj-flex-grid-column>
+                        <wj-flex-grid-column [name]="'buttons'" [header]="'Download Cashflow'" [isReadOnly]="true" align="left" [width]="'*'">
+                            <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
+                                <a style="cursor: pointer;" (click)="DownloadScenario(cell.item)">Download</a>
+                            </ng-template>
+                        </wj-flex-grid-column>
+
+                        <wj-flex-grid-column [name]="'buttons'" [header]="'Delete'" [isReadOnly]="true" align="left" [width]="'*'" *ngIf="_isshowDeleteTag">
+                            <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
+                                <a style="cursor: pointer;" (click)="DeleteLink_Click(cell.item)">Delete</a>
+                            </ng-template>
+                        </wj-flex-grid-column>
+
+                    </wj-flex-grid>
+
+
+                </div>
+            </div>
+        
+
+    </div>
+
+
+    <div id="myModalCreateTag" class="modal">
+        <div class="modal-dialog" draggable="true" id="myModal-CreateRole" style="min-height:300px;width:500px">
+            <!-- Modal content -->
+            <div class="modal-content" style="padding:0px;border:0px;">
+                <div class="modal-header" style="background:#2196f3 !important">
+                    <span class="customheading" style="color:white !important">Add Tag</span>
+                    <span class="close" (click)="CloseCreateTagPopUp()">×</span>
+                </div>
+
+                <div class="modal-body">
+                    <div *ngIf="_alertinfodiv" class="alert alert-info fade in">
+                        <strong>{{_alertinfomessage}}</strong>
+                    </div>
+                    <div *ngIf="_ShowSuccessmessageRolediv" class="alert alert-success fade in">
+                        <strong>{{_ShowSuccessRolemessage}}</strong>
+                    </div>
+                    <div *ngIf="_IsShowMsg" class="alert alert-warning fade in">
+                        <strong>{{_MsgText}}</strong>
+                    </div>
+
+                    <label class="lab1">Tag name</label>
+                    <input class="ibox1" type="text" required [(ngModel)]="tagMaster.NewTagName" name="NewTagName" #NewRoleName="ngModel" id="NewTagName">
+
+                    <label class="lab1">Tag desc</label>
+                    <input class="ibox1" type="text" required [(ngModel)]="tagMaster.NewTagDesc" name="NewTagDesc" #NewRoleName="ngModel" id="NewTagDesc">
+
+                    <label class="lab1">Scenario</label>
+                    <select class="ibox1" (change)="changeScenario($event.target.value)">
+                        <option *ngFor="let item of _lstScenario" value={{item.AnalysisID}} selected="{{item.ScenarioName=='Default'?'selected':''}}">
+                            {{item.ScenarioName}}
+                        </option>
+                    </select>
+
+                </div>
+                <div class="modal-footer" style="background-color:white !important;padding:5px;margin-top:10px;">
+                    <button type="button" (click)="CloseCreateTagPopUp()" class="custombutton" style="width:100px !important">Cancel</button>
+                    <button type="button" (click)="CreateTag()" class="custombutton" style="width:100px !important">Add</button>
+                </div>
+
+
+            </div>
+        </div>
+    </div>
+
+
+    <div id="customdialogbox" class="modal">
+        <div class="modal-dialog" draggable="true" id="myModal-Delete" style="min-height:300px;width:500px">
+            <!-- Modal content -->
+            <div class="modal-content" style="padding:0px;border:0px;">
+                <div class="modal-header" style="background:#2196f3 !important">
+                    <span class="customheading" style="color:white !important">Confirm Box</span>
+                    <span class="close" (click)="ClosePopUpConfirmBox()">×</span>
+                </div>
+
+                <div class="modal-body">
+                    <span class="customheading">
+                        {{ _ConfirmMsgText }}
+                    </span>
+                </div>
+                <div class="modal-footer" style="background-color:white !important;">
+                    <button type="button" (click)="ClosePopUpConfirmBox()" class="custombutton" style="width:100px !important">Cancel</button>
+                    <button type="button" class="custombutton" style="width:100px !important" (click)="CallConfirmBox()">Ok</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="cssload-container" *ngIf="_isShowLoader">
+        <div class="cssload-whirlpool"></div>
+    </div>
+
+</div>

@@ -1,0 +1,54 @@
+/* You can add global styles to this file, and also import other style files */
+
+/* Provide sufficient contrast against white background */
+@import 'assets/css/styles/vendor/wijmo.min.css';
+@import 'assets/css/layout.css';
+@import 'assets/css/login_style.css';
+@import 'assets/css/CustomStylesheet.css';
+@import 'assets/css/loader.css';
+@import 'assets/css/PopUp/ModalPopup.css';
+@import 'assets/font-awesome/css/font-awesome.css';
+@import 'assets/css/newloader.css';
+@import 'assets/css/fileUploader/style.css';
+@import 'assets/css/splitter/jquery.enhsplitter.css';
+@import 'assets/css/pushNotification.css';
+
+
+a {
+  color: #0366d6;
+}
+
+code {
+  color: #e01a76;
+}
+
+.btn-primary {
+  color: #fff;
+  background-color: #1b6ec2;
+  border-color: #1861ac;
+}
+
+
+#editor {
+  height: 500px;
+  width: 725px;
+  border: 1px solid #DDD;
+  border-radius: 4px;
+  border-bottom-right-radius: 0px;
+  margin-top: 25px;
+}
+
+div#sidebar {
+  width: 39%;
+  float: left;
+  height: 80%;
+  margin-left: 36px;
+}
+
+div#editor {
+  margin-left: 43%;
+  position: absolute;
+  background: black;
+  margin-top: 46px;
+  height: 80%;
+}
