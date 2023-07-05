@@ -1,0 +1,992 @@
+value of new i = 0
+value of new i = 2
+value of new i = 1
+value of new i = 3
+value of new i = 4
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/17-0107
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/19-1336
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/15-0006
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/18-0989
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/17-0149
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/19-1362
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/15-0015
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/18-1042
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/15-0021
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/18-1043
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/17-0191
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/19-1391
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/15-0026
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/15-0043
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/19-1429
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/18-1059
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/17-0230
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/19-1433
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/18-1064
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/17-0242
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/19-1471
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/18-1108
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/17-0255
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/19-1478
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/19-1555
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/18-1109
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/17-0291
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/19-1571
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/17-0349
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/15-0050
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/18-1120
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/15-0051
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/17-0360
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/19-1575
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/18-1167
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/19-1596
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/17-0432
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/18-1186
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/15-0059
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/17-0434
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/18-1210
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/19-1634
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/15-0069
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/17-0435
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/19-1635
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/15-0103
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/18-1286
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/15-0129
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/18-1313
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/17-0436
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/19-1647
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/15-0140
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/18-1346
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/17-0443
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/19-1655
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/15-0151
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/18-1387
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/17-0463
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/19-1662
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/15-0183
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/18-1499
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/17-0466
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/19-1714
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/17-0542
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/15-0192
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/18-1503
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/17-0601
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/15-0204
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/19-1827
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/18-1506
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/17-0648
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/15-0218
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/19-1853
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/18-1536
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/17-0670
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/15-0219
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/19-1890
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/18-1642
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/17-0727
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/15-0220
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/19-1980
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/17-0744
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/15-0244
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/19-2132
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/18-1739
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/17-0802
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/15-0261
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/19-2141
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/15-0296
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/17-0809
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/18-1743
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/19-2171
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/15-0349
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/17-0851
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/18-1747
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/19-2208
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/15-0365
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/17-0888
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/18-1770
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/19-2243
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/15-0366
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/17-0916
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/18-1818
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/19-2269
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/15-0419
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/17-0951
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/18-1833
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/19-2314
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/15-0428
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/17-1036
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/18-1854
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/19-2361
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/15-0446
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/18-1871
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/15-0461
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/18-1911
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/15-0464
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/18-2011
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/15-0468
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/18-2016
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/15-0525
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/18-2034
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/15-0558
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/17-1061
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/15-0560
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/18-2098
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/19-2636
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/15-0573
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/17-1097
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/18-2131
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/15-0577
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/19-2668
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/17-1123
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/18-2132
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/15-0618
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/20-0108
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/17-1200
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/18-2204
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/16-0006
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/17-1220
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/20-0188
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/18-2260
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/16-0024
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/17-1242
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/18-2286
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/20-0429
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/16-0051
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/17-1287
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/18-2351
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/20-0432
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/16-0125
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/17-1339
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/18-2385
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/20-0457
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/16-0144
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/17-1343
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/18-2463
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/16-0149
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/17-1398
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/18-2472
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/16-0155
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/17-1415
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/18-2523
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/16-0196
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/17-1439
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/18-2524
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/16-0197
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/17-1453
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/18-2538
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/16-0207
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/17-1464
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/16-0208
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/20-0512
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/16-0209
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/16-0210
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/20-0514
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/17-1490
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/16-0211
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/17-1499
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/20-0687
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/16-0241
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/17-1500
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/20-0748
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/16-0242
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/20-0846
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/16-0293
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/17-1533
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/18-2555
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/16-0305
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/17-1538
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/19-0012
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/16-0306
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/20-0884
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/17-1573
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/19-0033
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/16-0367
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/20-0921
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/17-1574
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/16-0426
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/20-0980
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/19-0036
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/17-1612
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/16-0443
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/17-1643
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/19-0039
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/20-0992
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/16-0502
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/17-1659
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/19-0090
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/20-1009
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/16-0504
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/17-1660
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/19-0172
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/20-1044
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/16-0556
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/19-0182
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/17-1673
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/16-0582
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/20-1081
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/19-0293
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/17-1682
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/16-0587
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/20-1152
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/19-0349
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/17-1708
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/16-0696
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/20-1167
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/19-0369
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/17-1714
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/16-0804
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/20-1170
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/19-0378
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/17-1718
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/16-0868
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/20-1194
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/19-0400
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/17-1720
+Unknown error Timed out after 30 seconds occurred on page M61-16-0868 Ritz Carlton North Hills
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/19-0413
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/17-1810
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/20-1255
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/19-0422
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/17-1834
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/16-0888
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/20-1259
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/19-0463
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/17-1867
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/16-0934
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/20-1319
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/19-0519
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/18-0058
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/16-0935
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/20-1357
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/19-0532
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/16-0965
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/18-0099
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/20-1361
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/19-0582
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/16-1009
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/18-0107
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/20-1401
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/19-0583
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/16-1024
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/18-0163
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/20-1525
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/19-0604
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/16-1058
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/18-0262
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/19-0633
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/18-0284
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/19-0747
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/18-0293
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/20-1553
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/19-0782
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/18-0296
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/20-1589
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/19-0806
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/20-1649
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/18-0331
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/19-0835
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/20-1672
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/18-0344
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/19-0837
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/20-1679
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/19-0839
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/18-0345
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/16-1071
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/20-1680
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/19-0842
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/18-0358
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/16-1075
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/19-0869
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/20-1687
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/16-1081
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/18-0409
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/19-0870
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/18-0414
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/20-1700
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/16-1153
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/19-0915
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/18-0415
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/16-1162
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/20-1718
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/19-0946
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/19-0958
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/21-0033
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/16-1183
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/18-0431
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/19-0988
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/21-0055
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/16-1242
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/18-0432
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/19-1036
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/21-0089
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/16-1249
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/19-1050
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/21-0093
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/16-1275
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/18-0441
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/19-1056
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/16-1291
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/18-0490
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/21-0117
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/16-1294
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/19-1087
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/16-1354
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/19-1088
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/16-1386
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/21-0122
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/19-1131
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/16-1405
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/21-0218
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/16-1408
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/16-1411
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/21-0370
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/19-1133
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/21-0381
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/16-1508
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/18-0564
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/19-1166
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/16-1568
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/18-0572
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/21-0408
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/19-1172
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/16-1585
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/18-0578
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/21-0434
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/19-1182
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/16-1687
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/18-0581
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/19-1208
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/21-0526
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/16-1752
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/18-0602
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/21-0595
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/18-0615
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/17-0010
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/19-1211
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/18-0619
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/17-0044
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/19-1259
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/21-0606
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/18-0695
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/17-0089
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/19-1265
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/18-0700
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/21-0635
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/19-1267
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/18-0721
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/21-0647
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/19-1288
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/18-0792
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/21-0685
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/19-1293
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/18-0824
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/19-1324
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/18-0841
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/21-0724
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/18-0866
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/21-0754
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/18-0911
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/21-0811
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/18-0923
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/21-0861
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/21-0891
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/21-0990
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/21-1123
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/21-1144
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/21-1163
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/21-1219
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/21-1226
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/21-1290
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/21-1318
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/21-1377
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/21-1400
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/21-1432
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/21-1484
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/21-1514
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/21-1529
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/21-1562
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/21-1609
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/21-1757
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/21-1758
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/21-1787
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/21-1799
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/21-1809
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/21-1810
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/21-1812
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/21-1817
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/21-1871
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/21-1924
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/21-1988
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/21-2086
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/21-2277
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/21-2290
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/21-2296
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/21-2322
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/21-2349
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/21-2356
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/21-2501
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/21-2557
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/21-2561
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/21-2566
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/21-2574
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/21-2607
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/21-2665
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/21-2694
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/21-2745
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/21-2768
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/21-2801
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/21-2839
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/21-2909
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/21-2922
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/21-2955
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/21-2958
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/21-2988
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/21-3025
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/21-3033
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/21-3096
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/21-3097
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/21-3137
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/21-3208
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/21-3253
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/22-0020
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/22-0102
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/22-0114
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/22-0175
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/22-0179
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/22-0366
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/22-0395
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/22-0409
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/22-0501
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/22-0509
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/22-0580
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/22-0594
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/22-0595
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/22-0669
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/22-0699
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/22-0721
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/22-0728
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/22-0748
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/22-0766
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/22-0793
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/22-0795
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/22-0863
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/22-0902
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/22-0955
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/22-1000
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/22-1005
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/22-1030
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/22-1095
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/22-1137
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/22-1174
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/22-1289
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/22-1368
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/22-1386
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/22-1555
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/22-1634
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/22-1640
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/22-1671
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/22-1688
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/22-1692
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/22-1716
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/22-1908
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/22-2203
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/22-2312
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/22-2339
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/22-2340
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/22-2392
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/22-2586
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/22-2603
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/22-2714
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/22-2811
+
+ OpenUrlMultiBrowser url = https://integrationcres4.azurewebsites.net//#/dealdetail/22-3196

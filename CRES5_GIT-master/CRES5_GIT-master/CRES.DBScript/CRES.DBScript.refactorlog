@@ -1,0 +1,31 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Operations Version="1.0" xmlns="http://schemas.microsoft.com/sqlserver/dac/Serialization/2012/02">
+  <Operation Name="Rename Refactor" Key="92ef6cc6-7076-4d94-a183-27e132bab4f9" ChangeDateTime="05/06/2021 07:48:43">
+    <Property Name="ElementName" Value="[CRE].[DealReserveSchedule].[PorposeID]" />
+    <Property Name="ElementType" Value="SqlSimpleColumn" />
+    <Property Name="ParentElementName" Value="[CRE].[DealReserveSchedule]" />
+    <Property Name="ParentElementType" Value="SqlTable" />
+    <Property Name="NewName" Value="PurposeID" />
+  </Operation>
+  <Operation Name="Rename Refactor" Key="12475578-3fce-417c-8c88-3ffad3bed03f" ChangeDateTime="05/07/2021 11:12:41">
+    <Property Name="ElementName" Value="[CRE].[ReserveAccount].[FloatReserveRate]" />
+    <Property Name="ElementType" Value="SqlSimpleColumn" />
+    <Property Name="ParentElementName" Value="[CRE].[ReserveAccount]" />
+    <Property Name="ParentElementType" Value="SqlTable" />
+    <Property Name="NewName" Value="FloatInterestRate" />
+  </Operation>
+  <Operation Name="Rename Refactor" Key="0f01a33b-acef-4ca7-aefc-10e341df2ce8" ChangeDateTime="06/30/2021 07:20:38">
+    <Property Name="ElementName" Value="[Core].[PIKSchedule].[IntCalcMethodID]" />
+    <Property Name="ElementType" Value="SqlSimpleColumn" />
+    <Property Name="ParentElementName" Value="[Core].[PIKSchedule]" />
+    <Property Name="ParentElementType" Value="SqlTable" />
+    <Property Name="NewName" Value="PIKIntCalcMethodID" />
+  </Operation>
+  <Operation Name="Rename Refactor" Key="b543a127-1309-4752-8a15-ce568a4147dc" ChangeDateTime="09/01/2021 06:01:43">
+    <Property Name="ElementName" Value="[CRE].[JsonTemplate].[Type ]" />
+    <Property Name="ElementType" Value="SqlSimpleColumn" />
+    <Property Name="ParentElementName" Value="[CRE].[JsonTemplate]" />
+    <Property Name="ParentElementType" Value="SqlTable" />
+    <Property Name="NewName" Value="Type" />
+  </Operation>
+</Operations>

@@ -1,0 +1,186 @@
+﻿<form #f="ngForm">
+    <div class="col-sm-12">
+        <div class="head fixheaderdiv">
+            <h1 style="display: inline-block; margin-top: 10px;">
+                {{titlemsg}}
+            </h1>
+            <span>
+                <button class="custombutton" (click)="DiscardChanges()">
+                    Cancel
+                </button>
+                <button class="custombutton" (click)="validateandsave()">
+                    Save
+                </button>
+            </span>
+        </div>
+
+        <div class="fmst fixheadercontent">
+
+            <div class="box1a">
+                <div class="form-group row pD10">
+
+                    <div class="col-sm-12" style="width:99% !important;">
+                        <div class="form-group row">
+                            <label class="col-sm-1 tmlable">Priority</label>
+                            <div class="col-sm-3">
+
+                                <!--<select [(ngModel)]="_taskManagement.Priority" name="Priority" #Priority="ngModel" class="ibox1">
+                                    <option *ngFor="let status of lstlookupPriority" value={{status.LookupID}}>
+                                        {{status.Name}}
+                                    </option>
+                                </select>-->
+
+                                <select [(ngModel)]="_taskManagement.Priority" id="Priority" name="Priority" #Priority="ngModel" style='height: 30px; font-family:Arial, FontAwesome;'>
+                                    <option value='364' style="color:greenyellow;">&#xf175; &nbsp; Lowest</option>
+                                    <option value='365' style="color:forestgreen;">&#xf175; &nbsp; Low</option>
+                                    <option value='366' style="color:#039be5;">&#xf175; &nbsp; Medium</option>
+                                    <option value='367' style="color:#ecac00;">&#xf176; &nbsp; High</option>
+                                    <option value='368' style="color:red;">&#xf176; &nbsp; Highest</option>
+                                </select>
+                            </div>
+
+                            <label class="col-sm-1 tmlable">Task type <span style="color:red;font-size: medium;"> * </span></label>
+                            <div class="col-sm-3">
+                                <!--<select [(ngModel)]="_taskManagement.TaskType" name="TaskType" #TaskType="ngModel" class="ibox1">
+                                    <option *ngFor="let status of lstlookupTaskType" value={{status.LookupID}}>
+                                        {{status.Name}}
+                                    </option>
+                                </select>-->
+                                <select [(ngModel)]="_taskManagement.TaskType" class="selectwithoutborder" id="TaskType" name="TaskType" #TaskType="ngModel">
+                                    <option value='369'>Enhancement</option>
+                                    <option value='370'>Bug</option>
+                                    <option value='371'>Service</option>
+                                    <option value='372'>Business</option>
+                                </select>
+                            </div>
+                            <label class="col-sm-1 tmlable">Status</label>
+                            <div class="col-sm-3">
+                                <!--<select [(ngModel)]="_taskManagement.Status" name="Status" #Status="ngModel" class="ibox1">
+                                    <option *ngFor="let status of lstlookupStatus" value={{status.LookupID}}>
+                                        {{status.Name}}
+                                    </option>
+                                </select>-->
+
+                                <select [(ngModel)]="_taskManagement.Status" id="Status" name="Status" #Status="ngModel" style='height: 30px;'>
+                                    <option value='373'>Open</option>
+                                    <option value='374'>In Progress</option>                                    
+                                    <option value='375'>On Hold</option>
+                                    <option value='376'>Cancelled</option>
+                                    <option value='377'>Requires Feedback</option>
+                                    <option value='378'>Closed</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="form-group row">
+                            <label class="col-sm-1 tmlable">Summary <span style="color:red;font-size: medium;"> * </span> </label>
+                            <div class="col-sm-6">
+
+                                <input class="ibox1" type="text" [(ngModel)]="_taskManagement.Summary" name="ScenarioName" ngControl="Summary" #Summary="ngModel" id="Summary">
+                            </div>
+                        </div>
+
+                        <div class="form-group row">
+                            <label class="tmlable col-sm-1">Description</label>
+                            <div class="col-sm-6">
+
+                                <textarea style="font-family: inherit;font-size: inherit;" class="ibox1 input-lg" rows="5" cols="60" [(ngModel)]="_taskManagement.Description" name="Description" #Description="ngModel" id="Description"></textarea>
+                            </div>
+                        </div>
+
+                        <div class="form-group row">
+
+                            <label class="col-sm-1 tmlable">Assigned To</label>
+                            <div class="col-sm-3">
+                                <wj-auto-complete #acDeal
+                                                  [itemsSourceFunction]="getAutosuggestusername"
+                                                  [displayMemberPath]="'DisplayName'"
+                                                  [selectedValuePath]="'ValueID'"
+                                                  [placeholder]="'User Name'"
+                                                  [text]="task_username"
+                                                  (selectedIndexChanged)="checkDroppedDownChangedUserName(acDeal, $event)" (change)="checkDroppedDownChangedUserName(acDeal, $event)" class="ibox1" style="padding: 3px !important;">
+                                </wj-auto-complete>
+
+                                <!--<input class="ibox1" type="text" [(ngModel)]="_taskManagement.AssignedTo" name="AssignedTo" ngControl="AssignedTo" #AssignedTo="ngModel" id="AssignedTo">-->
+                            </div>
+
+                            <label class="col-sm-1 tmlable">Category</label>
+                            <div class="col-sm-3">
+
+                                <input class="ibox1" type="text" [(ngModel)]="_taskManagement.CategoryTag" name="CategoryTag" ngControl="CategoryTag" #CategoryTag="ngModel" id="CategoryTag">
+                            </div>
+
+                            <label class="col-sm-1 tmlable">Sub Category</label>
+                            <div class="col-sm-3">
+
+                                <input class="ibox1" type="text" [(ngModel)]="_taskManagement.SubCategoryTag" name="SubCategoryTag" ngControl="SubCategoryTag" #SubCategoryTag="ngModel" id="SubCategoryTag">
+                            </div>
+                        </div>
+
+                        <div class="form-group row">
+
+                            <label class="col-sm-1 tmlable">Tag 1</label>
+                            <div class="col-sm-3">
+                                <input class="ibox1" type="text" [(ngModel)]="_taskManagement.Tag1" name="Tag1" ngControl="Tag1" #Tag1="ngModel" id="Tag1">
+                            </div>
+
+                            <label class="col-sm-1 tmlable">Tag 2</label>
+                            <div class="col-sm-3">
+                                <input class="ibox1" type="text" [(ngModel)]="_taskManagement.Tag2" name="Tag2" ngControl="Tag2" #Tag2="ngModel" id="Tag2">
+                            </div>
+                            <label class="col-sm-1 tmlable">Tag 3</label>
+                            <div class="col-sm-3">
+                                <input class="ibox1" type="text" [(ngModel)]="_taskManagement.Tag3" name="Tag3" ngControl="Tag3" #Tag3="ngModel" id="Tag3">
+                            </div>
+                        </div>
+
+                        <div class="form-group row">
+                            <label class="col-sm-1 tmlable">Start date</label>
+                            <div class="col-sm-3">
+
+                                <wj-input-date [(value)]="_taskManagement.StartDate" id="StartDate" [format]="'M/d/yyyy'" class="ibox1 rightalign" [isRequired]="false" [placeholder]="'M/d/yyyy'"></wj-input-date>
+                            </div>
+
+                            <label class="col-sm-1 tmlable">Deadline date</label>
+                            <div class="col-sm-3">
+                                <wj-input-date [(value)]="_taskManagement.DeadlineDate" id="DeadlineDate" [format]="'M/d/yyyy'" class="ibox1 rightalign" [isRequired]="false" [placeholder]="'M/d/yyyy'"></wj-input-date>
+                            </div>
+
+                            <label class="col-sm-1 tmlable">Est. completion date</label>
+                            <div class="col-sm-3">
+                                <wj-input-date [(value)]="_taskManagement.EstimatedCompletionDate" id="EstimatedCompletionDate" [format]="'M/d/yyyy'" class="ibox1 rightalign" [isRequired]="false" [placeholder]="'M/d/yyyy'"></wj-input-date>
+                            </div>
+                        </div>
+
+                        <div class="form-group row">
+
+                            <label class="col-sm-1 tmlable">Actual completion date</label>
+                            <div class="col-sm-3">
+                                <wj-input-date [(value)]="_taskManagement.ActualCompletionDate" id="ActualCompletionDate" [format]="'M/d/yyyy'" class="ibox1 rightalign" [isRequired]="false" [placeholder]="'M/d/yyyy'"></wj-input-date>
+                            </div>
+                        </div>
+                        <div class="form-group row" style="display:none" > <!---->
+                            <h2>ng2-file-input demo</h2>
+                            <br />
+                            Action log:
+                            <textarea [innerHTML]="actionLog" class="form-control" rows="7" readonly></textarea>
+                            <br />
+                            <h4>Multiple files with preview:</h4>
+                            <ng2-file-input [id]="MutationObserver" (onCouldNotRemove)="onCouldNotRemove($event)" [multiple]="true" (onRemoved)="onRemoved($event)" (onAdded)="onAdded($event)" (onAction)="onAction($event)"></ng2-file-input>
+                            <br /><br />
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="dialogoverlay"></div>
+        <div id="dialogbox">
+            <div>
+                <div id="dialogboxhead"></div>
+                <div id="dialogboxbody"></div>
+                <div id="dialogboxfoot"><span class="btn custombutton" (click)="ok()">Ok</span></div>
+            </div>
+        </div>
+    </div>
+</form>

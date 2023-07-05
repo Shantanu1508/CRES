@@ -1,0 +1,1 @@
+{"version":3,"file":"NoteObject.js","sourceRoot":"","sources":["NoteObject.ts"],"names":[],"mappings":";;;AAAA,+BAA4B;AAC5B,2DAAwD;AAExD;IACI;QACI,IAAI,CAAC,KAAK,GAAG,IAAI,WAAI,CAAC,EAAE,CAAC,CAAC;QAC1B,IAAI,CAAC,cAAc,GAAG,IAAI,uCAAkB,EAAE,CAAC;IACnD,CAAC;IAIL,iBAAC;AAAD,CAAC,AARD,IAQC;AARY,gCAAU"}

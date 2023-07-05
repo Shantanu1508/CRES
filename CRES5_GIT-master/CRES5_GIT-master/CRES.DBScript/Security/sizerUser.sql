@@ -1,0 +1,2 @@
+﻿CREATE USER [sizerUser] WITHOUT LOGIN;
+

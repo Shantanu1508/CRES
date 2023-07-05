@@ -1,0 +1,105 @@
+<div Flex>
+  <div
+    fxLayout="row"
+    fxLayout.gt-sm="column"
+    fxLayoutGap="10px"
+    fxLayoutGap.gt-sm="20px"
+  >
+    <!-- fxLayoutAlign="space-around" -->
+
+    <div fxFlex="95">
+      <div
+        class="container"
+        style="padding: 0 !important;max-width: none !important;"
+      >
+        <!-- <h1>Angular Bot</h1> -->
+        <div id="msgAreadiv" class="Scrollable" #msgArea [scrollTop]="msgArea.scrollHeight">
+          <ng-container *ngFor="let message of messages | async ; let i = index">
+            <div *ngIf = "i >= 1"
+              class="message"
+              [ngClass]="{
+                from: message.sentBy === 'bot',
+                to: message.sentBy === 'user'
+              }"
+            >
+              <div [innerHTML]="message.content.Speech"></div>
+            </div>
+          </ng-container>
+          <label class="message from" style="margin-top: 5px !important; background-color:#f8d7da !important;" *ngIf="_isuserinactive">
+            Your chat session was expired due to inactivity. Please type your query again to get started.
+          </label>
+        </div>
+        <div class="bottom_link">
+          <form class="example-form">
+            <mat-form-field floatPlaceholder="never" class="example-full-width">
+              <div *ngIf="this.isLoadingImage"
+              style="text-align: left;z-index: 2;"
+              >
+              <img src="assets/img/22.gif" />
+            </div>
+              <div
+                *ngIf="isLoadingImageEnable"
+                style="text-align: right;z-index: 2;"
+              >
+                <img src="assets/img/loading.gif" />
+              </div>
+
+              <!-- <div style="text-align: right;z-index: 2;cursor:pointer;" id='button-holder' >
+                 <i >
+                   <input (click)="sendMessageFromSpeechRecognition()" (keydown)="handleKeyboardEvent($event)" type="image" #micimage  src="assets/img/mic.png" width="32px" style="margin-bottom: -1.8rem" />
+                 </i>
+              </div> -->
+              <input
+                type="text"
+                aria-label="Assignee"
+                matInput
+                [(ngModel)]="formValue"
+                [formControl]="myControl"
+                [matAutocomplete]="auto"
+                placeholder ="&nbsp;&nbsp;Ask your question"
+                (keyup.enter)="sendMessage()"
+                style="background: white; margin-top:-9px !important;"
+              />
+
+              <mat-autocomplete #auto="matAutocomplete">
+                <mat-option
+                  *ngFor="let option of (filteredOptions | async)?.results"
+                  (onSelectionChange)="selected($event, option)"
+                >
+                  <div>
+                    <img
+                      *ngIf="
+                        option.ValueType != undefined && option.ValueType == 283
+                      "
+                      src="assets/img/Letter-D-blue-icon.png"
+                    />
+                    <img
+                      *ngIf="
+                        option.ValueType != undefined && option.ValueType == 182
+                      "
+                      src="assets/img/Letter-N-blue-icon.png"
+                    />
+                    {{
+                      option.Valuekey == undefined ? option : option.Valuekey
+                    }}
+                  </div>
+                </mat-option>
+              </mat-autocomplete>
+            </mat-form-field>
+          </form>
+        </div>
+         <!-- <button class="btn btn-info btn-fill btn-wd" name="btnActivateSpeechSearch"
+  id="btnActivateSpeechSearch" (click)="activateSpeechSearch()"
+  [disabled]="!startListenButton">
+  Start Listening
+</button>
+<button class="btn btn-info btn-fill btn-wd" name="btnDeactivateSpeechSearch"
+  id="btnDeactivateSpeechSearch" (click)="deActivateSpeechSearch()"
+  [disabled]="startListenButton">
+  Stop Listening
+</button> -->
+      </div>
+    </div>
+  </div>
+</div>
+

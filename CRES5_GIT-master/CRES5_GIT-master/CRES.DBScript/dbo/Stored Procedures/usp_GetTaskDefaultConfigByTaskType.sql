@@ -1,0 +1,14 @@
+﻿
+
+CREATE PROCEDURE [dbo].[usp_GetTaskDefaultConfigByTaskType] 
+	
+	@TaskTypeID int
+AS
+BEGIN
+	SET NOCOUNT ON;
+	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
+ 
+ select UserId from  App.TaskDefaultConfig   
+where @TaskTypeID =@TaskTypeID
+ 	SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+END

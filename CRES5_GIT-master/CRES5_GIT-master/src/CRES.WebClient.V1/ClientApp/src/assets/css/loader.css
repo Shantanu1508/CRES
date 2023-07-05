@@ -1,0 +1,150 @@
+﻿
+.cssload-container{
+	position:relative;
+    z-index:20000;
+}
+	
+.cssload-whirlpool,
+.cssload-whirlpool::before,
+.cssload-whirlpool::after {
+	position: fixed;
+	top: 50%;
+	left: 50%;
+	border: 1px solid rgb(204,204,204);
+	border-left-color: rgb(0,0,0);
+	border-radius: 749px;
+		-o-border-radius: 749px;
+		-ms-border-radius: 749px;
+		-webkit-border-radius: 749px;
+		-moz-border-radius: 749px;
+}
+
+.cssload-whirlpool {
+	margin: -19px 0 0 -19px;
+	height: 37px;
+	width: 37px;
+ 
+	animation: cssload-rotate 1150ms linear infinite;
+		-o-animation: cssload-rotate 1150ms linear infinite;
+		-ms-animation: cssload-rotate 1150ms linear infinite;
+		-webkit-animation: cssload-rotate 1150ms linear infinite;
+		-moz-animation: cssload-rotate 1150ms linear infinite;
+}
+
+.cssload-whirlpool::before {
+	content: "";
+	margin: -17px 0 0 -17px;
+	height: 33px;
+	width: 33px;
+	animation: cssload-rotate 1150ms linear infinite;
+		-o-animation: cssload-rotate 1150ms linear infinite;
+		-ms-animation: cssload-rotate 1150ms linear infinite;
+		-webkit-animation: cssload-rotate 1150ms linear infinite;
+		-moz-animation: cssload-rotate 1150ms linear infinite;
+}
+
+.cssload-whirlpool::after {
+	content: "";
+	margin: -22px 0 0 -22px;
+	height: 42px;
+	width: 42px;
+	animation: cssload-rotate 2300ms linear infinite;
+		-o-animation: cssload-rotate 2300ms linear infinite;
+		-ms-animation: cssload-rotate 2300ms linear infinite;
+		-webkit-animation: cssload-rotate 2300ms linear infinite;
+		-moz-animation: cssload-rotate 2300ms linear infinite;
+}
+
+
+
+
+
+
+@keyframes cssload-rotate {
+	100% {
+		transform: rotate(360deg);
+	}
+}
+
+@-o-keyframes cssload-rotate {
+	100% {
+		-o-transform: rotate(360deg);
+	}
+}
+
+@-ms-keyframes cssload-rotate {
+	100% {
+		-ms-transform: rotate(360deg);
+	}
+}
+
+@-webkit-keyframes cssload-rotate {
+	100% {
+		-webkit-transform: rotate(360deg);
+	}
+}
+
+@-moz-keyframes cssload-rotate {
+	100% {
+		-moz-transform: rotate(360deg);
+	}
+}
+
+
+/* whirl base styling */
+.whirl {
+ position: inherit;
+}
+.whirl:before {
+ content: "";
+ z-index: 1;
+ position: absolute;
+ top: 0;
+ left: 0;
+ display: block;
+ height: 100%;
+ width: 100%;
+ background-color: #999 !important;
+ opacity: 0.2;
+}
+.whirl:after {
+ z-index: 2;
+ content: "";
+ height: 40px !important;
+ width: 40px !important;
+ position: absolute;
+ top: 50%;
+ left: 50%;
+ /* margin: (-40px !important / 2) 0 0 (-40px !important / 2); */
+ transition: all .75s ease 0s;
+ border-radius: 100%;
+ border-top: 4px solid #999 !important;
+ animation: standard .75s infinite linear;
+}
+.whirl.no-overlay:before {
+ content: none;
+ display: none;
+}
+
+/* whirl standard rotation animation used for duo, double-up etc. */
+@keyframes standard {
+ from {
+   transform: rotate(0deg);
+ }
+ to {
+   transform: rotate(360deg);
+ }
+}
+
+
+
+/* whirl ringed spinner.
+a spinner with a static ring and no overlay.*/
+ 
+.whirl.ringed:after {
+ border-right: 4px  solid #2196f3  !important;
+ border-top: 4px  solid #2196f3 !important;
+ border-left: 4px  solid #2196f3  !important;
+ border-bottom: 4px  solid #2196f3  !important;
+ opacity: 1;
+}

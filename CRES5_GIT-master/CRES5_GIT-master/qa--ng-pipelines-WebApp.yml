@@ -1,0 +1,52 @@
+# Starter pipeline
+# Start with a minimal pipeline that you can customize to build and deploy your code.
+# Add steps that build, run tests, deploy, and more:
+# https://aka.ms/yaml
+
+trigger:
+  branches:
+    include:
+      - master
+  paths:
+    include:
+      - src/CRES.WebClient.V1/*   
+
+pool:
+  vmImage: 'windows-2019'
+
+variables:
+  buildConfiguration: 'Release'
+
+steps:
+
+- script: echo Hello, world!
+  displayName: 'Run script for Web'
+
+- task: UseDotNet@2
+  displayName: 'Install .NET Core 3.1 SDK'
+  inputs:
+   version: '3.1.x'
+   packageType: sdk       
+
+
+- task: DotNetCoreCLI@2
+  inputs:
+    command: 'build'
+    projects: 'src/CRES.WebClient.V1/CRES.WebClient.V1.csproj'
+    workingDirectory: 'src/CRES.WebClient.V1'
+
+
+- task: DotNetCoreCLI@2
+  inputs:
+    command: 'publish'
+    publishWebProjects: false
+    projects: 'src/CRES.WebClient.V1/CRES.WebClient.V1.csproj'
+    workingDirectory: 'src/CRES.WebClient.V1'
+
+- task: AzureRmWebAppDeployment@4
+  inputs:
+    ConnectionType: 'AzureRM'
+    azureSubscription: 'iTechsol(021c83fc-1e2a-4da6-92dd-8e1d74c0e1cb)'
+    appType: 'webApp'
+    WebAppName: 'qacres4-ng'
+    packageForLinux: '$(System.DefaultWorkingDirectory)/**/*.zip'
