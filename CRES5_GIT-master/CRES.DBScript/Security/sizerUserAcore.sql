@@ -1,2 +1,0 @@
-﻿CREATE USER [sizerUserAcore] WITHOUT LOGIN;
-

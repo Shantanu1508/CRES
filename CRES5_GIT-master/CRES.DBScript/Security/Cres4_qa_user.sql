@@ -1,2 +1,0 @@
-﻿CREATE USER [Cres4_qa_user] WITHOUT LOGIN;
-

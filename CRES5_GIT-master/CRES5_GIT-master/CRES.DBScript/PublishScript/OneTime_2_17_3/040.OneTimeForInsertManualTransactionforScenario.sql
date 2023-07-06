@@ -1,1 +1,0 @@
-﻿exec [dbo].[usp_InsertTransactionEntryFromTranManualForNewScenario]  '261CA4F1-A0AF-45C1-8CF6-053DAFAAA835','B0E6697B-3534-4C09-BE0A-04473401AB93'

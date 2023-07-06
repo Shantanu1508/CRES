@@ -1,6 +1,0 @@
-﻿CREATE TABLE [DW].[PowerBILog] (
-    [PowerBILogID] INT      IDENTITY (1, 1) NOT NULL,
-    [CreatedDate]  DATETIME NULL,
-    CONSTRAINT [PK_PowerBILogID] PRIMARY KEY CLUSTERED ([PowerBILogID] ASC)
-);
-

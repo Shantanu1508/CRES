@@ -1,3 +1,0 @@
-﻿CREATE DATABASE SCOPED CREDENTIAL [CredentialCRESProductionBK_Temp]
-    WITH IDENTITY = N'AcoreProd';
-
