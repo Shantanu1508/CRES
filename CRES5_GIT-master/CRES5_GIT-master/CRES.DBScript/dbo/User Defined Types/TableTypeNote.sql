@@ -1,7 +1,0 @@
-﻿CREATE TYPE [dbo].[TableTypeNote] AS TABLE (
-    [AccountID] UNIQUEIDENTIFIER NULL,
-    [NoteId]    UNIQUEIDENTIFIER NULL,
-    [CRENoteID] VARCHAR (100)    NULL,
-    [Name]      VARCHAR (100)    NULL,
-    [DealID]    UNIQUEIDENTIFIER NULL);
-

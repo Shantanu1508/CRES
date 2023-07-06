@@ -1,2 +1,0 @@
-﻿CREATE USER [CresReader_user] WITHOUT LOGIN;
-

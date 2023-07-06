@@ -1,1 +1,0 @@
-﻿update app.InvoiceConfig set InvoiceAccountNo='44000'

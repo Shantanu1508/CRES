@@ -1,3 +1,0 @@
-﻿CREATE DATABASE SCOPED CREDENTIAL [CredentialAcore_BSProd_On_QA]
-    WITH IDENTITY = N'ACOREAccounting';
-
