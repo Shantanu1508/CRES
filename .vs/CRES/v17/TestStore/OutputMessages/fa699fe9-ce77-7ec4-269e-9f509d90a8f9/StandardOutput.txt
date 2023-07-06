@@ -1,0 +1,222 @@
+
+Calculation Manager Title Page =Calculation Manager
+
+Calculation Manager Page loded successfully
+
+Noteid Count =13
+
+NotElements count = 13
+
+Selected Note for Calculation = 7114
+Note Href = https://qacres4-ng.azurewebsites.net/#/notedetail/0ab483dd-fee9-42e2-a487-ae28223bc52c
+
+Selected Note for Calculation = 12132
+Note Href = https://qacres4-ng.azurewebsites.net/#/notedetail/7df6843e-5be4-4ac1-907d-1d5fb06ab6ad
+
+Selected Note for Calculation = Phtm Janet B
+Note Href = https://qacres4-ng.azurewebsites.net/#/notedetail/f03304bb-f60e-47cd-aeab-4ff954fea26e
+
+Selected Note for Calculation = 2401
+Note Href = https://qacres4-ng.azurewebsites.net/#/notedetail/91261c04-c92b-432a-b36f-ab317c658280
+
+Selected Note for Calculation = RXR_Mezz - Protect Adv
+Note Href = https://qacres4-ng.azurewebsites.net/#/notedetail/4ecf85ad-b535-419c-8dae-8b3a4755ac50
+
+Selected Note for Calculation = 11900
+Note Href = https://qacres4-ng.azurewebsites.net/#/notedetail/fcb962d3-53b5-444e-a414-638c0f98d876
+
+Selected Note for Calculation = 12190
+Note Href = https://qacres4-ng.azurewebsites.net/#/notedetail/a8d91464-26f0-44cf-af19-33da2ab48405
+
+Selected Note for Calculation = 5286
+Note Href = https://qacres4-ng.azurewebsites.net/#/notedetail/acf14cda-07f4-47e2-9df2-4a1ab290693f
+
+Selected Note for Calculation = 12605
+Note Href = https://qacres4-ng.azurewebsites.net/#/notedetail/9675ad9b-3ce8-4c31-b947-b975341a1225
+
+Selected Note for Calculation = 5129
+Note Href = https://qacres4-ng.azurewebsites.net/#/notedetail/520a9a83-c3ba-42a7-b9d1-eb3de34bf563
+
+Selected Note for Calculation = 1869
+Note Href = https://qacres4-ng.azurewebsites.net/#/notedetail/487e2f9b-ff00-4d83-9a49-70f7a7716705
+
+Selected Note for Calculation = 8103
+Note Href = https://qacres4-ng.azurewebsites.net/#/notedetail/1d799227-8139-4306-8b0c-711d1c47b3f1
+
+Excel report = InputNoteIds.xlsx
+dataTable =
+
+Note table input line no. 617
+
+Note table input line no. 617
+
+Note table input line no. 617
+
+Note table input line no. 617
+
+Note table input line no. 617
+
+Note table input line no. 617
+
+Note table input line no. 617
+
+Note table input line no. 617
+
+Note table input line no. 617
+
+Note table input line no. 617
+
+Note table input line no. 617
+
+Note table input line no. 617
+notelist count = 12
+
+deallist1 = System.Collections.Generic.List`1[CRES.DataContract.DealDataContract]
+
+deallist2 = System.Collections.Generic.List`1[CRES.DataContract.DealDataContract]
+
+deallist3 = System.Collections.Generic.List`1[CRES.DataContract.DealDataContract]
+
+deallist4 = System.Collections.Generic.List`1[CRES.DataContract.DealDataContract]
+value of new i = 0
+
+_lstDeal 1=System.Collections.Generic.List`1[CRES.DataContract.DealDataContract]
+
+_lstDeal = 2
+
+notelist.Count() =12
+value of new i = 2
+
+_lstDeal 3=System.Collections.Generic.List`1[CRES.DataContract.DealDataContract]
+
+_lstDeal = 2
+
+notelist.Count() =12
+value of new i = 3
+
+_lstDeal 4=System.Collections.Generic.List`1[CRES.DataContract.DealDataContract]
+
+_lstDeal = 6
+
+notelist.Count() =12
+value of new i = 1
+
+_lstDeal 2=System.Collections.Generic.List`1[CRES.DataContract.DealDataContract]
+
+_lstDeal = 2
+
+notelist.Count() =12
+value of new i = 4
+
+_lstDeal = 0
+
+notelist.Count() =12
+
+ note Calculation method is calling =12132
+https://qacres4-ng.azurewebsites.net/#/notedetail/7df6843e-5be4-4ac1-907d-1d5fb06ab6ad
+
+ note Calculation method is calling =Phtm Janet B
+https://qacres4-ng.azurewebsites.net/#/notedetail/f03304bb-f60e-47cd-aeab-4ff954fea26e
+
+ note Calculation method is calling =7114
+https://qacres4-ng.azurewebsites.net/#/notedetail/0ab483dd-fee9-42e2-a487-ae28223bc52c
+
+ note Calculation method is calling =RXR_Mezz - Protect Adv
+https://qacres4-ng.azurewebsites.net/#/notedetail/4ecf85ad-b535-419c-8dae-8b3a4755ac50
+
+ note Calculation method is calling =2401
+https://qacres4-ng.azurewebsites.net/#/notedetail/91261c04-c92b-432a-b36f-ab317c658280
+
+note Calculation method is started
+
+Note Href = System.Collections.Generic.List`1[System.String]
+
+note Calculation method is started
+
+Note Href = System.Collections.Generic.List`1[System.String]
+
+note Calculation method is started
+
+Note Href = System.Collections.Generic.List`1[System.String]
+
+note Calculation method is started
+
+Note Href = System.Collections.Generic.List`1[System.String]
+
+note Calculation method is started
+
+Note Href = System.Collections.Generic.List`1[System.String]
+
+For multibrowser, _lstDeal = 2
+
+ Noteid_Href[loop], = https://qacres4-ng.azurewebsites.net/#/notedetail/4ecf85ad-b535-419c-8dae-8b3a4755ac50
+
+ OpenUrlMultiBrowser url = https://qacres4-ng.azurewebsites.net/#/notedetail/4ecf85ad-b535-419c-8dae-8b3a4755ac50
+
+For multibrowser, _lstDeal = 2
+
+For multibrowser, _lstDeal = 2
+
+For multibrowser, _lstDeal = 6
+
+ Noteid_Href[loop], = https://qacres4-ng.azurewebsites.net/#/notedetail/0ab483dd-fee9-42e2-a487-ae28223bc52c
+
+ Noteid_Href[loop], = https://qacres4-ng.azurewebsites.net/#/notedetail/f03304bb-f60e-47cd-aeab-4ff954fea26e
+
+ Noteid_Href[loop], = https://qacres4-ng.azurewebsites.net/#/notedetail/a8d91464-26f0-44cf-af19-33da2ab48405
+
+For multibrowser, _lstDeal = 0
+
+Excel report calling
+
+ OpenUrlMultiBrowser url = https://qacres4-ng.azurewebsites.net/#/notedetail/0ab483dd-fee9-42e2-a487-ae28223bc52c
+Excel sheet creation Time =11_30_2022_15_16_18
+
+ OpenUrlMultiBrowser url = https://qacres4-ng.azurewebsites.net/#/notedetail/f03304bb-f60e-47cd-aeab-4ff954fea26e
+
+ OpenUrlMultiBrowser url = https://qacres4-ng.azurewebsites.net/#/notedetail/a8d91464-26f0-44cf-af19-33da2ab48405
+
+Excel report = NoteCalculationReport.xlsx
+
+Path of current directory C:\Users\Hvantage20\source\repos\gthakur1996\Shantanu_CRES\Shantanu_ng_CRES5_GIT-master\CRES5_GIT-master\src\CRES.TestAutoMation
+
+noteCalculation method is called
+
+Calculation Status = Processing
+
+Note is Calculating
+
+Calculation Status = Processing
+
+Note is Calculating
+
+Calculation Status = Processing
+
+Note is Calculating
+Calc Eception = Timed out after 30 seconds
+
+ Noteid_Href[loop], = https://qacres4-ng.azurewebsites.net/#/notedetail/91261c04-c92b-432a-b36f-ab317c658280
+
+Phtm Janet Bth Note calculation is completed
+
+Completed Note's Full Status = Calculated on: Wednesday, November 30, 2022 1:47 AM PST| Status :Completed
+
+Completed status Logged
+
+ Noteid_Href[loop], = https://qacres4-ng.azurewebsites.net/#/notedetail/fcb962d3-53b5-444e-a414-638c0f98d876
+
+7114th Note calculation is completed
+
+Completed Note's Full Status = Calculated on: Wednesday, November 30, 2022 1:48 AM PST| Status :Completed
+
+Completed status Logged
+
+ Noteid_Href[loop], = https://qacres4-ng.azurewebsites.net/#/notedetail/7df6843e-5be4-4ac1-907d-1d5fb06ab6ad
+
+2401th Note calculation is completed
+
+Completed Note's Full Status = Calculated on: Wednesday, November 30, 2022 1:50 AM PST| Status :Completed
+
+Completed status Logged
+
+ Noteid_Href[loop], = https://qacres4-ng.azurewebsites.net/#/notedetail/acf14cda-07f4-47e2-9df2-4a1ab290693f

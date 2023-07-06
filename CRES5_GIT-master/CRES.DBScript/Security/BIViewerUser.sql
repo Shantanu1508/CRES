@@ -1,0 +1,2 @@
+﻿CREATE USER [BIViewerUser] WITHOUT LOGIN;
+

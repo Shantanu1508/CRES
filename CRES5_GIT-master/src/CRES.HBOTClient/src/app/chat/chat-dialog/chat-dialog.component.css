@@ -1,0 +1,97 @@
+@import "~@angular/material/prebuilt-themes/deeppurple-amber.css";
+
+.message {
+  border-radius: 3px;
+  margin: 0 0 10px;
+  padding: 15px 20px;
+  position: relative;
+  font-weight: 700;
+ 
+}
+  .message.to {
+    background-color: #58b666 !important;
+    /* background-color:#2196f3 !important;    */
+    /* max-width: 350px !important; */
+    color: white;
+    margin-left: 100px;
+    text-align: left;
+    font-family: "Lato";
+    font-weight: 400;
+    font-size: 12px;
+    margin-top: -4px !important;
+    width: max-content;
+    margin-left: auto;
+    border-radius: 15px 15px 15px 15px;
+    max-width:350px !important;
+    word-wrap:break-word;
+  }
+.message.from {
+  /* background-color: #e5e4e9;
+  color: #363636; */
+  /* margin-right: 100px; */
+  /* max-width: 350px !important;  */
+  background-color: rgba(0, 114, 135, .1) !important;
+  color: #6c6c6c;
+  text-align: left;
+  font-family: "Lato";
+  font-weight: 400;
+  font-size: 12px;
+  overflow: overlay;
+  width: max-content;
+  margin-left:5px !important;
+  border-radius: 15px 15px 15px 15px;
+  max-width:350px !important;
+  word-wrap:break-word;
+}
+.message.to + .message.to,
+.message.from + .message.from {
+  margin-top: -10px;
+}
+
+.container {
+  width: 100%;
+  font: 17px Calibri;
+}
+
+.example-form {
+  min-width: 100%;
+  max-width: 100%;
+  width: 100%;
+}
+
+.example-full-width {
+  width: 100%;
+}
+
+.Scrollable {
+  width: 100%;
+  overflow: auto;
+  height:auto;
+  max-height:95vh !important;
+}
+
+.bottom_link {
+  position: fixed;
+  bottom: -24px;
+  width: 100%;
+  left: 0;
+}
+
+::ng-deep .cdk-overlay-container {
+  width: 100%;
+  bottom: 41px;
+  left: 0px;
+  position: fixed;
+}
+
+
+
+#button-holder {
+  position: inherit;
+  float: right;
+  z-index: 4;
+  cursor: pointer;
+  margin-bottom: -58px;
+  margin-right: 4px;
+}
+

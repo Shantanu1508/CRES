@@ -1,0 +1,122 @@
+﻿<div class="col-sm-12 w7">
+    <div class="cssload-container" *ngIf="isPageRender">
+        <div class="cssload-whirlpool"></div>
+    </div>
+    <div *ngIf="_ShowdivMsgWar" class="alert alert-warning fade in">
+        <strong>{{_WarmsgdashBoad}}</strong>
+    </div>
+
+
+
+    <div style="width:100%;">
+        <div class="dashboardchatdiv">
+            <div style="width:100%;background:#FFF;height:92vh;">
+                <p class="contactusheading" style="padding-top: 10px; padding-bottom: 8px; text-align: left !important; padding-left: 11px;"> AI interactions</p>
+                <!--<div style="margin-left:10px;">
+                    <span class="label label-primary" style="font-size:14px;">downalod cashflow </span>
+                    &nbsp;<span class="label label-primary" style="font-size: 14px;">matury date The Hill</span>
+                    &nbsp;<span class="label label-primary" style="font-size:14px;">The Hill</span>
+                    &nbsp; <span class="label label-primary" style="font-size:14px;">Seventy Rainey</span>
+                </div>-->
+
+
+                <div *ngIf="_istodaylist">
+                    <p style="color:#00BFFF;text-align:center; margin-top:8px;">
+                        Today's interactions
+                    </p>
+                </div>
+
+
+                <div id="activity" class="todayactivity" style="width: 99% !important; margin-left: 10px; margin-top:10px;">
+                    <div *ngIf="_istodaylist">
+                        <div id="innerdiv" class="innerdiv"></div>
+                    </div>
+                </div>
+
+                <div *ngIf="_isyesterdaylist">
+                    <p style="color:#00BFFF;text-align:center; margin-top:8px;">
+                        Yesterday's interactions
+                    </p>
+                </div>
+
+
+                <div id="activity" class="yesterdayactivity" style="width: 99% !important; margin-left: 10px; margin-top:10px;">
+                    <div *ngIf="_isyesterdaylist">
+                        <div id="innerdiv" class="innerdiv"></div>
+                    </div>
+                </div>
+
+                <div *ngIf="_ispastlist">
+                    <p style="color:#00BFFF;text-align:center;  margin-top:8px;">
+                        Past interactions
+                    </p>
+                </div>
+
+                <div id="activity" class="pastactivity" style="width: 99% !important; margin-left: 10px; margin-top:10px;">
+                    <div *ngIf="_ispastlist">
+                        <div id="innerdiv" class="innerdiv">
+                        </div>
+                    </div>
+                </div>
+
+                <div id="chathistory" *ngIf="_ischathistory" style="margin-top:60px;">
+                    <div class="dashboardnorecordimage">
+                        <img src="../../images/Ai_Image.png" style="width:150px;height:150px;padding-bottom:20px;" />
+                    </div>
+                    <p class="dashboardnorecordtext">Welcome to M61! You can ask a question by typing it in "Ask a question" input box on the top of the page. To find what you may ask, click to the "?" icon next to the input box.</p>
+                </div>
+
+            </div>
+
+        </div>
+        <div class="dashboardrightdiv">
+            <div class="margindashboard P0 ">
+                <div style="width: 99%; float: left;">
+                    <div class="box1" *ngIf="isMyDeal">
+                        <h3>My deals</h3>
+                        <table width="100%" cellpadding="0" cellspacing="0" border="0">
+                            <thead>
+                                <tr>
+                                    <th class="ts1">Deal name</th>
+                                    <th class="thdate">Date</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr *ngFor="let item of lstMyDeal">
+                                    <td class="ts2">
+                                        <a href='#/dealdetail/{{item.ValueID}}' (click)="clickedlink()" rel="nofollow">{{item.Value1}}</a>
+                                    </td>
+                                    <td class="tsdate">{{item.Value2}}</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div style="width: 99%; float: left;">
+                    <div class="box1" *ngIf="isLastUpdatedDeal">
+                        <h3>Recent deals</h3>
+
+                        <table width="100%" cellpadding="0" cellspacing="0" border="0">
+                            <thead>
+                                <tr>
+                                    <th class="ts1">Deal</th>
+                                    <th class="thdate">Date</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr *ngFor="let itemLastUpdatedDeal of lstLastUpdatedDeal">
+                                    <td class="ts2">
+                                        <a href='#/dealdetail/{{itemLastUpdatedDeal.ValueID}}' (click)="clickedlink()" rel="nofollow">{{itemLastUpdatedDeal.Value1}}</a>
+                                    </td>
+                                    <td class="tsdate">{{itemLastUpdatedDeal.Value2}}</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+

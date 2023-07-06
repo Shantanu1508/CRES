@@ -1,0 +1,138 @@
+<div class="col-sm-12">
+
+  <div class="head">
+    <h1 style="display: inline-block;margin-top: 10px;">Report History</h1>
+  </div>
+
+  <div *ngIf="_Showmessagediv" class="alert alert-success fade in">
+    <strong>{{_ShowmessagedivMsg}}</strong>
+  </div>
+
+  <div *ngIf="_ShowmessagedivMsgWar" class="alert alert-warning fade in">
+    <strong>{{_WaringMessage}}</strong>
+  </div>
+  <div id="Genericdialogbox" class="modal">
+    <div class="modal-dialog" draggable="true" id="myModalgen" style="min-height:300px;width:500px">
+      <!-- Modal content -->
+      <div class="modal-content" style="padding:0px;border:0px;">
+        <div class="modal-header" style="background:#2196f3 !important">
+          <span class="customheading" style="color:white !important">CRES - Validation Error</span>
+          <span class="close" (click)="ClosePopUpDialog()">×</span>
+        </div>
+
+        <div class="modal-body" id="searchdialogmessage">
+
+        </div>
+        <div class="modal-footer" style="background-color:white !important;">
+          <!--<button type="button" (click)="ClosePopUpDialog()" class="custombutton" style="width:100px !important">Cancel</button>-->
+          <button type="button" class="custombutton" style="width:100px !important" (click)="ClosePopUpDialog()">Ok</button>
+        </div>
+
+
+      </div>
+    </div>
+  </div>
+  <div id="customdialogbox" class="modal">
+    <div class="modal-dialog" draggable="true" id="myModal-Delete" style="min-height:300px;width:500px">
+      <!-- Modal content -->
+      <div class="modal-content" style="padding:0px;border:0px;">
+        <div class="modal-header" style="background:#2196f3 !important">
+          <span class="customheading" style="color:white !important">Confirm Box</span>
+          <span class="close" (click)="ClosePopUpConfirmBox()">×</span>
+        </div>
+
+        <div class="modal-body">
+          <span class="customheading">
+            {{ _ConfirmMsgText }}
+          </span>
+        </div>
+        <div class="modal-footer" style="background-color:white !important;">
+          <button type="button" (click)="ClosePopUpConfirmBox()" class="custombutton" style="width:100px !important">Cancel</button>
+          <button type="button" class="custombutton" style="width:100px !important" (click)="ConfirmBoxOK()">Ok</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="cssload-container" *ngIf="_isListFetching">
+    <div class="cssload-whirlpool"></div>
+  </div>
+  <div class="fmst">
+    <div class="form-group row pD10">
+      <div class="col-sm-3">
+        <label class="lab1">Report Name</label>
+        <select id="ddlReportName" name="DefaultNoteTab" class="ibox1">
+          <option value="00000000-0000-0000-0000-000000000000">
+            <b>--Select--</b>
+          </option>
+          <option *ngFor="let item of lstReportMaster" value={{item.ReportFileGUID}}>
+            {{item.ReportFileName}}
+          </option>
+        </select>
+      </div>
+      <div class="col-sm-3">
+        <label class="lab1">Start Date</label>
+        <wj-input-date id="_startDate" [(value)]="_startDate" class="ibox1 rightalign" [format]="'d'" [isRequired]="false" [placeholder]="'M/d/yyyy'"></wj-input-date>
+      </div>
+      <div class="col-sm-3">
+        <label class="lab1">End Date</label>
+        <wj-input-date id="_endDate" [(value)]="_endDate" class="ibox1 rightalign" [format]="'d'" [isRequired]="false" [placeholder]="'M/d/yyyy'"></wj-input-date>
+      </div>
+      <div class="col-sm-3">
+        <button type="button" id="btnSearchHistory" class="custombutton custombutton_floatleft" style="width: 200px;" (click)="SearchDocument()">Search</button>
+      </div>
+    </div>
+  </div>
+  <div *ngIf="_dvEmptyDocumentMsg" class="alert alert-danger fade in" style="margin-top:18px;">
+    <!--<a href="#" class="close" data-dismiss="alert" aria-label="close" title="close">×</a>-->
+    <strong>No matching records found</strong>
+  </div>
+  <div *ngIf="!_dvEmptyDocumentMsg" class="fmst customlistpageheight">
+    <div class="row MG0">
+      <div class="col-sm-12 customgridpadding">
+
+
+        <!--<center>
+            <svg *ngIf="_dealListFetching" class="spinner" width="25px" height="25px" viewBox="0 0 66 66"><circle class="circle" fill="none" stroke-width="6" stroke-linecap="round" cx="33" cy="33" r="30"></circle></svg>
+        </center>-->
+
+        <div class="clearfix"></div>
+
+        <wj-flex-grid id="flex" #flex [itemsSource]="lstReports" [allowResizing]="'Both'" auto-generate-columns="true" allow-add-new="true" allow-sorting="true" showFilterIcons="true" class="wijmogridcss">
+          <wj-flex-grid-filter #filter></wj-flex-grid-filter>
+          <wj-flex-grid-column [header]="'Report Name'" [isReadOnly]="true" [width]="350">
+            <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
+              <div>
+                <a class="cur-pointer" (click)="DownloadDocument(cell.item.FileName,cell.item.OriginalFileName,cell.item.StorageTypeID,cell.item.StorageLocation,cell.item.DocumentStorageID)" title="Click to download" routerLinkActive="active">
+                  {{
+cell.item.ReportFileName
+                  }}
+                </a>
+              </div>
+            </ng-template>
+          </wj-flex-grid-column>
+          <wj-flex-grid-column [header]="'File Name'" [isReadOnly]="true" [width]="350">
+            <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
+              <div>
+                <a class="cur-pointer" (click)="DownloadDocument(cell.item.FileName,cell.item.OriginalFileName,cell.item.StorageTypeID,cell.item.StorageLocation,cell.item.DocumentStorageID)" title="Click to download" routerLinkActive="active">
+                  {{
+cell.item.FileName
+                  }}
+                </a>
+              </div>
+            </ng-template>
+          </wj-flex-grid-column>
+
+
+          <wj-flex-grid-column [header]="'Generated By'" [binding]="'UserFullName'" [width]="'*'"></wj-flex-grid-column>
+          <wj-flex-grid-column [header]="'Generated Date'" [binding]="'UploadedTime'" [width]="'*'"></wj-flex-grid-column>
+          <wj-flex-grid-column [name]="'buttons'" [header]="'Delete'" [isReadOnly]="true" align="left" [width]="'*'">
+            <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
+              <a style="cursor: pointer;" (click)="CallConfirm(cell.item)">Delete</a>
+            </ng-template>
+          </wj-flex-grid-column>
+
+        </wj-flex-grid>
+      </div>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,6 @@
+﻿
+IF NOT EXISTS(Select AnalysisID from core.analysis where Name = 'Expected Maturity Date')
+BEGIN
+	INSERT [Core].[Analysis] ([AnalysisID], [Name], [StatusID], [Description], [CreatedBy], [CreatedDate], [UpdatedBy], [UpdatedDate], [ScenarioColor]) VALUES (N'261ca4f1-a0af-45c1-8cf6-053dafaaa835', N'Expected Maturity Date', 4, N'Expected Maturity Date', N'b0e6697b-3534-4c09-be0a-04473401ab93', CAST(N'2021-05-17T19:44:28.320' AS DateTime), N'b0e6697b-3534-4c09-be0a-04473401ab93', CAST(N'2021-05-17T19:44:28.320' AS DateTime), N'OliveDrab')
+	INSERT [Core].[AnalysisParameter] ([AnalysisParameterID], [AnalysisID], [CreatedBy], [CreatedDate], [UpdatedBy], [UpdatedDate], [MaturityScenarioOverrideID], [MaturityAdjustment], [FunctionName], [IndexScenarioOverride], [CalculationMode], [ExcludedForcastedPrePayment], [AutoCalculationFrequency], [NextExecuteTime], [UseActuals], [UseBusinessDayAdjustment]) VALUES (N'cc6a8bfc-0efa-447e-aa49-79c2e7d76aad', N'261ca4f1-a0af-45c1-8cf6-053dafaaa835', N'b0e6697b-3534-4c09-be0a-04473401ab93', CAST(N'2021-05-17T19:44:28.343' AS DateTime), N'b0e6697b-3534-4c09-be0a-04473401ab93', CAST(N'2021-05-17T19:44:28.343' AS DateTime), 329, NULL, NULL, 1, 507, 3, NULL, NULL, 3, NULL)
+END

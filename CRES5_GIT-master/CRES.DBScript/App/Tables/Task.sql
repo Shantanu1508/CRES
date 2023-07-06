@@ -1,0 +1,26 @@
+﻿CREATE TABLE [App].[Task] (
+    [TaskID]                  UNIQUEIDENTIFIER CONSTRAINT [DF__Task__TaskID__725BF7F6] DEFAULT (newid()) NOT NULL,
+    [TaskAutoID]              INT              IDENTITY (1, 1) NOT NULL,
+    [Priority]                INT              NULL,
+    [TaskType]                INT              NULL,
+    [Status]                  INT              NULL,
+    [Summary]                 NVARCHAR (MAX)   NULL,
+    [Description]             NVARCHAR (MAX)   NULL,
+    [CategoryTag]             NVARCHAR (256)   NULL,
+    [SubCategoryTag]          NVARCHAR (256)   NULL,
+    [StartDate]               DATE             NULL,
+    [DeadlineDate]            DATE             NULL,
+    [AssignedTo]              UNIQUEIDENTIFIER NULL,
+    [EstimatedCompletionDate] DATE             NULL,
+    [ActualCompletionDate]    DATE             NULL,
+    [Tag1]                    NVARCHAR (256)   NULL,
+    [Tag2]                    NVARCHAR (256)   NULL,
+    [Tag3]                    NVARCHAR (256)   NULL,
+    [ParentTaskID]            UNIQUEIDENTIFIER NULL,
+    [CreatedBy]               NVARCHAR (256)   NULL,
+    [CreatedDate]             DATETIME         NULL,
+    [UpdatedBy]               NVARCHAR (256)   NULL,
+    [UpdatedDate]             DATETIME         NULL,
+    CONSTRAINT [PK_TaskID] PRIMARY KEY CLUSTERED ([TaskID] ASC)
+);
+
