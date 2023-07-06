@@ -1,0 +1,95 @@
+{
+  "_args": [
+    [
+      "webworkify@1.5.0",
+      "C:\\Data\\Code\\CRES4_Backup\\CRES5_16Jan2018\\src\\CRES.WebClient"
+    ]
+  ],
+  "_from": "webworkify@1.5.0",
+  "_id": "webworkify@1.5.0",
+  "_inCache": true,
+  "_location": "/webworkify",
+  "_nodeVersion": "8.3.0",
+  "_npmOperationalInternal": {
+    "host": "s3://npm-registry-packages",
+    "tmp": "tmp/webworkify-1.5.0.tgz_1510590639731_0.36480907746590674"
+  },
+  "_npmUser": {
+    "email": "vestibule@anandthakker.net",
+    "name": "anandthakker"
+  },
+  "_npmVersion": "5.5.1",
+  "_phantomChildren": {},
+  "_requested": {
+    "name": "webworkify",
+    "raw": "webworkify@1.5.0",
+    "rawSpec": "1.5.0",
+    "scope": null,
+    "spec": "1.5.0",
+    "type": "version"
+  },
+  "_requiredBy": [
+    "/"
+  ],
+  "_resolved": "https://registry.npmjs.org/webworkify/-/webworkify-1.5.0.tgz",
+  "_shasum": "734ad87a774de6ebdd546e1d3e027da5b8f4a42c",
+  "_shrinkwrap": null,
+  "_spec": "webworkify@1.5.0",
+  "_where": "C:\\Data\\Code\\CRES4_Backup\\CRES5_16Jan2018\\src\\CRES.WebClient",
+  "author": {
+    "email": "mail@substack.net",
+    "name": "James Halliday",
+    "url": "http://substack.net"
+  },
+  "bugs": {
+    "url": "https://github.com/substack/webworkify/issues"
+  },
+  "dependencies": {},
+  "description": "launch a web worker that can require() in the browser with browserify",
+  "devDependencies": {
+    "gamma": "~0.1.0",
+    "tape": "~1.0.4"
+  },
+  "directories": {},
+  "dist": {
+    "integrity": "sha512-AMcUeyXAhbACL8S2hqqdqOLqvJ8ylmIbNwUIqQujRSouf4+eUFaXbG6F1Rbu+srlJMmxQWsiU7mOJi0nMBfM1g==",
+    "shasum": "734ad87a774de6ebdd546e1d3e027da5b8f4a42c",
+    "tarball": "https://registry.npmjs.org/webworkify/-/webworkify-1.5.0.tgz"
+  },
+  "gitHead": "baf2884256768aea6c36be1ea6e1efb2144fcfbc",
+  "homepage": "https://github.com/substack/webworkify",
+  "installable": true,
+  "keywords": [
+    "background",
+    "browser",
+    "fork",
+    "web",
+    "worker"
+  ],
+  "license": "MIT",
+  "main": "index.js",
+  "maintainers": [
+    {
+      "email": "agafonkin@gmail.com",
+      "name": "mourner"
+    },
+    {
+      "email": "vestibule@anandthakker.net",
+      "name": "anandthakker"
+    },
+    {
+      "email": "substack@gmail.com",
+      "name": "substack"
+    }
+  ],
+  "name": "webworkify",
+  "optionalDependencies": {},
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/substack/webworkify.git"
+  },
+  "scripts": {
+    "test": "tape test/*.js"
+  },
+  "version": "1.5.0"
+}

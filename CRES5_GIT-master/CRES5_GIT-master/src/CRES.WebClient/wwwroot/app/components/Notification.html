@@ -1,0 +1,78 @@
+﻿<div class="col-sm-12">
+
+    <div class="head fixheaderdiv">
+
+        <h1 style="display: inline-block;margin-top: 10px;">All Notification </h1>
+
+
+        <!--<h3>Notification Subscription</h3>-->
+        <div class="cssload-container" *ngIf="_isNotificationsshow">
+            <div class="cssload-whirlpool"></div>
+        </div>
+
+
+    </div>
+    <div class="fmst fixheadercontent">
+        <div class="form-group row pD10 notificationpagemaindiv">
+
+            <div id="notifi" (scroll)="onScrollnotifi()"  style="overflow-y:auto">
+                <table style="width:75%;" align="left">
+                    <thead>
+                        <tr>
+                            <th>
+                                <div class="col-sm-12 customgridpadding" style="text-align:right">
+                                    <a (click)="ClearAllNotification()" role="button">Clear All</a>
+
+                                </div>
+
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody id="notificationsdetails" >
+
+                        <tr *ngIf="notificationcount==0">
+                            <td>
+                                <div class="notificationmaindiv" >
+                                    <p class="norecordfound">{{notificationmessage}}</p>
+                                </div>
+                            </td>
+                        </tr>
+
+                        <tr *ngFor="let notifi of unotification" align="left">
+                            <td class="ts2" id={{notifi.UserNotificationID}} style="width:90% !important">
+
+                                <div class="notificationmaindiv"  *ngIf="notificationcount>0">
+
+                                    <!--<a class="close" data-dismiss="alert" aria-label="close" (click)="CloseNotification(notifi.UserNotificationID,$event)">×</a>-->
+
+                                    <table style="width:99%;">
+                                        <tr align="center">                                                                                      
+                                            <td width="2% !important">
+                                                <div [ngClass]="notifi.UColor">
+                                                    {{notifi.SenderFirstLetter}}
+                                                </div>
+                                            </td>
+                                            <td width="88% !important" align="left">
+                                                <span class="notificationpara" [innerHTML]="notifi.Msg" ></span>
+                                            </td>
+                                            <td width="10% !important">
+                                                <span class="divtime" [innerHTML]="notifi.Modified"></span>
+                                            </td>
+                                        </tr>
+                                    </table>
+
+                                </div>
+                            </td>
+                        </tr>
+
+                    </tbody>
+                </table>
+
+
+            </div>
+
+         
+        </div>
+    </div>
+</div>
+

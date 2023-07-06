@@ -1,0 +1,26 @@
+﻿CREATE TABLE [dbo].[Period_Data$] (
+    [Note ID]                             VARCHAR (256) NULL,
+    [Period End Date]                     DATETIME      NULL,
+    [Month]                               FLOAT (53)    NULL,
+    [Ending GAAP Book Value]              FLOAT (53)    NULL,
+    [Total GAAP Income for the Period]    FLOAT (53)    NULL,
+    [Interest Accrual for the Period]     FLOAT (53)    NULL,
+    [PIK Interest Accrual for the Period] FLOAT (53)    NULL,
+    [Total Amort Accrual for the Period]  MONEY         NULL,
+    [Accumulated Amort]                   FLOAT (53)    NULL,
+    [Beginning Balance]                   MONEY         NULL,
+    [Ending Balance]                      MONEY         NULL,
+    [End of Period WAL]                   FLOAT (53)    NULL,
+    [Beginning PIK Balance]               MONEY         NULL,
+    [Ending PIK Balance]                  MONEY         NULL,
+    [Cost Basis]                          FLOAT (53)    NULL,
+    [Pre-Cap Basis]                       FLOAT (53)    NULL,
+    [Basis Cap]                           MONEY         NULL,
+    [Beginning Financing Balance]         MONEY         NULL,
+    [Ending Financing Balance]            MONEY         NULL,
+    [F20]                                 MONEY         NULL,
+    [F21]                                 MONEY         NULL,
+    [F22]                                 MONEY         NULL,
+    [F23]                                 MONEY         NULL
+);
+

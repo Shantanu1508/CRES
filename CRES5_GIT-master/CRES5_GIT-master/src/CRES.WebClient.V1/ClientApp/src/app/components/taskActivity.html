@@ -1,0 +1,292 @@
+<form #f="ngForm">
+  <div class="col-sm-12">
+    <div class="head fixheaderdiv">
+      <h1 style="display: inline-block; margin-top: 10px;">
+        Task Details: {{_taskManagement.TaskAutoID}}
+
+      </h1>
+      <span>
+
+
+        <button class="custombutton" (click)="DiscardChanges()">
+          Cancel
+        </button>
+        <button class="custombutton" (click)="CopyTask()">
+          Copy
+        </button>
+        <button class="custombutton" (click)="validateandsave()">
+          Save
+        </button>
+
+      </span>
+      <div *ngIf="_Showmessagediv" class="alert alert-success fade in">
+        <strong>{{_ShowmessagedivMsg}}</strong>
+      </div>
+    </div>
+
+    <div class="fmst fixheadercontent">
+
+      <div class="box1a" style="margin-top:0px !important;">
+        <div class="cssload-container" *ngIf="_TaskFetching">
+          <div class="cssload-whirlpool">
+          </div>
+        </div>
+
+        <div class="form-group row pD10">
+
+          <div class="col-sm-12" style="width:99% !important;">
+            <div class="taskmaindiv">
+
+              <div class="divissuedetails">
+                <div class="divsummary">
+                  <span style="display: block;margin-bottom: 2px;" class="spanfont">Summary</span>
+                  <input class="editablecontrol" type="text" [(ngModel)]="_taskManagement.Summary" name="Summary" ngControl="Summary" #Summary="ngModel" id="Summary">
+                </div>
+                <div class="modcontent">
+                  <table class="modcontenttable">
+                    <tr>
+                      <th> Priority </th>
+                      <th>Type</th>
+                      <th>Status</th>
+                      <th>Start date</th>
+                      <th>Deadline</th>
+
+                    </tr>
+                    <tr>
+                      <td>
+                        <!--<i  [ngClass]="this.PriorityColor"></i>-->
+                        <!--<select [(ngModel)]="_taskManagement.Priority" name="Priority" #Priority="ngModel" class="selectwithoutborder">
+                            <option *ngFor="let status of lstlookupPriority" value={{status.LookupID}}>
+                                {{status.Name}}
+                            </option>
+                        </select>-->
+
+
+                        <select [(ngModel)]="_taskManagement.Priority" id="Priority" name="Priority" #Priority="ngModel" class="selectwithoutborder" style='font-family:Arial, FontAwesome;'>
+                          <option value='364' style="color:greenyellow;">&#xf175; Lowest </option>
+                          <option value='365' style="color:forestgreen;">&#xf175; &nbsp; Low</option>
+                          <option value='366' style="color:#039be5;">&#xf175; &nbsp; Medium</option>
+                          <option value='367' style="color:#ecac00;">&#xf176; &nbsp; High</option>
+                          <option value='368' style="color:red;">&#xf176; &nbsp; Highest</option>
+                        </select>
+
+                        <!--{{_taskManagement.PriorityText}}-->
+                      </td>
+
+
+                      <td>
+                        <select [(ngModel)]="_taskManagement.TaskType" class="selectwithoutborder" id="TaskType" name="TaskType" #TaskType="ngModel" style='height: 32px;'>
+                          <option value='369'>Enhancement</option>
+                          <option value='370'>Bug</option>
+                          <option value='371'>Service</option>
+                          <option value='372'>Business</option>
+                        </select>
+
+                        <!--<select [(ngModel)]="_taskManagement.TaskType" name="TaskType" #TaskType="ngModel" class="selectwithoutborder">
+                            <option *ngFor="let status of lstlookupTaskType" value={{status.LookupID}}>
+                                {{status.Name}}
+                            </option>
+                        </select>-->
+
+
+                      </td>
+
+                      <td>
+
+                        <!--<select [(ngModel)]="_taskManagement.Status" name="Status" #Status="ngModel" class="selectwithoutborder">
+                            <option *ngFor="let status of lstlookupStatus" value={{status.LookupID}}>
+                                {{status.Name}}
+                            </option>
+                        </select>-->
+
+                        <select [(ngModel)]="_taskManagement.Status" class="selectwithoutborder" id="Status" name="Status" #Status="ngModel" style='height: 32px;'>
+                          <option value='373'>Open</option>
+                          <option value='374'>In Progress</option>
+                          <option value='375'>On Hold</option>
+                          <option value='376'>Cancelled</option>
+                          <option value='377'>Requires Feedback</option>
+                          <option value='378'>Closed</option>
+                        </select>
+                      </td>
+                      <td>
+                        <wj-input-date [(value)]="_taskManagement.StartDate" id="StartDate" [format]="'MM/d/yyyy'" class="selectwithoutborder rightalign" [isRequired]="false" [placeholder]="'MM/d/yyyy'"></wj-input-date>
+                      </td>
+                      <td>
+                        <wj-input-date [(value)]="_taskManagement.DeadlineDate" id="DeadlineDate" [format]="'MM/d/yyyy'" class="selectwithoutborder rightalign" [isRequired]="false" [placeholder]="'MM/d/yyyy'"></wj-input-date>
+                      </td>
+                    </tr>
+                  </table>
+                </div>
+                <div class="taskdescription">
+                  <span class="spanfont">Description</span>
+                  <span>
+                    <!--{{_taskManagement.Description}}-->
+                    <textarea [(ngModel)]="_taskManagement.Description" (keyup)="adjustheight()" style="font-family: 'Lato';font-size: inherit;" class="editabletextarea input-lg" rows="5" cols="45" id="txtdescription" name="Description"></textarea>
+                  </span>
+                </div>
+
+                <div class="activitymodule" id="activitymodule">
+                  <span class="activityheader">Activity</span>
+                  <div id="activitycontent" class="acitivitycontent" *ngFor="let comment of lsttaskcomment">
+                    <div style="width:100% !important;float:left;" id="dbcontent" *ngIf="comment.Comments!= '' ">
+                      <div [ngClass]="comment.UColor">
+                        {{comment.CommentedByFirstLetter}}
+                      </div>
+                      <div class="activitymain">
+                        <div class="activityitemsummary">
+                          <span class="fontcolor" [innerHTML]="comment.AssignedToText"></span>
+                          <span [innerHTML]="comment.TaskSummary"></span>
+                          <span class="divtime" [innerHTML]="comment.Modified"></span>
+                        </div>
+                        <div class="activityitemdescription">
+                          <span [innerHTML]="comment.Comments"></span>
+                        </div>
+                      </div>
+                    </div>
+                    <div style="width:100% !important;float:left;" *ngIf="comment.ActivityMessage!= '' ">
+                      <div [ngClass]="comment.ActivityColor">
+                        {{comment.ActivityUserFirstLetter}}
+                      </div>
+                      <div class="ActivityMessage activityitemsummary">
+                        <span style="padding-left:10px;" class="fontcolor" [innerHTML]="comment.AssignedToText"></span>
+                        <span [innerHTML]="comment.ActivityMessage"></span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="divcomment" id="divcomment">
+                  <span class="spanfont">  Comment</span>
+                  <div class="divcommentbody">
+                    <textarea [(ngModel)]="_taskComment.Comments" (keyup)="adjustCommentheight()" style="font-family: 'Lato';font-size: inherit;" class="editabletextarea input-lg" rows="5" cols="45" name="Comments" id="Comments"></textarea>
+                    <div class="divcommentbutton">
+                      <div style="width:68%;float:left;">
+                        <span class="spanfont"><strong> Subscribers</strong></span>
+                        <span class="spanfont" *ngIf="totalpeople!='0'"> {{totalpeople}} people will be notified when a change is made to this task </span>
+                        <div *ngFor="let subscribers of lstsubscriber">
+                          <div [ngClass]="subscribers.UColor" style="width:37px;margin-right:4px;" title="{{subscribers.FirstName}}">
+                            {{subscribers.CommentedByFirstLetter}}
+                          </div>
+                        </div>
+                        <div style="width:100%;float:left;">
+                          <button class="Subscriberbutton" (click)="showEmailNotify()">
+                            Add/Remove People
+                          </button>
+                        </div>
+                      </div>
+                      <div style="width:32%;float:left;">
+                        <button class="custombutton" (click)="InsertUpdateComment()">
+                          Add Comment
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="divpepoleanddates">
+                <div class="itemsummary">
+                  <!--<span class="item-summary-label"></span>-->
+
+                  <label class="lab1">Assigned To</label>
+                  <span class="assignedtosapn">
+                    <wj-auto-complete #acDeal
+                                      [itemsSourceFunction]="getAutosuggestusername"
+                                      [displayMemberPath]="'DisplayName'"
+                                      [selectedValuePath]="'ValueID'"
+                                      [placeholder]="'User Name'"
+                                      [text]="task_username"
+                                      (selectedIndexChanged)="checkDroppedDownChangedUserName(acDeal, $event)" (change)="checkDroppedDownChangedUserName(acDeal, $event)" class="editableleftcontrol" style="width:100%;display: inline-block;padding-bottom:2px;">
+                    </wj-auto-complete>
+                  </span>
+                </div>
+
+                <div class="itemsummary">
+
+                  <label class="lab1">Reporter</label>
+
+                  <input class="editableleftcontrol" type="text" [(ngModel)]="_taskManagement.CreatedBy" name="CreatedBy" ngControl="CreatedBy" #CreatedBy="ngModel" id="CreatedBy">
+
+                </div>
+                <div class="itemsummary">
+                  <label class="lab1">Category</label>
+                  <input class="editableleftcontrol" type="text" [(ngModel)]="_taskManagement.CategoryTag" name="CategoryTag" ngControl="CategoryTag" #CategoryTag="ngModel" id="CategoryTag">
+
+                </div>
+
+                <div class="itemsummary">
+
+                  <label class="lab1">Sub category</label>
+
+                  <input class="editableleftcontrol" type="text" [(ngModel)]="_taskManagement.SubCategoryTag" name="SubCategoryTag" ngControl="SubCategoryTag" #SubCategoryTag="ngModel" id="SubCategoryTag">
+
+                </div>
+                <div class="itemsummary">
+                  <label class="lab1">Tag 1</label>
+                  <input class="editableleftcontrol" type="text" [(ngModel)]="_taskManagement.Tag1" name="Tag1" ngControl="Tag1" #Tag1="ngModel" id="Tag1">
+
+                </div>
+                <div class="itemsummary">
+
+                  <label class="lab1">Tag 2</label>
+                  <input class="editableleftcontrol" type="text" [(ngModel)]="_taskManagement.Tag2" name="Tag2" ngControl="Tag2" #Tag2="ngModel" id="Tag2">
+
+                </div>
+                <div class="itemsummary">
+                  <label class="lab1">Tag 3</label>
+                  <input class="editableleftcontrol" type="text" [(ngModel)]="_taskManagement.Tag3" name="Tag3" ngControl="Tag3" #Tag3="ngModel" id="Tag3">
+
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div id="myModelNotifyEmail" class="modal">
+          <div class="modal-dialog" id="myModalNotify" style="width:355px;">
+            <div class="modal-content" style="padding:1px;">
+              <div class="modal-header custommodelheader">
+                <span class="customheading" style="color:white !important">Choose who to notify</span>
+                <span class="close" (click)="ClosePopUp()">×</span>
+              </div>
+
+              <div class="modal-body" draggable="true" id="myModal-Delete" style="width:350px;overflow-y: scroll;height: 500px;">
+                <div class="acitivitycontent">
+                  <div class="notificationuserdiv" *ngFor="let _user of lstsubscribuser">
+                    <div [ngClass]="_user.UColor">
+                      {{_user.CommentedByFirstLetter}}
+                    </div>
+
+                    <div class="notificationdivname">
+                      {{_user.FirstName}}
+                    </div>
+
+                    <div class="notificationdivcheckbox">
+                      <input type="checkbox" name="SubscriptionStatus"
+                             [checked]="_user.SubscriptionStatus"
+                             (change)="_user.SubscriptionStatus = $event.target.checked" />
+                    </div>
+
+                  </div>
+                  <div class="form-group row pD10">
+                    <button type="button" class="custombutton" style="position: relative;top:50%;right: 22%;width:150px!important" (click)="SubscribeUser()">Subscribe</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+
+    <div id="dialogoverlay"></div>
+    <div id="dialogbox">
+      <div>
+        <div id="dialogboxhead"></div>
+        <div id="dialogboxbody"></div>
+        <div id="dialogboxfoot"><span class="btn custombutton" (click)="ok()">Ok</span></div>
+      </div>
+    </div>
+
+  </div>
+</form>

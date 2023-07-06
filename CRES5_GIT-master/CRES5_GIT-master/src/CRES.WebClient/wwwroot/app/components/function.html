@@ -1,0 +1,117 @@
+﻿<div class="col-sm-12">
+    <div class="head fixheaderdiv">
+        <h1 style="display: inline-block;margin-top: 10px;">Rule-Engine</h1>
+        <span>
+
+
+            <span style="width: 150px !important;float: right !important;font-size: 13px !important;text-align: center !important; font-family: 'Lato' !important;
+                    font-weight: 400 !important;    color: black !important;    display: block !important;    margin-right: 10px !important;    margin-top: 3px;    margin-bottom: 10px !important;">
+                <span style="vertical-align:text-top">
+                    <input type="checkbox" name="SubscriptionStatus"
+                           [checked]="_isDefault"
+                           (change)="_isDefault = $event.target.checked" />
+                </span>
+                <label style="display: inline-block;margin-top: 5px;">
+                    Default Function
+                </label>
+            </span>
+            <span>
+                <button id="btnCreateCopy" type="submit" tooltip="Create Copy" class="custombutton_150px" (click)="showDialogCreateCopy()">Create Copy</button>
+            </span>
+
+            <span style="width: 150px !important;float: right !important; margin-right: 42px !important;    margin-top: 3px;    margin-bottom: 10px !important;">
+                <select [(ngModel)]="foldername" id="foldername" style="padding: 5px 0 7px 10px; border: 1px #CCC solid; border-radius: 2px; display: block !important;" name="foldername" (change)="ChangeFolder($event.target.value)">
+                    <option value="Select">
+                        Please Select Version
+                    </option>
+                    <option *ngFor="let item of lstFolders" value={{item}}>
+                        {{item}}
+                    </option>
+                </select>
+            </span>
+        </span>
+    </div>
+    <div class="fmst fixheadercontent">
+
+
+
+        <div class="cssload-container" *ngIf="_isListFetching">
+            <div class="cssload-whirlpool"></div>
+        </div>
+        <div>
+
+            <label style="margin-top: 15px;" class="fontonly">File list</label>
+
+            <button type="button" class="custombutton" (click)="updateAndDeploy()" *ngIf="_isSaveFile" style="margin-right:20px!important;margin-top:9px!important">Save & Deploy</button>
+            <button type="button" class="custombutton" (click)="updateFile()" *ngIf="_isSaveFile" style="margin-right:20px!important;margin-top:9px!important">Save</button>
+        </div>
+        <!-- Sliding panel-->
+        <div id="mainSpliter">
+            <div id="SpliterA">
+                <div id="sidebar">
+
+                    <!--<input id="btnSave" type="button" value="Save Changes" style="margin-left: 50px;"/>-->
+                    <ul id="file-list" style="margin-top: 5px;margin-left:37px;height:70vh;overflow-y:auto;">
+                        <li *ngFor="let item of data" style="cursor:default;">
+                            <a style="padding-left: 5px;" (click)="getFile(item)">
+                                {{item}}
+                            </a>
+                        </li>
+
+                    </ul>
+                </div>
+            </div>
+            <div id="SpliterB">
+                <div id="editor" style="z-index:0;"></div>
+            </div>
+        </div>
+
+
+        <!--<div id="editor-container">
+        </div>-->
+
+        <div id="myModalCreateCopy" class="modal" style="z-index:1000;">
+            <div class="modal-dialog" draggable="true" id="modal-dialog" style="min-height:100px;width:457px">
+                <!-- Modal content -->
+                <div class="modal-content">
+                    <div class="modal-header" style="border:0;">
+                        <span class="customheading"></span>
+                        <span class="close" (click)="ClosePopUpCreateCopy()">×</span>
+                    </div>
+
+                    <div class="modal-body">
+                        <!--<svg *ngIf="_isPeriodicDataFetching" class="spinner" style="margin-left: 420px;" width="30px" height="30px" viewBox="0 0 66 66">
+                            <circle class="circle" fill="none" stroke-width="6" stroke-linecap="round" cx="33" cy="33" r="30"></circle>
+                        </svg>-->
+                        <div style="height:100px">
+                            <label class="lab1">Function Name</label>
+                            <div style="margin-bottom:10px;">
+                                <input class="ibox1" type="text" [(ngModel)]="DestFolder" style="display:inline!important">
+                                <!--<button type="button" class="custombutton" (click)="cloneFolder()" style="display:none;">Copy</button>-->
+                            </div>
+                            <button type="button" class="custombutton" (click)="createFunction()">Save</button>
+
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+
+
+
+
+
+
+</div>
+
+
+
+
+
+
+
+
+

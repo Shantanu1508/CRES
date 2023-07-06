@@ -1,0 +1,28 @@
+﻿Create View dbo.InterestCalculator
+As
+
+SELECT [InterestCalculatorID]
+      ,[InterestCalculatorAutoID]
+      ,[NoteID]
+      ,[CRENoteID]
+      ,[AccrualStartDate]
+      ,[AccrualEndDate]
+      ,[PaymentDate]
+      ,[BeginningBalance]
+      ,[AnalysisID]
+      ,[LIBOR]
+      ,[Spread]
+      ,[AllInOnecoupon]
+      ,[EndingBalance]
+      ,[Repayment]
+      ,[Funding]
+      ,[ScheduledPrincipal]
+      ,[PikInterest]
+      ,[InterestExcludePrepayDate]
+      ,[InterestFullAccrual]
+      ,[CreatedBy]
+      ,[CreatedDate]
+      ,[UpdatedBy]
+      ,[UpdatedDate]
+  FROM [DW].[InterestCalculatorBI]
+
