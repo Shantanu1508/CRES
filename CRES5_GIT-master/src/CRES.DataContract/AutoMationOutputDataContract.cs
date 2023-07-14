@@ -19,6 +19,8 @@
         public string URL { get; set; }
         public string SaveMessage { get; set; }
         public string GenerateMessage { get; set; }
+        public string DownloadStatus { get; set; }
+        public string DownloadFailedStatus { get; set; }
         public string TestCaseName { get; set; }
         public string Validation1 { get; set; }
         public string Validation2 { get; set; }

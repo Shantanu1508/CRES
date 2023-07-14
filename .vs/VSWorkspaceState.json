@@ -2,12 +2,12 @@
   "ExpandedNodes": [
     "",
     "\\CRES5_GIT-master",
+    "\\CRES5_GIT-master\\SpecFlowCalculator.Specs",
+    "\\CRES5_GIT-master\\SpecFlowCalculator.Specs\\StepDefinitions",
     "\\CRES5_GIT-master\\src",
-    "\\CRES5_GIT-master\\src\\SpecFlowCalculator",
-    "\\CRES5_GIT-master\\src\\SpecFlowCalculator\\SpecFlowCalculator.Specs",
-    "\\CRES5_GIT-master\\src\\SpecFlowCalculator\\SpecFlowCalculator.Specs\\Features",
-    "\\CRES5_GIT-master\\src\\SpecFlowCalculator\\SpecFlowCalculator.Specs\\StepDefinitions"
+    "\\CRES5_GIT-master\\src\\CRES.TestAutoMation",
+    "\\CRES5_GIT-master\\src\\CRES.TestAutoMation\\TestCases"
   ],
-  "SelectedNode": "\\CRES5_GIT-master\\CRES.sln",
+  "SelectedNode": "\\CRES5_GIT-master\\src\\CRES.TestAutoMation\\TestCases\\GeneralVerification.cs",
   "PreviewInSolutionExplorer": false
 }

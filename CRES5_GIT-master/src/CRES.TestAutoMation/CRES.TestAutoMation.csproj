@@ -67,12 +67,11 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Folder Include="ExecutionReports\ExcelReports\" />
     <Folder Include="ExecutionReports\FailedCaseScreenshots\" />
     <Folder Include="ExecutionReports\GraphicalReports\" />
-    <Folder Include="ExecutionReports\ExcelReports\" />
     <Folder Include="ExecutionReports\ExecutionLogs\" />
     <Folder Include="ExecutionReports\NoteCalculation\" />
-    <Folder Include="Inputs\NotesInput\" />
   </ItemGroup>
 
   <ItemGroup>
