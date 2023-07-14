@@ -1,7 +1,12 @@
 {
   "ExpandedNodes": [
     "",
-    "\\CRES5_GIT-master"
+    "\\CRES5_GIT-master",
+    "\\CRES5_GIT-master\\src",
+    "\\CRES5_GIT-master\\src\\SpecFlowCalculator",
+    "\\CRES5_GIT-master\\src\\SpecFlowCalculator\\SpecFlowCalculator.Specs",
+    "\\CRES5_GIT-master\\src\\SpecFlowCalculator\\SpecFlowCalculator.Specs\\Features",
+    "\\CRES5_GIT-master\\src\\SpecFlowCalculator\\SpecFlowCalculator.Specs\\StepDefinitions"
   ],
   "SelectedNode": "\\CRES5_GIT-master\\CRES.sln",
   "PreviewInSolutionExplorer": false
