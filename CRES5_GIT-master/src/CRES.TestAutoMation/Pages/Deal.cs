@@ -54,6 +54,7 @@ namespace CRES.TestAutoMation.Pages
         public By AsEndDate = By.XPath("//*[@id=\"flexautospreadrule\"]/div[1]/div[2]/div[1]/div[6]/div/div");
         public By FullyExtMaturityDate = By.XPath("//*[@id=\"flexMaturity\"]/div[1]/div[2]/div[1]/div[13]");
         public By Commitment_EquityTab = By.XPath("//*[@id=\"aAdjustedTotalCommitment\"]");
+        public By ExportToExcel = By.XPath("//div//span//button[text()='Export to excel']");
         public By CommitmentRequiredEquity = By.XPath("//*[@id=\"DealAdjustedtotalCommitment\"]/div/div[1]/div[4]/wj-flex-grid/div[1]/div[5]/div/div[8]");
         public By enableFundingSchedule = By.ClassName("customheading");
         public By amortTab = By.Id("aDealAmorttab");
@@ -61,7 +62,7 @@ namespace CRES.TestAutoMation.Pages
         public By reduceAmortizationElement = By.Id("ReduceAmortizationForCurtailments");
         public By payRuleTab = By.Id("aNotepayrule");
         public By payruleNoteID = By.XPath("/html/body/app-root/div/div[2]/div/div/div[2]/dealdetail/form/div/div[2]/div/div[3]/div/div/div/wj-flex-grid/div[1]/div[1]/div[1]/div[2]/div[1]");
-        // public By payrulePage = By.XPath("//div[@Class='head fixheaderdiv']"); // for Integration 
+        public By DealHeading = By.XPath("//div[@Class='head fixheaderdiv']//h1"); // for Integration 
         public By payrulePage = By.Id("notepayrule");
         public By payOffTab = By.Id("aPayOff");
         public By payOffCheckElement = By.ClassName("custombutton");

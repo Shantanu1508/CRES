@@ -1,7 +1,11 @@
 {
   "ExpandedNodes": [
     "",
-    "\\CRES5_GIT-master"
+    "\\CRES5_GIT-master",
+    "\\CRES5_GIT-master\\SpecFlowAutomaton",
+    "\\CRES5_GIT-master\\SpecFlowCalculator.Specs\\StepDefinitions",
+    "\\CRES5_GIT-master\\src\\CRES.TestAutoMation",
+    "\\CRES5_GIT-master\\src\\CRES.TestAutoMation\\Practice"
   ],
   "SelectedNode": "\\CRES5_GIT-master\\CRES.sln",
   "PreviewInSolutionExplorer": false

@@ -55,9 +55,9 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CRES.TestAutoMationApp", "s
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CRES.WebClient.V1", "src\CRES.WebClient.V1\CRES.WebClient.V1.csproj", "{165EAE50-12BD-4D18-A064-064EE41CA93E}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SpecFlowAutomation", "SpecFlowAutomation\SpecFlowAutomation.csproj", "{11219FAC-A8FB-45B8-81CD-93FA08886741}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SpecFlowCalculator", "SpecFlowAutomation\SpecFlowCalculator.csproj", "{11219FAC-A8FB-45B8-81CD-93FA08886741}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SpecFlowAutomaton", "SpecFlowAutomaton\SpecFlowAutomaton.csproj", "{E50D7F75-38AD-4176-A058-287F461C80A2}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SpecFlowCalculator.Specs", "SpecFlowCalculator.Specs\SpecFlowCalculator.Specs.csproj", "{892B44D0-1069-4A9B-976A-43EE23EBB3A5}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -301,20 +301,20 @@ Global
 		{11219FAC-A8FB-45B8-81CD-93FA08886741}.Release|Any CPU.Build.0 = Release|Any CPU
 		{11219FAC-A8FB-45B8-81CD-93FA08886741}.Staging|Any CPU.ActiveCfg = Debug|Any CPU
 		{11219FAC-A8FB-45B8-81CD-93FA08886741}.Staging|Any CPU.Build.0 = Debug|Any CPU
-		{E50D7F75-38AD-4176-A058-287F461C80A2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{E50D7F75-38AD-4176-A058-287F461C80A2}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{E50D7F75-38AD-4176-A058-287F461C80A2}.Dev|Any CPU.ActiveCfg = Debug|Any CPU
-		{E50D7F75-38AD-4176-A058-287F461C80A2}.Dev|Any CPU.Build.0 = Debug|Any CPU
-		{E50D7F75-38AD-4176-A058-287F461C80A2}.Integration|Any CPU.ActiveCfg = Debug|Any CPU
-		{E50D7F75-38AD-4176-A058-287F461C80A2}.Integration|Any CPU.Build.0 = Debug|Any CPU
-		{E50D7F75-38AD-4176-A058-287F461C80A2}.Production|Any CPU.ActiveCfg = Debug|Any CPU
-		{E50D7F75-38AD-4176-A058-287F461C80A2}.Production|Any CPU.Build.0 = Debug|Any CPU
-		{E50D7F75-38AD-4176-A058-287F461C80A2}.QA|Any CPU.ActiveCfg = Debug|Any CPU
-		{E50D7F75-38AD-4176-A058-287F461C80A2}.QA|Any CPU.Build.0 = Debug|Any CPU
-		{E50D7F75-38AD-4176-A058-287F461C80A2}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{E50D7F75-38AD-4176-A058-287F461C80A2}.Release|Any CPU.Build.0 = Release|Any CPU
-		{E50D7F75-38AD-4176-A058-287F461C80A2}.Staging|Any CPU.ActiveCfg = Debug|Any CPU
-		{E50D7F75-38AD-4176-A058-287F461C80A2}.Staging|Any CPU.Build.0 = Debug|Any CPU
+		{892B44D0-1069-4A9B-976A-43EE23EBB3A5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{892B44D0-1069-4A9B-976A-43EE23EBB3A5}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{892B44D0-1069-4A9B-976A-43EE23EBB3A5}.Dev|Any CPU.ActiveCfg = Debug|Any CPU
+		{892B44D0-1069-4A9B-976A-43EE23EBB3A5}.Dev|Any CPU.Build.0 = Debug|Any CPU
+		{892B44D0-1069-4A9B-976A-43EE23EBB3A5}.Integration|Any CPU.ActiveCfg = Debug|Any CPU
+		{892B44D0-1069-4A9B-976A-43EE23EBB3A5}.Integration|Any CPU.Build.0 = Debug|Any CPU
+		{892B44D0-1069-4A9B-976A-43EE23EBB3A5}.Production|Any CPU.ActiveCfg = Debug|Any CPU
+		{892B44D0-1069-4A9B-976A-43EE23EBB3A5}.Production|Any CPU.Build.0 = Debug|Any CPU
+		{892B44D0-1069-4A9B-976A-43EE23EBB3A5}.QA|Any CPU.ActiveCfg = Debug|Any CPU
+		{892B44D0-1069-4A9B-976A-43EE23EBB3A5}.QA|Any CPU.Build.0 = Debug|Any CPU
+		{892B44D0-1069-4A9B-976A-43EE23EBB3A5}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{892B44D0-1069-4A9B-976A-43EE23EBB3A5}.Release|Any CPU.Build.0 = Release|Any CPU
+		{892B44D0-1069-4A9B-976A-43EE23EBB3A5}.Staging|Any CPU.ActiveCfg = Debug|Any CPU
+		{892B44D0-1069-4A9B-976A-43EE23EBB3A5}.Staging|Any CPU.Build.0 = Debug|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

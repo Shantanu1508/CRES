@@ -18,7 +18,7 @@ namespace SpecFlowCalculator.Specs.StepDefinitions
         {
             _scenarioContext = scenarioContext;
         }
-
+           
         [Given("the first number is (.*)")]
         public void GivenTheFirstNumberIs(int number)
         {
