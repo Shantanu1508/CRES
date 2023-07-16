@@ -71,6 +71,7 @@
     <Folder Include="ExecutionReports\FailedCaseScreenshots\" />
     <Folder Include="ExecutionReports\GraphicalReports\" />
     <Folder Include="ExecutionReports\ExecutionLogs\" />
+    <Folder Include="ExecutionReports\ExportToExcelFiles\" />
     <Folder Include="ExecutionReports\NoteCalculation\" />
   </ItemGroup>
 
