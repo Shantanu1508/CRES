@@ -12,7 +12,7 @@ using WebDriverManager.DriverConfigs.Impl;
 
 namespace CRES.TestAutoMation.Practice
 {
-    internal class MainTab
+    internal class MainTab // Shantanu Sharma
     {
 
         [Test]
