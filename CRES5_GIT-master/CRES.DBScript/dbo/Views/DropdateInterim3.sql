@@ -18,7 +18,7 @@ Outer Apply (Select * from DropdateInterim2 I
 
 Where T.Type = 'InterestPaid' 
 --and T.NoteId = 'Phtm BB A' 
-and AnalysisId = 'C10F3372-0FC2-4861-A9F5-148F1F80804F'  
+and AnalysisId = 'C10F3372-0FC2-4861-A9F5-148F1F80804F'  and T.AccountTypeID = 1
 --and CreNoteid = '8175'
 group by T.CRENoteID, Date
 --and InterestAfterDropdate is not null

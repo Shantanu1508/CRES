@@ -1,26 +1,29 @@
-﻿using CRES.BusinessLogic;
-using CRES.DataContract;
-using CRES.Services.Models;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Identity.Client;
+﻿using CRES.DataContract;
 using Microsoft.IdentityModel.Clients.ActiveDirectory;
-using Microsoft.PowerBI.Api;
-using Microsoft.PowerBI.Api.Models;
 using Microsoft.Rest;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
-using System.IO;
+using System.Configuration;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
-using System.Security;
-using System.Text;
-using System.Text.RegularExpressions;
-using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.PowerBI.Api;
+using Microsoft.PowerBI.Api.Models;
+using CRES.Services.Models;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Configuration;
+using System.IO;
+using System.Text;
+using Newtonsoft.Json.Linq;
+using System.Threading;
+using System.Text.RegularExpressions;
+using Newtonsoft.Json;
+using CRES.BusinessLogic;
+using System.Xml.Linq;
+using CRES.Utilities;
+using Microsoft.Identity.Client;
+using System.Security;
 
 namespace CRES.Services.Controllers
 {
@@ -71,20 +74,43 @@ namespace CRES.Services.Controllers
             List<ReportDataContract> lstreportsNew = new List<ReportDataContract>();
             try
             {
-                IActionResult rs = await GetPowerBIReport("");
-                lstreports = (List<ReportDataContract>)((Microsoft.AspNetCore.Mvc.ObjectResult)rs).Value;
-                lstreports.ForEach(i => i.ReportType = "PowerBI");
-                //foreach (var item in rslt)
-                //{
-                //    ReportDataContract _reportDC = new ReportDataContract();
-                //    _reportDC.Id = item.Id;
-                //    _reportDC.Name = item.Name;
-                //    _reportDC.EmbedUrl = item.EmbedUrl;
-                //    _reportDC.WebUrl = item.WebUrl;
-                //    _reportDC.ReportType = "PowerBI";
-                //    lstreports.Add(_reportDC);
-                //}
-                lstreports = lstreports.OrderBy(i => i.Name).ToList();
+                //IActionResult rs = await GetPowerBIReport("");
+                //lstreports = (List<ReportDataContract>)((Microsoft.AspNetCore.Mvc.ObjectResult)rs).Value;
+                //lstreports.ForEach(i => i.ReportType = "PowerBI");
+                ////foreach (var item in rslt)
+                ////{
+                ////    ReportDataContract _reportDC = new ReportDataContract();
+                ////    _reportDC.Id = item.Id;
+                ////    _reportDC.Name = item.Name;
+                ////    _reportDC.EmbedUrl = item.EmbedUrl;
+                ////    _reportDC.WebUrl = item.WebUrl;
+                ////    _reportDC.ReportType = "PowerBI";
+                ////    lstreports.Add(_reportDC);
+                ////}
+                //lstreports = lstreports.OrderBy(i => i.Name).ToList();
+                //power bi without embeded
+
+                //ReportDataContract _reportDC = new ReportDataContract();
+                //_reportDC.ReportFileGUID = new Guid("4e706e50-a233-44ae-9787-94992a880c84");
+                //_reportDC.Id = "4e706e50-a233-44ae-9787-94992a880c84";
+                ////_reportDC.EmbedUrl = "https://app.powerbi.com/reportEmbed?reportId=4e706e50-a233-44ae-9787-94992a880c84&autoAuth=true&ctid=ee08cd6b-8aba-4d0c-8c80-543baf6a3347";
+                //_reportDC.EmbedUrl = "https://app.powerbi.com/reportEmbed?reportId=2c8b81a7-44e3-4921-b977-6814220a9c7c&autoAuth=true&ctid=77be5eb1-c09a-4093-b65b-a73ae39864d9";
+
+                //_reportDC.Name = "AM Reports";                
+                //_reportDC.ReportType = "PowerBI";
+                //_reportDC.IsAllowInput = false;
+                //lstreports.Add(_reportDC);
+
+                //ReportDataContract _reportDC1 = new ReportDataContract();
+                //_reportDC1.ReportFileGUID = new Guid("4e706e50-a233-44ae-9787-94992a880c84");
+                //_reportDC1.Id = "4e706e50-a233-44ae-9787-94992a880c84";
+                //_reportDC1.EmbedUrl = "https://app.powerbi.com/reportEmbed?reportId=4e706e50-a233-44ae-9787-94992a880c84&autoAuth=true&ctid=ee08cd6b-8aba-4d0c-8c80-543baf6a3347";
+                //_reportDC1.Name = "AM Reports";
+                //_reportDC1.ReportType = "PowerBINewPage";
+                //_reportDC1.IsAllowInput = false;
+                //lstreports.Add(_reportDC1);
+                //
+
             }
             catch (Exception ex)
             {
@@ -136,7 +162,9 @@ namespace CRES.Services.Controllers
                 }
                 AccountingReportLogic accountingReportLogic = new AccountingReportLogic();
                 int? totalCount = 0;
-                _lstAcoreReportFiles = accountingReportLogic.GetAllReportFiles(headerUserID, 10000, 1, out totalCount);
+                //_lstAcoreReportFiles = accountingReportLogic.GetAllReportFiles(headerUserID, 10000, 1, out totalCount);
+                _lstAcoreReportFiles = accountingReportLogic.GetAllReportFilesByReportType(headerUserID,"",TenantID,GroupId, 10000, 1, out totalCount);
+
 
                 foreach (var item in _lstAcoreReportFiles)
                 {
@@ -144,8 +172,9 @@ namespace CRES.Services.Controllers
                     _reportDC.ReportFileGUID = item.ReportFileGUID;
                     _reportDC.Name = item.ReportFileName;
                     _reportDC.DefaultAttributes = item.DefaultAttributes;
-                    _reportDC.ReportType = "Acore";
+                    _reportDC.ReportType = item.ReportType;
                     _reportDC.IsAllowInput = item.IsAllowInput;
+                    _reportDC.TenantId = item.TenantId;
                     lstreports.Add(_reportDC);
                 }
             }
@@ -391,9 +420,7 @@ namespace CRES.Services.Controllers
             string strSubscriptionId = "badf2337-12a5-4c87-892c-ad0c7ed614d0";
             string strResourceGroupName = "CRES_PowerBI";
             string strAutomationAccountName = "CRES4-AzureAutomation";
-#pragma warning disable CS0219 // The variable 'strJobName' is assigned but its value is never used
             string strJobName = "GetCRESPowerBIEmbeddedStatus";
-#pragma warning restore CS0219 // The variable 'strJobName' is assigned but its value is never used
 
             //https://management.azure.com/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.Automation/automationAccounts/{automationAccountName}/jobs/{jobName}/output?api-version=2017-05-15-preview
             string URL = "https://management.azure.com/subscriptions/" + strSubscriptionId + "/resourceGroups/" + strResourceGroupName + "/providers/Microsoft.Automation/automationAccounts/" + strAutomationAccountName + "/jobs/" + strJobIds + "/output?api-version=2017-05-15-preview";
@@ -687,6 +714,61 @@ namespace CRES.Services.Controllers
                 return new BadRequestObjectResult(ex.Message);
             }
 
+        }
+
+        [HttpGet]
+        //[Services.Controllers.IsAuthenticate]
+        [Route("api/pbireport/updatecrespowerbidataset")]
+        public IActionResult UpdatePowerBIReportDataset(string ID)
+        {
+            GenericResult _authenticationResult = null;
+            Guid groupID = new Guid(GroupId);
+            try
+            {
+                IPublicClientApplication clientApp = PublicClientApplicationBuilder.Create(ClientId).WithAuthority(AuthorityUrl).Build();
+                var userAccounts = clientApp.GetAccountsAsync().Result;
+
+                string[] scope = ResourceUrl.Split(';');
+                SecureString password = new SecureString();
+                foreach (var key in Password)
+                {
+                    password.AppendChar(key);
+                }
+                var tokenresult = clientApp.AcquireTokenByUsernamePassword(scope, Username, password).ExecuteAsync().Result;
+
+                //var tokenCredentials = new TokenCredentials(tokenresult.AccessToken, "Bearer");
+                //var powerbiclient = new PowerBIClient(new Uri(ApiUrl), tokenCredentials);
+
+                try
+                {
+                    string inputjsonstring = JsonConvert.SerializeObject("{ notifyOption: ''}");
+                    string URL = "https://api.powerbi.com/v1.0/myorg/datasets/" + ID + "/refreshes";  //520a5f04-0f3f-4db5-af5d-cef13a10808d
+                    HttpClient client = new HttpClient();
+
+                    using (var content = new StringContent(JsonConvert.SerializeObject(inputjsonstring), System.Text.Encoding.UTF8, "application/json"))
+                    {
+                        client.DefaultRequestHeaders.Remove("Authorization");
+                        client.DefaultRequestHeaders.Add("Authorization", "Bearer " + tokenresult.AccessToken);
+                        HttpResponseMessage httpResponseMessage = client.PostAsync(URL, content).Result;
+                    }
+
+                }
+                catch (Exception ex)
+                {
+                    return new BadRequestObjectResult(ex.Message);
+                }
+            }
+            catch (Exception ex)
+            {
+                return new BadRequestObjectResult(ex.Message);
+            }
+            _authenticationResult = new GenericResult()
+            {
+                Succeeded = true,
+                Message = "Report refreshed successfully.Please close this page and reload the report after 5 minutes."
+            };
+            return Ok(_authenticationResult);
+            //return Ok("Report refreshed successfully.Please close this page and reload the report after 5 minutes.");
         }
 
         public string GetPassword(string key)

@@ -20,7 +20,7 @@ AS
  select @DealReserveScheduleID= DealReserveScheduleID,@Date=[Date],@DealID=DealID from [CRE].[DealReserveSchedule] where DealReserveScheduleGUID=@DealReserveScheduleGUID
 
  insert into @FundingDetail
- select ra.ReserveAccountID,isnull(ra.InitialFundingAmount,0) as InitialFundingAmount,tbl.Amount,(isnull(ra.InitialFundingAmount,0)+tbl.Amount) as CurrentBalance from Cre.ReserveAccount ra join
+ select ra.ReserveAccountID,isnull(ra.InitialFundingAmount,0) as InitialFundingAmount,tbl.Amount,isnull(ra.EstimatedReserveBalance,0) as CurrentBalance from Cre.ReserveAccount ra join
  ( 
  select ras.ReserveAccountID,sum(isnull(ras.Amount,0)) as Amount  from [CRE].[DealReserveSchedule] dr join [CRE].[ReserveAccountSchedule] ras on dr.DealReserveScheduleID=ras.DealReserveScheduleID  where dr.[Date]<=@Date 
  and dr.DealReserveScheduleGUID<>@DealReserveScheduleGUID

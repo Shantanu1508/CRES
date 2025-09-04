@@ -40,7 +40,7 @@ select
 		PaymentDateBusinessDayLag	,
 		IOTerm	,
 		AmortTerm	,
-		PIKSeparateCompounding	,
+		null as PIKSeparateCompounding	,
 		MonthlyDSOverridewhenAmortizing	,
 		AccrualPeriodPaymentDayWhenNotEOMonth	,
 		FirstPeriodInterestPaymentOverride	,

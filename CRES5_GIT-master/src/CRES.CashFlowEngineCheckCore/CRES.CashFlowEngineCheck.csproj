@@ -11,4 +11,8 @@
     <ProjectReference Include="..\CRES.NoteCalculatorCore\CRES.NoteCalculator.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Properties\" />
+  </ItemGroup>
+
 </Project>

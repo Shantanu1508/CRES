@@ -2,12 +2,16 @@
 using CRES.DataContract;
 using CRES.Utilities;
 using ExcelDataReader;
+using Microsoft.Azure;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Hosting;
 using Microsoft.WindowsAzure.Storage;
 using Microsoft.WindowsAzure.Storage.Blob;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
+using System.Configuration;
 using System.Data;
 using System.Globalization;
 using System.IO;
@@ -15,6 +19,9 @@ using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using System.Web;
+using System.Web.Helpers;
+using CRES.BusinessLogic;
 
 namespace CRES.Services
 {
@@ -198,9 +205,18 @@ namespace CRES.Services
 
         public DataTable GetExcelData(string sourceBlobFileName, string DisplayFileName, string _fromdate, string _todate, string isconfirmed)
         {
-            var excelData = GetExcelBlobData(sourceBlobFileName, connectionString, sourceContainerName);
-            var refinedExcelData = ExtractExcelData(excelData, sourceBlobFileName, DisplayFileName, _fromdate, _todate, isconfirmed);
 
+            DataTable refinedExcelData = new DataTable();
+            try
+            {
+                var excelData = GetExcelBlobData(sourceBlobFileName, connectionString, sourceContainerName);
+                refinedExcelData = ExtractExcelData(excelData, sourceBlobFileName, DisplayFileName, _fromdate, _todate, isconfirmed);
+            }
+            catch (Exception)
+            {
+
+                throw;
+            }
             return refinedExcelData;
         }
 
@@ -217,6 +233,8 @@ namespace CRES.Services
                     dt.Columns.Remove(y);
                 }
             });
+
+
             string[] dtarr = new string[dt.Columns.Count];
 
             string filtervalues = "", colvalue = "";
@@ -276,18 +294,52 @@ namespace CRES.Services
                     //if (Onerowindex == 0)
                     //{
                     var cn = 0;
-                    foreach (DataRow dr in dt.Rows)
+                    if (FC.SheetName == "Berkadia")
                     {
-                        if (dr["Note ID"].ToString() == "")
+                        foreach (DataRow dr in dt.Rows)
                         {
-                            if (dr["Due Date"].ToString() == "" && dr["Remit Date"].ToString() == "")
+                            if (dr["InvestorLoanNumber"].ToString() == "")
                             {
-                                Onerowindex = cn;
-                                break;
+                                if (dr["DatePaymentDue"].ToString() == "" && dr["RemittanceDate"].ToString() == "")
+                                {
+                                    Onerowindex = cn;
+                                    break;
+                                }
                             }
+                            else
+                                cn++;
                         }
-                        else
-                            cn++;
+                    }
+                    else if (FC.SheetName == "Export") {
+                        foreach (DataRow dr in dt.Rows)
+                        {
+                            if (dr["Additional Loan ID"].ToString() == "")
+                            {
+                                if (dr["Current Scheduled Due Date"].ToString() == "" && dr["Remit Date"].ToString() == "")
+                                {
+                                    Onerowindex = cn;
+                                    break;
+                                }
+                            }
+                            else
+                                cn++;
+                        }
+                    }
+                    else
+                    {
+                        foreach (DataRow dr in dt.Rows)
+                        {
+                            if (dr["Note ID"].ToString() == "")
+                            {
+                                if (dr["Due Date"].ToString() == "" && dr["Remit Date"].ToString() == "")
+                                {
+                                    Onerowindex = cn;
+                                    break;
+                                }
+                            }
+                            else
+                                cn++;
+                        }
                     }
                     // }
                     if (Onerowindex > 0)
@@ -386,7 +438,7 @@ namespace CRES.Services
                     else
                     {
                         System.Data.DataView dv = new System.Data.DataView(dt);
-                        filterDT = dv.ToTable(true, diff.ToArray());
+                        //  filterDT = dv.ToTable(true, diff.ToArray());
 
                         filterDT = dv.ToTable(false, totalarr.Distinct().ToArray());
                         filterDT.Columns.Add("ErrorMessage", typeof(string));
@@ -587,47 +639,161 @@ namespace CRES.Services
                         // if (fileext.ToLower() == "xlsx") { 
                         var excelReader = ExcelReaderFactory.CreateOpenXmlReader(memoryStream);
 
-                        if (headerposition == 0)
+                        var conf = new ExcelDataSetConfiguration
                         {
-                            var conf = new ExcelDataSetConfiguration
+                            ConfigureDataTable = _ => new ExcelDataTableConfiguration
                             {
-                                ConfigureDataTable = _ => new ExcelDataTableConfiguration
-                                {
-                                    UseHeaderRow = true,
+                                UseHeaderRow = true,
 
-                                }
-                            };
-                            ds = excelReader.AsDataSet(conf);
+                            }
+                        };
+                        ds = excelReader.AsDataSet(conf);
+
+
+                        //if (headerposition == 0)
+                        //{
+                        //    var conf = new ExcelDataSetConfiguration
+                        //    {
+                        //        ConfigureDataTable = _ => new ExcelDataTableConfiguration
+                        //        {
+                        //            UseHeaderRow = true,
+
+                        //        }
+                        //    };
+                        //    ds = excelReader.AsDataSet(conf);
+                        //}
+                        //else
+                        //{
+                        //    var i = 0;
+                        //    var conf = new ExcelDataSetConfiguration
+                        //    {
+                        //        ConfigureDataTable = _ => new ExcelDataTableConfiguration
+                        //        {
+                        //            UseHeaderRow = true,
+                        //            ReadHeaderRow = (rowReader) =>
+                        //            {
+                        //                while (i < (headerposition - 1))
+                        //                {
+                        //                    rowReader.Read();
+                        //                    i++;
+                        //                }
+                        //            }
+                        //        }
+                        //    };
+
+                        if (SheetName == "Berkadia")
+                        {
+                            dt = excelReader.AsDataSet(conf).Tables[0];
                         }
                         else
                         {
-                            var i = 0;
-                            var conf = new ExcelDataSetConfiguration
+                            dt = excelReader.AsDataSet(conf).Tables[SheetName];
+                        }
+                        //  ds = excelReader.AsDataSet(conf);
+                        //}
+                        excelReader.Close();
+                        //if (SheetName != "")
+                        //{
+                        //    dt = ds.Tables[SheetName];
+                        //}
+                        //else
+                        //{
+                        //    dt = ds.Tables[0];
+                        //}
+
+
+                        if (dt != null)
+                        {
+                            for (var i = 0; i < (headerposition - 2); i++)
+                            {
+                                dt.Rows.RemoveAt(0);
+                            }
+
+
+                            foreach (DataColumn column in dt.Columns)
+                            {
+                                string cName = dt.Rows[0][column.ColumnName].ToString();
+                                if (!dt.Columns.Contains(cName) && cName != "")
+                                {
+                                    column.ColumnName = cName;
+                                }
+
+                            }
+                            if (dt.Rows.Count > 1)
+                            {
+                                dt.Rows[0].Delete(); //If you don't need that row any more
+                            }
+                            dt.AcceptChanges();
+
+                            if (SheetName == "Export")
                             {
 
-                                ConfigureDataTable = _ => new ExcelDataTableConfiguration
+                                foreach (DataColumn column in dt.Columns)
                                 {
-                                    UseHeaderRow = true,
-                                    ReadHeaderRow = (rowReader) =>
+                                    string ColName = column.ColumnName;
+                                    if (column.ColumnName.Contains("Column"))
                                     {
-                                        while (i < (headerposition - 1))
-                                        {
-                                            rowReader.Read();
-                                            i++;
-                                        }
+                                        dt.Columns.Remove(ColName);
+                                        break;
                                     }
                                 }
-                            };
-                            ds = excelReader.AsDataSet(conf);
-                        }
-                        excelReader.Close();
-                        if (SheetName != "")
-                        {
-                            dt = ds.Tables[SheetName];
-                        }
-                        else
-                        {
-                            dt = ds.Tables[0];
+                                dt.AcceptChanges();
+
+                            }
+                            if (SheetName == "LiabilityTransactions")
+                            {
+
+                                foreach (DataColumn column in dt.Columns)
+                                {
+                                    string ColName = column.ColumnName;
+                                    if (column.ColumnName.Contains("Column"))
+                                    {
+                                        dt.Columns.Remove(ColName);
+                                        break;
+                                    }
+                                }
+                                dt.AcceptChanges();
+
+                            }
+                            if (SheetName == "Berkadia")
+                            {
+                                if (dt != null)
+                                {
+                                    DataRow headerRow = dt.NewRow();
+
+                                    for (int i = 0; i < dt.Columns.Count; i++)
+                                    {
+                                        headerRow[i] = (dt.Rows[0][i].ToString() + dt.Rows[1][i].ToString() + dt.Rows[2][i].ToString()).Replace(" ", "");
+                                    }
+
+                                    if (dt.Rows.Count > 1)
+                                    {
+                                        dt.Rows.RemoveAt(0);
+                                        dt.Rows.RemoveAt(0);
+                                        dt.Rows.RemoveAt(0);
+
+                                        for (int i = 0; i < dt.Columns.Count && i < headerRow.ItemArray.Length; i++)
+                                        {
+                                            dt.Columns[i].ColumnName = headerRow[i].ToString();
+                                        }
+
+                                        dt.AcceptChanges();
+                                    }
+
+
+
+                                    foreach (DataColumn column in dt.Columns)
+                                    {
+                                        string ColName = column.ColumnName;
+                                        if (column.ColumnName.Contains("Column"))
+                                        {
+                                            dt.Columns.Remove(ColName);
+                                            break;
+                                        }
+                                    }
+                                    dt.AcceptChanges();
+                                }
+                            }
                         }
                     }
                     //========CSV==============
@@ -687,7 +853,7 @@ namespace CRES.Services
             catch (Exception ex)
             {
                 var error = ex.Message;
-                // throw;
+                throw;
 
                 Logger.Write(ModuleName.FileUpload.ToString(), ex);
             }
@@ -732,7 +898,12 @@ namespace CRES.Services
                     string[] Sheets = SheetName.Split(',');
                     for (var i = 0; i < ds.Tables.Count; i++)
                     {
-                        if (ds.Tables[i].TableName == "Delphi - Note Matrix" || ds.Tables[i].TableName == "TRE ACR - Note Matrix" || ds.Tables[i].TableName == "ACORE Credit IV - Note Matrix")
+                        //if (ds.Tables[i].TableName == "Delphi - Note Matrix" || ds.Tables[i].TableName == "TRE ACR - Note Matrix" || ds.Tables[i].TableName == "ACORE Credit IV - Note Matrix")
+                        if (ds.Tables[i].TableName == "Delphi" || ds.Tables[i].TableName == "TRE ACR" || ds.Tables[i].TableName == "ACORE Credit IV" ||
+                            ds.Tables[i].TableName == "ACP II" || ds.Tables[i].TableName == "ACSS" || ds.Tables[i].TableName == "AHIP" ||
+                            ds.Tables[i].TableName == "Delaware Life" || ds.Tables[i].TableName == "Harel" || ds.Tables[i].TableName == "SILAC" ||
+                            ds.Tables[i].TableName == "Equitrust" || ds.Tables[i].TableName == "Fee"
+                            )
                         {
                             for (int z = 0; z < headerposition; z++)
                             {
@@ -1023,6 +1194,173 @@ namespace CRES.Services
             writer.Flush();
         }
 
+
+
+        public static List<string> DeleteBlobFileByNumberofdays(string FolderName, int numberOfDays)
+        {
+            try
+            {
+                List<string> FilesDealeted = new List<string>();
+                GetConfigSettingforStatic();
+                var Container = SectionrootStatic.GetSection("storage:container:name").Value;
+                CloudBlobContainer container = BlobUtilities.GetBlobClient.GetContainerReference(Container);
+                // Create the blob client.
+                CloudBlobDirectory dr = container.GetDirectoryReference(FolderName);
+
+                var listFiles = dr.ListBlobsSegmentedAsync(true, BlobListingDetails.Metadata, 100000, null, null, null).Result;
+                foreach (var blob in listFiles.Results)
+                {
+
+                    if (blob is CloudBlockBlob blockBlob)
+                    {
+
+                        var time = blockBlob.Properties.LastModified;
+
+                        var DeletedDate = DateTime.Now.AddDays(-numberOfDays);
+                        if (time < DeletedDate)
+                        {
+                            FilesDealeted.Add(blockBlob.Name);
+                            blockBlob.Delete();
+                        }
+                    }
+
+                }
+                return FilesDealeted;
+            }
+            catch (Exception ex)
+            {
+                throw;
+            }
+        }
+
+
+        public static bool DeleteBlobFileByFileName(DataTable dt)
+        {
+            TagXIRRLogic tagXIRRLogic = new TagXIRRLogic();
+            try
+            {
+                string FolderName;
+                GetConfigSettingforStatic();
+                var Container = SectionrootStatic.GetSection("storage:container:name").Value;
+              ///  Container = Container + "/" + FolderName;
+                CloudBlobContainer container = BlobUtilities.GetBlobClient.GetContainerReference(Container);
+                // Create the blob client.
+               
+                if (dt != null)
+                {
+                    for (int i = 0; i < dt.Rows.Count; i++)
+                    {
+                        FolderName = dt.Rows[i]["Path"].ToString();
+                        CloudBlobDirectory dr = container.GetDirectoryReference(FolderName);
+                        var inputFile = dt.Rows[i]["FileName"].ToString();
+                        var blob = dr.GetBlobReference(inputFile);
+                        bool isdeleted = blob.DeleteIfExists();
+                        if (isdeleted == true)
+                        {
+                            tagXIRRLogic.UpdateXIRRDeleteBlobFiles(Convert.ToInt32(dt.Rows[i]["XIRRDeleteBlobFilesID"]));
+                        }
+
+                    }
+                }
+
+
+
+            }
+            catch (Exception)
+            {
+
+                throw;
+            }
+            return true;
+        }
+
+
+
+
+        public static List<string> DeleteBlobFileByFileNameOld(DataTable dt, string FolderName)
+        {
+            try
+            {
+                List<string> FilesDealeted = new List<string>();
+                GetConfigSettingforStatic();
+                var Container = SectionrootStatic.GetSection("storage:container:name").Value;
+                Container = Container + "/" + FolderName;
+                CloudBlobContainer container = BlobUtilities.GetBlobClient.GetContainerReference(Container);
+                // Create the blob client.
+                CloudBlobDirectory dr = container.GetDirectoryReference(FolderName);
+
+                var listallFiles = dr.ListBlobsSegmentedAsync(false, BlobListingDetails.Metadata, 100000, null, null, null).Result;
+
+
+
+                if (dt != null)
+                {
+                    for (int i = 0; i < dt.Rows.Count; i++)
+                    {
+                        var inputFile = dt.Rows[i]["FileName_Input"].ToString();
+                        var inputName = inputFile.Split("_");
+                        var removestr = "_" + inputName[inputName.Length - 1];
+                        var deleteFileName = inputFile.Replace(removestr, "");
+                        var BlobFiles = AzureStorageReadFile.DeleteFile(listallFiles, FolderName, inputFile, deleteFileName);
+                        //  string inputNamelen = inputName.LastIndexOf(inputName);
+
+                    }
+
+                }
+
+
+                return FilesDealeted;
+            }
+            catch (Exception ex)
+            {
+                throw;
+            }
+        }
+
+
+
+        public static Boolean DeleteFile(BlobResultSegment listallFiles, string FolderName, string fileName, string deleteFileName)
+        {
+            List<string> FilesDealeted = new List<string>();
+            GetConfigSettingforStatic();
+            var Container = SectionrootStatic.GetSection("storage:container:name").Value;
+            CloudBlobContainer container = BlobUtilities.GetBlobClient.GetContainerReference(Container);
+            // Create the blob client.
+            CloudBlobDirectory dr = container.GetDirectoryReference(FolderName);
+
+
+            foreach (var blob in listallFiles.Results)
+            {
+
+                if (blob is CloudBlockBlob blockBlob)
+                {
+                    if (blockBlob.Name != fileName)
+                    {
+                        if (blockBlob.Name.Contains(deleteFileName))
+                        {
+                            FilesDealeted.Add(blockBlob.Name);
+                            //  blockBlob.Delete();
+                        }
+                    }
+                    else
+                    {
+                        var ss = blockBlob.Name;
+                    }
+                    //if (blockBlob.Name.Contains(fileName))
+                    //{
+                    //    FilesDealeted.Add(blockBlob.Name);
+                    //    blockBlob.Delete();
+                    //}
+                }
+
+            }
+            return true;
+
+        }
+
+
+
+
         private static string QuoteValue(string value)
         {
             return String.Concat("\"",
@@ -1080,7 +1418,7 @@ namespace CRES.Services
                     }
 
                     //========CSV==============
-                    if (ReportFileDC.ReportFileFormat.ToLower() == "csv")
+                    if (ReportFileDC.ReportFileFormat.ToLower() == "csv" || ReportFileDC.ReportFileFormat.ToLower() == "csvpipe")
                     {
                         iExcelDataReader = ExcelReaderFactory.CreateCsvReader(memoryStream);
                     }
@@ -1116,14 +1454,10 @@ namespace CRES.Services
         {
             GetConfigSettingforStatic();
             DataTable dt = new DataTable();
-#pragma warning disable CS0168 // The variable 'ds' is declared but never used
             DataSet ds;
-#pragma warning restore CS0168 // The variable 'ds' is declared but never used
             string fileName = "";
             Stream TemplateMemoryStream = new MemoryStream();
-#pragma warning disable CS0219 // The variable 'iExcelDataReader' is assigned but its value is never used
             IExcelDataReader iExcelDataReader = null;
-#pragma warning restore CS0219 // The variable 'iExcelDataReader' is assigned but its value is never used
             List<string> lstTemplateLines = new List<string>();
             //392-AzureBlob, 459-Box, 641-LocalServer, 642-FTPServer
 
@@ -1220,6 +1554,7 @@ namespace CRES.Services
 
         }
 
+
         public static async Task<DataSet> ReadFileAsDataSet(FileUploadParameterDataContract FileParams, string connectionString, string containerName)
         {
 
@@ -1249,7 +1584,6 @@ namespace CRES.Services
                     //CloudBlockBlob cloudBlockBlob = container.GetBlockBlobReference(FileParams.StorageLocation + "/" + FileParams.FileName);
                     //cloudBlockBlob.DownloadToStream(TemplateMemoryStream);
 
-#pragma warning disable CS0168 // The variable 'e' is declared but never used
                     try
                     {
                         var prefilxplob = FileParams.StorageLocation + "/";
@@ -1271,7 +1605,187 @@ namespace CRES.Services
                         throw;
 
                     }
-#pragma warning restore CS0168 // The variable 'e' is declared but never used
+                }
+                else if (FileParams.StorageTypeID == 459)
+                {
+                    DocumentDataContract _docDC = new DocumentDataContract();
+                    //_docDC.DocumentStorageID = FileParams.DocumentStorageID;
+                    string folder = FileParams.StorageLocation.Split('/').Last();
+                    string boxStorageId = "";
+                    if (!string.IsNullOrEmpty(FileParams.Servicer))
+                    {
+
+                        BoxCollection<BoxItem> docs = await new CRES.Services.Infrastructure.BoxHelper(FileParams.Servicer).GetDocumentFromBoxForWellsBerkadia(folder, "");
+                        if (docs != null && docs.TotalCount > 0)
+                        {
+                            var fileNameWithoutExt = FileParams.FileName.Substring(0, FileParams.FileName.LastIndexOf("."));
+
+
+                            var file = docs.Entries.OrderByDescending(i => i.CreatedAt).Where(j => j.Name.Contains(fileNameWithoutExt)).ToList();
+
+                            //var file = docs.Entries.Where(i => i.Name == FileParams.FileName);
+                            if (file != null && file.Count() > 0)
+                            {
+                                boxStorageId = file.FirstOrDefault().Id;
+                            }
+
+                            _docDC.DocumentStorageID = boxStorageId;
+                        }
+                        TemplateMemoryStream = await new CRES.Services.Infrastructure.BoxHelper(FileParams.Servicer).DownloadFileByID(boxStorageId, FileExtension);
+                    }
+                    else
+                    {
+                        BoxCollection<BoxItem> docs = await new CRES.Services.Infrastructure.BoxHelper().GetDocumentFromBox(folder, "");
+                        if (docs != null && docs.TotalCount > 0)
+                        {
+                            var file = docs.Entries.Where(i => i.Name == FileParams.FileName);
+                            if (file != null)
+                            {
+                                boxStorageId = file.FirstOrDefault().Id;
+                            }
+
+                            _docDC.DocumentStorageID = boxStorageId;
+                        }
+                        TemplateMemoryStream = await new CRES.Services.Infrastructure.BoxHelper().DownloadFile(_docDC);
+                    }
+                }
+                else if (FileParams.StorageTypeID == 642)
+                {
+
+                }
+
+                if (TemplateMemoryStream.Length == 0)
+                {
+                    return ds;
+                }
+                // Retrieve storage account from connection string.
+
+                using (Stream memoryStream = TemplateMemoryStream)
+                {
+
+                    if (FileExtension.ToLower() == "xlsx")
+                    {
+                        // if (fileext.ToLower() == "xlsx") { 
+                        iExcelDataReader = ExcelReaderFactory.CreateOpenXmlReader(memoryStream);
+
+                    }
+
+                    //========CSV==============
+                    if (FileExtension.ToLower() == "csv")
+                    {
+                        iExcelDataReader = ExcelReaderFactory.CreateCsvReader(memoryStream);
+                    }
+
+                    if (FileExtension.ToLower() == "zip")
+                    {
+                        iExcelDataReader = ExcelReaderFactory.CreateOpenXmlReader(memoryStream);
+                    }
+
+                    if (iExcelDataReader != null)
+                    {
+                        var i = 0;
+                        var conf = new ExcelDataSetConfiguration
+                        {
+
+                            ConfigureDataTable = _ => new ExcelDataTableConfiguration
+                            {
+                                UseHeaderRow = true,
+                                ReadHeaderRow = (rowReader) =>
+                                {
+                                    if (FileParams.HeaderPosition > 0)
+                                    {
+                                        while (i < (FileParams.HeaderPosition - 1))
+                                        {
+                                            rowReader.Read();
+                                            i++;
+                                        }
+                                    }
+                                }
+                            }
+                        };
+
+                        ds = iExcelDataReader.AsDataSet(conf);
+
+                        //if all table rows are empty than clear table
+                        //foreach (DataTable dt1 in ds.Tables)
+                        //{
+                        //    DataColumn[] columns = ds.Tables[0].Columns.Cast<DataColumn>().ToArray();
+                        //    bool anyNonEmptyEntry = ds.Tables[0].AsEnumerable().Any(row => columns.Any(col => row[col].ToString() != ""));
+                        //    if (!anyNonEmptyEntry)
+                        //        dt1.Clear();
+
+                        //}
+                    }
+
+                }
+                //
+                return ds;
+            }
+            catch (Exception ex)
+            {
+                var error = ex.Message;
+                // throw;
+                throw ex;
+            }
+            finally
+            {
+                TemplateMemoryStream.Dispose();
+            }
+
+        }
+
+
+        /*
+        public static async Task<DataSet> ReadFileAsDataSet(FileUploadParameterDataContract FileParams, string connectionString, string containerName)
+        {
+
+            DataTable dt = new DataTable();
+            DataSet ds = null;
+            string fileName = "";
+            Stream TemplateMemoryStream = new MemoryStream();
+            IExcelDataReader iExcelDataReader = null;
+            List<string> lstTemplateLines = new List<string>();
+            String FileExtension = Path.GetExtension(FileParams.FileName).Replace(".", "");
+            //392-AzureBlob, 459-Box, 641-LocalServer, 642-FTPServer
+            try
+            {
+                if (FileParams.StorageTypeID == 641)
+                {
+                    fileName = Path.Combine(Directory.GetCurrentDirectory() + "/wwwroot", FileParams.StorageLocation + "/" + FileParams.FileName);
+                    TemplateMemoryStream = File.OpenRead(fileName);
+                }
+                else if (FileParams.StorageTypeID == 392)
+                {
+                    CloudStorageAccount storageAccount = CloudStorageAccount.Parse(connectionString);
+                    // Create the blob client.
+                    CloudBlobClient blobClient = storageAccount.CreateCloudBlobClient();
+                    // Retrieve reference to a previously created container.
+                    CloudBlobContainer container = blobClient.GetContainerReference(containerName);
+                    // Create the blob client.
+                    //CloudBlockBlob cloudBlockBlob = container.GetBlockBlobReference(FileParams.StorageLocation + "/" + FileParams.FileName);
+                    //cloudBlockBlob.DownloadToStream(TemplateMemoryStream);
+
+                    try
+                    {
+                        var prefilxplob = FileParams.StorageLocation + "/";
+
+                        var blobs = container.ListBlobs(prefix: prefilxplob, useFlatBlobListing: true).OfType<CloudBlockBlob>().ToList();
+                        var latestBlob = blobs.OrderByDescending(m => m.Properties.LastModified).ToList().First();
+                        var LastModifiedDatetime = latestBlob.Properties.LastModified.Value.UtcDateTime;
+
+                        if (LastModifiedDatetime.Date == DateTime.Now.Date)
+                        {
+                            CloudBlockBlob cloudBlockBlob = container.GetBlockBlobReference(latestBlob.Name);
+                            cloudBlockBlob.DownloadToStream(TemplateMemoryStream);
+                        }
+
+                    }
+                    catch (Exception e)
+                    {
+                        //  Block of code to handle errors
+                        throw;
+
+                    }
                 }
                 else if (FileParams.StorageTypeID == 459)
                 {
@@ -1371,11 +1885,10 @@ namespace CRES.Services
             }
 
         }
-
+        */
 
         public static Boolean SaveFundingJSONIntoBlob(string jsontext, string FileName)
         {
-#pragma warning disable CS0168 // The variable 'ex' is declared but never used
             try
             {
                 GetConfigSettingforStatic();
@@ -1387,8 +1900,11 @@ namespace CRES.Services
 
                 // Create the blob client.
                 CloudBlobDirectory dr = container.GetDirectoryReference("creslogfiles");
+
                 CloudBlockBlob cloudBlockBlob = dr.GetBlockBlobReference(FileName);
                 cloudBlockBlob.UploadFromStreamAsync(stream);
+
+
                 return true;
             }
             catch (Exception ex)
@@ -1397,14 +1913,12 @@ namespace CRES.Services
                 throw;
 
             }
-#pragma warning restore CS0168 // The variable 'ex' is declared but never used
 
         }
 
 
         public static Boolean UploadJSONFileToAzureBlob(string jsontext, string FileName)
         {
-#pragma warning disable CS0168 // The variable 'ex' is declared but never used
             try
             {
                 GetConfigSettingforStatic();
@@ -1421,15 +1935,11 @@ namespace CRES.Services
             catch (Exception ex)
             {
                 return false;
-                throw;
+
             }
-#pragma warning restore CS0168 // The variable 'ex' is declared but never used
         }
-
-
         public static Boolean UploadRuleJSONFileToAzureBlob(string jsontext, string FileName)
         {
-#pragma warning disable CS0168 // The variable 'ex' is declared but never used
             try
             {
                 GetConfigSettingforStatic();
@@ -1450,33 +1960,29 @@ namespace CRES.Services
                 return false;
                 throw;
             }
-#pragma warning restore CS0168 // The variable 'ex' is declared but never used
         }
 
-        //public static string GetRuleJSONFileToAzureBlob(string FileName)
-        //{
+        public static Boolean UploadChathamFinancialJsonFileToAzureBlob(string jsontext, string FileName)
+        {
+            try
+            {
+                GetConfigSettingforStatic();
+                byte[] byteArray = Encoding.ASCII.GetBytes(jsontext);
+                MemoryStream stream = new MemoryStream(byteArray);
+                var Container = SectionrootStatic.GetSection("storage:container:name").Value;
+                // Get Blob Container
+                CloudBlobContainer container = BlobUtilities.GetBlobClient.GetContainerReference(Container);
+                CloudBlobDirectory blobDirectory = container.GetDirectoryReference("chatham");
+                CloudBlockBlob blockBlob = blobDirectory.GetBlockBlobReference(FileName);
+                blockBlob.UploadFromStream(stream);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                return false;
+            }
+        }
 
-        //    try
-        //    {
-        //        GetConfigSettingforStatic();
-        //      //  byte[] byteArray = Encoding.ASCII.GetBytes(jsontext);
-        //      //  MemoryStream stream = new MemoryStream(byteArray);
-        //        var Container = SectionrootStatic.GetSection("storage:calccontainer:name").Value;
-        //        // Get Blob Container
-        //        CloudBlobContainer container = BlobUtilities.GetBlobClient.GetContainerReference(Container);
-        //        CloudBlobDirectory blobDirectory = container.GetDirectoryReference("CalcTemplate");
-        //        CloudBlockBlob blockBlob = blobDirectory.GetBlockBlobReference(FileName);
-        //        var tempdata = blockBlob.DownloadText();
 
-
-
-        //        return tempdata;
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        return "";
-        //        throw;
-        //    }
-        //}
     }
 }

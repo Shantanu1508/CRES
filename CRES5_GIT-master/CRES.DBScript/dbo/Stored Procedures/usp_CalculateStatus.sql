@@ -29,8 +29,9 @@ Begin
 	WAITFOR DELAY '00:04'
 	Set @Notecount  = (select count(*) from
 		(
-		Select Crenoteid,  StatusID, Analysisid,Errormessage  from [Core].[CalculationRequests] C
-		Inner join Cre.Note N on N.Noteid = C.noteid
+		Select Crenoteid,  StatusID, Analysisid,Errormessage  
+		from [Core].[CalculationRequests] C
+		Inner join Cre.Note N on N.Account_AccountID = C.AccountId
 		Where creNoteid in (select CRENoteID from #tblListNotes)  
 		and Analysisid = 'C10F3372-0FC2-4861-A9F5-148F1F80804F'
 		and Statusid in (265,266) and CalcType = 775
@@ -38,9 +39,12 @@ Begin
 	)
 end
 
-select ST.Noteid, T.Date, T.Type, T.Amount, (ISNULL(St.Amount, 0) - ISNULL(T.Amount, 0))Delta , L.Name from cre.TransactionEntry T 
-Left join dbo.Staging_TransactionEntry ST on T.Noteid = ST.Notekey and T.Date=  St.Date and T.Type = st.type
-LEFT JOIN [Core].[CalculationRequests] C ON C.NOTEID = t.nOTEID AND c.analysisid = t.analysisid and CalcType = 775
+select ST.Noteid, T.Date, T.Type, T.Amount, (ISNULL(St.Amount, 0) - ISNULL(T.Amount, 0))Delta , L.Name 
+from cre.TransactionEntry T 
+Inner Join core.account acc on acc.accountid =T.accountID
+Inner Join cre.note n on n.account_accountid = acc.accountid
+Left join dbo.Staging_TransactionEntry ST on n.Noteid = ST.Notekey and T.Date=  St.Date and T.Type = st.type
+LEFT JOIN [Core].[CalculationRequests] C ON C.AccountId = n.Account_AccountID AND c.analysisid = t.analysisid and C.CalcType = 775
 		
 Inner join core.lookup l on l.lookupid = c.statusid
 where T.analysisid = 'C10F3372-0FC2-4861-A9F5-148F1F80804F' 

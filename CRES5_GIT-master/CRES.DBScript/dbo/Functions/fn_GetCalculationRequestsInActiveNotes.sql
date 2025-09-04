@@ -32,7 +32,7 @@ if (@PortfolioMasterGuid is null or @PortfolioMasterGuid='00000000-0000-0000-000
 			   distinct 
 			  n.CRENoteID
 			  from  CRE.Note n
-			  left join Core.CalculationRequests cr on n.NoteId=cr.NoteId and cr.AnalysisID=@AnalysisID
+			  left join Core.CalculationRequests cr on n.Account_AccountID=cr.AccountId and cr.AnalysisID=@AnalysisID
 			  left JOIN core.Account ac ON ac.AccountID = n.Account_AccountID
 			  inner join cre.Deal d on n.DealId = d.DealId
 			  left join Core.Lookup l ON cr.[StatusID]=l.LookupID
@@ -64,7 +64,7 @@ if (@PortfolioMasterGuid is null or @PortfolioMasterGuid='00000000-0000-0000-000
 		SELECT 
 			   distinct n.CRENoteID
 			  from  CRE.Note n
-			  left join Core.CalculationRequests cr on n.NoteId=cr.NoteId and cr.AnalysisID=@AnalysisID
+			  left join Core.CalculationRequests cr on n.Account_AccountID=cr.AccountID and cr.AnalysisID=@AnalysisID
 			  left JOIN core.Account ac ON ac.AccountID = n.Account_AccountID
 			  inner join cre.Deal d on n.DealId = d.DealId
 			  left join Core.Lookup l ON cr.[StatusID]=l.LookupID
@@ -96,7 +96,7 @@ if (@PortfolioMasterGuid is null or @PortfolioMasterGuid='00000000-0000-0000-000
 		SELECT 
 			   distinct n.CRENoteID
 			  from  CRE.Note n
-			  left join Core.CalculationRequests cr on n.NoteId=cr.NoteId and cr.AnalysisID=@AnalysisID
+			  left join Core.CalculationRequests cr on n.Account_AccountID=cr.AccountID and cr.AnalysisID=@AnalysisID
 			  left JOIN core.Account ac ON ac.AccountID = n.Account_AccountID
 			  inner join cre.Deal d on n.DealId = d.DealId
 			  left join Core.Lookup l ON cr.[StatusID]=l.LookupID
@@ -127,7 +127,7 @@ if (@PortfolioMasterGuid is null or @PortfolioMasterGuid='00000000-0000-0000-000
 		SELECT 
 			   distinct n.CRENoteID
 			  from  CRE.Note n
-			  left join Core.CalculationRequests cr on n.NoteId=cr.NoteId and cr.AnalysisID=@AnalysisID
+			  left join Core.CalculationRequests cr on n.Account_AccountID=cr.AccountID and cr.AnalysisID=@AnalysisID
 			  left JOIN core.Account ac ON ac.AccountID = n.Account_AccountID
 			  inner join cre.Deal d on n.DealId = d.DealId
 			  left join Core.Lookup l ON cr.[StatusID]=l.LookupID
@@ -177,7 +177,7 @@ if (@PortfolioMasterGuid is null or @PortfolioMasterGuid='00000000-0000-0000-000
 				  ,n.CRENoteID
 				  ,n.CashflowEngineID
 				  from  CRE.Note n
-				  left join Core.CalculationRequests cr on n.NoteId=cr.NoteId and cr.AnalysisID=@AnalysisID
+				  left join Core.CalculationRequests cr on n.Account_AccountID=cr.AccountID and cr.AnalysisID=@AnalysisID
 				  left JOIN core.Account ac ON ac.AccountID = n.Account_AccountID
 				  inner join cre.Deal d on n.DealId = d.DealId
 				  left join Core.Lookup l ON cr.[StatusID]=l.LookupID

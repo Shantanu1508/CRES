@@ -44,7 +44,8 @@
     SenderLastName NVARCHAR (256)   NULL,
     SenderEmail NVARCHAR (256)   NULL,
     [PreAssignedInvoiceNo]       NVARCHAR (256)   NULL,
-    [InvoiceGuid] UNIQUEIDENTIFIER   NULL,
+    [InvoiceGuid] UNIQUEIDENTIFIER   NULL, 
+    [InvoiceTypeName] nvarchar(256) NULL,
 );
 
 go

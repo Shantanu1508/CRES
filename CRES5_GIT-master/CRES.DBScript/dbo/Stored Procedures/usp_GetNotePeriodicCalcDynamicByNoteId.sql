@@ -7,6 +7,8 @@ as
 BEGIN
 	SET NOCOUNT ON;
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
+
+
 SELECT top 100
 npc.* FROM [dbo].[NotePeriodicCalcTest] npc
 left join cre.Note n on n.noteid = npc.NoteID 

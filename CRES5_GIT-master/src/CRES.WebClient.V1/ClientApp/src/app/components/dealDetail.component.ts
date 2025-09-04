@@ -1,9 +1,9 @@
-import { CommonModule, Location } from '@angular/common';
+import { CommonModule, formatCurrency, Location } from '@angular/common';
 import { Component, ElementRef, EventEmitter, Input, NgModule, OnInit, Output, ViewChild, HostListener } from "@angular/core";
 import { FormsModule } from '@angular/forms';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { ActivatedRoute, Params, Router, RouterModule, Routes } from '@angular/router';
-//import { Ng2FileInputModule, Ng2FileInputService } from 'ng2-file-input';
+import "@grapecity/wijmo.styles/wijmo.css";
 import * as wjcCore from '@grapecity/wijmo';
 import { WjCoreModule } from '@grapecity/wijmo.angular2.core';
 import { WjGridModule } from '@grapecity/wijmo.angular2.grid';
@@ -16,7 +16,7 @@ import appsettings from '../../../../appsettings.json';
 import { Paginated } from '../core/common/paginated.service';
 import { ActivityLog } from "../core/domain/activityLog.model";
 import { DealFunding } from "../core/domain/dealFunding.model";
-import { Amort, AutoSpreadRule, DealAdjustedTotalCommitmentTab, DealAmortization, deals, NoteAmortization, Notefunding, AutoEquity, PrepaymentPremium } from "../core/domain/deals.model";
+import { Amort, AutoSpreadRule, DealAdjustedTotalCommitmentTab, DealAmortization, deals, NoteAmortization, Notefunding, AutoEquity, PrepaymentPremium, XIRRCalculationRequests, AutoDistributeWriteoff, PrincipalWriteoff, ReserveAccountSync } from "../core/domain/deals.model";
 import { Document } from "../core/domain/document.model";
 import { Module } from "../core/domain/module.model";
 import { DownloadCashFlow, Note } from "../core/domain/note.model";
@@ -29,7 +29,6 @@ import { DataService } from '../core/services/data.service';
 import { dealService } from '../core/services/deal.service';
 import { feeconfigurationService } from '../core/services/feeConfiguration.service';
 import { FileUploadService } from '../core/services/fileUpload.service';
-import { functionService } from '../core/services/function.service';
 import { MembershipService } from '../core/services/membership.service';
 import { NoteService } from '../core/services/note.service';
 import { NotificationService } from '../core/services/notification.service';
@@ -43,7 +42,10 @@ import { DrawFeeInvoiceDetail } from '../core/domain/drawFeeInvoiceDetail.model'
 import { WFService } from '../core/services/workFlow.service';
 import { dndDirectiveModule } from '../directives/dnd.directive';
 import * as wjcGridDetail from '@grapecity/wijmo.grid.detail';
-import { WjGridDetailModule } from '@grapecity/wijmo.angular2.grid.detail';
+import { UtilsFunctions } from './../core/common/utilsfunctions';
+import { equityService } from '../core/services/equity.service';
+import { FlexGrid, FormatItemEventArgs, DataMap } from '@grapecity/wijmo.grid';
+import { Tooltip, PopupPosition } from '@grapecity/wijmo';
 //import { WjGridGrouppanelModule } from 'wijmo/wijmo.angular2.grid.grouppanel';
 declare var $: any;
 declare var XLSX: any;
@@ -52,7 +54,7 @@ declare var XLSX: any;
   selector: "dealdetail",
   templateUrl: "./dealDetail.html",
   //templateUrl: "app/components/dealdetail.html",
-  providers: [dealService, NotificationService, NoteService, propertyService, AppComponent, FileUploadService, MembershipService, functionService, PermissionService, feeconfigurationService, scenarioService, DataService, WFService, LoggingService],
+  providers: [dealService, NotificationService, NoteService, propertyService, AppComponent, FileUploadService, MembershipService, PermissionService, feeconfigurationService, scenarioService, DataService, WFService, LoggingService, UtilsFunctions, equityService],
 })
 
 export class DealDetailComponent extends Paginated implements OnInit {
@@ -79,6 +81,9 @@ export class DealDetailComponent extends Paginated implements OnInit {
   columnsMatrity: {
     binding?: string, header?: string, width?: any, format?: string
   }[];
+  columnsforPotentialImpairment: {
+    binding?: string, header?: string, width?: any, format?: 'n2', aggregate?: string, allowEditing: boolean
+  }[];
 
   cvDealFundingList: wjcCore.CollectionView;
   //  prevDealFundingList: wjcCore.CollectionView;
@@ -93,27 +98,40 @@ export class DealDetailComponent extends Paginated implements OnInit {
   lstloanProgram: any;
   lstloanPurpose: any;
   lststatus: any;
+  lstCalcEngineType: any;
   lstNotestatus: any;
+  lstLiabilitySource: any;
   message: any;
+  CalcWeightedSpread: any;
+  CalcWeightedEffectiveRate: any;
   public lstNote: any;
   lstSequence: any = [];
   lstSequenceHistory: any = [];
   lstNotePayruleSetup: any = [];
   cvNotePayruleSetup: wjcCore.CollectionView;
+  cvPrepayGroupSetup: wjcCore.CollectionView;
+  cvPayoffStatementFees: wjcCore.CollectionView;
+
+  cvPrepayNoteSetup: wjcCore.CollectionView;
+  cvPrepayNoteAllocation: wjcCore.CollectionView;
   lstNotePayruleSetupSequence: any = [];
+  public LastPurposeType: string = "";
   lstNoteFunding: any;
+  listRevolverNoteFunding: any;
   lstProperty: any;
   lstDealFundAutoSpreadDeleted: any = [];
   lstRateType: any;
   lstPropertyType: any;
   lstPurposeType: any;
   lstAutoSpreadPurposeType: any;
+  lstAssetList: any;
   lstAdjustedTotalCommitmentType: any;
   ColHeader: any;
   BindData: any;
   lstUseRuletoDetermineNoteFundingType: any;
   lstRoundingNote: any;
   lstUseRuletoDetermineAmortization: any;
+  lstYandN: any;
   lstPayruleSetupRuleType: any;
   lstNoteFundingRuleType: any;
   lstUnderwritingStatus: any;
@@ -121,6 +139,7 @@ export class DealDetailComponent extends Paginated implements OnInit {
   columnSet: any;
   result: any;
   listdealfunding: any;
+  listRevolverDealFunding: any;
   listfdealfunding: any;
   listfnotesequence: any;
   prevlistdealfunding: any;
@@ -139,6 +158,7 @@ export class DealDetailComponent extends Paginated implements OnInit {
   _IsCommentEntered: boolean = true;
   _ShowcopydivWar: boolean = false;
   _isnotegridEdited: boolean = false;
+  _isLiabilitynotegridEdited: boolean = false;
   isIDorNameChanged: boolean = false;
   lstScheduledPrincipalPaid: any;
 
@@ -205,9 +225,11 @@ export class DealDetailComponent extends Paginated implements OnInit {
   prevdealfund: any;
   public _isShowSaveDeal: boolean = false;
   public _isShowCalcScript: boolean = false;
+  public _isShowCalc: boolean = false;
   public lstAssetManagers: any;
   public isrowdeleted: boolean = false;
-  // private _isDealSaved: boolean = false;
+  public isMaturityDataChanged: boolean = false;
+  public _lstChangedMaturityData: any = [];
   public _isFundingruleChanged: boolean = false;
   public _prepaymentpremium: PrepaymentPremium;
   @ViewChild('flex') flex: wjcGrid.FlexGrid;
@@ -231,11 +253,43 @@ export class DealDetailComponent extends Paginated implements OnInit {
   @ViewChild('iframePayoffData') iframePayoffData: ElementRef;
   // @ViewChild('flexdealfunding') flexdealfundingexcel: wjGrid.FlexGrid;
   @ViewChild('grdPeriodicData') grdPeriodicData: wjcGrid.FlexGrid;
+
+  //Liability
+  @ViewChild('flexLiabilityGrid') flexLiabilityGrid: wjcGrid.FlexGrid;
+
+  @ViewChild('flexAddTansGrid') flexAddTansGrid: wjcGrid.FlexGrid;
+  @ViewChild('flexDrawPaydownGrid') flexDrawPaydownGrid: wjcGrid.FlexGrid;
+  @ViewChild('flexActualsGrid') flexActualsGrid: wjcGrid.FlexGrid;
+  public _isShowLiabilityTab: boolean = false;
+  public _isLiabilityTabClicked: boolean = false;
+  public _isShowDrawsPaydowns: boolean = true;
+  public _isShowActuals: boolean = true;
+  public _isShowAdditionalTransactions: boolean = true;
+  public _isShowCashflow: boolean = true;
+
+  public cvDealliabilitySetup: wjcCore.CollectionView;
+  public cvTestDealliabilitySetup: wjcCore.CollectionView;
+  lstDealliabilitySetup: any;
+  lstDealliabilitySetupALLNotes: any;
+
+  @ViewChild('flexDealliabilityFunding') flexDealliabilityFunding: wjcGrid.FlexGrid;
+  public cvDealliabilityFundingList: wjcCore.CollectionView;
+  lstDealliabilityFundingList: any;
+  lstDrawPayFundingListwithoutPE_PS: any;
+
+  @ViewChild('flexCashflowGrid') flexCashflowGrid: wjcGrid.FlexGrid;
+  lstCashTransaction: any;
+
+  actualsDataSource: any[];
+  addTransDataSource: any[];
+
+  lstNoteAssetMapping: any[] = [];
   public _dtUTCHours: number;
   public _userOffset: number;
   public _centralOffset: number;
   lstDealDeleteFilter: any;
   public deleteoptiontext: string = "";
+  public EquityActionType = "";
   public _moduledelete: Module;
   public _MsgText: string;
   public _isDeleteOPtionOk: boolean = false;
@@ -292,9 +346,16 @@ export class DealDetailComponent extends Paginated implements OnInit {
   public _totalCountDocImport: number = 0;
   public CurrentcountDocImport: number = 0;
   public isScrollHandlerAdded: boolean = false;
-
+  public _isReadOnlyRuleTypeName: boolean = true;
+  public _lstprepayadjustment: any = [];
+  public _lstprepayadjustmentNew: any = [];
+  public lstFeeType: any;
+  lstPrepaySchedule: any;
   public _isPeriodicDataFetching: boolean;
   public noteCount: number = 0;
+  public _lstprepaypremium: any = [];
+  public _lstprepayCalculationLog: any = [];
+  public _lstloggedFile: any = [];
   Noteobj: any = [];
   NoteRuleobj: any = [];
   ListHoliday: any;
@@ -325,20 +386,26 @@ export class DealDetailComponent extends Paginated implements OnInit {
   payLoad: boolean = false;
   lstLiborSchedule: any;
   ShowUseRuleN: boolean = false;
-  public dealfundingColPositionDate = "2";
-  public dealfundingColPositionAmount = "3";
-  public dealfundingColPositionPurpose = "6";
-  public dealfundingColPositionWire = "7";
-  public dealfundingColPositionComment = "10";
+  public dealfundingColPositionDate = "3";
+  public dealfundingColPositionAmount = "4";
+  public dealRequiredEquityColPositionAmount = "5";
+  public dealAdditionalEquityColPositionAmount = "6";
+  public dealfundingColPositionPurpose = "7";
+  public dealfundingColPositionWire = "8";
+  public dealfundingColPosiionAdjustmentType = "9";
+  public dealfundingColPositionComment = "11";
   public _isShowDownloadExportToServicer: boolean = false;
+  public adjusrmenttypearray = [834, 835, 896, 897];
   public _user: User;
   originallistdealfunding: any;
   listfeeamount: any;
-  listdealfundingwithoutchange: any;
+  listdealfundingwithoutchange:
+    any;
   public _scenariodc: Scenario;
   public _lstScenario: any;
   public ScenarioName: string;
-
+  public ScenarioId: any;
+  public ScenarioIdPrepay: any;
   public _autospreadrule: AutoSpreadRule;
   autospreadrulelist: wjcCore.CollectionView;
   lstautospreadrule: any;
@@ -388,6 +455,7 @@ export class DealDetailComponent extends Paginated implements OnInit {
   public adjusteddealaggregatedcommitmentcol;
   public adjusteddealcommitmentcol;
   public _totalcommitmenttextboxvalue;
+  public _totalcommitmentvalue: any = 0;
   public _aggregatedcommitmenttexboxtvalue;
   public _adjustedcommitmenttextboxvalue;
   public adjusteddynamicnotescol;
@@ -402,10 +470,11 @@ export class DealDetailComponent extends Paginated implements OnInit {
   public _timezoneAbbreviation: any;
   public _isamortsequenceadded: boolean = false;
   public _isShowSaveDealAllowForThisRole: boolean = false;
-  public _dynamicColumnCountonFundingRules = 31;
+  public _dynamicColumnCountonFundingRules = 36;
   public _autoTotalComitted: any = 0;
   public _autoTotalContriToDate: any = 0;
-  public _autoSumAdditionalEquity: any = 0;
+  public _AdditionalEquityContriToDate: any = 0;
+  // public _autoSumAdditionalEquity: any = 0;
   public _autoRemainingtoContribute: any;
   public autoEquity: AutoEquity;
   public lstAutoEquity: Array<AutoEquity>;
@@ -415,7 +484,7 @@ export class DealDetailComponent extends Paginated implements OnInit {
   public textAggregatedTotal: any;
   public _isReadOnlyTotalCommitment: boolean = true;
   public sumRequiredEquity: any = 0;
-  public sumAdditionalEquity: any = 0;
+  //public sumAdditionalEquity: any = 0;
   lstFeeInvoice: any;
   public _drawFeeInvoice: DrawFeeInvoiceDetail;
   invoiceRowindex: number;
@@ -451,11 +520,15 @@ export class DealDetailComponent extends Paginated implements OnInit {
   public originalMaturityList: any = [];
   public _lstMaturity: wjcCore.CollectionView;
   public maturityTypeList: any = [];
+  public ExtensionTypeTypeList: any = [];
+
   public maturityApprovedList: any = [];
+  public _isMattabclicked: boolean = false;
   public maturityEffectiveDate: any;
   public maturityExpectedMaturityDate: any;
   public maturityOpenPrepaymentDate: any;
   public maturityActualPayoffDate: any;
+  public OldmaturityEffectiveDate: any;
   public selectedNoteID: any;
   public noteMaturityList: any = [];
   public _isMaturityTabClicked: boolean = false;
@@ -481,6 +554,9 @@ export class DealDetailComponent extends Paginated implements OnInit {
   public lstReserveSchedulePurposeType: any = [];
   @ViewChild('flexReserveSchedule') flexReserveSchedule: wjcGrid.FlexGrid;
   @ViewChild('flexReserveAccounts') flexReserveAccounts: wjcGrid.FlexGrid;
+  @ViewChild('flexaccountingclose') flexaccountingclose: wjcGrid.FlexGrid;
+
+
   public _isShowReserveTab: boolean = false;
   public reserveAccountsList: any = [];
   public _listReserveAccounts: wjcCore.CollectionView;
@@ -514,7 +590,6 @@ export class DealDetailComponent extends Paginated implements OnInit {
   public isroleAssetManager: boolean = false;
   public isShowGenerateAutospreadRepay: boolean = false;
   public _isPayoffTabClicked: boolean = false;
-  public lstFeeType: any;
   public _lstSpreadMaintenance: any = [];
   public _lstSpreadMaintenancenew: any = [];
   public _lstSpreadMaintenance_note: any = [];
@@ -522,11 +597,16 @@ export class DealDetailComponent extends Paginated implements OnInit {
   public _lstDealLevel: any;
   public _lstMinimumMult: any = [];
   public _lstMinimumMultNew: any = [];
+  @ViewChild('flexFeeCredits') flexFeeCredits: wjcGrid.FlexGrid;
+  cvMinimumFeeCredits: wjcCore.CollectionView;
   public _lstMinimumFee: any = [];
+  deleteMinimumFeeCredits: any = [];
   public _lstPrepayPremiumnew: any[];
+  public _lstPrepayGroupSetup: any[];
+  public _lstPayoffStatementFees: any[];
+  public _lstPrepayNoteSetup: any[];
+  public _lstPrepayNoteAllocation: any[];
   public _lstMinimumFeeNew: any = [];
-  public _lstprepayadjustment: any = [];
-  public _lstprepayadjustmentNew: any = [];
   public NewPrepayPremium: any;
   private minispreadinterestdiv: boolean = false;
   private spreadmaintenancediv: boolean = false;
@@ -537,17 +617,27 @@ export class DealDetailComponent extends Paginated implements OnInit {
   public lstSpreadCalctMethodName: any = [];
   public lstBaseAmountName: any = [];
   @ViewChild('prepayadjustment') prepayadjustment: wjcGrid.FlexGrid;
+  cvPrepayadjustment: wjcCore.CollectionView;
+  deletePrepayadjustment: any = [];
   @ViewChild('SpreadMaintenance') SpreadMaintenance: wjcGrid.FlexGrid;
   @ViewChild('MinimumMult') MinimumMult: wjcGrid.FlexGrid;
-  @ViewChild('MinimumFee') MinimumFee: wjcGrid.FlexGrid;
   @ViewChild('PrepayPremium') PrepayPremium: wjcGrid.FlexGrid;
   @ViewChild('RuleTypeList') RuleTypeList: wjcGrid.FlexGrid;
   @ViewChild('Equitygrid') Equitygrid: wjcGrid.FlexGrid;
+  @ViewChild('PrepayGroupSetup') flexPrepayGroupSetup: wjcGrid.FlexGrid;
+  @ViewChild('PrepayNoteSetup') flexPrepayNoteSetup: wjcGrid.FlexGrid;
+  @ViewChild('PrepayNoteAllocationSetup') flexPrepayNoteAllocationSetup: wjcGrid.FlexGrid;
+  @ViewChild('PayoffStatementFees') flexPayoffStatementFees: wjcGrid.FlexGrid;
+
+  @ViewChild('flexAccountingBasis') flexAccountingBasis: wjcGrid.FlexGrid;
+
   public _ruletype: RuleType;
   private _Showmessagedivrule: boolean = false;
   private _ShowmessagedivruleMsg: string = '';
   public _isRuleTabClicked: boolean = false;
   private _isShowScenariodiv: boolean = false;
+  private _Showinternalrefi: boolean = false;
+
   private _isShowbtnResetdiv: boolean = false;
   private _isShowRuleTypediv: boolean = false;
   public _lstruletype: any;
@@ -558,16 +648,20 @@ export class DealDetailComponent extends Paginated implements OnInit {
   public _lstRuleTypeSetupfilter: any = [];
   public lstdealPropertyType: any;
   public lstLoanStatus: any;
+  public lstReserveAccountMaster: any;
+  public ReserveMasterMap: any;
+
+
+
   public ClickedTab: string = '';
   dealTotalCommitmenttextboxvalue: any;
+  dealTotalCommitmenttextboxOriginalvalue: any;
   lstUserPermission: any;
   public Prepaylastupdated: any;
   public PrepaylastupdatedBy: any;
   private tdopenrules: boolean = false;
   private divPrepayCalculationStatus: boolean = false;
   private divPrepayLastUpdated: boolean = false;
-  private divPrepayCalculationLog: boolean = false;
-  private divPrepaySystemLog: boolean = false;
   public _lstPrepayAllocations: any = [];
   public _isPrepaymentmethodClicked: boolean = false;
   public _isAdjustedTotalCommitmentTabClicked: boolean = false;
@@ -575,13 +669,122 @@ export class DealDetailComponent extends Paginated implements OnInit {
   public _isShowLoader: boolean = false;
   public PrepayCalcStatus: string = "";
   public CalculationErorMessage: string = "";
-  public _lstprepayCalculationLog: any = [];
-  public _lstloggedFile: any = [];
   public PrepayFailedMessage: string;
   public PrepayFailedMessageBody: string;
   public loggedfiledata: string;
   public lstPrepayRuleTemplate: any = [];
+  public maturityOtherFieldsList = [];
+  public _isShowAccountingClose: boolean = false;
+
+  public LastActivityType: string = '';
+  acccomment: any;
+  public isShowaccoutingCloseMessage: boolean = true;
+  public isShowaccoutingCloseGrid: boolean = false;
+  public PrevCalcEngineType: number;
+  lstdealaccountingClose: any;
+
+  public _isServicingWatchlist: boolean = false;
+  IsServicingWatchlisttabClicked: boolean = false;
+  IsServicingWatchlistShowGrids: boolean = true;
+  IsServicingWatchlistDataLoaded: boolean = false;
+
+  lstServicingWatchlistLegal: any;
+  //lstServicingWatchlistLegalDeleted: any = [];
+  @ViewChild('flexServicingWatchlistLegal') flexServicingWatchlistLegal: wjcGrid.FlexGrid;
+  cvServicingWatchlistLegal: wjcCore.CollectionView;
+
+
+  lstServicingWatchlistAccounting: any;
+  lstServicingWatchlistAccountingDeleted: any = [];
+  @ViewChild('flexServicingWatchlistAccounting') flexServicingWatchlistAccounting: wjcGrid.FlexGrid;
+  cvServicingWatchlistAccounting: wjcCore.CollectionView;
+
+
+  lstServicingPotentialImpairment: any;
+  lstServicingPotentialImpairmentDeleted: any = [];
+  lstServicingPotentialImpairmentNew: any = [];
+  lstServicingPotentialImpairmentBeforeCopy: any;
+  @ViewChild('flexServicingPotentialImpairment') flexServicingPotentialImpairment: wjcGrid.FlexGrid;
+  cvServicingPotentialImpairment: wjcCore.CollectionView;
+
+  public _isShowXIRR: boolean = false;
+  @ViewChild('XiRRValues') XiRRValues: wjcGrid.FlexGrid;
+  @ViewChild('XiRRNotes') XiRRNotes: wjcGrid.FlexGrid;
+
+  lstXiRRValues: any;
+  lstXiRRNotes: any;
+  public _isShowNoRecordFound: boolean = false;
+
+  //lstLegalStatusType: any;
+  lstAccountingType: any;
+  lstAdjustmentType: any;
+  lstAdjustmentTypeImpairment: any;
+  lstdebtandequity: any;
+  lstTypesofdebtequity: any;
+  _closeDateAccounting: Date;
+  _openDateAccounting: Date;
+  public _totalCountAccountingClose: number = 0;
+  public _pageIndexAccountingClose: number = 1;
   detailMode = wjcGridDetail.DetailVisibilityMode[wjcGridDetail.DetailVisibilityMode.ExpandSingle];
+  public potentialImpairmentdynamicnotescol: any;
+  public potentialImpairmentdynamiccolList: any;
+  public listdealfundingWithImpairment: any = [];
+  public lstDealFundingImpairmentOrg: any = [];
+  public lstDealFundingImpairment: any = [];
+  public TemplstServicingPotentialImpairmentNew: any = [];
+  public listdealfundingBlank: any = [];
+  public _isvalidateHolidaySatSunForPI: boolean = true;
+  public maxmaturitydate = null;
+  public lstImpairment: any;
+
+  public LiabilityTypeMap: any;
+  public FacilitiesMap: any;
+
+  arrLiabilityNote = [];
+  public _isCashflowTabClicked: boolean = false;
+  public lstDealliabilityToUpdate: any = [];
+  public AssetNotesUpdatedRows: any = [];
+  public lstXIRRTags: any = [];
+  deleteLiabilityNote: any = [];
+  public lastCalcDateTime: any;
+  public CalculationStatus: any;
+  public ErrorMessage: any;
+  public Caculatedby: any;
+  public loadoutput: boolean = true;
+  lstCheckDuplicateTransactionCashflow: any;
+  lstTransactionType: any;
+  _chkSelectAll: boolean = false;
+  public mutipleDeletemsg: string;
+  deletemsg: any;
+  public isDeletedFunding: boolean = false;
+  public _xirrValue: any;
+  lstAutoDistributeWriteoff: any;
+  public _principalwriteoff: PrincipalWriteoff;
+  //flagPrincipalWriteoffAmountDistributed: boolean = true;
+  flagIsAutoDistibutePressed: boolean = false;
+  lstDealRelationship: any;
+  lstDealRelationshipType: any;
+  @ViewChild('flexDealRelationship') flexDealRelationship: wjcGrid.FlexGrid;
+  deletePrepayGroupSetupList: any = [];
+  deletePrepayNoteSetupList: any = [];
+  lstAccountingBasis: any;
+
+  public negativePurposeTypes: any[] = [
+    "Amortization",
+    "Paydown",
+    "Full Payoff",
+    "Property Release",
+    "Net Property Income/Loss",
+    "Equity Distribution"
+  ];
+  lstPrepayNoteAllocExcludeType: any;
+  lstPrepaymentAllocationMethod: any;
+  lstPayoffStatementFees: any;
+  lstCurrentSpread: any;
+  public _reserveAccountSync: ReserveAccountSync;
+  public isGeneratePayoffEmail: boolean = false;
+  public lstFinancingCommitment: any;
+
   constructor(
     //private ng2FileInputService: Ng2FileInputService,
     public fileUploadService: FileUploadService,
@@ -589,6 +792,7 @@ export class DealDetailComponent extends Paginated implements OnInit {
     public dataSrv: DataService,
     public noteSrv: NoteService,
     public propertySrv: propertyService,
+    public eqSrv: equityService,
     public notificationService: NotificationService,
     private _router: Router,
     private _actrouting: ActivatedRoute,
@@ -598,26 +802,29 @@ export class DealDetailComponent extends Paginated implements OnInit {
     public _appcomponent: AppComponent,
     public loggingService: LoggingService,
     public membershipService: MembershipService,
-    public functionServiceSrv: functionService,
     public permissionService: PermissionService,
     public feeconfigurationSrv: feeconfigurationService,
     public scenarioService: scenarioService,
     public sanitizer: DomSanitizer,
     public wfSrv: WFService,
+    public utils: UtilsFunctions,
   ) {
-    super(50, 1, 0);
+    super(3, 1, 0);
+    this.getFacilitiesMap();
     this._drawFeeInvoice = new DrawFeeInvoiceDetail("");
     this._moduledelete = new Module('');
     this._scenariodc = new Scenario('');
     this._moduledelete.LookupID = 0;
-    //this.GetAllowRules();
-    //this.getFastFolderList();
     this.getAllDistinctScenario();
+    this.CheckifUserIsLogedIN();
     let dealId;
     this._actrouting.params.forEach((params: Params) => {
       if (params['id'] !== undefined) {
         dealId = params['id'];
         this._deal = new deals(dealId);
+      }
+      if (params['tab'] !== undefined) {
+        this.SetActiveTab(params['tab']);
       }
     });
     this._user = JSON.parse(localStorage.getItem('user'));
@@ -638,6 +845,8 @@ export class DealDetailComponent extends Paginated implements OnInit {
     this.getUsersByRoleName();
     this.getAllPropertyType();
     this.getAllLoanStatus();
+    this.GetAllTagNameXIRR();
+    this.getallreserveaccountmaster();
     this._deal.DealID = this._deal.DealID.length != 36 ? '00000000-0000-0000-0000-000000000000' : this._deal.DealID;
     this.fetChDeal(this._deal);
     this.rolename = window.localStorage.getItem("rolename");
@@ -652,23 +861,28 @@ export class DealDetailComponent extends Paginated implements OnInit {
     this._currentDate = new Date();
     this.columns = [
       //{ header: 'Note Id', binding: 'CRENoteID', width: '*', allowEditing: false, },
-      { header: 'Name', binding: 'Name', format: '', width: '*', allowEditing: false, aggregate: 'None' },
-      { header: 'Maturity', binding: 'Maturity', format: 'M/d/yyyy', width: '*', allowEditing: false, align: 'right', aggregate: 'None' },
-      { header: 'Lien Position', binding: 'LienPositionText', format: '', width: '*', allowEditing: false, aggregate: 'None' },
-      { header: 'Priority', binding: 'Priority', format: '', width: '*', allowEditing: false, align: 'right', aggregate: 'None' },
-      { header: 'Estimated current balance', binding: 'EstBls', format: 'n2', width: '*', allowEditing: false, aggregate: 'Sum' },
-      { header: 'Current PIK Balance', binding: 'CurrentPIKBalance', format: 'n2', width: '*', aggregate: 'Sum', allowEditing: false },
-      { header: 'Total commitment', binding: 'TotalCommitment', format: 'n2', width: '*', aggregate: 'Sum', allowEditing: false },
+      { header: 'Name', binding: 'Name', width: '*', allowEditing: false },
+      { header: 'Maturity', binding: 'Maturity', width: '*', format: 'M/d/yyyy', allowEditing: false, align: 'right' },
+      { header: 'Lien Position', binding: 'LienPositionText', width: '*', allowEditing: false },
+      { header: 'Priority', binding: 'Priority', width: '*', allowEditing: false },
+      { header: 'Financing source', binding: 'FinancingSource', width: '*', allowEditing: false },
+      { header: 'Spread / Rate', binding: 'WeightedSpread', width: '*', format: 'p6', aggregate: 'Sum', allowEditing: false, align: 'right' },
+      { header: 'Effective Rate', binding: 'EffectiveRate', width: '*', format: 'p6', aggregate: 'Sum', allowEditing: false, align: 'right' },
+      //{ header: 'Net Capital Invested', binding: 'NetCapitalInvested', width: '*', format: 'n2', aggregate: 'Sum', allowEditing: false },
+      { header: 'Estimated current balance', binding: 'EstBls', width: '*', format: 'n2', aggregate: 'Sum', allowEditing: false },
+      { header: 'Current PIK Balance', binding: 'CurrentPIKBalance', width: '*', format: 'n2', aggregate: 'Sum', allowEditing: false },
+      { header: 'Total commitment', binding: 'TotalCommitment', width: '*', format: 'n2', aggregate: 'Sum', allowEditing: false },
       { header: 'Adjusted Commitment', binding: 'AdjustedTotalCommitment', width: '*', format: 'n2', aggregate: 'Sum', allowEditing: false },
+      { header: 'Unfunded Commitment', binding: 'UnfundedCommitment', width: '*', format: 'n2', aggregate: 'Sum', allowEditing: false },
       // { header: 'Aggregated Total Commitment', binding: 'AggregatedTotal', width: '*', format: 'n2', aggregate: 'Sum', allowEditing: false },
       { header: 'Initial funding amount', binding: 'InitialFundingAmount', width: '*', format: 'n2', aggregate: 'Sum', allowEditing: false },
-     // { header: 'Initial Required Equity', binding: 'InitialRequiredEquity', width: '*', format: 'n2', aggregate: 'Sum', allowEditing: false },
-     // { header: 'Initial Additional Equity', binding: 'InitialAdditionalEquity', width: '*', format: 'n2', aggregate: 'Sum', allowEditing: false },
-      { header: 'Use rule to determine note funding', binding: 'UseRuletoDetermineNoteFundingText', width: '*', allowEditing: true, aggregate: 'None' },
+      // { header: 'Initial Required Equity', binding: 'InitialRequiredEquity', width: '*', format: 'n2', aggregate: 'Sum', allowEditing: false },
+      // { header: 'Initial Additional Equity', binding: 'InitialAdditionalEquity', width: '*', format: 'n2', aggregate: 'Sum', allowEditing: false },
+      { header: 'Use rule to determine note funding', binding: 'UseRuletoDetermineNoteFundingText', width: '*', allowEditing: true },
       //{ header: 'Note funding rule', binding: 'NoteFundingRuleText', width: '*', allowEditing: true },
-      { header: 'Funding priority', binding: 'FundingPriority', width: '*', allowEditing: true, aggregate: 'None' },
+      { header: 'Funding priority', binding: 'FundingPriority', width: '*', allowEditing: true },
       //{ header: 'Note balance cap', binding: 'NoteBalanceCap', width: '*', format: 'n2', aggregate: 'Sum', allowEditing: true },
-      { header: 'Repayment priority', binding: 'RepaymentPriority', width: '*', allowEditing: true, aggregate: 'None' }
+      { header: 'Repayment priority', binding: 'RepaymentPriority', width: '*', allowEditing: true }
     ];
     this.columnsForPayruleSetup = [
       { header: 'Note id', binding: 'FromNote', width: 150 },
@@ -676,10 +890,13 @@ export class DealDetailComponent extends Paginated implements OnInit {
       //{ header: 'Total', binding: 'Total', width: 150, allowEditing: false }
     ];
 
+
+
     this.columnsForNoteDealFunding = [];
     this.columnsAmortSchedule = [];
     this.AmortSeqcolumns = [];
     this.columnsforCommitmentAdjustment = [];
+    this.columnsforPotentialImpairment = [];
     var _date = new Date();
     this._dtUTCHours = _date.getTimezoneOffset() / 60; //_date.getUTCHours();
     //alert('date getTimezoneOffset' + _date.getTimezoneOffset() );
@@ -702,16 +919,23 @@ export class DealDetailComponent extends Paginated implements OnInit {
 
       //Set active tab
       var ActiveTabID = localStorage.getItem('ClickedTabId');
-      setTimeout(function () {
-        document.getElementById(ActiveTabID).click();
-        //localStorage.setItem('ClickedTabId', 'aMain');
-      }.bind(this), 3000);
+      //setTimeout(function () {
+      //  document.getElementById(ActiveTabID).click();
+      //  //localStorage.setItem('ClickedTabId', 'aMain');
+      //}.bind(this), 3000);
 
       localStorage.setItem('ShowSaveMsg', 'hide');
       setTimeout(function () {
         this._Showmessagediv = false;
         this._ShowmessagedivMsg = "";
       }.bind(this), 4000);
+    } else if (localStorage.getItem('ClickedTabId') != '') {
+      //var ActiveTabID = localStorage.getItem('ClickedTabId');
+      //setTimeout(function () {
+      //  document.getElementById(ActiveTabID).click();
+      //  localStorage.setItem('ClickedTabId', '');
+      //}.bind(this), 4000);
+
     }
     else if (this.ClickedTab != '') {
       var ActiveTabID = this.ClickedTab;
@@ -766,13 +990,46 @@ export class DealDetailComponent extends Paginated implements OnInit {
     else {
       localStorage.setItem('ClickedTabId', 'aMain');
     }  //end delete message from admin panel
+    //alert(localStorage.getItem('divSucessDeal'));
+    if (localStorage.getItem('ShowmessagedivWar') == 'true') {
+      this._ShowmessagedivWar = true;
+      this._ShowmessagedivMsgWar = localStorage.getItem('ShowmessagedivMsgWar');
+      //alert(this._ShowSucessdivMsg);
+      //this._ShowSucessdivMsg = (this._ShowmessagedivMsg.replace('\"', '')).replace('\"', '');
+
+      //Set active tab
+      //var ActiveTabID = localStorage.getItem('ClickedTabId');
+      setTimeout(function () {
+        this._ShowmessagedivWar = false;
+
+        localStorage.setItem('ShowmessagedivWar', JSON.stringify(false));
+        localStorage.setItem('_ShowmessagedivMsgWar', JSON.stringify(''));
+        this._ShowmessagedivMsgWar = '';
+        // document.getElementById(ActiveTabID).click();
+      }.bind(this), 5000);
+    }
     this.columnsforReserveSchedule = [];
+    //this.getAutoDistributeWriteoffByDealID(this._deal);
+    this._principalwriteoff = new PrincipalWriteoff();
+    if (this._deal.EnableAutoDistributePrincipalWriteoff == true) this.flagIsAutoDistibutePressed = false; else this.flagIsAutoDistibutePressed = true;
+
+    //Code for Liability Type and Facility Mapping on selection
+    setTimeout(() => {
+      (this.FacilitiesMap as any).getDisplayValues = (dataItem: any) => {
+        var selectedCategory = this.lstTypesofdebtequity.filter(item => item.LookupID === parseInt(dataItem.DebtEquityTypeID));
+        var validMap = this.lstdebtandequity.filter(item => item.DebtEquityType === selectedCategory[0].Name);
+
+        return validMap.map(item => item.Name);
+      };
+    }, 4000);
+
   }
 
   ngOnInit() {
     this.returnUrl = this._actrouting.snapshot.queryParams['returnUrl'] || '/';
 
   }
+
   AfterViewInit() {
     //reset ng2-file-input control after error occoured
     this.resetFileInput();
@@ -803,8 +1060,6 @@ export class DealDetailComponent extends Paginated implements OnInit {
     }.bind(this), 2000);
 
     ////Tool Tip for Commitment/Equity 
-
-
     if (this.flexadjustedtotalcommitment) {
       let toolTip = new wjcCore.Tooltip();
       this.flexadjustedtotalcommitment.hostElement.addEventListener("mouseover", (e: MouseEvent) => {
@@ -833,6 +1088,20 @@ export class DealDetailComponent extends Paginated implements OnInit {
         toolTip.hide();
       });
     }
+
+    if (this.flexaccountingclose) {
+      this.flexaccountingclose.scrollPositionChanged.addHandler(() => {
+        var myDiv = $('#flexaccountingclose').find('div[wj-part="root"]');
+
+        if (myDiv.prop('offsetHeight') + myDiv.scrollTop() >= myDiv.prop('scrollHeight')) {
+          if (this.flexaccountingclose.rows.length < this._totalCountAccountingClose) {
+            this._pageIndexAccountingClose = this._pageIndexAccountingClose + 1;
+            this.getAllAccountingHistory();
+
+          }
+        }
+      })
+    }
   }
 
   AddcolumnNotePayruleSetup(header, binding) {
@@ -843,7 +1112,7 @@ export class DealDetailComponent extends Paginated implements OnInit {
   //Use Rule N 
   AddcolumnNoteDealFunding(header, binding, allowEdit) {
     try {
-      this.columnsForNoteDealFunding.push({ "header": header, "binding": binding, "format": 'n2', "aggregate": 'Sum', "allowEditing": allowEdit })
+      this.columnsForNoteDealFunding.push({ "header": header, "binding": binding, "format": 'n2', "aggregate": 'Sum', "allowEditing": allowEdit, "width": 185 })
     } catch (err) { }
   }
 
@@ -858,6 +1127,15 @@ export class DealDetailComponent extends Paginated implements OnInit {
   AddcolumnAdjustedTotalCommitment(header, binding, allowEdit) {
     try {
       this.columnsforCommitmentAdjustment.push({
+        "binding": binding, "header": header, "format": 'n2', "aggregate": 'Sum', allowEditing: allowEdit
+      })
+    }
+    catch (err) { }
+  }
+
+  AddcolumnPotentialImpairment(header, binding, allowEdit) {
+    try {
+      this.columnsforPotentialImpairment.push({
         "binding": binding, "header": header, "format": 'n2', "aggregate": 'Sum', allowEditing: allowEdit
       })
     }
@@ -968,22 +1246,8 @@ export class DealDetailComponent extends Paginated implements OnInit {
   //Sequence Code START
   Addcolumn(header, binding) {
     try {
-      this.columns.push({
-        "header": header, "binding": binding, "format": 'n2', "aggregate": 'Sum', "allowEditing": true
-      })
+      this.columns.push({ "header": header, "binding": binding, "format": 'n2', "aggregate": 'Sum', "allowEditing": true })
     } catch (err) { }
-  }
-
-  loadedRows(grid) {
-    grid.columns.forEach(c => {
-      if (!(c.header == 'Priority' || c.header == 'Funding priority' || c.header == 'Repayment priority')) {
-        if (c.dataType === wjcCore.DataType.Number) {
-          c.aggregate = wjcCore.Aggregate.Sum;
-        }
-      }
-    });
-    // add a footer row for displaying the aggregates
-    //grid.columnFooters.rows.push(new wjcGrid.GroupRow());
   }
 
   NextSequenceToAdd(SequenceType) {
@@ -1073,15 +1337,24 @@ export class DealDetailComponent extends Paginated implements OnInit {
           this.dynamicColList = [];
           var header = [];
           var data: any = res.lstFundingRepaymentSequenceHistory;
+
+          this.CalcWeightedSpread = res.CalcWeightedSpread;
+          this.CalcWeightedEffectiveRate = res.CalcWeightedEffectiveRate;
+
           data.sort(this.SortByNoteID);
+
+          //for (var i = 0; i < data.length; i++) {
+          //    data[i].UnfundedCommitment = data[i].AdjustedTotalCommitment - (data[i].EndingBalance - data[i].CurrentPIKBalance);
+          //}
           this.lstSequenceHistory = data;
 
+          var formateddate = this.utils.convertDateToBindable(this.CalculateCurrentMaturity());
+          for (var i = 0; i < this.lstSequenceHistory.length; i++) {
+            this.lstSequenceHistory[i].Maturity = formateddate;
+          }
 
-
-          //for (var i = 0; i < this.lstSequenceHistory.length; i++) {
-          //    this.lstSequenceHistory[i].AggregatedTotal = this.lstSequenceHistory[i].TotalCommitment + this.lstSequenceHistory[i].AdjustedTotalCommitment;
-          //}
           this.ConvertToBindableDateNoteMaturity(this.lstSequenceHistory);
+
           //alert("after data fetch");
           $.each(data, function (obj) {
             var i = 0;
@@ -1189,23 +1462,33 @@ export class DealDetailComponent extends Paginated implements OnInit {
     //set title
     this._isShowSaveDeal = false;
     this.lstProperty = null;
+    this.lstDealRelationship = null;
     this._disabled = false;
     this.dealSrv.getDealByDealID(_objDeal).subscribe(res => {
       if (res.Succeeded) {
-
         if (res.StatusCode == 404) {
           this._ShowmessagedivWar = true;
           this._ShowmessagedivMsgWar = "Deal does not exists in our system, Please create or import this deal.";
           this._isListFetching = false;
+          this._router.navigate(['login']);
         }
         else {
           if (typeof res.UserPermissionList !== 'undefined' && res.UserPermissionList.length > 0) {
             this.DealCalcuStatus = res.DealCalcuStatus;
             this._disabled = true;
             this._deal = res.DealDataContract;
+
+            if (this._deal.InternalRefiText == "Y") {
+              this._Showinternalrefi = true;
+            } else {
+              this._Showinternalrefi = false;
+            }
+            this._xirrValue = ((this._deal.XIRRValue == null || this._deal.XIRRValue == undefined) ? (0.00).toFixed(7) : (this._deal.XIRRValue * 100).toFixed(7)) + '%';
+
             this._actualAmortMethod = this._deal.amort.AmortizationMethodText;
             this.lstScheduledPrincipalPaid = res.ListScheduledPrincipalPaid;
             this.lstUserPermission = res.UserPermissionList;
+            this.PrevCalcEngineType = this._deal.CalcEngineType;
             if (this._deal.EnableAutospreadRepayments == false || this._deal.EnableAutospreadRepayments == null) {
               this._deal.ApplyNoteLevelPaydowns = false;
             }
@@ -1218,6 +1501,7 @@ export class DealDetailComponent extends Paginated implements OnInit {
             if (this._deal.TotalCommitment) {
               this._deal.TotalCommitment = parseFloat(this._deal.TotalCommitment).toFixed(2);
               this.dealTotalCommitmenttextboxvalue = parseFloat(parseFloat(this._deal.TotalCommitment).toFixed(2));
+              this.dealTotalCommitmenttextboxOriginalvalue = this.dealTotalCommitmenttextboxvalue;
             }
             if (this._deal.DealID == '00000000-0000-0000-0000-000000000000') {
               this._showadminpanel = false;
@@ -1257,22 +1541,23 @@ export class DealDetailComponent extends Paginated implements OnInit {
             else {
               this.utilityService.setPageTitle("M61 Deal Detail");
             }
-            this.getNoteByDealID(this.note);
+            this.GetAllLookups();
 
+            this.getNoteByDealID(this.note);
             this.getPropertyByDealID(this._deal.DealID);
-            //  this.GetDealFundingByDealID(_objDeal);
+
 
             //call for assign target note
             this.GetNoteFundingByDealID(this._deal);
             ////format date
             this._prepaymentpremium = res.ListPrePaySchedule;
             this.GetAppConfigByKey();
-            //this.GetNoteFundingByDealID(_objDeal);
             ////
             this.deletedynamicList = [];
             this.deladjustmentcommitment = [];
             //Convert date
             if (this._deal.EstClosingDate != null) { this._deal.EstClosingDate = new Date(this._deal.EstClosingDate.toString()); }
+            if (this._deal.LastAccountingclosedate != null) { this._deal.LastAccountingclosedate = new Date(this._deal.LastAccountingclosedate.toString()); }
             if (this._deal.AppReceived != null) { this._deal.AppReceived = new Date(this._deal.AppReceived.toString()); }
             if (this._deal.FullyExtMaturityDate != null) { this._deal.FullyExtMaturityDate = new Date(this._deal.FullyExtMaturityDate.toString()); }
             if (this._deal.LastUpdatedFF != null) { this._deal.LastUpdatedFF = new Date(this._deal.LastUpdatedFF.toString()); }
@@ -1281,27 +1566,24 @@ export class DealDetailComponent extends Paginated implements OnInit {
             //this._isListFetching = false;
             this.HideAllTabs();
             this.ApplyPermissions(res.UserPermissionList);
-            this.GetAllLookups();
             this.showcalcstatus();
             this.GetAllFeeAmount();
             this.GetHolidayList();
-
-            //calcuate  Aggregated Total Commitment
-            //this._deal.AdjustedTotalCommitment = this.GetDefaultValue(this._deal.AdjustedTotalCommitment);
-            //this._deal.TotalCommitment = this.GetDefaultValue(this._deal.TotalCommitment);
-            //this._deal.AggregatedTotal = parseFloat(this._deal.TotalCommitment) + parseFloat(this._deal.AdjustedTotalCommitment);
-
-
-            //this.textAdjustedTotalCommitment = this.formatNumberforTwoDecimalplaces(this._deal.AdjustedTotalCommitment);
-            //this.textTotalCommitment = this.formatNumberforTwoDecimalplaces(this._deal.TotalCommitment);
-            //this.textAggregatedTotal = this.formatNumberforTwoDecimalplaces(this.GetDefaultValue(this._deal.AggregatedTotal));
+            this.getDealRelationshipByDealID(this._deal.DealID);
             this.TempDealRule = this._deal.DealRule;
             this.GetUserTimezoneByID();
             if (this._isShowDealAmort) {
               setTimeout(function () {
+
                 this.ValidateAmort();
               }.bind(this), 1000);
             }
+            setTimeout(function () {
+              this.getDealMaturitybyID(this._deal.DealID);
+            }.bind(this), 1000);
+
+            this.hideaccoutingCloseGrid();
+
           }
           else {
             localStorage.setItem('divWarningMsgDeal', JSON.stringify(true));
@@ -1317,13 +1599,22 @@ export class DealDetailComponent extends Paginated implements OnInit {
         }
       }
       else {
-        this._router.navigate(['login']);
+        //error message;
+        this.showdealwraningmessage("An error occurred while loading the deal. Please try reloading, or contact your system administrator if the issue persists ");
       }
     });
-
-    error => console.error('Error: ' + error)
+    error => {
+      this.showdealwraningmessage("An error occurred while loading the deal. Please try reloading, or contact your system administrator if the issue persists ");
+    }
   }
-
+  showdealwraningmessage(msg) {
+    this._isListFetching = false;
+    this._ShowmessagedivWar = true;
+    this._ShowmessagedivMsgWar = msg;
+    setTimeout(() => {
+      //this._ShowmessagedivWar = false;
+    }, 2000);
+  }
   GetAllLookups(): void {
     this.dealSrv.getAllLookup().subscribe(res => {
       var data = res.lstLookups;
@@ -1351,6 +1642,8 @@ export class DealDetailComponent extends Paginated implements OnInit {
       this.listNoteDistributionMethod = data.filter(x => x.ParentID == "104");
 
       this.lstRoundingNote = data.filter(x => x.ParentID == "2");
+      this.lstYandN = data.filter(x => x.ParentID == "2");
+
       this.lstUseRuletoDetermineAmortization = data.filter(x => x.ParentID == "2");
 
       this.lstAutoSpreadPurposeType = data.filter(x => x.ParentID == "50" && x.Value == 'Positive');
@@ -1365,28 +1658,904 @@ export class DealDetailComponent extends Paginated implements OnInit {
       this.lstPrePaymentName = data.filter(x => x.ParentID == "123");
       this.lstSpreadCalctMethodName = data.filter(x => x.ParentID == "25");
       this.lstBaseAmountName = data.filter(x => x.ParentID == "124");
+      this.lstCalcEngineType = data.filter(x => x.ParentID == "134");
+
+      //this.lstLegalStatusType = data.filter(x => x.ParentID == "139");
+      this.lstAccountingType = data.filter(x => x.ParentID == "140");
+
+      this.lstAdjustmentType = data.filter(x => x.ParentID == "141");
+
+      //remove Protective Advances(NCA) and Protective Advances(CA) from list
+      this.lstAdjustmentTypeImpairment = data.filter(x => x.ParentID == "141");// && x.LookupID != "896" && x.LookupID != "897");
+
+      this.ExtensionTypeTypeList = data.filter(x => x.ParentID == "142");
+      this.lstDealRelationshipType = data.filter(x => x.ParentID == "147");
+      this.lstPrepayNoteAllocExcludeType = data.filter(x => x.ParentID == "2");
+      this.lstPrepaymentAllocationMethod = data.filter(x => x.ParentID == "148");
+
+      this.lstPayoffStatementFees = data.filter(x => x.ParentID == "153");
+
+      this.lstLiabilitySource = data.filter(x => x.ParentID == "151");
       //set dropdown for
       this._bindGridDropdows();
       this._bindGridDropdowsAuto();
 
     });
   }
+  getAllPropertyType() {
+    this.dealSrv.getallpropertytype().subscribe(res => {
+      if (res.Succeeded) {
+        this.lstdealPropertyType = res.lstPropertytype;
+      }
+    });
 
-  showcalcstatus() {
-    var status = setInterval(() => {
-      this.dealSrv.GetDealCalculationStatus(this._deal.DealID).subscribe(res => {
+  }
+
+  getAllLoanStatus() {
+    this.dealSrv.getallloanstatus().subscribe(res => {
+      if (res.Succeeded) {
+        this.lstLoanStatus = res.lstLoanstatus;
+      }
+    });
+
+  }
+
+  getallreserveaccountmaster() {
+    this.dealSrv.getallreserveaccountmaster().subscribe(res => {
+      if (res.Succeeded) {
+        this.lstReserveAccountMaster = res.lstReserveAccountMaster;
+
+        //this.ReserveMasterMap = new wjcGrid.DataMap(this.lstReserveAccountMaster, 'ReserveAccountMasterID', 'ReserveAccountName');
+      }
+    });
+
+  }
+  getAllRuleType() {
+    this.scenarioService.getallruletype().subscribe(res => {
+      if (res.Succeeded) {
+        this._lstruletype = res.lstScenariorule;
+        this._lstgetallrule = res.lstScenariorule;
+      }
+    });
+
+  }
+
+  GetAllRuleTypeDetail() {
+    this.scenarioService.getallruletypedetail().subscribe(res => {
+      if (res.Succeeded) {
+        this._lstruletypedetail = res.lstScenarioRuleDetail;
+        var RuleType = this.RuleTypeList;
+        if (RuleType) {
+          var colRuleType = RuleType.columns.getColumn('FileName');
+          if (colRuleType) {
+            //colRuleType.showDropDown = true;
+            colRuleType.dataMap = this._buildDataMapWithoutLookupForRuleType(this._lstruletypedetail);
+          }
+        }
+
+      }
+
+    });
+  }
+  GetRuleTypeSetupByDealid() {
+    this._ruletype.DealID = this._deal.DealID;
+    this.dealSrv.getruletypesetupbydealid(this._ruletype).subscribe(res => {
+      if (res.Succeeded) {
+        this._lstRuleTypeSetupfilter = res.lstScenariorule;
+        this.OnChangeScenarioName(this._ruletype.AnalysisID);
+      }
+    });
+  }
+  cellRuleTypeEditHandler = function (s, e) {
+    var col = s.columns[e.col];
+    if (col.binding == 'FileName') {
+      var RuleTypeName = s.rows[e.row].dataItem.RuleTypeName
+      switch (RuleTypeName) {
+        case RuleTypeName:
+          this.lstRuleTypebyruleid = this._lstruletypedetail.filter(x => x.RuleTypeName == RuleTypeName)
+          this.lstRuleTypebyruleid.sort(this.sortByName);
+          col.dataMap = this._buildDataMapWithoutLookupForRuleType(this.lstRuleTypebyruleid);
+          break;
+
+      }
+    }
+  }
+  celleditRuleType(s: wjcGrid.FlexGrid, e: wjcGrid.CellEditEndingEventArgs) {
+    var RuleTypeFileNameerror = "";
+    var rowdata = this.RuleTypeList.rows[e.row].dataItem;
+    if (this._ruletype.AnalysisID == undefined) {
+      RuleTypeFileNameerror = "<p>" + "Please Select a Scenario" + "</p>";
+      this.CustomAlert(RuleTypeFileNameerror);
+      return;
+    }
+    if (Object.keys(rowdata).length > 0) {
+      var newFileName = rowdata.FileName;
+      if (this._lstRuleTypeSetuptobesend.length > 0) {
+        for (var h = 0; h < this._lstRuleTypeSetuptobesend.length; h++) {
+          if (this._lstRuleTypeSetuptobesend[h].RuleTypeName == rowdata.RuleTypeName && this._lstRuleTypeSetuptobesend[h].AnalysisID == this._ruletype.AnalysisID) {
+            this._lstRuleTypeSetuptobesend[h]["FileName"] = newFileName;
+          }
+
+        }
+      }
+
+    }
+  }
+  invalidateRulestab() {
+    if (!this._isRuleTabClicked) {
+      localStorage.setItem('ClickedTabId', 'aRulestab');
+      this._isRuleTabClicked = true;
+    }
+    this._isListFetching = true;
+    if (this._deal.BalanceAware == false) {
+      this._isShowScenariodiv = false;
+      this._isShowRuleTypediv = false;
+      this._isShowbtnResetdiv = false;
+      this._Showmessagedivrule = true;
+      this._ShowmessagedivruleMsg = "This deal is set as Non Balance Aware Deal. To edit the rules, check the balance aware checkbox on Main Tab and save the deal.";
+    }
+    else {
+      this._isShowScenariodiv = true;
+      this._isShowRuleTypediv = true;
+      this._isShowbtnResetdiv = true;
+      this._Showmessagedivrule = false;
+      this._ShowmessagedivruleMsg = "";
+    }
+    this.getAllRuleType();
+    this.GetAllRuleTypeDetail();
+    this.GetRuleTypeSetupByDealid();
+    this.appliedreadonlyrulesetfile();
+    setTimeout(() => {
+      this.flex.invalidate();
+      this.flexPro.invalidate();
+      // this.flexRules.invalidate();
+      this.RuleTypeList.invalidate();
+    }, 200);
+    setTimeout(() => {
+      this._isListFetching = false;
+    }, 1000);
+  }
+  appliedreadonlyrulesetfile() {
+    setTimeout(() => {
+
+      for (var i = 0; i < this._lstruletype.length; i++) {
+        if (this.RuleTypeList.rows[i]) {
+          if (this.RuleTypeList.rows[i].dataItem.RuleTypeName == "Prepay") {
+            if (this.RuleTypeList.rows[i]) {
+              this.RuleTypeList.rows[i].isReadOnly = true;
+              this.RuleTypeList.rows[i].cssClass = "customgridrowcolor";
+            }
+          }
+        }
+      }
+
+    }, 1000);
+  }
+  ResetRuleType() {
+    if (this._lstRuleTypeSetupfilter != null) {
+      if (this._lstRuleTypeSetupfilter.length > 0) {
+        for (var h = 0; h < this._lstRuleTypeSetupfilter.length; h++) {
+          if (this._lstRuleTypeSetupfilter[h].AnalysisID == this._ruletype.AnalysisID) {
+            this._lstRuleTypeSetupfilter[h]["FileName"] = "";
+
+          }
+        }
+      }
+
+      this._lstruletype = this._lstRuleTypeSetupfilter.filter(x => x.AnalysisID == this._ruletype.AnalysisID);
+    }
+    else {
+      this._lstruletype = [];
+      this.RuleTypeList.invalidate();
+    }
+    if (this._lstgetallrule.length > 0) {
+      for (var h = 0; h < this._lstgetallrule.length; h++) {
+        var _lstgetallrule = this._lstruletype.filter(x => x.RuleTypeName == this._lstgetallrule[h].RuleTypeName)
+        if (_lstgetallrule.length == 0) {
+          this._lstruletype.push({
+            'AnalysisID': this._ruletype.AnalysisID,
+            'DealID': this._deal.DealID,
+            'RuleTypeMasterID': this._lstgetallrule[h].RuleTypeMasterID,
+            'RuleTypeDetailID': "",
+            'RuleTypeName': this._lstgetallrule[h].RuleTypeName,
+            'FileName': "",
+
+          });
+        }
+
+      }
+    }
+    if (this._lstRuleTypeSetuptobesend.length > 0) {
+      for (var h = 0; h < this._lstRuleTypeSetuptobesend.length; h++) {
+        if (this._lstRuleTypeSetuptobesend[h].AnalysisID == this._ruletype.AnalysisID) {
+          this._lstRuleTypeSetuptobesend[h]["FileName"] = "";
+
+        }
+      }
+    }
+  }
+  OnChangeScenarioName(newvalue) {
+    this._lstruletype = [];
+    this.appliedreadonlyrulesetfile();
+    if (this.RuleTypeList) {
+      this.RuleTypeList.invalidate();
+    }
+    if (this._lstRuleTypeSetupfilter != null) {
+
+      this._lstruletype = this._lstRuleTypeSetupfilter.filter(x => x.AnalysisID == newvalue);
+
+      this.RuleTypeList.invalidate();
+    }
+
+    if (this._lstgetallrule.length > 0) {
+      for (var h = 0; h < this._lstgetallrule.length; h++) {
+        var _lstgetallrule = this._lstruletype.filter(x => x.RuleTypeName == this._lstgetallrule[h].RuleTypeName)
+        if (_lstgetallrule.length == 0) {
+          this._lstruletype.push({
+            'AnalysisID': newvalue,
+            'DealID': this._deal.DealID,
+            'RuleTypeMasterID': this._lstgetallrule[h].RuleTypeMasterID,
+            'RuleTypeDetailID': "",
+            'RuleTypeName': this._lstgetallrule[h].RuleTypeName,
+            'FileName': "",
+
+          });
+        }
+
+      }
+    }
+
+    var newanalysisid = this._lstRuleTypeSetuptobesend.filter(x => x.AnalysisID == newvalue)
+    if (newanalysisid.length != 0) {
+      this._lstruletype = [];
+      setTimeout(function () {
+        this._lstruletype = newanalysisid;
+      }.bind(this), 100);
+    }
+    else {
+      if (newvalue != undefined) {
+        if (this._lstruletype.length > 0) {
+          for (var h = 0; h < this._lstruletype.length; h++) {
+            this._lstRuleTypeSetuptobesend.push({
+              'AnalysisID': newvalue,
+              'DealID': this._deal.DealID,
+              'RuleTypeMasterID': this._lstruletype[h].RuleTypeMasterID,
+              'RuleTypeDetailID': this._lstruletype[h].RuleTypeDetailID,
+              'RuleTypeName': this._lstruletype[h].RuleTypeName,
+              'FileName': this._lstruletype[h].FileName,
+
+            });
+          }
+        }
+      }
+    }
+  }
+  AddUpdateDealRuleTypeSetup() {
+
+    var RuleTypeDetailID = 0;
+    if (this._lstRuleTypeSetuptobesend.length > 0) {
+      for (var h = 0; h < this._lstRuleTypeSetuptobesend.length; h++) {
+
+        if (this._lstRuleTypeSetuptobesend[h].FileName != "" && this._lstRuleTypeSetuptobesend[h].FileName != null) {
+          RuleTypeDetailID = this._lstruletypedetail.find(x => x.FileName == this._lstRuleTypeSetuptobesend[h].FileName).RuleTypeDetailID
+        }
+        else {
+          RuleTypeDetailID = 0;
+        }
+        this._lstRuleTypeSetupNew.push({
+          'AnalysisID': this._lstRuleTypeSetuptobesend[h].AnalysisID,
+          'DealID': this._lstRuleTypeSetuptobesend[h].DealID,
+          'RuleTypeMasterID': this._lstRuleTypeSetuptobesend[h].RuleTypeMasterID,
+          'RuleTypeDetailID': RuleTypeDetailID,
+
+        });
+      }
+
+      this.dealSrv.addupdatedealruletypesetup(this._lstRuleTypeSetupNew).subscribe(res => {
         if (res.Succeeded) {
-          this.DealCalcuStatus = res.DealCalcuStatus;
-          if ((this.DealCalcuStatus == "Completed")) {
-            clearInterval(status);
+        }
+      });
+    }
+  }
 
+  GetDealPrepayProjectionByDealId() {
+    this.dealSrv.getdealprepayprojectionbydealid(this._deal.DealID).subscribe(res => {
+      if (res.Succeeded) {
+
+        var lstPrepayProjection = res.lstPrepayProjection;
+        this.Prepaylastupdated = res.Prepaylastupdated;
+        this.PrepaylastupdatedBy = res.PrepaylastupdatedBy;
+        if (this.Prepaylastupdated == null && this.Prepaylastupdated == '') {
+          this.divPrepayLastUpdated = false;
+        }
+        else {
+          this.divPrepayLastUpdated = true;
+        }
+        if (lstPrepayProjection.length > 0) {
+
+          this._lstPrepayPremiumnew = lstPrepayProjection;
+          this.ConvertToBindableDatePrepayProjection(this._lstPrepayPremiumnew);
+          for (var i = 0; i < this._lstPrepayPremiumnew.length; i++) {
+            if (this._lstPrepayPremiumnew[i].OpenPrepaymentDate != null) {
+              if (this._lstPrepayPremiumnew[i].OpenPrepaymentDate == "01/01/1900") {
+                this._lstPrepayPremiumnew[i].OpenPrepaymentDate = "";
+              }
+            }
+
+            if (this._lstPrepayPremiumnew[i].UpdatedDate != null) { this._lstPrepayPremiumnew[i].UpdatedDate = new Date(this._lstPrepayPremiumnew[i].UpdatedDate.toString()); }
+          }
+          //this.PrepayPremium.selectionMode = wjcGrid.SelectionMode.None;
+
+        }
+        else {
+          this._lstPrepayPremiumnew = [];
+          this.PrepayPremium.invalidate();
+          //this.PrepayPremium.selectionMode = wjcGrid.SelectionMode.None;
+        }
+      }
+      else {
+        this._lstPrepayPremiumnew = [];
+        this.PrepayPremium.invalidate();
+        //this.PrepayPremium.selectionMode = wjcGrid.SelectionMode.None;
+      }
+    });
+
+  }
+
+
+
+  GetDealPrepayAllocationsByDealId() {
+    this.dealSrv.getdealprepayallocationbydealid(this._deal.DealID).subscribe(res => {
+      if (res.Succeeded) {
+        this._lstPrepayAllocations = res.lstPrepayAllocations;
+        this.ConvertToBindableDatePrepayAllocation(this._lstPrepayAllocations);
+        //below method is used to show detail grid at plus symbol
+        //this.getprepaypremiumbyprepaydate();
+      }
+    });
+
+  }
+
+  getprepaypremiumbyprepaydate(): void {
+    // this._lstPrepayAllocations=this._lstPrepayAllocations.filter(x => x.PrepayDate == prepaydate && x.DealID == this._deal.DealID);
+    var itemsPrepayAll = this._lstPrepayAllocations;
+    var dealID = this._deal.DealID;
+    new wjcGridDetail.FlexGridDetailProvider(this.PrepayPremium, {
+      maxHeight: 250,
+      isAnimated: true,
+      // detailVisibilityMode: 'ExpandMulti',
+      // selectionMode:'Cell',
+      createDetailCell: function (row) {
+        var cell = document.createElement('div');
+        var detailGrid = new wjcGrid.FlexGrid(cell, {
+          headersVisibility: wjcGrid.HeadersVisibility.Column,
+          isReadOnly: false,
+          autoGenerateColumns: false,
+          selectionMode: 'Cell',
+          itemsSource: itemsPrepayAll.filter(x => x.PrepayDate == row._data.PrepayDate && x.DealID == dealID),
+          columns: [{
+            header: 'Note Id',
+            binding: 'CRENoteID',
+            isReadOnly: true,
+            width: 200
+          },
+          {
+            header: 'Prepay Premium Allocation',
+            binding: 'MinmultDue',
+            isReadOnly: true,
+            width: 250,
+            dataType: 'Number',
+            aggregate: 'Sum'
+          }
+          ]
+        });
+        setTimeout(function () {
+          detailGrid.select(-1, -1);
+        }.bind(this), 50);
+        return cell;
+      }
+
+    });
+  }
+  getprepaypremiumDetaildatabydealId() {
+
+    this.dealSrv.getprepaypremiumdetaildatabydeal(this._deal.DealID).subscribe(res => {
+      if (res.Succeeded) {
+        var data: any = res.lstPrepay;
+        this._prepaymentpremium.PrepayScheduleId = data;
+        var lstprepayadjustment = res.lstDealPrepay;
+        var lstSpreadMaintenance = res.lstDealSpreadMaintenance;
+        var lstMiniSpreadInterest = res.lstDealMiniSpread;
+        var lstMiniFee = res.lstDealMiniFee;
+        var lstDealSpreadMaintenanceDeallevel = res.lstDealSpreadMaintenanceDeallevel;
+        this.lstCurrentSpread = res.lstCurrentSpread;
+
+        this.EnableDisableMiniFeeGrid(this._prepaymentpremium.Includefeesincredits);
+
+        if (lstprepayadjustment.length > 0) {
+
+          this._lstprepayadjustment = lstprepayadjustment;
+          this.cvPrepayadjustment = new wjcCore.CollectionView(this._lstprepayadjustment);
+          this.ConvertToBindableDatePrepayAdjustment(this._lstprepayadjustment);
+        }
+        else {
+          this.cvPrepayadjustment = new wjcCore.CollectionView(this._lstprepayadjustment);
+          this.prepayadjustment.invalidate();
+        }
+
+        if (this._prepaymentpremium.HasNoteLevelSMSchedule == true) {
+          if (lstSpreadMaintenance.length > 0) {
+
+            //  this._lstSpreadMaintenance = lstSpreadMaintenance;
+            for (var i = 0; i < lstSpreadMaintenance.length; i++) {
+              if (lstSpreadMaintenance[i].CalcAfterPayoff == null) {
+                lstSpreadMaintenance[i].CalcAfterPayoff = false;
+              }
+            }
+            this._lstSpreadMaintenance_note = lstSpreadMaintenance
+            //  this.ConvertToBindableDateSpreadMaintenance(this._lstSpreadMaintenance);
+
+            setTimeout(function () {
+              this.SpreadMaintenance.invalidate();
+            }.bind(this), 2000);
+          }
+
+          else {
+
+            this._lstSpreadMaintenance.push({
+              'CalcAfterPayoff': false
+            });
+
+          }
+        }
+        else {
+          if (lstDealSpreadMaintenanceDeallevel.length > 0) {
+            for (var i = 0; i < lstDealSpreadMaintenanceDeallevel.length; i++) {
+              if (lstDealSpreadMaintenanceDeallevel[i].CalcAfterPayoff == null) {
+                lstDealSpreadMaintenanceDeallevel[i].CalcAfterPayoff = false;
+              }
+            }
+            this._lstSpreadMaintenance_deal = lstDealSpreadMaintenanceDeallevel;
+
+          }
+
+          else {
+            this._lstSpreadMaintenance.push({
+              'CalcAfterPayoff': false
+            });
+
+          }
+
+        }
+
+        if (lstMiniSpreadInterest.length > 0) {
+          this._lstMinimumMult = lstMiniSpreadInterest;
+          this.ConvertToBindableDateMinimumMult(this._lstMinimumMult);
+        }
+        else {
+          //  this.MinimumMult.invalidate();
+
+        }
+
+        if (lstMiniFee.length > 0) {
+          this._lstMinimumFee = lstMiniFee;
+          this.cvMinimumFeeCredits = new wjcCore.CollectionView(this._lstMinimumFee);
+        }
+        else {
+          this._lstMinimumFee.push({
+            'UseActualFees': false
+          });
+          this.cvMinimumFeeCredits = new wjcCore.CollectionView(this._lstMinimumFee);
+        }
+
+        this.PrePaymentMethodChange(this._prepaymentpremium.PrepaymentMethod);
+      }
+    });
+
+  }
+
+  PrePaymentMethodChange(newvalue): void {
+    if (newvalue == 738) {
+      this.spreadmaintenancediv = true;
+      this.minispreadinterestdiv = false;
+      if (!this._isPrepaymentmethodClicked) {
+        this._isPrepaymentmethodClicked = true;
+        setTimeout(function () {
+          this.EnabledDisabledNoteColumn(this._prepaymentpremium.HasNoteLevelSMSchedule);
+        }.bind(this), 100);
+      }
+      else {
+        if (this._prepaymentpremium.HasNoteLevelSMSchedule == true) {
+          setTimeout(function () {
+            var dialogoverlay = document.getElementById('divSpreadMaintenance');
+            dialogoverlay.style.width = "700px";
+            var dialogoverlay1 = document.getElementById('divgridSpreadMaintenance');
+            dialogoverlay1.style.width = "700px";
+            var SpreadMaintenance = this.SpreadMaintenance
+
+            this._showHidenote = true
+            if (SpreadMaintenance) {
+              var colNoteId = SpreadMaintenance.columns.getColumn('CRENoteID');
+              if (colNoteId) {
+                //colNoteId.showDropDown = true;
+                colNoteId.dataMap = this._buildDataMapWithoutLookupForNoteId(this.lstNote);
+              }
+            }
+          }.bind(this), 100);
+        }
+        else {
+
+          setTimeout(function () {
+            this._showHidenote = false
+            var dialogoverlay = document.getElementById('divSpreadMaintenance');
+            dialogoverlay.style.width = "500px";
+            var dialogoverlay1 = document.getElementById('divgridSpreadMaintenance');
+            dialogoverlay1.style.width = "500px";
+
+          }.bind(this), 100);
+        }
+      }
+    }
+    if (newvalue == 739 || newvalue == 740) {
+      this.minispreadinterestdiv = true;
+      this.spreadmaintenancediv = false;
+      this.EnableDisableMiniFeeGrid(this._prepaymentpremium.Includefeesincredits);
+    }
+    if (newvalue == 741) {
+      this.spreadmaintenancediv = true;
+      this.minispreadinterestdiv = true;
+      this.EnableDisableMiniFeeGrid(this._prepaymentpremium.Includefeesincredits);
+      if (!this._isPrepaymentmethodClicked) {
+        this._isPrepaymentmethodClicked = true;
+        setTimeout(function () {
+          this.EnabledDisabledNoteColumn(this._prepaymentpremium.HasNoteLevelSMSchedule);
+        }.bind(this), 100);
+      }
+      if (this._prepaymentpremium.HasNoteLevelSMSchedule == true) {
+        setTimeout(function () {
+          var SpreadMaintenance = this.SpreadMaintenance
+
+          if (SpreadMaintenance) {
+            var colNoteId = SpreadMaintenance.columns.getColumn('CRENoteID');
+            if (colNoteId) {
+              //colNoteId.showDropDown = true;
+              colNoteId.dataMap = this._buildDataMapWithoutLookupForNoteId(this.lstNote);
+            }
+          }
+        }.bind(this), 100);
+      }
+
+      setTimeout(function () {
+        if (this._prepaymentpremium.HasNoteLevelSMSchedule == true) {
+          var dialogoverlay = document.getElementById('divSpreadMaintenance');
+          dialogoverlay.style.width = "700px";
+          var dialogoverlay1 = document.getElementById('divgridSpreadMaintenance');
+          dialogoverlay1.style.width = "700px";
+        }
+        else {
+          var dialogoverlay = document.getElementById('divSpreadMaintenance');
+          dialogoverlay.style.width = "500px";
+          var dialogoverlay1 = document.getElementById('divgridSpreadMaintenance');
+          dialogoverlay1.style.width = "500px";
+        }
+      }.bind(this), 100);
+    }
+  }
+
+  EnabledDisabledNoteColumn(valuechecked) {
+
+    var SpreadMaintenance = this.SpreadMaintenance
+
+    if (valuechecked == true) {
+      this._showHidenote = true
+      if (SpreadMaintenance) {
+        var colNoteId = SpreadMaintenance.columns.getColumn('CRENoteID');
+        if (colNoteId) {
+          //colNoteId.showDropDown = true;
+          colNoteId.dataMap = this._buildDataMapWithoutLookupForNoteId(this.lstNote);
+        }
+      }
+
+      this._lstSpreadMaintenance_deal = this._lstSpreadMaintenance;
+      this._lstSpreadMaintenance = this._lstSpreadMaintenance_note;
+      var dialogoverlay = document.getElementById('divSpreadMaintenance');
+      dialogoverlay.style.width = "700px";
+      var dialogoverlay1 = document.getElementById('divgridSpreadMaintenance');
+      dialogoverlay1.style.width = "700px";
+
+    }
+    else {
+
+      this._lstSpreadMaintenance_note = this._lstSpreadMaintenance;
+      this._lstSpreadMaintenance = this._lstSpreadMaintenance_deal;
+      this._showHidenote = false
+      var dialogoverlay = document.getElementById('divSpreadMaintenance');
+      dialogoverlay.style.width = "500px";
+      var dialogoverlay1 = document.getElementById('divgridSpreadMaintenance');
+      dialogoverlay1.style.width = "500px";
+    }
+
+    this._lstSpreadMaintenance.forEach(item => {
+      const match = this.lstCurrentSpread.find(cs => cs.NoteID === item.CRENoteID);
+      if (match) {
+        item.CurrentSpread = match.CurrentSpread;
+      }
+    });
+
+    this.SpreadMaintenance.itemFormatter = function (panel, r, c, cell) {
+      if (panel.cellType != wjcGrid.CellType.Cell) {
+        return;
+      }
+      if (panel.columns[c].header == 'Current Spread') {
+        cell.style.backgroundColor = '#cfcfcf';
+      }
+    }
+
+
+    this.ConvertToBindableDateSpreadMaintenance(this._lstSpreadMaintenance);
+
+  }
+
+  celleditSpreadMaintenance(SpreadMaintenance: wjcGrid.FlexGrid, e: wjcGrid.CellEditEndingEventArgs) {
+    this._lstSpreadMaintenance.forEach(rule => {
+      var Sdate = new Date(rule.SpreadDate);
+      if (Sdate) {
+        var formatedSdate = this.convertDateToBindable(Sdate);
+        var startday = Sdate.getDay();
+
+        var isinholidaylist = this.ListHoliday.filter(x => this.convertDateToBindable(x.HolidayDate) == formatedSdate && x.HolidayTypeID == 411 && x.IsSoftHoliday != 3).length;
+        var isinholidaylistsoft = this.ListHoliday.filter(x => this.convertDateToBindable(x.HolidayDate) == formatedSdate && x.HolidayTypeID == 411 && x.IsSoftHoliday == 3).length;
+
+        if (startday == 6 || startday == 0 || isinholidaylist > 0) {
+          rule._isSoftHoliday = false;
+        }
+        else if (startday == 6 || startday == 0 || isinholidaylistsoft > 0) {
+          rule._isSoftHoliday = true;
+        } else {
+          rule._isSoftHoliday = null;
+        }
+
+      }
+    });
+
+    const col = e.col;
+    const row = e.row;
+
+    const colBinding = SpreadMaintenance.columns[col].binding;
+
+    if (colBinding === 'CRENoteID') {
+      const editedItem = SpreadMaintenance.rows[row].dataItem;
+
+      const match = this.lstCurrentSpread.find(cs => cs.NoteID === editedItem.CRENoteID);
+      if (match) {
+        editedItem.CurrentSpread = match.CurrentSpread;
+      }
+      SpreadMaintenance.invalidate();
+    }
+
+  }
+
+
+  EnableDisableMiniFeeGrid(gridchk) {
+    if (gridchk) {
+      this._isShowMinimumFee = true;
+      setTimeout(function () {
+        var flexFeeCredits = this.flexFeeCredits;
+        if (flexFeeCredits) {
+          var colFeeType = flexFeeCredits.columns.getColumn('FeeTypeNameText');
+          if (colFeeType) {
+            colFeeType.dataMap = this._buildDataMapWithoutLookupNew(this.lstFeeType);
+          }
+        }
+      }.bind(this), 500);
+    }
+    else {
+      this._isShowMinimumFee = false;
+    }
+
+  }
+
+  AddNewPrePayPremium() {
+    if (this._lstprepayadjustment.length > 0) {
+      for (var h = 0; h < this._lstprepayadjustment.length; h++) {
+        this._lstprepayadjustmentNew.push({
+          // this.adjustedcommitmentheadervalues[n] == null ? 0
+          'PrepayAdjustmentId': this._lstprepayadjustment[h].PrepayAdjustmentId == null ? 0 : this._lstprepayadjustment[h].PrepayAdjustmentId,
+          'Date': this.convertDateToBindable(this._lstprepayadjustment[h].Date),
+          'PrepayAdjAmt': this._lstprepayadjustment[h].PrepayAdjAmt,
+          'Comment': this._lstprepayadjustment[h].Comment
+        });
+
+      }
+    }
+
+    if (this._lstprepayadjustmentNew != undefined && this._lstprepayadjustmentNew != null) {
+      for (var i = 0; i < this.deletePrepayadjustment.length; i++) {
+        this._lstprepayadjustmentNew.push(this.deletePrepayadjustment[i]);
+      }
+    }
+
+    // this._lstSpreadMaintenance.splice(0, 1);
+    if (this._prepaymentpremium.HasNoteLevelSMSchedule == false || this._prepaymentpremium.HasNoteLevelSMSchedule == null) {
+      // var CRENoteList = this.lstNote.map(item => item.NoteId).filter((value, index, self) => self.indexOf(value) === index)
+      if (this._lstSpreadMaintenance.length > 0) {
+        for (var h = 0; h < this._lstSpreadMaintenance.length; h++) {
+          // for (var k = 0; k < CRENoteList.length; k++) {
+          this._lstSpreadMaintenancenew.push({
+            'SpreadMaintenanceScheduleId': this._lstSpreadMaintenance[h].SpreadMaintenanceScheduleId == null ? 0 : this._lstSpreadMaintenance[h].SpreadMaintenanceScheduleId,
+            'NoteID': null,
+            /* 'CRENoteID': this._lstSpreadMaintenance[k].CRENoteID,*/
+            'SpreadDate': this.convertDateToBindable(this._lstSpreadMaintenance[h].SpreadDate),
+            'Spread': this._lstSpreadMaintenance[h].Spread,
+            'CalcAfterPayoff': this._lstSpreadMaintenance[h].CalcAfterPayoff
+          });
+          // }
+        }
+      }
+    }
+    else {
+      if (this._lstSpreadMaintenance.length > 0) {
+        for (var h = 0; h < this._lstSpreadMaintenance.length; h++) {
+          this._lstSpreadMaintenancenew.push({
+            'SpreadMaintenanceScheduleId': this._lstSpreadMaintenance[h].SpreadMaintenanceScheduleId == null ? 0 : this._lstSpreadMaintenance[h].SpreadMaintenanceScheduleId,
+            'NoteId': this._lstSpreadMaintenance[h].CRENoteID,
+            /*'NoteId': this._lstSpreadMaintenance[h].NoteId == undefined ? this._lstSpreadMaintenance[h].CRENoteID : this._lstSpreadMaintenance[h].NoteId,
+             'CRENoteID': this._lstSpreadMaintenance[k].CRENoteID,*/
+            'SpreadDate': this.convertDateToBindable(this._lstSpreadMaintenance[h].SpreadDate),
+            'Spread': this._lstSpreadMaintenance[h].Spread,
+            'CalcAfterPayoff': this._lstSpreadMaintenance[h].CalcAfterPayoff
+          });
+        }
+      }
+    }
+    if (this._lstMinimumMult.length > 0) {
+      for (var h = 0; h < this._lstMinimumMult.length; h++) {
+        this._lstMinimumMultNew.push({
+          'MinMultScheduleID': this._lstMinimumMult[h].MinMultScheduleID == null ? 0 : this._lstMinimumMult[h].MinMultScheduleID,
+          'MiniSpreadDate': this.convertDateToBindable(this._lstMinimumMult[h].MiniSpreadDate),
+          'MinMultAmount': this._lstMinimumMult[h].MinMultAmount
+        });
+      }
+    }
+    if (this._lstMinimumFee.length > 0) {
+      for (var h = 0; h < this._lstMinimumFee.length; h++) {
+        this._lstMinimumFeeNew.push({
+          'FeeCreditsID': this._lstMinimumFee[h].FeeCreditsID == null ? 0 : this._lstMinimumFee[h].FeeCreditsID,
+          'FeeTypeNameText': this._lstMinimumFee[h].FeeTypeNameText,
+          'FeeCreditOverride': this._lstMinimumFee[h].FeeCreditOverride,
+          'UseActualFees': this._lstMinimumFee[h].UseActualFees
+        });
+      }
+    }
+    if (this._lstMinimumFeeNew != undefined && this._lstMinimumFeeNew != null) {
+      for (var i = 0; i < this.deleteMinimumFeeCredits.length; i++) {
+        this._lstMinimumFeeNew.push(this.deleteMinimumFeeCredits[i]);
+      }
+    }
+
+    this._prepaymentpremium.PrepayAdjustmentList = this._lstprepayadjustmentNew;
+    this._prepaymentpremium.SpreadMaintenanceScheduleList = this._lstSpreadMaintenancenew;
+    this._prepaymentpremium.MinMultScheduleList = this._lstMinimumMultNew;
+    this._prepaymentpremium.FeeCreditsList = this._lstMinimumFeeNew;
+
+    this.dealSrv.addNewPrepaySchedule(this._prepaymentpremium).subscribe(res => {
+      if (res.Succeeded) {
+        this.saveprepayruletemplate();
+      }
+    });
+  }
+
+  //save prepay rule template
+  saveprepayruletemplate() {
+    var DefaultScenarioID = this._lstScenario.find(x => x.ScenarioName == "Default").AnalysisID;
+    if (this._prepaymentpremium.PrePaymentRuleType != 0) {
+      this._lstRuleTypeSetupNew.push({
+        'AnalysisID': DefaultScenarioID,
+        'DealID': this._deal.DealID,
+        'RuleTypeMasterID': 4,
+        'RuleTypeDetailID': this._prepaymentpremium.PrePaymentRuleType,
+
+      });
+      this.dealSrv.addupdatedealruletypesetup(this._lstRuleTypeSetupNew).subscribe(res => {
+        if (res.Succeeded) {
+          if (this.isPrepayCalcClicked == true) {
+            this.isPrepayCalcClicked = false;
+            this.PrepayCalcSubmit();
+          }
+        }
+      });
+    }
+  }
+
+  //calc prepay
+  SubmitPrepayCalcRequest(): void {
+    this._isShowLoader = true;
+    this.isPrepayCalcClicked = true;
+    var prepaydateerror = "";
+    if (this._deal.PrePayDate == null || this._deal.PrePayDate === undefined) {
+      prepaydateerror = "<p>" + "Prepay date can not be blank. Please enter a date. " + "</p>";
+      this.CustomAlert(prepaydateerror);
+      this._isShowLoader = false;
+      return;
+    }
+    else {
+      this._prepaymentpremium.PrepayDate = this.convertDatetoGMT(this._deal.PrePayDate);
+      this.divPrepayCalculationStatus = true;
+      this.PrepayCalcStatus = "Processing";
+    }
+
+    this._prepaymentpremium.DealID = this._deal.DealID;
+    this.AddNewPrePayPremium();
+    // this.saveprepayruletemplate();
+
+  }
+
+  PrepayCalcSubmit() {
+    //  var dealid = this._deal.DealID;
+    this._deal.ScenarioIdPrepay = this.ScenarioIdPrepay;
+    var SendEmailAfter = "N";
+    if (this.isGeneratePayoffEmail == true) {
+      SendEmailAfter = "Y"
+    }
+    this._deal.SendEmailAfterCalc = SendEmailAfter;
+    this.dealSrv.CalcPrepaySchedule(this._deal).subscribe(res => {
+      if (res.Succeeded) {
+        this.showPrepayCalcStatus();
+        // this.PrepayCalcStatus = "Running";
+        this._isShowLoader = false;
+        this._ShowmessagedivMsg = "Calculate Prepay saved successfully.";
+        this._Showmessagediv = true;
+        setTimeout(() => {
+          this._Showmessagediv = false;
+        }, 3000);
+        this.showprepaycalcstatuswithinterval();
+
+      }
+
+    });
+  }
+
+  showprepaycalcstatuswithinterval() {
+    this._isShowLoader = false;
+    this.divPrepayCalculationStatus = true;
+    var status = setInterval(() => {
+      this.dealSrv.getprepaycalculationstatus(this._deal.DealID).subscribe(res => {
+        if (res.Succeeded) {
+          this.PrepayCalcStatus = res.PrepayCalcuStatus;
+          this.CalculationErorMessage = res.CalculationErrorMessage;
+          if (this.PrepayCalcStatus == "Completed") {
+            clearInterval(status);
+            this.GetDealPrepayAllocationsByDealId();
+            this.GetDealPrepayProjectionByDealId();
+            this._isShowLoader = false;
+          }
+          else if (this.PrepayCalcStatus == "Failed") {
+            clearInterval(status);
+            this._isShowLoader = false;
           }
         }
 
       });
-    }, 30000);
+    }, 10000);
   }
 
+  showPrepayCalcStatus() {
+    this.dealSrv.getprepaycalculationstatus(this._deal.DealID).subscribe(res => {
+      if (res.Succeeded) {
+        this.PrepayCalcStatus = res.PrepayCalcuStatus;
+        this.CalculationErorMessage = res.CalculationErrorMessage;
+        if (this.PrepayCalcStatus == "" || this.PrepayCalcStatus == undefined) {
+          this.divPrepayCalculationStatus = false;
+        }
+        else {
+          this.divPrepayCalculationStatus = true;
+
+        }
+
+      }
+
+    });
+  }
 
   Savedeals(objDeal): void {
     this._isListFetching = true;
@@ -1397,6 +2566,7 @@ export class DealDetailComponent extends Paginated implements OnInit {
     }
     this.ConvertInSequenceListForPayruleSetup();
     this._deal.PayruleSetupList = this.lstNotePayruleSetupSequence;
+    // this.listdealfunding = this.listdealfunding.filter(x => x.PurposeID != 840);
     this._deal.PayruleDealFundingList = this.listdealfunding;
     this._deal.AutoSpreadRuleList = this.lstautospreadrule;
     if (this._deal.AutoSpreadRuleList) {
@@ -1406,6 +2576,19 @@ export class DealDetailComponent extends Paginated implements OnInit {
 
       }
     }
+
+    if (this.lstDealliabilitySetup) {
+      for (var i = 0; i < this.lstDealliabilitySetup.length; i++) {
+        this.lstDealliabilitySetup[i].PledgeDate = this.utils.convertDateToUTC(this.lstDealliabilitySetup[i].PledgeDate);
+        this.lstDealliabilitySetup[i].EffectiveDate = this.utils.convertDateToUTC(this.lstDealliabilitySetup[i].EffectiveDate);
+        this.lstDealliabilitySetup[i].MaturityDate = this.utils.convertDateToUTC(this.lstDealliabilitySetup[i].MaturityDate);
+
+        if (!(Number(this.lstDealliabilitySetup[i].LiabilitySourceText).toString() == "NaN" || Number(this.lstDealliabilitySetup[i].LiabilitySourceText) == 0)) {
+          this.lstDealliabilitySetup[i].LiabilitySource = Number(this.lstDealliabilitySetup[i].LiabilitySourceText);
+        }
+      }
+    }
+
     for (var i = 0; i < this._deal.PayruleDealFundingList.length; i++) {
       if (!(Number(this._deal.PayruleDealFundingList[i].PurposeText).toString() == "NaN" || Number(this._deal.PayruleDealFundingList[i].PurposeText) == 0)) {
         this._deal.PayruleDealFundingList[i].PurposeID = Number(this._deal.PayruleDealFundingList[i].PurposeText);
@@ -1421,6 +2604,7 @@ export class DealDetailComponent extends Paginated implements OnInit {
     this._deal.IsREODeal = this._deal.IsREODeal;
 
 
+
     if (this._deal.EnableAutospreadRepayments == true) {
       if (this.flexautospreadrepayments) {
         this._deal.ListProjectedPayoff = [];
@@ -1433,48 +2617,255 @@ export class DealDetailComponent extends Paginated implements OnInit {
       }
     }
 
+    for (var i = 0; i < this.lstServicingWatchlistAccountingDeleted.length; i++) {
+      this.lstServicingWatchlistAccounting.push(
+        {
+          "DealID": this.lstServicingWatchlistAccountingDeleted[i].DealID,
+          "StartDate": this.lstServicingWatchlistAccountingDeleted[i].StartDate,
+          "EndDate": this.lstServicingWatchlistAccountingDeleted[i].EndDate,
+          "TypeID": this.lstServicingWatchlistAccountingDeleted[i].TypeID,
+          "TypeText": this.lstServicingWatchlistAccountingDeleted[i].TypeText,
+          "Comment": this.lstServicingWatchlistAccountingDeleted[i].Comment,
+          "IsDeleted": true,
+          "WLDealAccountingID": this.lstServicingWatchlistAccountingDeleted[i].WLDealAccountingID
+        });
+    }
+
+    //remove rows having date as blank and amount as 0
+    if (this.IsServicingWatchlisttabClicked == true && this.lstServicingPotentialImpairment != undefined) {
+
+      this.lstServicingPotentialImpairment = this.lstServicingPotentialImpairment.filter(x => x.Date != null && x.Date != '' && x.Date != undefined);
+      this.lstServicingPotentialImpairment = this.lstServicingPotentialImpairment.filter(x => x.Amount != null && x.Amount != 0);
+
+      for (var nlc = 0; nlc < this.lstServicingPotentialImpairment.length; nlc++) {
+        this.lstServicingPotentialImpairment[nlc].Date = this.convertDatetoGMT(this.lstServicingPotentialImpairment[nlc].Date)
+
+        for (var n = 0; n < this.potentialImpairmentdynamicnotescol.length; n++) {
+          var notetotalcommitmentcol = 0;
+          var _isbracket = this.potentialImpairmentdynamicnotescol[n].indexOf("_");
+          if (_isbracket > -1) {
+            if (this.potentialImpairmentdynamicnotescol[n].includes("_Noteid")) {
+              var notesplitarray = this.potentialImpairmentdynamicnotescol[n].split("_Noteid");
+
+              this.lstServicingPotentialImpairmentNew.push(
+                {
+                  'WLDealPotentialImpairmentID': this.lstServicingPotentialImpairment[nlc].WLDealPotentialImpairmentMasterID == undefined ? null : this.lstServicingPotentialImpairment[nlc].WLDealPotentialImpairmentMasterID,
+                  'DealID': objDeal.DealID,
+                  'Date': this.lstServicingPotentialImpairment[nlc].Date == undefined ? null : this.lstServicingPotentialImpairment[nlc].Date,
+                  'Amount': this.lstServicingPotentialImpairment[nlc].Amount == null ? parseFloat('0.00').toFixed(2) : parseFloat(this.lstServicingPotentialImpairment[nlc].Amount).toFixed(2),
+                  'AdjustmentType': this.lstServicingPotentialImpairment[nlc].AdjustmentType == undefined ? null : this.lstServicingPotentialImpairment[nlc].AdjustmentType,
+                  'Comment': this.lstServicingPotentialImpairment[nlc].Comment == undefined ? null : this.lstServicingPotentialImpairment[nlc].Comment,
+                  'RowNo': this.lstServicingPotentialImpairment[nlc].RowNo,
+                  'Applied': this.lstServicingPotentialImpairment[nlc].Applied == undefined ? false : this.lstServicingPotentialImpairment[nlc].Applied,
+                  'NoteID': this.lstNote.filter(x => x.CRENoteID == notesplitarray[0])[0].NoteId,
+                  'Value': this.lstServicingPotentialImpairment[nlc][this.potentialImpairmentdynamicnotescol[n]] == null ? parseFloat('0.00').toFixed(2) : parseFloat(this.lstServicingPotentialImpairment[nlc][this.potentialImpairmentdynamicnotescol[n]]).toFixed(2),
+                  'UserID': '',
+                  'IsDeleted': 0
+                });
+            }
+          }
+        }
+      }
+
+      if (this.lstServicingPotentialImpairmentNew != null && this.lstServicingPotentialImpairmentNew.length > 0) {
+        this.lstServicingPotentialImpairmentNew.forEach((obj, i) => { obj.DealID = this._deal.DealID });
+        this._deal.ServicingPotentialImpairmentList = this.lstServicingPotentialImpairmentNew;
+      }
+
+      if (this.lstServicingPotentialImpairmentDeleted != null && this.lstServicingPotentialImpairmentDeleted.length > 0) {
+
+        var templst = []
+        for (var i = 0; i < this.lstServicingPotentialImpairmentDeleted.length; i++) {
+
+          templst.push(
+            {
+              'WLDealPotentialImpairmentID': this.lstServicingPotentialImpairmentDeleted[i].WLDealPotentialImpairmentMasterID,
+              'DealID': '',
+              'Date': this.lstServicingPotentialImpairmentDeleted[i].Date,
+              'Amount': this.lstServicingPotentialImpairmentDeleted[i].Amount,
+              'AdjustmentType': this.lstServicingPotentialImpairmentDeleted[i].AdjustmentType == undefined ? null : this.lstServicingPotentialImpairmentDeleted[i].AdjustmentType,
+              'Comment': this.lstServicingPotentialImpairmentDeleted[i].Comment,
+              'RowNo': this.lstServicingPotentialImpairmentDeleted[i].RowNo,
+              'Applied': this.lstServicingPotentialImpairmentDeleted[i].Applied,
+              'NoteID': '00000000-0000-0000-0000-000000000000',
+              'Value': 0,
+              'UserID': '',
+              'IsDeleted': 1
+            });
+        }
+        this.lstServicingPotentialImpairmentDeleted = [];
+        this.lstServicingPotentialImpairmentDeleted = templst;
+        this.lstServicingPotentialImpairmentDeleted.forEach((obj, i) => { obj.DealID = this._deal.DealID });
+        this._deal.DeleteServicingPotentialImpairment = this.lstServicingPotentialImpairmentDeleted;
+      }
+      if (this.cvServicingPotentialImpairment.itemsAdded.length > 0 || this.cvServicingPotentialImpairment.itemsEdited.length
+        || this.cvServicingPotentialImpairment.itemsRemoved.length > 0
+      ) {
+
+        this._deal.IsServicingWatchlisttabClicked = true;
+      }
+      else {
+        this._deal.IsServicingWatchlisttabClicked = false;
+      }
+    }
+    else {
+      this._deal.IsServicingWatchlisttabClicked = false;
+    }
+    if (this.IsServicingWatchlisttabClicked == true) {
+      this._deal.IsServicingWatchlisttabClicked = true;
+    }
+
+    //this._deal.IsServicingWatchlisttabClicked = this.IsServicingWatchlisttabClicked;
     this.AssginValuesToDealDataContract();
     this._deal.PayruleNoteAMSequenceList = this.lstSequence;
     this._deal.PayruleTargetNoteFundingScheduleList = this.Dealfuturefunding.PayruleTargetNoteFundingScheduleList;
     this._deal.AppReceived = this.convertDatetoGMT(this._deal.AppReceived);
     this._deal.EstClosingDate = this.convertDatetoGMT(this._deal.EstClosingDate);
     this._deal.ListHoliday = this.ListHoliday;
+
+    this._deal.ServicingWatchlistAccounting = this.lstServicingWatchlistAccounting;
+    this._deal.ServicingPotentialImpairment = this.lstServicingPotentialImpairment;
+
+    if (this._lstPrepayGroupSetup != undefined && this._lstPrepayGroupSetup != null) {
+      for (let i = 0; i < this._lstPrepayGroupSetup.length; i++) {
+        let item = this._lstPrepayGroupSetup[i];
+        if (item.GroupId !== null || item.GroupId !== undefined) {
+
+          if (item.PrepaymentGroupSetupID === null || item.PrepaymentGroupSetupID === undefined) {
+            item.PrepaymentGroupSetupID = 0;
+          }
+          if (item.DealID === null || item.DealID === undefined) {
+            item.DealID = this._deal.DealID;
+          }
+
+        }
+      }
+      this._deal.dtPrepaymentGroup = this._lstPrepayGroupSetup;
+    }
+    if (this.deletePrepayGroupSetupList != undefined && this.deletePrepayGroupSetupList != null) {
+      for (i = 0; i < this.deletePrepayGroupSetupList.length; i++) {
+        this._lstPrepayGroupSetup.push(this.deletePrepayGroupSetupList[i]);
+      }
+    }
+
+
+
+
+    const noteMap = new Map();
+    this.lstNote.forEach(note => {
+      noteMap.set(note.CRENoteID, note.NoteId);
+    });
+
+    if (this._lstPrepayGroupSetup != undefined && this._lstPrepayGroupSetup != null) {
+      for (let i = 0; i < this._lstPrepayNoteSetup.length; i++) {
+        let item = this._lstPrepayNoteSetup[i];
+        if (item.CRENoteID !== null || item.CRENoteID !== undefined) {
+
+          if (noteMap.has(item.CRENoteID)) {
+            item.NoteID = noteMap.get(item.CRENoteID);
+          }
+          if (item.PrepaymentNoteSetupID === null || item.PrepaymentNoteSetupID === undefined) {
+            item.PrepaymentNoteSetupID = 0;
+          }
+          if (item.DealID === null || item.DealID === undefined) {
+            item.DealID = this._deal.DealID;
+          }
+
+        }
+      }
+      this._deal.dtPrepaymentNote = this._lstPrepayNoteSetup;
+    }
+    if (this._lstPrepayNoteSetup != undefined && this._lstPrepayNoteSetup != null) {
+      for (i = 0; i < this.deletePrepayNoteSetupList.length; i++) {
+        this._lstPrepayNoteSetup.push(this.deletePrepayNoteSetupList[i]);
+      }
+    }
+
+
+    if (this._lstPrepayGroupSetup != undefined && this._lstPrepayGroupSetup != null) {
+      for (let i = 0; i < this._lstPrepayNoteAllocation.length; i++) {
+        let item = this._lstPrepayNoteAllocation[i];
+        if (item.CRENoteID !== null || item.CRENoteID !== undefined) {
+
+          if (item.NoteID === null || item.NoteID === undefined) {
+            if (noteMap.has(item.CRENoteID)) {
+              item.NoteID = noteMap.get(item.CRENoteID);
+            }
+          }
+          if (item.PrepaymentNoteAllocationSetupID === null || item.PrepaymentNoteAllocationSetupID === undefined) {
+            item.PrepaymentNoteAllocationSetupID = 0;
+          }
+          if (item.DealID === null || item.DealID === undefined) {
+            item.DealID = this._deal.DealID;
+          }
+          if (!(Number(this._lstPrepayNoteAllocation[i].ExcludeText).toString() == "NaN" || Number(this._lstPrepayNoteAllocation[i].ExcludeText) == 0)) {
+            this._lstPrepayNoteAllocation[i].Exclude = Number(this._lstPrepayNoteAllocation[i].ExcludeText);
+          }
+
+        }
+      }
+
+    }
+
+    var lstPrepayNoteAllc = [];
+    if (this._lstPrepayNoteAllocation != undefined && this._lstPrepayNoteAllocation != null) {
+      for (var i = 0; i < this._lstPrepayNoteAllocation.length; i++) {
+        lstPrepayNoteAllc.push({
+          PrepaymentNoteAllocationSetupID: this._lstPrepayNoteAllocation[i].PrepaymentNoteAllocationSetupID,
+          DealID: this._lstPrepayNoteAllocation[i].DealID,
+          NoteID: this.lstNote.find(x => x.CRENoteID == this._lstPrepayNoteAllocation[i].CRENoteID).NoteId,
+          GroupID: this._lstPrepayNoteAllocation[i].GroupID,
+          GroupPriority: this._lstPrepayNoteAllocation[i].GroupPriority,
+          Exclude: this._lstPrepayNoteAllocation[i].Exclude,
+        });
+      }
+    }
+
+    this._deal.dtPrepaymentNoteAlloc = lstPrepayNoteAllc;
+    for (i = 0; i < this.deleteLiabilityNote.length; i++) {
+      this.lstDealliabilitySetup.push(this.deleteLiabilityNote[i]);
+    }
+
+    this._deal.ListDealLiability = this.lstDealliabilitySetup;
+    //commented as grid is now readonly
+    // this._deal.ListLiabilityFundingSchedule = this.lstDealliabilityFundingList;
+
+    this.lstNoteAssetMapping = [];
+
+    if (this.lstDealliabilitySetup != undefined) {
+      for (var i = 0; i < this.lstDealliabilitySetup.length; i++) {
+
+        this.lstDealliabilitySetup[i].AssetNotes.forEach((e) => {
+          var newMapping = {
+            LiabilityNoteId: this.lstDealliabilitySetup[i].LiabilityNoteID,
+            DealAccountId: this.lstDealliabilitySetup[i].DealAccountID,
+            LiabilityNoteAccountId: null,
+            AssetAccountId: this.lstAssetList.filter(x => x.AssetIdName == e)[0].LookupIDGuID
+          };
+          this.lstNoteAssetMapping.push(newMapping);
+        });
+
+        if (this.lstDealliabilitySetup[i].AccountTypeID == 10 && this.lstDealliabilitySetup[i].AssetNotes.length === 0) {
+          this.lstAssetList.forEach((e) => {
+            if (e.AccountTypeId !== "10") {
+              var newMapping = {
+                LiabilityNoteId: this.lstDealliabilitySetup[i].LiabilityNoteID,
+                DealAccountId: this.lstDealliabilitySetup[i].DealAccountID,
+                LiabilityNoteAccountId: null,
+                AssetAccountId: e.LookupIDGuID
+              };
+              this.lstNoteAssetMapping.push(newMapping);
+            }
+          });
+        }
+
+      }
+    }
+
+    this._deal.ListLiabilityNoteAssetMapping = this.lstNoteAssetMapping;
     this.SaveDealfunc(this._deal);
   }
 
-  //SaveDealArchieveList(): void {
-  //    var DealFundingDelete = [];
-  //    this._dealArchieve.PayruleDealFundingList = [];
-  //    if (this.deletedynamicList.length > 0) {
-  //        var DealFunding = this.deletedynamicList;
-  //        for (var i = 0; i < DealFunding.length; i++) {
-  //            this._dealArchieve.PayruleDealFundingList.push(DealFunding[i]);
-  //        }
-
-  //        for (var i = 0; i < this._dealArchieve.PayruleDealFundingList.length; i++) {
-  //            if (!(Number(this._dealArchieve.PayruleDealFundingList[i].PurposeText).toString() == "NaN" || Number(this._dealArchieve.PayruleDealFundingList[i].PurposeText) == 0)) {
-  //                this._dealArchieve.PayruleDealFundingList[i].PurposeID = Number(this._dealArchieve.PayruleDealFundingList[i].PurposeText);
-  //            }
-  //        }
-  //    }
-  //    //add items that are removed from  autospread
-  //    if (this.lstDealFundAutoSpreadDeleted) {
-  //        if (this.lstDealFundAutoSpreadDeleted.length > 0) {
-  //            DealFundingDelete = this.lstDealFundAutoSpreadDeleted;
-  //            for (var i = 0; i < DealFundingDelete.length; i++) {
-  //                if (DealFundingDelete[i].DealFundingID != null && DealFundingDelete[i].DealFundingID !== undefined) {
-  //                    this._dealArchieve.PayruleDealFundingList.push(DealFundingDelete[i]);
-  //                }
-  //            }
-  //        }
-  //    }
-  //    if (this._dealArchieve.PayruleDealFundingList.length > 0) {
-  //        this.dealSrv.SaveDealArchieve(this._dealArchieve).subscribe(res => {
-  //            if (res.Succeeded) {
-  //            }
-  //        })
-  //    }
-  //}
   shownotepayruleGD() {
     this._isListFetching = true;
     if (this._deal.IsPayruleClicked != "true") {
@@ -1530,11 +2921,23 @@ export class DealDetailComponent extends Paginated implements OnInit {
         if (_object[i].ChildModule == 'Deal_Prepay') {
           this._isShowDealPrepaymentPremium = true;
         }
+        if (_object[i].ChildModule == 'Deal_AccountingClose') {
+          this._isShowAccountingClose = true;
+        }
+        if (_object[i].ChildModule == 'Deal_ServicingWatchlist') {
+          this._isServicingWatchlist = true;
+        }
+        if (_object[i].ChildModule == 'Deal_Liability') {
+          this._isShowLiabilityTab = true;
+        }
+        if (_object[i].ChildModule == 'Deal_XIRR') {
+          this._isShowXIRR = true;
+        }
+
+
       }
       //show activity tab
       this._isShowActivityLog = true;
-      //show active tab
-
       if (_object.length >= 1) {
         var controlarrayedit = _object.filter(function (item) { return item.ModuleType === 'Control' && item.RightsName === 'Edit'; });
         //for (var i = 0; i < controlarrayedit.length; i++) {
@@ -1574,6 +2977,11 @@ export class DealDetailComponent extends Paginated implements OnInit {
               this._isShowSaveDeal = true;
             this._isShowSaveDealAllowForThisRole = true;
           }
+          if (controlarrayedit[i].ChildModule == 'btnSaveDeal') {
+            //show calc button when user has permssion to SaveDeal
+            this._isShowCalc = true;
+          }
+
           if (controlarrayedit[i].ChildModule == 'btnCopyDeal') {
             this._isShowCopyDeal = true;
           }
@@ -1586,7 +2994,9 @@ export class DealDetailComponent extends Paginated implements OnInit {
 
           if (controlarrayedit[i].ChildModule == 'btnAddFundingSequence') {
             this._isShowAddFundingSequence = true;
+
           }
+
           if (controlarrayedit[i].ChildModule == 'btnAddRepaymentSequence') {
             this._isShowAddRePaymentSequence = true;
           }
@@ -1688,10 +3098,43 @@ export class DealDetailComponent extends Paginated implements OnInit {
               }
             }
           }
+          if (fieldName == 'LiabilityNoteID') {
+            if (myArray[i].LiabilityNoteID && myArray[j].LiabilityNoteID) {
+              if (myArray[i].LiabilityNoteID.trim().toLowerCase() == myArray[j].LiabilityNoteID.trim().toLowerCase() && myArray[i].LiabilityNoteID.trim().toLowerCase() != "") {
+                isUnique = false
+              }
+            }
+          }
+
         }
       }
     }
     return isUnique;
+  }
+  checkblankForDealLiability(data): boolean {
+    var isblankID = false;
+    if (data.length > 0) {
+      for (var i = 0; i < data.length; i++) {
+        if (data[i].LiabilityNoteID == undefined || data[i].LiabilityNoteID == '' || data[i].LiabilityNoteID == null || data[i].LiabilityNoteID.trim() == '') {
+          isblankID = true
+          // break;
+        }
+      }
+    }
+    return isblankID;
+  }
+
+  checkblankAssetIDForDealLiability(data): boolean {
+    var isblankID = false;
+    if (data.length > 0) {
+      for (var i = 0; i < data.length; i++) {
+        if (data[i].AssetAccountID == undefined || data[i].AssetAccountID == '' || data[i].AssetAccountID == null || data[i].AssetAccountID.trim() == '') {
+          isblankID = true
+          // break;
+        }
+      }
+    }
+    return isblankID;
   }
 
   checkIfNoteIdorNameBlank(myArray): boolean {
@@ -1752,6 +3195,35 @@ export class DealDetailComponent extends Paginated implements OnInit {
     return isblank;
   }
 
+
+  Getunique(myArray, fieldName) {
+    var isUnique = true;
+    for (var i = 0; i < myArray.length; i++) {
+      for (var j = 0; j < myArray.length; j++) {
+        if (i != j) {
+          if (fieldName == 'CRENoteID') {
+            if (myArray[i].CRENoteID && myArray[j].CRENoteID) {
+              if (myArray[i].CRENoteID.trim().toLowerCase() == myArray[j].CRENoteID.trim().toLowerCase() && myArray[i].CRENoteID.trim().toLowerCase() != "") {
+                myArray.splice(i, 1);
+              }
+            }
+          }
+
+          if (fieldName == 'NoteName') {
+            if (fieldName == 'NoteName') {
+              if (myArray[i].Name && myArray[j].Name) {
+                if (myArray[i].Name.trim().toLowerCase() == myArray[j].Name.trim().toLowerCase() && myArray[i].Name.trim().toLowerCase()) {
+                  myArray.splice(i, 1);
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+    return myArray;
+  }
+
   isString(value): boolean { return typeof value === 'string'; }
 
   checkIfPropertyNameBlank(myArray): boolean {
@@ -1794,6 +3266,35 @@ export class DealDetailComponent extends Paginated implements OnInit {
     this.convertDatetoGMTGrid(this._deal.PayruleDealFundingList, 'dealPayruleDealFundingList');
     // this.convertDatetoGMTGrid(this._deal.Amort.DealAmortScheduleList, 'Deal Amortization');
 
+    if (this._lstPayoffStatementFees != null) {
+      for (var f = 0; f < this._lstPayoffStatementFees.length; f++) {
+        if (this._lstPayoffStatementFees[f].PayoffStatementFeesID === undefined || this._lstPayoffStatementFees[f].PayoffStatementFeesID === null || this._lstPayoffStatementFees[f].PayoffStatementFeesID == "") {
+          this._lstPayoffStatementFees[f].PayoffStatementFeesID = 0;
+        }
+        if (!(Number(this._lstPayoffStatementFees[f].FeeTypeText).toString() == "NaN" || Number(this._lstPayoffStatementFees[f].FeeTypeText) == 0)) {
+          this._lstPayoffStatementFees[f].FeeType = Number(this._lstPayoffStatementFees[f].FeeTypeText);
+        }
+      }
+    }
+
+    for (var k = 0; k < this._deal.PayruleDealFundingList.length; k++) {
+      if (this._deal.PayruleDealFundingList[k].AdjustmentType) {
+        if (this._deal.PayruleDealFundingList[k].AdjustmentType.toString() == "Non-Commitment Adjustment") {
+          this._deal.PayruleDealFundingList[k].AdjustmentType = 834;
+        }
+        else if (this._deal.PayruleDealFundingList[k].AdjustmentType.toString() == "Revolver") {
+          this._deal.PayruleDealFundingList[k].AdjustmentType = 835;
+        }
+        else if (this._deal.PayruleDealFundingList[k].AdjustmentType.toString() == "Non-Commitment Adjustment (PA)") {
+          this._deal.PayruleDealFundingList[k].AdjustmentType = 896;
+        }
+        else if (this._deal.PayruleDealFundingList[k].AdjustmentType.toString() == "Commitment Adjustment (PA)") {
+          this._deal.PayruleDealFundingList[k].AdjustmentType = 897;
+        }
+      }
+    }
+
+    this._deal.TotalCommitment = this.dealTotalCommitmenttextboxOriginalvalue;
     this.TempDealRule = this._deal.DealRule;
     if (this._deal.PayruleTargetNoteFundingScheduleList != undefined) {
       for (var i = 0; i < this._deal.PayruleTargetNoteFundingScheduleList.length; i++) {
@@ -1810,8 +3311,8 @@ export class DealDetailComponent extends Paginated implements OnInit {
     if (this.deletedynamicList != undefined) {
       for (var m = 0; m < this.deletedynamicList.length; m++) {
         //increment for adding new column in dealfunding grid
-        if (this.dynamicColList.length > 32) {
-          for (var k = 33; k < this.dynamicColList.length; k++) {
+        if (this.dynamicColList.length > 35) {
+          for (var k = 36; k < this.dynamicColList.length; k++) {
             if (this.dynamicColList[k] != "Date" && this.dynamicColList[k] != "PurposeID" && this.dynamicColList[k] != "DealFundingRowno" && this.dynamicColList[k] != "Applied") {
               var newlistdeleted = new Notefunding;
               newlistdeleted.NoteID = this.lstSequenceHistory.find(x => x.Name == this.dynamicColList[k]).NoteID;
@@ -1880,7 +3381,7 @@ export class DealDetailComponent extends Paginated implements OnInit {
       }
     }
     if (this.lstAdjustedTotalCommitment) {
-      this.TotalCommitmentGridbind(this.listAdjustedTotalCommitment);
+      this.TotalCommitmentGridbind(this.listAdjustedTotalCommitment, 'Save');
       this.AssignValuestoAdjustedNoteCommitment(false);
     }
 
@@ -1918,6 +3419,55 @@ export class DealDetailComponent extends Paginated implements OnInit {
     if (this._deal.DealID == '00000000-0000-0000-0000-000000000000') {
       _isnewdeal = true;
     }
+
+
+    ///Adding Impairment list on note list
+    //this.lstImpairment = this.listdealfunding.filter(x => x.PurposeID == 840 && (x.AdjustmentType != 834 && x.AdjustmentType != 835) && x.Applied == true);
+    this.lstImpairment = this.listdealfunding.filter(x => x.PurposeID == 840);
+    this.lstNoteFunding = this._deal.PayruleTargetNoteFundingScheduleList.filter(x => x.PurposeID != 840);
+    for (var t = 0; t < this.lstImpairment.length; t++) {
+
+      this.lstImpairment[t].GeneratedBy = 822;
+      this.lstImpairment[t].GeneratedByText = this._deal.currentUserName;
+      this.lstImpairment[t].GeneratedByUserID = this._deal.currentUserID;
+
+
+      for (var j1 = 0; j1 < this.lstNote.length; j1++) {
+        var newlist = new Notefunding;
+        newlist.NoteID = this.lstNote[j1].NoteId;
+        newlist.NoteName = this.lstNote[j1].Name;
+
+        newlist.Value = this.lstImpairment[t][this.lstNote[j1].Name];
+
+        newlist.Date = this.lstImpairment[t].Date;
+        newlist.isDeleted = 0;
+        newlist.Applied = this.lstImpairment[t].Applied;
+        newlist.AdjustmentType = this.lstImpairment[t].AdjustmentType;
+        newlist.Comments = this.lstImpairment[t].Comment;
+        newlist.DealFundingRowno = this.lstImpairment[t].DealFundingRowno;
+        newlist.PurposeID = this.lstImpairment[t].PurposeID;
+        newlist.Purpose = this.lstImpairment[t].PurposeText;
+        newlist.GeneratedBy = this.lstImpairment[t].GeneratedBy;
+        newlist.GeneratedByText = this.lstImpairment[t].GeneratedByText;
+        newlist.GeneratedByUserID = this.lstImpairment[t].GeneratedByUserID;
+        newlist.DealFundingID = this.lstImpairment[t].DealFundingID;
+        this.lstNoteFunding.push(newlist);
+
+
+      }
+    }
+    this._deal.PayruleTargetNoteFundingScheduleList = this.lstNoteFunding;
+
+
+    this.lstNote[0].maturityList = this.maturityList;
+    this._deal.AutoDistributeWriteoffList = this.lstAutoDistributeWriteoff;
+    this._deal.XIRROverride = this.lstXiRRValues;
+    this.AddUpdateDealRelationship();
+    this._deal.DealRelationshipList = this.lstDealRelationship;
+
+    this._deal.dtPayoffStatementFees = this._lstPayoffStatementFees;
+    console.log(this._deal.PayruleDealFundingList);
+
     this.dealSrv.SaveDeal(this._deal).subscribe(res => {
       if (res.Succeeded) {
 
@@ -2042,7 +3592,7 @@ export class DealDetailComponent extends Paginated implements OnInit {
               if (dealid == "00000000-0000-0000-0000-000000000000") {
                 returnUrl = returnUrl.replace('00000000-0000-0000-0000-000000000000', this._deal.CREDealID)
               }
-              this._router.navigate([returnUrl]);
+              this._router.navigate([returnUrl.replace("/invoice", "")]);
 
             }
           });
@@ -2107,6 +3657,7 @@ export class DealDetailComponent extends Paginated implements OnInit {
         var data: any = res.lstNotesDeal;
         //data.sort(this.SortByNoteID);
         this.lstNote = data;
+        //this.CalculateCurrentMaturity();
         this.lstNote.forEach((e) => {
           e.FunctionName = 'CalculateNote';
         });
@@ -2166,6 +3717,10 @@ export class DealDetailComponent extends Paginated implements OnInit {
             }
           }
         }
+        setTimeout(function () {
+          this.invalidateDealAdjustedTab();
+        }.bind(this), 1000);
+
       }
     });
     error => console.error('Error: ' + error)
@@ -2356,7 +3911,10 @@ export class DealDetailComponent extends Paginated implements OnInit {
                           else {
                             newcopieddeal = ['dealdetail/a', this._deal.CopyDealID]
                           }
-                          this._router.navigate(newcopieddeal);
+                          if (newcopieddeal.indexOf("/invoice") > -1)
+                            this._router.navigate(newcopieddeal.replace("/invoice", ""));
+                          else
+                            this._router.navigate(newcopieddeal);
                         }
                         this.CloseCopyPopUp();
                       }
@@ -2458,7 +4016,47 @@ export class DealDetailComponent extends Paginated implements OnInit {
   ConvertToDate(date) {
     return new Date(date);
   }
+  private ConvertToBindableDatePrepayProjection(Data) {
+    for (var i = 0; i < Data.length; i++) {
+      if (this._lstPrepayPremiumnew[i].PrepayDate != null) {
+        this._lstPrepayPremiumnew[i].PrepayDate = this.utils.convertDateToBindable(this._lstPrepayPremiumnew[i].PrepayDate);
+      }
 
+      if (this._lstPrepayPremiumnew[i].OpenPrepaymentDate != null) {
+        this._lstPrepayPremiumnew[i].OpenPrepaymentDate = this.utils.convertDateToBindable(this._lstPrepayPremiumnew[i].OpenPrepaymentDate);
+      }
+    }
+  }
+
+  private ConvertToBindableDatePrepayAllocation(Data) {
+    for (var i = 0; i < Data.length; i++) {
+      if (this._lstPrepayAllocations[i].PrepayDate != null) {
+        this._lstPrepayAllocations[i].PrepayDate = this.utils.convertDateToBindable(this._lstPrepayAllocations[i].PrepayDate);
+      }
+
+    }
+  }
+  private ConvertToBindableDatePrepayAdjustment(Data) {
+    for (var i = 0; i < Data.length; i++) {
+      if (this._lstprepayadjustment[i].Date != null) {
+        this._lstprepayadjustment[i].Date = this.utils.convertDateToBindable(this._lstprepayadjustment[i].Date);
+      }
+    }
+  }
+  private ConvertToBindableDateSpreadMaintenance(Data) {
+    for (var i = 0; i < Data.length; i++) {
+      if (this._lstSpreadMaintenance[i].SpreadDate != null) {
+        this._lstSpreadMaintenance[i].SpreadDate = this.utils.convertDateToBindable(this._lstSpreadMaintenance[i].SpreadDate);
+      }
+    }
+  }
+  private ConvertToBindableDateMinimumMult(Data) {
+    for (var i = 0; i < Data.length; i++) {
+      if (this._lstMinimumMult[i].MiniSpreadDate != null) {
+        this._lstMinimumMult[i].MiniSpreadDate = this.utils.convertDateToBindable(this._lstMinimumMult[i].MiniSpreadDate);
+      }
+    }
+  }
   private ConvertToBindableDate(Data) {
     for (var i = 0; i < Data.length; i++) {
       if (this.lstNote[i].FirstPaymentDate != null) {
@@ -2515,25 +4113,29 @@ export class DealDetailComponent extends Paginated implements OnInit {
       }
     }
   }
-
+  private ConvertToBindableDateDealImparent(Data) {
+    for (var i = 0; i < Data.length; i++) {
+      if (this.lstDealFundingImpairment[i].Date != null) {
+        this.lstDealFundingImpairment[i].Date = new Date(this.convertDateToBindable(this.lstDealFundingImpairment[i].Date));
+      }
+    }
+  }
   private ConvertToBindableDateAutoSpread(Data) {
 
     for (var i = 0; i < Data.length; i++) {
       if (this.lstautospreadrule[i].StartDate != null) {
-        this.lstautospreadrule[i].StartDate = new Date(this.convertDateToBindable(this.lstautospreadrule[i].StartDate));
+        this.lstautospreadrule[i].StartDate = new Date(this.utils.convertDateToBindable(this.lstautospreadrule[i].StartDate));
       }
       if (this.lstautospreadrule[i].EndDate != null) {
-        this.lstautospreadrule[i].EndDate = new Date(this.convertDateToBindable(this.lstautospreadrule[i].EndDate));
+        this.lstautospreadrule[i].EndDate = new Date(this.utils.convertDateToBindable(this.lstautospreadrule[i].EndDate));
       }
     }
   }
 
-
-
   private ConvertToBindableDateAmort(Data) {
     for (var i = 0; i < Data.length; i++) {
       if (this.lstAmortSchedule[i].Date != null) {
-        this.lstAmortSchedule[i].Date = new Date(this.convertDateToBindable(this.lstAmortSchedule[i].Date));
+        this.lstAmortSchedule[i].Date = new Date(this.utils.convertDateToBindable(this.lstAmortSchedule[i].Date));
       }
 
     }
@@ -2554,10 +4156,28 @@ export class DealDetailComponent extends Paginated implements OnInit {
       }
     }
   }
+  private ConvertToBindableDateAccountingClose(Data) {
+    for (var i = 0; i < Data.length; i++) {
+      if (this.lstdealaccountingClose[i].CloseDate != null) {
+        this.lstdealaccountingClose[i].CloseDate = this.utils.convertDateToBindable(this.lstdealaccountingClose[i].CloseDate);
+      }
+      if (this.lstdealaccountingClose[i].UpdatedOn != null) {
+        this.lstdealaccountingClose[i].UpdatedOn = this.utils.convertDateToBindableWithTime(this.lstdealaccountingClose[i].UpdatedOn);
+      }
+      if (this.lstdealaccountingClose[i].OpenDate != null) {
+        this.lstdealaccountingClose[i].OpenDate = this.utils.convertDateToBindable(this.lstdealaccountingClose[i].OpenDate);
+      }
+    }
+  }
   getTwoDigitString(number) {
     if (number.toString().length === 1)
       return "0" + number;
     return number;
+  }
+
+  convertDateToBindableWithTime(date) {
+    var dateObj = new Date(date);
+    return this.getTwoDigitString(dateObj.getMonth() + 1) + "/" + this.getTwoDigitString(dateObj.getDate()) + "/" + dateObj.getFullYear() + " " + dateObj.getHours() + ":" + dateObj.getMinutes() + ":" + dateObj.getSeconds();
   }
   ////////// Dropdown ///////////////////
   // apply/remove data maps
@@ -2573,24 +4193,19 @@ export class DealDetailComponent extends Paginated implements OnInit {
     var flexDealAdjustedTotalCommitment = this.flexadjustedtotalcommitment;
     var flexMaturity = this.flexMaturity;
     var flexMaturityConfig = this.flexMaturityConfig;
-
+    var flexDealRelationship = this.flexDealRelationship;
+    var flexPrepayNoteAllocation = this.flexPrepayNoteAllocationSetup;
 
     if (flex) {
       //alert('flex');
 
       var colRateType = flex.columns.getColumn('RateTypeText');
-      //alert(colRateType);
       if (colRateType) {
-        //  alert(colRateType);
-        // colRateType.showDropDown = true; // show drop-down for countries
         colRateType.dataMap = this._buildDataMap(this.lstRateType, 'LookupID', 'Name');
       }
 
       var colStatus = flex.columns.getColumn('StatusName');
-      //alert(colRateType);
       if (colStatus) {
-        //  alert(colRateType);
-        // colStatus.showDropDown = true; // show drop-down for countries
         colStatus.dataMap = this._buildDataMap(this.lstNotestatus, 'LookupID', 'Name');
       }
     }
@@ -2600,11 +4215,9 @@ export class DealDetailComponent extends Paginated implements OnInit {
       var colNoteFundingRule = flexDynamicColForSequence.columns.getColumn('NoteFundingRuleText');
 
       if (colUseRuletoDetermineNoteFunding) {
-        //colUseRuletoDetermineNoteFunding.showDropDown = true;
         colUseRuletoDetermineNoteFunding.dataMap = this._buildDataMap(this.lstUseRuletoDetermineNoteFundingType, 'LookupID', 'Name');
       }
       if (colNoteFundingRule) {
-        //colNoteFundingRule.showDropDown = true;
         colNoteFundingRule.dataMap = this._buildDataMap(this.lstNoteFundingRuleType, 'LookupID', 'Name');
       }
     }
@@ -2613,11 +4226,9 @@ export class DealDetailComponent extends Paginated implements OnInit {
       var colNoteFundingRule = flexPayruleNoteDetail.columns.getColumn('NoteFundingRuleText');
 
       if (colUseRuletoDetermineNoteFunding) {
-        //colUseRuletoDetermineNoteFunding.showDropDown = true;
         colUseRuletoDetermineNoteFunding.dataMap = this._buildDataMap(this.lstUseRuletoDetermineNoteFundingType, 'LookupID', 'Name');
       }
       if (colNoteFundingRule) {
-        //colNoteFundingRule.showDropDown = true;
         colNoteFundingRule.dataMap = this._buildDataMap(this.lstNoteFundingRuleType, 'LookupID', 'Name');
       }
     }
@@ -2625,15 +4236,19 @@ export class DealDetailComponent extends Paginated implements OnInit {
     if (flexdealfunding) {
       var colPurposeType = flexdealfunding.columns.getColumn('PurposeText');
       if (colPurposeType) {
-        //colPurposeType.showDropDown = true;
         colPurposeType.dataMap = this._buildDataMap(this.lstPurposeType, 'LookupID', 'Name');
       }
+
+      var colAdjustmentType = flexdealfunding.columns.getColumn('AdjustmentType');
+      if (colAdjustmentType) {
+        colAdjustmentType.dataMap = this._buildDataMap(this.lstAdjustmentType, 'LookupID', 'Name');
+      }
+
     }
 
     if (flexPro) {
       var colProperty = flexPro.columns.getColumn('PropertyTypeText');
       if (colProperty) {
-        // colProperty.showDropDown = true;
         colProperty.dataMap = this._buildDataMap(this.lstPropertyType, 'LookupID', 'Name');
       }
     }
@@ -2642,18 +4257,15 @@ export class DealDetailComponent extends Paginated implements OnInit {
       var colUseRuletoDetermineAmortization = flexNoteDetailDealAmort.columns.getColumn('UseRuletoDetermineAmortizationText');
 
       if (colRoundingNote) {
-        //colRoundingNote.showDropDown = true;
         colRoundingNote.dataMap = this._buildDataMap(this.lstRoundingNote, 'LookupID', 'Name');
       }
       if (colUseRuletoDetermineAmortization) {
-        //colUseRuletoDetermineAmortization.showDropDown = true;
         colUseRuletoDetermineAmortization.dataMap = this._buildDataMap(this.lstUseRuletoDetermineAmortization, 'LookupID', 'Name');
       }
     }
     if (flexDealAdjustedTotalCommitment) {
       var colTypeText = flexDealAdjustedTotalCommitment.columns.getColumn('TypeText');
       if (colTypeText) {
-        // colTypeText.showDropDown = true;
         colTypeText.dataMap = this._buildDataMap(this.lstAdjustedTotalCommitmentType, 'LookupID', 'Name');
       }
     }
@@ -2661,21 +4273,45 @@ export class DealDetailComponent extends Paginated implements OnInit {
     if (flexMaturity) {
       var colMaturityType = flexMaturity.columns.getColumn('MaturityTypeText');
       if (colMaturityType) {
-        // colMaturityType.showDropDown = true;
         colMaturityType.dataMap = this._buildDataMap(this.maturityTypeList, 'LookupID', 'Name');
       }
       var colMaturityApproved = flexMaturity.columns.getColumn('ApprovedText');
       if (colMaturityApproved) {
-        //colMaturityApproved.showDropDown = true;
         colMaturityApproved.dataMap = this._buildDataMap(this.maturityApprovedList, 'LookupID', 'Name');
+      }
+
+      var colExtensionType = flexMaturity.columns.getColumn('ExtensionTypeText');
+      if (colExtensionType) {
+        colExtensionType.dataMap = this._buildDataMap(this.ExtensionTypeTypeList, 'LookupID', 'Name');
       }
     }
 
     if (flexMaturityConfig) {
       var colMethodID = flexMaturityConfig.columns.getColumn('MaturityMethodIDText');
       if (colMethodID) {
-        // colMethodID.showDropDown = true;
         colMethodID.dataMap = this._buildDataMap(this.lstMaturityMethodID, 'LookupID', 'Name');
+      }
+    }
+
+    if (flexDealRelationship) {
+      var colDealRelationship = flexDealRelationship.columns.getColumn('RelationshipText');
+      if (colDealRelationship) {
+        colDealRelationship.dataMap = this._buildDataMap(this.lstDealRelationshipType, 'LookupID', 'Name');
+      }
+    }
+    if (flexPrepayNoteAllocation) {
+      var colExclude = flexPrepayNoteAllocation.columns.getColumn('ExcludeText');
+      if (colExclude) {
+        colExclude.dataMap = this._buildDataMap(this.lstPrepayNoteAllocExcludeType, 'LookupID', 'Name');
+      }
+    }
+  }
+  private _bindGridDropdowsPrePay() {
+    var flexPrepayNoteSetup = this.flexPrepayNoteSetup;
+    if (flexPrepayNoteSetup) {
+      var colNoteID = flexPrepayNoteSetup.columns.getColumn('CRENoteID');
+      if (colNoteID) {
+        colNoteID.dataMap = this._buildDataMap(this.lstNote, 'CRENoteID', 'CRENoteID');
       }
     }
   }
@@ -2712,6 +4348,15 @@ export class DealDetailComponent extends Paginated implements OnInit {
     return new wjcGrid.DataMap(map, 'key', 'value');
   }
 
+  private _buildDataMapWithoutLookupForRuleType(items): wjcGrid.DataMap {
+    var map = [];
+
+    for (var i = 0; i < items.length; i++) {
+      var obj = items[i];
+      map.push({ key: obj['FileName'], value: obj['FileName'] });
+    }
+    return new wjcGrid.DataMap(map, 'key', 'value');
+  }
 
   private _bindGridDropdowsWithoutLookup() {
     //alert('_updateDataMaps');
@@ -2766,10 +4411,6 @@ export class DealDetailComponent extends Paginated implements OnInit {
           //  this.grdflexDynamicColForSequence.columns[1].width = 300; // for Note name
           //remove first cell selection
           this.flexdealfunding.select(this.flexdealfunding.rows.length - 1, 0);
-
-          // focus on select row and ready for editing
-          //this.flexdealfunding.focus();
-          //this.flexautospreadrule.focus();
         }.bind(this), 10);
       } catch (err) { }
     }, 200);
@@ -2777,14 +4418,50 @@ export class DealDetailComponent extends Paginated implements OnInit {
 
   GetDealFundingByDealID(_objDeal: deals): void {
     try {
+      this.lstDealFundingImpairment = [];
       this.dealfunding.DealID = _objDeal.DealID;
       this.dealSrv.GetNoteDealFundingByDealID(_objDeal).subscribe(res => {
         if (res.Succeeded) {
           this.listfdealfunding = [];
+          this.listdealfundingWithImpairment = [];
+
           var data: any = res.lstNoteDealFunding;
           this.listwfStatusPurposeMapping = res.lstWFStatusPurposeMapping;
 
           this.listdealfunding = data;
+          this.listdealfundingBlank = res.lstNoteDealFundingBlank;
+          this.listRevolverDealFunding = res.ListRevolverDealFunding;
+
+          this.listdealfunding.forEach(rule => {
+            var Sdate = new Date(rule.Date);
+
+            if (Sdate) {
+              var formatedSdate = this.convertDateToBindable(Sdate);
+              var startday = Sdate.getDay();
+              if (startday == 6 || startday == 0
+                || this.ListHoliday.filter(x => this.convertDateToBindable(x.HolidayDate) == formatedSdate && x.HolidayTypeID == 411 && x.IsSoftHoliday != 3).length > 0
+              ) {
+                rule._isSoftHoliday = false;
+              }
+              else if (startday == 6 || startday == 0
+                || this.ListHoliday.filter(x => this.convertDateToBindable(x.HolidayDate) == formatedSdate
+                  && x.HolidayTypeID == 411 && x.IsSoftHoliday == 3).length > 0
+              ) {
+                rule._isSoftHoliday = true;
+              }
+            }
+          });
+
+
+          this.lstDealFundingImpairmentOrg = res.lstDealFundingImpairment;
+          if (this.lstDealFundingImpairmentOrg != null) {
+            for (var i = 0; i < this.lstDealFundingImpairmentOrg.length; i++) {
+              this.lstDealFundingImpairmentOrg[i].DealFundingRowno = i;
+              this.lstDealFundingImpairmentOrg[i].OrgDealFundingRowno = i;
+              this.lstDealFundingImpairment.push(this.lstDealFundingImpairmentOrg[i])
+            }
+          }
+          this.ConvertToBindableDateDealImparent(this.lstDealFundingImpairment);
           var controlarrayedit = this.lstUserPermission.filter(function (item) { return item.ModuleType === 'Control' && item.RightsName === 'Edit'; });
 
           if (this.listdealfunding) {
@@ -2802,8 +4479,8 @@ export class DealDetailComponent extends Paginated implements OnInit {
               this.listfdealfunding.push({ "DealID": _objDeal.CREDealID, "Date": data[d].Date, "Value": data[d].Value });
             }
 
-            this.originallistdealfunding.push({ "DealID": _objDeal.CREDealID, "Date": data[d].Date, "Value": data[d].Value });
-            this.listdealfundingwithoutchange.push({ DealFundingID: data[d].DealFundingID, PurposeID: data[d].PurposeID, "PurposeText": data[d].PurposeText, "Date": data[d].Date, "Value": data[d].Value });
+            this.originallistdealfunding.push({ "DealID": _objDeal.CREDealID, "Date": data[d].Date, "Value": data[d].Value, "DealFundingID": data[d].DealFundingID });
+            this.listdealfundingwithoutchange.push({ DealFundingID: data[d].DealFundingID, PurposeID: data[d].PurposeID, "PurposeText": data[d].PurposeText, "Date": data[d].Date, "Value": data[d].Value, "DealFundingRowno": data[d].DealFundingRowno });
           }
           this.dynamicColList = [];
           var header = [];
@@ -2828,16 +4505,8 @@ export class DealDetailComponent extends Paginated implements OnInit {
           //removing privious generated funding for note from grid
           if (this.flexdealfunding.columns.length > 0) {
             if (this.IsAutoSpreadActive == true) {
-
-              //    // removing privious generated funding for note from grid
-              //    for (var j = 13; j < this.flexdealfunding.columns.length; j++) {
-              //        this.flexdealfunding.columns.splice(13, j);
-              //    }
-              //}
-              //else {
-
-              for (var j = 12; j < this.flexdealfunding.columns.length; j++) {
-                this.flexdealfunding.columns.splice(12, j);
+              for (var j = 14; j < this.flexdealfunding.columns.length; j++) {
+                this.flexdealfunding.columns.splice(14, j);
               }
             }
           }
@@ -2850,16 +4519,48 @@ export class DealDetailComponent extends Paginated implements OnInit {
 
             //Use Rule N 
             //increment for adding new column in dealfunding grid
-            for (var j = 33; j < header.length; j++) {
+            for (var j = 36; j < header.length; j++) {
               this.AddcolumnNoteDealFunding(header[j], header[j], true);
-              //if (this.ShowUseRuleN == true) {
-
-              //    this.AddcolumnNoteDealFunding(header[j], header[j], true);
-              //} else {
-              //    this.AddcolumnNoteDealFunding(header[j], header[j], false);
-              //}
             }
-            // }
+
+            for (var i = 0; i < this.listdealfunding.length; i++) {
+              this.listdealfunding[i].Funding_delete = false;
+              var dtcurret = this.convertDatetoGMT(this.listdealfunding[i].Date);
+              var templist = this.lstDealFundingImpairment.filter(x => x.orgValue > 0)
+              if (templist != null && templist.length > 0) {
+                for (var j = 0; j < templist.length; j++) {
+                  var dtcurretimp = this.convertDatetoGMT(templist[j].Date)
+                  if (dtcurretimp < dtcurret || dtcurretimp.toString() == dtcurret.toString()) {
+                    this.listdealfundingWithImpairment.push(templist[j]);
+                    var DealFundingRowno = templist[j].OrgDealFundingRowno
+                    this.lstDealFundingImpairment[DealFundingRowno].orgValue = 0;
+                    this.lstDealFundingImpairment[j].GeneratedBy = 822;
+                    //this.lstDealFundingImpairment[j].GeneratedByText = this._deal.currentUserName;
+                    //this.lstDealFundingImpairment[j].GeneratedByUserID = this._deal.currentUserID;
+                    this.lstDealFundingImpairment[j].GeneratedByText = templist[j].GeneratedByText;
+                    this.lstDealFundingImpairment[j].GeneratedByUserID = templist[j].GeneratedByUserID;
+                    this.lstDealFundingImpairment[j].DealFundingRowno = 5001 + j;
+                  }
+                }
+
+
+              }
+              this.listdealfundingWithImpairment.push(this.listdealfunding[i]);
+              if (i == this.listdealfunding.length - 1) {
+                var tempRemaining = this.lstDealFundingImpairment.filter(x => x.orgValue > 0)
+                if (tempRemaining != null && tempRemaining.length > 0) {
+
+                  for (var j = 0; j < templist.length; j++) {
+                    this.listdealfundingWithImpairment.push(templist[j])
+                    var DealFundingRowno = templist[j].OrgDealFundingRowno
+                    this.lstDealFundingImpairment[DealFundingRowno].orgValue = 0;
+                  }
+                }
+
+              }
+            }
+
+            this.listdealfunding = this.listdealfundingWithImpairment;
             this.cvDealFundingList = new wjcCore.CollectionView(this.listdealfunding);
             this.cvDealFundingList.trackChanges = true;
 
@@ -2868,6 +4569,21 @@ export class DealDetailComponent extends Paginated implements OnInit {
             var dynamicColIndex = 0;
             if (this.listdealfunding) {
               for (var j = 0; j < this.listdealfunding.length; j++) {
+                //GeneratedByText
+                if (this.listdealfunding[j].GeneratedByText !== undefined && this.listdealfunding[j].GeneratedByText !== null) {
+                  //746	User Entered
+                  //747	Auto Spread
+                  //822	User Name
+                  if (this.listdealfunding[j].GeneratedByText == "User Entered") {
+                    this.listdealfunding[j].GeneratedBy = 746;
+                  } else if (this.listdealfunding[j].GeneratedByText == "Auto Spread") {
+                    this.listdealfunding[j].GeneratedBy = 747;
+                  } else {
+                    this.listdealfunding[j].GeneratedBy = 822;
+                  }
+
+                  //this.listdealfunding[j].GeneratedBy = this.lstGeneratedBy.find(x => x.Name == this.listdealfunding[j].GeneratedByText).LookupID;
+                }
                 this.listdealfunding[j]["isValidDate"] = true;
                 var gendynamicCol = [];
                 gendynamicCol["Date"] = this.listdealfunding[j].Date;
@@ -2876,7 +4592,7 @@ export class DealDetailComponent extends Paginated implements OnInit {
                 gendynamicCol["Applied"] = this.listdealfunding[j].Applied;
 
                 //increment for adding new column in dealfunding grid
-                for (var m = 32; m < header.length; m++) {
+                for (var m = 36; m < header.length; m++) {
                   // assign $0 when Deal funding is $0
                   if (this.listdealfunding[j].Value == 0) {
                     this.listdealfunding[j][header[m]] = 0;
@@ -2914,12 +4630,20 @@ export class DealDetailComponent extends Paginated implements OnInit {
             if (this._deal.EnableAutoSpread || this._deal.ApplyNoteLevelPaydowns) {
               // this.flexdealfunding.autoClipboard = false;
               this.flexdealfunding.columns[9].isReadOnly = false;
+              var _lstUseRuleN = this.lstSequenceHistory.filter(x => x.UseRuletoDetermineNoteFundingText == "4" || x.UseRuletoDetermineNoteFundingText == "N" || x.UseRuletoDetermineNoteFundingText == null || x.UseRuletoDetermineNoteFundingText == "");
             }
             else {
               this.flexdealfunding.autoClipboard = true;
             }
             this.AppliedReadOnly();
-
+            var cntNoteFirstColumnPosition = 13;
+            var lastcol = cntNoteFirstColumnPosition + (this.lstNote.length - 1);
+            if (lastcol == this.flexdealfunding.columns.length - 1) {
+              var lastcolwidth = this.flexdealfunding.columnFooters.columns[lastcol].width;
+              this.flexdealfunding.columnFooters.columns[lastcol].width = lastcolwidth + 50;
+            }
+            //samrat
+            this.fundingaddFooterRow(this.flexdealfunding);
           }.bind(this), 100);
 
           this._isListFetching = false;
@@ -2937,6 +4661,7 @@ export class DealDetailComponent extends Paginated implements OnInit {
         if (res.Succeeded) {
           var data: any = res.lstnoteFundingschedule;
           this.lstNoteFunding = data;
+          this.listRevolverNoteFunding = res.ListRevolverNoteFunding;
           this._totalNoteFunding = parseFloat(data.reduce(function (a, b) { return a + b.Value; }, 0).toFixed(2));
           this.ConvertToBindableDateFundingSchedule(this.lstNoteFunding);
         }
@@ -2981,6 +4706,9 @@ export class DealDetailComponent extends Paginated implements OnInit {
           if (this.isShowGenerateAutospreadRepay == true) {
             this.isShowGenerateAutospreadRepay = false;
           }
+          if (this.isMaturityDataChanged == true) {
+            this.isMaturityDataChanged = false;
+          }
           var header = [];
           var noteInGrid = "False";
           var noteCount = (this.flexdealfunding.columns.length) - 7;
@@ -2989,7 +4717,26 @@ export class DealDetailComponent extends Paginated implements OnInit {
           this.listdealfunding = res.DealDataContract.PayruleDealFundingList;
           this.ConvertToBindableDateDealFunding(this.listdealfunding);
           var deldata = res.DealDataContract.PayruleDeletedDealFundingList;
+
           this.CalculateRemainingAmount(this.listdealfunding);
+          for (var j = 0; j < this.listdealfunding.length; j++) {
+            if (this.listdealfunding[j].Applied == 0) {
+              if (this.listdealfunding[j].WF_IsFlowStart == 0) {
+                this.listdealfunding[j].Funding_delete = false;
+              }
+            }
+
+            if (this.listdealfunding[j].GeneratedBy == 822) {
+              if (this.listdealfunding[j].GeneratedByText === undefined || this.listdealfunding[j].GeneratedByText == "") {
+                this.listdealfunding[j].GeneratedByText = this._deal.currentUserName;
+                this.listdealfunding[j].GeneratedByUserID = this._deal.currentUserID;
+              }
+
+            } else {
+              this.listdealfunding[j].GeneratedByText = this.lstGeneratedBy.find(x => x.LookupID == this.listdealfunding[j].GeneratedBy).Name;
+            }
+
+          }
           if (this._deal.EnableAutoSpread == true) {
             if (this.lstautospreadrule) {
               this.ConvertToBindableDateAutoSpread(this.lstautospreadrule);
@@ -3036,11 +4783,13 @@ export class DealDetailComponent extends Paginated implements OnInit {
             if (this.convertDateToBindable(res.DealDataContract.PayruleTargetNoteFundingScheduleList[d].Date) == date) {
               for (var r = 0; r < this.lstSequenceHistory.length; r++) {
                 if (this.lstSequenceHistory[r].NoteID == res.DealDataContract.PayruleTargetNoteFundingScheduleList[d].NoteID) {
-                  if (this.lstSequenceHistory[r].UseRuletoDetermineNoteFundingText == "3" || this.lstSequenceHistory[r].UseRuletoDetermineNoteFundingText == "Y") {
+                  //if (this.lstSequenceHistory[r].UseRuletoDetermineNoteFundingText == "3" || this.lstSequenceHistory[r].UseRuletoDetermineNoteFundingText == "Y")
+                  {
                     this.lstSequenceHistory[r]["EstBls"] = Number(this.lstSequenceHistory[r]["EstBls"]) + Number(res.DealDataContract.PayruleTargetNoteFundingScheduleList[d].Value);
-                  } else {
-                    this.lstSequenceHistory[r]["EstBls"] = Number(this.lstSequenceHistory[r]["EndingBalance"]);
                   }
+                  //else {
+                  //    this.lstSequenceHistory[r]["EstBls"] = Number(this.lstSequenceHistory[r]["EndingBalance"]);
+                  //}
                 }
               }
               //var p = this.lstSequenceHistory.find(x => x.Name == res.DealDataContract.PayruleTargetNoteFundingScheduleList[d]["NoteName"]);
@@ -3060,8 +4809,8 @@ export class DealDetailComponent extends Paginated implements OnInit {
             //}
             //else {
 
-            for (var j = 12; j < this.flexdealfunding.columns.length; j++) {
-              this.flexdealfunding.columns.splice(12, j);
+            for (var j = 14; j < this.flexdealfunding.columns.length; j++) {
+              this.flexdealfunding.columns.splice(14, j);
             }
 
           }
@@ -3097,8 +4846,9 @@ export class DealDetailComponent extends Paginated implements OnInit {
             this.dynamicColList = header;
           }
           else {
-            var splength = this.dynamicColList.length - 32;
-            this.dynamicColList.splice(32, this.dynamicColList.length - 32);
+            this.dynamicColList = [];
+            var splength = this.dynamicColList.length - 35;
+            this.dynamicColList.splice(35, this.dynamicColList.length - 35);
             for (var k = 0; k < header.length; k++) {
               this.dynamicColList.push(header[k])
             }
@@ -3238,13 +4988,14 @@ export class DealDetailComponent extends Paginated implements OnInit {
           }
           if (this.IsAutoSpreadActive == true) {
 
-            for (var j = 12; j < this.flexdealfunding.columns.length; j++) {
-              this.flexdealfunding.columns.splice(12, j);
+            for (var j = 14; j < this.flexdealfunding.columns.length; j++) {
+              this.flexdealfunding.columns.splice(14, j);
             }
 
           }
 
           if (dynamicColList.length > 0) {
+            this.columnsForNoteDealFunding = [];
             //Pushing column in grid
             for (var j = 0; j < header.length; j++) {
               if (header[j] != "Date" && header[j] != "PurposeID" && header[j] != "DealFundingRowno" && header[j] != "Applied") {
@@ -3257,9 +5008,66 @@ export class DealDetailComponent extends Paginated implements OnInit {
                 //}
               }
             }
+
             this.flexdealfunding.invalidate();
           }
 
+          //New
+
+
+          /*
+     if (this.lstImpairment!= undefined && this.lstImpairment.length > 0)
+      {
+
+        this.listdealfundingWithImpairment = [];
+        this.lstDealFundingImpairmentOrg = [];
+        this.lstDealFundingImpairment = [];
+        this.lstDealFundingImpairmentOrg = this.lstImpairment;
+        this.lstDealFundingImpairment = this.lstImpairment;
+        this.lstDealFundingImpairment.forEach((obj) => { obj.orgValue = 1 });
+
+          for (var i = 0; i < this.listdealfunding.length; i++) {
+          var dtcurret = this.convertDatetoGMT(this.listdealfunding[i].Date);
+          var templist = this.lstDealFundingImpairment.filter(x => x.orgValue > 0)
+          if (templist != null && templist.length > 0) {
+            for (var j = 0; j < templist.length; j++) {
+              var dtcurretimp = this.convertDatetoGMT(templist[j].Date)
+              if (dtcurretimp < dtcurret || dtcurretimp.toString() == dtcurret.toString()) {
+                this.listdealfundingWithImpairment[j].GeneratedBy = 822;
+                this.listdealfundingWithImpairment[j].GeneratedByText = this._deal.currentUserName;
+                this.listdealfundingWithImpairment[j].GeneratedByUserID = this._deal.currentUserID;
+                this.listdealfundingWithImpairment.push(templist[j]);
+                var DealFundingRowno = templist[j].DealFundingRowno;
+                this.lstDealFundingImpairment[DealFundingRowno].orgValue = 0;
+              
+              }
+            }
+
+
+          }
+            this.listdealfundingWithImpairment.push(this.listdealfunding[i]);
+            if (i == this.listdealfunding.length - 1) {
+              var tempRemaining = this.lstDealFundingImpairment.filter(x => x.orgValue > 0)
+              if (tempRemaining != null && tempRemaining.length > 0) {
+
+                for (var j = 0; j < templist.length; j++) {
+                  this.listdealfundingWithImpairment.push(templist[j])
+                  var DealFundingRowno = templist[j].DealFundingRowno
+                  this.lstDealFundingImpairment[DealFundingRowno].orgValue = 0;
+                }
+              }
+
+            }
+        }
+        this.listdealfunding = [];
+        this.listdealfunding = this.listdealfundingWithImpairment;
+        this.cvDealFundingList = new wjcCore.CollectionView(this.listdealfunding);
+        this.cvDealFundingList.trackChanges = true;
+          }
+
+
+          */
+          //New
           setTimeout(function () {
             this.AppliedReadOnly();
           }.bind(this), 100);
@@ -3387,6 +5195,11 @@ export class DealDetailComponent extends Paginated implements OnInit {
     }
   }
 
+  sortByName(a, b) {
+    var textA = a.FileName.toUpperCase();
+    var textB = b.FileName.toUpperCase();
+    return (textA < textB) ? -1 : (textA > textB) ? 1 : 0;
+  }
   SortByDate(a, b) {
     var aDate = a.Date;
     var bDate = b.Date;
@@ -3457,20 +5270,234 @@ export class DealDetailComponent extends Paginated implements OnInit {
     }
   }
 
-  checkAndCallgenerateFutureFunding() {
+  ValidateFuturePaydown() {
+    var today = new Date();
+    var SumfundingPaydown = 0, SumEstimatedcurrentbalance = 0, SumdealfundingFunding = 0, SumAdjustedCommitment = 0, SumFuturePIKFunding = 0, SumFuturePIKPaydown = 0, SumFutureAllPIKFunding = 0, SumFutureAllPIKPaydown = 0, TotalFuturePIK = 0, TotalFutureAllPIK = 0;
+    if (this.listdealfunding) {
+      var dealfundingPaydown = this.listdealfunding.filter(x => x.Date > today && x.Value < 0 && x.PurposeText != "Note Transfer");
+      dealfundingPaydown.forEach(e => {
+        if (e.AdjustmentType != 834 && e.AdjustmentType != 835 && e.AdjustmentType != 896) {
+          SumfundingPaydown += e.Value;
+        }
+
+      });
+      var Futurefunding = this.listdealfunding.filter(x => x.Date > today && x.Value > 0);
+      Futurefunding.forEach(e => {
+        if (e.AdjustmentType != 834 && e.AdjustmentType != 835 && e.AdjustmentType != 896) { SumdealfundingFunding += e.Value; }
+
+      });
+    }
+    if (this.lstSequenceHistory) {
+      this.lstSequenceHistory.forEach(e => {
+        SumEstimatedcurrentbalance += e.EstBls;
+      });
+
+      this.lstSequenceHistory.forEach(e => {
+        SumAdjustedCommitment += e.AdjustedTotalCommitment;
+      });
+    }
+
+    if (this._deal.ListNoteRepaymentBalances) {
+
+      for (var i = 0; i < this._deal.ListNoteRepaymentBalances.length; i++) {
+        if (this._deal.ListNoteRepaymentBalances[i].Date != null) {
+          this._deal.ListNoteRepaymentBalances[i].Date = new Date(this.convertDateToBindable(this._deal.ListNoteRepaymentBalances[i].Date));
+        }
+      }
+
+      var FuturePIKFunding = this._deal.ListNoteRepaymentBalances.filter(y => y.Date > today && y.Type == "PIKPrincipalFunding");
+
+      FuturePIKFunding.forEach(e => {
+        SumFuturePIKFunding += e.Amount;
+      });
+
+      var FuturePIKPaydown = this._deal.ListNoteRepaymentBalances.filter(y => y.Date > today && y.Type == "PIKPrincipalPaid");
+
+      FuturePIKPaydown.forEach(e => {
+        SumFuturePIKPaydown += e.Amount;
+      });
+
+      var FutureAllPIKFunding = this._deal.ListNoteRepaymentBalances.filter(y => y.Type == "PIKPrincipalFunding");
+
+      FutureAllPIKFunding.forEach(e => {
+        SumFutureAllPIKFunding += e.Amount;
+      });
+
+      var FutureAllPIKPaydown = this._deal.ListNoteRepaymentBalances.filter(y => y.Type == "PIKPrincipalPaid");
+
+      FutureAllPIKPaydown.forEach(e => {
+        SumFutureAllPIKPaydown += e.Amount;
+      });
+    }
+
+    var Warningmsg = "";
+    if (SumfundingPaydown < 0)
+      SumfundingPaydown = SumfundingPaydown * -1;
+
+
+    TotalFuturePIK = this.getNum(SumFuturePIKFunding) + this.getNum(SumFuturePIKPaydown);
+    TotalFutureAllPIK = this.getNum(SumFutureAllPIKFunding) + this.getNum(SumFutureAllPIKPaydown);
+    if (TotalFuturePIK < 0)
+      TotalFuturePIK = TotalFuturePIK * -1;
+    if (TotalFutureAllPIK < 0)
+      TotalFutureAllPIK = TotalFutureAllPIK * -1;
+    //Projected Paydown(Aggregate future negative amount(except Note Transfer)) <= Current Balance + Future Funding + Future PIK Funding + Future PIK Paydown
+    if (parseFloat(this.getNum(SumfundingPaydown).toFixed(2)) > parseFloat((parseFloat(this.getNum(SumEstimatedcurrentbalance).toFixed(2)) + parseFloat(this.getNum(SumdealfundingFunding).toFixed(2)) + parseFloat(this.getNum(TotalFuturePIK).toFixed(2))).toFixed(2))) {
+      //if (this.getNum(SumfundingPaydown) > (this.getNum(SumEstimatedcurrentbalance) + this.getNum(SumdealfundingFunding) + TotalFuturePIK)) {
+      var deltaCB = parseFloat(this.getNum(SumfundingPaydown).toFixed(2)) - (parseFloat(this.getNum(SumEstimatedcurrentbalance).toFixed(2)) + parseFloat(this.getNum(SumdealfundingFunding).toFixed(2)) + parseFloat(this.getNum(TotalFuturePIK).toFixed(2)));
+      var deltaabsCB = Math.abs(parseFloat((deltaCB).toFixed(2)));
+      if (deltaabsCB > 0.50) {
+        Warningmsg = "<p>" + "Projected Paydown (" + this.formatMoney(SumfundingPaydown) + ") is greater than the sum of (" + this.formatMoney(parseFloat((parseFloat(this.getNum(SumEstimatedcurrentbalance).toFixed(2)) + parseFloat(this.getNum(SumdealfundingFunding).toFixed(2)) + parseFloat(this.getNum(TotalFuturePIK).toFixed(2))).toFixed(2))) + ") Current Balance, Future Funding and Future PIK."
+      }
+    }
+
+    //Projected Paydown(Aggregate future negative amount(except Note Transfer)) <= Adjusted Commitment + Future PIK Funding + Future PIK Paydown
+
+    if (parseFloat(this.getNum(SumfundingPaydown).toFixed(2)) > parseFloat((parseFloat(this.getNum(SumAdjustedCommitment).toFixed(2)) + parseFloat(TotalFutureAllPIK.toFixed(2))).toFixed(2))) {
+      var deltaAC = parseFloat(this.getNum(SumfundingPaydown).toFixed(2)) - (parseFloat(this.getNum(SumAdjustedCommitment).toFixed(2)) + parseFloat(this.getNum(TotalFutureAllPIK).toFixed(2)));
+      var deltaabsAC = Math.abs(parseFloat((deltaAC).toFixed(2)));
+      if (deltaabsAC > 0.50) {
+        Warningmsg = Warningmsg + "<p>" + "Projected Paydown (" + this.formatMoney(SumfundingPaydown) + ") is greater than the sum of (" + this.formatMoney(parseFloat((parseFloat(this.getNum(SumAdjustedCommitment).toFixed(2)) + parseFloat(TotalFutureAllPIK.toFixed(2))).toFixed(2))) + ") Adjusted Commitment and Total PIK."
+      }
+    }
+
+    return Warningmsg;
+
+
+  }
+
+  getNum(val) {
+    if (isNaN(val)) {
+      return 0;
+    }
+    return val;
+  }
+
+  checkAndCallgenerateFutureFunding(buttonname) {
+    this.lstImpairment = [];
     var msgstring = "";
-    if (this.checked == false) {
-      msgstring = "<p>" + "Enable auto spread flag is not checked, do you want to continue with Generate?" + "</p>";
-      msgstring = msgstring + "<p>" + "Press \"Ok\" to continue without using auto spread" + "</p>";
-      msgstring = msgstring + "<p>" + "Press \"Cancel\" enable auto spread and click generate again" + "</p>";
-      this.Dialogheader = "Auto Spread Not Enabled";
-      this.DialogModulename = "GenerateFutureFunding";
-      document.getElementById('GenericDialogBody').innerHTML = msgstring;
-      this.showDialogGeneric("myGenericDialog");
+    var validatemsg = "";
+    //var msgstringFF = "";
+    this.repayorfundingbtn = "";
+    if (this._deal.EnableAutospreadRepayments == true) {
+
+      for (var d = 0; d < this.listdealfunding.length; d++) {
+        if (this.listdealfunding[d].PurposeText == "Paydown" || this.listdealfunding[d].PurposeText == "631") {
+          if (this.listdealfunding[d].GeneratedBy == 822 || this.listdealfunding[d].GeneratedBy == 746) {
+            if (this.listdealfunding[d].Comment == "" || this.listdealfunding[d].Comment == null) {
+              if (this.listdealfunding[d].AdjustmentType != 835 && this.listdealfunding[d].AdjustmentType != 834 && this.listdealfunding[d].AdjustmentType != 896) {
+                msgstring = "<p>You have entered Paydown  without comment, the updated record will get overridden by auto spreading amount. Do you want to proceed?</p>";
+                break;
+              }
+            }
+          }
+        }
+      }
+    }
+    if (this._deal.EnableAutoSpread == true) {
+
+      for (var d = 0; d < this.listdealfunding.length; d++) {
+        if (this.listdealfunding[d].Value > 0 && this.listdealfunding[d].Applied != true) {
+          if (this.listdealfunding[d].GeneratedBy == 822 || this.listdealfunding[d].GeneratedBy == 746) {
+            if (this.listdealfunding[d].Comment == "" || this.listdealfunding[d].Comment == null) {
+              if (this.listdealfunding[d].AdjustmentType != 835 && this.listdealfunding[d].AdjustmentType != 834 && this.listdealfunding[d].AdjustmentType != 896) {
+                if (msgstring != "") {
+                  msgstring = msgstring;
+                }
+                msgstring = msgstring + "<p>" + "There are record(s) in deal funding grid without comment. They will be overridden by auto spreading amount. Do you want to proceed?</p>";
+                break;
+              }
+            }
+          }
+        }
+      }
+    }
+
+    validatemsg = this.ValidateRequiredEquitySum();
+
+    this.repayorfundingbtn = buttonname;
+    if (msgstring != "") {
+      document.getElementById('dialogboxbodyFF').innerHTML = msgstring;
+      this.showDialogGeneric("GenereateFundingDialogboxFF");
+    }
+    else if (validatemsg != "") {
+      this.CustomAlert(validatemsg);
     }
     else {
-      this.generateFutureFunding();
+      if (buttonname == "Repayment") {
+        this.generateAutospreadRepayment();
+      } else if (buttonname == "Funding") {
+        this.generateFutureFunding();
+      }
+
     }
+  }
+
+  public ValidateDealFunding() {
+    var fundingerror = "";
+    var nocomment = "", positiveNonComm = 0, NegativeNonComm = 0;
+    for (var df = 0; df < this.listdealfunding.length; df++) {
+      if (this.listdealfunding[df].AdjustmentType != null) {
+        if (this.adjusrmenttypearray.findIndex(x => x === this.listdealfunding[df].AdjustmentType) != -1) {
+          if (this.listdealfunding[df].Comment == null || this.listdealfunding[df].Comment == "") {
+            if (nocomment == "") {
+              nocomment = this.convertDateToBindable(this.listdealfunding[df].Date) + ",";
+            }
+            else {
+              nocomment += this.convertDateToBindable(this.listdealfunding[df].Date) + ",";
+            }
+          }
+        }
+      }
+    }
+    if (nocomment) {
+      fundingerror = fundingerror + "<p>" + "You have selected adjustment type on   " + nocomment.slice(0, nocomment.length - 1) + " without any comment. Please enter comment.</p>";
+    }
+    return fundingerror;
+  }
+
+  public ValidateRequiredEquitySum() {
+
+    var errormsg = "";
+    var sumReqEquity = 0;
+    var TotalReqEquity = 0;
+
+    if (this.listdealfunding) {
+      for (var n = 0; n < this.listdealfunding.length; n++) {
+        sumReqEquity = sumReqEquity + parseFloat(this.GetDefaultValue(parseFloat(this.listdealfunding[n].RequiredEquity)));
+
+        if (!this.listdealfunding[n].Date) {
+          errormsg = errormsg + "<p> Date can not be blank .</p>";
+
+        }
+
+        if (!(Number(this.listdealfunding[n].PurposeText).toString() == "NaN" || Number(this.listdealfunding[n].PurposeText) == 0)) {
+          this.listdealfunding[n].PurposeID = Number(this.listdealfunding[n].PurposeText);
+        }
+
+        if (!this.listdealfunding[n].PurposeID) {
+          errormsg = errormsg + "<p> Purpose can not be blank </p>";
+        }
+
+      }
+    }
+    if (this.lstAdjustedTotalCommitment) {
+      for (var i = 0; i < this.lstAdjustedTotalCommitment.items.length; i++) {
+        TotalReqEquity = TotalReqEquity + parseFloat(this.GetDefaultValue(parseFloat(this.lstAdjustedTotalCommitment.items[i].TotalRequiredEquity)));
+      }
+    }
+
+    var fsumReqEquity = this.utils.convertToTwoDecimalPlaces(sumReqEquity);
+    var fTotalReqEquity = this.utils.convertToTwoDecimalPlaces(TotalReqEquity);
+
+    var formattedsumReqEquity = this.utils.formatNumberforTwoDecimalplaces(sumReqEquity, "");
+    var formattedTotalReqEquity = this.utils.formatNumberforTwoDecimalplaces(TotalReqEquity, "");
+
+    if (fsumReqEquity > fTotalReqEquity) {
+      errormsg = "<p>Sum of Required Equity (" + formattedsumReqEquity + ") in Deal Funding cannot be greater than Sum of Total FF Required Equity in Commitment (" + formattedTotalReqEquity + ").</p>";
+    }
+
+    return errormsg
   }
 
   generateFutureFunding() {
@@ -3491,21 +5518,50 @@ export class DealDetailComponent extends Paginated implements OnInit {
     var sumdealfunding = 0;
     var sumdealEquityAmount = 0;
     var sumDealRequiredEquity = 0;
-    var sumDealAdditionalEquity = 0;
+    //var sumDealAdditionalEquity = 0;
     var TotalDebetAmount = 0;
     var sumdealfundIncludeOtherandTransfer = 0;
-
+    var sumrevolver = 0;
     this.ConvertInSequenceList();
     var maxWiredConfirmDate = null;
     this.minClosingDate = null;
-    var TotalRequiredEquity = 0, TotalAdditionalEquity = 0;
-    var noteTotalAdditionalEquity = 0;
+    var TotalRequiredEquity = 0;
+    //var noteTotalAdditionalEquity = 0;
     var noteTotalRequiredEquity = 0;
-    //manish
-
+    var max_ExtensionMat: any;
+    var dfvalidation = "";
+    var fundingerror = "";
     this._deal.EnableAutospreadUseRuleN = false;
-
     if (this.listdealfunding.length > 0) {
+
+      var maxrownumber = 0;
+      for (var n1 = 0; n1 < this.listdealfunding.length; n1++) {
+        if (this.listdealfunding[n1].DealFundingRowno !== undefined && this.listdealfunding[n1].DealFundingRowno != null) {
+          if (this.listdealfunding[n1].DealFundingRowno > maxrownumber) {
+            maxrownumber = this.listdealfunding[n1].DealFundingRowno;
+          }
+        }
+      }
+      this.lstImpairment = this.listdealfunding.filter(x => x.PurposeID == 840);
+      this.lstNoteFunding = this.lstNoteFunding.filter(x => x.PurposeID != 840);
+      for (var t = 0; t < this.lstImpairment.length; t++) {
+        var rwnum = ++maxrownumber;
+        this.lstImpairment[t].GeneratedBy = 822;
+        //this.lstImpairment[t].GeneratedByText = this._deal.currentUserName;
+        //this.lstImpairment[t].GeneratedByUserID = this._deal.currentUserID;
+        this.lstImpairment[t].DealFundingRowno = rwnum;
+
+        this.lstImpairment[t].DealFundingID = null;
+
+        for (var j1 = 0; j1 < this.lstNote.length; j1++) {
+          this.lstNoteFunding.push({
+            "Applied": true, "NoteName": this.lstNote[j1].Name, "Value": this.lstImpairment[t][this.lstNote[j1].Name], "DealFundingRowno": rwnum,
+            "GeneratedBy": this.lstImpairment[t].GeneratedBy, "NoteID": this.lstNote[j1].NoteId, "Date": this.lstImpairment[t].Date,
+            "PurposeID": this.lstImpairment[t].PurposeID, "DealFundingID": this.lstImpairment[t].DealFundingID
+          });
+        }
+      }
+      //this.listdealfunding = this.listdealfunding.filter(x => x.PurposeID != 840);
       for (var df = 0; df < this.listdealfunding.length; df++) {
         if (!(Number(this.listdealfunding[df].PurposeText).toString() == "NaN" || Number(this.listdealfunding[df].PurposeText) == 0)) {
           this.listdealfunding[df].PurposeID = Number(this.listdealfunding[df].PurposeText);
@@ -3513,28 +5569,39 @@ export class DealDetailComponent extends Paginated implements OnInit {
         }
         if (this.listdealfunding[df].Value) {
           if (this.listdealfunding[df].Value > 0) {
-            if (this.listdealfunding[df].PurposeText != "Note Transfer") {
-              sumdealfundingwithnotetransfer = sumdealfundingwithnotetransfer + this.listdealfunding[df].Value;
-            }
-            if (this.listdealfunding[df].PurposeText == "Note Transfer" || this.listdealfunding[df].PurposeText == "Other") {
-              sumdealfundIncludeOtherandTransfer = sumdealfundIncludeOtherandTransfer + this.listdealfunding[df].Value;
-            }
-            sumdealfunding = sumdealfunding + this.listdealfunding[df].Value;
-
-            if (this.listdealfunding[df].PurposeText == "Capital Expenditure" || this.listdealfunding[df].PurposeText == "OpEx" || this.listdealfunding[df].PurposeText == "Force Funding" || this.listdealfunding[df].PurposeText == "Capitalized Interest" || this.listdealfunding[df].PurposeText == "TI/LC" || this.listdealfunding[df].PurposeText == "Additional Collateral Purchase") {
-              //total locked amount for autospreading funding
-              if (this.listdealfunding[df].Applied == true) {
-                TotalLockedAmount = TotalLockedAmount + this.listdealfunding[df].Value;
-              }
-              else if (this.listdealfunding[df].Comment != null && this.listdealfunding[df].Comment != "") {
-                TotalLockedAmount = TotalLockedAmount + this.listdealfunding[df].Value;
-              }
-              else if (this.listdealfunding[df].WF_IsFlowStart == 1) {
-                TotalLockedAmount = TotalLockedAmount + this.listdealfunding[df].Value;
-              }
+            if (this.listdealfunding[df].AdjustmentType == 835) {
+              sumrevolver = sumrevolver + this.listdealfunding[df].Value * -1;
             }
 
+            if (this.listdealfunding[df].AdjustmentType != 834 && this.listdealfunding[df].AdjustmentType != 896 && this.listdealfunding[df].AdjustmentType != 835 && this.listdealfunding[df].PurposeID != 840) {
+              if (this.listdealfunding[df].PurposeText != "Note Transfer") {
+                sumdealfundingwithnotetransfer = sumdealfundingwithnotetransfer + this.listdealfunding[df].Value;
+              }
+              if (this.listdealfunding[df].PurposeText == "Note Transfer" || this.listdealfunding[df].PurposeText == "Other") {
+                sumdealfundIncludeOtherandTransfer = sumdealfundIncludeOtherandTransfer + this.listdealfunding[df].Value;
+              }
+
+              if (this.listdealfunding[df].AdjustmentType != 834 && this.listdealfunding[df].AdjustmentType != 896 && this.listdealfunding[df].AdjustmentType != 835 && this.listdealfunding[df].PurposeID != 840) {
+                sumdealfunding = sumdealfunding + this.listdealfunding[df].Value;
+              }
+
+              if (this.listdealfunding[df].PurposeText == "Capital Expenditure" || this.listdealfunding[df].PurposeText == "OpEx" || this.listdealfunding[df].PurposeText == "Force Funding" || this.listdealfunding[df].PurposeText == "Capitalized Interest" || this.listdealfunding[df].PurposeText == "TI/LC" || this.listdealfunding[df].PurposeText == "Additional Collateral Purchase") {
+                //total locked amount for autospreading funding
+                if (this.listdealfunding[df].AdjustmentType != 834 && this.listdealfunding[df].AdjustmentType != 896 && this.listdealfunding[df].AdjustmentType != 835 && this.listdealfunding[df].PurposeID != 840) {
+                  if (this.listdealfunding[df].Applied == true) {
+                    TotalLockedAmount = TotalLockedAmount + this.listdealfunding[df].Value;
+                  }
+                  else if (this.listdealfunding[df].Comment != null && this.listdealfunding[df].Comment != "") {
+                    TotalLockedAmount = TotalLockedAmount + this.listdealfunding[df].Value;
+                  }
+                  else if (this.listdealfunding[df].WF_IsFlowStart == 1) {
+                    TotalLockedAmount = TotalLockedAmount + this.listdealfunding[df].Value;
+                  }
+                }
+              }
+            }
           }
+
         }
         //maxWiredConfirmDate
         if (this.listdealfunding[df].Applied == true) {
@@ -3548,14 +5615,142 @@ export class DealDetailComponent extends Paginated implements OnInit {
       for (var item, i = 0; item = items[i++];) {
         var name = item.PurposeText;
         if (name) {
-          if (name != "Note Transfer" && item.Applied == true) {
-            if (!(name in lookup)) {
-              lookup[name] = 1;
-              result.push(name);
+          if (item.AdjustmentType != 834 && item.AdjustmentType != 896 && item.AdjustmentType != 835 && item.PurposeID != 840) {
+
+            if (name != "Note Transfer") {
+              if (item.Applied == true) {
+                if (!(name in lookup)) {
+                  lookup[name] = 1;
+                  result.push(name);
+                }
+              }
+              else if (item.Comment != null && item.Comment != "") {
+                if (!(name in lookup)) {
+                  lookup[name] = 1;
+                  result.push(name);
+                }
+              }
+              else if (item.WF_IsFlowStart == 1) {
+                if (!(name in lookup)) {
+                  lookup[name] = 1;
+                  result.push(name);
+                }
+              }
             }
+            //
           }
         }
       }
+
+
+      var dealfundinglist = this.listdealfunding;
+      for (var p, i = 0; p = dealfundinglist[i++];) {
+        var purposetextname = p.PurposeText;
+        if (this.negativePurposeTypes.includes(purposetextname) && p.RequiredEquity !== 0 && p.RequiredEquity !== null && p.RequiredEquity !== undefined) {
+          fundingerror = fundingerror + "<p>" + "Required Equity cannot be entered for negative Purpose types: Amortization, Paydown, Full Payoff, Property Release, Net Property Income/Loss and Equity Distribution.";
+          break;
+        }
+      }
+
+      for (var p, i = 0; p = dealfundinglist[i++];) {
+        var purposetextname = p.PurposeText;
+        if (this.negativePurposeTypes.includes(purposetextname) && p.AdditionalEquity !== 0 && p.AdditionalEquity !== null && p.AdditionalEquity !== undefined) {
+          fundingerror = fundingerror + "<p>" + "Additional Equity cannot be entered for negative Purpose types: Amortization, Paydown, Full Payoff, Property Release, Net Property Income/Loss and Equity Distribution.";
+          break;
+        }
+      }
+
+
+      var autoSpreadRules = this.lstautospreadrule;
+      var fundingList = this.listdealfunding;
+
+      if (this._deal.EnableAutoSpread) {
+        var requiredEquitySum = {};
+        var dFReqEquityTotalLocked = {};
+        var AutoSpReqEquityPurposeTypebased = {};
+
+        for (var funding of fundingList) {
+          if (funding.Applied === true) {
+            if (!requiredEquitySum[funding.PurposeText]) {
+              requiredEquitySum[funding.PurposeText] = 0;
+            }
+            requiredEquitySum[funding.PurposeText] += funding.RequiredEquity;
+          }
+
+          if (funding.Applied === true) {
+            if (!dFReqEquityTotalLocked[funding.PurposeText]) {
+              dFReqEquityTotalLocked[funding.PurposeText] = 0;
+            }
+            dFReqEquityTotalLocked[funding.PurposeText] += funding.RequiredEquity;
+          }
+
+          else if (funding.Comment != null && funding.Comment != "" && funding.Comment != undefined) {
+            if (!dFReqEquityTotalLocked[funding.PurposeText]) {
+              dFReqEquityTotalLocked[funding.PurposeText] = 0;
+            }
+            dFReqEquityTotalLocked[funding.PurposeText] += funding.RequiredEquity;
+          }
+
+          else if (funding.WF_CurrentStatus != "Projected" || funding.WF_CurrentStatus != "") {
+            if (!dFReqEquityTotalLocked[funding.PurposeText]) {
+              dFReqEquityTotalLocked[funding.PurposeText] = 0;
+            }
+            dFReqEquityTotalLocked[funding.PurposeText] += funding.RequiredEquity;
+          }
+
+        }
+
+        for (var equity of autoSpreadRules) {
+          if (!AutoSpReqEquityPurposeTypebased[equity.PurposeTypeText]) {
+            AutoSpReqEquityPurposeTypebased[equity.PurposeTypeText] = 0;
+          }
+          AutoSpReqEquityPurposeTypebased[equity.PurposeTypeText] += equity.RequiredEquity;
+        }
+
+        for (var PurposeTypeText in AutoSpReqEquityPurposeTypebased) {
+          AutoSpReqEquityPurposeTypebased[PurposeTypeText] = this.utils.convertToTwoDecimalPlaces(AutoSpReqEquityPurposeTypebased[PurposeTypeText]);
+        }
+
+        for (var purposeText in dFReqEquityTotalLocked) {
+          dFReqEquityTotalLocked[purposeText] = this.utils.convertToTwoDecimalPlaces(dFReqEquityTotalLocked[purposeText]);
+        }
+
+        for (var purposeType in requiredEquitySum) {
+          requiredEquitySum[purposeType] = this.utils.convertToTwoDecimalPlaces(requiredEquitySum[purposeType]);
+        }
+
+        for (var rule of autoSpreadRules) {
+          var autosppurposeType = rule.PurposeTypeText;
+          var autosprequiredEquity = this.utils.convertToTwoDecimalPlaces(rule.RequiredEquity);
+
+          for (var funding of fundingList) {
+
+            if (funding.PurposeText === autosppurposeType && funding.RequiredEquity != 0 && funding.RequiredEquity != null && funding.RequiredEquity != undefined) {
+              if (autosprequiredEquity === 0 || autosprequiredEquity === null || autosprequiredEquity === undefined) {
+                fundingerror = fundingerror + "<p>" + "Please enter Required Equity for the PurposeType " + funding.PurposeText + " in the AutoSpread Funding Grid.";
+                break;
+              }
+
+              if (requiredEquitySum[autosppurposeType] && autosprequiredEquity < requiredEquitySum[autosppurposeType]) {
+                fundingerror += "<p>" + "Required Equity in the AutoSpread Funding Grid cannot be less than the Sum of Required Equity of the Wire-Confirmed Deal Funding Amount.";
+                break;
+              }
+
+            }
+          }
+
+        }
+
+        for (var purposeText in dFReqEquityTotalLocked) {
+          if (dFReqEquityTotalLocked[purposeText] > (AutoSpReqEquityPurposeTypebased[purposeText] || 0)) {
+            fundingerror += "<p>" + "The Total locked amount of Required Equity in deal funding cannot be greater than the Required Equity in Autospread Funding.";
+            break;
+          }
+        }
+
+      }
+
+
     }
 
     sumdealfundingwithnotetransfer = parseFloat((sumdealfundingwithnotetransfer).toFixed(2));
@@ -3563,16 +5758,164 @@ export class DealDetailComponent extends Paginated implements OnInit {
     sumdealfundIncludeOtherandTransfer = parseFloat((sumdealfundIncludeOtherandTransfer).toFixed(2));
     TotalLockedAmount = parseFloat((TotalLockedAmount).toFixed(2));
     totalintitalfunding = parseFloat(this.lstSequenceHistory.reduce(function (r, a) { return a.InitialFundingAmount > 0.01 ? r + parseFloat(a.InitialFundingAmount) : r; }, 0).toFixed(2));
+    sumrevolver = parseFloat((sumrevolver).toFixed(2));
+
 
     if (this.lstNote[0] != null) {
-      var maxInitialMaturityDate = new Date(Math.max.apply(null, this.lstNote.map(x => x.InitialMaturityDate)));
-      var maxExtendedMaturity = new Date(Math.max.apply(null, this.lstNote.map(x => x.ExtendedMaturityCurrent)));
-      var maxFullyExtendedMaturityDate = new Date(Math.max.apply(null, this.lstNote.map(x => x.FullyExtendedMaturityDate)));
-      var maxExpectedMaturityDate = new Date(Math.max.apply(null, this.lstNote.map(x => x.ExpectedMaturityDate)));
-      var maxActualPayoffDate = new Date(Math.max.apply(null, this.lstNote.map(x => x.ActualPayoffDate)));
+      var maxInitialMaturityDate = new Date('1970-01-01Z00:00:00:000');
+      var maxFullyExtendedMaturityDate = new Date('1970-01-01Z00:00:00:000');
+      var maxExtendedMaturity = new Date('1970-01-01Z00:00:00:000');
+      max_ExtensionMat = null;
+      var maxActualPayoffDate = new Date('1970-01-01Z00:00:00:000');
+
+
+      var usePayOffasmaturity = false;
+      var useExtenstionMaturity = true;
+      if (this.maturityList !== undefined) {
+        if (this.maturityList.length > 0) {
+          var vlen = this.maturityList.filter(x => x.ActualPayoffDate == null).length;
+          if (vlen == 0) {
+            usePayOffasmaturity = true;
+          }
+        }
+      }
+
+      dfvalidation = this.ValidateDealFunding();
+      if (this.isMaturityDataChanged == true) {
+        //708	118	Initial
+        //709	118	Extension
+        //710	118	Fully extended
+        //this.selectedGroupName
+        if (this._lstChangedMaturityData !== undefined) {
+          if (this._lstChangedMaturityData.length > 0) {
+            for (var i = 0; i < this._lstChangedMaturityData.length; i++) {
+              if (this._lstChangedMaturityData[i].Approved == 3 && this._lstChangedMaturityData[i].IsDeleted == 0 && this._lstChangedMaturityData[i].GroupName == this.selectedGroupName) {
+                if (this._lstChangedMaturityData[i].MaturityType == 708) {
+                  if (new Date(this._lstChangedMaturityData[i].MaturityDate) > maxInitialMaturityDate) {
+                    maxInitialMaturityDate = this._lstChangedMaturityData[i].MaturityDate;
+                  }
+                }
+
+                if (this._lstChangedMaturityData[i].MaturityType == 710) {
+                  if (new Date(this._lstChangedMaturityData[i].MaturityDate) > maxFullyExtendedMaturityDate) {
+                    maxFullyExtendedMaturityDate = this._lstChangedMaturityData[i].MaturityDate;
+                  }
+                }
+                if (this._lstChangedMaturityData[i].MaturityType == 709) {
+                  if (new Date(this._lstChangedMaturityData[i].MaturityDate) > maxExtendedMaturity) {
+                    maxExtendedMaturity = this._lstChangedMaturityData[i].MaturityDate;
+                  }
+                }
+              }
+            }
+
+            if (this.maturityActualPayoffDate != null) {
+              maxActualPayoffDate = new Date(this.maturityActualPayoffDate);
+            }
+          }
+        }
+
+
+        if (this.maturityList !== undefined) {
+          if (this.maturityList.length > 0) {
+
+            for (var i = 0; i < this.maturityList.length; i++) {
+              if (this.maturityList[i].ApprovedText == "Y" && this.maturityList[i].isDeleted == 0 && this.maturityList[i].MaturityGroupName != this.selectedGroupName) {
+                if (this.maturityList[i].MaturityTypeText == "Initial") {
+                  if (new Date(this.maturityList[i].MaturityDate) > maxInitialMaturityDate) {
+                    maxInitialMaturityDate = this.maturityList[i].MaturityDate;
+                  }
+                }
+
+                if (this.maturityList[i].MaturityTypeText == "Fully extended") {
+                  if (new Date(this.maturityList[i].MaturityDate) > maxFullyExtendedMaturityDate) {
+                    maxFullyExtendedMaturityDate = this.maturityList[i].MaturityDate;
+                  }
+                }
+                if (this.maturityList[i].MaturityTypeText == "Extension") {
+                  if (new Date(this.maturityList[i].MaturityDate) > maxExtendedMaturity) {
+                    maxExtendedMaturity = this.maturityList[i].MaturityDate;
+                  }
+                }
+              }
+
+              if (this.maturityList[i].ActualPayoffDate) {
+                if (new Date(this.maturityList[i].ActualPayoffDate) > maxActualPayoffDate) {
+                  maxActualPayoffDate = this.maturityList[i].ActualPayoffDate;
+                }
+              }
+            }
+          }
+        }
+
+      } else {
+        if (this.maturityList !== undefined) {
+          if (this.maturityList.length > 0) {
+
+            for (var i = 0; i < this.maturityList.length; i++) {
+              if (this.maturityList[i].ApprovedText == "Y" && this.maturityList[i].isDeleted == 0) {
+                if (this.maturityList[i].MaturityTypeText == "Initial") {
+                  if (new Date(this.maturityList[i].MaturityDate) > maxInitialMaturityDate) {
+                    maxInitialMaturityDate = this.maturityList[i].MaturityDate;
+                  }
+                }
+
+                if (this.maturityList[i].MaturityTypeText == "Fully extended") {
+                  if (new Date(this.maturityList[i].MaturityDate) > maxFullyExtendedMaturityDate) {
+                    maxFullyExtendedMaturityDate = this.maturityList[i].MaturityDate;
+                  }
+                }
+                if (this.maturityList[i].MaturityTypeText == "Extension") {
+                  if (new Date(this.maturityList[i].MaturityDate) > maxExtendedMaturity) {
+                    maxExtendedMaturity = this.maturityList[i].MaturityDate;
+                  }
+                }
+              }
+
+              if (this.maturityList[i].ActualPayoffDate) {
+                if (new Date(this.maturityList[i].ActualPayoffDate) > maxActualPayoffDate) {
+                  maxActualPayoffDate = this.maturityList[i].ActualPayoffDate;
+                }
+              }
+            }
+          }
+        }
+      }
+
+      if (maxInitialMaturityDate.getFullYear() < 2000) {
+        maxInitialMaturityDate = new Date(Math.max.apply(null, this.lstNote.map(x => x.InitialMaturityDate)));
+        if (maxInitialMaturityDate.getFullYear() < 2000) {
+          maxInitialMaturityDate = null;
+        }
+      }
+      if (maxFullyExtendedMaturityDate.getFullYear() < 2000) {
+        maxFullyExtendedMaturityDate = new Date(Math.max.apply(null, this.lstNote.map(x => x.FullyExtendedMaturityDate)));
+        if (maxFullyExtendedMaturityDate.getFullYear() < 2000) {
+          maxFullyExtendedMaturityDate = null;
+        }
+      }
+      if (maxExtendedMaturity.getFullYear() < 2000) {
+        maxExtendedMaturity = new Date(Math.max.apply(null, this.lstNote.map(x => x.ExtendedMaturityCurrent)));
+        max_ExtensionMat = maxExtendedMaturity;
+        if (maxExtendedMaturity.getFullYear() < 2000) {
+          maxExtendedMaturity = null;
+          max_ExtensionMat = this._deal.max_ExtensionMat;
+        }
+      } else {
+        max_ExtensionMat = maxExtendedMaturity;
+      }
+
       if (maxActualPayoffDate != null || maxActualPayoffDate != undefined) {
         if (maxActualPayoffDate.getFullYear() < 2000) {
+          maxActualPayoffDate = new Date(Math.max.apply(null, this.lstNote.map(x => x.ActualPayoffDate)));
+          if (maxActualPayoffDate.getFullYear() < 2000) {
+            maxActualPayoffDate = null;
+          }
+        }
+      }
 
+      if (maxActualPayoffDate != null || maxActualPayoffDate != undefined) {
+        if (maxActualPayoffDate.getFullYear() < 2000) {
           maxActualPayoffDate = null;
         }
       }
@@ -3581,59 +5924,29 @@ export class DealDetailComponent extends Paginated implements OnInit {
           maxExtendedMaturity = null;
         }
       }
-      if (maxFullyExtendedMaturityDate != null || maxFullyExtendedMaturityDate != undefined) {
-        if (maxFullyExtendedMaturityDate.getFullYear() < 2000) {
 
-          maxFullyExtendedMaturityDate = null;
+      if (max_ExtensionMat != null) {
+        if (max_ExtensionMat < maxInitialMaturityDate) {
+          useExtenstionMaturity = false;
         }
       }
-      if (maxExpectedMaturityDate != null || maxExpectedMaturityDate != undefined) {
-        if (maxExpectedMaturityDate.getFullYear() < 2000) {
 
-          maxExpectedMaturityDate = null;
-        }
-      }
       var today = new Date();
-
-      //ActualPayoffDate
-      var distinct = [];
-      var uniquedates = {};
-      var listnotes = this.lstNote;
-      for (var item, i = 0; item = listnotes[i++];) {
-        var actualpayoffdate = item.ActualPayoffDate;
-        if (!(actualpayoffdate in uniquedates)) {
-          uniquedates[actualpayoffdate] = 1;
-          distinct.push(actualpayoffdate);
-        }
+      if (maxActualPayoffDate != null && usePayOffasmaturity == true) {
+        maxmat = maxActualPayoffDate;
       }
-
-      if (distinct.length == 1 && distinct[0] != null) {
-        maxmat = actualpayoffdate;
+      else if (max_ExtensionMat != null && useExtenstionMaturity == true) {
+        maxmat = max_ExtensionMat;
       }
       else {
         var nextInitialMaturityDate = this.getnextbusinessDate(new Date(JSON.parse(JSON.stringify(maxInitialMaturityDate))), -20, false);
         if (today >= nextInitialMaturityDate) {
           var nextExtendedMaturityDate = this.getnextbusinessDate(new Date(JSON.parse(JSON.stringify(maxExtendedMaturity))), -20, false);
           if (today >= nextExtendedMaturityDate) {
-            if (today >= nextExtendedMaturityDate) {
-              if (maxFullyExtendedMaturityDate > maxExpectedMaturityDate)
-                maxmat = maxExpectedMaturityDate
-              else
-                maxmat = maxFullyExtendedMaturityDate;
-            }
-            else {
-              if (nextExtendedMaturityDate > maxExpectedMaturityDate)
-                maxmat = maxExpectedMaturityDate
-              else
-                maxmat = nextExtendedMaturityDate
-            }
-
+            maxmat = maxFullyExtendedMaturityDate;
           }
           else {
-            if (maxExtendedMaturity > maxExpectedMaturityDate)
-              maxmat = maxExpectedMaturityDate
-            else
-              maxmat = maxExtendedMaturity;
+            maxmat = maxExtendedMaturity;
           }
 
         }
@@ -3654,6 +5967,8 @@ export class DealDetailComponent extends Paginated implements OnInit {
 
         }
       }
+
+      this.maxmaturitydate = maxmat;
     }
     //check validaion the holiday and sat sun date
     var lstTempDealFunding = this.listdealfunding.filter(x => x.Applied == false || x.Applied == undefined);
@@ -3664,7 +5979,7 @@ export class DealDetailComponent extends Paginated implements OnInit {
           var formateddate = this.convertDateToBindable(lstTempDealFunding[i].Date);
           var dealfundingday = sdate.getDay();
           if (dealfundingday == 6 || dealfundingday == 0
-            || this.ListHoliday.filter(x => this.convertDateToBindable(x.HolidayDate) == formateddate && x.HolidayTypeID == 411).length > 0
+            || this.ListHoliday.filter(x => this.convertDateToBindable(x.HolidayDate) == formateddate && x.HolidayTypeID == 411 && x.IsSoftHoliday != 3).length > 0
           ) {
             var dateexist = errordate.includes(this.convertDateToBindable(sdate));
             if (!dateexist) {
@@ -3680,7 +5995,7 @@ export class DealDetailComponent extends Paginated implements OnInit {
         }
       }
     }
-    var fundingerror = "";
+
     var netdealfunding = 0;
 
     var errornotes = "";
@@ -3700,7 +6015,7 @@ export class DealDetailComponent extends Paginated implements OnInit {
       temprepay = 0;
 
       for (var j = 0; j < this.lstSequenceHistory.length; j++) {
-        noteTotalAdditionalEquity = noteTotalAdditionalEquity + parseFloat(this.GetDefaultValue(parseFloat(this.lstSequenceHistory[j].InitialAdditionalEquity)));
+        //noteTotalAdditionalEquity = noteTotalAdditionalEquity + parseFloat(this.GetDefaultValue(parseFloat(this.lstSequenceHistory[j].InitialAdditionalEquity)));
         noteTotalRequiredEquity = noteTotalRequiredEquity + parseFloat(this.GetDefaultValue(parseFloat(this.lstSequenceHistory[j].InitialRequiredEquity)));
 
         if (this.lstSequenceHistory[j].UseRuletoDetermineNoteFundingText == "3" || this.lstSequenceHistory[j].UseRuletoDetermineNoteFundingText == "Y") {
@@ -3745,32 +6060,32 @@ export class DealDetailComponent extends Paginated implements OnInit {
             var notefunding = 0, noteRepayment = 0;
             if (this.lstSequenceHistory[j].Name == tempar[0].NoteName) {
               for (var m = 0; m < Appliedfunding.length; m++) {
-                if (Appliedfunding[m][this.lstSequenceHistory[j].NoteName] > 0) {
-                  notefunding += Appliedfunding[m][this.lstSequenceHistory[j].NoteName];
+                if (Appliedfunding[m].AdjustmentType != 834 && Appliedfunding[m].AdjustmentType != 896 && Appliedfunding[m].AdjustmentType != 835 && Appliedfunding[m].PurposeID != 840) {
+                  //for funding
+                  if (Appliedfunding[m][this.lstSequenceHistory[j].NoteName] > 0) {
+                    notefunding += Appliedfunding[m][this.lstSequenceHistory[j].NoteName];
+                  }
+                  //for repayment
+                  if (Appliedfunding[m][this.lstSequenceHistory[j].NoteName] < 0) {
+                    noteRepayment += Math.abs(Appliedfunding[m][this.lstSequenceHistory[j].NoteName]);
+                  }
                 }
               }
               if (parseFloat(totFundingseq.toFixed(2)) < parseFloat(notefunding.toFixed(2))) {
                 fundingerror = fundingerror + "<p>" + "Sum of " + tempar[0].NoteName + " funding sequence amount (" + this.formatMoney(totFundingseq) + ") cannot be less than its wire confirmed funding amount (" + this.formatMoney(parseFloat(notefunding.toFixed(2))) + ")." + "</p>";
 
               }
-            }
-            if (this.lstSequenceHistory[j].Name == tempar[0].NoteName) {
-              for (var m = 0; m < Appliedfunding.length; m++) {
-                if (Appliedfunding[m][this.lstSequenceHistory[j].NoteName] < 0) {
-                  noteRepayment += Math.abs(Appliedfunding[m][this.lstSequenceHistory[j].NoteName]);
-                }
-              }
               if (parseFloat(totRepaymentseq.toFixed(2)) < parseFloat(noteRepayment.toFixed(2))) {
                 fundingerror = fundingerror + "<p>" + "Sum of " + tempar[0].NoteName + " repayment sequence amount (" + this.formatMoney(totRepaymentseq) + ") cannot be less than its wire confirmed repayment amount (" + this.formatMoney(parseFloat(noteRepayment.toFixed(2))) + ")." + "</p>";
               }
-
             }
+
           }
         }
 
       }
     }
-    var autoTotalAdditionalEquity = 0;
+    // var autoTotalAdditionalEquity = 0;
     var autoTotalRequiredEquity = 0;
     var autostring = "";
     var runothervalidation = false;
@@ -3778,7 +6093,7 @@ export class DealDetailComponent extends Paginated implements OnInit {
       if (this.lstAdjustedTotalCommitment) {
         for (var i = 0; i < this.lstAdjustedTotalCommitment.items.length; i++) {
           TotalRequiredEquity = TotalRequiredEquity + parseFloat(this.GetDefaultValue(parseFloat(this.lstAdjustedTotalCommitment.items[i].TotalRequiredEquity)));
-          TotalAdditionalEquity = TotalAdditionalEquity + parseFloat(this.GetDefaultValue(parseFloat(this.lstAdjustedTotalCommitment.items[i].TotalAdditionalEquity)));
+          //TotalAdditionalEquity = TotalAdditionalEquity + parseFloat(this.GetDefaultValue(parseFloat(this.lstAdjustedTotalCommitment.items[i].TotalAdditionalEquity)));
         }
       }
 
@@ -3831,11 +6146,11 @@ export class DealDetailComponent extends Paginated implements OnInit {
               }
             }
 
-            if (this.lstautospreadrule[m].AdditionalEquity !== null || this.lstautospreadrule[m].AdditionalEquity !== undefined) {
-              if (Math.sign(this.lstautospreadrule[m].AdditionalEquity) == -1) {
-                autopositiveamountstring = autopositiveamountstring + "Additional Equity ";
-              }
-            }
+            //  if (this.lstautospreadrule[m].AdditionalEquity !== null || this.lstautospreadrule[m].AdditionalEquity !== undefined) {
+            //   if (Math.sign(this.lstautospreadrule[m].AdditionalEquity) == -1) {
+            //   autopositiveamountstring = autopositiveamountstring + "Additional Equity ";
+            // }
+            // }
           }
 
           if (autopositiveamountstring != "") {
@@ -3853,10 +6168,18 @@ export class DealDetailComponent extends Paginated implements OnInit {
               fundingerror = fundingerror + "<p>" + "Start Date should be less than or equal to End Date in Auto Spread." + "</p>";
 
             }
+            //if (this.lstautospreadrule[m].EndDate < maxWiredConfirmDate) {
+            //  fundingerror = fundingerror + "<p>" + "End Date " + this.convertDateToBindable(this.lstautospreadrule[m].EndDate) + " should be greater than or equal to Max Wired Confirmed Date " + this.convertDateToBindable(maxWiredConfirmDate) + " in Auto Spread." + "</p>";
+
+            //}
+
+
             if (this.lstautospreadrule[m].StartDate < this.minClosingDate) {
               fundingerror = fundingerror + "<p>" + "Start Date " + this.convertDateToBindable(this.lstautospreadrule[m].StartDate) + " for Purpose Type " + this.lstautospreadrule[m].PurposeTypeText + " should be greater than or equal to Closing Date " + this.convertDateToBindable(this.minClosingDate) + " for Auto Spread." + "</p>";
 
             }
+
+
             if (this.lstautospreadrule[m].StartDate) {
               if (maxmat != null && this.lstautospreadrule[m].StartDate > maxmat) {
                 fundingerror = fundingerror + "<p>" + "Start Date " + this.convertDateToBindable(this.lstautospreadrule[m].StartDate) + " for Purpose Type " + this.lstautospreadrule[m].PurposeTypeText + " should be less than or equal to maturity date " + this.convertDateToBindable(maxmat) + " for Auto Spread." + "</p>";
@@ -3886,17 +6209,17 @@ export class DealDetailComponent extends Paginated implements OnInit {
         var dealamounttotal = 0;
         var autospreadamounttotal = 0;
         var autoequityamount = 0;
-        var autoAdditionalEquity = 0;
+        // var autoAdditionalEquity = 0;
         var autoRequiredEquity = 0;
 
         var currentpurposetype = '';
         var maxdatewithcomment = null;
         var tempdate = null;
-        sumDealAdditionalEquity = 0;
+        //sumDealAdditionalEquity = 0;
         sumDealRequiredEquity = 0;
         TotalDebetAmount = TotalDebetAmount + this.lstautospreadrule[m].DebtAmount;
 
-        autoTotalAdditionalEquity = autoTotalAdditionalEquity + parseFloat(this.GetDefaultValue(parseFloat(this.lstautospreadrule[m].AdditionalEquity)));
+        // autoTotalAdditionalEquity = autoTotalAdditionalEquity + parseFloat(this.GetDefaultValue(parseFloat(this.lstautospreadrule[m].AdditionalEquity)));
         autoTotalRequiredEquity = autoTotalRequiredEquity + parseFloat(this.GetDefaultValue(parseFloat(this.lstautospreadrule[m].RequiredEquity)));
 
         currentpurposetype = this.lstautospreadrule[m].PurposeTypeText;
@@ -3905,42 +6228,29 @@ export class DealDetailComponent extends Paginated implements OnInit {
           if (currentpurposetype == this.listdealfunding[n].PurposeText) {
             var NewValue = 0;
             var nonwireconfirmedvalue = 0;
-            if (this.listdealfunding[n].Applied == true || this.listdealfunding[n].Comment) {
-              NewValue = this.listdealfunding[n].Value;
-            } else if (this.listdealfunding[n].WF_IsFlowStart == 1) {
-              NewValue = this.listdealfunding[n].Value;
+            if (this.listdealfunding[n].AdjustmentType != 834 && this.listdealfunding[n].AdjustmentType != 896 && this.listdealfunding[n].AdjustmentType != 835) {
+              if (this.listdealfunding[n].Applied == true || this.listdealfunding[n].Comment) {
+                NewValue = this.listdealfunding[n].Value;
+              } else if (this.listdealfunding[n].WF_IsFlowStart == 1) {
+                NewValue = this.listdealfunding[n].Value;
+              }
             }
+
             dealamounttotal = NewValue + dealamounttotal;
 
             if (this.listdealfunding[n].Applied == true) {
               sumDealRequiredEquity = sumDealRequiredEquity + this.listdealfunding[n].RequiredEquity;
-              sumDealAdditionalEquity = sumDealAdditionalEquity + this.listdealfunding[n].AdditionalEquity;
+              // sumDealAdditionalEquity = sumDealAdditionalEquity + this.listdealfunding[n].AdditionalEquity;
             }
             else if (this.listdealfunding[n].Comment != null && this.listdealfunding[n].Comment != "") {
               sumDealRequiredEquity = sumDealRequiredEquity + this.listdealfunding[n].RequiredEquity;
-              sumDealAdditionalEquity = sumDealAdditionalEquity + this.listdealfunding[n].AdditionalEquity;
+              //sumDealAdditionalEquity = sumDealAdditionalEquity + this.listdealfunding[n].AdditionalEquity;
             }
             else if (this.listdealfunding[n].WF_IsFlowStart == 1) {
               sumDealRequiredEquity = sumDealRequiredEquity + this.listdealfunding[n].RequiredEquity;
-              sumDealAdditionalEquity = sumDealAdditionalEquity + this.listdealfunding[n].AdditionalEquity;
+              // sumDealAdditionalEquity = sumDealAdditionalEquity + this.listdealfunding[n].AdditionalEquity;
             }
 
-          }
-        }
-
-        //validation to check debt amount and funding amount for same start and end date
-        if (this.lstautospreadrule[m].StartDate && this.lstautospreadrule[m].EndDate) {
-          if (this.lstautospreadrule[m].StartDate.getTime() == this.lstautospreadrule[m].EndDate.getTime()) {
-            for (var a = 0; a < this.listdealfunding.length; a++) {
-              if (currentpurposetype == this.listdealfunding[a].PurposeText) {
-                if (this.listdealfunding[a].Applied == true) {
-                  if (this.lstautospreadrule[m].DebtAmount != dealamounttotal) {
-                    fundingerror = fundingerror + "<p>" + "Debt Amount and Funding Amount in Deal Funding Schedule for purpose type (" + currentpurposetype + ") should be equal." + "</p>";
-                    break;
-                  }
-                }
-              }
-            }
           }
         }
         //end validation
@@ -3949,21 +6259,17 @@ export class DealDetailComponent extends Paginated implements OnInit {
             var NewAmount = this.lstautospreadrule[l].DebtAmount;
             autospreadamounttotal = NewAmount + autospreadamounttotal;
             autoequityamount = autoequityamount + this.lstautospreadrule[l].EquityAmount;
-            autoAdditionalEquity = autoAdditionalEquity + this.lstautospreadrule[l].AdditionalEquity;
+            //autoAdditionalEquity = autoAdditionalEquity + this.lstautospreadrule[l].AdditionalEquity;
             autoRequiredEquity = autoRequiredEquity + this.lstautospreadrule[l].RequiredEquity;
           }
         }
-        //if (Math.abs(parseFloat((sumdealEquityAmount).toFixed(2))) > Math.abs(parseFloat((autoequityamount).toFixed(2)))) {
-        //    fundingerror = fundingerror + "<p>" + "Sum of Equity Amount (" + this.formatMoney(autoequityamount) + ") for purpose type " + currentpurposetype + " can not be less than sum of Deal Equity Amount (" + this.formatMoney(sumdealEquityAmount) + ") for same purpose type." + "</p>";
+        //if (Math.abs(parseFloat((sumDealAdditionalEquity).toFixed(2))) > Math.abs(parseFloat((autoAdditionalEquity).toFixed(2)))) {
+        //fundingerror = fundingerror + "<p>" + "Sum of Additional Equity (" + this.formatMoney(autoAdditionalEquity) + ") for purpose type " + currentpurposetype + " can not be less than sum of Deal Additional Equity (" + this.formatMoney(sumDealAdditionalEquity) + ") for same purpose type." + "</p>";
+        // }
+
+        //if (Math.abs(parseFloat((sumDealRequiredEquity).toFixed(2))) > Math.abs(parseFloat((autoRequiredEquity).toFixed(2)))) {
+        //fundingerror = fundingerror + "<p>" + "Sum of Required Equity (" + this.formatMoney(autoRequiredEquity) + ") for purpose type " + currentpurposetype + " can not be less than sum of Deal Required Equity (" + this.formatMoney(sumDealRequiredEquity) + ") for same purpose type." + "</p>";
         //}
-
-        if (Math.abs(parseFloat((sumDealAdditionalEquity).toFixed(2))) > Math.abs(parseFloat((autoAdditionalEquity).toFixed(2)))) {
-          fundingerror = fundingerror + "<p>" + "Sum of Additional Equity (" + this.formatMoney(autoAdditionalEquity) + ") for purpose type " + currentpurposetype + " can not be less than sum of Deal Additional Equity (" + this.formatMoney(sumDealAdditionalEquity) + ") for same purpose type." + "</p>";
-        }
-
-        if (Math.abs(parseFloat((sumDealRequiredEquity).toFixed(2))) > Math.abs(parseFloat((autoRequiredEquity).toFixed(2)))) {
-          fundingerror = fundingerror + "<p>" + "Sum of Required Equity (" + this.formatMoney(autoRequiredEquity) + ") for purpose type " + currentpurposetype + " can not be less than sum of Deal Required Equity (" + this.formatMoney(sumDealRequiredEquity) + ") for same purpose type." + "</p>";
-        }
 
         if (Math.abs(parseFloat((dealamounttotal).toFixed(2))) > Math.abs(parseFloat((autospreadamounttotal).toFixed(2)))) {
           fundingerror = fundingerror + "<p>" + "Sum of Debt Amount (" + this.formatMoney(autospreadamounttotal) + ") for purpose type " + currentpurposetype + " can not be less than sum of wire confirmed deal funding amount plus active draw amount and any locked draw amount (" + this.formatMoney(dealamounttotal) + ") for same purpose type." + "</p>";
@@ -3996,8 +6302,9 @@ export class DealDetailComponent extends Paginated implements OnInit {
       var totalamounttodistribute = 0;
       TotalDebetAmount = parseFloat((TotalDebetAmount).toFixed(2));
       var autospreadtotalfunding = parseFloat((TotalDebetAmount).toFixed(2)) + totalintitalfunding;
+
       if (parseFloat(autospreadtotalfunding.toFixed(2)) > parseFloat(parseFloat(this._totalcommitmenttextboxvalue).toFixed(2))) {
-        fundingerror = fundingerror + "<p>" + "The sum of Deal Funding (" + this.formatMoney(TotalDebetAmount) + ") and Initial Funding (" + this.formatMoney(totalintitalfunding) + ") should be less than or equal to the Total Commitment(" + this.formatMoney(this._deal.TotalCommitment) + ").</p>";
+        fundingerror = fundingerror + "<p>" + "The sum of Deal Funding (" + this.formatMoney(TotalDebetAmount) + ") and Initial Funding (" + this.formatMoney(totalintitalfunding) + ") should be less than or equal to the Total Commitment (" + this.formatMoney(this._deal.TotalCommitment) + ").</p>";
       }
       var ProjectBudget = 0;
       var Amountrem = 0;
@@ -4011,7 +6318,7 @@ export class DealDetailComponent extends Paginated implements OnInit {
       totalamounttodistribute = parseFloat((Amountrem + TotalLockedAmount).toFixed(2));
       ProjectBudget = totalamounttodistribute + sumdealfundIncludeOtherandTransfer;
       if (parseFloat((ProjectBudget).toFixed(2)) > parseFloat((SumFundingSeq).toFixed(2))) {
-        fundingerror = fundingerror + "<p>" + "Total of debt amount (" + this.formatMoney(ProjectBudget) + ") including Note Transfer and Others funding should not be greater than Total of funding sequence amount (" + this.formatMoney(SumFundingSeq) + ")." + "</p>";
+        fundingerror = fundingerror + "<p>" + "Total of debt amount (" + this.formatMoney(ProjectBudget) + ")  including Note Transfer and Other funding, and excluding Non Commitment Adjustment amount, should not be greater than Total of funding sequence amount (" + this.formatMoney(SumFundingSeq) + ")." + "</p>";
       }
 
       var autospreadstartdateerror = "";
@@ -4022,46 +6329,68 @@ export class DealDetailComponent extends Paginated implements OnInit {
         if (this.lstautospreadrule[l].StartDate) {
           var sdate = new Date(this.lstautospreadrule[l].StartDate);
           var formateddate = this.convertDateToBindable(this.lstautospreadrule[l].StartDate);
+          var currentholidaydate = this.ListHoliday.filter(x => this.convertDateToBindable(x.HolidayDate) == formateddate && x.HolidayTypeID == 411)
           var autospreadstartday = sdate.getDay();
-          if (autospreadstartday == 6 || autospreadstartday == 0
-            || this.ListHoliday.filter(x => this.convertDateToBindable(x.HolidayDate) == formateddate && x.HolidayTypeID == 411).length > 0
-          ) {
-            var dateexist = errordates.includes(this.convertDateToBindable(sdate));
-            if (!dateexist) {
-              var distinct = []
-              var startdateerror = this.lstautospreadrule[l].StartDate;
-              if (!(startdateerror in distinct)) {
-                distinct.push(startdateerror);
-              }
-              if (distinct.length == 1) {
-                autospreadstartdateerror = this.convertDateToBindable(startdateerror) + ", ";
-              }
-              else {
-                autospreadstartdateerror += this.convertDateToBindable(this.lstautospreadrule[l].StartDate) + ", ";
+          if (autospreadstartday == 6 || autospreadstartday == 0 || currentholidaydate.length > 0) {
+            var addvalidation = true;
+
+            if (currentholidaydate != null && currentholidaydate.length > 0) {
+              if (currentholidaydate[0].IsSoftHoliday == 3) {
+                addvalidation = false;
               }
             }
+
+            if (addvalidation == true) {
+              var dateexist = errordates.includes(this.convertDateToBindable(sdate));
+              if (!dateexist) {
+                var distinct = []
+                var startdateerror = this.lstautospreadrule[l].StartDate;
+                if (!(startdateerror in distinct)) {
+                  distinct.push(startdateerror);
+                }
+                if (distinct.length == 1) {
+                  autospreadstartdateerror = this.convertDateToBindable(startdateerror) + ", ";
+                }
+                else {
+                  autospreadstartdateerror += this.convertDateToBindable(this.lstautospreadrule[l].StartDate) + ", ";
+                }
+              }
+            }
+            //
+
           }
         }
+
 
         if (this.lstautospreadrule[l].EndDate) {
           var sdate = new Date(this.lstautospreadrule[l].EndDate);
           var formateddate = this.convertDateToBindable(this.lstautospreadrule[l].EndDate);
+          var currentdatearry = this.ListHoliday.filter(x => this.convertDateToBindable(x.HolidayDate) == formateddate && x.HolidayTypeID == 411);
+
           var autospreadstartday = sdate.getDay();
-          if (autospreadstartday == 6 || autospreadstartday == 0
-            || this.ListHoliday.filter(x => this.convertDateToBindable(x.HolidayDate) == formateddate && x.HolidayTypeID == 411).length > 0
-          ) {
-            var dateexist = errordates.includes(this.convertDateToBindable(sdate));
-            if (!dateexist) {
-              var distinct = []
-              var enddateerror = this.lstautospreadrule[l].EndDate;
-              if (!(enddateerror in distinct)) {
-                distinct.push(enddateerror);
+          if (autospreadstartday == 6 || autospreadstartday == 0 || currentdatearry.length > 0) {
+
+            var addvalidation = true;
+            if (currentdatearry != null && currentdatearry.length > 0) {
+              if (currentdatearry[0].IsSoftHoliday == 3) {
+                addvalidation = false;
               }
-              if (distinct.length == 1) {
-                autospreadEnddateerror = this.convertDateToBindable(enddateerror) + ", ";
-              }
-              else {
-                autospreadEnddateerror += this.convertDateToBindable(this.lstautospreadrule[l].EndDate) + ", ";
+            }
+
+            if (addvalidation == true) {
+              var dateexist = errordates.includes(this.convertDateToBindable(sdate));
+              if (!dateexist) {
+                var distinct = []
+                var enddateerror = this.lstautospreadrule[l].EndDate;
+                if (!(enddateerror in distinct)) {
+                  distinct.push(enddateerror);
+                }
+                if (distinct.length == 1) {
+                  autospreadEnddateerror = this.convertDateToBindable(enddateerror) + ", ";
+                }
+                else {
+                  autospreadEnddateerror += this.convertDateToBindable(this.lstautospreadrule[l].EndDate) + ", ";
+                }
               }
             }
           }
@@ -4074,6 +6403,7 @@ export class DealDetailComponent extends Paginated implements OnInit {
         fundingerror = fundingerror + "<p>" + "You have entered a end date (" + autospreadEnddateerror.slice(0, errordates.length - 2) + ") which is either on holiday or weekend. Please enter different end date." + "</p>";
       }
 
+      var commentMandetory;
       var holidayvalidationauto = true;
       var holidayerrordateauto = '';
       for (var df = 0; df < this.listdealfunding.length; df++) {
@@ -4082,7 +6412,7 @@ export class DealDetailComponent extends Paginated implements OnInit {
             var sdate = new Date(this.listdealfunding[df].Date);
             var formateddate = this.convertDateToBindable(this.listdealfunding[df].Date);
             var dealfundingday = sdate.getDay();
-            if (dealfundingday == 6 || dealfundingday == 0 || this.ListHoliday.filter(x => this.convertDateToBindable(x.HolidayDate) == formateddate && x.HolidayTypeID == 411).length > 0) {
+            if (dealfundingday == 6 || dealfundingday == 0 || this.ListHoliday.filter(x => this.convertDateToBindable(x.HolidayDate) == formateddate && x.HolidayTypeID == 411 && x.IsSoftHoliday != 3).length > 0) {
               var dateexist = errordate.includes(this.convertDateToBindable(sdate));
               if (!dateexist) {
                 holidayerrordateauto += this.convertDateToBindable(sdate) + ", ";
@@ -4100,7 +6430,7 @@ export class DealDetailComponent extends Paginated implements OnInit {
           var foundornot = "";
           if (result[re]) {
             if (result[re] != null && result[re] != "") {
-              if (!(result[re] === "Amortization" || result[re] === "Property Release" || result[re] === "Full Payoff" || result[re] === "Paydown" || result[re] === "Other")) {
+              if (!(result[re] === "Amortization" || result[re] === "Property Release" || result[re] === "Full Payoff" || result[re] === "Paydown" || result[re] === "Other" || result[re] === "Principal Writeoff" || result[re] === "Net Property Income/Loss")) {
                 var objauto = this.lstautospreadrule.filter(x => x.PurposeTypeText == result[re])
                 if (objauto.length > 0) {
                   if (objauto) {
@@ -4123,61 +6453,85 @@ export class DealDetailComponent extends Paginated implements OnInit {
       if (purposetype != "") {
         fundingerror = fundingerror + "<p>" + "The purpose type(s) (" + purposetype.slice(0, purposetype.length - 2) + ") in deal funding grid does not exist in auto spread grid." + "</p>";
       }
-
-      if ((parseFloat(autoTotalAdditionalEquity.toFixed(2)) + parseFloat(noteTotalAdditionalEquity.toFixed(2))) > parseFloat(TotalAdditionalEquity.toFixed(2))) {
-        fundingerror = fundingerror + "<p>" + "Sum of the Initial Additional Equity and Future Additional Equity (in project budget) should be less than or equal to Total Additional Equity in commitment grid.";
-      }
       if ((parseFloat(autoTotalRequiredEquity.toFixed(2)) + parseFloat(noteTotalRequiredEquity.toFixed(2))) > parseFloat(TotalRequiredEquity.toFixed(2))) {
-        fundingerror = fundingerror + "<p>" + "Sum of the Initial Required Equity and Future Required Equity (in project budget) should be less than or equal to Total Required Equity in commitment grid.";
+        fundingerror = fundingerror + "<p>" + "Sum of the Initial Required Equity and Future Required Equity (in project budget) should be less than or equal to Total FF Required Equity in commitment grid.";
       }
-
-      //debt  TotalDebetAmount = 0;
     }
+    let isExpectedFullRepaymentDateHoliday = false, isEarliestPossibleRepaymentDateHoliday = false, isLatestPossibleRepaymentDateHoliday = false;
+    let HolidayErrormsg = '';
+    if (this.checkDateisHoliday(this._deal.ExpectedFullRepaymentDate))
+      isExpectedFullRepaymentDateHoliday = true;
+
+
+    if (this.checkDateisHoliday(this._deal.EarliestPossibleRepaymentDate))
+      isEarliestPossibleRepaymentDateHoliday = true;
+
+
+    if (this.checkDateisHoliday(this._deal.LatestPossibleRepaymentDate))
+      isLatestPossibleRepaymentDateHoliday = true;
+
+
+    if (isExpectedFullRepaymentDateHoliday || isEarliestPossibleRepaymentDateHoliday || isLatestPossibleRepaymentDateHoliday) {
+      HolidayErrormsg = "You have entered";
+      if (isExpectedFullRepaymentDateHoliday)
+        HolidayErrormsg = HolidayErrormsg + " Expected Full Repayment Date (" + this.convertDateToBindable(this._deal.ExpectedFullRepaymentDate) + "),"
+
+      if (isEarliestPossibleRepaymentDateHoliday)
+        HolidayErrormsg = HolidayErrormsg + " Earliest Possible Repayment Date (" + this.convertDateToBindable(this._deal.EarliestPossibleRepaymentDate) + "),"
+
+      if (isLatestPossibleRepaymentDateHoliday)
+        HolidayErrormsg = HolidayErrormsg + " Latest Possible Repayment Date (" + this.convertDateToBindable(this._deal.LatestPossibleRepaymentDate) + "),"
+
+      HolidayErrormsg = HolidayErrormsg.substring(0, HolidayErrormsg.length - 1) + " which is either on holiday or weekend. Please enter different date.";
+    }
+    if (HolidayErrormsg)
+      fundingerror = HolidayErrormsg;
+
     // end of auto spread validation 
     if (autostring != "") {
       fundingerror = fundingerror + "<p>" + autostring.slice(0, -1) + "are required field(s) in Auto Spreading." + "</p>";
     }
     if (this.listdealfunding.length > 0) {
       var sumdealrepayment = 0;
-      //if (this._deal.EnableAutospreadRepayments != true) {
-      //    sumdealrepayment = parseFloat(this.listdealfunding.reduce(function (r, a) { return a.Value < 0 ? r + parseFloat(a.Value) : r; }, 0).toFixed(2));
-      //}
 
       if (this._deal.AggregatedTotal == null) { this._deal.AggregatedTotal = 0; }
       netdealfunding = parseFloat(this.listdealfunding.reduce(function (r, a) { return a.Value ? r + parseFloat(a.Value) : r; }, 0).toFixed(2));
       if (this.checked != true) {
         var sumtotalfunding = sumdealfundingwithnotetransfer + totalintitalfunding;
-        if (parseFloat(sumtotalfunding.toFixed(2)) > parseFloat(parseFloat(this._totalcommitmenttextboxvalue).toFixed(2))) {
-          fundingerror = fundingerror + "<p>" + "The sum of Deal Funding (" + this.formatMoney(sumdealfundingwithnotetransfer) + ") and Initial Funding (" + this.formatMoney(totalintitalfunding) + ") should be less than or equal to the Total Commitment.(" + this.formatMoney(this._deal.TotalCommitment) + ")</p>";
+
+        var sumtotalcommitmentandrevolver = parseFloat(parseFloat(this._totalcommitmenttextboxvalue).toFixed(2)) + sumrevolver;
+        if (parseFloat(sumtotalfunding.toFixed(2)) > parseFloat(sumtotalcommitmentandrevolver.toFixed(2))) {
+          fundingerror = fundingerror + "<p>" + "The sum of Deal Funding (" + this.formatMoney(sumdealfundingwithnotetransfer) + ") and Initial Funding (" + this.formatMoney(totalintitalfunding) + ") should be less than or equal to the Total Commitment (" + this.formatMoney(this._deal.TotalCommitment) + ") and Revolver " + this.formatMoney(sumrevolver) + ". </p>";
         }
       }
 
-      this.listdealfunding.sort(this.SortByDate);
-      //  if (this._deal.EnableAutospreadRepayments == true)
       {
         for (var d = 0; d < this.listdealfunding.length; d++) {
           if (this.listdealfunding[d].Value < 0) {
-            if (this.listdealfunding[d].PurposeText == "Paydown") {
-              if (this.listdealfunding[d].Applied == true) {
+            if (this.listdealfunding[d].AdjustmentType != 834 && this.listdealfunding[d].AdjustmentType != 896 && this.listdealfunding[d].AdjustmentType != 835 && this.listdealfunding[d].PurposeID != 840) {
+              if (this.listdealfunding[d].PurposeText == "Paydown") {
+                if (this.listdealfunding[d].Applied == true) {
+                  sumdealrepayment = sumdealrepayment + this.listdealfunding[d].Value;
+                }
+                else if (this.listdealfunding[d].Comment != null && this.listdealfunding[d].Comment != "") {
+                  sumdealrepayment = sumdealrepayment + this.listdealfunding[d].Value;
+                }
+                else if (this.listdealfunding[d].WF_IsFlowStart == 1) {
+                  sumdealrepayment = sumdealrepayment + this.listdealfunding[d].Value;
+                }
+              } else {
                 sumdealrepayment = sumdealrepayment + this.listdealfunding[d].Value;
-              }
-              else if (this.listdealfunding[d].Comment != null && this.listdealfunding[d].Comment != "") {
-                sumdealrepayment = sumdealrepayment + this.listdealfunding[d].Value;
-              }
-              else if (this.listdealfunding[d].WF_IsFlowStart == 1) {
-                sumdealrepayment = sumdealrepayment + this.listdealfunding[d].Value;
-              }
-            } else {
-              sumdealrepayment = sumdealrepayment + this.listdealfunding[d].Value;
 
+              }
             }
+
           }
         }
       }
 
       for (var d = 0; d < this.listdealfunding.length; d++) {
 
-        this.listdealfunding[d]["DealFundingRowno"] = d + 1;
+        //  this.listdealfunding[d]["DealFundingRowno"] = d + 1;
         if (this.listdealfunding[d].PurposeID || this.listdealfunding[d].Value || this.listdealfunding[d].Date) {
           if (!this.listdealfunding[d].PurposeID) {
             ispurposeblank = true;
@@ -4202,7 +6556,8 @@ export class DealDetailComponent extends Paginated implements OnInit {
         if (this.listdealfunding[d].PurposeText == "Capital Expenditure" || this.listdealfunding[d].PurposeText == "OpEx" || this.listdealfunding[d].PurposeText == "Force Funding" || this.listdealfunding[d].PurposeText == "Capitalized Interest" || this.listdealfunding[d].PurposeText == "TI/LC" || this.listdealfunding[d].PurposeText == "Additional Collateral Purchase") {
           if (maxmat) {
             if (Date.parse(maxmat) != 0) {
-              if (this.listdealfunding[d].Date > maxmat) {
+              var currentdate = new Date(this.listdealfunding[d].Date.toLocaleDateString());
+              if (currentdate > maxmat) {
                 if (this.listdealfunding[d].Applied != true) {
                   if (this.listdealfunding[d].Comment != null || this.listdealfunding[d].Comment != "") {
                     fundingerror = fundingerror + "<p>" + "Any date(s) after the Maturity date <b>(" + this.convertDateToBindable(maxmat) + ") </b> in Deal Funding Schedule is not allowed." + "</p>";
@@ -4227,55 +6582,82 @@ export class DealDetailComponent extends Paginated implements OnInit {
           }
         }
 
-        if (this.listdealfunding[d].PurposeText == "Amortization" || this.listdealfunding[d].PurposeText == "Property Release" || this.listdealfunding[d].PurposeText == "Full Payoff" || this.listdealfunding[d].PurposeText == "Paydown") {
+        if (this.listdealfunding[d].PurposeText == "Amortization" || this.listdealfunding[d].PurposeText == "Property Release" || this.listdealfunding[d].PurposeText == "Full Payoff" || this.listdealfunding[d].PurposeText == "Paydown" || this.listdealfunding[d].PurposeText == "Equity Distribution") {
           if (this.listdealfunding[d].Value !== null || this.listdealfunding[d].Value !== undefined) {
             //check if value is null
             if (Math.sign(this.listdealfunding[d].Value) == 1) {
-              fundingerror = fundingerror + "<p>" + "Transaction amount should be negative for transactions type Amortization, Full Payoff, Paydown and Property Release." + "</p>";
+              fundingerror = fundingerror + "<p>" + "Transaction amount should be negative for transactions type Amortization, Paydown, Full Payoff, Property Release and Equity Distribution." + "</p>";
               break;
             }
           }
         }
-        if (this.checked == false) {
-          //negative amount
-          if (this.listdealfunding[d].PurposeText == "Amortization" || this.listdealfunding[d].PurposeText == "Property Release" || this.listdealfunding[d].PurposeText == "Full Payoff" || this.listdealfunding[d].PurposeText == "Paydown") {
-            if (Date.parse(maxextendedmat) != 0 && maxextendedmat != null) {
-              if (this.listdealfunding[d].Date > maxextendedmat) {
-                fundingerror = fundingerror + "<p>" + "Any date(s) after the fully extended maturity date <b>(" + this.convertDateToBindable(maxextendedmat) + ") </b> in Deal Schedule is not allowed." + "</p>";
-                break;
+        //if (this.checked == false) {
+        //negative amount
+        var currentpurpose = this.listdealfunding[d].PurposeText;
+        if (this.listdealfunding[d].PurposeText == "Amortization" || this.listdealfunding[d].PurposeText == "Property Release" || this.listdealfunding[d].PurposeText == "Full Payoff" || this.listdealfunding[d].PurposeText == "Paydown") {
+          if (maxFullyExtendedMaturityDate != null) {
+            if (this.listdealfunding[d].Date !== undefined && this.listdealfunding[d].Date !== null) {
+              var currentfunddate = new Date(this.listdealfunding[d].Date.toLocaleDateString());
+              if (currentfunddate > maxFullyExtendedMaturityDate) {
+                var showvalidation = false;
+                if (currentpurpose != "Paydown") {
+                  showvalidation = true;
+
+                } else {
+                  if (this.listdealfunding[d].Comment != null || this.listdealfunding[d].Comment != "") {
+                    if (currentpurpose != "Paydown") {
+                      showvalidation = true;
+                    }
+                  } else if (this.checked == false) {
+                    showvalidation = true;
+                  }
+                }
+                if (showvalidation == true) {
+                  fundingerror = fundingerror + "<p>" + "Any date(s) after the fully extended maturity date <b>(" + this.convertDateToBindable(maxFullyExtendedMaturityDate) + ") </b> in Deal Repayment Schedule is not allowed." + "</p>";
+                  break;
+                }
               }
             }
-
           }
-          //other
-          if (this.listdealfunding[d].PurposeText == "Other" || this.listdealfunding[d].PurposeText == "Note Transfer") {
-            if (this.listdealfunding[d].Value !== null || this.listdealfunding[d].Value !== undefined) {
-              if (Math.sign(this.listdealfunding[d].Value) == -1) {
-                if (maxextendedmat == null) {
-                  maxextendedmat = maxmat;
+        }
+
+        //other
+        if (this.listdealfunding[d].PurposeText == "Other" || this.listdealfunding[d].PurposeText == "Note Transfer") {
+          if (this.listdealfunding[d].Value !== null || this.listdealfunding[d].Value !== undefined) {
+            if (Math.sign(this.listdealfunding[d].Value) == -1) {
+              if (maxextendedmat == null) {
+                maxextendedmat = maxmat;
+              }
+              if (Date.parse(maxextendedmat) != 0 && maxextendedmat != null) {
+                if (this.listdealfunding[d].Date > maxextendedmat) {
+                  fundingerror = fundingerror + "<p>" + "Any date(s) after the fully extended maturity date <b>(" + this.convertDateToBindable(maxextendedmat) + ") </b> in Deal Schedule is not allowed." + "</p>";
+                  break;
                 }
-                if (Date.parse(maxextendedmat) != 0 && maxextendedmat != null) {
-                  if (this.listdealfunding[d].Date > maxextendedmat) {
-                    fundingerror = fundingerror + "<p>" + "Any date(s) after the fully extended maturity date <b>(" + this.convertDateToBindable(maxextendedmat) + ") </b> in Deal Schedule is not allowed." + "</p>";
+              }
+            } else {
+              if (maxmat) {
+                if (Date.parse(maxmat) != 0) {
+                  if (this.listdealfunding[d].Date > maxmat) {
+                    fundingerror = fundingerror + "<p>" + "Any date(s) after the Maturity date <b>(" + this.convertDateToBindable(maxmat) + ") </b> in Deal Schedule is not allowed." + "</p>";
                     break;
                   }
                 }
-              } else {
-                if (maxmat) {
-                  if (Date.parse(maxmat) != 0) {
-                    if (this.listdealfunding[d].Date > maxmat) {
-                      fundingerror = fundingerror + "<p>" + "Any date(s) after the Maturity date <b>(" + this.convertDateToBindable(maxmat) + ") </b> in Deal Schedule is not allowed." + "</p>";
-                      break;
-                    }
-                  }
-                }
               }
             }
           }
         }
+        //}
+
         if (!(Number(this.listdealfunding[d].PurposeText).toString() == "NaN" || Number(this.listdealfunding[d].PurposeText) == 0)) {
           this.listdealfunding[d].PurposeID = Number(this.listdealfunding[d].PurposeText);
         }
+
+        if (!(Number(this.listdealfunding[d].AdjustmentType).toString() == "NaN" || Number(this.listdealfunding[d].AdjustmentType) == 0)) {
+          // this.listdealfunding[d].AdjustmentType = Number(this.listdealfunding[d].AdjustmentType);
+          this.listdealfunding[d].AdjustmentTypeText = this.lstAdjustmentType.find(x => x.LookupID == this.listdealfunding[d].AdjustmentType).Name;
+        }
+
+
       }
 
       sumdealrepayment = parseFloat((sumdealrepayment).toFixed(2));
@@ -4288,6 +6670,10 @@ export class DealDetailComponent extends Paginated implements OnInit {
       }
       //if (isamountblank) {
       //    fundingerror = fundingerror + "<p>" + "Amount can not be blank. Please enter funding amount." + "</p>";
+      //}
+      //if (commentMandetory) {
+      //  fundingerror = "<p>" + "you have selected Adjustment type on   " + commentMandetory.slice(0, commentMandetory.length - 1) + " without comment.</p>";
+
       //}
       if (ispurposeblank) {
         fundingerror = fundingerror + "<p>" + "Please choose purpose type of funding." + "</p>";
@@ -4308,7 +6694,7 @@ export class DealDetailComponent extends Paginated implements OnInit {
         for (var val = 0; val < this.lstNote.length; val++) {
           var temparry = this.lstSequence.filter(x => x.NoteID == this.lstNote[val].NoteId);
           var tempseq1 = temparry.reduce(function (r, a) { return a.SequenceTypeText === 'Funding Sequence' ? r + a.Value : r; }, 0);
-          if (parseFloat((tempseq1).toFixed(2)) > this.lstNote[val].TotalCommitment) {
+          if (parseFloat(parseFloat((tempseq1)).toFixed(2)) > this.lstNote[val].TotalCommitment) {
             errornotes = errornotes + this.lstNote[val].CRENoteID + " ,";
           }
         }
@@ -4316,7 +6702,6 @@ export class DealDetailComponent extends Paginated implements OnInit {
 
       if (errornotes != "") {
         errornotes = errornotes.substring(0, errornotes.length - 1);
-
       }
 
       if (!isvalidateHolidaySatSun) {
@@ -4382,54 +6767,64 @@ export class DealDetailComponent extends Paginated implements OnInit {
             ScheduledPrincipalPaid = 0;
 
             var currentnoteid = this.lstSequenceHistory[j].NoteID;
-            var InitialFundingAmount = this.lstSequenceHistory[j].InitialFundingAmount;
-            balloon = this.lstSequenceHistory[j].BalloonPayment * -1;
+            var NoteType = this.lstNote.filter(x => x.NoteId == currentnoteid)[0].NoteType;
+            if (NoteType != 901) {
+              var InitialFundingAmount = this.lstSequenceHistory[j].InitialFundingAmount;
+              balloon = this.lstSequenceHistory[j].BalloonPayment * -1;
 
-            if (this.lstScheduledPrincipalPaid) {
-              if (this.lstScheduledPrincipalPaid.length > 0) {
+              if (this.lstScheduledPrincipalPaid) {
+                if (this.lstScheduledPrincipalPaid.length > 0) {
 
-                var lstScheduledPrip = this.lstScheduledPrincipalPaid.filter(x => x.NoteID == currentnoteid);
-                if (lstScheduledPrip.length > 0) {
-                  var temp = lstScheduledPrip[0].Amount;
-                  if (temp != null && temp != undefined) {
-                    ScheduledPrincipalPaid = parseFloat((temp * -1).toFixed(2));
+                  var lstScheduledPrip = this.lstScheduledPrincipalPaid.filter(x => x.NoteID == currentnoteid);
+                  if (lstScheduledPrip.length > 0) {
+                    var temp = lstScheduledPrip[0].Amount;
+                    if (temp != null && temp != undefined) {
+                      ScheduledPrincipalPaid = parseFloat((temp * -1).toFixed(2));
+                    }
                   }
+
                 }
-
               }
-            }
 
-            var noteFundingArray = this.lstNoteFunding.filter(x => x.NoteID == currentnoteid);
-            for (var m = 0; m < noteFundingArray.length; m++) {
-              if (noteFundingArray[m].Value) {
-                if (noteFundingArray[m].Value < 0) {
-                  if (new Date(noteFundingArray[m].Date) <= today) {
-                    totRepayment = totRepayment + parseFloat(this.GetDefaultValue(parseFloat(noteFundingArray[m].Value).toFixed(2)));
-                  }
-                } else {
-                  if (noteFundingArray[m].Purpose != "Note Transfer") {
-                    if (noteFundingArray[m].Value !== null) {
-                      sumNotefunding = sumNotefunding + parseFloat(this.GetDefaultValue(parseFloat(noteFundingArray[m].Value).toFixed(2)));
+              var noteFundingArray = this.lstNoteFunding.filter(x => x.NoteID == currentnoteid);
+              for (var m = 0; m < noteFundingArray.length; m++) {
+                if (noteFundingArray[m].Value) {
+                  if (noteFundingArray[m].Value < 0) {
+                    //revolver balance will be inculded in  835
+                    if (noteFundingArray[m].AdjustmentType != 834 && noteFundingArray[m].AdjustmentType != 896 && noteFundingArray[m].PurposeID != 840) {
+                      if (new Date(noteFundingArray[m].Date) <= today) {
+                        totRepayment = totRepayment + parseFloat(this.GetDefaultValue(parseFloat(noteFundingArray[m].Value).toFixed(2)));
+                      }
+                    }
+                  } else {
+                    if (noteFundingArray[m].Purpose != "Note Transfer") {
+                      //revolver balance will be inculded in  835
+                      if (noteFundingArray[m].AdjustmentType != 834 && noteFundingArray[m].AdjustmentType != 896 && noteFundingArray[m].PurposeID != 840) {
+                        if (noteFundingArray[m].Value !== null) {
+                          sumNotefunding = sumNotefunding + parseFloat(this.GetDefaultValue(parseFloat(noteFundingArray[m].Value).toFixed(2)));
+                        }
+                      }
+
                     }
                   }
                 }
               }
-            }
-            sumNotefunding = parseFloat(sumNotefunding.toFixed(2));
-            totRepayment = parseFloat(totRepayment.toFixed(2));
-            if (parseFloat(InitialFundingAmount) == 0.01) {
-              InitialFundingAmount = 0;
-            }
-            //for loop end
-            //AdjustedTotalCommitment
-            var subtotal = sumNotefunding + parseFloat(InitialFundingAmount) + totRepayment + parseFloat(balloon) + parseFloat(ScheduledPrincipalPaid);
-            if (parseFloat(subtotal.toFixed(2)) > parseFloat(this.lstSequenceHistory[j].AdjustedTotalCommitment.toFixed(2))) {
-              var diffval = parseFloat(subtotal.toFixed(2)) - parseFloat(this.lstSequenceHistory[j].AdjustedTotalCommitment.toFixed(2));
-              if (Math.abs(parseFloat(diffval.toFixed(2))) > 0) {
-                noteswithissue = noteswithissue + this.lstSequenceHistory[j].CRENoteID + ", ";
+              sumNotefunding = parseFloat(sumNotefunding.toFixed(2));
+              totRepayment = parseFloat(totRepayment.toFixed(2));
+              if (parseFloat(InitialFundingAmount) == 0.01) {
+                InitialFundingAmount = 0;
               }
-
+              //for loop end
+              //AdjustedTotalCommitment
+              var subtotal = sumNotefunding + parseFloat(InitialFundingAmount) + totRepayment + parseFloat(balloon) + parseFloat(ScheduledPrincipalPaid);
+              if (parseFloat(subtotal.toFixed(2)) > parseFloat(this.lstSequenceHistory[j].AdjustedTotalCommitment.toFixed(2))) {
+                var diffval = parseFloat(subtotal.toFixed(2)) - parseFloat(this.lstSequenceHistory[j].AdjustedTotalCommitment.toFixed(2));
+                if (Math.abs(parseFloat(diffval.toFixed(2))) > 0) {
+                  noteswithissue = noteswithissue + this.lstSequenceHistory[j].CRENoteID + ", ";
+                }
+              }
             }
+
           }
         }
       }
@@ -4439,86 +6834,105 @@ export class DealDetailComponent extends Paginated implements OnInit {
         fundingerror = fundingerror + "<p> Sum of Future Funding and Current Balance should be less than or equal to Adjusted Commitment for Note(s) " + noteswithissue.slice(0, -1) + "</p>";
       }
 
-      // check auto spread repayment duplicat dates
-      if (this.flexautospreadrepayments) {
-        if (this.flexautospreadrepayments.rows.length > 0) {
-          var founddates = '';
-          var datelist = [];
-          var data = this.flexautospreadrepayments.rows;
-          for (var j = 0; j < data.length - 1; j++) {
-            datelist.push({ "ProjectedPayoffAsofDate": data[j].dataItem.ProjectedPayoffAsofDate });
-          }
-          var distinct = [];
-          for (var k = 0; k < datelist.length; k++) {
-            var datetocheck = datelist[k].ProjectedPayoffAsofDate;
-            if (datetocheck) {
-              var formateddate = this.convertDateToBindable(datetocheck);
-              for (var j = k + 1; j < datelist.length; j++) {
-                var chkdate = this.convertDateToBindable(datelist[j].ProjectedPayoffAsofDate);
-                if (chkdate == formateddate) {
-                  if (!(datetocheck in distinct)) {
-                    distinct.push(datetocheck);
+      if (this._deal.EnableAutospreadRepayments == true) {
+        // check auto spread repayment duplicat dates
+        if (this.flexautospreadrepayments) {
+          if (this.flexautospreadrepayments.rows.length > 0) {
+            var founddates = '';
+            var datelist = [];
+            var data = this.flexautospreadrepayments.rows;
+            for (var j = 0; j < data.length - 1; j++) {
+              datelist.push({ "ProjectedPayoffAsofDate": data[j].dataItem.ProjectedPayoffAsofDate });
+            }
+            var distinct = [];
+            for (var k = 0; k < datelist.length; k++) {
+              var datetocheck = datelist[k].ProjectedPayoffAsofDate;
+              if (datetocheck) {
+                var formateddate = this.convertDateToBindable(datetocheck);
+                for (var j = k + 1; j < datelist.length; j++) {
+                  var chkdate = this.convertDateToBindable(datelist[j].ProjectedPayoffAsofDate);
+                  if (chkdate == formateddate) {
+                    if (!(datetocheck in distinct)) {
+                      distinct.push(datetocheck);
+                    }
                   }
                 }
               }
             }
-          }
-          if (distinct.length > 0) {
-            var dates = distinct.filter((date, i, self) =>
-              self.findIndex(d => d.getTime() === date.getTime()) === i);
-            if (dates.length) {
-              for (var m = 0; m < dates.length; m++) {
-                founddates += this.convertDateToBindable(dates[m]) + ", ";
+            if (distinct.length > 0) {
+              var dates = distinct.filter((date, i, self) =>
+                self.findIndex(d => d.getTime() === date.getTime()) === i);
+              if (dates.length) {
+                for (var m = 0; m < dates.length; m++) {
+                  founddates += this.convertDateToBindable(dates[m]) + ", ";
+                }
               }
             }
-          }
-          if (founddates != "") {
-            founddates = founddates.substring(0, founddates.length - 1);
-            fundingerror = fundingerror + "<p> Autospread repayment date(s) found duplicates " + founddates.slice(0, -1) + "</p>";
+            if (founddates != "") {
+              founddates = founddates.substring(0, founddates.length - 1);
+              fundingerror = fundingerror + "<p> Autospread repayment date(s) found duplicates " + founddates.slice(0, -1) + "</p>";
+            }
           }
         }
+        //duplicat dates ends
+
+        if (this._deal.ExpectedFullRepaymentDate != null && this._deal.ExpectedFullRepaymentDate !== undefined) {
+          if (new Date(this._deal.ExpectedFullRepaymentDate).getFullYear() < 2000) {
+            this._deal.ExpectedFullRepaymentDate = null;
+          }
+        }
+
+        //if (this._deal.AutoUpdateFromUnderwriting != true) { //only called when  Autospread Repayments are editable 
+        //  if (this._deal.ExpectedFullRepaymentDate != null) {
+        //    if (new Date(this._deal.ExpectedFullRepaymentDate) > new Date(maxFullyExtendedMaturityDate)) {
+        //      fundingerror = fundingerror + "<p>" + "Expected full repayment date cannot be greater than fully extended maturity date." + "</p>";
+        //    }
+        //  }
+        //}
+
+        if (this._deal.EnableAutospreadRepayments == true && this._deal.ExpectedFullRepaymentDate == null) {
+          if (this._deal.RepaymentAutoSpreadMethodID == null || this._deal.RepaymentAutoSpreadMethodID == undefined) {
+            fundingerror = fundingerror + "<p>" + "Please select autospreading repayment method." + "</p>";
+          }
+          if (this._deal.Repaymentallocationfrequency != null && this._deal.Repaymentallocationfrequency != 0) {
+            if (this._deal.Repaymentallocationfrequency < 1 || this._deal.Repaymentallocationfrequency > 12) {
+              fundingerror = fundingerror + "<p>" + "Repayment allocation frequency should be between 1 and 12." + "</p>";
+            }
+          }
+          if (this._deal.Blockoutperiod != null) {
+            if (this._deal.Blockoutperiod < 0 || this._deal.Blockoutperiod > 12) {
+              fundingerror = fundingerror + "<p>" + "Blockout period should be between 0 and 12." + "</p>";
+            }
+          }
+          if (this._deal.PossibleRepaymentdayofthemonth != null && this._deal.PossibleRepaymentdayofthemonth != 0) {
+            if (this._deal.PossibleRepaymentdayofthemonth < 1 || this._deal.PossibleRepaymentdayofthemonth > 31) {
+              fundingerror = fundingerror + "<p>" + "Possible repayment day of the month should be between 1 and 31." + " </p>";
+            }
+          }
+        }
+
+        //validation to check user entered comment or not for paydowns when entered by them
+        //var addvalidation = "";
+        //for (var d = 0; d < this.listdealfunding.length; d++) {
+        //    if (this.listdealfunding[d].PurposeText == "Paydown" || this.listdealfunding[d].PurposeText == "631") {
+        //        if (this.listdealfunding[d].GeneratedByText == 'User Entered') {
+        //            if (this.listdealfunding[d].Comment == "" || this.listdealfunding[d].Comment == null) {
+        //                addvalidation = "User Entered paydown without comment";
+        //            }
+        //        }
+        //    }
+        //}
+
       }
 
-      if (this._deal.ExpectedFullRepaymentDate != null && this._deal.ExpectedFullRepaymentDate !== undefined) {
-        if (new Date(this._deal.ExpectedFullRepaymentDate).getFullYear() < 2000) {
-          this._deal.ExpectedFullRepaymentDate = null;
-        }
+      if (dfvalidation != "") {
+        fundingerror = fundingerror + dfvalidation;
       }
-      if (this._deal.AutoUpdateFromUnderwriting != true) {
-        if (this._deal.ExpectedFullRepaymentDate != null) {
-          if (new Date(this._deal.ExpectedFullRepaymentDate) > new Date(maxextendedmat)) {
-            fundingerror = fundingerror + "<p>" + "Expected full repayment date cannot be greater than fully extended maturity date." + "</p>";
-          }
-        }
+      //validation for Potential Impairment
+      var piError = this.ValidatePotentialImpairment();
+      if (piError != "") {
+        fundingerror = fundingerror + piError;
       }
-
-      if (this._deal.EnableAutospreadRepayments == true && this._deal.ExpectedFullRepaymentDate == null) {
-        if (this._deal.RepaymentAutoSpreadMethodID == null || this._deal.RepaymentAutoSpreadMethodID == undefined) {
-          fundingerror = fundingerror + "<p>" + "Please select autospreading repayment method." + "</p>";
-        }
-        if (this._deal.Repaymentallocationfrequency != null) {
-          if (this._deal.Repaymentallocationfrequency < 1 || this._deal.Repaymentallocationfrequency > 12) {
-            fundingerror = fundingerror + "<p>" + "Repayment allocation frequency should be between 1 and 12." + "</p>";
-          }
-        }
-        if (this._deal.Blockoutperiod != null) {
-          if (this._deal.Blockoutperiod < 0 || this._deal.Blockoutperiod > 12) {
-            fundingerror = fundingerror + "<p>" + "Blockout period should be between 0 and 12." + "</p>";
-          }
-        }
-        if (this._deal.PossibleRepaymentdayofthemonth != null) {
-          if (this._deal.PossibleRepaymentdayofthemonth < 1 || this._deal.PossibleRepaymentdayofthemonth > 31) {
-            fundingerror = fundingerror + "<p>" + "Possible repayment day of the month should be between 1 and 31." + " </p>";
-          }
-        }
-      }
-
-      if (this._deal.ApplyNoteLevelPaydowns == true) {
-        if (this._deal.EnableAutospreadRepayments != true) {
-          fundingerror = fundingerror + "<p>" + "Please enable repayment auto spreading to apply note level paydowns or uncheck apply note level paydowns." + " </p>";
-        }
-      }
-
       if (fundingerror == "") {
         this.convertDatetoGMTGrid(this.listdealfunding, 'DealFunding');
         if (this._deal.EnableAutoSpread == true) {
@@ -4529,13 +6943,14 @@ export class DealDetailComponent extends Paginated implements OnInit {
         this.AssginValuesToDealDataContract();
         this.UpdateNoteDropDowns();
         this.lstNoteFunding = [];
-        this.Dealfuturefunding.maxMaturityDate = this.convertDatetoGMT(maxextendedmat);
+        this.Dealfuturefunding.maxMaturityDate = this.convertDatetoGMT(maxFullyExtendedMaturityDate);
         this.Dealfuturefunding.EnableAutoSpread = this._deal.EnableAutoSpread;
         this.Dealfuturefunding.ServicerDropDate = this._deal.ServicerDropDate;
         this.Dealfuturefunding.FirstPaymentDate = this._deal.FirstPaymentDate;
         this.Dealfuturefunding.ServicereDayAjustement = this._deal.ServicereDayAjustement;
         this.Dealfuturefunding.ListHoliday = this.ListHoliday;
         this.Dealfuturefunding.EnableAutospreadUseRuleN = false;
+        this.Dealfuturefunding.LastWireConfirmDate_db = this._deal.LastWireConfirmDate_db;
 
         //   this.Dealfuturefunding.amort = this._deal.amort();
         this.CallPayRuleFutureFunding(this.Dealfuturefunding);
@@ -4569,12 +6984,13 @@ export class DealDetailComponent extends Paginated implements OnInit {
         this.AssginValuesToDealDataContract();
         this.UpdateNoteDropDowns();
         this.lstNoteFunding = [];
-        this.Dealfuturefunding.maxMaturityDate = this.convertDatetoGMT(maxextendedmat);
+        this.Dealfuturefunding.maxMaturityDate = this.convertDatetoGMT(maxFullyExtendedMaturityDate);
         this.Dealfuturefunding.EnableAutoSpread = this._deal.EnableAutoSpread;
         this.Dealfuturefunding.ServicerDropDate = this._deal.ServicerDropDate;
         this.Dealfuturefunding.ServicereDayAjustement = this._deal.ServicereDayAjustement;
         this.Dealfuturefunding.ListHoliday = this.ListHoliday;
         this.Dealfuturefunding.EnableAutospreadUseRuleN = false;
+        this.Dealfuturefunding.LastWireConfirmDate_db = this._deal.LastWireConfirmDate_db;
         this.CallPayRuleFutureFunding(this.Dealfuturefunding);
         this._isListFetching = false;
       } else if (fundingerror != "") {
@@ -4594,6 +7010,8 @@ export class DealDetailComponent extends Paginated implements OnInit {
       this.Dealfuturefunding.PayruleTargetNoteFundingScheduleList = [];
       this.Dealfuturefunding.PayruleNoteDetailFundingList = [];
       this.Dealfuturefunding.AutoSpreadRuleList = [];
+      this.Dealfuturefunding.ListRevolverDealFunding = [];
+      this.Dealfuturefunding.ListRevolverNoteFunding = [];
       // this.Dealfuturefunding.Amort.DealAmortizationList = [];
 
       for (var df = 0; df < this.listdealfunding.length; df++) {
@@ -4601,6 +7019,11 @@ export class DealDetailComponent extends Paginated implements OnInit {
           this.listdealfunding[df].PurposeID = Number(this.listdealfunding[df].PurposeText);
           this.listdealfunding[df].PurposeText = this.lstPurposeType.find(x => x.LookupID == this.listdealfunding[df].PurposeID).Name
         }
+        if (!(Number(this.listdealfunding[df].AdjustmentType).toString() == "NaN" || Number(this.listdealfunding[df].AdjustmentType) == 0)) {
+          this.listdealfunding[df].AdjustmentType = Number(this.listdealfunding[df].AdjustmentType);
+          this.listdealfunding[df].AdjustmentTypeText = this.lstAdjustmentType.find(x => x.LookupID == this.listdealfunding[df].AdjustmentType).Name;
+        }
+
       }
 
       this.Dealfuturefunding.ApplyNoteLevelPaydowns = this._deal.ApplyNoteLevelPaydowns;
@@ -4617,6 +7040,43 @@ export class DealDetailComponent extends Paginated implements OnInit {
           }
 
         }
+        this.lstNoteFunding = [];
+
+        //New Code forr deal funding row no for use rule N
+        var griddata = this.cvDealFundingList.sourceCollection;
+        for (var df = 0; df < griddata.length; df++) {
+          griddata[df].DealFundingRowno = df + 1;
+          if (this.lstNote[0] != null) {
+            for (var val = 0; val < this.lstSequenceHistory.length; val++) {
+              var newlist = new Notefunding;
+              newlist.NoteID = this.lstNote[val].NoteId;
+              newlist.NoteName = this.lstNote[val].Name;
+              if (griddata[df][this.lstSequenceHistory[val].Name] == null || griddata[df][this.lstSequenceHistory[val].Name] == undefined) {
+                newlist.Value = "0";
+              } else {
+                newlist.Value = griddata[df][this.lstSequenceHistory[val].Name];
+              }
+              newlist.Date = griddata[df].Date;
+              newlist.isDeleted = 0;
+              newlist.Applied = griddata[df].Applied;
+              newlist.AdjustmentType = griddata[df].AdjustmentType;
+              newlist.Comments = griddata[df].Comment;
+              newlist.DealFundingRowno = griddata[df].DealFundingRowno;
+              newlist.PurposeID = griddata[df].PurposeID;
+              newlist.Purpose = griddata[df].PurposeText;
+              newlist.GeneratedBy = griddata[df].GeneratedBy;
+              newlist.GeneratedByText = griddata[df].GeneratedByText;
+              newlist.GeneratedByUserID = griddata[df].GeneratedByUserID;
+              newlist.DealFundingID = griddata[df].DealFundingID;
+
+
+              this.lstNoteFunding.push(newlist);
+            }
+          }
+        }
+
+        //New Code forr deal funding row no for use rule N
+
 
 
 
@@ -4647,30 +7107,114 @@ export class DealDetailComponent extends Paginated implements OnInit {
         this.Dealfuturefunding.EnableAutospreadRepayments = false;
       }
 
+
+      if (this.lstImpairment) {
+        if (this.lstImpairment.length == 0) {
+          this.lstNoteFunding = this.lstNoteFunding.filter(x => x.PurposeID != 840);
+          var maxrownumber = 0;
+          for (var n1 = 0; n1 < this.listdealfunding.length; n1++) {
+            if (this.listdealfunding[n1].DealFundingRowno !== undefined && this.listdealfunding[n1].DealFundingRowno != null) {
+              if (this.listdealfunding[n1].DealFundingRowno > maxrownumber) {
+                maxrownumber = this.listdealfunding[n1].DealFundingRowno;
+              }
+            }
+          }
+          this.lstImpairment = this.listdealfunding.filter(x => x.PurposeID == 840);
+          for (var t = 0; t < this.lstImpairment.length; t++) {
+            var rwnum = ++maxrownumber;
+            this.lstImpairment[t].GeneratedBy = 822;
+            this.lstImpairment[t].GeneratedByText = this._deal.currentUserName;
+            this.lstImpairment[t].GeneratedByUserID = this._deal.currentUserID;
+            this.lstImpairment[t].DealFundingRowno = rwnum;
+            this.lstImpairment[t].DealFundingID = null;
+
+
+            for (var j1 = 0; j1 < this.lstNote.length; j1++) {
+              this.lstNoteFunding.push({
+                "Applied": true,
+                "NoteName": this.lstNote[j1].Name,
+                "Value": this.lstImpairment[t][this.lstNote[j1].Name],
+                "DealFundingRowno": rwnum,
+                "GeneratedBy": this.lstImpairment[t].GeneratedBy,
+                "NoteID": this.lstNote[j1].NoteId,
+                "Date": this.lstImpairment[t].Date,
+                "PurposeID": this.lstImpairment[t].PurposeID,
+                "DealFundingID": this.lstImpairment[t].DealFundingID
+              });
+            }
+          }
+        }
+
+      }
+
       if (this.listdealfunding) {
         for (var k = 0; k < this.listdealfunding.length; k++) {
           for (var l = 0; l < this.lstNoteFunding.length; l++) {
             if (this.listdealfunding[k].DealFundingID) {
+
+
               if (this.listdealfunding[k].DealFundingID == this.lstNoteFunding[l].DealFundingID) {
                 this.lstNoteFunding[l].Comments = this.listdealfunding[k].Comment;
+                this.lstNoteFunding[l].GeneratedBy = this.listdealfunding[k].GeneratedBy;
+                this.lstNoteFunding[l].GeneratedByText = this.listdealfunding[k].GeneratedByText;
+                this.lstNoteFunding[l].AdjustmentType = this.listdealfunding[k].AdjustmentType;
+                this.lstNoteFunding[l].PurposeID = this.listdealfunding[k].PurposeID;
+                this.lstNoteFunding[l].Purpose = this.listdealfunding[k].PurposeText;
+                this.lstNoteFunding[l].WF_CurrentStatus = this.listdealfunding[k].WF_CurrentStatus;
+                this.lstNoteFunding[l].DealFundingRowno = this.listdealfunding[k].DealFundingRowno;
               }
             } else if (this.listdealfunding[k].DealFundingRowno) {
               if (this.listdealfunding[k].DealFundingRowno == this.lstNoteFunding[l].DealFundingRowno) {
                 this.lstNoteFunding[l].Comments = this.listdealfunding[k].Comment;
+                this.lstNoteFunding[l].GeneratedBy = this.listdealfunding[k].GeneratedBy;
+                this.lstNoteFunding[l].GeneratedByText = this.listdealfunding[k].GeneratedByText;
+                this.lstNoteFunding[l].AdjustmentType = this.listdealfunding[k].AdjustmentType;
+                this.lstNoteFunding[l].PurposeID = this.listdealfunding[k].PurposeID;
+                this.lstNoteFunding[l].Purpose = this.listdealfunding[k].PurposeText;
+                this.lstNoteFunding[l].WF_CurrentStatus = this.listdealfunding[k].WF_CurrentStatus;
+                this.lstNoteFunding[l].DealFundingRowno = this.listdealfunding[k].DealFundingRowno;
               }
 
             }
+
           }
         }
       }
 
+      var imperNote = this.lstNoteFunding.filter(x => x.PurposeID == 840);
+      for (var f = 0; f < imperNote.length; f++) {
+        imperNote[f].Date = this.convertDatetoGMT(imperNote[f].Date);
+      }
+
+
+      for (var l = 0; l < this.lstNoteFunding.length; l++) {
+        this.lstNoteFunding[l].Date = this.convertDateToBindable(this.lstNoteFunding[l].Date);
+
+        if (!(Number(this.lstNoteFunding[l].PurposeID).toString() == "NaN" || Number(this.lstNoteFunding[l].PurposeID) == 0)) {
+          this.lstNoteFunding[l].PurposeID = Number(this.lstNoteFunding[l].PurposeID);
+        }
+        else {
+          this.lstNoteFunding[l].PurposeID = Number(this.lstPurposeType.find(x => x.Name == this.lstNoteFunding[l].PurposeID).LookupID);
+        }
+
+
+      }
+
+
       this.Dealfuturefunding.CREDealID = this._deal.CREDealID;
       this.Dealfuturefunding.EnableAutoSpread = this._deal.EnableAutoSpread;
+      //if (this.lstImpairment == undefined && this.lstImpairment.length == 0) {
+      //  this.lstImpairment = [];
+      //}
+
+
       this.Dealfuturefunding.PayruleDealFundingList = this.listdealfunding;
       this.Dealfuturefunding.PayruleNoteAMSequenceList = this.lstSequence;
       this.Dealfuturefunding.PayruleTargetNoteFundingScheduleList = this.lstNoteFunding;
       this.Dealfuturefunding.AutoSpreadRuleList = this.lstautospreadrule;
       this.Dealfuturefunding.AllowFFSaveJsonIntoBlob = this._deal.AllowFFSaveJsonIntoBlob;
+      this.Dealfuturefunding.ListRevolverDealFunding = this.listRevolverDealFunding;;
+      this.Dealfuturefunding.ListRevolverNoteFunding = this.listRevolverNoteFunding;
 
       if (this.Dealfuturefunding.AutoSpreadRuleList) {
         for (var i = 0; i < this.Dealfuturefunding.AutoSpreadRuleList.length; i++) {
@@ -4725,6 +7269,8 @@ export class DealDetailComponent extends Paginated implements OnInit {
             this.lstNote[i].FundingPriority = this.lstSequenceHistory[j].FundingPriority;
             this.lstNote[i].NoteBalanceCap = this.lstSequenceHistory[j].NoteBalanceCap;
             this.lstNote[i].RepaymentPriority = this.lstSequenceHistory[j].RepaymentPriority;
+            this.lstNote[i].WeightedSpread = this.lstSequenceHistory[j].WeightedSpread;
+            //this.lstNote[i].NetCapitalInvested = this.lstSequenceHistory[j].NetCapitalInvested;
             // this.lstNote[i].AdjustedTotalCommitment = this.lstSequenceHistory[j].AdjustedTotalCommitment;
             // this.lstNote[i].AggregatedTotal = this.lstSequenceHistory[j].AggregatedTotal;
           }
@@ -4738,33 +7284,158 @@ export class DealDetailComponent extends Paginated implements OnInit {
   }
 
   CheckDuplicateDealAndSave() {
-    this._isListFetching = true;
+
+    var msgAutoDistribute = "";
+    var validatemsg = "";
+    var msgerror = "";
     var checkForDuplicate = "";
+    if (this._isLiabilitynotegridEdited == true) {
+      this._deal.ListDealLiabilityDupliateCheck = this.lstDealliabilitySetup;
+      checkForDuplicate = "Check";
+    }
+
+
     if (this._isnotegridEdited == true) {
       checkForDuplicate = "Check";
     }
     if (this.isIDorNameChanged == true) {
       checkForDuplicate = "Check";
     }
-    if (checkForDuplicate != "") {
-      this._deal.notelist = this.lstNote;
-      this.dealSrv.checkduplicatedeal(this._deal).subscribe(res => {
-        if (res.Succeeded) {
-          if (res.Message == "Save") {
-            this.CheckConcurrenyAndSave();
+    if (this._deal.EnableAutoDistributePrincipalWriteoff == true && this.flagIsAutoDistibutePressed == false) {
+      msgAutoDistribute = "You must auto distribute Writeoff before save.";
+    }
+    else {
+      if (this._deal.EnableAutoDistributePrincipalWriteoff == true) {
+        if (this.flexServicingPotentialImpairment != undefined)
+          if (this.flexServicingPotentialImpairment.itemsSource != undefined) {
+            var flagDistribute = true;
+            flagDistribute = this.ValidateDistibuteAmount();
+            if (!flagDistribute) {
+              msgAutoDistribute = "Sum of non-wire confirmed WriteOff Amount can not be greater than Estimated Current Balance.";
+            }
           }
-          else {
-            this._isListFetching = false;
-            this.CustomAlert(res.Message);
+      }
+    }
+
+    var dealfundinglist = this.listdealfunding;
+    for (var p, i = 0; p = dealfundinglist[i++];) {
+      var purposetextname = p.PurposeText;
+      if (this.negativePurposeTypes.includes(purposetextname) && p.RequiredEquity !== 0 && p.RequiredEquity !== null && p.RequiredEquity !== undefined) {
+        msgerror = msgerror + "<p>" + "Required Equity cannot be entered for negative Purpose types: Amortization, Paydown, Full Payoff, Property Release, Net Property Income/Loss and Equity Distribution.";
+        break;
+      }
+    }
+
+    for (var p, i = 0; p = dealfundinglist[i++];) {
+      var purposetextname = p.PurposeText;
+      if (this.negativePurposeTypes.includes(purposetextname) && p.AdditionalEquity !== 0 && p.AdditionalEquity !== null && p.AdditionalEquity !== undefined) {
+        msgerror = msgerror + "<p>" + "Additional Equity cannot be entered for negative Purpose types: Amortization, Paydown, Full Payoff, Property Release, Net Property Income/Loss and Equity Distribution.";
+        break;
+      }
+    }
+
+    var autoSpreadRules = this.lstautospreadrule;
+    var fundingList = this.listdealfunding;
+
+    if (this._deal.EnableAutoSpread) {
+      var DFSumReqEquity = 0;
+      var AutoSpSumReqEquity = 0;
+      var requiredEquitySum = {};
+      for (var funding of fundingList) {
+        if (funding.Applied === true) {
+          if (!requiredEquitySum[funding.PurposeText]) {
+            requiredEquitySum[funding.PurposeText] = 0;
           }
-        } else {
-          this._ShowmessagedivWar = true;
-          this._ShowmessagedivMsgWar = "Error occurred while saving Deal , please contact your system administrator.";
+          requiredEquitySum[funding.PurposeText] += funding.RequiredEquity;
         }
 
-      });
-    } else {
-      this.CheckConcurrenyAndSave();
+        DFSumReqEquity += funding.RequiredEquity;
+        DFSumReqEquity = this.utils.convertToTwoDecimalPlaces(DFSumReqEquity);
+      }
+
+      for (var i = 0; i < autoSpreadRules.length; i++) {
+        AutoSpSumReqEquity += this.utils.convertToTwoDecimalPlaces(autoSpreadRules[i].RequiredEquity);
+      }
+
+      for (var purposeType in requiredEquitySum) {
+        requiredEquitySum[purposeType] = this.utils.convertToTwoDecimalPlaces(requiredEquitySum[purposeType]);
+      }
+
+      for (var rule of autoSpreadRules) {
+        var autosppurposeType = rule.PurposeTypeText;
+        var autosprequiredEquity = this.utils.convertToTwoDecimalPlaces(rule.RequiredEquity);
+
+        for (var funding of fundingList) {
+
+          if (funding.PurposeText === autosppurposeType && funding.RequiredEquity != 0 && funding.RequiredEquity != null && funding.RequiredEquity != undefined) {
+            if (autosprequiredEquity === 0 || autosprequiredEquity === null || autosprequiredEquity === undefined) {
+              msgerror = msgerror + "<p>" + "Please enter Required Equity for the PurposeType " + funding.PurposeText + " in the AutoSpread Funding Grid.";
+              break;
+            }
+
+            if (requiredEquitySum[autosppurposeType] && autosprequiredEquity < requiredEquitySum[autosppurposeType]) {
+              msgerror += "<p>" + "Required Equity in the AutoSpread Funding Grid cannot be less than the Sum of Required Equity of the Wire-Confirmed Deal Funding Amount.";
+              break;
+            }
+
+          }
+        }
+      }
+
+      for (var i = 0; i < fundingList.length; i++) {
+        if (DFSumReqEquity > AutoSpSumReqEquity) {
+          msgerror += "<p>" + "The Total locked amount of Required Equity in deal funding cannot be greater than the total Required Equity in Autospread Fundings";
+          break;
+        }
+      }
+    }
+
+    for (let i = 0; i < this._lstSpreadMaintenance.length; i++) {
+      let rule = this._lstSpreadMaintenance[i];
+      let Sdate = new Date(rule.SpreadDate);
+
+      if (Sdate) {
+        let formatedSdate = this.convertDateToBindable(Sdate);
+        let startday = Sdate.getDay();
+        if (startday == 6 || startday == 0 ||
+          this.ListHoliday.filter(x => this.convertDateToBindable(x.HolidayDate) == formatedSdate && x.HolidayTypeID == 411 && x.IsSoftHoliday != 3).length > 0
+        ) {
+          msgerror += "<p>" + "You have entered a date in Spread Maintenance Grid which is either on holiday or weekend. Please enter different date.";
+          break;
+        }
+      }
+    }
+
+    validatemsg = this.ValidateRequiredEquitySum();
+
+    msgAutoDistribute = msgAutoDistribute + validatemsg + msgerror;
+
+
+    if (msgAutoDistribute == "") {
+      this._isListFetching = true;
+      if (checkForDuplicate != "") {
+        this._deal.notelist = this.lstNote;
+        this.dealSrv.checkduplicatedeal(this._deal).subscribe(res => {
+          if (res.Succeeded) {
+            if (res.Message == "Save") {
+              this.CheckConcurrenyAndSave();
+            }
+            else {
+              this._isListFetching = false;
+              this.CustomAlert(res.Message);
+            }
+          } else {
+            this._ShowmessagedivWar = true;
+            this._ShowmessagedivMsgWar = "Error occurred while saving Deal , please contact your system administrator.";
+          }
+
+        });
+      } else {
+        this.CheckConcurrenyAndSave();
+      }
+    }
+    else {
+      this.CustomAlert(msgAutoDistribute);
     }
   }
 
@@ -4798,6 +7469,9 @@ export class DealDetailComponent extends Paginated implements OnInit {
           if (!this._isdealfundingEdit) {
             generatefunding = "<p>" + "You must generate funding schedule before you could save your changes.";
           }
+          if (this.isMaturityDataChanged == true) {
+            generatefunding = "<p>" + "You must generate funding schedule before you could save your changes.";
+          }
           if (this.checked == true) {
             if (this._autospreadgenerate) {
               generatefunding = "<p>" + "You must generate funding schedule before you could save your changes.";
@@ -4808,6 +7482,12 @@ export class DealDetailComponent extends Paginated implements OnInit {
           //}
         }
       }
+    }
+    if (this._deal.EnableAutospreadRepayments == true) {
+      if (!this._isdealfundingChanged) {
+        generatefunding = "<p>" + "You must generate funding schedule before you could save your changes.";
+      }
+
     }
     if (this._isAmortSchChanges) {
       if (!(this._deal.amort.AmortizationMethod == 623 || this._deal.amort.AmortizationMethodText == "IO Only")) {
@@ -4850,6 +7530,7 @@ export class DealDetailComponent extends Paginated implements OnInit {
     var prepaymentmsg1;
     var prepaymentmsg2;
     var prepaymentdatemsg;
+    var prepaymentGroupSize;
     var CREIDduplicateNotelevelmsg;
     var noteTotalCommitment = 0;
     var invalivadte;
@@ -4868,27 +7549,43 @@ export class DealDetailComponent extends Paginated implements OnInit {
     var isamountblank = false, isDateblank = false, ispurposeblank = false;
     ms = "Please fill following fields - ";
     var fundingerror = "";
+    var oldfundingdate = "";
     extendedmsg = "";
     dealfundingmsg = "";
     dealfundingamount = "";
     invalivadte = "";
-    this.ConvertInSequenceList();
-    var sumdealfundingwithnotetransfer = 0;
-    var sumdealfundIncludeOtherandTransfer = 0;
-    var sumdealfunding = 0;
-    var sumdealrepayment = 0;
-    var checknoteValidation = "";
-    var CREIDduplicate = false;
-    var NameDuplicate = false;
-    var nameblank = false;
-    var CREIDduplicateNotelevel = true;
     prepaymentmsg = "";
     prepaymentmsg1 = "";
     prepaymentmsg2 = "";
-    CREIDduplicateNotelevelmsg = "";
+    prepaymentGroupSize = "";
     prepaymentdatemsg = "";
+    prepaymentdatemsg = "";
+    CREIDduplicateNotelevelmsg = "";
+    this.ConvertInSequenceList();
+    var sumdealfundingwithnotetransfer = 0;
+    var sumdealfundIncludeOtherandTransfer = 0;
+    var sumrevolver = 0;
+    var sumdealfunding = 0;
+    var sumdealrepayment = 0;
+    var checknoteValidation = "";
+    var checkLiabilityValidation = "";
+    var CREIDduplicate = false;
+    var NameDuplicate = false;
+    var nameblank = false;
+    var Liabilitynameblank = false;
+    var AssetIdBlank = false;
+    var LiabilityNoteDuplicate = false;
+    var CREIDduplicateNotelevel = true;
+    var max_ExtensionMat: any;
+    var RuleTypelength = 0;
+    var RuleTypeFileNameerror = '';
+    var RuleTypeerr = '';
+    var dtRuleType = [];
     if (this._isnotegridEdited == true) {
       checknoteValidation = "Check";
+    }
+    if (this._isLiabilitynotegridEdited == true) {
+      checkLiabilityValidation = "Check";
     }
     if (this.isIDorNameChanged == true) {
       checknoteValidation = "Check";
@@ -4897,7 +7594,22 @@ export class DealDetailComponent extends Paginated implements OnInit {
       CREIDduplicate = this.checkIfArrayIsUnique(this.lstNote, 'CRENoteID');
       NameDuplicate = this.checkIfArrayIsUnique(this.lstNote, 'NoteName');
       nameblank = this.checkIfNoteIdorNameBlank(this.lstNote);
+
     }
+    if (checkLiabilityValidation == "Check") {
+      LiabilityNoteDuplicate = this.checkIfArrayIsUnique(this.lstDealliabilitySetup, "LiabilityNoteID");
+      Liabilitynameblank = this.checkblankForDealLiability(this.lstDealliabilitySetup);
+      AssetIdBlank = this.checkblankAssetIDForDealLiability(this.lstDealliabilitySetup);
+    }
+
+    if (this.lstServicingWatchlistAccounting !== undefined) {
+      for (var ls = 0; ls < this.lstServicingWatchlistAccounting.length; ls++) {
+        if (!(Number(this.lstServicingWatchlistAccounting[ls].TypeText).toString() == "NaN" || Number(this.lstServicingWatchlistAccounting[ls].TypeText) == 0)) {
+          this.lstServicingWatchlistAccounting[ls].TypeID = Number(this.lstServicingWatchlistAccounting[ls].TypeText);
+        }
+      }
+    }
+
 
     if (this.listdealfunding != undefined) {
       if (this.listdealfunding.length > 0) {
@@ -4907,19 +7619,39 @@ export class DealDetailComponent extends Paginated implements OnInit {
             this.listdealfunding[df].PurposeText = this.lstPurposeType.find(x => x.LookupID == this.listdealfunding[df].PurposeID).Name
           }
 
+          if (this._deal.LastAccountingclosedate != null) {
+            if (this.listdealfunding[df].Applied != true) {
+              if (this.listdealfunding[df].Date < this._deal.LastAccountingclosedate) {
+                fundingerror = fundingerror + "<p>" + "Un-wire confirmed records before last accounting date " + this.convertDateToBindable(this._deal.LastAccountingclosedate) + " is not allowed. Please wire confirm and save the deal again." + "</p>";
+              }
+            }
+
+          }
+
           if (this.listdealfunding[df].Value) {
+            if (this.listdealfunding[df].AdjustmentType == 835) {
+              sumrevolver = sumrevolver + this.listdealfunding[df].Value * -1;
+            }
             if (this.listdealfunding[df].Value > 0) {
               if (this.listdealfunding[df].PurposeText != "Note Transfer") {
-                sumdealfundingwithnotetransfer = sumdealfundingwithnotetransfer + this.listdealfunding[df].Value;
+                if (this.listdealfunding[df].AdjustmentType != 834 && this.listdealfunding[df].AdjustmentType != 896 && this.listdealfunding[df].AdjustmentType != 835 && this.listdealfunding[df].PurposeID != 840) {
+                  sumdealfundingwithnotetransfer = sumdealfundingwithnotetransfer + this.listdealfunding[df].Value;
+                }
               }
 
               if (this.listdealfunding[df].PurposeText == "Note Transfer" || this.listdealfunding[df].PurposeText == "Other") {
-                sumdealfundIncludeOtherandTransfer = sumdealfundIncludeOtherandTransfer + this.listdealfunding[df].Value;
+                if (this.listdealfunding[df].AdjustmentType != 834 && this.listdealfunding[df].AdjustmentType != 896 && this.listdealfunding[df].AdjustmentType != 835) {
+                  sumdealfundIncludeOtherandTransfer = sumdealfundIncludeOtherandTransfer + this.listdealfunding[df].Value;
+                }
               }
 
-              sumdealfunding = sumdealfunding + this.listdealfunding[df].Value;
+              if (this.listdealfunding[df].AdjustmentType != 834 && this.listdealfunding[df].AdjustmentType != 896 && this.listdealfunding[df].AdjustmentType != 835 && this.listdealfunding[df].PurposeID != 840) {
+                sumdealfunding = sumdealfunding + this.listdealfunding[df].Value;
+              }
             } else if (this.listdealfunding[df].Value < 0) {
-              sumdealrepayment = sumdealrepayment + this.listdealfunding[df].Value;
+              if (this.listdealfunding[df].AdjustmentType != 834 && this.listdealfunding[df].AdjustmentType != 896 && this.listdealfunding[df].AdjustmentType != 835 && this.listdealfunding[df].PurposeID != 840) {
+                sumdealrepayment = sumdealrepayment + this.listdealfunding[df].Value;
+              }
             }
           }
         }
@@ -4929,11 +7661,40 @@ export class DealDetailComponent extends Paginated implements OnInit {
     sumdealfunding = parseFloat((sumdealfunding).toFixed(2));
     sumdealrepayment = parseFloat((sumdealrepayment).toFixed(2));
     sumdealfundIncludeOtherandTransfer = parseFloat((sumdealfundIncludeOtherandTransfer).toFixed(2));
+    sumrevolver = parseFloat((sumrevolver).toFixed(2));
+
+    var Listnoteid: string[];
+    Listnoteid = new Array()
+    if (this.lstNote != undefined) {
+      if (this.lstNote[0] != null) {
+        for (var index = 0; index < this.lstNote.length; index++) {
+
+          if (!(Number(this.lstNote[index].UseRuletoDetermineNoteFundingText).toString() == "NaN" || Number(this.lstNote[index].UseRuletoDetermineNoteFundingText) == 0)) {
+            this.lstNote[index].UseRuletoDetermineNoteFunding = Number(this.lstNote[index].UseRuletoDetermineNoteFundingText);
+          } else {
+            if (this.lstNote[index].UseRuletoDetermineNoteFundingText != undefined && this.lstNote[index].UseRuletoDetermineNoteFundingText != null) {
+              var UseRuletoDetermineNoteFunding = (this.lstUseRuletoDetermineNoteFundingType.find(x => x.Name == this.lstNote[index].UseRuletoDetermineNoteFundingText));
+              if (UseRuletoDetermineNoteFunding != undefined) {
+                if (UseRuletoDetermineNoteFunding.length != 0) {
+                  this.lstNote[index].UseRuletoDetermineNoteFunding = Number(UseRuletoDetermineNoteFunding.LookupID);
+                }
+              }
+            }
+
+          }
+
+          Listnoteid.push(this.lstNote[index].NoteId);
+        }
+
+      }
+    }
+    this._deal.Listnoteid = [];
+    this._deal.Listnoteid = Listnoteid;
     if (this.ShowUseRuleN) {
       this.lstNoteFunding = [];
       var griddata = this.cvDealFundingList.sourceCollection;
       for (var df = 0; df < griddata.length; df++) {
-        griddata[df].DealFundingRowno = df + 1;
+        //  griddata[df].DealFundingRowno = df + 1;
         if (this.lstNote[0] != null) {
           for (var val = 0; val < this.lstSequenceHistory.length; val++) {
             var newlist = new Notefunding;
@@ -4947,10 +7708,13 @@ export class DealDetailComponent extends Paginated implements OnInit {
             newlist.Date = griddata[df].Date;
             newlist.isDeleted = 0;
             newlist.Applied = griddata[df].Applied;
+            newlist.AdjustmentType = griddata[df].AdjustmentType;
             newlist.Comments = griddata[df].Comment;
             newlist.DealFundingRowno = griddata[df].DealFundingRowno;
             newlist.PurposeID = griddata[df].PurposeID;
             newlist.Purpose = griddata[df].PurposeText;
+            newlist.GeneratedBy = griddata[df].GeneratedBy;
+            newlist.GeneratedByText = griddata[df].GeneratedByText;
             this.lstNoteFunding.push(newlist);
           }
         }
@@ -4986,10 +7750,18 @@ export class DealDetailComponent extends Paginated implements OnInit {
       if (NameDuplicate != true) {
         fundingerror = fundingerror + "<p>" + "Please enter unique Note Name in Deal." + "</p>";
       }
+
       if (nameblank == true) {
         fundingerror = fundingerror + "<p>" + "Note name Cannot be blank." + "</p>";
       }
+
     }
+    if (checkLiabilityValidation == "Check") {
+      if (LiabilityNoteDuplicate != true) {
+        fundingerror = fundingerror + "<p>" + "Please enter unique Liability Note ID in Deal." + "</p>";
+      }
+    }
+
     //Note name and note id are required.
     if (this.lstNotePayruleSetup != undefined) {
       var msg = "";
@@ -5085,75 +7857,116 @@ export class DealDetailComponent extends Paginated implements OnInit {
     var max = null;
     var min = null;
     if (this.lstNote[0] != null) {
-      var maxInitialMaturityDate = new Date(Math.max.apply(null, this.lstNote.map(x => x.InitialMaturityDate)));
-      var maxExtendedMaturity = new Date(Math.max.apply(null, this.lstNote.map(x => x.ExtendedMaturityCurrent)));
-      var maxFullyExtendedMaturityDate = new Date(Math.max.apply(null, this.lstNote.map(x => x.FullyExtendedMaturityDate)));
-      var maxExpectedMaturityDate = new Date(Math.max.apply(null, this.lstNote.map(x => x.ExpectedMaturityDate)));
-      var maxActualPayoffDate = new Date(Math.max.apply(null, this.lstNote.map(x => x.ActualPayoffDate)));
+      max_ExtensionMat = null;
+      var maxInitialMaturityDate = new Date('1970-01-01Z00:00:00:000');
+      var maxFullyExtendedMaturityDate = new Date('1970-01-01Z00:00:00:000');
+      var maxExtendedMaturity = new Date('1970-01-01Z00:00:00:000');
+      var maxActualPayoffDate = new Date('1970-01-01Z00:00:00:000');
+
+      var usePayOffasmaturity = false;
+      var useExtenstionMaturity = true;
+      if (this.maturityList !== undefined) {
+        if (this.maturityList.length > 0) {
+          var vlen = this.maturityList.filter(x => x.ActualPayoffDate == null).length;
+          if (vlen == 0) {
+            usePayOffasmaturity = true;
+          }
+        }
+      }
+
+      if (this.maturityList !== undefined) {
+        if (this.maturityList.length > 0) {
+          for (var j = 0; j < this.maturityList.length; j++) {
+            if (this.maturityList[j].ApprovedText == "Y" && this.maturityList[j].isDeleted == 0) {
+              if (this.maturityList[j].MaturityTypeText == "Initial") {
+                if (new Date(this.maturityList[j].MaturityDate) > maxInitialMaturityDate) {
+                  maxInitialMaturityDate = this.maturityList[j].MaturityDate;
+                }
+              }
+
+              if (this.maturityList[j].MaturityTypeText == "Fully extended") {
+                if (new Date(this.maturityList[j].MaturityDate) > maxFullyExtendedMaturityDate) {
+                  maxFullyExtendedMaturityDate = this.maturityList[j].MaturityDate;
+                }
+              }
+              if (this.maturityList[j].MaturityTypeText == "Extension") {
+                if (new Date(this.maturityList[j].MaturityDate) > maxExtendedMaturity) {
+                  maxExtendedMaturity = this.maturityList[j].MaturityDate;
+                }
+              }
+            }
+            //ActualPayoffDate
+            if (this.maturityList[j].ActualPayoffDate) {
+              if (new Date(this.maturityList[j].ActualPayoffDate) > maxActualPayoffDate) {
+                maxActualPayoffDate = this.maturityList[j].ActualPayoffDate;
+              }
+            }
+          }
+        }
+      }
+      if (maxInitialMaturityDate.getFullYear() < 2000) {
+        maxInitialMaturityDate = new Date(Math.max.apply(null, this.lstNote.map(x => x.InitialMaturityDate)));
+        if (maxInitialMaturityDate.getFullYear() < 2000) {
+          maxInitialMaturityDate = null;
+        }
+      }
+      if (maxFullyExtendedMaturityDate.getFullYear() < 2000) {
+        maxFullyExtendedMaturityDate = new Date(Math.max.apply(null, this.lstNote.map(x => x.FullyExtendedMaturityDate)));
+        if (maxFullyExtendedMaturityDate.getFullYear() < 2000) {
+          maxFullyExtendedMaturityDate = null;
+        }
+      }
+      if (maxExtendedMaturity.getFullYear() < 2000) {
+        maxExtendedMaturity = new Date(Math.max.apply(null, this.lstNote.map(x => x.ExtendedMaturityCurrent)));
+        max_ExtensionMat = maxExtendedMaturity;
+        if (maxExtendedMaturity.getFullYear() < 2000) {
+          maxExtendedMaturity = null;
+          max_ExtensionMat = this._deal.max_ExtensionMat;
+        }
+      } else {
+        max_ExtensionMat = maxExtendedMaturity;
+      }
+
+      if (new Date(maxActualPayoffDate).getFullYear() < 2000) {
+        maxActualPayoffDate = new Date(Math.max.apply(null, this.lstNote.map(x => x.ActualPayoffDate)));
+        if (new Date(maxActualPayoffDate).getFullYear() < 2000) {
+          maxActualPayoffDate = null;
+        }
+      }
+      //if (this.maturityActualPayoffDate != null) {
+      //  maxActualPayoffDate = new Date(this.maturityActualPayoffDate);
+      //}
+
       if (maxActualPayoffDate != null || maxActualPayoffDate != undefined) {
-        if (maxActualPayoffDate.getFullYear() < 2000) {
+        if (new Date(maxActualPayoffDate).getFullYear() < 2000) {
 
           maxActualPayoffDate = null;
         }
       }
-      if (maxExtendedMaturity != null || maxExtendedMaturity != undefined) {
-        if (maxExtendedMaturity.getFullYear() < 2000) {
-          maxExtendedMaturity = null;
+
+      if (max_ExtensionMat != null)
+      {
+        if (max_ExtensionMat < maxInitialMaturityDate)
+        {
+          useExtenstionMaturity = false;
         }
       }
-      if (maxFullyExtendedMaturityDate != null || maxFullyExtendedMaturityDate != undefined) {
-        if (maxFullyExtendedMaturityDate.getFullYear() < 2000) {
-
-          maxFullyExtendedMaturityDate = null;
-        }
-      }
-      if (maxExpectedMaturityDate != null || maxExpectedMaturityDate != undefined) {
-        if (maxExpectedMaturityDate.getFullYear() < 2000) {
-
-          maxExpectedMaturityDate = null;
-        }
-      }
-
       var today = new Date();
-      //ActualPayoffDate
-      var distinct = [];
-      var uniquedates = {};
-      var listnotes = this.lstNote;
-      for (var item, j = 0; item = listnotes[j++];) {
-        var actualpayoffdate = item.ActualPayoffDate;
-        if (!(actualpayoffdate in uniquedates)) {
-          uniquedates[actualpayoffdate] = 1;
-          distinct.push(actualpayoffdate);
-        }
+      if (maxActualPayoffDate != null && usePayOffasmaturity == true) {
+        maxmat = maxActualPayoffDate;
       }
-
-      if (distinct.length == 1 && distinct[0] != null) {
-        maxmat = actualpayoffdate;
+      else if (max_ExtensionMat != null && useExtenstionMaturity == true) {
+        maxmat = max_ExtensionMat;
       }
       else {
         var nextInitialMaturityDate = this.getnextbusinessDate(new Date(JSON.parse(JSON.stringify(maxInitialMaturityDate))), -20, false);
         if (today >= nextInitialMaturityDate) {
           var nextExtendedMaturityDate = this.getnextbusinessDate(new Date(JSON.parse(JSON.stringify(maxExtendedMaturity))), -20, false);
           if (today >= nextExtendedMaturityDate) {
-            if (today >= nextExtendedMaturityDate) {
-              if (maxFullyExtendedMaturityDate > maxExpectedMaturityDate)
-                maxmat = maxExpectedMaturityDate
-              else
-                maxmat = maxFullyExtendedMaturityDate;
-            }
-            else {
-              if (nextExtendedMaturityDate > maxExpectedMaturityDate)
-                maxmat = maxExpectedMaturityDate
-              else
-                maxmat = nextExtendedMaturityDate
-            }
-
+            maxmat = maxFullyExtendedMaturityDate;
           }
           else {
-            if (maxExtendedMaturity > maxExpectedMaturityDate)
-              maxmat = maxExpectedMaturityDate
-            else
-              maxmat = maxExtendedMaturity;
+            maxmat = maxExtendedMaturity;
           }
 
         }
@@ -5168,28 +7981,110 @@ export class DealDetailComponent extends Paginated implements OnInit {
           if (maxextendedmat == null || current.FullyExtendedMaturityDate > maxextendedmat) {
             maxextendedmat = current.FullyExtendedMaturityDate;
           }
-          if (this.minClosingDate === null || current.ClosingDate < this.minClosingDate) {
+          if (this.minClosingDate === undefined || this.minClosingDate === null || current.ClosingDate < this.minClosingDate) {
             this.minClosingDate = current.ClosingDate;
           }
 
         }
       }
+    }
+    var warningFunding = this.ValidateFuturePaydown();
+    if (warningFunding != "") {
+      errordialog = errordialog + warningFunding;
+    }
+    let duplicates = [];
+    let duplicatesacc = [];
+    let tempArray = [];
+    //watch list validation
+    if (this.IsServicingWatchlisttabClicked == true) {
+      this.maxmaturitydate = maxmat;
+      for (var w = 0; w < this.lstServicingWatchlistLegal.length; w++) {
+        var currentstartdate = new Date(this.lstServicingWatchlistLegal[w].StartDate);
+        var currentenddate = new Date(this.lstServicingWatchlistLegal[w].EndDate);
 
-      //
-      for (var val = 0; val < this.lstNote.length; val++) {
-        colTotalNnotes = 0;
-        if (this.lstNote[val].TotalCommitment) {
-          noteTotalCommitment = parseFloat(this.lstNote[val].TotalCommitment);
-        } else {
-          noteTotalCommitment = 0;
+        //if (currentstartdate < this.minClosingDate || currentstartdate > maxmat) {
+        //  fundingerror = fundingerror + "<p>" + "Start date in Special Servicing Watchlist Legal Status should be between closing <b>(" + this.convertDateToBindable(this.minClosingDate) + ") </b> and maturity <b>(" + this.convertDateToBindable(maxmat) + ")</b>.</p>";
+        //  break;
+        //}
+        //if (currentenddate < currentstartdate) {
+        //  fundingerror = fundingerror + "<p>" + "End date in Special Servicing Watchlist Legal cannot be smaller than start date" + ".</p>";
+        //  break;
+        //}
+        if (currentstartdate != null) {
+          if (this.lstServicingWatchlistLegal[w].TypeText === undefined || this.lstServicingWatchlistLegal[w].TypeText === null || this.lstServicingWatchlistLegal[w].TypeText == "") {
+            fundingerror = fundingerror + "<p>" + "Type is required in Special Servicing Watchlist Legal" + ".</p>";
+            break;
+          }
         }
-        if (this.lstNote[val].ClosingDate != null) { this.lstNote[val].ClosingDate = new Date(this.lstNote[val].ClosingDate.toString()); }
-        if (this.minClosingDate === null || this.lstNote[val].ClosingDate < this.minClosingDate) {
-          this.minClosingDate = this.lstNote[val].ClosingDate;
+
+      }
+      for (var val = 0; val < this.lstNote.length; val++) {
+        var current = this.lstNote[val];
+        if (this.minClosingDate === null || this.minClosingDate == undefined || current.ClosingDate < this.minClosingDate) {
+          this.minClosingDate = current.ClosingDate;
+        }
+
+      }
+
+
+      for (var w = 0; w < this.lstServicingWatchlistAccounting.length; w++) {
+        var currentstartdate = new Date(this.lstServicingWatchlistAccounting[w].StartDate);
+        var currentenddate = new Date(this.lstServicingWatchlistAccounting[w].EndDate);
+
+        if (currentstartdate < this.minClosingDate || currentstartdate > maxmat) {
+          fundingerror = fundingerror + "<p>" + "Start date in Special Servicing Watchlist Accounting should be between closing <b>(" + this.convertDateToBindable(this.minClosingDate) + ") </b> and maturity <b>(" + this.convertDateToBindable(maxmat) + ")</b>.</p>";
+          break;
+        }
+        if (currentenddate < currentstartdate) {
+          fundingerror = fundingerror + "<p>" + "End date in Special Servicing Watchlist Accounting cannot be smaller than start date" + ".</p>";
+          break;
+        }
+        if (currentstartdate != null) {
+          if (this.lstServicingWatchlistAccounting[w].TypeText == undefined || this.lstServicingWatchlistAccounting[w].TypeText === null || this.lstServicingWatchlistAccounting[w].TypeText == "") {
+            fundingerror = fundingerror + "<p>" + "Type is required in Special Servicing Watchlist Accounting" + ".</p>";
+            break;
+          }
         }
       }
-    }
+      //duplicate WatchlistLegal
+      //this.lstServicingWatchlistLegal.forEach((element, key) => {
+      //  let isAlreadyAdded = tempArray.find(
+      //    (item) =>
+      //      item.StartDate === element.StartDate && item.TypeID === element.TypeID
+      //  );
+      //  if (!isAlreadyAdded) {
+      //    tempArray.push(element);
+      //  } else {
+      //    duplicates.push(key);
+      //  }
+      //});
 
+      //if (duplicates) {
+      //  if (duplicates.length > 0) {
+      //    fundingerror = fundingerror + "<p>" + "Start date and Type combination should be distinct for Special Servicing/ watchlist legal status. " + "</p>";
+      //  }
+      //}
+      tempArray = [];
+      this.lstServicingWatchlistAccounting.forEach((element, key) => {
+        let isAlreadyAdded = tempArray.find(
+          (item) =>
+            item.StartDate === element.StartDate && item.TypeID === element.TypeID
+        );
+        if (!isAlreadyAdded) {
+          tempArray.push(element);
+        } else {
+          duplicatesacc.push(key);
+        }
+      });
+
+      if (duplicatesacc) {
+        if (duplicatesacc.length > 0) {
+          fundingerror = fundingerror + "<p>" + "Start date and Type combination should be distinct for Special Servicing/ watchlist Accounting. " + "</p>";
+        }
+      }
+      fundingerror = fundingerror + this.ValidatePotentialImpairment();
+
+    }
     var arrynotenamenegative = "";
     var arrynotenamepositive = "";
     var positivefundingnotes = "";
@@ -5227,51 +8122,81 @@ export class DealDetailComponent extends Paginated implements OnInit {
         if (this.listdealfunding[d].PurposeText == "Capital Expenditure" || this.listdealfunding[d].PurposeText == "OpEx" || this.listdealfunding[d].PurposeText == "Force Funding" || this.listdealfunding[d].PurposeText == "Capitalized Interest" || this.listdealfunding[d].PurposeText == "TI/LC" || this.listdealfunding[d].PurposeText == "Additional Collateral Purchase") {
           if (Date.parse(maxmat) != 0) {
             if (this.listdealfunding[d].Date > maxmat) {
-              fundingerror = fundingerror + "<p>" + "Any date(s) after the Maturity date <b>(" + this.convertDateToBindable(maxmat) + ") </b> in Deal Schedule is not allowed." + "</p>";
-              break;
+              if (this.listdealfunding[d].Applied != true) {
+                if (this.listdealfunding[d].Comment != null || this.listdealfunding[d].Comment != "") {
+                  fundingerror = fundingerror + "<p>" + "Any date(s) after the Maturity date <b>(" + this.convertDateToBindable(maxmat) + ") </b> in Deal Funding Schedule is not allowed." + "</p>";
+                  break;
+                } else {
+                  if (this._deal.EnableAutoSpread != true) {
+                    fundingerror = fundingerror + "<p>" + "Any date(s) after the Maturity date <b>(" + this.convertDateToBindable(maxmat) + ") </b> in Deal Funding Schedule is not allowed." + "</p>";
+                    break;
+                  }
+                }
+              }
             }
           }
         }
-        if (this.checked == false) {
-          //negative amount
-          if (this.listdealfunding[d].PurposeText == "Amortization" || this.listdealfunding[d].PurposeText == "Full Payoff" || this.listdealfunding[d].PurposeText == "Paydown" || this.listdealfunding[d].PurposeText == "Property Release") {
-            if (Date.parse(maxextendedmat) != 0 && maxextendedmat != null) {
-              if (this.listdealfunding[d].Date > maxextendedmat) {
-                fundingerror = fundingerror + "<p>" + "Any date(s) after the fully extended maturity date <b>(" + this.convertDateToBindable(maxextendedmat) + ") </b> in Deal Schedule is not allowed." + "</p>";
+        // if (this.checked == false) {
+        //negative amount
+        var currentpurpose = this.listdealfunding[d].PurposeText;
+        if (this.listdealfunding[d].PurposeText == "Amortization" || this.listdealfunding[d].PurposeText == "Property Release" || this.listdealfunding[d].PurposeText == "Full Payoff" || this.listdealfunding[d].PurposeText == "Paydown") {
+          if (maxFullyExtendedMaturityDate != null) {
+            var currentfunddate = new Date(this.listdealfunding[d].Date.toLocaleDateString());
+            if (currentfunddate > maxFullyExtendedMaturityDate) {
+              var showvalidation = false;
+              if (currentpurpose != "Paydown") {
+                showvalidation = true;
+
+              } else {
+
+                if (this.listdealfunding[d].Comment != null || this.listdealfunding[d].Comment != "") {
+                  if (currentpurpose != "Paydown") {
+                    showvalidation = true;
+                  }
+
+                } else if (this.checked == false) {
+                  showvalidation = true;
+                }
+
+              }
+              if (showvalidation == true) {
+                fundingerror = fundingerror + "<p>" + "Any date(s) after the fully extended maturity date <b>(" + this.convertDateToBindable(maxFullyExtendedMaturityDate) + ") </b> in Deal Repayment Schedule is not allowed." + "</p>";
                 break;
               }
             }
           }
+        }
 
-          //other
-          if (this.listdealfunding[d].PurposeText == "Other" || this.listdealfunding[d].PurposeText == "Note Transfer") {
-            if (this.listdealfunding[d].Value !== null || this.listdealfunding[d].Value !== undefined) {
-              if (Math.sign(this.listdealfunding[d].Value) == -1) {
-                if (maxextendedmat == null) {
-                  maxextendedmat = maxmat;
+        //other
+        if (this.listdealfunding[d].PurposeText == "Other" || this.listdealfunding[d].PurposeText == "Note Transfer") {
+          if (this.listdealfunding[d].Value !== null || this.listdealfunding[d].Value !== undefined) {
+            if (Math.sign(this.listdealfunding[d].Value) == -1) {
+              if (maxextendedmat == null) {
+                maxextendedmat = maxmat;
+              }
+              if (Date.parse(maxextendedmat) != 0 && maxextendedmat != null) {
+                if (this.listdealfunding[d].Date > maxextendedmat) {
+                  fundingerror = fundingerror + "<p>" + "Any date(s) after the fully extended maturity date <b>(" + this.convertDateToBindable(maxextendedmat) + ") </b> in Deal Schedule is not allowed." + "</p>";
+                  break;
                 }
-                if (Date.parse(maxextendedmat) != 0 && maxextendedmat != null) {
-                  if (this.listdealfunding[d].Date > maxextendedmat) {
-                    fundingerror = fundingerror + "<p>" + "Any date(s) after the fully extended maturity date <b>(" + this.convertDateToBindable(maxextendedmat) + ") </b> in Deal Schedule is not allowed." + "</p>";
-                    break;
-                  }
-                }
-              } else {
-                if (Date.parse(maxmat) != 0 && maxextendedmat != null) {
-                  if (this.listdealfunding[d].Date > maxmat) {
-                    fundingerror = fundingerror + "<p>" + "Any date(s) after the Maturity date <b>(" + this.convertDateToBindable(maxmat) + ") </b> in Deal Schedule is not allowed." + "</p>";
-                    break;
-                  }
+              }
+            } else {
+              if (Date.parse(maxmat) != 0 && maxextendedmat != null) {
+                if (this.listdealfunding[d].Date > maxmat) {
+                  fundingerror = fundingerror + "<p>" + "Any date(s) after the Maturity date <b>(" + this.convertDateToBindable(maxmat) + ") </b> in Deal Schedule is not allowed." + "</p>";
+                  break;
                 }
               }
             }
           }
         }
+        // }
       }
 
-      var isvalidateHolidaySatSun = true;
-      var errordate = '';
+
+
       var fundingdates = "";
+
       //deal funding loop start
 
       var notwireDealfunding = this.listdealfunding.filter(x => x.Applied != true || x.Applied == undefined);
@@ -5282,8 +8207,8 @@ export class DealDetailComponent extends Paginated implements OnInit {
           dealrowfund = notwireDealfunding[t].Value;//flexdefunding.getCellData(e.row, 3, false);
 
           //increment for adding new column in dealfunding grid
-          if (this.dynamicColList.length > 32) {
-            for (var m = 33; m < this.dynamicColList.length; m++) {
+          if (this.dynamicColList.length > 35) {
+            for (var m = 36; m < this.dynamicColList.length; m++) {
               if (this.dynamicColList[m] != "Date" && this.dynamicColList[m] != "PurposeID" && this.dynamicColList[m] != "DealFundingRowno" && this.dynamicColList[m] != "Applied") {
                 if (notwireDealfunding[t][this.dynamicColList[m]]) {
                   if (notwireDealfunding[t][this.dynamicColList[m]].toString().includes(',')) {
@@ -5321,36 +8246,114 @@ export class DealDetailComponent extends Paginated implements OnInit {
               }
             }
           }
-          if (this.checked == false) {
-            if (notwireDealfunding[t].Date != null) {
-              var sdate = new Date(notwireDealfunding[t].Date)
-              var formateddate = this.convertDateToBindable(notwireDealfunding[t].Date);
-              var dealfundingday = sdate.getDay();
-              if (dealfundingday == 6 || dealfundingday == 0
-                || this.ListHoliday.filter(x => this.convertDateToBindable(x.HolidayDate) == formateddate && x.HolidayTypeID == 411).length > 0
-              ) {
-                var dateexist = errordate.includes(this.convertDateToBindable(sdate));
-                if (!dateexist) {
-                  errordate += this.convertDateToBindable(sdate) + ", ";
-                  isvalidateHolidaySatSun = false;
+
+          //if (this.checked == false) {
+          //    if (notwireDealfunding[t].Date != null) {
+          //        var sdate = new Date(notwireDealfunding[t].Date)
+          //        var formateddate = this.convertDateToBindable(notwireDealfunding[t].Date);
+          //        var dealfundingday = sdate.getDay();
+          //        if (dealfundingday == 6 || dealfundingday == 0
+          //            || this.ListHoliday.filter(x => this.convertDateToBindable(x.HolidayDate) == formateddate && x.HolidayTypeID == 411).length > 0
+          //        ) {
+          //            var dateexist = errordate.includes(this.convertDateToBindable(sdate));
+          //            if (!dateexist) {
+          //                errordate += this.convertDateToBindable(sdate) + ", ";
+          //                isvalidateHolidaySatSun = false;
+          //            }
+          //        }
+          //    }  //Row Total end
+          //}
+        }
+      }
+      if (fundingdates != "") {
+        fundingerror = fundingerror + "<p>" + "At " + fundingdates.slice(0, fundingdates.length - 2) + " sum of note funding is not equal to deal funding." + "</p>";
+      }
+
+
+    }
+
+    //N note validation end
+
+
+    else {
+      var fundingdates = "";
+      //deal funding loop start
+
+      //var notwireDealfunding = this.listdealfunding.filter(x => x.Applied != true || x.Applied == undefined);
+      if (this.listdealfunding.length > 0) {
+        for (var t = 0; t < this.listdealfunding.length; t++) {
+          //Row Total start
+          var rowtotal = 0, dealrowfund = 0;
+          dealrowfund = this.listdealfunding[t].Value;//flexdefunding.getCellData(e.row, 3, false);
+
+
+          if (this.dynamicColList.length > 34 && this.dynamicColList.length != this.lstNote.length) {
+            for (var m = 36; m < this.dynamicColList.length; m++) {
+              if (this.dynamicColList[m] != "Date" && this.dynamicColList[m] != "PurposeID" && this.dynamicColList[m] != "DealFundingRowno" && this.dynamicColList[m] != "Applied") {
+                if (this.listdealfunding[t][this.dynamicColList[m]]) {
+                  if (this.listdealfunding[t][this.dynamicColList[m]].toString().includes(',')) {
+                    rowtotal += parseFloat(this.listdealfunding[t][this.dynamicColList[m]].replace(/,/g, ''));
+
+                  } else {
+                    rowtotal += parseFloat(this.listdealfunding[t][this.dynamicColList[m]]);
+                  }
                 }
               }
-            }  //Row Total end
+            }
+          }
+          else {
+            for (var m = 0; m < this.dynamicColList.length; m++) {
+              if (this.dynamicColList[m] != "Date" && this.dynamicColList[m] != "PurposeID" && this.dynamicColList[m] != "DealFundingRowno" && this.dynamicColList[m] != "Applied") {
+                if (this.listdealfunding[t][this.dynamicColList[m]]) {
+                  if (this.listdealfunding[t][this.dynamicColList[m]].toString().includes(',')) {
+                    rowtotal += parseFloat(this.listdealfunding[t][this.dynamicColList[m]].replace(/,/g, ''));
+                  }
+                  else {
+                    rowtotal += parseFloat(this.listdealfunding[t][this.dynamicColList[m]]);
+                  }
+                }
+              }
+            }
+          }
+
+          if (rowtotal !== null && rowtotal !== undefined && dealrowfund !== null && dealrowfund !== undefined) {
+            if (parseFloat(parseFloat(rowtotal.toString()).toFixed(2)) != parseFloat(parseFloat(dealrowfund.toString()).toFixed(2))) {
+              if (!isDateblank) {
+                this._isdealfundingChanged = false;
+                fundingdates += this.convertDateToBindable(this.listdealfunding[t].Date) + ", ";
+              }
+            }
           }
         }
       }
       if (fundingdates != "") {
         fundingerror = fundingerror + "<p>" + "At " + fundingdates.slice(0, fundingdates.length - 2) + " sum of note funding is not equal to deal funding." + "</p>";
       }
-      if (!isvalidateHolidaySatSun) {
-        fundingerror = fundingerror + "<p>" + "You have entered a funding date (" + errordate.slice(0, errordate.length - 2) + ") which is either on holiday or weekend. Please enter different date." + "</p>";
-      }
 
     }
 
-    //N note validation end
 
+
+    var commentMandetory = '';
+
+    var errordate = '';
+    var isvalidateHolidaySatSun = true;
     for (var df = 0; df < this.listdealfunding.length; df++) {
+      if (this.listdealfunding[df].Applied == false) {
+
+        var sdate = new Date(this.listdealfunding[df].Date);
+        var formateddate = this.convertDateToBindable(this.listdealfunding[df].Date);
+        var dealfundingday = sdate.getDay();
+        if (dealfundingday == 6 || dealfundingday == 0 || this.ListHoliday.filter(x => this.convertDateToBindable(x.HolidayDate) == formateddate && x.HolidayTypeID == 411 && x.IsSoftHoliday != 3).length > 0) {
+          var dateexist = errordate.includes(this.convertDateToBindable(sdate));
+          if (!dateexist) {
+            errordate += this.convertDateToBindable(sdate) + ", ";
+            isvalidateHolidaySatSun = false;
+          }
+        }
+
+      }
+
       var ss = df + 1;
       if (ss <= this.listdealfunding.length) {
         //  this.lstNoteFunding.find(x => x.DealFundingRowno == ss).WF_CurrentStatus = this.listdealfunding[ss].WF_CurrentStatus;
@@ -5370,11 +8373,11 @@ export class DealDetailComponent extends Paginated implements OnInit {
         else {
           purposetype = this.listdealfunding[df].PurposeText;
         }
-        if (purposetype == "Amortization" || purposetype == "Paydown" || purposetype == "Property Release" || purposetype == "Full Payoff") {
+        if (purposetype == "Amortization" || purposetype == "Paydown" || purposetype == "Property Release" || purposetype == "Full Payoff" || purposetype == "Equity Distribution") {
           if (this.listdealfunding[df].Value !== null || this.listdealfunding[df].Value !== undefined) {
             //check if value is null
             if (Math.sign(this.listdealfunding[df].Value) == 1) {
-              dealfundingamount = dealfundingamount + "<p>" + "Transaction amount should be negative for transactions type Amortization, Paydown, Full Payoff and Property Release." + "</p>";
+              dealfundingamount = dealfundingamount + "<p>" + "Transaction amount should be negative for transactions type Amortization, Paydown, Full Payoff, Property Release and Equity Distribution." + "</p>";
               break;
             }
           }
@@ -5395,27 +8398,77 @@ export class DealDetailComponent extends Paginated implements OnInit {
           break;
         }
       }
+      //if (this.listdealfunding[df].AdjustmentType) {
+      //  if (!this.listdealfunding[df].Comment) {
+      //    if (!commentMandetory)
+      //      commentMandetory = this.convertDateToBindable(this.listdealfunding[df].Date) + ", ";
+      //    else
+      //      commentMandetory += this.convertDateToBindable(this.listdealfunding[df].Date) + ", ";
+      //  }
+      //}
+
+
+      //check validation for past date funding
+      if (this.listdealfunding[df].Applied == false) {
+        if (this.listdealfunding[df].Value > 0) {
+          if (this.listdealfunding[df].Comment == null || this.listdealfunding[df].Comment == "") {
+            if (this.listdealfunding[df].Date < today) {
+              oldfundingdate = "old date";
+            }
+          }
+        }
+      }
+    }
+    if (oldfundingdate != "") {
+      fundingerror = "<p>" + "Past Date fundings without comments are not allowed. Please update the funding(s)  without comment or increase the Autospread end date, if applicable. " + "</p>";
     }
     //deal funding loop end
+    if (commentMandetory != "") {
+      //fundingerror = "<p>" + "you have selected Non-Commitment Adjustment on   " + commentMandetory.slice(0, commentMandetory.length - 2) + " without comment.</p>";
 
-    var sumdealrepayment = parseFloat(this.listdealfunding.reduce(function (r, a) { return a.Value < 0 ? r + parseFloat(a.Value) : r; }, 0).toFixed(2));
+    }
+    if (!isvalidateHolidaySatSun) {
+      fundingerror = fundingerror + "<p>" + "You have entered a funding date (" + errordate.slice(0, errordate.length - 2) + ") which is either on holiday or weekend. Please enter different date." + "</p>";
+    }
+    let isExpectedFullRepaymentDateHoliday = false, isEarliestPossibleRepaymentDateHoliday = false, isLatestPossibleRepaymentDateHoliday = false;
+    let HolidayErrormsg = '';
+    if (this.checkDateisHoliday(this._deal.ExpectedFullRepaymentDate))
+      isExpectedFullRepaymentDateHoliday = true;
+    // fundingerror = fundingerror + "<p>" + "You have entered a Expected Full Repayment Date (" + this._deal.ExpectedFullRepaymentDate + ") which is either on holiday or weekend. Please enter different date." + "</p>";
+
+    if (this.checkDateisHoliday(this._deal.EarliestPossibleRepaymentDate))
+      isEarliestPossibleRepaymentDateHoliday = true;
+    //fundingerror = fundingerror + "<p>" + "You have entered a Earliest Possible Repayment Date (" + this._deal.EarliestPossibleRepaymentDate + ") which is either on holiday or weekend. Please enter different date." + "</p>";
+
+    if (this.checkDateisHoliday(this._deal.LatestPossibleRepaymentDate))
+      isLatestPossibleRepaymentDateHoliday = true;
+    // fundingerror = fundingerror + "<p>" + "You have entered a Latest Possible Repayment Date (" + this._deal.LatestPossibleRepaymentDate + ") which is either on holiday or weekend. Please enter different date." + "</p>";
+
+    if (isExpectedFullRepaymentDateHoliday || isEarliestPossibleRepaymentDateHoliday || isLatestPossibleRepaymentDateHoliday) {
+      HolidayErrormsg = "You have entered";
+      if (isExpectedFullRepaymentDateHoliday)
+        HolidayErrormsg = HolidayErrormsg + " Expected Full Repayment Date (" + this.convertDateToBindable(this._deal.ExpectedFullRepaymentDate) + "),"
+
+      if (isEarliestPossibleRepaymentDateHoliday)
+        HolidayErrormsg = HolidayErrormsg + " Earliest Possible Repayment Date (" + this.convertDateToBindable(this._deal.EarliestPossibleRepaymentDate) + "),"
+
+      if (isLatestPossibleRepaymentDateHoliday)
+        HolidayErrormsg = HolidayErrormsg + " Latest Possible Repayment Date (" + this.convertDateToBindable(this._deal.LatestPossibleRepaymentDate) + "),"
+
+      HolidayErrormsg = HolidayErrormsg.substring(0, HolidayErrormsg.length - 1) + " which is either on holiday or weekend. Please enter different date.";
+    }
+    if (HolidayErrormsg)
+      fundingerror = HolidayErrormsg;
     if (this._deal.AggregatedTotal == null) { this._deal.AggregatedTotal = 0; }
     netdealfunding = parseFloat(this.listdealfunding.reduce(function (r, a) { return a.Value ? r + parseFloat(a.Value) : r; }, 0).toFixed(2));
     totalintitalfunding = parseFloat(this.lstSequenceHistory.reduce(function (r, a) { return a.InitialFundingAmount > 0.01 ? r + parseFloat(a.InitialFundingAmount) : r; }, 0).toFixed(2));
 
 
     var sumtotalfunding = parseFloat((sumdealfundingwithnotetransfer + totalintitalfunding).toFixed(2));
-    if (parseFloat(sumtotalfunding.toFixed(2)) > parseFloat(parseFloat(this._totalcommitmenttextboxvalue).toFixed(2))) {
-      fundingerror = fundingerror + "<p>" + "The sum of Deal Funding (" + this.formatMoney(sumdealfundingwithnotetransfer) + ") and Initial Funding (" + this.formatMoney(totalintitalfunding) + ") should be less than or equal to the Total Commitment." + "</p>";
+    var sumtotalcommitmentandrevolver = parseFloat(parseFloat(this._totalcommitmentvalue).toFixed(2)) + sumrevolver;
+    if (parseFloat(sumtotalfunding.toFixed(2)) > parseFloat(sumtotalcommitmentandrevolver.toFixed(2))) {
+      fundingerror = fundingerror + "<p>" + "The sum of Deal Funding (" + this.formatMoney(sumdealfundingwithnotetransfer) + ") and Initial Funding (" + this.formatMoney(totalintitalfunding) + ") should be less than or equal to the Total Commitment (" + this.formatMoney(this._deal.TotalCommitment) + ") and Revolver " + this.formatMoney(sumrevolver) + ". </p>";
     }
-
-    if (parseFloat(sumtotalfunding.toFixed(2)) < parseFloat(parseFloat(this._deal.TotalCommitment).toFixed(2))) {
-      // errordialog = errordialog + "Sum of deal funding (" + this.formatMoney(sumdealfundingwithnotetransfer) + ") and Initial Funding (" + this.formatMoney(totalintitalfunding) + ") is less then Total Commitment.";
-    }
-
-    //if (isamountblank) {
-    //    fundingerror = fundingerror + "<p>" + "Amount can not be blank. Please enter funding amount." + "</p>";
-    //}
     if (ispurposeblank) {
       fundingerror = fundingerror + "<p>" + "Please choose purpose type of funding." + "</p>";
     }
@@ -5455,7 +8508,7 @@ export class DealDetailComponent extends Paginated implements OnInit {
         var isDuplicate = valueArr.some(function (item, idx) {
             return valueArr.indexOf(item) != idx
         });
-
+ 
         if (isDuplicate) {
             fundingerror = fundingerror + "<p>" + " Comment should be unique for the deal."
         }
@@ -5522,7 +8575,9 @@ export class DealDetailComponent extends Paginated implements OnInit {
     }
     //end validation for total commitment tab
     ///Total Funding sequence + Initial Funding - Pre pay or scheduled amount + negative transfers - ballon = Adjusted Commitment
+    fundingerror = fundingerror + this.ValidateDealFunding();
     var noteswithissue = "";
+    var noteswithwarning = "";
     if (this.lstSequenceHistory) {
       var today = new Date();
 
@@ -5538,53 +8593,69 @@ export class DealDetailComponent extends Paginated implements OnInit {
         ScheduledPrincipalPaid = 0;
 
         var currentnoteid = this.lstSequenceHistory[j].NoteID;
-        var InitialFundingAmount = this.lstSequenceHistory[j].InitialFundingAmount;
-        balloon = this.lstSequenceHistory[j].BalloonPayment * -1;
+        var NoteType = this.lstNote.filter(x => x.NoteId == currentnoteid)[0].NoteType;
+        if (NoteType != 901) {
+          var InitialFundingAmount = this.lstSequenceHistory[j].InitialFundingAmount;
+          balloon = this.lstSequenceHistory[j].BalloonPayment * -1;
 
-        if (this.lstScheduledPrincipalPaid) {
-          if (this.lstScheduledPrincipalPaid.length > 0) {
+          if (this.lstScheduledPrincipalPaid) {
+            if (this.lstScheduledPrincipalPaid.length > 0) {
 
-            var lstScheduledPrip = this.lstScheduledPrincipalPaid.filter(x => x.NoteID == currentnoteid);
-            if (lstScheduledPrip.length > 0) {
-              var temp = lstScheduledPrip[0].Amount;
-              if (temp != null && temp != undefined) {
-                ScheduledPrincipalPaid = parseFloat((temp * -1).toFixed(2));
+              var lstScheduledPrip = this.lstScheduledPrincipalPaid.filter(x => x.NoteID == currentnoteid);
+              if (lstScheduledPrip.length > 0) {
+                var temp = lstScheduledPrip[0].Amount;
+                if (temp != null && temp != undefined) {
+                  ScheduledPrincipalPaid = parseFloat((temp * -1).toFixed(2));
+                }
               }
+
             }
-
           }
-        }
-        var noteFundingArray = this.lstNoteFunding.filter(x => x.NoteID == currentnoteid);
-        for (var m = 0; m < noteFundingArray.length; m++) {
-          if (noteFundingArray[m].Value) {
-            if (noteFundingArray[m].Value < 0) {
-              if (new Date(noteFundingArray[m].Date) <= today) {
-                totRepayment = totRepayment + parseFloat(this.GetDefaultValue(parseFloat(noteFundingArray[m].Value).toFixed(2)));
-              }
-            } else {
-              if (noteFundingArray[m].Purpose != "Note Transfer") {
-                if (noteFundingArray[m].Value !== null) {
-                  sumNotefunding = sumNotefunding + parseFloat(this.GetDefaultValue(parseFloat(noteFundingArray[m].Value).toFixed(2)));
+          var noteFundingArray = this.lstNoteFunding.filter(x => x.NoteID == currentnoteid);
+          for (var m = 0; m < noteFundingArray.length; m++) {
+            if (noteFundingArray[m].Value) {
+              if (noteFundingArray[m].Value < 0) {
+                if (new Date(noteFundingArray[m].Date) <= today) {
+                  //revolver balance will be inculded in  835
+                  if (noteFundingArray[m].AdjustmentType != 834 && noteFundingArray[m].AdjustmentType != 896) {
+                    totRepayment = totRepayment + parseFloat(this.GetDefaultValue(parseFloat(noteFundingArray[m].Value).toFixed(2)));
+                  }
+
+                }
+              } else {
+                if (noteFundingArray[m].Purpose != "Note Transfer") {
+                  if (noteFundingArray[m].AdjustmentType != 834 && noteFundingArray[m].AdjustmentType != 896) {
+                    //revolver balance will be inculded in  835
+                    if (noteFundingArray[m].Value !== null) {
+                      sumNotefunding = sumNotefunding + parseFloat(this.GetDefaultValue(parseFloat(noteFundingArray[m].Value).toFixed(2)));
+                    }
+                  }
+
                 }
               }
             }
           }
-        }
-        sumNotefunding = parseFloat(sumNotefunding.toFixed(2));
-        totRepayment = parseFloat(totRepayment.toFixed(2));
-        if (parseFloat(InitialFundingAmount) == 0.01) {
-          InitialFundingAmount = 0;
-        }
-        //for loop end
-        //AdjustedTotalCommitment
-        var subtotal = sumNotefunding + parseFloat(InitialFundingAmount) + totRepayment + parseFloat(balloon) + parseFloat(ScheduledPrincipalPaid);
-        if (parseFloat(subtotal.toFixed(2)) > parseFloat(this.lstSequenceHistory[j].AdjustedTotalCommitment.toFixed(2))) {
-          var diffval = parseFloat(subtotal.toFixed(2)) - parseFloat(this.lstSequenceHistory[j].AdjustedTotalCommitment.toFixed(2));
-          if (Math.abs(parseFloat(diffval.toFixed(2))) > 0) {
-            noteswithissue = noteswithissue + this.lstSequenceHistory[j].CRENoteID + ", ";
+          sumNotefunding = parseFloat(sumNotefunding.toFixed(2));
+          totRepayment = parseFloat(totRepayment.toFixed(2));
+          if (parseFloat(InitialFundingAmount) == 0.01) {
+            InitialFundingAmount = 0;
           }
+          //for loop end
+          //AdjustedTotalCommitment
+          var subtotal = sumNotefunding + parseFloat(InitialFundingAmount) + totRepayment + parseFloat(balloon) + parseFloat(ScheduledPrincipalPaid);
+          if (parseFloat(subtotal.toFixed(2)) > parseFloat(this.lstSequenceHistory[j].AdjustedTotalCommitment.toFixed(2))) {
+            var diffval = parseFloat(subtotal.toFixed(2)) - parseFloat(this.lstSequenceHistory[j].AdjustedTotalCommitment.toFixed(2));
+            if (Math.abs(parseFloat(diffval.toFixed(2))) > 0) {
+              if (Math.abs(parseFloat(diffval.toFixed(2))) > 100) {
+                noteswithissue = noteswithissue + this.lstSequenceHistory[j].CRENoteID + ", ";
+              } else {
+                noteswithwarning = noteswithwarning + this.lstSequenceHistory[j].CRENoteID + ", ";
+              }
+            }
 
+          }
         }
+
       }
     }
     if (noteswithissue != "") {
@@ -5592,6 +8663,10 @@ export class DealDetailComponent extends Paginated implements OnInit {
       fundingerror = fundingerror + "<p> Sum of Future Funding and Current Balance should be less than or equal to Adjusted Commitment for Note(s) " + noteswithissue.slice(0, -1) + "</p>";
     }
 
+    if (noteswithwarning != "") {
+      noteswithwarning = noteswithwarning.substring(0, noteswithwarning.length - 1);
+      errordialog = errordialog + "<p> Sum of Future Funding and Current Balance should be less than or equal to Adjusted Commitment for Note(s) " + noteswithwarning.slice(0, -1) + "</p>";
+    }
     var duplicatedateerror = '';
     if (this.flexautospreadrepayments) {
       if (this.flexautospreadrepayments.rows.length > 0) {
@@ -5639,7 +8714,11 @@ export class DealDetailComponent extends Paginated implements OnInit {
     if (this._isMaturityTabClicked == true) {
       this.createMaturityList('Save', null, this.selectedGroupName);
       if (this._isMaturityError == "") {
-        this.noteMaturityList = this.noteMaturityList;
+        if (this.noteMaturityList.length == 0) {
+          this.noteMaturityList = this.maturityOtherFieldsList;
+        } else {
+          this.noteMaturityList = this.noteMaturityList;
+        }
       }
     }
 
@@ -5652,11 +8731,6 @@ export class DealDetailComponent extends Paginated implements OnInit {
         this._deal.ReserveScheduleList = this.reserveScheduleList;
       }
     }
-    if (this._deal.ApplyNoteLevelPaydowns == true) {
-      if (this._deal.EnableAutospreadRepayments != true) {
-        fundingerror = fundingerror + "<p>" + "Please enable repayment auto spreading to apply note level paydowns or uncheck apply note level paydowns." + " </p>";
-      }
-    }
 
     if (this._isPrepaymentTabClicked == true) {
       var minclosingdate = new Date(Math.min.apply(null, this.lstNote.map(x => x.ClosingDate)));
@@ -5664,42 +8738,78 @@ export class DealDetailComponent extends Paginated implements OnInit {
       this._prepaymentpremium.DealID = this._deal.DealID;
       this._prepaymentpremium.EffectiveDate = this.convertDatetoGMT(this._prepaymentpremium.EffectiveDate);
       this._deal.PrePayDate = this.convertDatetoGMT(this._deal.PrePayDate);
-      this._prepaymentpremium.CalcThro = this.convertDatetoGMT(this._prepaymentpremium.CalcThro);
+      this._prepaymentpremium.CalcThru = this.convertDatetoGMT(this._prepaymentpremium.CalcThru);
       this._prepaymentpremium.PrepayDate = this.convertDatetoGMT(this._deal.PrePayDate);
       this._prepaymentpremium.OpenPaymentDate = this.convertDatetoGMT(this._prepaymentpremium.OpenPaymentDate);
       CREIDduplicateNotelevel = this.checkIfArrayIsUnique(this._lstSpreadMaintenance, 'PrepayCRENoteID');
-
-      if (this._deal.PrePayDate != null && this._prepaymentpremium.CalcThro != null) {
-        if (this._prepaymentpremium.CalcThro < this._deal.PrePayDate) {
-          prepaymentmsg = "<p>" + "Prepayment date should be less than calc thro date " + "</p>";
+      if (this._deal.PrePayDate != null && this._prepaymentpremium.CalcThru != null) {
+        if (this._prepaymentpremium.CalcThru < this._deal.PrePayDate) {
+          prepaymentmsg = "<p>" + "Prepay date should be less than calc thru date " + "</p>";
         }
       }
-      if (this._prepaymentpremium.CalcThro != null && maxFullyExtendedMaturityDate != null) {
-        if (maxFullyExtendedMaturityDate < this._prepaymentpremium.CalcThro) {
-          prepaymentdatemsg = "<p>" + "Calc thro date should be less than fully extended maturity date " + "</p>";
+      if (this._prepaymentpremium.CalcThru != null && maxFullyExtendedMaturityDate != null) {
+        if (maxFullyExtendedMaturityDate < this._prepaymentpremium.CalcThru) {
+          prepaymentdatemsg = "<p>" + "Calc thru date should be less than fully extended maturity date " + "</p>";
         }
       }
       if (this._deal.PrePayDate != null && minclosingdate != null) {
         if (this._deal.PrePayDate < minclosingdate) {
-          prepaymentmsg1 = "<p>" + "Prepayment date should not be less than closing date " + "</p>";
-
+          prepaymentmsg1 = "<p>" + "Prepay date should not be less than closing date " + "</p>";
         }
       }
-      if (this._prepaymentpremium.CalcThro != null && minclosingdate != null) {
-        if (this._prepaymentpremium.CalcThro < minclosingdate) {
-          prepaymentmsg2 = "<p>" + "Calc thro date should not be less than closing date " + "</p>";
-
+      if (this._prepaymentpremium.CalcThru != null && minclosingdate != null) {
+        if (this._prepaymentpremium.CalcThru < minclosingdate) {
+          prepaymentmsg2 = "<p>" + "Calc thru date should not be less than closing date " + "</p>";
         }
       }
       if (CREIDduplicateNotelevel != true) {
         CREIDduplicateNotelevelmsg = "<p>" + "Please select a unique NoteID at note level prepayment." + "</p>";
       }
+      for (i = 0; i < this.cvPrepayGroupSetup.itemCount; i++) {
+        if (this._deal.PrepaymentGroupSize < this.cvPrepayGroupSetup.items[i].GroupId) {
+          prepaymentGroupSize = "<p>" + "Group ID cannot be greater than group size." + "</p>";
+          break;
+        }
+      }
     }
-    if (ms.length > 31 || fundingerror != "" || extendedmsg != "" || dealfundingmsg != "" || dealfundingamount != "" || invalivadte != "" || errordialog != "" || duplicatedateerror != "" || this._isMaturityError != "" || this._isReserveValidation != "" || this._isReserveScheduleValidation != "" || prepaymentmsg != "" || prepaymentdatemsg != "" || prepaymentmsg1 != "" || prepaymentmsg2 != "" || CREIDduplicateNotelevelmsg != "") {
+
+    if (Liabilitynameblank == true) {
+      fundingerror = fundingerror + "<p>" + "Liability Note ID Cannot be blank." + "</p>";
+    }
+
+    if (AssetIdBlank == true) {
+      fundingerror = fundingerror + "<p>" + "Asset ID Cannot be blank." + "</p>";
+    }
+
+    //if (this._deal.EnableAutospreadRepayments == true) {
+    //    fundingerror = fundingerror + "<p>" + "Please enable repayment auto spreading to apply note level paydowns or uncheck apply note level paydowns." + " </p>";
+    //}
+
+    var positiveNonComm = 0, NegativeNonComm = 0;
+
+    for (var df = 0; df < this.listdealfunding.length; df++) {
+
+      if (this.listdealfunding[df].Value < 0 && this.listdealfunding[df].AdjustmentType == 834 && this.listdealfunding[df].AdjustmentType == 896) {
+        if (this.listdealfunding[df].GeneratedBy != 747) {
+          NegativeNonComm += Math.abs(this.listdealfunding[df].Value);
+        }
+      }
+      if (this.listdealfunding[df].Value > 0 && this.listdealfunding[df].AdjustmentType == 834 && this.listdealfunding[df].AdjustmentType == 896) {
+
+        positiveNonComm += this.listdealfunding[df].Value;
+      }
+    }
+
+    if (parseFloat(NegativeNonComm.toFixed(2)) > parseFloat(positiveNonComm.toFixed(2))) {
+      errordialog = errordialog + "<p>" + "Negative Non Commitment Adjustment should not be greater than positive Non Commitment Adjustment.";
+    }
+
+    if (ms.length > 31 || fundingerror != "" || extendedmsg != "" || dealfundingmsg != "" || dealfundingamount != "" || invalivadte != "" || errordialog != "" || duplicatedateerror != "" || this._isMaturityError != "" || this._isReserveValidation != "" || this._isReserveScheduleValidation != "" || prepaymentmsg != "" || prepaymentmsg1 != "" || prepaymentmsg2 != "" || prepaymentGroupSize != "" || prepaymentdatemsg != "" || CREIDduplicateNotelevelmsg != "") {
       var msg = "";
       if (ms.length > 31) {
         msg = ms;
       }
+
       if (fundingerror != "") {
         msg = msg + fundingerror;
       }
@@ -5718,14 +8828,17 @@ export class DealDetailComponent extends Paginated implements OnInit {
       if (prepaymentmsg != "") {
         msg = msg + prepaymentmsg;
       }
-      if (prepaymentdatemsg != "") {
-        msg = msg + prepaymentdatemsg;
-      }
       if (prepaymentmsg1 != "") {
         msg = msg + prepaymentmsg1;
       }
       if (prepaymentmsg2 != "") {
         msg = msg + prepaymentmsg2;
+      }
+      if (prepaymentGroupSize != "") {
+        msg = msg + prepaymentGroupSize;
+      }
+      if (prepaymentdatemsg != "") {
+        msg = msg + prepaymentdatemsg;
       }
       if (CREIDduplicateNotelevelmsg != "") {
         msg = msg + CREIDduplicateNotelevelmsg;
@@ -5735,8 +8848,13 @@ export class DealDetailComponent extends Paginated implements OnInit {
       msg = msg + dealfundingmsg;
       msg = msg + duplicatedateerror;
 
+
       this._isListFetching = false;
       if (msg != "") {
+        if (this._deal.PrePayDate != null || this._deal.PrePayDate != undefined) {
+          this._deal.PrePayDate = new Date(this.utils.convertDateToBindable(this._deal.PrePayDate));
+
+        }
         this.CustomAlert(msg);
       }
       if (errordialog != "" && msg == "") {
@@ -5773,6 +8891,10 @@ export class DealDetailComponent extends Paginated implements OnInit {
     else
       this.flex.columns[4].isReadOnly = true;
   }
+  LiabilitySourceChange(newvalue): void {
+    this._deal.LiabilitySource = newvalue;
+  }
+
   LoanProgramChange(newvalue): void {
     this._deal.LoanProgram = newvalue;
   }
@@ -5782,7 +8904,104 @@ export class DealDetailComponent extends Paginated implements OnInit {
   SourceChange(newvalue): void {
     this._deal.Source = newvalue;
   }
+  InternalRefiChange(newvalue): void {
+    this._deal.InternalRefi = newvalue;
+    this._deal.InternalRefiText = this.lstYandN.find(x => x.LookupID == newvalue).Name;
+    if (this._deal.InternalRefiText == "Y") {
+      this._Showinternalrefi = true;
+    } else {
+      this._Showinternalrefi = false;
+    }
+    this.CalculateFee();
+  }
 
+  PortfolioLoanChange(newvalue): void {
+    this._deal.PortfolioLoan = newvalue;
+    this._deal.PortfolioLoanText = this.lstYandN.find(x => x.LookupID == newvalue).Name;
+  }
+  AssigningLoanToTakeoutLenderChange(newvalue): void {
+    this._deal.AssigningLoanToTakeoutLender = newvalue;
+    this._deal.AssigningLoanToTakeoutLenderText = this.lstYandN.find(x => x.LookupID == newvalue).Name;
+  }
+  NettingofReservesEscrowsChange(newvalue): void {
+    this._deal.NettingofReservesEscrows = newvalue;
+  }
+
+  CalculateFee() {
+    if (this._deal.InternalRefiText !== "Y") {
+
+      var PortfolioLoan = this._deal.PortfolioLoanText;
+      var AssigningLoanToTakeoutLender = this._deal.AssigningLoanToTakeoutLenderText;
+
+      if (PortfolioLoan != "" && AssigningLoanToTakeoutLender != "") {
+        var legalfee = 0;
+        if (AssigningLoanToTakeoutLender == "N" && PortfolioLoan == "N") {
+          legalfee = 3500;
+        }
+        else if (AssigningLoanToTakeoutLender == "Y" && PortfolioLoan == "Y") {
+          legalfee = 7500;
+        }
+        else {
+          legalfee = 5500;
+        }
+      }
+      for (var df = 0; df < this._lstPayoffStatementFees.length; df++) {
+        if (this._lstPayoffStatementFees[df].FeeTypeText == "Legal" || this._lstPayoffStatementFees[df].FeeTypeText == "927") {
+          this._lstPayoffStatementFees[df].Value = legalfee;
+          break;
+        }
+      }
+
+      for (var df = 0; df < this._lstPayoffStatementFees.length; df++) {
+        if (this._lstPayoffStatementFees[df].FeeTypeText == "ACORE Processing" || this._lstPayoffStatementFees[df].FeeType == 928) {
+          this._lstPayoffStatementFees[df].Value = 2500;
+        } else if (this._lstPayoffStatementFees[df].FeeTypeText == "Servicer Fee" || this._lstPayoffStatementFees[df].FeeType == 929) {
+          this._lstPayoffStatementFees[df].Value = 500;
+        }
+      }
+
+    } else {
+      for (var df = 0; df < this._lstPayoffStatementFees.length; df++) {
+        this._lstPayoffStatementFees[df].Value = 0;
+      }
+    }
+
+    this.cvPayoffStatementFees = new wjcCore.CollectionView(this._lstPayoffStatementFees);
+
+    setTimeout(function () {
+      this.flexPayoffStatementFees.invalidate(true);
+    }.bind(this), 1000);
+
+  }
+  CalcEngineTypeChange(newvalue): void {
+    var validation = "";
+    if (newvalue != "798") {
+      if (this._deal.LastAccountingclosedate != null) {
+        validation = "This deal has accounting close enabled. Please open closed period(s) and then switch the deal to C# engine.";
+      }
+
+    }
+    if (validation == "") {
+      this._deal.CalcEngineType = newvalue;
+    } else {
+      this._deal.CalcEngineType = this.PrevCalcEngineType;
+      $('#CalcEngineType').val(this.PrevCalcEngineType).change();
+      this.CustomAlert(validation);
+    }
+
+    this.hideaccoutingCloseGrid();
+  }
+
+  hideaccoutingCloseGrid() {
+
+    if (this._deal.CalcEngineType == 798) {
+      this.isShowaccoutingCloseMessage = false;
+      this.isShowaccoutingCloseGrid = true;
+    } else {
+      this.isShowaccoutingCloseMessage = true;
+      this.isShowaccoutingCloseGrid = false;
+    }
+  }
 
   AmortizationMethodChange(newvalue): void {
     this._isAmortSchChanges = true;
@@ -5945,7 +9164,8 @@ export class DealDetailComponent extends Paginated implements OnInit {
     dialogbox.style.left = (winW / 2) - (550 * .5) + "px";
     dialogbox.style.top = "100px";
     dialogbox.style.display = "block";
-    document.getElementById('dialogboxhead').innerHTML = "CRES - Validation Error";
+    dialogbox.style.zIndex = "10000";
+    //document.getElementById('dialogboxhead').innerHTML = "CRES - Validation Error";
     document.getElementById('dialogboxbody').innerHTML = dialog;
     //document.getElementById('dialogboxfoot').innerHTML = '<span class="custombutton" onclientclick="this.ok()">OK</span>';
   }
@@ -6011,6 +9231,17 @@ export class DealDetailComponent extends Paginated implements OnInit {
       var _userOffset = date.getTimezoneOffset() * 60 * 1000; // user's offset time
       var _centralOffset = this._dtUTCHours * 60 * 60 * 1000; // 6 for central time - use whatever you need
       date = new Date(date.getTime() - this._userOffset + this._centralOffset); // redefine variable
+      return date;
+    }
+    else
+      return date;
+  }
+
+  convertCommitmentDatetoGMT(date: Date) {
+
+    if (date != null) {
+      date = new Date(date); //will convert to present timestamp offset
+      date = new Date(date.getTime() + (date.getTimezoneOffset() * 60 * 1000));
       return date;
     }
     else
@@ -6148,268 +9379,7 @@ export class DealDetailComponent extends Paginated implements OnInit {
     }, 1000);
   }
 
-  invalidateRulestab() {
-    if (!this._isRuleTabClicked) {
-      localStorage.setItem('ClickedTabId', 'aRulestab');
-      this._isRuleTabClicked = true;
-    }
-    this._isListFetching = true;
-    if (this._deal.BalanceAware == false) {
-      this._isShowScenariodiv = false;
-      this._isShowRuleTypediv = false;
-      this._isShowbtnResetdiv = false;
-      this._Showmessagedivrule = true;
-      this._ShowmessagedivruleMsg = "This deal is set as Non Balance Aware Deal. To edit the rules, check the balance aware checkbox on Main Tab and save the deal.";
-    }
-    else {
-      this._isShowScenariodiv = true;
-      this._isShowRuleTypediv = true;
-      this._isShowbtnResetdiv = true;
-      this._Showmessagedivrule = false;
-      this._ShowmessagedivruleMsg = "";
-    }
-    this.getAllRuleType();
-    this.GetAllRuleTypeDetail();
-    this.GetRuleTypeSetupByDealid();
-    this.appliedreadonlyrulesetfile();
-    setTimeout(() => {
-      this.flex.invalidate();
-      this.flexPro.invalidate();
-      // this.flexRules.invalidate();
-      this.RuleTypeList.invalidate();
-    }, 200);
-    setTimeout(() => {
-      this._isListFetching = false;
-    }, 1000);
-  }
 
-  OnChangeScenarioName(newvalue) {
-    this._lstruletype = [];
-    this.RuleTypeList.invalidate();
-    if (this._lstRuleTypeSetupfilter != null) {
-
-      this._lstruletype = this._lstRuleTypeSetupfilter.filter(x => x.AnalysisID == newvalue);
-
-      this.RuleTypeList.invalidate();
-    }
-
-    if (this._lstgetallrule.length > 0) {
-      for (var h = 0; h < this._lstgetallrule.length; h++) {
-        var _lstgetallrule = this._lstruletype.filter(x => x.RuleTypeName == this._lstgetallrule[h].RuleTypeName)
-        if (_lstgetallrule.length == 0) {
-          this._lstruletype.push({
-            'AnalysisID': newvalue,
-            'DealID': this._deal.DealID,
-            'RuleTypeMasterID': this._lstgetallrule[h].RuleTypeMasterID,
-            'RuleTypeDetailID': "",
-            'RuleTypeName': this._lstgetallrule[h].RuleTypeName,
-            'FileName': "",
-
-          });
-        }
-
-      }
-    }
-
-    var newanalysisid = this._lstRuleTypeSetuptobesend.filter(x => x.AnalysisID == newvalue)
-    if (newanalysisid.length != 0) {
-      this._lstruletype = [];
-      setTimeout(function () {
-        this._lstruletype = newanalysisid;
-      }.bind(this), 100);
-    }
-    else {
-      if (newvalue != undefined) {
-        if (this._lstruletype.length > 0) {
-          for (var h = 0; h < this._lstruletype.length; h++) {
-            this._lstRuleTypeSetuptobesend.push({
-              'AnalysisID': newvalue,
-              'DealID': this._deal.DealID,
-              'RuleTypeMasterID': this._lstruletype[h].RuleTypeMasterID,
-              'RuleTypeDetailID': this._lstruletype[h].RuleTypeDetailID,
-              'RuleTypeName': this._lstruletype[h].RuleTypeName,
-              'FileName': this._lstruletype[h].FileName,
-
-            });
-          }
-        }
-      }
-    }
-  }
-
-  appliedreadonlyrulesetfile() {
-    setTimeout(() => {
-
-      for (var i = 0; i < this._lstruletype.length; i++) {
-        if (this.RuleTypeList.rows[i]) {
-          if (this.RuleTypeList.rows[i].dataItem.RuleTypeName == "Prepay") {
-            if (this.RuleTypeList.rows[i]) {
-              this.RuleTypeList.rows[i].isReadOnly = true;
-              this.RuleTypeList.rows[i].cssClass = "customgridrowcolor";
-            }
-          }
-        }
-      }
-
-    }, 1000);
-  }
-
-  private _buildDataMapWithoutLookupForRuleType(items): wjcGrid.DataMap {
-    var map = [];
-
-    for (var i = 0; i < items.length; i++) {
-      var obj = items[i];
-      map.push({ key: obj['FileName'], value: obj['FileName'] });
-    }
-    return new wjcGrid.DataMap(map, 'key', 'value');
-  }
-
-  getAllRuleType() {
-    this.scenarioService.getallruletype().subscribe(res => {
-      if (res.Succeeded) {
-        this._lstruletype = res.lstScenariorule;
-        this._lstgetallrule = res.lstScenariorule;
-      }
-    });
-
-  }
-
-  GetAllRuleTypeDetail() {
-    this.scenarioService.getallruletypedetail().subscribe(res => {
-      if (res.Succeeded) {
-        this._lstruletypedetail = res.lstScenarioRuleDetail;
-        var RuleType = this.RuleTypeList;
-        if (RuleType) {
-          var colRuleType = RuleType.columns.getColumn('FileName');
-          if (colRuleType) {
-           // colRuleType.showDropDown = true;
-            colRuleType.dataMap = this._buildDataMapWithoutLookupForRuleType(this._lstruletypedetail);
-          }
-        }
-
-      }
-
-    });
-  }
-
-  GetRuleTypeSetupByDealid() {
-    this._ruletype.DealID = this._deal.DealID;
-    this.dealSrv.getruletypesetupbydealid(this._ruletype).subscribe(res => {
-      if (res.Succeeded) {
-        this._lstRuleTypeSetupfilter = res.lstScenariorule;
-        this.OnChangeScenarioName(this._ruletype.AnalysisID);
-      }
-    });
-  }
-
-  cellRuleTypeEditHandler = function (s, e) {
-    var col = s.columns[e.col];
-    if (col.binding == 'FileName') {
-      var RuleTypeName = s.rows[e.row].dataItem.RuleTypeName
-      switch (RuleTypeName) {
-        case RuleTypeName:
-          this.lstRuleTypebyruleid = this._lstruletypedetail.filter(x => x.RuleTypeName == RuleTypeName)
-          this.lstRuleTypebyruleid.sort(this.sortByName);
-          col.dataMap = this._buildDataMapWithoutLookupForRuleType(this.lstRuleTypebyruleid);
-          break;
-
-      }
-    }
-  }
-
-  celleditRuleType(s: wjcGrid.FlexGrid, e: wjcGrid.CellEditEndingEventArgs) {
-    var RuleTypeFileNameerror = "";
-    var rowdata = this.RuleTypeList.rows[e.row].dataItem;
-    if (this._ruletype.AnalysisID == undefined) {
-      RuleTypeFileNameerror = "<p>" + "Please Select a Scenario" + "</p>";
-      this.CustomAlert(RuleTypeFileNameerror);
-      return;
-    }
-    if (Object.keys(rowdata).length > 0) {
-      var newFileName = rowdata.FileName;
-      if (this._lstRuleTypeSetuptobesend.length > 0) {
-        for (var h = 0; h < this._lstRuleTypeSetuptobesend.length; h++) {
-          if (this._lstRuleTypeSetuptobesend[h].RuleTypeName == rowdata.RuleTypeName && this._lstRuleTypeSetuptobesend[h].AnalysisID == this._ruletype.AnalysisID) {
-            this._lstRuleTypeSetuptobesend[h]["FileName"] = newFileName;
-          }
-
-        }
-      }
-
-    }
-  }
-
-  ResetRuleType() {
-    if (this._lstRuleTypeSetupfilter != null) {
-      if (this._lstRuleTypeSetupfilter.length > 0) {
-        for (var h = 0; h < this._lstRuleTypeSetupfilter.length; h++) {
-          if (this._lstRuleTypeSetupfilter[h].AnalysisID == this._ruletype.AnalysisID) {
-            this._lstRuleTypeSetupfilter[h]["FileName"] = "";
-
-          }
-        }
-      }
-
-      this._lstruletype = this._lstRuleTypeSetupfilter.filter(x => x.AnalysisID == this._ruletype.AnalysisID);
-    }
-    else {
-      this._lstruletype = [];
-      this.RuleTypeList.invalidate();
-    }
-    if (this._lstgetallrule.length > 0) {
-      for (var h = 0; h < this._lstgetallrule.length; h++) {
-        var _lstgetallrule = this._lstruletype.filter(x => x.RuleTypeName == this._lstgetallrule[h].RuleTypeName)
-        if (_lstgetallrule.length == 0) {
-          this._lstruletype.push({
-            'AnalysisID': this._ruletype.AnalysisID,
-            'DealID': this._deal.DealID,
-            'RuleTypeMasterID': this._lstgetallrule[h].RuleTypeMasterID,
-            'RuleTypeDetailID': "",
-            'RuleTypeName': this._lstgetallrule[h].RuleTypeName,
-            'FileName': "",
-
-          });
-        }
-
-      }
-    }
-    if (this._lstRuleTypeSetuptobesend.length > 0) {
-      for (var h = 0; h < this._lstRuleTypeSetuptobesend.length; h++) {
-        if (this._lstRuleTypeSetuptobesend[h].AnalysisID == this._ruletype.AnalysisID) {
-          this._lstRuleTypeSetuptobesend[h]["FileName"] = "";
-
-        }
-      }
-    }
-
-
-  }
-
-  AddUpdateDealRuleTypeSetup() {
-
-    var RuleTypeDetailID = 0;
-    if (this._lstRuleTypeSetuptobesend.length > 0) {
-      for (var h = 0; h < this._lstRuleTypeSetuptobesend.length; h++) {
-
-        if (this._lstRuleTypeSetuptobesend[h].FileName != "" && this._lstRuleTypeSetuptobesend[h].FileName != null) {
-          RuleTypeDetailID = this._lstruletypedetail.find(x => x.FileName == this._lstRuleTypeSetuptobesend[h].FileName).RuleTypeDetailID
-        }
-        else {
-          RuleTypeDetailID = 0;
-        }
-        this._lstRuleTypeSetupNew.push({
-          'AnalysisID': this._lstRuleTypeSetuptobesend[h].AnalysisID,
-          'DealID': this._lstRuleTypeSetuptobesend[h].DealID,
-          'RuleTypeMasterID': this._lstRuleTypeSetuptobesend[h].RuleTypeMasterID,
-          'RuleTypeDetailID': RuleTypeDetailID,
-
-        });
-      }
-
-
-    }
-    this.dealSrv.addupdatedealruletypesetup(this._lstRuleTypeSetupNew)
-  }
 
   invalidateDealAmorttab() {
     this._isListFetching = true;
@@ -6445,6 +9415,23 @@ export class DealDetailComponent extends Paginated implements OnInit {
     // this._deal.AggregatedTotal = parseFloat(this._deal.TotalCommitment) + parseFloat(this._deal.AdjustedTotalCommitment);
   }
 
+  CheckDuplicateTransactionCashflow(item): void {
+    this._isListFetching = true;
+    var downloadCashFlow = new DownloadCashFlow();
+    downloadCashFlow.Pagename = "Deal";
+    downloadCashFlow.AnalysisID = item.AnalysisID;
+    downloadCashFlow.DealID = this._deal.DealID;
+    this.noteSrv.CheckDuplicateTransactionCashflow(downloadCashFlow).subscribe(res => {
+      this.lstCheckDuplicateTransactionCashflow = res.CheckDuplicateData
+      if (this.lstCheckDuplicateTransactionCashflow != null) {
+        this.CustomAlert("There is a duplicate transaction we found in cashflow download, please try after some time.");
+      }
+      else {
+        this.downloadNoteCashflowsExportData(item);
+      }
+      this._isListFetching = false;
+    });
+  }
 
   downloadNoteCashflowsExportData(item): void {
     if (this._CritialExceptionListCount > 0) {
@@ -6464,7 +9451,9 @@ export class DealDetailComponent extends Paginated implements OnInit {
       downloadCashFlow.Pagename = "Deal";
       var displayDate = new Date().toLocaleDateString("en-US").replace(/\//g, '-');
       var displayTime = new Date().toLocaleTimeString("en-US").replace(/\:/g, '-');
-      var fileName = this._deal.CREDealID + "_" + this.ScenarioName + "_Cashflow_" + displayDate + "_" + displayTime + ".xlsx";
+
+      var environmentName = this.dataSrv._environmentNamae != '' ? "" + this.dataSrv._environmentNamae.replace("-", "").trim() + " " : "";
+      var fileName = environmentName + "_" + this._deal.CREDealID + "_" + this.ScenarioName + "_Cashflow_" + displayDate + "_" + displayTime + ".xlsx";
 
       this.noteSrv.getNoteCashflowsExportData(downloadCashFlow).subscribe(res => {
         let b: any = new Blob([res]);
@@ -6484,6 +9473,7 @@ export class DealDetailComponent extends Paginated implements OnInit {
       });
     }
   }
+
 
   downloadFile(objArray) {
     this._user = JSON.parse(localStorage.getItem('user'));
@@ -6535,105 +9525,291 @@ export class DealDetailComponent extends Paginated implements OnInit {
   }
 
   // add a footer row to display column aggregates below the data
-  addFooterRow(flexGrid) { //: wjcGrid.FlexGrid
+  addFooterRow(flexGrid) {    //: wjcGrid.FlexGrid
     var row = new wjcGrid.GroupRow(); // create a GroupRow to show aggregates
     flexGrid.columnFooters.rows.push(row); // add the row to the column footer panel
     flexGrid.bottomLeftCells.setCellData(0, 0, '\u03A3');
-    // sigma on the header       
+    // sigma on the header    
+  }
+
+  addFooterRowFundingRues(flexGrid) {
+
+    if (flexGrid.columnFooters.rows.length == 0) {
+      //: wjcGrid.FlexGrid
+      var row = new wjcGrid.GroupRow(); // create a GroupRow to show aggregates
+      flexGrid.columnFooters.rows.push(row); // add the row to the column footer panel
+      flexGrid.bottomLeftCells.setCellData(0, 0, '\u03A3');
+    }
+
+    flexGrid.formatItem.addHandler((s, e) => {
+      this._ShowmessagedivWar = false;
+      if (s.columnFooters === e.panel && e.row === 0 && e.col === 6) {
+        if (s.collectionView) {
+          const items = s.collectionView.items;
+          if (items) {
+            if (this.CalcWeightedSpread) {
+              e.cell.innerHTML = parseFloat(this.CalcWeightedSpread).toFixed(6) + "%";
+            } else { e.cell.innerHTML = 0 + "%"; }
+
+
+          }
+        }
+      }
+
+      if (s.columnFooters === e.panel && e.row === 0 && e.col === 7) {
+        if (s.collectionView) {
+          const items = s.collectionView.items;
+          if (items) {
+            if (this.CalcWeightedEffectiveRate) {
+              e.cell.innerHTML = parseFloat(this.CalcWeightedEffectiveRate).toFixed(6) + "%";
+            } else { e.cell.innerHTML = 0 + "%"; }
+          }
+        }
+      }
+    });
+    // sigma on the header    
   }
 
   fundingaddFooterRow(flexGrid) { //: wjcGrid.FlexGrid
-    flexGrid.columnFooters.rows.push(new wjcGrid.GroupRow());
-    flexGrid.columnFooters.rows.defaultSize = 60;
-    //  setTimeout(function () {s
+    if (flexGrid.columnFooters.rows.length == 0) {
+      flexGrid.columnFooters.rows.push(new wjcGrid.GroupRow());
+      flexGrid.columnFooters.rows.defaultSize = 135;
+    }
     flexGrid.formatItem.addHandler((s, e) => {
+      this._ShowmessagedivWar = false;
+
+      if (s.columnFooters === e.panel && e.row === 0 && e.col === 4) {
+        if (s.collectionView) {
+          const items = s.collectionView.items;
+          if (items) {
+            var FundingExclNonCommitAdjust = items.filter(i => i.AdjustmentType != 834 && i.AdjustmentType != 896 && i.AdjustmentType != 897 && i.Value >= 0);
+            var FundExclNonCommitAdjust = wjcCore.getAggregate(wjcCore.Aggregate.Sum, FundingExclNonCommitAdjust, 'Value');
+            var FundingExclNonCommitAdjustent = wjcCore.Globalize.formatNumber(FundExclNonCommitAdjust, 'n2');
+
+            var RepaymentExclNonCommitAdjust = items.filter(i => i.AdjustmentType != 834 && i.AdjustmentType != 896 && i.AdjustmentType != 897 && i.Value < 0);
+            var RepayExclNonCommitAdjust = wjcCore.getAggregate(wjcCore.Aggregate.Sum, RepaymentExclNonCommitAdjust, 'Value');
+            var RepaymentExclNonCommitAdjustent = wjcCore.Globalize.formatNumber(RepayExclNonCommitAdjust, 'n2');
+
+            var TotaSum1 = parseFloat(FundExclNonCommitAdjust) + parseFloat(RepayExclNonCommitAdjust);
+            var TotaSum = wjcCore.Globalize.formatNumber(TotaSum1, 'n2');
+
+            var FundingIncludeNonCommitAdjust = items.filter(i => i.AdjustmentType == 834 && i.Value >= 0);
+            var FundIncludeNonCommitAdjust = wjcCore.getAggregate(wjcCore.Aggregate.Sum, FundingIncludeNonCommitAdjust, 'Value');
+            var FundingIncludeNonCommitAdjustent = wjcCore.Globalize.formatNumber(FundIncludeNonCommitAdjust, 'n2');
+
+            var RepaymentIncludeNonCommitAdjust = items.filter(i => i.AdjustmentType == 834 && i.Value < 0 && i.GeneratedBy != 747);
+            var RepayIncludeNonCommitAdjust = wjcCore.getAggregate(wjcCore.Aggregate.Sum, RepaymentIncludeNonCommitAdjust, 'Value');
+            var RepaymentIncludeNonCommitAdjustent = wjcCore.Globalize.formatNumber(RepayIncludeNonCommitAdjust, 'n2');
+            var revolv = items.filter(i => i.AdjustmentType == 835);
+            var revolve = wjcCore.getAggregate(wjcCore.Aggregate.Sum, revolv, 'Value');
+            var Revolver = wjcCore.Globalize.formatNumber(revolve, 'n2');
+
+            var PaNcaCollist = items.filter(i => i.AdjustmentType == 896);
+            var SumPaNca = wjcCore.getAggregate(wjcCore.Aggregate.Sum, PaNcaCollist, 'Value');
+            SumPaNca = wjcCore.Globalize.formatNumber(SumPaNca, 'n2');
+
+            var PACACollist = items.filter(i => i.AdjustmentType == 897);
+            var SumPACA = wjcCore.getAggregate(wjcCore.Aggregate.Sum, PACACollist, 'Value');
+            SumPACA = wjcCore.Globalize.formatNumber(SumPACA, 'n2');
+
+            var totalstring = "";
+            totalstring = "Fund (Excl. NCA): " + FundingExclNonCommitAdjustent;
+            totalstring = totalstring + "<br/>Repay (Excl. NCA):  " + RepaymentExclNonCommitAdjustent;
+            totalstring = totalstring + "<br/>Total:  " + TotaSum;
+
+            if (FundingIncludeNonCommitAdjust.length > 0)
+              totalstring = totalstring + "<br/>NCA Funding:  " + FundingIncludeNonCommitAdjustent;
+            if (RepaymentIncludeNonCommitAdjust.length > 0)
+              totalstring = totalstring + "<br/>NCA Paydown:  " + RepaymentIncludeNonCommitAdjustent;
+            if (revolv.length > 0)
+              totalstring = totalstring + "<br/>Revolver:  " + Revolver;
+            if (PaNcaCollist.length > 0) {
+              totalstring = totalstring + "<br/>NCA PA:  " + SumPaNca;
+            }
+            if (PACACollist.length > 0) {
+              totalstring = totalstring + "<br/>Comm Adj PA:  " + SumPACA;
+            }
+            e.cell.innerHTML = totalstring;
+          }
+        }
+      }
+
+      //code for apply custom footer for Notes
+      var objNoteList = this.columnsForNoteDealFunding;
+      var cntNoteFirstColumnPosition = 14;
+      objNoteList.forEach((o) => {
+
+
+        if (s.columnFooters === e.panel && e.row === 0 && e.col === cntNoteFirstColumnPosition) {
+          // e.col.width = 500;
+          if (s.collectionView) {
+
+            const items = s.collectionView.items;
+            if (items) {
+
+              var FundingExclNonCommitAdjust = items.filter(i => i.AdjustmentType != 834 && i.AdjustmentType != 896 && i.AdjustmentType != 897 && i.Value >= 0);
+              var FundExclNonCommitAdjust = wjcCore.getAggregate(wjcCore.Aggregate.Sum, FundingExclNonCommitAdjust, o.header);
+              var FundingExclNonCommitAdjustent = wjcCore.Globalize.formatNumber(FundExclNonCommitAdjust, 'n2');
+
+              var RepaymentExclNonCommitAdjust = items.filter(i => i.AdjustmentType != 834 && i.AdjustmentType != 896 && i.AdjustmentType != 897 && i.Value < 0);
+              var RepayExclNonCommitAdjust = wjcCore.getAggregate(wjcCore.Aggregate.Sum, RepaymentExclNonCommitAdjust, o.header);
+              var RepaymentExclNonCommitAdjustent = wjcCore.Globalize.formatNumber(RepayExclNonCommitAdjust, 'n2');
+
+              var TotaSum1 = parseFloat(FundExclNonCommitAdjust) + parseFloat(RepayExclNonCommitAdjust);
+              var TotaSum = wjcCore.Globalize.formatNumber(TotaSum1, 'n2');
+
+              var FundingIncludeNonCommitAdjust = items.filter(i => i.AdjustmentType == 834 && i.Value >= 0);
+              var FundIncludeNonCommitAdjust = wjcCore.getAggregate(wjcCore.Aggregate.Sum, FundingIncludeNonCommitAdjust, o.header);
+              var FundingIncludeNonCommitAdjustent = wjcCore.Globalize.formatNumber(FundIncludeNonCommitAdjust, 'n2');
+              var RepaymentIncludeNonCommitAdjust = items.filter(i => i.AdjustmentType == 834 && i.Value < 0);
+              var RepayIncludeNonCommitAdjust = wjcCore.getAggregate(wjcCore.Aggregate.Sum, RepaymentIncludeNonCommitAdjust, o.header);
+              var RepaymentIncludeNonCommitAdjustent = wjcCore.Globalize.formatNumber(RepayIncludeNonCommitAdjust, 'n2');
+              var revolv = items.filter(i => i.AdjustmentType == 835);
+              var revolve = wjcCore.getAggregate(wjcCore.Aggregate.Sum, revolv, o.header);
+              var Revolver = wjcCore.Globalize.formatNumber(revolve, 'n2');
+
+              var PaNcaCollist = items.filter(i => i.AdjustmentType == 896);
+              var SumPaNca = wjcCore.getAggregate(wjcCore.Aggregate.Sum, PaNcaCollist, o.header);
+              SumPaNca = wjcCore.Globalize.formatNumber(SumPaNca, 'n2');
+
+              var PACACollist = items.filter(i => i.AdjustmentType == 897);
+              var SumPACA = wjcCore.getAggregate(wjcCore.Aggregate.Sum, PACACollist, o.header);
+              SumPACA = wjcCore.Globalize.formatNumber(SumPACA, 'n2');
+
+
+              var totalstring = "";
+              totalstring = "Fund (Excl. NCA): " + FundingExclNonCommitAdjustent;
+              totalstring = totalstring + "<br/>Repay (Excl. NCA):  " + RepaymentExclNonCommitAdjustent;
+              totalstring = totalstring + "<br/>Total:  " + TotaSum;
+
+              if (FundingIncludeNonCommitAdjust.length > 0)
+                totalstring = totalstring + "<br/>NCA Funding:  " + FundingIncludeNonCommitAdjustent;
+              //if (RepaymentIncludeNonCommitAdjust.length > 0)
+              //  totalstring = totalstring + "<br/>NCA Paydown:  " + RepaymentIncludeNonCommitAdjustent;
+              if (revolv.length > 0)
+                totalstring = totalstring + "<br/>Revolver:  " + Revolver;
+              if (PaNcaCollist.length > 0) {
+                totalstring = totalstring + "<br/>NCA PA:  " + SumPaNca;
+              }
+              if (PACACollist.length > 0) {
+                totalstring = totalstring + "<br/>Comm Adj PA:  " + SumPACA;
+              }
+              e.cell.innerHTML = totalstring;
+
+
+            }
+          }
+        }
+        //==this.flexdealfunding.invalidate();
+        cntNoteFirstColumnPosition += 1;
+      });
+    });
+
+  }
+
+  fundingaddFooterRowForNonCommitment(s, e) { //: wjcGrid.FlexGrid
+    {
+      console.log('fundingaddFooterRowForNonCommitment');
       this._ShowmessagedivWar = false;
       if (s.columnFooters === e.panel && e.row === 0 && e.col === 3) {
         if (s.collectionView) {
           const items = s.collectionView.items;
           if (items) {
+
             var positiveItems = items.filter(i => i.Value >= 0);
             var negativeItems = items.filter(i => i.Value < 0);
             var positiveVal = wjcCore.getAggregate(wjcCore.Aggregate.Sum, positiveItems, 'Value');
             var negativeVal = wjcCore.getAggregate(wjcCore.Aggregate.Sum, negativeItems, 'Value');
-            var positiveSum = wjcCore.Globalize.formatNumber(positiveVal, 'n2');
+
             var negativeSum = wjcCore.Globalize.formatNumber(negativeVal, 'n2');
             var TotaSum1 = parseFloat(positiveVal) + parseFloat(negativeVal);
             var TotaSum = wjcCore.Globalize.formatNumber(TotaSum1, 'n2');
 
-            e.cell.innerHTML = `Funding: ${positiveSum}<br>Repayment: ${negativeSum}<br><u><b>Total: ${TotaSum}</b></u>`;
-            // e.cell.innerHTML = "Funding: <font color= `darkgreen`>"+${positiveSum}+"</font><br>Repayment: <font color=`red`>"+${negativeSum}+"</font>";
+
+            var sNonCommitmentAdj = items.filter(i => i.NonCommitmentAdj == true);
+            var TotalNonCommitmentAdj = wjcCore.getAggregate(wjcCore.Aggregate.Sum, sNonCommitmentAdj, 'Value');
+
+            var Balancepositivesum = positiveVal - TotalNonCommitmentAdj;
+            var DisBalancepositivesum = wjcCore.Globalize.formatNumber(TotalNonCommitmentAdj, 'n2');;
+            var positiveSum = wjcCore.Globalize.formatNumber(Balancepositivesum, 'n2');
+            // e.cell.innerHTML = `Funding: ${positiveSum}<br/>Unfunded Comm: ${DisBalancepositivesum}<br/>Repayment: ${negativeSum}<br/>Total: ${TotaSum}`;
+            e.cell.innerHTML = `<b>Funding: ${positiveSum}<br/>Non-Commit Adj: ${DisBalancepositivesum}<br/>Repayment: ${negativeSum}<br/><u> Total: ${TotaSum}</u></b>`;
+            //e.cell.innerHTML = `Funding: ${positiveSum}<br>Repayment: ${negativeSum}<br><u><b>Total: ${TotaSum}</b></u>`;
           }
         }
       }
 
-      //setTimeout(function () {
-      //    if (s.columnFooters === e.panel && e.row === 0 && e.col > 10) {
-      //        if (s.collectionView) {
-      //            const items = s.collectionView.items;
-      //            if (items) {
-      //                var col = this.flexdealfunding.columns;
-      //                var colm = col.slice(11, col.length);
-      //                for (var i = 0; i < colm.length; i++) {
-      //                    var colmname = colm[i].binding;
-      //                    colmname.replace(/['"]+/g, '');
-      //                    var positiveItms = items.filter(i => i[colmname] && i[colmname] > 0);
-      //                    var negativeItms = items.filter(i => i[colmname] && i[colmname] < 0);
-      //                    var posSum = wjcCore.Globalize.formatNumber(wjcCore.getAggregate(wjcCore.Aggregate.Sum, positiveItms, colmname), 'n2');
-      //                    var negSum = wjcCore.Globalize.formatNumber(wjcCore.getAggregate(wjcCore.Aggregate.Sum, negativeItms, colmname), 'n2');
-      //                    // e.cell.innerHTML = `F: ${posSum}<br>R: ${negSum}`;
+      //code for apply custom footer for Notes
+      var objNoteList = this.columnsForNoteDealFunding;
+      var cntNoteFirstColumnPosition = 13;
+      objNoteList.forEach((o) => {
+        if (s.columnFooters === e.panel && e.row === 0 && e.col === cntNoteFirstColumnPosition) {
+          // e.col.width = 500;
+          if (s.collectionView) {
 
-      //                    var ss = `Funding: ${posSum} \nRepayment: ${negSum}`;
-      //                    if (flexGrid) {
-      //                        if (flexGrid.columns[i]) {
-      //                            flexGrid.columnFooters.setCellData(0, colmname, ss);
-      //                            flexGrid.columnFooters.columns.getColumn(colmname).multiLine = true;
+            const items = s.collectionView.items;
+            if (items) {
+              var positiveItems = items.filter(i => i[o.header] >= 0);
+              var negativeItems = items.filter(i => i[o.header] < 0);
+              var positiveVal = wjcCore.getAggregate(wjcCore.Aggregate.Sum, positiveItems, o.header);
+              var negativeVal = wjcCore.getAggregate(wjcCore.Aggregate.Sum, negativeItems, o.header);
 
-      //                        }
-      //                    }
-      //                }
-      //            }
-      //        }
-      //    }
-      //}.bind(this), 2000);
-    });
-    //  }.bind(this), 5000);
+              var negativeSum = wjcCore.Globalize.formatNumber(negativeVal, 'n2');
+              var TotaSum1 = parseFloat(positiveVal) + parseFloat(negativeVal);
+              var TotaSum = wjcCore.Globalize.formatNumber(TotaSum1, 'n2');
+
+
+              var sNonCommitmentAdj = items.filter(i => i.NonCommitmentAdj == true);
+              var TotalNonCommitmentAdj = wjcCore.getAggregate(wjcCore.Aggregate.Sum, sNonCommitmentAdj, o.header);
+
+              var Balancepositivesum = positiveVal - TotalNonCommitmentAdj;
+              var DisBalancepositivesum = wjcCore.Globalize.formatNumber(TotalNonCommitmentAdj, 'n2');;
+              var positiveSum = wjcCore.Globalize.formatNumber(Balancepositivesum, 'n2');
+              // e.cell.innerHTML = `Funding: ${positiveSum}<br/>Unfunded Comm: ${DisBalancepositivesum}<br/>Repayment: ${negativeSum}<br/>Total: ${TotaSum}`;
+              e.cell.innerHTML = `<b>Funding: ${positiveSum}<br/>Non-Commit Adj: ${DisBalancepositivesum}<br/>Repayment: ${negativeSum}<br/><u> Total: ${TotaSum}</u></b>`;
+              //e.cell.innerHTML = `Funding: ${positiveSum}<br>Repayment: ${negativeSum}<br><u><b>Total: ${TotaSum}</b></u>`;
+            }
+          }
+        }
+        this.flexdealfunding.invalidate();
+        cntNoteFirstColumnPosition += 1;
+      });
+    }
+    //);   
   }
 
-  //abc(flexGrid: wjcGrid.FlexGrid) {
-  //    var row = new wjcGrid.GroupRow(); // create a GroupRow to show aggregates
-  //    flexGrid.columnFooters.rows.push(row); // add the row to the column footer panel
-  //    flexGrid.bottomLeftCells.setCellData(0, 0, '\u03A3');
-  //    //for (var i = 0; i < flexGrid.columns.length; i++) {
-  //    //    if (i == 7) {
-  //    //        flexGrid.columns[i].cssClass = "customgridrowcolornotapplied";
-  //    //    }           
-
-  //    //}
-  //    //flexGrid.invalidate();
-  //    // sigma on the header
-  //}
-
   dealfundingselectionChanged() {
+
     this.AppliedReadOnly();
     //  alert('dealfundingselectionChanged');
   }
 
-
-
   Copieddealfunding(flexdefunding: wjcGrid.FlexGrid, e: wjcGrid.CellEditEndingEventArgs) {
+
     this._isdealfundingChanged = false;
     var sel = this.flexdealfunding.selection;
+    this.currentdealrow = [];
     var _lstUseRuleN = this.lstSequenceHistory.filter(x => x.UseRuletoDetermineNoteFundingText == "4" || x.UseRuletoDetermineNoteFundingText == "N" || x.UseRuletoDetermineNoteFundingText == null || x.UseRuletoDetermineNoteFundingText == "");
-    //if (this._deal.EnableAutoSpread || this.repaymentchecked == true) {
-    //    if (_lstUseRuleN.length != this.lstNote.length) {
-    //        flexdefunding.autoClipboard = false;
-    //    } {
-    //        flexdefunding.autoClipboard = true;
-    //    }
-    //}
-    // else {
-    var maxappliedDate = new Date(Math.max.apply(null, this.listdealfunding.filter(x => x.OrgApplied == true).map(x => x.orgDate)));
+
+
+
+    var maxappliedDate = new Date('1970-01-01Z00:00:00:000');
+    var appliedlist = this.listdealfunding.filter(x => x.OrgApplied == true);
+
+    if (appliedlist != null) {
+      for (var i = 0; i < appliedlist.length; i++) {
+        if (appliedlist[i].orgDate) {
+          if (new Date(appliedlist[i].orgDate) > maxappliedDate) {
+            maxappliedDate = new Date(appliedlist[i].orgDate);
+          }
+        }
+      }
+    }
+    if (maxappliedDate != null || maxappliedDate != undefined) {
+      if (maxappliedDate.getFullYear() < 2000) {
+        maxappliedDate = null;
+      }
+    }
     if (this.ShowUseRuleN == false) {
       //  this._isdealfundingChanged = false;
       this._isdealfundingEdit = false;
@@ -6645,28 +9821,71 @@ export class DealDetailComponent extends Paginated implements OnInit {
     var isAmountvalid = true;
     var errorMessageFF5per = "<p>" + "You have increased the draw amount more than 5% for the funding date(s) - ";
     var errorMessageFF5perDates = "";
-
+    var isValiderror = true;
     var rowcnt = 0, cnt = 0, deccount = 0, drowcnt = 0;
 
     this.ConvertpastedBindableDate(this.listdealfunding);
 
-    //reset previous Amount if user not belong to current flow for funding
-    //for (var tprow = sel.topRow; tprow <= sel.bottomRow - rowcnt; tprow++) {
-    //    if (this.listdealfunding[tprow].wf_isUserCurrentFlow == 0) {
-    //        this.listdealfunding[tprow].Value = this.listdealfunding[tprow].orgValue;
-    //    }
-    //}
-
-
     if (maxappliedDate && maxappliedDate.toString() != "Invalid Date") {
       for (var tprow = sel.topRow; tprow <= sel.bottomRow - rowcnt; tprow++) {
-
         //For New values while paste
         if (this.flexdealfunding.rows[tprow].dataItem.WF_IsFlowStart == undefined) {
           this.listdealfunding[tprow].Applied = false;
           this.flexdealfunding.rows[tprow].isReadOnly = false;
           this.flexdealfunding.rows[tprow].cssClass = "customgridrowcolornotapplied";
         }
+
+        //Copy paste issue
+        if (this.listdealfunding[tprow].DealFundingRowno == undefined) {
+          this.listdealfunding[tprow].Applied = false;
+          this.listdealfunding[tprow].cssClass = "customgridrowcolornotapplied";
+          this.listdealfunding[tprow].isReadOnly = false;
+
+          this.listdealfunding[tprow].GeneratedBy = 822;
+          this.listdealfunding[tprow].GeneratedByText = this._deal.currentUserName;
+          this.listdealfunding[tprow].GeneratedByUserID = this._deal.currentUserID;
+
+
+          var maxrownumber = 0;
+          for (var n1 = 0; n1 < this.listdealfunding.length; n1++) {
+            if (this.listdealfunding[n1].DealFundingRowno !== undefined && this.listdealfunding[n1].DealFundingRowno != null) {
+              if (this.listdealfunding[n1].DealFundingRowno > maxrownumber) {
+                maxrownumber = this.listdealfunding[n1].DealFundingRowno;
+              }
+            }
+          }
+          this.listdealfunding[tprow].DealFundingRowno = maxrownumber + 1;
+
+
+          var lstUseN = this.lstNote;//this.lstSequenceHistory.filter(x => x.UseRuletoDetermineNoteFundingText == "3" || x.UseRuletoDetermineNoteFundingText == "Y")
+          for (var j1 = 0; j1 < lstUseN.length; j1++) {
+            this.lstNoteFunding.push({
+              "Applied": false, "AdjustmentType": 836, "NoteName": lstUseN[j1].Name, "Value": this.listdealfunding[tprow][lstUseN[j1].Name], "DealFundingRowno": this.listdealfunding[tprow].DealFundingRowno, "GeneratedBy": 822, "NoteID": lstUseN[j1].NoteId, "Date": this.listdealfunding[tprow].Date
+            });
+          }
+
+
+          if (lstUseN.length == 0) {
+            for (var j2 = 0; j2 < this.lstSequenceHistory.length; j2++) {
+              this.lstNoteFunding.push({ "Applied": false, "AdjustmentType": 836, "NoteName": lstUseN[j1].Name, "Value": this.listdealfunding[tprow][lstUseN[j1].Name], "DealFundingRowno": this.listdealfunding[tprow].DealFundingRowno, "GeneratedBy": 822, "NoteID": lstUseN[j1].NoteId, "Date": this.listdealfunding[tprow].Date });
+            }
+          }
+        }
+        else {
+          if (this.listdealfunding[tprow].AdjustmentType == 834 || this.listdealfunding[tprow].AdjustmentType == 896 || this.listdealfunding[tprow].AdjustmentType == 835) {
+            for (var n = 0; n < this.lstNote.length; n++) {
+              if (this.listdealfunding[tprow][this.lstNote[n].Name]) {
+                var sNoteFunding = this.lstNoteFunding.filter(c => c.DealFundingRowno == this.listdealfunding[tprow].DealFundingRowno && c.NoteName == this.lstNote[n].Name);
+                if (sNoteFunding.length > 0) {
+                  this.lstNoteFunding.find(c => c.DealFundingRowno == this.listdealfunding[tprow].DealFundingRowno && c.NoteName == this.lstNote[n].Name).Value = parseFloat(this.listdealfunding[tprow][this.lstNote[n].Name]);
+                  this.lstNoteFunding.find(c => c.DealFundingRowno == this.listdealfunding[tprow].DealFundingRowno && c.NoteName == this.lstNote[n].Name).Comment = this.listdealfunding[tprow].Comment;
+
+                }
+              }
+            }
+          }
+        }
+
         //For update values while paste
         if (this.listdealfunding[tprow].OrgApplied == false) {
           if (this._deal.EnableAutoSpread) {
@@ -6679,6 +9898,7 @@ export class DealDetailComponent extends Paginated implements OnInit {
           }
           if (this.listdealfunding[tprow].Date < maxappliedDate) {
             this._isdatavalid = false;
+            isValiderror = false;
             errorMessage += this.listdealfunding[tprow].Date.toLocaleDateString("en-US") + ', ';
             this.listdealfunding[tprow].Date = new Date(this.convertDateToBindable(this.listdealfunding[tprow].orgDate));
             this.listdealfunding[tprow].Value = this.listdealfunding[tprow].orgValue;
@@ -6688,15 +9908,6 @@ export class DealDetailComponent extends Paginated implements OnInit {
             this.listdealfunding[tprow]["isValidDate"] = true;
             //cnt += 1;
           }
-
-          this.listdealfunding[tprow].Applied = false;
-          this.flexdealfunding.rows[tprow].cssClass = "customgridrowcolornotapplied";
-          this.flexdealfunding.rows[tprow].isReadOnly = false;
-
-          //reset previous Amount if user not belong to current flow for funding
-          //if (this.listdealfunding[tprow].wf_isUserCurrentFlow == 0) {
-          //    this.listdealfunding[tprow].Value = this.listdealfunding[tprow].orgValue;
-          //}
 
           var Amtdec = this.listdealfunding[tprow].Value;
           if (Amtdec == undefined) {
@@ -6721,6 +9932,7 @@ export class DealDetailComponent extends Paginated implements OnInit {
         //For new values while pasted
         if (this.flexdealfunding.rows[tprow].dataItem.OrgApplied == undefined) {
           if (this.flexdealfunding.rows[tprow].dataItem.Date < maxappliedDate) {
+            isValiderror = false;
             errorMessage += this.flexdealfunding.rows[tprow].dataItem.Date.toLocaleDateString("en-US") + ', ';
             var delrow = this.flexdealfunding.rows[tprow];
             this.flexdealfunding.rows.remove(delrow);
@@ -6758,10 +9970,28 @@ export class DealDetailComponent extends Paginated implements OnInit {
         }
       }
     }
-
     var rowcnt = 0, cnt = 0, deccount = 0, drowcnt = 0;
     for (var tprow = sel.topRow; tprow <= sel.bottomRow - drowcnt; tprow++) {
       if (this.listdealfunding[tprow] !== undefined) {
+
+        if (this.listdealfunding[tprow].Value > 0 && this.listdealfunding[tprow].AdjustmentType == 835) {
+          this.CustomAlert("Revolver transactions can not be used with positive funding. ");
+          this.listdealfunding[tprow].AdjustmentType = null;
+        }
+
+        if (this.listdealfunding[tprow].AdjustmentType == 834 || this.listdealfunding[tprow].AdjustmentType == 896 || this.listdealfunding[tprow].AdjustmentType == 835) {
+          var dealfundingcolumns = Object.keys(this.listdealfunding[tprow]);
+          var totalamt = 0
+          for (var n = 0; n < this.lstNote.length; n++) {
+            if (dealfundingcolumns.includes(this.lstNote[n].Name)) {
+              if (this.listdealfunding[tprow][this.lstNote[n].Name]) {
+                totalamt += this.utils.ConverttoFloat(this.listdealfunding[tprow][this.lstNote[n].Name]);
+              }
+            }
+          }
+          this.listdealfunding[tprow].Value = parseFloat(totalamt.toFixed(2));
+        }
+
         if (this.listdealfunding[tprow].Applied == false) {
           var sdate = this.listdealfunding[tprow].Date;
 
@@ -6799,7 +10029,9 @@ export class DealDetailComponent extends Paginated implements OnInit {
             }
           }
         }
-
+        this.listdealfunding[tprow].GeneratedBy = 822
+        this.listdealfunding[tprow].GeneratedByText = this._deal.currentUserName;
+        this.listdealfunding[tprow].GeneratedByUserID = this._deal.currentUserID;
 
         //this.listdealfunding[tprow].Applied = false;
         if (this.listdealfunding[tprow].OrgApplied == undefined) {
@@ -6808,17 +10040,23 @@ export class DealDetailComponent extends Paginated implements OnInit {
           if (!(sdate === undefined) && sdate != '') {
             var formateddate = this.convertDateToBindable(sdate);
             var dealfundingday = sdate.getDay();
-            if (dealfundingday == 6 || dealfundingday == 0 || this.ListHoliday.filter(x => this.convertDateToBindable(x.HolidayDate) == formateddate && x.HolidayTypeID == 411).length > 0
+            if (dealfundingday == 6 || dealfundingday == 0 || this.ListHoliday.filter(x => this.convertDateToBindable(x.HolidayDate) == formateddate && x.HolidayTypeID == 411 && x.IsSoftHoliday != 3).length > 0
             ) {
               this.listdealfunding[tprow]["isValidDate"] = false;
+              this.listdealfunding[tprow]["_isSoftHoliday"] = false;
               this._isvalidateHolidaySatSun = false;
               //this.flexdealfunding.invalidate();
               //this.flexdealfunding.rows[tprow].cssClass = "customgridColHalidayDate";
               errordate += this.convertDateToBindable(sdate) + ", ";
-
-
+            }
+            else if (dealfundingday == 6 || dealfundingday == 0 ||
+              this.ListHoliday.filter(x => this.convertDateToBindable(x.HolidayDate) == formateddate && x.HolidayTypeID == 411
+                && x.IsSoftHoliday == 3).length > 0
+            ) {
+              this.listdealfunding[tprow]["_isSoftHoliday"] = true;
             }
             else {
+              this.listdealfunding[tprow]["_isSoftHoliday"] = null;
               this.listdealfunding[tprow]["isValidDate"] = true;
               if (this.flexdealfunding.rows[tprow].dataItem.WF_IsCompleted == 1 && this.flexdealfunding.rows[tprow].dataItem.Applied == false)
                 this.flexdealfunding.rows[tprow].cssClass = "customgridWFcolor";
@@ -6827,12 +10065,14 @@ export class DealDetailComponent extends Paginated implements OnInit {
             }
           }
         }
+        this.currentdealrow.push(this.listdealfunding[tprow]);
+
       }
     }
-
-    if (!isAmountvalid) {
-      errorMessage = errorMessage + errorAmount;
-    }
+    var equitymsg = "";
+    equitymsg = this.ValidateRequiredEquityallocated();
+    if (isValiderror)
+      errorMessage = '';
 
     if (errorMessageFF5perDates != "") {
       errorMessageFF5perDates = errorMessageFF5perDates.slice(1, errorMessageFF5perDates.length)
@@ -6843,12 +10083,14 @@ export class DealDetailComponent extends Paginated implements OnInit {
       errorMessage = errorMessage + "<p>" + "You have entered a funding date (" + errordate.slice(0, errordate.length - 2) + ") which is either on holiday or weekend. Please enter different date." + "</p>";
     }
 
-    if (!this._isdatavalid || !isAmountvalid || errorMessageFF5perDates != "" || !this._isvalidateHolidaySatSun) {
+    if (!this._isdatavalid || errorMessageFF5perDates != "" || !this._isvalidateHolidaySatSun) {
       this.CustomAlert(errorMessage);
     }
-
     else if (!this._isvalidateHolidaySatSun) {
       this.CustomAlert("You have entered a funding date which is either on holiday or weekend. Please enter different date");
+    } else if (equitymsg != "") {
+      this.EquityActionType = "Copy";
+      this.CustomDialogEquity(equitymsg);
     }
     this.AppliedReadOnly();
     // var _lstUseRuleN = this.lstSequenceHistory.filter(x => x.UseRuletoDetermineNoteFundingText == "4" || x.UseRuletoDetermineNoteFundingText == "N" || x.UseRuletoDetermineNoteFundingText == null || x.UseRuletoDetermineNoteFundingText == "");
@@ -6858,9 +10100,9 @@ export class DealDetailComponent extends Paginated implements OnInit {
       }
     }
     //update values in n deals on copypaste
-    if (this.ShowUseRuleN == true || this._deal.ApplyNoteLevelPaydowns) {
-      this.UpdateNoteFundingOnCopyPaste();
-    }
+    // if (this.ShowUseRuleN == true || this._deal.ApplyNoteLevelPaydowns) {
+    this.UpdateNoteFundingOnCopyPaste();
+    //}
     // }
 
     //For Use Rule N only
@@ -6890,7 +10132,7 @@ export class DealDetailComponent extends Paginated implements OnInit {
                   "NoteName": this.lstNote[n].Name,
                   "Value": parseFloat(this.listdealfunding[tprow][this.lstNote[n].Name]),
                   "DealFundingRowno": this.listdealfunding[tprow].DealFundingRowno,
-                  "GeneratedBy": 746,
+                  "GeneratedBy": 822,
                   "NoteID": this.lstNote.find(x => x.Name == this.lstNote[n].Name).NoteId,
                   "Comment": this.listdealfunding[tprow].Comment,
                   "PurposeID": this.listdealfunding[tprow].PurposeID,
@@ -6903,27 +10145,68 @@ export class DealDetailComponent extends Paginated implements OnInit {
             }
           }
         }
-
         // }
         this.listdealfunding[tprow].Value = totalamt;
       }
       this.flexdealfunding.invalidate();
     }
-
-    var totaladdequitycellindex = flexdefunding.getColumn("AdditionalEquity").index;
-    var totalreqequitycellindex = flexdefunding.getColumn("RequiredEquity").index;
-    for (var tprow = sel.topRow; tprow <= sel.bottomRow - rowcnt; tprow++) {
-      if (e.col == totalreqequitycellindex) {
-        this.cvDealFundingList.items[tprow].RequiredEquity = e.data.replace(/,/g, '');
-      }
-      if (e.col == totaladdequitycellindex) {
-        this.cvDealFundingList.items[tprow].AdditionalEquity = e.data.replace(/,/g, '');
-      }
-    }
     if (this._isAdjustedTotalCommitmentTabClicked == true) {
       this.CopiedEquitySummaryforFunding();
       this.getEquityValues();
     }
+  }
+  ValidateRequiredEquityallocated() {
+    var currentRequiredEquity = 0;
+    this.TotalRequiredEquity = 0;
+    this.sumRequiredEquityallocated = 0;
+    this.newadditonalequity = 0;
+    this.equityremain = 0;
+    this.currentRequiredEquity = 0
+    var msg = "";
+    if (this._deal.EnableAutoSpread == true) {
+      if (this.lstautospreadrule) {
+        for (var i = 0; i < this.lstautospreadrule.length; i++) {
+          this.sumRequiredEquityallocated = 0;
+          this.TotalRequiredEquity = 0;
+          if (this.utils.GetDefaultValueNumber(this.lstautospreadrule[i].RequiredEquity) > 0) {
+            this.sumRequiredEquityallocated = this.GetTotalEquityAmountDistributedByPurposeType(this.lstautospreadrule[i].PurposeTypeText);
+            this.TotalRequiredEquity = this.lstautospreadrule[i].RequiredEquity;
+            if (Math.abs(parseFloat((this.sumRequiredEquityallocated).toFixed(2))) > Math.abs(parseFloat((this.TotalRequiredEquity).toFixed(2)))) {
+              break;
+            }
+          }
+        }
+      }
+
+    } else {
+      for (var n = 0; n < this.listdealfunding.length; n++) {
+        this.sumRequiredEquityallocated = this.sumRequiredEquityallocated + this.listdealfunding[n].RequiredEquity;
+      }
+      if (this.lstAdjustedTotalCommitment) {
+        for (var i = 0; i < this.lstAdjustedTotalCommitment.items.length; i++) {
+          this.TotalRequiredEquity = this.TotalRequiredEquity + parseFloat(this.GetDefaultValue(parseFloat(this.lstAdjustedTotalCommitment.items[i].TotalRequiredEquity)));
+        }
+      }
+    }
+
+    if (Math.abs(parseFloat((this.sumRequiredEquityallocated).toFixed(2))) > Math.abs(parseFloat((this.TotalRequiredEquity).toFixed(2)))) {
+      var RequiredEquityallocated = parseFloat((this.sumRequiredEquityallocated).toFixed(2));
+      this.currentRequiredEquity = parseFloat((currentRequiredEquity).toFixed(2));
+
+      var oldequity = RequiredEquityallocated - this.currentRequiredEquity;
+      oldequity = Math.abs(parseFloat((oldequity).toFixed(2)));
+      this.equityremain = parseFloat((this.TotalRequiredEquity).toFixed(2)) - oldequity;
+
+      if (this.currentRequiredEquity > this.equityremain) {
+        this.newadditonalequity = this.currentRequiredEquity - this.equityremain;
+        this.newadditonalequity = parseFloat((this.newadditonalequity).toFixed(2))
+      }
+      msg = "You have overallocated the Required Equity. Out of " + this.utils.formatNumberforTwoDecimalplaces(this.currentRequiredEquity, "") + ", " + this.utils.formatNumberforTwoDecimalplaces(this.equityremain, "") + " will be allocated to Required Equity and the remaining amount of " + this.utils.formatNumberforTwoDecimalplaces(this.newadditonalequity, "") + " will be allocated to Additional Equity.";
+      msg = msg + "<p>" + "" + "</p>";
+      msg = msg + "<p>" + "Press Yes to confirm or press No to enter a different Required Equity." + "</p>";
+    }
+
+    return msg;
   }
 
   CopiedEquitySummaryforFunding() {
@@ -6969,6 +10252,7 @@ export class DealDetailComponent extends Paginated implements OnInit {
       }
       for (var h = 0; h < this._lstEquitySummary.length; h++) {
         if (this._lstEquitySummary[h].Type == "FF Additional Equity") {
+          this._lstEquitySummary[h]["ExpectedEquity"] = sTotalAdditionalEquityFunding;
           this._lstEquitySummary[h]["EquityContributedToDate"] = sTotalAdditionalEquityFunding;
           this._lstEquitySummary[h]["RemainingEquity"] = this._lstEquitySummary[h]["ExpectedEquity"] - sTotalAdditionalEquityFunding;
           if (sTotalAdditionalEquityFunding == 0 || this._lstEquitySummary[h]["ExpectedEquity"] == 0) {
@@ -7020,7 +10304,7 @@ export class DealDetailComponent extends Paginated implements OnInit {
       this.lstNoteFunding = [];
       var griddata = this.cvDealFundingList.sourceCollection;
       for (var df = 0; df < griddata.length; df++) {
-        griddata[df].DealFundingRowno = df + 1;
+        //  griddata[df].DealFundingRowno = df + 1;
         if (this.lstNote[0] != null) {
           for (var val = 0; val < this.lstSequenceHistory.length; val++) {
             var newlist = new Notefunding;
@@ -7060,6 +10344,7 @@ export class DealDetailComponent extends Paginated implements OnInit {
         if (this.flexdealfunding.rows[i]) {
           if (this.flexdealfunding.rows[i].dataItem.Applied == true) {
             if (this.flexdealfunding.rows[i]) {
+              this.flexdealfunding.rows[i].dataItem.Funding_delete = false
               this.flexdealfunding.rows[i].isReadOnly = true;
               this.flexdealfunding.rows[i].cssClass = "customgridrowcolor";
             }
@@ -7095,14 +10380,11 @@ export class DealDetailComponent extends Paginated implements OnInit {
   }
 
   Addnewfunding(flexdefunding: wjcGrid.FlexGrid, e: wjcGrid.CellEditEndingEventArgs) {
-    if (e.col.toString() == this.dealfundingColPositionWire) {
-      this.CustomAlert("Please enter Date or Amount before checking Wire confirm.");
-      e.cancel = true;
-    }
     var currentrownumber = 0;
-    //manish
-    this.listdealfunding[e.row].GeneratedBy = 746
-    this.listdealfunding[e.row].GeneratedByText = this.lstGeneratedBy.find(x => x.LookupID == 746).Name;
+    this.listdealfunding[e.row].GeneratedBy = 822
+    this.listdealfunding[e.row].GeneratedByText = this._deal.currentUserName;
+    this.listdealfunding[e.row].GeneratedByUserID = this._deal.currentUserID;
+
     //assgin rownumber
     var maxrownumber = 0;
     for (var n1 = 0; n1 < this.listdealfunding.length; n1++) {
@@ -7114,24 +10396,25 @@ export class DealDetailComponent extends Paginated implements OnInit {
     }
     this.listdealfunding[e.row].DealFundingRowno = maxrownumber + 1;
     currentrownumber = this.listdealfunding[e.row].DealFundingRowno;
-
+    // this.listdealfunding.push({ "GeneratedBy": 822, "GeneratedByText": this._deal.currentUserName, "GeneratedByUserID": this._deal.currentUserID, "DealFundingRowno": maxrownumber + 1 });
     var lstUseN = this.lstSequenceHistory.filter(x => x.UseRuletoDetermineNoteFundingText == "3" || x.UseRuletoDetermineNoteFundingText == "Y")
     if (lstUseN.length > 0) {
       for (var j1 = 0; j1 < lstUseN.length; j1++) {
-        this.lstNoteFunding.push({ "Applied": false, "NoteName": lstUseN[j1].Name, "Value": 0, "DealFundingRowno": this.listdealfunding[e.row].DealFundingRowno, "GeneratedBy": 746, "NoteID": lstUseN[j1].NoteID });
+        this.lstNoteFunding.push({ "Applied": false, "AdjustmentType": 836, "NoteName": lstUseN[j1].Name, "Value": 0, "DealFundingRowno": this.listdealfunding[e.row].DealFundingRowno, "GeneratedBy": 822, "NoteID": lstUseN[j1].NoteID });
       }
     }
 
     if (lstUseN.length == 0) {
       for (var j2 = 0; j2 < this.lstSequenceHistory.length; j2++) {
-        this.lstNoteFunding.push({ "Applied": false, "NoteName": this.lstSequenceHistory[j2].Name, "Value": 0, "DealFundingRowno": this.listdealfunding[e.row].DealFundingRowno, "GeneratedBy": 746, "NoteID": this.lstSequenceHistory[j2].NoteID });
-        this.listdealfunding[e.row][this.lstSequenceHistory[j2].Name] = 0;
+        this.lstNoteFunding.push({ "Applied": false, "AdjustmentType": 836, "NoteName": this.lstSequenceHistory[j2].Name, "Value": 0, "DealFundingRowno": this.listdealfunding[e.row].DealFundingRowno, "GeneratedBy": 822, "NoteID": this.lstSequenceHistory[j2].NoteID });
+        //this.listdealfunding[e.row][this.lstSequenceHistory[j2].Name] = 0;
       }
     }
   }
   celleditfundingRule(flexDynamicColForSequence: wjcGrid.FlexGrid, e: wjcGrid.CellEditEndingEventArgs) {
+
     var Funddec = 0, prevFunddec = 0, deccount = 0;
-    this._isFundingruleChanged = false;
+    this._isFundingruleChanged = true;
     if (e.col > 13) {
       Funddec = this.grdflexDynamicColForSequence.getCellData(e.row, e.col, false);
       prevFunddec = this.grdflexDynamicColForSequence.getCellData(e.row, e.col, true);
@@ -7154,7 +10437,7 @@ export class DealDetailComponent extends Paginated implements OnInit {
       }
     }
     //For Use Rule N
-    if (e.col == 10) {
+    if (e.col == 14) {
       var lstUseN = this.lstSequenceHistory.filter(x => x.UseRuletoDetermineNoteFundingText == "3" || x.UseRuletoDetermineNoteFundingText == "Y");
       if (lstUseN.length > 0) {
         var objdeal = new deals('');
@@ -7181,7 +10464,7 @@ export class DealDetailComponent extends Paginated implements OnInit {
         objdeal.ShowUseRuleN = true;
         this.ShowUseRuleN = true;
         this._isshowApplyNoteLevelPaydowns = true;
-        //manish
+
         this.noteFundingId = flexDynamicColForSequence.rows[e.row].dataItem.NoteID;
         this.UseRuledialogbox("Changing all notes to 'Use rule to determine note funding' as 'N' will make them editable. Do you want to proceed?");
       }
@@ -7198,17 +10481,17 @@ export class DealDetailComponent extends Paginated implements OnInit {
           this._isshowApplyNoteLevelPaydowns = true;
           // this.GetDealFundingByDealID(objdeal);
 
-          for (var i = 0; i <= (this.listdealfunding.length - 1); i++) {
-            if (this.listdealfunding[i].Applied == false) {
-              if (this.flexdealfunding.rows[i]) {
-                for (var j = 10; j <= this.flexdealfunding.columns.length; j++) {
-                  if (this.flexdealfunding.columns[j]) {
-                    this.flexdealfunding.columns[j].isReadOnly = true;
-                  }
-                }
-              }
-            }
-          }
+          //for (var i = 0; i <= (this.listdealfunding.length - 1); i++) {
+          //  if (this.listdealfunding[i].Applied == false) {
+          //    if (this.flexdealfunding.rows[i]) {
+          //      for (var j = 14; j <= this.flexdealfunding.columns.length; j++) {
+          //        if (this.flexdealfunding.columns[j]) {
+          //          this.flexdealfunding.columns[j].isReadOnly = true;
+          //        }
+          //      }
+          //    }
+          //  }
+          //}
         }
       }
 
@@ -7221,13 +10504,26 @@ export class DealDetailComponent extends Paginated implements OnInit {
       for (var i = 0; i < this.lstSequenceHistory.length; i++) {
         this.lstSequenceHistory[i].AggregatedTotal = this.lstSequenceHistory[i].TotalCommitment + this.lstSequenceHistory[i].AdjustedTotalCommitment;
       }
-      
+
     }
 
   }
-
+  CopyGridDataWithHeader(s: wjcGrid.FlexGrid, e: wjcGrid.CellEditEndingEventArgs) {
+    // get clip text
+    var text = s.getClipString();
+    // add headers
+    var sel = s.selection,
+      hdr = '';
+    for (var c = sel.leftCol; c <= sel.rightCol; c++) {
+      if (hdr) hdr += '\t';
+      hdr += s.columns[c].header;
+    }
+    text = hdr + '\r\n' + text;
+    wjcCore.Clipboard.copy(text);
+    e.cancel = true;
+  }
   Copiedfundingrule(flexdefunding: wjcGrid.FlexGrid, e: wjcGrid.CellEditEndingEventArgs) {
-    if (e.col > 11) {
+    if (e.col > 13) {
       this._isFundingruleChanged = true;
       var sel = this.grdflexDynamicColForSequence.selection;
       var deccount = 0, isvalidAmt = true, prevFunddec = 0, Amtdec = 0;
@@ -7253,7 +10549,7 @@ export class DealDetailComponent extends Paginated implements OnInit {
     }
 
     //For Use Rule N
-    if (e.col == 10) {
+    if (e.col == 14) {
       //For Use rule to determine note N
       var lstUseRuleN = this.lstSequenceHistory.filter(x => x.UseRuletoDetermineNoteFundingText == "3" || x.UseRuletoDetermineNoteFundingText == "Y");
       if (lstUseRuleN.length == 0) {
@@ -7294,30 +10590,81 @@ export class DealDetailComponent extends Paginated implements OnInit {
           this._isautospreadRepaymentshow = false;
           //  this.GetDealFundingByDealID(objdeal);
 
-          for (var i = 0; i <= (this.listdealfunding.length - 1); i++) {
-            if (this.listdealfunding[i].Applied == false) {
-              if (this.flexdealfunding.rows[i]) {
-                for (var j = 10; j <= this.flexdealfunding.columns.length; j++) {
-                  if (this.flexdealfunding.columns[j]) {
-                    this.flexdealfunding.columns[j].isReadOnly = true;
-                  }
-                }
-              }
-            }
-          }
         }
       }
     }
   }
 
   public _isshowworkflow: boolean = true;
+  public sumRequiredEquityallocated = 0;
+  public TotalRequiredEquity = 0;
+  public currentRequiredEquity = 0;
+  public newadditonalequity = 0;
+  public equityremain = 0;
+  currentdealrow: any = [];
   celleditfunding(flexdefunding: wjcGrid.FlexGrid, e: wjcGrid.CellEditEndingEventArgs) {
+    //  this.isDealfundingEdited = true;
+    this.TotalRequiredEquity = 0;
+    this._isdealfundingChanged = false;
+    this._isdealfundingEdit = false;
     var Amtdec = this.listdealfunding[e.row].Value;
     this.listdealfunding[e.row].IsRowEdited = true;
-    if (this.ShowUseRuleN == false) {
-      // this._isdealfundingChanged = false;
-      this._isdealfundingEdit = false;
-      if (e.col > 10) {
+    var currentcolIndex = e.col.toString();
+    var currentintcolindex = e.col;
+    this._isdealfundingChanged = false;
+    this.sumRequiredEquityallocated = 0;
+    this.newadditonalequity = 0;
+    this.currentdealrow = [];
+    this.equityremain = 0;
+    this.listdealfunding[e.row].equityrowchanged = "";
+
+    if (this.listdealfunding[e.row].DealFundingRowno == undefined || this.listdealfunding[e.row].DealFundingRowno == null) {
+      var maxrownumber = 0;
+      for (var n1 = 0; n1 < this.listdealfunding.length; n1++) {
+        if (this.listdealfunding[n1].DealFundingRowno !== undefined && this.listdealfunding[n1].DealFundingRowno != null) {
+          if (this.listdealfunding[n1].DealFundingRowno > maxrownumber) {
+            maxrownumber = this.listdealfunding[n1].DealFundingRowno;
+          }
+        }
+      }
+      maxrownumber = maxrownumber + 1;
+      this.listdealfunding[e.row].DealFundingRowno = maxrownumber;
+    }
+    if (e.col == 3) {
+      //update date in note list
+      filternotefunding = this.lstNoteFunding.filter(x => x.DealFundingRowno == this.listdealfunding[e.row].DealFundingRowno)
+      if (filternotefunding.length > 0) {
+        for (var n = 0; n < this.lstNote.length; n++) {
+          for (var nf = 0; nf < this.lstNoteFunding.length; nf++) {
+            if (this.lstNoteFunding[nf].DealFundingRowno == this.listdealfunding[e.row].DealFundingRowno && this.lstNote[n].NoteId == this.lstNoteFunding[nf].NoteID) {
+              this.lstNoteFunding[nf].Date = this.listdealfunding[e.row].Date;
+            }
+          }
+        }
+      }
+    }
+
+    if (e.col == 7) {
+      if (!(Number(this.listdealfunding[e.row].PurposeText).toString() == "NaN" || Number(this.listdealfunding[e.row].PurposeText) == 0)) {
+        this.listdealfunding[e.row].PurposeID = Number(this.listdealfunding[e.row].PurposeText);
+        this.listdealfunding[e.row].PurposeText = this.lstPurposeType.find(x => x.LookupID == this.listdealfunding[e.row].PurposeID).Name
+      }
+
+    }
+    if (this.listdealfunding[e.row].Applied == undefined || this.listdealfunding[e.row].Applied == null) {
+      this.listdealfunding[e.row].Applied = false;
+    }
+    if (this.listdealfunding[e.row].PurposeText == "840") {
+      this.listdealfunding[e.row].PurposeText = "";
+      this.listdealfunding[e.row].PurposeID = null;
+      this.CustomAlert("You cannot choose 'Principal Writeoff' from deal funding screen. Principal Writeoff is added from 'Special Servicing' tab.");
+      return;
+    }
+    var _lstUseRuleN = this.lstSequenceHistory.filter(x => x.UseRuletoDetermineNoteFundingText == "4" || x.UseRuletoDetermineNoteFundingText == "N" || x.UseRuletoDetermineNoteFundingText == null || x.UseRuletoDetermineNoteFundingText == "");
+    if (_lstUseRuleN.length == this.lstNote.length || this._deal.ApplyNoteLevelPaydowns == true) {
+      // if (this.ShowUseRuleN == false) {
+
+      if (e.col > 13) {
         var totalamt = 0;
         var dealfundingcolumns = Object.keys(this.listdealfunding[e.row]);
         for (var n = 0; n < this.lstNote.length; n++) {
@@ -7326,15 +10673,54 @@ export class DealDetailComponent extends Paginated implements OnInit {
               totalamt += parseFloat(this.listdealfunding[e.row][this.lstNote[n].Name]);
             }
           }
-        }
-        this.listdealfunding[e.row].Value = totalamt;
 
+          if (!this.listdealfunding[e.row].PurposeID) {
+            if (!(Number(this.listdealfunding[e.row].PurposeText).toString() == "NaN" || Number(this.listdealfunding[e.row].PurposeText) == 0)) {
+              this.listdealfunding[e.row].PurposeID = Number(this.listdealfunding[e.row].PurposeText);
+            }
+          }
+
+          var changedata = this.lstNoteFunding.filter(x => x.PurposeID == this.listdealfunding[e.row].PurposeID && this.convertDateToBindable(x.Date) == this.convertDateToBindable(this.listdealfunding[e.row].Date) && x.DealFundingRowno == this.listdealfunding[e.row].DealFundingRowno);
+          for (var j = 0; j < changedata.length; j++) {
+            if (changedata[j].NoteName == flexdefunding.columns[e.col].header) {
+              this.lstNoteFunding.find(c => c.DealFundingRowno == changedata[j].DealFundingRowno && c.NoteName == changedata[j].NoteName).Value = this.listdealfunding[e.row][flexdefunding.columns[e.col].header];
+            }
+          }
+        }
+        this.listdealfunding[e.row].Value = parseFloat(totalamt.toFixed(2));
+      }
+    }
+    else {
+      if (this.listdealfunding[e.row].AdjustmentType == 834 || this.listdealfunding[e.row].AdjustmentType == 896 || this.listdealfunding[e.row].AdjustmentType == 835) {
+        var totalamt = 0;
+        var dealfundingcolumns = Object.keys(this.listdealfunding[e.row]);
+        for (var n = 0; n < this.lstNote.length; n++) {
+
+          var lstdtNotes = this.lstNoteFunding.filter(x => x.DealFundingRowno == this.listdealfunding[e.row]["DealFundingRowno"]);
+          if (lstdtNotes.length > 0) {
+            for (var j = 0; j < lstdtNotes.length; j++) {
+              if (this.listdealfunding[e.row][this.lstNote[n].Name]) {
+                lstdtNotes[j][this.lstNote[n].Name] = this.listdealfunding[e.row][this.lstNote[n].Name];
+              }
+            }
+          }
+
+          if (dealfundingcolumns.includes(this.lstNote[n].Name)) {
+            if (this.listdealfunding[e.row][this.lstNote[n].Name]) {
+              totalamt += parseFloat(this.listdealfunding[e.row][this.lstNote[n].Name]);
+            }
+          }
+        }
+        this.listdealfunding[e.row].Value = parseFloat(totalamt.toFixed(2));
       }
     }
 
+    if (this.listdealfunding[e.row].Value > 0 && this.listdealfunding[e.row].AdjustmentType == 835) {
+      this.CustomAlert("Revolver transactions can not be used with positive funding.");
+      this.listdealfunding[e.row].AdjustmentType = null;
+    }
     var deccount = 0;
-    if (e.col.toString() == this.dealfundingColPositionAmount) {
-
+    if (currentcolIndex == this.dealfundingColPositionAmount) {
       if (Math.floor(Amtdec) === Amtdec) {
         deccount = 0;
       }
@@ -7354,15 +10740,31 @@ export class DealDetailComponent extends Paginated implements OnInit {
       }
     }
 
-    if (e.col.toString() == this.dealfundingColPositionDate) {
-      var maxappliedDate = new Date(Math.max.apply(null, this.listdealfunding.filter(x => x.Applied == true).map(x => x.Date)));
-      var lstdtNotes = this.lstNoteFunding.filter(x => x.DealFundingRowno == this.listdealfunding[e.row]["DealFundingRowno"]);
+    if (currentcolIndex == this.dealRequiredEquityColPositionAmount || currentcolIndex == this.dealAdditionalEquityColPositionAmount) {
+      if (this.listdealfunding[e.row].RequiredEquity || this.listdealfunding[e.row].AdditionalEquity) {
+        if (!this.listdealfunding[e.row].Value) {
+          this.listdealfunding[e.row].Value = 0;
+        }
+      }
+    }
 
-      if (lstdtNotes.length > 0) {
-        for (var j = 0; j < lstdtNotes.length; j++) {
-          if (this.listdealfunding[e.row].Date) {
-            lstdtNotes[j]["Date"] = new Date(this.listdealfunding[e.row].Date.toString()).toLocaleDateString("en-US", { year: "numeric", month: "numeric", day: "numeric" });
+    if (currentcolIndex == this.dealfundingColPositionDate) {
+      //var maxappliedDate = new Date(Math.max.apply(null, this.listdealfunding.filter(x => x.Applied == true).map(x => x.Date)));
+      var lstdtNotes = this.lstNoteFunding.filter(x => x.DealFundingRowno == this.listdealfunding[e.row]["DealFundingRowno"]);
+      var maxappliedDate = new Date('1970-01-01Z00:00:00:000');
+      var appliedlist = this.listdealfunding.filter(x => x.Applied == true);
+      if (appliedlist != null) {
+        for (var i = 0; i < appliedlist.length; i++) {
+          if (appliedlist[i].Date) {
+            if (new Date(appliedlist[i].Date) > maxappliedDate) {
+              maxappliedDate = new Date(appliedlist[i].Date);
+            }
           }
+        }
+      }
+      if (maxappliedDate != null || maxappliedDate != undefined) {
+        if (maxappliedDate.getFullYear() < 2000) {
+          maxappliedDate = null;
         }
       }
 
@@ -7376,32 +10778,53 @@ export class DealDetailComponent extends Paginated implements OnInit {
         this.CustomAlert("Date cannot be less than last wire confirmed date " + this.convertDateToBindable(maxappliedDate));
       }
 
+
       else {
-        var datedata: any = flexdefunding.rows[e.row];
-        var sdate = datedata._data.Date;
+        var sdate = flexdefunding.rows[e.row].dataItem.Date;
         if (!(sdate === undefined) && sdate != '') {
           var formateddate = this.convertDateToBindable(sdate);
           var dealfundingday = new Date(sdate).getDay();
           if (dealfundingday == 6 || dealfundingday == 0
             || this.ListHoliday.filter(x => this.convertDateToBindable(x.HolidayDate) == formateddate && x.HolidayTypeID == 411).length > 0
           ) {
-            datedata._data.isValidDate = false;
-          }
-          else {
-            datedata._data.isValidDate = true;
+            flexdefunding.rows[e.row].dataItem.isValidDate = false;
+
+            var holiday = flexdefunding.rows[e.row].dataItem.isValidDate;
+
+            if (holiday == false) {
+              var resultsoftfalse = this.ListHoliday.filter(x => this.convertDateToBindable(x.HolidayDate) == formateddate && x.HolidayTypeID == 411 && x.IsSoftHoliday != 3);
+              var resultsoft = this.ListHoliday.filter(x => this.convertDateToBindable(x.HolidayDate) == formateddate && x.HolidayTypeID == 411 && x.IsSoftHoliday == 3);
+
+              if (dealfundingday == 6 || dealfundingday == 0 || resultsoftfalse.length > 0) {
+                flexdefunding.rows[e.row].dataItem._isSoftHoliday = false;
+              }
+              else if (resultsoft.length > 0) {
+                flexdefunding.rows[e.row].dataItem._isSoftHoliday = true;
+              }
+            }
+
+          } else {
+            flexdefunding.rows[e.row].dataItem._isSoftHoliday = null;
+            flexdefunding.rows[e.row].dataItem.isValidDate = true;
           }
         }
       }
     }
 
-    if (e.col.toString() == this.dealfundingColPositionPurpose) {
+    if (currentcolIndex == this.dealfundingColPositionPurpose) {
+      this.LastPurposeType = e._data;
       var lstdtNotes = this.lstNoteFunding.filter(x => x.DealFundingRowno == this.listdealfunding[e.row]["DealFundingRowno"]);
       if (lstdtNotes.length > 0) {
         for (var j = 0; j < lstdtNotes.length; j++) {
           if (this.listdealfunding[e.row].PurposeText) {
-            lstdtNotes[j]["PurposeID"] = this.listdealfunding[e.row].PurposeText.toString();
+            lstdtNotes[j]["PurposeID"] = this.listdealfunding[e.row].PurposeID;
+            lstdtNotes[j]["PurposeText"] = this.listdealfunding[e.row].PurposeText.toString();
           }
         }
+      }
+
+      if (this.listdealfunding[e.row].PurposeID === undefined || this.listdealfunding[e.row].PurposeID == null) {
+        this.listdealfunding[e.row].PurposeID = parseInt(this.listdealfunding[e.row].PurposeText);
       }
       if (this.listdealfunding[e.row].PurposeText == "319") {
         if (this.listdealfunding[e.row].PurposeID) {
@@ -7415,49 +10838,75 @@ export class DealDetailComponent extends Paginated implements OnInit {
         return;
       }
 
-      if (this.listdealfunding[e.row].PurposeText == "630") {
-        this._deal.EnableAutospreadRepayments == false;
-        this.repaymentchecked = false;
-        this._ispaidofdeal = true;
-        this._deal.ApplyNoteLevelPaydowns = false;
-        $('#EnableAutoSpreadRepayments').attr("disabled", "disabled");
-        $('#EnableAutoSpreadRepayments').attr('style', 'background-color:#D3D3D3');
-
-      } else {
-        this.EnableDisableAutospreadRepayments();
-      }
+      this.EnableDisableAutospreadRepayments();
     }
-    else if (e.col.toString() == this.dealfundingColPositionWire) {
+    else if (currentcolIndex == this.dealfundingColPositionWire) {
       for (var tprow = 0; tprow <= this.flexdealfunding.rows.length - 1; tprow++) {
-        var flexdata: any = this.flexdealfunding.rows[tprow];
-        if (flexdata._data.Applied !== undefined) {
-          if (this.flexdealfunding.rows[tprow].isReadOnly == false && flexdata._data.Applied == true) {
-            flexdata._data.Applied = false;
-            this.CustomAlert("Please enter Date or Amount before checking Wire confirm.");
-            this.flexdealfunding.select(this.flexdealfunding.rows.length - 1, 0);
-            // focus on select row and ready for editing
-            this.flexdealfunding.focus();
-            return;
+        if (this.flexdealfunding.rows[tprow].dataItem.Applied !== undefined) {
+          if (this.flexdealfunding.rows[tprow].isReadOnly == false && this.flexdealfunding.rows[tprow].dataItem.Applied == true) {
+            if (this.flexdealfunding.rows[tprow].dataItem.Date == null || this.flexdealfunding.rows[tprow].dataItem.Value == null) {
+              this.flexdealfunding.rows[tprow].dataItem.Applied = false;
+              this.CustomAlert("Please enter Date or Amount before checking Wire confirm.");
+              this.flexdealfunding.select(this.flexdealfunding.rows.length - 1, 0);
+              // focus on select row and ready for editing
+              this.flexdealfunding.focus();
+              return;
+            }
+
           }
         }
       }
 
     }
     //check for the ff amount increases above 5%
-    if (e.col.toString() == this.dealfundingColPositionAmount) {
+    if (currentcolIndex == this.dealfundingColPositionAmount) {
       if (this.listdealfunding[e.row].WF_CurrentStatus != undefined) {
+        var dealfundingid = this.listdealfunding[e.row].DealFundingID;
+
+        var originalamount = this.originallistdealfunding.filter(x => x.DealFundingID == dealfundingid)[0].Value;
+
         if ((this.listdealfunding[e.row].WF_CurrentStatus == "1st Approval" ||
           this.listdealfunding[e.row].WF_CurrentStatus == "2nd Approval"
         )
-          && this.listdealfunding[e.row].Value != this.originallistdealfunding[e.row].Value) {
+          && this.listdealfunding[e.row].Value != originalamount) {
           if (this.listdealfunding[e.row].WF_IsAllow && !this.listdealfunding[e.row].Applied && this._deal.Statusid != 325)
             this.ChangeFundingAmount(e.row);
         }
       }
     }
+    var GeneratedBy = "";
+    //check if data is changed and swtich it user entered
+
+    if (this.listdealfunding[e.row] !== undefined && this.listdealfunding[e.row] != null) {
+      if (this.listdealfunding[e.row] !== undefined && this.listdealfunding[e.row].orgDate != null) {
+        if (this.listdealfunding[e.row].Date != null) {
+          if (new Date(this.listdealfunding[e.row].Date) != this.listdealfunding[e.row].orgDate) {
+            GeneratedBy = "user entered";
+          }
+        }
+      }
+
+      if (this.listdealfunding[e.row].orgValue != this.listdealfunding[e.row].Value) {
+        GeneratedBy = "user entered";
+      }
+      if (this.listdealfunding[e.row].orgPurposeID != this.listdealfunding[e.row].PurposeID) {
+        GeneratedBy = "user entered";
+      }
+      if (GeneratedBy != "") {
+        this.listdealfunding[e.row].GeneratedBy = 822;
+        this.listdealfunding[e.row].GeneratedByText = this._deal.currentUserName;
+        this.listdealfunding[e.row].GeneratedByUserID = this._deal.currentUserID;
+      }
+    }
+
+    if (this.listdealfunding[e.row].GeneratedBy == undefined || this.listdealfunding[e.row].GeneratedBy == null) {
+      this.listdealfunding[e.row].GeneratedBy = 822;
+      this.listdealfunding[e.row].GeneratedByText = this._deal.currentUserName;
+      this.listdealfunding[e.row].GeneratedByUserID = this._deal.currentUserID;
+    }
 
 
-    if (e.col > 9) {
+    if (currentintcolindex > 12) {
       var celldata = this.listdealfunding[e.row][flexdefunding.columns[e.col].header];
       var regex2 = /^[a-zA-Z.,;:|\\\/~!@#$%^&*_-{}\[\]()`"'<>?\s]+$/;
       if (regex2.test(celldata)) {
@@ -7465,12 +10914,71 @@ export class DealDetailComponent extends Paginated implements OnInit {
         this.flexdealfunding.invalidate();
       }
 
+      //assgin dealfundingrow
+      for (var nf = 0; nf < this.lstNoteFunding.length; nf++) {
+        if (this.lstNoteFunding[nf].NoteName == flexdefunding.columns[e.col].header) {
+          //if (this.lstNoteFunding[nf].DealFundingRowno == null) {
+          if (this.lstNoteFunding[nf].PurposeID == this.listdealfunding[e.row].PurposeID) {
+            if (this.convertDateToBindable(this.lstNoteFunding[nf].Date) == this.convertDateToBindable(this.listdealfunding[e.row].Date)) {
+              if (!this.lstNoteFunding[nf].DealFundingRowno) {
+                this.lstNoteFunding[nf].DealFundingRowno = this.listdealfunding[e.row].DealFundingRowno;
+                this.lstNoteFunding[nf].AdjustmentType = this.listdealfunding[e.row].AdjustmentType;
+              }
+              this.lstNoteFunding[nf].AdjustmentType = this.listdealfunding[e.row].AdjustmentType;
+            }
+          }
+          // }
+        }
+      }
       var recordfound = "";
       var changedata = this.lstNoteFunding.filter(x => x.PurposeID == this.listdealfunding[e.row].PurposeID && this.convertDateToBindable(x.Date) == this.convertDateToBindable(this.listdealfunding[e.row].Date) && x.DealFundingRowno == this.listdealfunding[e.row].DealFundingRowno);
       for (var j = 0; j < changedata.length; j++) {
         if (changedata[j].NoteName == flexdefunding.columns[e.col].header) {
           this.lstNoteFunding.find(c => c.DealFundingRowno == changedata[j].DealFundingRowno && c.NoteName == changedata[j].NoteName).Value = this.listdealfunding[e.row][flexdefunding.columns[e.col].header];
         }
+      }
+    }
+    //add new row if it is not found in notefunding
+    //if (changedata.length > 0)
+    {
+      var filternotefunding: any;
+      //var filternotefunding = this.lstNoteFunding.filter(x => x.PurposeID == this.listdealfunding[e.row].PurposeID && this.convertDateToBindable(x.Date) == this.convertDateToBindable(this.listdealfunding[e.row].Date));
+
+      if (this.listdealfunding[e.row].DealFundingRowno != undefined || this.listdealfunding[e.row].DealFundingRowno != null) {
+        filternotefunding = this.lstNoteFunding.filter(x => x.DealFundingRowno == this.listdealfunding[e.row].DealFundingRowno);
+      } else {
+        filternotefunding = this.lstNoteFunding.filter(x => x.PurposeID == this.listdealfunding[e.row].PurposeID && this.convertDateToBindable(x.Date) == this.convertDateToBindable(this.listdealfunding[e.row].Date));
+      }
+
+
+      if (filternotefunding) {
+        if (filternotefunding.length == 0) {
+          var dealfundingcolumns = Object.keys(this.listdealfunding[0]);
+          for (var n = 0; n < this.lstNote.length; n++) {
+            if (dealfundingcolumns.includes(this.lstNote[n].Name)) {
+              var currentvalue = 0;
+              if (this.listdealfunding[e.row][this.lstNote[n].Name] !== undefined && this.listdealfunding[e.row][this.lstNote[n].Name] != null) {
+                currentvalue = parseFloat(this.listdealfunding[e.row][this.lstNote[n].Name]);
+              }
+              this.lstNoteFunding.push({
+                "Applied": this.listdealfunding[e.row].Applied,
+                "NoteName": this.lstNote[n].Name,
+                "Value": currentvalue,
+                "DealFundingRowno": this.listdealfunding[e.row].DealFundingRowno,
+                "GeneratedBy": this.listdealfunding[e.row].GeneratedBy,
+                "NoteID": this.lstNote.find(x => x.Name == this.lstNote[n].Name).NoteId,
+                "Comment": this.listdealfunding[e.row].Comment,
+                "PurposeID": this.listdealfunding[e.row].PurposeID,
+                "Date": this.listdealfunding[e.row].Date,
+                "Comments": this.listdealfunding[e.row].Comments,
+                "AdjustmentType": this.listdealfunding[e.row].AdjustmentType,
+                "GeneratedByUserID": this.listdealfunding[e.row].GeneratedByUserID,
+              });
+
+            }
+          }
+        }
+
       }
     }
 
@@ -7480,14 +10988,239 @@ export class DealDetailComponent extends Paginated implements OnInit {
         this.syncDealfundingandTotalcommitmentlistforNnotes(this.listdealfunding);
       }
     }
-    if (this._isAdjustedTotalCommitmentTabClicked == true) {
-      var header = flexdefunding.columns[e.col].header;
-      if (header == 'Required Equity' || header == 'Additional Equity') {
-        this.UpdateEquitySummary();
+
+
+    var header = flexdefunding.columns[e.col].header;
+    if (header == 'Required Equity' || header == 'Additional Equity' || header == 'Date') {
+      this.UpdateEquitySummary();
+    }
+
+
+    if (e.col == 9) {
+      this.syncDealfundingandTotalcommitmentlistforNnotes(this.listdealfunding);
+    }
+
+    this.getEquityValues();
+
+    //col index for required equity
+    if (e.col == 5) {
+      var dealpurpose = this.listdealfunding[e.row].PurposeText;
+      if (this._deal.EnableAutoSpread == true) {
+        for (var n = 0; n < this.lstautospreadrule.length; n++) {
+          if (this.lstautospreadrule[n].PurposeTypeText == dealpurpose) {
+            this.TotalRequiredEquity = parseFloat((this.lstautospreadrule[n].RequiredEquity).toFixed(2));
+          }
+        }
+        for (var n = 0; n < this.listdealfunding.length; n++) {
+          if (this.listdealfunding[n].PurposeText == dealpurpose) {
+            this.sumRequiredEquityallocated = this.sumRequiredEquityallocated + this.listdealfunding[n].RequiredEquity;
+          }
+        }
+
+      } else {
+
+        for (var n = 0; n < this.listdealfunding.length; n++) {
+          this.sumRequiredEquityallocated = this.sumRequiredEquityallocated + this.listdealfunding[n].RequiredEquity;
+        }
+        if (this.lstAdjustedTotalCommitment) {
+          for (var i = 0; i < this.lstAdjustedTotalCommitment.items.length; i++) {
+            this.TotalRequiredEquity = this.TotalRequiredEquity + parseFloat(this.GetDefaultValue(parseFloat(this.lstAdjustedTotalCommitment.items[i].TotalRequiredEquity)));
+          }
+        }
+      }
+
+      if (Math.abs(parseFloat((this.sumRequiredEquityallocated).toFixed(2))) > Math.abs(parseFloat((this.TotalRequiredEquity).toFixed(2)))) {
+        var RequiredEquityallocated = parseFloat((this.sumRequiredEquityallocated).toFixed(2));
+        this.currentRequiredEquity = parseFloat((this.listdealfunding[e.row].RequiredEquity).toFixed(2));
+
+        var oldequity = RequiredEquityallocated - this.currentRequiredEquity;
+        oldequity = Math.abs(parseFloat((oldequity).toFixed(2)));
+        this.equityremain = parseFloat((this.TotalRequiredEquity).toFixed(2)) - oldequity;
+
+        if (this.currentRequiredEquity > this.equityremain) {
+          this.newadditonalequity = this.currentRequiredEquity - this.equityremain;
+          this.newadditonalequity = parseFloat((this.newadditonalequity).toFixed(2));
+        }
+        this.listdealfunding[e.row].equityrowchanged = "Changed";
+        this.currentdealrow = this.listdealfunding[e.row];
+        var msg = "You have overallocated the Required Equity. Out of " + this.utils.formatNumberforTwoDecimalplaces(this.currentRequiredEquity, "") + ", " + this.utils.formatNumberforTwoDecimalplaces(this.equityremain, "") + " will be allocated to Required Equity and the remaining amount of " + this.utils.formatNumberforTwoDecimalplaces(this.newadditonalequity, "") + " will be allocated to Additional Equity.";
+        msg = msg + "<p>" + "" + "</p>";
+        msg = msg + "<p>" + "Press Yes to confirm or press No to enter a different Required Equity." + "</p>";
+        this.EquityActionType = "Edit";
+
+        this.CustomDialogEquity(msg);
       }
     }
-    this.getEquityValues();
     //celleditfunding ends
+  }
+  CustomDialogEquity(msg): void {
+    var winW = window.innerWidth;
+    var winH = window.innerHeight;
+    var dialogbox = document.getElementById('DialogboxEquity');
+    document.getElementById('DialogboxEquitymsg').innerHTML = msg;
+    dialogbox.style.display = "block";
+    $.getScript("/js/jsDrag.js");
+  }
+
+  ClosePopUpEquityDialog() {
+    if (this.EquityActionType == "Edit") {
+      for (var n = 0; n < this.listdealfunding.length; n++) {
+        if (this.listdealfunding[n].equityrowchanged == "Changed") {
+          this.listdealfunding[n].RequiredEquity = 0;
+          this.listdealfunding[n].equityrowchanged = "";
+        }
+      }
+      this.flexdealfunding.invalidate();
+      var modal = document.getElementById('DialogboxEquity');
+      modal.style.display = "none";
+
+    } else if (this.EquityActionType == "Copy") {
+      for (var cd = 0; cd < this.currentdealrow.length; cd++) {
+        for (var n = 0; n < this.listdealfunding.length; n++) {
+          if (this.currentdealrow[cd].DealFundingRowno == this.listdealfunding[n].DealFundingRowno) {
+            this.listdealfunding[n].RequiredEquity = 0;
+            this.listdealfunding[n].equityrowchanged = "";
+          }
+        }
+      }
+      this.flexdealfunding.invalidate();
+      var modal = document.getElementById('DialogboxEquity');
+      modal.style.display = "none";
+    }
+
+  }
+
+  UpdateEquityList() {
+    //Sorting of list
+    for (var k = 0; k < this.listdealfunding.length; k++) {
+      this.listdealfunding[k].Date = this.convertDatetoGMT(this.listdealfunding[k].Date);
+    }
+    this.listdealfunding.sort(this.SortByDateandApplied);
+    this.cvDealFundingList = new wjcCore.CollectionView(this.listdealfunding);
+    this.cvDealFundingList.trackChanges = true;
+    this.flexdealfunding.invalidate();
+
+    if (this._deal.EnableAutoSpread == true) {
+      // case based on purpose type
+      if (this.lstautospreadrule) {
+        for (var i = 0; i < this.lstautospreadrule.length; i++) {
+          if (this.utils.GetDefaultValueNumber(this.lstautospreadrule[i].RequiredEquity) > 0) {
+            var pRequiredEquity = this.lstautospreadrule[i].RequiredEquity;
+            var currentpurosetype = this.lstautospreadrule[i].PurposeTypeText;
+            for (var n = 0; n < this.listdealfunding.length; n++) {
+              if (this.listdealfunding[n].Applied != true && this.listdealfunding[n].PurposeText == currentpurosetype) {
+                if (this.listdealfunding[n].RequiredEquity != null && this.listdealfunding[n].RequiredEquity >= 0) {
+                  remaining = 0;
+                  var equityasofdate = this.GetEquityAmountDistributedByPurposeType(this.listdealfunding[n].Date, currentpurosetype);
+                  if (equityasofdate > pRequiredEquity) {
+                    remaining = parseFloat((equityasofdate).toFixed(2)) - parseFloat((pRequiredEquity).toFixed(2));
+                    var currentvalue = this.utils.GetDefaultValueNumber(this.listdealfunding[n].RequiredEquity);
+                    var currentae = this.utils.GetDefaultValueNumber(this.listdealfunding[n].AdditionalEquity);
+                    if (currentvalue <= remaining) {
+                      this.listdealfunding[n].RequiredEquity = 0;
+                      this.listdealfunding[n].AdditionalEquity = parseFloat((currentae).toFixed(2)) + currentvalue;
+                    } else {
+                      this.listdealfunding[n].RequiredEquity = parseFloat((currentvalue).toFixed(2)) - parseFloat((remaining).toFixed(2));
+                      this.listdealfunding[n].AdditionalEquity = parseFloat((currentae).toFixed(2)) + remaining;
+                    }
+                    this.listdealfunding[n].equityrowchanged = "";
+                  } else {
+                    remaining = parseFloat((equityasofdate).toFixed(2)) - parseFloat((pRequiredEquity).toFixed(2));
+                  }
+                  //else
+                }
+              }
+            }
+
+          } else {
+            this.AssginEquityValueToCurrentRow();
+          }
+          //end if
+        }
+
+      }
+      this.flexdealfunding.invalidate();
+      var modal = document.getElementById('DialogboxEquity');
+      modal.style.display = "none";
+
+    } else {
+      var remaining = 0;
+      for (var n = 0; n < this.listdealfunding.length; n++) {
+        if (this.listdealfunding[n].Applied != true) {
+          if (this.listdealfunding[n].RequiredEquity != null && this.listdealfunding[n].RequiredEquity >= 0) {
+            remaining = 0;
+            var equityasoftoday = this.GetEquityAmountDistributed(this.listdealfunding[n].Date);
+            if (equityasoftoday > this.TotalRequiredEquity) {
+              remaining = parseFloat((equityasoftoday).toFixed(2)) - parseFloat((this.TotalRequiredEquity).toFixed(2));
+              var currentvalue = this.utils.GetDefaultValueNumber(this.listdealfunding[n].RequiredEquity);
+              var currentae = this.utils.GetDefaultValueNumber(this.listdealfunding[n].AdditionalEquity);
+              if (currentvalue <= remaining) {
+                this.listdealfunding[n].RequiredEquity = 0;
+                this.listdealfunding[n].AdditionalEquity = parseFloat((currentae).toFixed(2)) + currentvalue;
+              } else {
+                this.listdealfunding[n].RequiredEquity = parseFloat((currentvalue).toFixed(2)) - parseFloat((remaining).toFixed(2));
+                this.listdealfunding[n].AdditionalEquity = parseFloat((currentae).toFixed(2)) + remaining;
+              }
+              this.listdealfunding[n].equityrowchanged = "";
+            }
+          } else {
+            this.AssginEquityValueToCurrentRow();
+          }
+          //if end
+        }
+      }
+      this.flexdealfunding.invalidate();
+      var modal = document.getElementById('DialogboxEquity');
+      modal.style.display = "none";
+    }
+  }
+
+  AssginEquityValueToCurrentRow() {
+    if (this.currentdealrow != null) {
+      var changedrownumber = this.currentdealrow.DealFundingRowno;
+      for (var n = 0; n < this.listdealfunding.length; n++) {
+        var currentae = this.utils.GetDefaultValueNumber(this.listdealfunding[n].AdditionalEquity);
+        var currentvalue = this.listdealfunding[n].RequiredEquity;
+        if (this.listdealfunding[n].DealFundingRowno == changedrownumber) {
+          this.listdealfunding[n].RequiredEquity = 0;
+          this.listdealfunding[n].AdditionalEquity = parseFloat((currentae).toFixed(2)) + currentvalue;
+        }
+      }
+    }
+  }
+  GetEquityAmountDistributed(fundingdate) {
+    var RequiredEquitybal = 0;
+    fundingdate = new Date(fundingdate);
+    for (var n = 0; n < this.listdealfunding.length; n++) {
+      if (this.listdealfunding[n].Date <= fundingdate) {
+        RequiredEquitybal = RequiredEquitybal + this.listdealfunding[n].RequiredEquity;
+      }
+    }
+    RequiredEquitybal = Math.abs(parseFloat((RequiredEquitybal).toFixed(2)));
+    return RequiredEquitybal;
+  }
+
+  GetTotalEquityAmountDistributedByPurposeType(PurposeType) {
+    var RequiredEquitybal = 0;
+    for (var n = 0; n < this.listdealfunding.length; n++) {
+      if (this.listdealfunding[n].PurposeText == PurposeType) {
+        RequiredEquitybal = RequiredEquitybal + this.listdealfunding[n].RequiredEquity;
+      }
+    }
+    RequiredEquitybal = Math.abs(parseFloat((RequiredEquitybal).toFixed(2)));
+    return RequiredEquitybal;
+  }
+
+  GetEquityAmountDistributedByPurposeType(fundingdate, PurposeType) {
+    var RequiredEquitybal = 0;
+    fundingdate = new Date(fundingdate);
+    for (var n = 0; n < this.listdealfunding.length; n++) {
+      if (this.listdealfunding[n].Date <= fundingdate && this.listdealfunding[n].PurposeText == PurposeType) {
+        RequiredEquitybal = RequiredEquitybal + this.listdealfunding[n].RequiredEquity;
+      }
+    }
+    RequiredEquitybal = Math.abs(parseFloat((RequiredEquitybal).toFixed(2)));
+    return RequiredEquitybal;
   }
   cellEditEndingHandler(flexGrid: wjcGrid.FlexGrid, e: wjcGrid.CellRangeEventArgs) {
     if (e.col.toString() == "5") {
@@ -7535,22 +11268,53 @@ export class DealDetailComponent extends Paginated implements OnInit {
       deldynamicCol = this.cvDealFundingList.currentItem;
       this.deletedynamicList.push(deldynamicCol);
       this.isrowdeleted = true;
+      var selectedDealFundingID = this.listdealfunding[this.deleteRowIndex].DealFundingID;
+      var selectedDealFundingRowno = this.listdealfunding[this.deleteRowIndex].DealFundingRowno;
       this.cvDealFundingList.removeAt(this.deleteRowIndex);
-      if (this.listdealfundingwithoutchange[this.deleteRowIndex]) {
-        if (this.listdealfundingwithoutchange[this.deleteRowIndex].DealFundingID != undefined) {
-          var DealFundingID = this.listdealfundingwithoutchange[this.deleteRowIndex].DealFundingID;
-          this.listdealfundingwithoutchange = this.listdealfundingwithoutchange.filter(function (obj) {
-            return obj.DealFundingID != DealFundingID;
-          });
-          //manish
-          for (var j = 0; j < this.lstNoteFunding.length; j++) {
+      var fundingwithoutchange = this.listdealfundingwithoutchange.filter(x => x.DealFundingID == selectedDealFundingID);
+      if (fundingwithoutchange != undefined && fundingwithoutchange != null) {
+
+        var DealFundingID = selectedDealFundingID;
+        var DealFundingRowno = selectedDealFundingRowno;
+        this.listdealfundingwithoutchange = this.listdealfundingwithoutchange.filter(function (obj) {
+          return obj.DealFundingID != DealFundingID;
+        });
+        for (var j = 0; j < this.lstNoteFunding.length; j++) {
+          if (this.lstNoteFunding[j].DealFundingID) {
             if (this.lstNoteFunding[j].DealFundingID == DealFundingID) {
               this.lstNoteFunding.splice(j, 1);
             }
           }
-
+          else {
+            if (this.lstNoteFunding[j].DealFundingRowno == DealFundingRowno) {
+              this.lstNoteFunding.splice(j, 1);
+            }
+          }
         }
       }
+
+      //if (this.listdealfundingwithoutchange[this.deleteRowIndex]) {
+      //  if (this.listdealfundingwithoutchange[this.deleteRowIndex].DealFundingID != undefined) {
+      //    var DealFundingID = this.listdealfundingwithoutchange[this.deleteRowIndex].DealFundingID;
+      //    var DealFundingRowno = this.listdealfundingwithoutchange[this.deleteRowIndex].DealFundingRowno;
+      //    this.listdealfundingwithoutchange = this.listdealfundingwithoutchange.filter(function (obj) {
+      //      return obj.DealFundingID != DealFundingID;
+      //    });
+      //    for (var j = 0; j < this.lstNoteFunding.length; j++) {
+      //      if (this.lstNoteFunding[j].DealFundingID) {
+      //        if (this.lstNoteFunding[j].DealFundingID == DealFundingID) {
+      //          this.lstNoteFunding.splice(j, 1);
+      //        }
+      //      }
+      //      else {
+      //        if (this.lstNoteFunding[j].DealFundingRowno == DealFundingRowno) {
+      //          this.lstNoteFunding.splice(j, 1);
+      //        }
+      //      }
+      //    }
+
+      //  }
+      //}
       if (this._isAdjustedTotalCommitmentTabClicked == true) {
         this.UpdateEquitySummary();
       }
@@ -7588,11 +11352,32 @@ export class DealDetailComponent extends Paginated implements OnInit {
       this.flexadjustedtotalcommitment.invalidate(true);
       this.UpdateEquitySummary();
     }
-
     if (this.modulename == "AutospreadRepayment") {
       this._isFundingruleChanged = true;
       this.lstcumulativeprobabilitybyDate.removeAt(this.deleteRowIndex);
       this.flexautospreadrepayments.invalidate(true);
+    }
+    //if (this.modulename == "Watchlist - Legal") {
+    //  var deletedCol = this.cvServicingWatchlistLegal.currentItem;
+    //  this.lstServicingWatchlistLegalDeleted.push(deletedCol);
+
+    //  this.cvServicingWatchlistLegal.removeAt(this.deleteRowIndex);
+    //  this.flexServicingWatchlistLegal.invalidate(true);
+    //}
+    if (this.modulename == "Watchlist - Accouting") {
+      var deletedCol = this.cvServicingWatchlistAccounting.currentItem;
+      this.lstServicingWatchlistAccountingDeleted.push(deletedCol);
+
+      this.cvServicingWatchlistAccounting.removeAt(this.deleteRowIndex);
+      this.flexServicingWatchlistAccounting.invalidate(true);
+    }
+    if (this.modulename == "Watchlist - Potential Impairment") {
+
+      this.lstServicingPotentialImpairmentDeleted.push(this.cvServicingPotentialImpairment.currentItem);
+      this.cvServicingPotentialImpairment.removeAt(this.deleteRowIndex);
+      this.flexServicingPotentialImpairment.invalidate(true);
+      if (this.cvServicingPotentialImpairment.items.length == 0)
+        this.flagIsAutoDistibutePressed = true;
     }
     if (this.modulename == "Maturity") {
       if (this.flexMaturity.rows[this.deleteRowIndex]) {
@@ -7622,6 +11407,49 @@ export class DealDetailComponent extends Paginated implements OnInit {
       this._listReserveSchedule.removeAt(this.deleteRowIndex);
       this.flexReserveSchedule.invalidate(true);
     }
+    if (this.modulename == "Liability Note") {
+      this.lstDealliabilitySetup[this.deleteRowIndex].IsDeleted = true;
+      if (this.flexLiabilityGrid.rows[this.deleteRowIndex]) {
+        this.deleteLiabilityNote.push(this.lstDealliabilitySetup[this.deleteRowIndex]);
+      }
+      this.cvDealliabilitySetup.removeAt(this.deleteRowIndex);
+      this.flexLiabilityGrid.invalidate(true);
+    }
+    if (this.modulename == "Group Setup") {
+      this._lstPrepayGroupSetup[this.deleteRowIndex].IsDeleted = 1;
+      if (this.flexPrepayGroupSetup.rows[this.deleteRowIndex]) {
+        this.deletePrepayGroupSetupList.push(this._lstPrepayGroupSetup[this.deleteRowIndex]);
+      }
+      this.cvPrepayGroupSetup.removeAt(this.deleteRowIndex);
+      this.flexPrepayGroupSetup.invalidate(true);
+    }
+    if (this.modulename == "Note Setup") {
+      this._lstPrepayNoteSetup[this.deleteRowIndex].IsDeleted = 1;
+      if (this.flexPrepayNoteSetup.rows[this.deleteRowIndex]) {
+        this.deletePrepayNoteSetupList.push(this._lstPrepayNoteSetup[this.deleteRowIndex]);
+      }
+      this.cvPrepayNoteSetup.removeAt(this.deleteRowIndex);
+      this.flexPrepayNoteSetup.invalidate(true);
+    }
+
+    if (this.modulename == "Fee Credits") {
+      this._lstMinimumFee[this.deleteRowIndex].IsDeleted = 1;
+      if (this.flexFeeCredits.rows[this.deleteRowIndex]) {
+        this.deleteMinimumFeeCredits.push(this._lstMinimumFee[this.deleteRowIndex]);
+      }
+      this.cvMinimumFeeCredits.removeAt(this.deleteRowIndex);
+      this.flexFeeCredits.invalidate(true);
+    }
+
+    if (this.modulename == "Prepayment Premium Adj") {
+      this._lstprepayadjustment[this.deleteRowIndex].IsDeleted = 1;
+      if (this.prepayadjustment.rows[this.deleteRowIndex]) {
+        this.deletePrepayadjustment.push(this._lstprepayadjustment[this.deleteRowIndex]);
+      }
+      this.cvPrepayadjustment.removeAt(this.deleteRowIndex);
+      this.prepayadjustment.invalidate(true);
+    }
+
     // to call sync function for commitment and dealfunding grid
     var _lstUseRuleN = this.lstSequenceHistory.filter(x => x.UseRuletoDetermineNoteFundingText == "4" || x.UseRuletoDetermineNoteFundingText == "N" || x.UseRuletoDetermineNoteFundingText == null || x.UseRuletoDetermineNoteFundingText == "");
     if (_lstUseRuleN.length == this.lstNote.length) {
@@ -7629,6 +11457,53 @@ export class DealDetailComponent extends Paginated implements OnInit {
     }
     this.EnableDisableAutospreadRepayments();
     this.CloseDeletePopUp();
+  }
+
+  DeleteDealFundingAndNoteFundingForUseRuleN() {
+    var deletedids = [];
+    var deletednoteids = [];
+    for (var d = 0; d < this.listdealfunding.length; d++) {
+      if (this.listdealfunding[d].Applied != true) {
+        if (this.listdealfunding[d].PurposeText == "Paydown" || this.listdealfunding[d].PurposeText == "631") {
+          if (this.listdealfunding[d].Comment == "" || this.listdealfunding[d].Comment == null) {
+            deletedids.push(this.listdealfunding[d].DealFundingRowno);
+          }
+        }
+      }
+    }
+
+    for (var j = 0; j < this.lstNoteFunding.length; j++) {
+      if (this.lstNoteFunding[j].Applied != true) {
+        if (this.lstNoteFunding[j].Purpose == "Paydown" || this.lstNoteFunding[j].PurposeID == "631") {
+          if (this.lstNoteFunding[j].Comments == "" || this.lstNoteFunding[j].Comments == null) {
+            deletednoteids.push(this.lstNoteFunding[j].DealFundingRowno);
+          }
+        }
+      }
+    }
+
+    for (var row = 0; row < deletedids.length; row++) {
+      for (var dl = 0; dl < this.listdealfunding.length; dl++) {
+        if (this.listdealfunding[dl].DealFundingRowno == deletedids[row]) {
+          this.lstDealFundAutoSpreadDeleted.push(this.listdealfunding[dl]);
+          this.listdealfunding.splice(dl, 1);
+        }
+      }
+    }
+
+    for (var noterow = 0; noterow < deletednoteids.length; noterow++) {
+      for (var dl = 0; dl < this.lstNoteFunding.length; dl++) {
+        if (this.lstNoteFunding[dl].DealFundingRowno == deletednoteids[noterow]) {
+          this.lstNoteFunding.splice(dl, 1);
+        }
+      }
+    }
+
+    this.syncDealfundingandTotalcommitmentlistforNnotes(this.listdealfunding);
+    this.cvDealFundingList = new wjcCore.CollectionView(this.listdealfunding);
+    this.cvDealFundingList.trackChanges = true;
+
+
   }
 
   showDialogCalcJsonScriptEengine(modulename) {
@@ -7925,28 +11800,6 @@ export class DealDetailComponent extends Paginated implements OnInit {
 
   //**code for calc json script engine-
 
-  invokeFunction(): void {
-    var inputjson = $('#txtNoteJsonForScriptEngine').val()
-    this._isPeriodicDataFetching = true;
-    var parameters = {
-      //FunctionName: 'InvokeNew',
-      FunctionName: this.foldername == "Auto-Version" ? this.autoVerfoldername : this.foldername,
-      PlayLoad: inputjson
-    }
-    this.functionServiceSrv.invokeFunction(parameters)
-      .subscribe(res => {
-        this._isPeriodicDataFetching = false;
-        if (res != "")
-          $('#txtNoteJsonResponseForScriptEngine').val(res);
-        else
-          $('#txtNoteJsonResponseForScriptEngine').val('Error - Something went wrong');
-      },
-        error => {
-          $('#txtNoteJsonResponseForScriptEngine').val('Error - Something went wrong');
-          this.utilityService.navigateToSignIn();
-        }
-      );
-  }
   //end
   Addupdaterules(value, index, noteid): boolean {
     //if (value == undefined || value == "")
@@ -7985,23 +11838,6 @@ export class DealDetailComponent extends Paginated implements OnInit {
         }.bind(this), 5000);
         this._isPeriodicDataFetching = false;
       })
-  }
-
-  getFastFolderList(): void {
-    this.functionServiceSrv.getallFastFunction()
-      .subscribe(res => {
-        this.lstFolders = res;
-        if (this.lstFolders != null && this.lstFolders.length > 0) {
-          this.autoVerfoldername = this.lstFolders[0].FunctionName;
-          this.lstFolders[0].FunctionName = "Auto-Version";
-          this.foldername = "Auto-Version";
-        }
-      },
-        error => {
-          this.utilityService.navigateToSignIn();
-        }
-
-      );
   }
   ChangeFolder(newvalue): void {
     this.foldername = newvalue;
@@ -8043,16 +11879,44 @@ export class DealDetailComponent extends Paginated implements OnInit {
 
   }
 
-  ChangeFundingappied(dealFundingID: string, _value: boolean, flexGridrw: wjcGrid.Row): void {
+
+
+  ChangeFundingappied(dealFundingID: string, _value: boolean, flexGridrw: wjcGrid.Row, e): void {
+
+    this._isdealfundingEdit = true;
     //this._isdealfundingChanged = false;
     var currentpurposeid;
-    if (!this._isdealfundingEdit) {
-      this.CustomAlert("You must generate funding schedule after change funding.");
-      this.flexdealfunding.rows[flexGridrw.index].dataItem.Applied = false;
-      this.flexdealfunding.invalidate();
+
+    var PrincipalDealFunding = this.listdealfunding.filter(x => x.PurposeID == 840);
+    for (var m = 0; m < PrincipalDealFunding.length; m++) {
+      PrincipalDealFunding[m].Date = new Date(PrincipalDealFunding[m].Date);
     }
 
+    if (_value == false) {
+      if (this._deal.LastAccountingclosedate != null) {
+        if (this.listdealfunding[flexGridrw.index].Date < this._deal.LastAccountingclosedate) {
+          this.CustomAlert("You cannot un-wireconfirm before last accounting date " + this.convertDateToBindable(this._deal.LastAccountingclosedate) + ".")
+          e.target.checked = true;
+          return;
+        }
+      }
+      if (this.listdealfunding[flexGridrw.index].PurposeID == 840) {
+        this.CustomAlert("Please un-wire confirm Principal Writeoff from Distressed tab.")
+        e.target.checked = true;
+        return;
+      }
+    }
+    // this.fundingaddFooterRow(this.flexdealfunding);
+    if (!this._isdealfundingEdit && (this.isShowGenerateAutospreadRepay || !this.ShowUseRuleN)) {
+      // if (this.isShowGenerateAutospreadRepay || !this.ShowUseRuleN) {
+      this.CustomAlert("You must generate funding schedule after change funding.");
+      this.flexdealfunding.rows[flexGridrw.index].dataItem.Applied = false;
+      e.target.checked = false;
+      // this.flexdealfunding.invalidate();
+      // }
+    }
     else {
+
       if (_value == true) {
         //workflow validation
         if (!(Number(this.listdealfunding[flexGridrw.index].PurposeText).toString() == "NaN" || Number(this.listdealfunding[flexGridrw.index].PurposeText) == 0)) {
@@ -8065,22 +11929,27 @@ export class DealDetailComponent extends Paginated implements OnInit {
 
         if (!(this._deal.Statusid == 325 && (this._deal.LinkedDealID == "" || this._deal.LinkedDealID == null))) {
 
-          if (lstwfstatus.length > 0) {
+          var dbtamt = 0.0;
+          dbtamt = this.listdealfunding[flexGridrw.index].Value;
+          if (lstwfstatus.length > 0 && dbtamt != 0) {
             if (this.listdealfunding[flexGridrw.index].WF_CurrentStatusDisplayName != "Completed" || this.listdealfunding[flexGridrw.index].WF_CurrentStatusDisplayName == null) {
               this.CustomAlert("You cannot wire confirm the draw as the workflow status is not completed.");
               this.flexdealfunding.rows[flexGridrw.index].dataItem.Applied = false;
-              this.flexdealfunding.invalidate();
+              e.target.checked = false;
+              //  this.flexdealfunding.invalidate();
               return;
             }
           }
         }
+
+
         this._isdealfundingChanged = false;
-        //Use Rule N Row Total Validation
+        //Use Rule N Row Total Validation                       
         if (this.ShowUseRuleN) {
           var rowtotal = 0, dealrowfund = 0;
           dealrowfund = this.listdealfunding[flexGridrw.index]["Value"];
-          if (this.dynamicColList.length > 31) {
-            for (var m = 32; m < this.dynamicColList.length; m++) {
+          if (this.dynamicColList.length > 34) {
+            for (var m = 35; m < this.dynamicColList.length; m++) {
               if (this.listdealfunding[flexGridrw.index][this.dynamicColList[m]]) {
                 //  rowtotal += parseFloat(this.listdealfunding[flexGridrw.index][this.dynamicColList[m]].replace(/,/g, ''));
 
@@ -8108,10 +11977,10 @@ export class DealDetailComponent extends Paginated implements OnInit {
           }
 
           if (parseFloat(parseFloat(rowtotal.toString()).toFixed(2)) != parseFloat(parseFloat(dealrowfund.toString()).toFixed(2))) {
-            //   if ((Math.round(rowtotal * 100) / 100) != (Math.round(dealrowfund * 100) / 100)) {
+
             this.CustomAlert("Sum of note funding is not equal to deal funding.");
             flexGridrw.dataItem.Applied = false;
-            this.flexdealfunding.invalidate();
+
             return;
           }
 
@@ -8146,9 +12015,10 @@ export class DealDetailComponent extends Paginated implements OnInit {
             var wcDate = new Date(flexGridrw.dataItem.Date);
             if (wcDate.toString() != minDate.toString()) {
               this.listdealfunding.find(x => x.DealFundingID == dealFundingID).OrgApplied = false;
-              flexGridrw.dataItem.Applied = false;
-              this.flexdealfunding.invalidate();
+
               this.CustomAlert("You can't confirm wire on a later date without confirming all wires in between.")
+              e.target.checked = false;
+              // this.flexdealfunding.invalidate();
               return;
             }
             else {
@@ -8157,9 +12027,9 @@ export class DealDetailComponent extends Paginated implements OnInit {
               var nextbdate = this.getnextbusinessDate(today, 20, true);
               if (wcDate > nextbdate) {
                 this.listdealfunding.find(x => x.DealFundingID == dealFundingID).OrgApplied = false;
-                flexGridrw.dataItem.Applied = false;
-                this.flexdealfunding.invalidate();
+                // this.flexdealfunding.invalidate();
                 this.CustomAlert("You can only confirm up to " + this.convertDateToBindable(nextbdate) + ".")
+                e.target.checked = false;
                 return;
               }
             }
@@ -8170,6 +12040,7 @@ export class DealDetailComponent extends Paginated implements OnInit {
         var maxDate = new Date(Math.max.apply(null, this.listdealfunding.filter(x => x.Applied == true).map(x => x.Date)));
         if (maxDate.toJSON()) {
           if (flexGridrw.dataItem.Date) {
+            e.target.checked = true;
             var wcDate = new Date(flexGridrw.dataItem.Date);
             if (wcDate.toString() != maxDate.toString()) {
               this.flexdealfunding.invalidate();
@@ -8188,12 +12059,14 @@ export class DealDetailComponent extends Paginated implements OnInit {
           flexGridrw.isReadOnly = true;
           flexGridrw.cssClass = "customgridrowcolor"
           flexGridrw.dataItem.Applied = true;
+          e.target.checked = true;
         }
         if (_value == false) {
           this.listdealfunding.find(x => x.DealFundingID == dealFundingID).OrgApplied = false;
 
           flexGridrw.isReadOnly = false;
           flexGridrw.dataItem.Applied = false;
+          e.target.checked = false;
           flexGridrw.cssClass = "customgridrowcolornotapplied";
         }
       }
@@ -8202,13 +12075,14 @@ export class DealDetailComponent extends Paginated implements OnInit {
           this.listdealfunding.find(x => x.DealFundingID == dealFundingID).OrgApplied = true;
           flexGridrw.isReadOnly = true;
           flexGridrw.dataItem.Applied = true;
+          e.target.checked = true;
           flexGridrw.cssClass = "customgridrowcolor"
         }
         if (_value == false) {
           this.listdealfunding.find(x => x.DealFundingID == dealFundingID).OrgApplied = false;
           flexGridrw.isReadOnly = false;
           flexGridrw.dataItem.Applied = false;
-
+          e.target.checked = false;
           if (flexGridrw.dataItem.WF_IsCompleted == 1 && flexGridrw.dataItem.Applied == false)
             flexGridrw.cssClass = "customgridWFcolor";
           else
@@ -8216,11 +12090,35 @@ export class DealDetailComponent extends Paginated implements OnInit {
         }
       }
     }
+
+  }
+
+  ChangeLiabilityAppied(_value: boolean, flexGridrw: wjcGrid.Row, e): void {
+
+    if (_value == true) {
+      flexGridrw.isReadOnly = true;
+      flexGridrw.dataItem.Status = true;
+      e.target.checked = true;
+      flexGridrw.cssClass = "customgridrowcolor"
+      this.flexDealliabilityFunding.rows[flexGridrw.index].dataItem.Status = true;
+    }
+    else {
+      flexGridrw.isReadOnly = false;
+      flexGridrw.dataItem.Status = false;
+      e.target.checked = false;
+      flexGridrw.cssClass = "customgridrowcolornotapplied";
+      this.flexDealliabilityFunding.rows[flexGridrw.index].dataItem.Status = false;
+    }
+
   }
 
   ChangeFundingAmount(rowindex: number): void {
-    if (this.originallistdealfunding[rowindex] != undefined) {
-      var originalamount = this.originallistdealfunding[rowindex].Value;
+    if (this.listdealfunding[rowindex] != undefined) {
+      //var originalamount = this.originallistdealfunding[rowindex].Value;
+
+      var dealfundingid = this.listdealfunding[rowindex].DealFundingID;
+
+      var originalamount = this.originallistdealfunding.filter(x => x.DealFundingID == dealfundingid)[0].Value;
 
       var amt = originalamount * .05
       amt = parseFloat(this.js_round(amt, 2));
@@ -8234,7 +12132,9 @@ export class DealDetailComponent extends Paginated implements OnInit {
 
   ChangeFundingAmountCopied(rowindex: number): string {
     var dt = "";
-    var originalamount = this.originallistdealfunding[rowindex].Value;
+    var dealfundingid = this.listdealfunding[rowindex].DealFundingID;
+
+    var originalamount = this.originallistdealfunding.filter(x => x.DealFundingID == dealfundingid)[0].Value;
 
     var amt = originalamount * .05
     amt = parseFloat(this.js_round(amt, 2));
@@ -8342,6 +12242,8 @@ export class DealDetailComponent extends Paginated implements OnInit {
     customdialogbox.style.display = "block";
     $.getScript("/js/jsDrag.js");
   }
+
+
   ClosePopUpDeleteOption() {
     var modal = document.getElementById('customdialogbox');
     modal.style.display = "none";
@@ -8375,7 +12277,6 @@ export class DealDetailComponent extends Paginated implements OnInit {
     var objdeal = new deals('');
     objdeal.DealID = this._deal.DealID;
     objdeal.ShowUseRuleN = true;
-    //manish
     this._isautospreadshow = false;
     this.checked = false;
     this._deal.EnableAutoSpread = false;
@@ -8395,14 +12296,13 @@ export class DealDetailComponent extends Paginated implements OnInit {
     }.bind(this), 1000);
   }
 
-  //showFundingCommentEmptyAlert(comment, BoxDocumentLink, dealFundingID) {
   showFundingCommentEmptyAlert(comment, BoxDocumentLink, dealFundingID, date, amount) {
 
     var workflowstring = "";
     var _validation = false;
     var workflowerror = "";
     if (comment == '' || comment == null || comment == undefined) {
-      workflowstring = workflowstring + "Adding comment,";
+      workflowstring = workflowstring + "Inputting a Comment,";
       _validation = true;
     }
     if (BoxDocumentLink == null || BoxDocumentLink == '') {
@@ -8410,7 +12310,7 @@ export class DealDetailComponent extends Paginated implements OnInit {
       _validation = true;
     }
     if (_validation == true) {
-      workflowerror = workflowerror + "<p>" + workflowstring.slice(0, -1) + " is mandatory for draw approval process." + "</p>";
+      workflowerror = workflowerror + "<p>" + workflowstring.slice(0, -1) + " is mandatory for the workflow process." + "</p>";
       this.CustomAlert(workflowerror);
     }
     else {
@@ -8419,10 +12319,11 @@ export class DealDetailComponent extends Paginated implements OnInit {
           if (!(Number(this.listdealfunding[i].PurposeText).toString() == "NaN" || Number(this.listdealfunding[i].PurposeText) == 0)) {
             this.listdealfunding[i].PurposeID = Number(this.listdealfunding[i].PurposeText);
           }
+          var fundingwithoutchange = this.listdealfundingwithoutchange.filter(x => x.DealFundingID == dealFundingID);
 
           if (comment != this.listdealfunding[i].OldComment || BoxDocumentLink != this.OldBoxDocumentLink
-            || this.convertDateToBindable(date) != this.convertDateToBindable(this.listdealfundingwithoutchange[i].Date) || amount != this.listdealfundingwithoutchange[i].Value
-            || this.listdealfunding[i].PurposeID != this.listdealfundingwithoutchange[i].PurposeID
+            || this.convertDateToBindable(date) != this.convertDateToBindable(fundingwithoutchange[0].Date) || amount != fundingwithoutchange[0].Value
+            || this.listdealfunding[i].PurposeID != fundingwithoutchange[0].PurposeID
 
           ) {
             this.CustomAlert("Please save the deal after adding date, amount, comment, purpose type, box document link and then proceed with workflow.");
@@ -8462,7 +12363,10 @@ export class DealDetailComponent extends Paginated implements OnInit {
           else {
             currentdealurl = ['dealdetail/a', this._deal.CREDealID]
           }
-          this._router.navigate(currentdealurl);
+          if (currentdealurl.indexOf("/invoice") > -1)
+            this._router.navigate(currentdealurl.replace("/invoice", ""));
+          else
+            this._router.navigate(currentdealurl);
         }
         else {
           this.ClosePopUpDeleteOption();
@@ -8578,7 +12482,7 @@ export class DealDetailComponent extends Paginated implements OnInit {
   }
 
   private getUsersByRoleName(): void {
-    this.membershipService.getusersbyrolename('Asset Manager').subscribe(res => {
+    this.membershipService.getUsersInfoByRoleNameForDropDown('Asset Manager').subscribe(res => {
       if (res.Succeeded) {
         this.lstAssetManagers = res.UserList;
       }
@@ -9165,7 +13069,7 @@ export class DealDetailComponent extends Paginated implements OnInit {
       //window.open(url);
 
       var displayDate = new Date().toLocaleDateString("en-US");
-      var fileName = "M61_Wells_Export_" + this._deal.CREDealID + "_" + displayDate + ".xlsx";
+      var fileName = "M61_Trimont_Export_" + this._deal.CREDealID + "_" + displayDate + ".xlsx";
 
       let dwldLink = document.createElement("a");
       let url = URL.createObjectURL(b);
@@ -9215,6 +13119,9 @@ export class DealDetailComponent extends Paginated implements OnInit {
       if (res.Succeeded) {
         if (res.lstScenarioUserMap.length > 0) {
           this._lstScenario = res.lstScenarioUserMap;
+          this.ScenarioId = res.lstScenarioUserMap.filter(x => x.ScenarioName == "Default")[0].AnalysisID;
+
+          this.ScenarioIdPrepay = this._lstScenario.filter(x => x.ScenarioName == "Prepayment Default")[0].AnalysisID;
         }
       }
     });
@@ -9228,9 +13135,47 @@ export class DealDetailComponent extends Paginated implements OnInit {
         var data: any = res._autospreadrule;
         this.lstautospreadrule = data;
         this.checked = true;
+
+        this.lstautospreadrule.forEach(rule => {
+          var Sdate = new Date(rule.StartDate);
+          var Edate = new Date(rule.EndDate);
+
+          if (Sdate) {
+            var formatedSdate = this.convertDateToBindable(Sdate);
+            var startday = Sdate.getDay();
+            if (startday == 6 || startday == 0
+              || this.ListHoliday.filter(x => this.convertDateToBindable(x.HolidayDate) == formatedSdate && x.HolidayTypeID == 411 && x.IsSoftHoliday != 3).length > 0
+            ) {
+              rule["_isSoftHolidayStart"] = false;
+            }
+            else if (startday == 6 || startday == 0
+              || this.ListHoliday.filter(x => this.convertDateToBindable(x.HolidayDate) == formatedSdate
+                && x.HolidayTypeID == 411 && x.IsSoftHoliday == 3).length > 0
+            ) {
+              rule["_isSoftHolidayStart"] = true;
+            }
+          }
+          if (Edate) {
+            var formatedEdate = this.convertDateToBindable(Edate);
+            var Endday = Edate.getDay();
+            if (Endday == 6 || Endday == 0
+              || this.ListHoliday.filter(x => this.convertDateToBindable(x.HolidayDate) == formatedEdate && x.HolidayTypeID == 411 && x.IsSoftHoliday != 3).length > 0
+            ) {
+              rule["_isSoftHolidayEnd"] = false;
+            }
+            else if (Endday == 6 || Endday == 0
+              || this.ListHoliday.filter(x => this.convertDateToBindable(x.HolidayDate) == formatedEdate
+                && x.HolidayTypeID == 411 && x.IsSoftHoliday == 3).length > 0
+            ) {
+              rule["_isSoftHolidayEnd"] = true;
+            }
+          }
+        });
+
         this.ConvertToBindableDateAutoSpread(this.lstautospreadrule);
         this.autospreadrulelist = new wjcCore.CollectionView(this.lstautospreadrule);
         this.autospreadrulelist.trackChanges = true;
+        $('#autospreadrepaymentdealfields').addClass('custautospreargrid')
         setTimeout(function () {
           this.flexautospreadrule.invalidate();
         }.bind(this), 2000);
@@ -9239,8 +13184,10 @@ export class DealDetailComponent extends Paginated implements OnInit {
   }
 
   onChangeEnableAutoSpreadFundingsCheckbox(e): void {
+    this._isdealfundingChanged = false;
     var checked = e.target.checked;
     if (checked == true) {
+      var _lstUseRuleN = this.lstSequenceHistory.filter(x => x.UseRuletoDetermineNoteFundingText == "4" || x.UseRuletoDetermineNoteFundingText == "N" || x.UseRuletoDetermineNoteFundingText == null || x.UseRuletoDetermineNoteFundingText == "");
       this.showEquitysummary = true;
       //this.flexdealfunding.autoClipboard = false;
       this.flexdealfunding.columns[9].isReadOnly = false;
@@ -9252,12 +13199,15 @@ export class DealDetailComponent extends Paginated implements OnInit {
         this.ConvertToBindableDateAutoSpread(this.lstautospreadrule);
         this.autospreadrulelist = new wjcCore.CollectionView(this.lstautospreadrule);
         this.autospreadrulelist.trackChanges = true;
+        $('#autospreadrepaymentdealfields').addClass('custautospreargrid');
         this.flexautospreadrule.invalidate();
+
+
       }
     }
     else if (checked == false) {
       this.showEquitysummary = false;
-      this.flexdealfunding.autoClipboard = true;
+      // this.flexdealfunding.autoClipboard = true;
       this.autospreadrulelist = this.lstautospreadrule;
       this.checked = false;
     }
@@ -10345,16 +14295,124 @@ export class DealDetailComponent extends Paginated implements OnInit {
     this._autospreadgenerate = true;
 
     if (this.lstAdjustedTotalCommitment) {
-      var sTotalRequiredEquity = 0, sTotalAdditionalEquity = 0;
+      var sTotalRequiredEquity = 0;
       for (var i = 0; i < this.lstAdjustedTotalCommitment.items.length; i++) {
         sTotalRequiredEquity = sTotalRequiredEquity + parseFloat(this.lstAdjustedTotalCommitment.items[i].TotalRequiredEquity);
-        sTotalAdditionalEquity = sTotalAdditionalEquity + parseFloat(this.lstAdjustedTotalCommitment.items[i].TotalAdditionalEquity);
+        //sTotalAdditionalEquity = sTotalAdditionalEquity + parseFloat(this.lstAdjustedTotalCommitment.items[i].TotalAdditionalEquity);
       }
-      this._autoTotalComitted = sTotalRequiredEquity + sTotalAdditionalEquity;
+      this._autoTotalComitted = sTotalRequiredEquity;// + sTotalAdditionalEquity;
+    }
+
+    ///Check Start and ENd Date Holiday
+    var sdate = this.lstautospreadrule[e.row].StartDate;
+    var Edate = this.lstautospreadrule[e.row].EndDate;
+
+    if (sdate) {
+      var formatedSdate = this.convertDateToBindable(sdate);
+      var startday = sdate.getDay();
+
+
+      if (startday == 6 || startday == 0
+        || this.ListHoliday.filter(x => this.convertDateToBindable(x.HolidayDate) == formatedSdate && x.HolidayTypeID == 411 && x.IsSoftHoliday != 3).length > 0
+      ) {
+        this.lstautospreadrule[e.row]["isValidStartDate"] = false;
+        this.lstautospreadrule[e.row]["_isSoftHolidayStart"] = false;
+      }
+      else if (startday == 6 || startday == 0
+        || this.ListHoliday.filter(x => this.convertDateToBindable(x.HolidayDate) == formatedSdate
+          && x.HolidayTypeID == 411 && x.IsSoftHoliday == 3).length > 0
+      ) {
+        this.lstautospreadrule[e.row]["_isSoftHolidayStart"] = true;
+      }
+      else {
+        this.lstautospreadrule[e.row]["_isSoftHolidayStart"] = null;
+        this.lstautospreadrule[e.row]["isValidStartDate"] = true;
+      }
+    }
+    if (Edate) {
+      var formatedEdate = this.convertDateToBindable(Edate);
+      var Endday = Edate.getDay();
+
+      if (Endday == 6 || Endday == 0
+        || this.ListHoliday.filter(x => this.convertDateToBindable(x.HolidayDate) == formatedEdate && x.HolidayTypeID == 411 && x.IsSoftHoliday != 3).length > 0
+      ) {
+        this.lstautospreadrule[e.row]["isValidEndDate"] = false;
+        this.lstautospreadrule[e.row]["_isSoftHolidayEnd"] = false;
+      }
+      else if (Endday == 6 || Endday == 0
+        || this.ListHoliday.filter(x => this.convertDateToBindable(x.HolidayDate) == formatedEdate
+          && x.HolidayTypeID == 411 && x.IsSoftHoliday == 3).length > 0
+      ) {
+        this.lstautospreadrule[e.row]["_isSoftHolidayEnd"] = true;
+      }
+      else {
+        this.lstautospreadrule[e.row]["_isSoftHolidayEnd"] = null;
+        this.lstautospreadrule[e.row]["isValidEndDate"] = true;
+      }
+    }
+
+
+  }
+
+  Copiedautospreadrule(flexautospreadrule: wjcGrid.FlexGrid, e: wjcGrid.CellEditEndingEventArgs) {
+    var sel = this.flexautospreadrule.selection;
+    for (var tprow = sel.topRow; tprow <= sel.bottomRow; tprow++) {
+      //if (this.listdealfunding[tprow].wf_isUserCurrentFlow == 0) {
+      //    this.listdealfunding[tprow].Value = this.listdealfunding[tprow].orgValue;
+      //}
+      ///Check Start and ENd Date Holiday
+      var sdate = this.lstautospreadrule[tprow].StartDate;
+      var Edate = this.lstautospreadrule[tprow].EndDate;
+
+      if (sdate) {
+        var formatedSdate = this.convertDateToBindable(sdate);
+        var startday = sdate.getDay();
+
+
+        if (startday == 6 || startday == 0
+          || this.ListHoliday.filter(x => this.convertDateToBindable(x.HolidayDate) == formatedSdate && x.HolidayTypeID == 411 && x.IsSoftHoliday != 3).length > 0
+        ) {
+          this.lstautospreadrule[e.row]["isValidStartDate"] = false;
+          this.lstautospreadrule[e.row]["_isSoftHolidayStart"] = false;
+        }
+        else if (startday == 6 || startday == 0
+          || this.ListHoliday.filter(x => this.convertDateToBindable(x.HolidayDate) == formatedSdate
+            && x.HolidayTypeID == 411 && x.IsSoftHoliday == 3).length > 0
+        ) {
+          this.lstautospreadrule[e.row]["_isSoftHolidayStart"] = true;
+        }
+        else {
+          this.lstautospreadrule[e.row]["_isSoftHolidayStart"] = null;
+          this.lstautospreadrule[e.row]["isValidStartDate"] = true;
+        }
+      }
+      if (Edate) {
+        var formatedEdate = this.convertDateToBindable(Edate);
+        var Endday = Edate.getDay();
+
+        if (Endday == 6 || Endday == 0
+          || this.ListHoliday.filter(x => this.convertDateToBindable(x.HolidayDate) == formatedEdate && x.HolidayTypeID == 411 && x.IsSoftHoliday != 3).length > 0
+        ) {
+          this.lstautospreadrule[e.row]["isValidEndDate"] = false;
+          this.lstautospreadrule[e.row]["_isSoftHolidayEnd"] = false;
+        }
+        else if (Endday == 6 || Endday == 0
+          || this.ListHoliday.filter(x => this.convertDateToBindable(x.HolidayDate) == formatedEdate
+            && x.HolidayTypeID == 411 && x.IsSoftHoliday == 3).length > 0
+        ) {
+          this.lstautospreadrule[e.row]["_isSoftHolidayEnd"] = true;
+        }
+        else {
+          this.lstautospreadrule[e.row]["_isSoftHolidayEnd"] = null;
+          this.lstautospreadrule[e.row]["isValidEndDate"] = true;
+        }
+      }
+
     }
   }
+
   formatMoney(amount) {
-    amount = parseFloat(amount.toFixed(2));
+    amount = parseFloat(parseFloat(amount).toFixed(2));
     if (Math.sign(amount) == -1) {
       var _amount = -1 * amount;
       amount = "-" + this._basecurrencyname + _amount;
@@ -10382,95 +14440,100 @@ export class DealDetailComponent extends Paginated implements OnInit {
   }
 
   cellEditbeginDealfunding(s, e) {
-    var flexdata: any = this.flexdealfunding.rows[e.row];
-    if (flexdata._data.Applied != true) {
-      if (this._deal.EnableAutoSpread == true || this.checked == true || this.repaymentchecked == true) {
-        // 9 col index is for comment
-        if (e.col.toString() == "9") {
-          //allow editing
-          e.cancel = false;
-        }
-        else {
-          if (flexdata._data.Comment != null && flexdata._data.Comment != "") {
-            if (e.col.toString() == "5") {
-              if (flexdata._data.WF_IsFlowStart == 1) {
-                e.cancel = true;
-              } else {
-                e.cancel = false;
-              }
-            } else {
-              e.cancel = false;
-            }
-          } else { e.cancel = true; }
-        }
-      }
-      else {
-        e.cancel = false;
-      }
-    }
-    var UseRuleYDeal = false;
-    var UseRuleNDeal = false;
-    var lstUseRuleN = this.lstSequenceHistory.filter(x => x.UseRuletoDetermineNoteFundingText == "4" || x.UseRuletoDetermineNoteFundingText == "N");
-    if (lstUseRuleN.length == 0) {
-      UseRuleYDeal = true;
-    }
-    var lstUseRuleY = this.lstSequenceHistory.filter(x => x.UseRuletoDetermineNoteFundingText == "3" || x.UseRuletoDetermineNoteFundingText == "Y");
-    if (lstUseRuleY.length == 0) {
-      UseRuleNDeal = true;
-    }
+    var commentcolindex = 12;
+    var purposecolindex = 7;
+    var requiredEquitycolindex = 5;
+    var AdditionalEquitycolindex = 6;
 
-    if (UseRuleNDeal == true) {
-      if (this._deal.EnableAutospreadRepayments != true) {
-        if (e.col > 10) {
-          e.cancel = false;
-        }
-      }
+    var currentColIndex = e.col;
+    var generatedbycolindex = commentcolindex - 2;
+    var Statuscolindex = commentcolindex - 1;
+    var notecolindx = commentcolindex + 1;
+    var currentpurpose = s.rows[e.row].dataItem.PurposeText;
+    var AdjustmentTypeindex = 9;
+
+    if (currentpurpose == "Principal Writeoff") {
+      e.cancel = true;
     } else {
-      if (flexdata._data.DealFundingRowno) {
-        if (this._deal.ApplyNoteLevelPaydowns == true) {
-          if (UseRuleYDeal == true) {
-            if (flexdata._data.PurposeText == "Paydown" || flexdata._data.PurposeText == "631") {
+      var UseRuleNDeal = false;
+      var NDeal = false;
 
-              if (e.col == 3) {
-                e.cancel = true;
-              }
-
-              if (flexdata._data.Comment == null || flexdata._data.Comment == "") {
-
-                if (e.col != 3 && e.col < 10) {
-                  e.cancel = false;
-                }
-                else {
-                  e.cancel = true;
-                }
-              }
-              else {
-                if (e.col > 10) {
-                  e.cancel = false;
-                }
-              }
-            }
-            else
-
-              if (e.col < 10) {
-                e.cancel = false;
-              }
-              else {
-                e.cancel = true;
-              }
-          }
-          else
+      var lstUseRuleY = this.lstSequenceHistory.filter(x => x.UseRuletoDetermineNoteFundingText == "3" || x.UseRuletoDetermineNoteFundingText == "Y");
+      if (lstUseRuleY.length == 0) {
+        UseRuleNDeal = true;
+        NDeal = true;
+      }
+      //if (this._deal.ApplyNoteLevelPaydowns == true && currentpurpose == "Paydown") {
+      //    UseRuleNDeal = true;
+      //}
+      if (UseRuleNDeal == true) {
+        if (currentColIndex >= notecolindx) {
+          e.cancel = false;
+        }
+        else if (currentColIndex == purposecolindex || currentColIndex == 3 || currentColIndex == commentcolindex || currentColIndex == requiredEquitycolindex || currentColIndex == AdditionalEquitycolindex) {
+          e.cancel = false;
+        } else if (currentColIndex == 4) {
+          if (NDeal == false) {
             e.cancel = false;
+          } else {
+            e.cancel = true;
+          }
         }
         else {
-          if (e.col > 10) {
+          if (e.col != 7 && e.col != 8 && e.col != 9)
             e.cancel = true;
-          } else
-            e.cancel = false;
+        }
+      } else {
+        if (currentColIndex != Statuscolindex && currentColIndex != generatedbycolindex && currentColIndex <= commentcolindex) {
+          e.cancel = false;
+        } else {
+          e.cancel = true;
+        }
+
+      }
+
+
+      if (s.rows[e.row].dataItem.AdjustmentType == 834 || s.rows[e.row].dataItem.AdjustmentType == 896 || s.rows[e.row].dataItem.AdjustmentType == 835) {
+        if (currentColIndex == 4) {
+          e.cancel = true;
+        }
+        if (currentColIndex >= notecolindx) {
+          e.cancel = false;
         }
       }
-      else
-        e.cancel = false;
+
+      if (e.col == 0) {
+        if (s.rows[e.row].dataItem.WF_IsFlowStart != 0 || s.rows[e.row].dataItem.Applied) {
+          e.cancel = true;
+        }
+        else {
+          e.cancel = false;
+        }
+
+      }
+      //if (s.rows[e.row].dataItem.NonCommitmentAdj == true) {
+      //  if (currentColIndex == 3) {
+      //    e.cancel = true;
+      //  }
+      //  if (currentColIndex > notecolindx) {
+      //    e.cancel = false;
+      //  }
+      //}
+
+      //checkbox show/hide based on workflow status
+      if (currentColIndex == 8) {
+        if (s.rows[e.row].dataItem.WF_CurrentStatus == null || s.rows[e.row].dataItem.Value == 0) {
+          e.cancel = false;
+        }
+        else {
+          e.cancel = true;
+        }
+      }
+
+      if (currentColIndex == AdjustmentTypeindex) {
+        if (s.rows[e.row].dataItem.PurposeID == 840)
+          e.cancel = true;
+      }
     }
 
   }
@@ -10478,19 +14541,20 @@ export class DealDetailComponent extends Paginated implements OnInit {
 
 
   onChangeApplyNoteLevelPaydownsCheckbox(e) {
+    this._isdealfundingChanged = false;
     var checked = e.target.checked;
     if (checked == true) {
       // this.flexdealfunding.autoClipboard = false;
       this._deal.ApplyNoteLevelPaydowns == true;
-      for (var i = 11; i < this.flexdealfunding.columns.length; i++) {
+      for (var i = 14; i < this.flexdealfunding.columns.length; i++) {
         this.flexdealfunding.columns[i].isReadOnly = false;
 
       }
     }
     else {
-      this.flexdealfunding.autoClipboard = true;
+      // this.flexdealfunding.autoClipboard = true;
       this._deal.ApplyNoteLevelPaydowns == false;
-      for (var i = 11; i < this.flexdealfunding.columns.length; i++) {
+      for (var i = 14; i < this.flexdealfunding.columns.length; i++) {
         this.flexdealfunding.columns[i].isReadOnly = true;
 
       }
@@ -10522,13 +14586,13 @@ export class DealDetailComponent extends Paginated implements OnInit {
           //else {
           //    this.isAdjustedTotalCommitmentEnable = true;
           //}
-          this.TotalCommitmentGridbind(res.dt);
+          this.TotalCommitmentGridbind(res.dt, 'null');
         }
       });
     }
   }
 
-  TotalCommitmentGridbind(listdata: any) {
+  TotalCommitmentGridbind(listdata: any, mode: string) {
     var header = [];
     this.dynamicadjustedcollist = [];
     this.adjusteddynamicnotescol = [];
@@ -10557,7 +14621,7 @@ export class DealDetailComponent extends Paginated implements OnInit {
           for (var m = 0; m < this.lstNote.length; m++) {
             if (this.lstNote[m].CRENoteID == splitarray[0]) {
               this.AddcolumnAdjustedTotalCommitment(this.lstNote[m].Name, header[k], true);
-              if (this.listAdjustedTotalCommitment[0][header[k]] == null) {
+              if (!this.listAdjustedTotalCommitment[0][header[k]]) {
                 this.listAdjustedTotalCommitment[0][header[k]] = 0;
               }
             }
@@ -10567,8 +14631,7 @@ export class DealDetailComponent extends Paginated implements OnInit {
       }
     }
 
-    this.getEquityValues();
-    this.flexadjustedtotalcommitment.invalidate();
+
     var user = JSON.parse(localStorage.getItem('user'));
     if (user.RoleName == "Super Admin") {
       this._showtotalcommitmentdelcol = true;
@@ -10593,9 +14656,9 @@ export class DealDetailComponent extends Paginated implements OnInit {
           cell.style.backgroundColor = null;
         }
         const columnName = panel.columns[2].binding;
+        let item = panel.getCellData(r, columnName, false);
         if (panel.columns[c].binding == "TypeText" || panel.columns[c].binding == "Date") {
-          let item = panel.getCellData(r, columnName, false);
-          if (!(panel.columns[c].binding == "Comments" || panel.columns[c].binding == "TotalAdditionalEquity" || panel.columns[c].binding == "TotalRequiredEquity")) {
+          if (!(panel.columns[c].binding == "Comments" || panel.columns[c].binding == "TotalRequiredEquity")) {
             if (item != "Equity Rebalancing") {
               cell.style.backgroundColor = '#cfcfcf';
             }
@@ -10615,6 +14678,13 @@ export class DealDetailComponent extends Paginated implements OnInit {
           }
         }
 
+        if (item == "Upsize/Mod" && panel.rows[r].dataItem.CommitmentType == "PIKPrincipalFunding") {
+          if (!(panel.columns[c].binding == "Comments" || panel.columns[c].binding == "TotalRequiredEquity")) {
+            cell.style.backgroundColor = '#cfcfcf';
+          }
+
+        }
+
       }
       else {
 
@@ -10630,8 +14700,8 @@ export class DealDetailComponent extends Paginated implements OnInit {
             }
           }
           else {
-            if (item == "Prepayment" || item == "Scheduled Principal") {
-              if (!(panel.columns[c].binding == "Comments" || panel.columns[c].binding == "TotalAdditionalEquity" || panel.columns[c].binding == "TotalRequiredEquity")) {
+            if (item == "Prepayment" || item == "Scheduled Principal" || item == "Principal Writeoff Curtailment") {
+              if (!(panel.columns[c].binding == "TotalRequiredEquity")) {
                 cell.style.backgroundColor = '#cfcfcf';
               }
               else {
@@ -10643,6 +14713,11 @@ export class DealDetailComponent extends Paginated implements OnInit {
             }
 
           }
+          if (item == "Upsize/Mod" && panel.rows[r].dataItem.CommitmentType == "PIKPrincipalFunding") {
+            if (!(panel.columns[c].binding == "Comments" || panel.columns[c].binding == "TotalRequiredEquity")) {
+              cell.style.backgroundColor = '#cfcfcf';
+            }
+          }
         }
       } // end
       if (panel.columns[c].binding == "TotalEquityatClosing") {
@@ -10651,8 +14726,69 @@ export class DealDetailComponent extends Paginated implements OnInit {
     }
     setTimeout(function () {
       this.showCalculatedAdjustedtotalCommitment();
-      this.showCalculatedNoteCommitments('Get', 'e');
+      if (mode == 'Save') {
+        this.showCalculatedNoteCommitments('Copy', 'e');
+      }
+      else {
+        this.showCalculatedNoteCommitments('Get', 'e');
+      }
     }.bind(this), 100);
+    this.getEquityValues();
+    this.flexadjustedtotalcommitment.invalidate();
+  }
+
+
+  PotentialImpairmentGridbind(listdata: any, mode: string) {
+
+    //listdata = listdata.filter(x => x.Date != null && x.Date != '' && x.Date != undefined);
+    //listdata = listdata.filter(x => x.Amount != null && x.Amount != 0);
+    var header = [];
+    var data = listdata;
+    this.potentialImpairmentdynamiccolList = [];
+    this.potentialImpairmentdynamicnotescol = [];
+
+    this.dynamicadjustedcollist = [];
+    this.adjusteddynamicnotescol = [];
+    this.lstServicingPotentialImpairment = data;
+
+    this.ConvertToBindableDateServicingWatch(this.lstServicingPotentialImpairment, "PotentialImpairment");
+    this.cvServicingPotentialImpairment = new wjcCore.CollectionView(this.lstServicingPotentialImpairment);
+
+    this.cvServicingPotentialImpairment.trackChanges = true;
+    $.each(data, function (obj) {
+      var i = 0;
+      $.each(data[obj], function (key, value) {
+        header[i] = key;
+        i = i + 1;
+      })
+      return false;
+    });
+    this.potentialImpairmentdynamiccolList = header;
+    this.columnsforPotentialImpairment = [];
+    //push noteid for column binding and make list for notes
+    for (var k = 0; k < header.length; k++) {
+      var _isbracket = header[k].indexOf("_");
+      if (_isbracket > -1) {
+        if (header[k].includes("_Noteid")) {
+          var splitarray = header[k].split("_Noteid");
+          for (var m = 0; m < this.lstNote.length; m++) {
+            if (this.lstNote[m].CRENoteID == splitarray[0]) {
+              this.AddcolumnPotentialImpairment(this.lstNote[m].Name, header[k], true);
+              //if (!this.listAdjustedTotalCommitment[0][header[k]]) {
+              //  this.listAdjustedTotalCommitment[0][header[k]] = 0;
+              //}
+              this.potentialImpairmentdynamicnotescol.push(header[k])
+            }
+          }
+        }
+        //this.adjusteddynamicnotescol.push(header[k]);
+      }
+    }
+    setTimeout(function () {
+      this.AppliedReadOnlyForPotentialImpairment();
+    }.bind(this), 100);
+
+    this._isListFetching = false;
   }
 
   private ConvertToBindableDateAdjustedtotalCommitment(Data) {
@@ -10661,6 +14797,80 @@ export class DealDetailComponent extends Paginated implements OnInit {
         this.listAdjustedTotalCommitment[i].Date = new Date(this.convertDateToBindable(this.listAdjustedTotalCommitment[i].Date));
       }
     }
+  }
+
+  InvalidatePrepaymentTab(): void {
+    if (!this._isPrepaymentTabClicked) {
+      this._bindGridDropdowsPrePay();
+      if (this._deal.PrepaymentAllocationMethod == null || this._deal.PrepaymentAllocationMethod == 0) {
+        //defaults to lien
+        this._deal.PrepaymentAllocationMethod = 888;
+      }
+      if (this._lstScenario == undefined && this._lstScenario == null) {
+        this.getAllDistinctScenario();
+      } else {
+        this.ScenarioIdPrepay = this._lstScenario.filter(x => x.ScenarioName == "Prepayment Default")[0].AnalysisID;
+      }
+      this._deal.ScenarioIdPrepay = this.ScenarioIdPrepay;
+      localStorage.setItem('ClickedTabId', 'aPrepaymentPremiumtab');
+      this._isPrepaymentTabClicked = true;
+      this.showPrepayCalcStatus();
+      this.showprepaycalcstatuswithinterval();
+      this.GetDealPrepayProjectionByDealId();
+      this.GetDealPrepayAllocationsByDealId();
+      this.getprepaypremiumDetaildatabydealId();
+      this.GetPrepaymentGroupByDealID();
+      this.GetPrepaymentNoteSetupByDealID();
+      this.GetPrepaymentNoteAllocationSetup();
+      this.GetPayoffStatementFeesByDealID();
+
+      this.EnableDisableMiniFeeGrid(this._prepaymentpremium.Includefeesincredits);
+    }
+    if (this.rolename == 'Super Admin') {
+      this.tdopenrules = true;
+    }
+    else {
+      this.tdopenrules = false;
+    }
+    this.getprepayruletypetemplate();
+    this.getprepayruletemplate();
+    this.feeconfigurationSrv.GetAllFeeAmount().subscribe(res => {
+      if (res.Succeeded) {
+        this.listfeeamount = []
+        var data: any = res.lstFeeSchedulesConfig;
+        this.lstFeeType = data;
+      }
+    });
+
+  }
+  getprepayruletypetemplate() {
+    this.scenarioService.getallruletypedetail().subscribe(res => {
+      if (res.Succeeded) {
+        var PrepayRuleTemplatelist = res.lstScenarioRuleDetail;
+        var filterPrepayRuleTemplatelist = PrepayRuleTemplatelist.filter(x => x.RuleTypeName == "Prepay");
+        this.lstPrepayRuleTemplate = filterPrepayRuleTemplatelist;
+        if (this.rolename == 'Super Admin') {
+          this.lstPrepayRuleTemplate.push({
+            "RuleTypeDetailID": 0,
+            "FileName": "--Create New--"
+
+          });
+        }
+      }
+    });
+  }
+
+  getprepayruletemplate() {
+    this._ruletype.DealID = this._deal.DealID;
+    this.dealSrv.getruletypesetupbydealid(this._ruletype).subscribe(res => {
+      if (res.Succeeded) {
+        this._lstRuleTypeSetupfilter = res.lstScenariorule;
+        if (this._lstRuleTypeSetupfilter) {
+          var lstprepayruletemplatebyanalysisid = this._lstRuleTypeSetupfilter.find(x => x.AnalysisName == "Default" && x.RuleTypeName == "Prepay").RuleTypeDetailID
+          this._prepaymentpremium.PrePaymentRuleType = lstprepayruletemplatebyanalysisid;
+        }
+      }
+    });
   }
 
   ViewCommitmentDetailsBtnClick() {
@@ -10687,26 +14897,31 @@ export class DealDetailComponent extends Paginated implements OnInit {
         }
 
       }
-
-      this.getEquityValues();
       var sTotalRequiredEquity = 0;
       var sTotalAdditionalEquity = 0;
 
       if (this.lstAdjustedTotalCommitment) {
         for (var i = 0; i < this.lstAdjustedTotalCommitment.items.length; i++) {
           if (this.lstAdjustedTotalCommitment.items[i].Date <= this._currentDate) {
-            if (this.lstAdjustedTotalCommitment.items[i].TotalRequiredEquity != undefined) {
-              sTotalRequiredEquity = sTotalRequiredEquity + parseFloat(this.lstAdjustedTotalCommitment.items[i].TotalRequiredEquity);
+            if (this.lstAdjustedTotalCommitment.items[i].TotalRequiredEquity) {
+              if (this.lstAdjustedTotalCommitment.items[i].TotalRequiredEquity != undefined || this.lstAdjustedTotalCommitment.items[i].TotalRequiredEquity != "" || this.lstAdjustedTotalCommitment.items[i].TotalRequiredEquity != null) {
+                sTotalRequiredEquity = sTotalRequiredEquity + parseFloat(this.lstAdjustedTotalCommitment.items[i].TotalRequiredEquity);
+              }
             }
           }
         }
-        for (var i = 0; i < this.lstAdjustedTotalCommitment.items.length; i++) {
-          if (this.lstAdjustedTotalCommitment.items[i].Date <= this._currentDate) {
-            if (this.lstAdjustedTotalCommitment.items[i].TotalAdditionalEquity != undefined) {
-              sTotalAdditionalEquity = sTotalAdditionalEquity + parseFloat(this.lstAdjustedTotalCommitment.items[i].TotalAdditionalEquity);
-            }
-          }
-        }
+        //for (var i = 0; i < this.lstAdjustedTotalCommitment.items.length; i++)
+        //{
+        //  if (this.lstAdjustedTotalCommitment.items[i].Date <= this._currentDate)
+        //  {
+        //    if (this.lstAdjustedTotalCommitment.items[i].TotalAdditionalEquity)
+        //    {
+        //      if (this.lstAdjustedTotalCommitment.items[i].TotalAdditionalEquity != undefined || this.lstAdjustedTotalCommitment.items[i].TotalAdditionalEquity != "" || this.lstAdjustedTotalCommitment.items[i].TotalAdditionalEquity != null) {
+        //        sTotalAdditionalEquity = sTotalAdditionalEquity + parseFloat(this.lstAdjustedTotalCommitment.items[i].TotalAdditionalEquity);
+        //      }
+        //    }
+        //  }
+        //}
 
         var lstAdjustedTotalCommitmentforClosing = this.listAdjustedTotalCommitment.filter(x => x.TypeText == "Closing");
         var minAdjustedTotalCommitmentdate = new Date(Math.min.apply(null, lstAdjustedTotalCommitmentforClosing.map(x => x.Date)));
@@ -10719,7 +14934,6 @@ export class DealDetailComponent extends Paginated implements OnInit {
             }
           }
         }
-
       }
 
       for (var h = 0; h < this._lstEquitySummary.length; h++) {
@@ -10739,6 +14953,7 @@ export class DealDetailComponent extends Paginated implements OnInit {
       }
       for (var h = 0; h < this._lstEquitySummary.length; h++) {
         if (this._lstEquitySummary[h].Type == "FF Additional Equity") {
+          sTotalAdditionalEquity = this._lstEquitySummary[h]["EquityContributedToDate"];
           this._lstEquitySummary[h]["ExpectedEquity"] = sTotalAdditionalEquity;
           this._lstEquitySummary[h]["RemainingEquity"] = sTotalAdditionalEquity - this._lstEquitySummary[h]["EquityContributedToDate"];
           if (sTotalAdditionalEquity == 0) {
@@ -10757,15 +14972,19 @@ export class DealDetailComponent extends Paginated implements OnInit {
       if (this.cvDealFundingList) {
         for (var i = 0; i < this.cvDealFundingList.items.length; i++) {
           if (this.cvDealFundingList.items[i].Date <= this._currentDate) {
-            if (this.cvDealFundingList.items[i].RequiredEquity != undefined) {
-              sTotalRequiredEquityFunding = sTotalRequiredEquityFunding + parseFloat(this.cvDealFundingList.items[i].RequiredEquity);
+            if (this.cvDealFundingList.items[i].RequiredEquity) {
+              if (this.cvDealFundingList.items[i].RequiredEquity != undefined || this.cvDealFundingList.items[i].RequiredEquity != "" || this.cvDealFundingList.items[i].RequiredEquity != null) {
+                sTotalRequiredEquityFunding = sTotalRequiredEquityFunding + parseFloat(this.cvDealFundingList.items[i].RequiredEquity);
+              }
             }
           }
         }
         for (var i = 0; i < this.cvDealFundingList.items.length; i++) {
           if (this.cvDealFundingList.items[i].Date <= this._currentDate) {
-            if (this.cvDealFundingList.items[i].AdditionalEquity != undefined) {
-              sTotalAdditionalEquityFunding = sTotalAdditionalEquityFunding + parseFloat(this.cvDealFundingList.items[i].AdditionalEquity);
+            if (this.cvDealFundingList.items[i].AdditionalEquity) {
+              if (this.cvDealFundingList.items[i].AdditionalEquity != undefined || this.cvDealFundingList.items[i].AdditionalEquity != "" || this.cvDealFundingList.items[i].AdditionalEquity != null) {
+                sTotalAdditionalEquityFunding = sTotalAdditionalEquityFunding + parseFloat(this.cvDealFundingList.items[i].AdditionalEquity);
+              }
             }
           }
         }
@@ -10776,7 +14995,7 @@ export class DealDetailComponent extends Paginated implements OnInit {
         if (this._lstEquitySummary[h].Type == "FF Required Equity") {
           this._lstEquitySummary[h]["EquityContributedToDate"] = sTotalRequiredEquityFunding;
           this._lstEquitySummary[h]["RemainingEquity"] = this._lstEquitySummary[h]["ExpectedEquity"] - sTotalRequiredEquityFunding;
-          if (sTotalRequiredEquityFunding == 0) {
+          if (sTotalRequiredEquityFunding == 0 || this._lstEquitySummary[h]["ExpectedEquity"] == 0) {
             this._lstEquitySummary[h]["Per_ContributedToDate"] = 0.00 + "%";
           }
           else {
@@ -10789,9 +15008,10 @@ export class DealDetailComponent extends Paginated implements OnInit {
       }
       for (var h = 0; h < this._lstEquitySummary.length; h++) {
         if (this._lstEquitySummary[h].Type == "FF Additional Equity") {
+          this._lstEquitySummary[h]["ExpectedEquity"] = sTotalAdditionalEquityFunding;
           this._lstEquitySummary[h]["EquityContributedToDate"] = sTotalAdditionalEquityFunding;
           this._lstEquitySummary[h]["RemainingEquity"] = this._lstEquitySummary[h]["ExpectedEquity"] - sTotalAdditionalEquityFunding;
-          if (sTotalAdditionalEquityFunding == 0) {
+          if (sTotalAdditionalEquityFunding == 0 || this._lstEquitySummary[h]["ExpectedEquity"] == 0) {
             this._lstEquitySummary[h]["Per_ContributedToDate"] = 0.00 + "%";
           }
           else {
@@ -10803,20 +15023,12 @@ export class DealDetailComponent extends Paginated implements OnInit {
       }
       var TotalExpectedEquity = 0;
       var TotalEquityContributedToDate = 0;
-      //for (var i = 0; i < this._lstEquitySummary.items.length; i++) {
-      //    if (this._lstEquitySummary.items[i].ExpectedEquity != undefined) {
-      //        TotalExpectedEquity = TotalExpectedEquity + parseFloat(this._lstEquitySummary.items[i].ExpectedEquity);
-      //        }
-
-      //}
-
       this._lstEquitySummary.forEach((item) => {
         if (item.Type != "Total Equity") {
           TotalExpectedEquity += Number(item.ExpectedEquity);
           TotalEquityContributedToDate += Number(item.EquityContributedToDate);
         }
       });
-
 
       for (var h = 0; h < this._lstEquitySummary.length; h++) {
         if (this._lstEquitySummary[h].Type == "Total Equity") {
@@ -10837,9 +15049,12 @@ export class DealDetailComponent extends Paginated implements OnInit {
 
       this._lstEquitySummary = this._lstEquitySummary;
       this.Equitygrid.invalidate();
+      this.getEquityValues();
+
 
     }
   }
+
 
   GetEquitySummary(dealid: string) {
     this.dealSrv.GetEquitySummaryByDealID(dealid).subscribe(res => {
@@ -10878,8 +15093,11 @@ export class DealDetailComponent extends Paginated implements OnInit {
     }
     else {
       setTimeout(() => {
-        this.TotalCommitmentGridbind(this.listAdjustedTotalCommitment);
+        this.TotalCommitmentGridbind(this.listAdjustedTotalCommitment, 'null');
       }, 200);
+    }
+    if (!this.lstFinancingCommitment) {
+      this.GetFinancingCommitment(this._deal.DealID);
     }
     localStorage.setItem('ClickedTabId', 'aAdjustedTotalCommitment');
     setTimeout(() => {
@@ -10896,13 +15114,21 @@ export class DealDetailComponent extends Paginated implements OnInit {
         this.listAdjustedTotalCommitment[t].TypeText = this.lstAdjustedTotalCommitmentType.find(x => x.LookupID == this.listAdjustedTotalCommitment[t].TypeText).Name;
       }
     }
+
+    if (this.listAdjustedTotalCommitment[e.row].TypeText == 'Equity Rebalancing') {
+      for (var i = 0; i < this.lstNote.length; i++) {
+        if (this.listAdjustedTotalCommitment[e.row][this.lstNote[i].CRENoteID + "_Noteid"]) {
+          this.listAdjustedTotalCommitment[e.row][this.lstNote[i].CRENoteID + "_Noteid"] = null;
+        }
+      }
+    }
     if (Object.keys(adjustedtotalcommitment).length) {
       this.showCalculatedAdjustedtotalCommitment();
       this.showCalculatedNoteCommitments('Edit', e);
     }
     if (this._isAdjustedTotalCommitmentTabClicked == true) {
       var header = s.columns[e.col].header;
-      if (header == 'Total Required Equity' || header == 'Total Additional Equity') {
+      if (header == 'Total Required Equity' || header == 'Total Additional Equity' || header == 'Date') {
         this.UpdateEquitySummary();
       }
     }
@@ -10922,6 +15148,8 @@ export class DealDetailComponent extends Paginated implements OnInit {
       }
     }
     if (Object.keys(adjustedtotalcommitment).length) {
+      this.CopiedEquitySummaryforCommitment();
+      this.getEquityValues();
       this.showCalculatedAdjustedtotalCommitment();
       this.showCalculatedNoteCommitments('Copy', e);
     }
@@ -10929,10 +15157,12 @@ export class DealDetailComponent extends Paginated implements OnInit {
 
   cellEditbeginAdjustedCommitment(s, e) {
     var commentcolindex = s.getColumn("Comments").index;
-    var totaladdequitycellindex = s.getColumn("TotalAdditionalEquity").index;
+    // var totaladdequitycellindex = s.getColumn("TotalAdditionalEquity").index;
     var totalreqequitycellindex = s.getColumn("TotalRequiredEquity").index;
     var typetextcellindex = s.getColumn("TypeText").index;
     var datecellindex = s.getColumn("Date").index;
+    //var excludeFromCommitmentCalculationindex = s.getColumn("ExcludeFromCommitmentCalculation").index;
+
     var user = JSON.parse(localStorage.getItem('user'));
     if (user.RoleName == "Asset Manager") {
       if (e.col > commentcolindex || e.col == 0 || e.col == typetextcellindex) {
@@ -10941,21 +15171,22 @@ export class DealDetailComponent extends Paginated implements OnInit {
       else {
         e.cancel = false;
       }
-      if (e.col == totalreqequitycellindex || e.col == totaladdequitycellindex || e.col == commentcolindex) {
+      if (e.col == totalreqequitycellindex || e.col == commentcolindex) {
         e.cancel = false;
       }
       if (s.rows[e.row].dataItem.TypeText == 'Equity Rebalancing') {
-        if (e.col == datecellindex || e.col == totalreqequitycellindex || e.col == totaladdequitycellindex || e.col == commentcolindex) {
+        if (e.col == datecellindex || e.col == totalreqequitycellindex || e.col == commentcolindex) {
           e.cancel = false;
         }
       }
       else {
-        if (!(e.col == totalreqequitycellindex || e.col == totaladdequitycellindex || e.col == commentcolindex)) {
+        if (!(e.col == totalreqequitycellindex || e.col == commentcolindex)) {
           e.cancel = true;
         }
       }
     }
     else {
+
       if (s.rows[e.row].dataItem.TypeText == 'Closing') {
         if (e.col >= totalreqequitycellindex) {
           e.cancel = false;  //readonly false for notelevel columns.
@@ -10964,22 +15195,35 @@ export class DealDetailComponent extends Paginated implements OnInit {
           e.cancel = true;
         }
       }
-      if (s.rows[e.row].dataItem.TypeText != 'Closing') {
-        if (s.rows[e.row].dataItem.TypeText == 'Prepayment' || s.rows[e.row].dataItem.TypeText == 'Scheduled Principal') {
-          if (!(e.col == commentcolindex || e.col == totalreqequitycellindex || e.col == totaladdequitycellindex)) {
-            e.cancel = true; //readonly true
+      else {
+        if (s.rows[e.row].dataItem.TypeText != 'Closing') {
+          if (s.rows[e.row].dataItem.TypeText == 'Prepayment' || s.rows[e.row].dataItem.TypeText == 'Scheduled Principal') {
+            if (!(e.col != commentcolindex && e.col != totalreqequitycellindex)) {
+              e.cancel = true; //readonly true
+            }
           }
-        }
-        else {
-          e.cancel = false;
+
+          else if (s.rows[e.row].dataItem.TypeText == 'Principal Writeoff Curtailment') {
+            e.cancel = true;
+          }
+
+          //else if (s.rows[e.row].dataItem.TypeText == 'Equity Rebalancing') {
+          //  if (!(e.col != datecellindex && e.col != totalreqequitycellindex && e.col != typetextcellindex )) {
+          //    e.cancel = true; //readonly true
+          //  }
+          //}
+          else {
+            e.cancel = false;
+          }
         }
       }
     }
+
   }
 
   cellPastingAdjustedCommitment(s, e) {
     var commentcolindex = s.getColumn("Comments").index;
-    var totaladdequitycellindex = s.getColumn("TotalAdditionalEquity").index;
+    // var totaladdequitycellindex = s.getColumn("TotalAdditionalEquity").index;
     var totalreqequitycellindex = s.getColumn("TotalRequiredEquity").index;
     var typetextcellindex = s.getColumn("TypeText").index;
     var datecellindex = s.getColumn("Date").index;
@@ -10991,16 +15235,16 @@ export class DealDetailComponent extends Paginated implements OnInit {
       else {
         e.cancel = false;
       }
-      if (e.col == totalreqequitycellindex || e.col == totaladdequitycellindex || e.col == commentcolindex) {
+      if (e.col == totalreqequitycellindex || e.col == commentcolindex) {
         e.cancel = false;
       }
       if (s.rows[e.row].dataItem.TypeText == 'Equity Rebalancing') {
-        if (e.col == datecellindex || e.col == totalreqequitycellindex || e.col == totaladdequitycellindex || e.col == commentcolindex) {
+        if (e.col == datecellindex || e.col == totalreqequitycellindex || e.col == commentcolindex) {
           e.cancel = false;
         }
       }
       else {
-        if (!(e.col == totalreqequitycellindex || e.col == totaladdequitycellindex || e.col == commentcolindex)) {
+        if (!(e.col == totalreqequitycellindex || e.col == commentcolindex)) {
           e.cancel = true;
         }
       }
@@ -11022,18 +15266,6 @@ export class DealDetailComponent extends Paginated implements OnInit {
         }
       }
     }
-    var sel = this.flexadjustedtotalcommitment.selection;
-    var rowcnt = 0;
-    for (var tprow = sel.topRow; tprow <= sel.bottomRow - rowcnt; tprow++) {
-      if (e.col == totalreqequitycellindex) {
-        this.lstAdjustedTotalCommitment.items[tprow].TotalRequiredEquity = e.data.replace(/,/g, '');
-      }
-      if (e.col == totaladdequitycellindex) {
-        this.lstAdjustedTotalCommitment.items[tprow].TotalAdditionalEquity = e.data.replace(/,/g, '');
-      }
-    }
-    this.CopiedEquitySummaryforCommitment();
-    this.getEquityValues();
   }
 
   CopiedEquitySummaryforCommitment() {
@@ -11045,18 +15277,22 @@ export class DealDetailComponent extends Paginated implements OnInit {
       if (this.lstAdjustedTotalCommitment) {
         for (var i = 0; i < this.lstAdjustedTotalCommitment.items.length; i++) {
           if (this.lstAdjustedTotalCommitment.items[i].Date <= this._currentDate) {
-            if (this.lstAdjustedTotalCommitment.items[i].TotalRequiredEquity != undefined) {
-              sTotalRequiredEquity = sTotalRequiredEquity + parseFloat(this.lstAdjustedTotalCommitment.items[i].TotalRequiredEquity);
+            if (this.lstAdjustedTotalCommitment.items[i].TotalRequiredEquity) {
+              if (this.lstAdjustedTotalCommitment.items[i].TotalRequiredEquity != undefined || this.lstAdjustedTotalCommitment.items[i].TotalRequiredEquity != "" || this.lstAdjustedTotalCommitment.items[i].TotalRequiredEquity != null) {
+                sTotalRequiredEquity = sTotalRequiredEquity + parseFloat(this.lstAdjustedTotalCommitment.items[i].TotalRequiredEquity);
+              }
             }
           }
         }
-        for (var i = 0; i < this.lstAdjustedTotalCommitment.items.length; i++) {
-          if (this.lstAdjustedTotalCommitment.items[i].Date <= this._currentDate) {
-            if (this.lstAdjustedTotalCommitment.items[i].TotalAdditionalEquity != undefined) {
-              sTotalAdditionalEquity = sTotalAdditionalEquity + parseFloat(this.lstAdjustedTotalCommitment.items[i].TotalAdditionalEquity);
-            }
-          }
-        }
+        //for (var i = 0; i < this.lstAdjustedTotalCommitment.items.length; i++) {
+        //  if (this.lstAdjustedTotalCommitment.items[i].Date <= this._currentDate) {
+        //    if (this.lstAdjustedTotalCommitment.items[i].TotalAdditionalEquity) {
+        //      if (this.lstAdjustedTotalCommitment.items[i].TotalAdditionalEquity != undefined || this.lstAdjustedTotalCommitment.items[i].TotalAdditionalEquity != "" || this.lstAdjustedTotalCommitment.items[i].TotalAdditionalEquity != null) {
+        //        sTotalAdditionalEquity = sTotalAdditionalEquity + parseFloat(this.lstAdjustedTotalCommitment.items[i].TotalAdditionalEquity);
+        //      }
+        //    }
+        //  }
+        //}
 
       }
 
@@ -11077,6 +15313,7 @@ export class DealDetailComponent extends Paginated implements OnInit {
       }
       for (var h = 0; h < this._lstEquitySummary.length; h++) {
         if (this._lstEquitySummary[h].Type == "FF Additional Equity") {
+          sTotalAdditionalEquity = this._lstEquitySummary[h]["EquityContributedToDate"];
           this._lstEquitySummary[h]["ExpectedEquity"] = sTotalAdditionalEquity;
           this._lstEquitySummary[h]["RemainingEquity"] = sTotalAdditionalEquity - this._lstEquitySummary[h]["EquityContributedToDate"];
           if (sTotalAdditionalEquity == 0) {
@@ -11130,11 +15367,12 @@ export class DealDetailComponent extends Paginated implements OnInit {
       this.adjusteddealaggregatedcommitmentcol = 0;
       this.adjusteddealcommitmentcol = 0;
       this.adjustedCommitmentcolumnheaders(data, adj);
+
       for (var n = 0; n < this.adjustedcommitmentheader.length; n++) {
         var _isbracket = this.adjustedcommitmentheader[n].indexOf("_");
         if (_isbracket > -1) {
           if (this.adjustedcommitmentheader[n].includes("_Noteid")) {
-            var sumofdealhistorycol = this.adjusteddealcommitmenthistorycol + this.adjustedcommitmentheadervalues[n];
+            var sumofdealhistorycol = parseFloat(this.adjusteddealcommitmenthistorycol ? this.adjusteddealcommitmenthistorycol : 0) + parseFloat(this.adjustedcommitmentheadervalues[n] ? this.adjustedcommitmentheadervalues[n] : 0);
             this.adjusteddealcommitmenthistorycol = sumofdealhistorycol;
 
             //Deal History Column for all types
@@ -11149,26 +15387,48 @@ export class DealDetailComponent extends Paginated implements OnInit {
             //}
             else {
               //Adjusted Commitment Column
-              this.adjusteddealcommitmentcol = this.flexadjustedtotalcommitment.rows[adj].dataItem.DealAdjustmentHistory + this.flexadjustedtotalcommitment.rows[adj - 1].dataItem.AdjustedCommitment;
+              //if (this.flexadjustedtotalcommitment.rows[adj].dataItem.ExcludeFromCommitmentCalculation) {
+              //    this.flexadjustedtotalcommitment.rows[adj].dataItem.AdjustedCommitment = this.flexadjustedtotalcommitment.rows[adj - 1].dataItem.AdjustedCommitment;
+              //    var exclDealAdjustmentHistory = this.flexadjustedtotalcommitment.rows[adj].dataItem.DealAdjustmentHistory;
+              //    for (var i = adj + 1; i < this.listAdjustedTotalCommitment.length; i++) {
+              //        this.flexadjustedtotalcommitment.rows[i].dataItem.AdjustedCommitment = this.flexadjustedtotalcommitment.rows[i].dataItem.AdjustedCommitment - exclDealAdjustmentHistory;
+              //    }
+              //}
+              //else {
+              this.adjusteddealcommitmentcol = parseFloat(this.flexadjustedtotalcommitment.rows[adj].dataItem.DealAdjustmentHistory ? this.flexadjustedtotalcommitment.rows[adj].dataItem.DealAdjustmentHistory : 0) + parseFloat(this.flexadjustedtotalcommitment.rows[adj - 1].dataItem.AdjustedCommitment ? this.flexadjustedtotalcommitment.rows[adj - 1].dataItem.AdjustedCommitment : 0);
               this.flexadjustedtotalcommitment.rows[adj].dataItem.AdjustedCommitment = this.adjusteddealcommitmentcol;
-
+              //  }
               //Total Commitment Column
+
+              //if (this.flexadjustedtotalcommitment.rows[adj].dataItem.ExcludeFromCommitmentCalculation) {
+              //    this.flexadjustedtotalcommitment.rows[adj].dataItem.TotalCommitment = this.flexadjustedtotalcommitment.rows[adj - 1].dataItem.TotalCommitment;
+              //    var excltotalcommitment = this.flexadjustedtotalcommitment.rows[adj].dataItem.TotalCommitment;
+              //    for (var i = adj + 1; i < this.listAdjustedTotalCommitment.length; i++) {
+              //        this.flexadjustedtotalcommitment.rows[i].dataItem.TotalCommitment = this.flexadjustedtotalcommitment.rows[i].dataItem.TotalCommitment - excltotalcommitment;
+              //    }
+
+              //} else {
               if (this.listAdjustedTotalCommitment[adj].TypeText == "Upsize/Mod" || this.listAdjustedTotalCommitment[adj].TypeText == "Note Transfer" || this.listAdjustedTotalCommitment[adj].TypeText == "Closing") {
-                this.adjusteddealtotalcommitmentcol = this.flexadjustedtotalcommitment.rows[adj - 1].dataItem.TotalCommitment + this.flexadjustedtotalcommitment.rows[adj].dataItem.DealAdjustmentHistory;
+                this.adjusteddealtotalcommitmentcol = parseFloat(this.flexadjustedtotalcommitment.rows[adj - 1].dataItem.TotalCommitment ? this.flexadjustedtotalcommitment.rows[adj - 1].dataItem.TotalCommitment : 0) + parseFloat(this.flexadjustedtotalcommitment.rows[adj].dataItem.DealAdjustmentHistory);
               }
               else {
-                this.adjusteddealtotalcommitmentcol = this.flexadjustedtotalcommitment.rows[adj - 1].dataItem.TotalCommitment;
+                this.adjusteddealtotalcommitmentcol = parseFloat(this.flexadjustedtotalcommitment.rows[adj - 1].dataItem.TotalCommitment ? this.flexadjustedtotalcommitment.rows[adj - 1].dataItem.TotalCommitment : 0);
               }
               this.flexadjustedtotalcommitment.rows[adj].dataItem.TotalCommitment = this.adjusteddealtotalcommitmentcol;
+              // }
 
               //Aggregated Commitment Column
+
               if (this.listAdjustedTotalCommitment[adj].TypeText == "Prepayment" || this.listAdjustedTotalCommitment[adj].TypeText == "Scheduled Principal") {
                 this.adjusteddealaggregatedcommitmentcol = this.flexadjustedtotalcommitment.rows[adj - 1].dataItem.AggregatedCommitment;
               } else {
-                this.adjusteddealaggregatedcommitmentcol = this.flexadjustedtotalcommitment.rows[adj].dataItem.DealAdjustmentHistory + this.flexadjustedtotalcommitment.rows[adj - 1].dataItem.AggregatedCommitment;
+                this.adjusteddealaggregatedcommitmentcol = parseFloat(this.flexadjustedtotalcommitment.rows[adj].dataItem.DealAdjustmentHistory ? this.flexadjustedtotalcommitment.rows[adj].dataItem.DealAdjustmentHistory : 0) + parseFloat(this.flexadjustedtotalcommitment.rows[adj - 1].dataItem.AggregatedCommitment ? this.flexadjustedtotalcommitment.rows[adj - 1].dataItem.AggregatedCommitment : 0);
               }
+
               this.flexadjustedtotalcommitment.rows[adj].dataItem.AggregatedCommitment = this.adjusteddealaggregatedcommitmentcol;
+
             }
+
           }
         }
       }
@@ -11179,9 +15439,11 @@ export class DealDetailComponent extends Paginated implements OnInit {
     var lastrownumber = this.listAdjustedTotalCommitment.length - 1;
     if (this.flexadjustedtotalcommitment.rows[lastrownumber].dataItem.AggregatedCommitment != null || this.flexadjustedtotalcommitment.rows[lastrownumber].dataItem.TotalCommitment != null || this.flexadjustedtotalcommitment.rows[lastrownumber].dataItem.AdjustedCommitment != null) {
       this._totalcommitmenttextboxvalue = this.formatNumberforTwoDecimalplaces(this.flexadjustedtotalcommitment.rows[lastrownumber].dataItem.TotalCommitment);
+      this._totalcommitmentvalue = this.flexadjustedtotalcommitment.rows[lastrownumber].dataItem.TotalCommitment;
       this._aggregatedcommitmenttexboxtvalue = this.formatNumberforTwoDecimalplaces(this.flexadjustedtotalcommitment.rows[lastrownumber].dataItem.AggregatedCommitment);
       this._adjustedcommitmenttextboxvalue = this.formatNumberforTwoDecimalplaces(this.flexadjustedtotalcommitment.rows[lastrownumber].dataItem.AdjustedCommitment);
-      this._deal.TotalCommitment = this.flexadjustedtotalcommitment.rows[lastrownumber].dataItem.TotalCommitment;
+      this._deal.TotalCommitment = parseFloat(this.flexadjustedtotalcommitment.rows[lastrownumber].dataItem.TotalCommitment).toFixed(2);
+
       this._deal.AdjustedTotalCommitment = this.flexadjustedtotalcommitment.rows[lastrownumber].dataItem.AdjustedCommitment;
       //  this._deal.AggregatedTotal = this.flexadjustedtotalcommitment.rows[lastrownumber].dataItem.AggregatedCommitment;
     }
@@ -11214,7 +15476,8 @@ export class DealDetailComponent extends Paginated implements OnInit {
           for (var l = 0; l < this.dynamicadjustedcollist.length; l++) {
             notetotalcommitmentcol = 0;
             if (mode == 'Edit' || mode == 'Copy') {
-              colnoteid = this.flexadjustedtotalcommitment.columns[e.col].binding.split("_Noteid");
+              if (this.flexadjustedtotalcommitment.columns[e.col].binding)
+                colnoteid = this.flexadjustedtotalcommitment.columns[e.col].binding.split("_Noteid");
             }
             if (this.dynamicadjustedcollist[l].includes("_AdjustedCommitment")) {
               var adjustedsplitarray = this.dynamicadjustedcollist[l].split("_AdjustedCommitment");
@@ -11343,19 +15606,25 @@ export class DealDetailComponent extends Paginated implements OnInit {
   }
 
   syncDealfundingandTotalcommitmentlistforYnotes(notedataList) {
+    notedataList = notedataList.filter(x => x.AdjustmentType != 834 && x.AdjustmentType != 896 && x.AdjustmentType != 835);
     var filterednotelist = [];
     var Todaysdate = new Date();
-    var purposetypenotelist = notedataList.filter(x => x.PurposeID == 315 || x.PurposeID == 630 || x.PurposeID == 631 || x.PurposeID == 351);
+    var purposetypenotelist = notedataList.filter(x => x.PurposeID == 315 || x.PurposeID == 630 || x.PurposeID == 631 || x.PurposeID == 351 || x.PurposeID == 840);
     if (purposetypenotelist.length > 0) {
       for (var j = 0; j < purposetypenotelist.length; j++) {
         if (new Date(purposetypenotelist[j].Date) <= Todaysdate) {
           for (var m = 0; m < this.lstNote.length; m++) {
             if (this.lstNote[m].Name == purposetypenotelist[j].NoteName) {
               filterednotelist.push({
-                "CRENoteID": this.lstNote[m].CRENoteID, "Date": new Date(purposetypenotelist[j].Date),
-                "Type": purposetypenotelist[j].PurposeID == 351 ? 691 : 638,
+                "CRENoteID": this.lstNote[m].CRENoteID,
+                //"Date": new Date(this.convertCommitmentDatetoGMT(purposetypenotelist[j].Date)),
+                "Date": purposetypenotelist[j].Date,
+                //"Type": purposetypenotelist[j].PurposeID == 351 ? 691 : 638,
+                "Type": purposetypenotelist[j].PurposeID == 351 ? 691 : purposetypenotelist[j].PurposeID == 840 ? 876 : 638,
+
                 "Value": purposetypenotelist[j].Value, //"DealFundingRowno": purposetypenotelist[j].DealFundingRowno,
-                "TypeText": purposetypenotelist[j].Purpose == "Amortization" ? "Scheduled Principal" : "Prepayment",
+                //  "TypeText": purposetypenotelist[j].Purpose == "Amortization" ? "Scheduled Principal" : "Prepayment",
+                "TypeText": purposetypenotelist[j].Purpose == "Amortization" ? "Scheduled Principal" : purposetypenotelist[j].Purpose == "Principal Writeoff" ? "Principal Writeoff Curtailment" : "Prepayment",
 
               });
             }
@@ -11363,27 +15632,53 @@ export class DealDetailComponent extends Paginated implements OnInit {
         }
       }
     }
+
+    if (!this.lstAdjustedTotalCommitment) {
+      this.GetAdjustmenttotalcommitment(this._deal.DealID);
+    }
+    else {
+      this.TotalCommitmentGridbind(this.listAdjustedTotalCommitment, 'null');
+    }
+
     this.generateCommitmentRowswithFundingGrid(filterednotelist, 'Y');
   }
-
+  ConvertToDateIfString(cmtdate) {
+    try {
+      if (cmtdate.getMonth()) {
+        return cmtdate;
+      }
+      else {
+        return cmtdate = this.utils.convertDatetoGMT(cmtdate);
+      }
+    } catch (e) {
+      if (cmtdate != undefined && cmtdate != null && cmtdate != "") {
+        return cmtdate = this.utils.convertDatetoGMT(cmtdate);
+      }
+    }
+  }
   syncDealfundingandTotalcommitmentlistforNnotes(data: any) {
     var Todaysdate = new Date();
     var filterednotelist = [];
-    var purposetypedeallist = data.filter(x => x.PurposeID == 315 || x.PurposeID == 630 || x.PurposeID == 631 || x.PurposeID == 351 || x.PurposeText == "315" || x.PurposeText == "630" || x.PurposeText == "631" || x.PurposeText == "351");
+    data = data.filter(x => x.AdjustmentType != 834 && x.AdjustmentType != 896 && x.AdjustmentType != 835);
+    var purposetypedeallist = data.filter(x => x.PurposeID == 315 || x.PurposeID == 630 || x.PurposeID == 631 || x.PurposeID == 351 || x.PurposeID == 840 || x.PurposeText == "315" || x.PurposeText == "630" || x.PurposeText == "631" || x.PurposeText == "351" || x.PurposeText == "840");
     if (purposetypedeallist.length > 0) {
       for (var j = 0; j < purposetypedeallist.length; j++) {
+        // purposetypedeallist[j].Date = this.ConvertToDateIfString(purposetypedeallist[j].Date);
         if (purposetypedeallist[j].Date <= Todaysdate) {
+
           for (var m = 0; m < this.lstNote.length; m++) {
             for (var n = 0; n < this.dynamicColList.length; n++) {
               if (this.lstNote[m].Name == this.dynamicColList[n]) {
                 if (purposetypedeallist[j][this.dynamicColList[n]] != undefined) {
                   if (!(purposetypedeallist[j][this.dynamicColList[n]] == null || purposetypedeallist[j][this.dynamicColList[n]] == undefined)) {
-                    filterednotelist.push({
-                      "CRENoteID": this.lstNote[m].CRENoteID, "Date": new Date(purposetypedeallist[j].Date),
-                      "Type": purposetypedeallist[j].PurposeID == 351 || purposetypedeallist[j].PurposeText == "351" ? 691 : 638,
-                      "Value": purposetypedeallist[j][this.dynamicColList[n]],
-                      "TypeText": purposetypedeallist[j].PurposeText == "Amortization" || purposetypedeallist[j].PurposeText == "351" ? "Scheduled Principal" : "Prepayment",
-                    });
+                    if (purposetypedeallist[j][this.dynamicColList[n]] != "") {
+                      filterednotelist.push({
+                        "CRENoteID": this.lstNote[m].CRENoteID, "Date": new Date(this.convertDateToBindable(purposetypedeallist[j].Date)),
+                        "Type": purposetypedeallist[j].PurposeID == 351 ? 691 : purposetypedeallist[j].PurposeID == 840 ? 876 : 638,
+                        "Value": purposetypedeallist[j][this.dynamicColList[n]] = purposetypedeallist[j][this.dynamicColList[n]] ? purposetypedeallist[j][this.dynamicColList[n]] : 0,
+                        "TypeText": purposetypedeallist[j].PurposeText == "Amortization" ? "Scheduled Principal" : purposetypedeallist[j].PurposeText == "Principal Writeoff" ? "Principal Writeoff Curtailment" : "Prepayment",
+                      });
+                    }
                   }
                 }
               }
@@ -11393,30 +15688,37 @@ export class DealDetailComponent extends Paginated implements OnInit {
       }
     }
     this.generateCommitmentRowswithFundingGrid(filterednotelist, 'N');
-
   }
-
 
   generateCommitmentRowswithFundingGrid(filterednotelist: any, mode: any) {
 
     // to sumup values on same date
     if (filterednotelist.length > 0) {
       var notecommitmentlist = [];
-      var prepaylist = filterednotelist.filter(x => x.Type == 638);
+      var prepaylist = filterednotelist.filter(x => x.Type == 638 || x.Type == 876);
+      //var prepaylist = filterednotelist.filter(x => x.Type == 638);
       var scheduledprincipal = filterednotelist.filter(x => x.Type == 691);
       var prepaynotesum = 0;
       var schedulednotesum = 0;
 
+      if (prepaylist.length) {
+        for (var t = 0; t < prepaylist.length; t++) {
+          prepaylist[t].Date = this.convertDatetoGMT(new Date(this.convertDateToBindable(prepaylist[t].Date)));
+        }
+      }
+
+
       // to sum up prepayment type amount
       if (prepaylist.length) {
         for (var t = 0; t < prepaylist.length; t++) {
+
           prepaynotesum = prepaylist[t].Value;
           var _isfoundflag = false;
           for (var u = t + 1; u < prepaylist.length; u++) {
             if (prepaylist[t].CRENoteID == prepaylist[u].CRENoteID) {
               if (prepaylist[t].Date.getTime() == prepaylist[u].Date.getTime()) {
                 if (prepaylist[t].Type == prepaylist[u].Type) {
-                  prepaynotesum = prepaynotesum + prepaylist[u].Value;
+                  prepaynotesum = prepaynotesum + parseFloat(prepaylist[u].Value);
                 }
               }
             }
@@ -11458,8 +15760,8 @@ export class DealDetailComponent extends Paginated implements OnInit {
           var _isfoundflag = false;
           for (var u = t + 1; u < scheduledprincipal.length; u++) {
             if (scheduledprincipal[t].CRENoteID == scheduledprincipal[u].CRENoteID) {
-              if (scheduledprincipal[t].Date.getTime() == scheduledprincipal[u].Date.getTime()) {
-                schedulednotesum = schedulednotesum + scheduledprincipal[u].Value;
+              if (new Date(scheduledprincipal[t].Date).getTime() == new Date(scheduledprincipal[u].Date).getTime()) {
+                schedulednotesum = schedulednotesum + parseFloat(scheduledprincipal[u].Value);
               }
             }
           }
@@ -11473,7 +15775,7 @@ export class DealDetailComponent extends Paginated implements OnInit {
           else {
             for (var v = 0; v < notecommitmentlist.length; v++) {
               if (scheduledprincipal[t].CRENoteID == notecommitmentlist[v].CRENoteID) {
-                if (scheduledprincipal[t].Date.getTime() == notecommitmentlist[v].Date.getTime()) {
+                if (new Date(scheduledprincipal[t].Date).getTime() == new Date(notecommitmentlist[v].Date).getTime()) {
                   if (scheduledprincipal[t].Type == notecommitmentlist[v].Type) {
                     _isfoundflag = true;
                     break;
@@ -11499,11 +15801,13 @@ export class DealDetailComponent extends Paginated implements OnInit {
       var insertnotedata = [];
       var rownumber = 0;
       for (var com = 0; com < notecommitmentlist.length; com++) {
+
         var _isfounddate: boolean = false;
         for (var l = 0; l < this.listAdjustedTotalCommitment.length; l++) {
           if (rownumber != l) {
+
             if (!(this.listAdjustedTotalCommitment[l].CommitmentType == "BalloonPayment")) {
-              if (this.listAdjustedTotalCommitment[l].TypeText == "Prepayment" || this.listAdjustedTotalCommitment[l].TypeText == "Scheduled Principal") {
+              if (this.listAdjustedTotalCommitment[l].TypeText == "Prepayment" || this.listAdjustedTotalCommitment[l].TypeText == "Scheduled Principal" || this.listAdjustedTotalCommitment[l].TypeText == "Principal Writeoff Curtailment") {
                 var commitmentdate = new Date(this.listAdjustedTotalCommitment[l].Date).getMonth() + "/" + new Date(this.listAdjustedTotalCommitment[l].Date).getDate() + "/" + new Date(this.listAdjustedTotalCommitment[l].Date).getFullYear();
                 var dealfundingdate = new Date(notecommitmentlist[com].Date).getMonth() + "/" + new Date(notecommitmentlist[com].Date).getDate() + "/" + new Date(notecommitmentlist[com].Date).getFullYear();
                 if (commitmentdate == dealfundingdate) {
@@ -11526,11 +15830,13 @@ export class DealDetailComponent extends Paginated implements OnInit {
           });
           insertnotedata.push(notecommitmentlist[com]);
 
+
           for (var a = 0; a < arr.length; a++) {
             var _isfoundflag = false;
             for (var m = 0; m < this.listAdjustedTotalCommitment.length; m++) {
               if (!(this.listAdjustedTotalCommitment[m].CommitmentType == "BalloonPayment")) {
-                if (this.listAdjustedTotalCommitment[m].TypeText == "Prepayment" || this.listAdjustedTotalCommitment[m].TypeText == "Scheduled Principal") {
+                if (this.listAdjustedTotalCommitment[m].TypeText == "Prepayment" || this.listAdjustedTotalCommitment[m].TypeText == "Scheduled Principal" || this.listAdjustedTotalCommitment[m].TypeText == "Principal Writeoff Curtailment") {
+                  // if (this.listAdjustedTotalCommitment[m].TypeText == "Prepayment" || this.listAdjustedTotalCommitment[m].TypeText == "Scheduled Principal") {
                   var commitdate = new Date(this.listAdjustedTotalCommitment[m].Date).getMonth() + "/" + new Date(this.listAdjustedTotalCommitment[m].Date).getDate() + "/" + new Date(this.listAdjustedTotalCommitment[m].Date).getFullYear();
                   var dealfunddate = new Date(arr[a].Date).getMonth() + "/" + new Date(arr[a].Date).getDate() + "/" + new Date(arr[a].Date).getFullYear();
                   if (commitdate == dealfunddate) {
@@ -11549,6 +15855,7 @@ export class DealDetailComponent extends Paginated implements OnInit {
         }
       }
 
+
       // to assign all columns in new row added in listcommitment
       if (insertnotedata.length > 0) {
         this.AssignValuestoAdjustedNoteCommitment(true);
@@ -11559,7 +15866,7 @@ export class DealDetailComponent extends Paginated implements OnInit {
       for (var m = 0; m < this.listAdjustedTotalCommitment.length; m++) {
         var _isfoundflag = false;
         if (!(this.listAdjustedTotalCommitment[m].CommitmentType == "BalloonPayment")) {
-          if (this.listAdjustedTotalCommitment[m].TypeText == "Prepayment" || this.listAdjustedTotalCommitment[m].TypeText == "Scheduled Principal") {
+          if (this.listAdjustedTotalCommitment[m].TypeText == "Prepayment" || this.listAdjustedTotalCommitment[m].TypeText == "Scheduled Principal" || this.listAdjustedTotalCommitment[m].TypeText == "Principal Writeoff Curtailment") {
             for (var l = 0; l < notecommitmentlist.length; l++) {
               var commitdate = new Date(this.listAdjustedTotalCommitment[m].Date).getMonth() + "/" + new Date(this.listAdjustedTotalCommitment[m].Date).getDate() + "/" + new Date(this.listAdjustedTotalCommitment[m].Date).getFullYear();
               var dealfunddate = new Date(notecommitmentlist[l].Date).getMonth() + "/" + new Date(notecommitmentlist[l].Date).getDate() + "/" + new Date(notecommitmentlist[l].Date).getFullYear();
@@ -11580,9 +15887,9 @@ export class DealDetailComponent extends Paginated implements OnInit {
                   if (r != m) {
                     if (new Date(this.listAdjustedTotalCommitment[m].Date).getTime() == new Date(this.listAdjustedTotalCommitment[r].Date).getTime()) {
                       if (this.listAdjustedTotalCommitment[m].Type == this.listAdjustedTotalCommitment[r].Type) {
-                        if (this.listAdjustedTotalCommitment[m].NoteAdjustedCommitmentMasterID == null) {
-                          this.listAdjustedTotalCommitment.splice(r, 1);
-                        }
+                        //if (this.listAdjustedTotalCommitment[m].NoteAdjustedCommitmentMasterID == null) {
+                        //  this.listAdjustedTotalCommitment.splice(r, 1);
+                        //}
                       }
                     }
                   }
@@ -11597,7 +15904,7 @@ export class DealDetailComponent extends Paginated implements OnInit {
       for (var g = 0; g < notecommitmentlist.length; g++) {
         for (var b = 0; b < this.listAdjustedTotalCommitment.length; b++) {
           if (!(this.listAdjustedTotalCommitment[b].CommitmentType == "BalloonPayment")) {
-            if (this.listAdjustedTotalCommitment[b].TypeText == "Prepayment" || this.listAdjustedTotalCommitment[b].TypeText == "Scheduled Principal") {
+            if (this.listAdjustedTotalCommitment[b].TypeText == "Prepayment" || this.listAdjustedTotalCommitment[b].TypeText == "Scheduled Principal" || this.listAdjustedTotalCommitment[b].TypeText == "Principal Writeoff Curtailment") {
               for (var dyn = 0; dyn < this.dynamicadjustedcollist.length; dyn++) {
                 var _isbracket = this.dynamicadjustedcollist[dyn].indexOf("_");
                 if (_isbracket > -1) {
@@ -11622,6 +15929,15 @@ export class DealDetailComponent extends Paginated implements OnInit {
                             }
                           }
                         }
+                        if (this.listAdjustedTotalCommitment[b].Type == 876) {
+                          if (notecommitmentlist[g].Type == 876) {
+                            if (notesplitarray[0] == notecommitmentlist[g].CRENoteID) {
+                              this.listAdjustedTotalCommitment[b][noteid] = notecommitmentlist[g].Value;
+                            }
+                          }
+                        }
+
+
                       }
                     }
                   }
@@ -11636,7 +15952,7 @@ export class DealDetailComponent extends Paginated implements OnInit {
       if (filterednotelist.length == 0) {
         for (var b = 0; b < this.listAdjustedTotalCommitment.length; b++) {
           if (!(this.listAdjustedTotalCommitment[b].CommitmentType == "BalloonPayment")) {
-            if (this.listAdjustedTotalCommitment[b].TypeText == "Prepayment" || this.listAdjustedTotalCommitment[b].TypeText == "Scheduled Principal") {
+            if (this.listAdjustedTotalCommitment[b].TypeText == "Prepayment" || this.listAdjustedTotalCommitment[b].TypeText == "Scheduled Principal" || this.listAdjustedTotalCommitment[b].TypeText == "Principal Writeoff Curtailment") {
               this.listAdjustedTotalCommitment.splice(b, 1);
               b = 0;
             }
@@ -11645,7 +15961,7 @@ export class DealDetailComponent extends Paginated implements OnInit {
       }
     }
     // to bind total commitment grid with new list
-    this.TotalCommitmentGridbind(this.listAdjustedTotalCommitment);
+    this.TotalCommitmentGridbind(this.listAdjustedTotalCommitment, 'null');
     if (this.ShowUseRuleN == false) {
       setTimeout(function () {
         this.ValidateCurrenBalanceAndCommitment();
@@ -11672,54 +15988,64 @@ export class DealDetailComponent extends Paginated implements OnInit {
           ScheduledPrincipalPaid = 0;
 
           var currentnoteid = this.lstSequenceHistory[j].NoteID;
-          var InitialFundingAmount = this.lstSequenceHistory[j].InitialFundingAmount;
-          balloon = this.lstSequenceHistory[j].BalloonPayment * -1;
+          var NoteType = this.lstNote.filter(x => x.NoteId == currentnoteid)[0].NoteType;
+          if (NoteType != 901) {
+            var InitialFundingAmount = this.lstSequenceHistory[j].InitialFundingAmount;
+            balloon = this.lstSequenceHistory[j].BalloonPayment * -1;
 
-          if (this.lstScheduledPrincipalPaid) {
-            if (this.lstScheduledPrincipalPaid.length > 0) {
+            if (this.lstScheduledPrincipalPaid) {
+              if (this.lstScheduledPrincipalPaid.length > 0) {
 
-              var lstScheduledPrip = this.lstScheduledPrincipalPaid.filter(x => x.NoteID == currentnoteid);
-              if (lstScheduledPrip.length > 0) {
-                var temp = lstScheduledPrip[0].Amount;
-                if (temp != null && temp != undefined) {
-                  ScheduledPrincipalPaid = parseFloat((temp * -1).toFixed(2));
+                var lstScheduledPrip = this.lstScheduledPrincipalPaid.filter(x => x.NoteID == currentnoteid);
+                if (lstScheduledPrip.length > 0) {
+                  var temp = lstScheduledPrip[0].Amount;
+                  if (temp != null && temp != undefined) {
+                    ScheduledPrincipalPaid = parseFloat((temp * -1).toFixed(2));
+                  }
                 }
+
               }
-
             }
-          }
 
-          var noteFundingArray = this.lstNoteFunding.filter(x => x.NoteID == currentnoteid);
-          for (var m = 0; m < noteFundingArray.length; m++) {
-            if (noteFundingArray[m].Value) {
-              if (noteFundingArray[m].Value < 0) {
-                if (new Date(noteFundingArray[m].Date) <= today) {
-                  totRepayment = totRepayment + parseFloat(this.GetDefaultValue(parseFloat(noteFundingArray[m].Value).toFixed(2)));
-                }
-              } else {
-                if (noteFundingArray[m].Purpose != "Note Transfer") {
-                  if (noteFundingArray[m].Value !== null) {
-                    sumNotefunding = sumNotefunding + parseFloat(this.GetDefaultValue(parseFloat(noteFundingArray[m].Value).toFixed(2)));
+            var noteFundingArray = this.lstNoteFunding.filter(x => x.NoteID == currentnoteid);
+            for (var m = 0; m < noteFundingArray.length; m++) {
+              if (noteFundingArray[m].Value) {
+                if (noteFundingArray[m].Value < 0) {
+                  if (new Date(noteFundingArray[m].Date) <= today) {
+                    //revolver balance will be inculded in  835
+                    if (noteFundingArray[m].AdjustmentType != 834 && noteFundingArray[m].AdjustmentType != 896) {
+                      totRepayment = totRepayment + parseFloat(this.GetDefaultValue(parseFloat(noteFundingArray[m].Value).toFixed(2)));
+                    }
+                  }
+                } else {
+                  if (noteFundingArray[m].Purpose != "Note Transfer") {
+                    if (noteFundingArray[m].AdjustmentType != 834 && noteFundingArray[m].AdjustmentType != 896) {
+                      //revolver balance will be inculded in  835
+                      if (noteFundingArray[m].Value !== null) {
+                        sumNotefunding = sumNotefunding + parseFloat(this.GetDefaultValue(parseFloat(noteFundingArray[m].Value).toFixed(2)));
+                      }
+                    }
+
                   }
                 }
               }
             }
-          }
-          sumNotefunding = parseFloat(sumNotefunding.toFixed(2));
-          totRepayment = parseFloat(totRepayment.toFixed(2));
-          if (parseFloat(InitialFundingAmount) == 0.01) {
-            InitialFundingAmount = 0;
-          }
-          //for loop end
-          //AdjustedTotalCommitment
-          var subtotal = sumNotefunding + parseFloat(InitialFundingAmount) + totRepayment + parseFloat(balloon) + parseFloat(ScheduledPrincipalPaid);
-          if (parseFloat(subtotal.toFixed(2)) > parseFloat(this.lstSequenceHistory[j].AdjustedTotalCommitment.toFixed(2))) {
-            var diffval = parseFloat(subtotal.toFixed(2)) - parseFloat(this.lstSequenceHistory[j].AdjustedTotalCommitment.toFixed(2));
-            if (Math.abs(parseFloat(diffval.toFixed(2))) > 0) {
-              noteswithissue = noteswithissue + this.lstSequenceHistory[j].CRENoteID + ", ";
+            sumNotefunding = parseFloat(sumNotefunding.toFixed(2));
+            totRepayment = parseFloat(totRepayment.toFixed(2));
+            if (parseFloat(InitialFundingAmount) == 0.01) {
+              InitialFundingAmount = 0;
             }
-
+            //for loop end
+            //AdjustedTotalCommitment
+            var subtotal = sumNotefunding + parseFloat(InitialFundingAmount) + totRepayment + parseFloat(balloon) + parseFloat(ScheduledPrincipalPaid);
+            if (parseFloat(subtotal.toFixed(2)) > parseFloat(this.lstSequenceHistory[j].AdjustedTotalCommitment.toFixed(2))) {
+              var diffval = parseFloat(subtotal.toFixed(2)) - parseFloat(this.lstSequenceHistory[j].AdjustedTotalCommitment.toFixed(2));
+              if (Math.abs(parseFloat(diffval.toFixed(2))) > 0) {
+                noteswithissue = noteswithissue + this.lstSequenceHistory[j].CRENoteID + ", ";
+              }
+            }
           }
+
         }
       }
       if (noteswithissue != "") {
@@ -11913,6 +16239,7 @@ export class DealDetailComponent extends Paginated implements OnInit {
               notetemp.NoteTotalCommitment = this.dynamiccollistvalues[j].NoteTotalCommitment;
               notetemp.TotalRequiredEquity = this.listAdjustedTotalCommitment[m].TotalRequiredEquity;
               notetemp.TotalAdditionalEquity = this.listAdjustedTotalCommitment[m].TotalAdditionalEquity;
+              //notetemp.ExcludeFromCommitmentCalculation = this.listAdjustedTotalCommitment[m].ExcludeFromCommitmentCalculation;
               notetemp.TotalEquityatClosing = this.listAdjustedTotalCommitment[m].TotalEquityatClosing;
               listnoteforadjutsedtotalcommitment.push(notetemp);
             }
@@ -11933,9 +16260,58 @@ export class DealDetailComponent extends Paginated implements OnInit {
     if (e.col.toString() == "1" || e.col.toString() == "0") {
       this._isnotegridEdited = true;
     }
+
+    if (this.lstMaturityConfiguration) {
+      for (var i = 0; i < this.lstMaturityConfiguration.length; i++) {
+        var lstCRENoteID = this.lstNote.filter(x => x.NoteId == this.lstMaturityConfiguration[i].NoteID);
+        if (lstCRENoteID.length > 0)
+          this.lstMaturityConfiguration[i].CRENoteID = lstCRENoteID[0].CRENoteID;
+        else {
+          this.lstMaturityConfiguration[i] = this.lstNote[i];
+        }
+      }
+    }
+
+    if (this.maturityList) {
+      for (var i = 0; i < this.maturityList.length; i++) {
+        this.maturityList[i].CRENoteID = this.lstNote.find(x => x.NoteId == this.maturityList[i].NoteID).CRENoteID;
+      }
+    }
+    this.createMaturityConfigurationList();
+
+
   }
   CopiedNotefundingrule(flex: wjcGrid.FlexGrid, e: wjcGrid.CellEditEndingEventArgs) {
     this._isnotegridEdited = true;
+
+
+    //if (this.lstMaturityConfiguration) {
+    //  for (var i = 0; i < this.lstMaturityConfiguration.length; i++) {
+    //    this.lstMaturityConfiguration[i].CRENoteID = this.lstNote.find(x => x.NoteId == this.lstMaturityConfiguration[i].NoteID).CRENoteID;
+    //  }
+    //}
+
+
+    if (this.lstMaturityConfiguration) {
+      for (var i = 0; i < this.lstMaturityConfiguration.length; i++) {
+        var lstCRENoteID = this.lstNote.filter(x => x.NoteId == this.lstMaturityConfiguration[i].NoteID);
+        if (lstCRENoteID.length > 0)
+          this.lstMaturityConfiguration[i].CRENoteID = lstCRENoteID[0].CRENoteID;
+        else {
+          this.lstMaturityConfiguration[i] = this.lstNote[i];
+        }
+      }
+    }
+
+    if (this.maturityList) {
+      for (var i = 0; i < this.maturityList.length; i++) {
+        this.maturityList[i].CRENoteID = this.lstNote.find(x => x.NoteId == this.maturityList[i].NoteID).CRENoteID;
+      }
+    }
+    this.createMaturityConfigurationList();
+
+
+
   }
   IDorNameChanged() {
     this.isIDorNameChanged = true;
@@ -11950,135 +16326,23 @@ export class DealDetailComponent extends Paginated implements OnInit {
     });
   }
 
-  //ShowAutoSpreadEquity() {
-  //  var modal = document.getElementById('AutospreadEquitydialogbox');
-  //  modal.style.display = "block";
-  //  $.getScript("/js/jsDrag.js");
-  //  this.lstAutoEquity = new Array<AutoEquity>();
-  //  var TotalRequiredEquity = 0;
-  //  var TotalAdditionalEquity = 0;
-  //  var TotalnoteInitialRequiredEquity = 0, TotalnoteInitialAdditionalEquity = 0
-
-  //  if (this.lstAdjustedTotalCommitment) {
-  //    for (var i = 0; i < this.lstAdjustedTotalCommitment.items.length; i++) {
-  //      TotalRequiredEquity = TotalRequiredEquity + parseFloat(this.lstAdjustedTotalCommitment.items[i].TotalRequiredEquity);
-  //      TotalAdditionalEquity = TotalAdditionalEquity + parseFloat(this.lstAdjustedTotalCommitment.items[i].TotalAdditionalEquity);
-  //    }
-  //  }
-  //  if (this.lstNote) {
-  //    for (var i = 0; i < this.lstNote.length; i++) {
-  //      TotalnoteInitialRequiredEquity = TotalnoteInitialRequiredEquity + parseFloat(this.GetDefaultValue(this.lstNote[i].InitialRequiredEquity));
-  //      TotalnoteInitialAdditionalEquity = TotalnoteInitialAdditionalEquity + parseFloat(this.GetDefaultValue(this.lstNote[i].InitialAdditionalEquity));
-  //    }
-  //  }
-  //  this.autoEquity = new AutoEquity();
-  //  this.autoEquity.EquityName = "Required Equity";
-  //  if (TotalRequiredEquity)
-  //    this.autoEquity.TotalCommitted = TotalRequiredEquity;
-  //  else
-  //    this.autoEquity.TotalCommitted = 0;
-
-  //  if (this._autoTotalContriToDate)
-  //    this.autoEquity.TotalContibutedDate = this.sumRequiredEquity + this.GetDefaultValue(TotalnoteInitialRequiredEquity);
-  //  else
-  //    this.autoEquity.TotalContibutedDate = 0 + this.GetDefaultValue(TotalnoteInitialRequiredEquity);
-
-  //  this.autoEquity.RemainingtoContribute = this.autoEquity.TotalCommitted - this.autoEquity.TotalContibutedDate;
-  //  if (this.autoEquity.TotalCommitted == 0)
-  //    this.autoEquity.Percentcontributed = 0;
-  //  else
-  //    this.autoEquity.Percentcontributed = (this.autoEquity.TotalContibutedDate / this.autoEquity.TotalCommitted) * 100;
-  //  this.lstAutoEquity.push(this.autoEquity);
-
-
-
-  //  this.autoEquity = new AutoEquity();
-  //  this.autoEquity.EquityName = "Additional Equity";
-  //  if (TotalAdditionalEquity)
-  //    this.autoEquity.TotalCommitted = TotalAdditionalEquity;
-  //  else
-  //    this.autoEquity.TotalCommitted = 0;
-
-  //  if (this._autoSumAdditionalEquity)
-  //    this.autoEquity.TotalContibutedDate = this._autoSumAdditionalEquity + this.GetDefaultValue(TotalnoteInitialAdditionalEquity);
-  //  else
-  //    this.autoEquity.TotalContibutedDate = 0 + this.GetDefaultValue(TotalnoteInitialAdditionalEquity);
-
-
-  //  this.autoEquity.RemainingtoContribute = this.autoEquity.TotalCommitted - this.autoEquity.TotalContibutedDate
-  //  if (this.autoEquity.TotalCommitted == 0)
-  //    this.autoEquity.Percentcontributed = 0;
-  //  else
-  //    this.autoEquity.Percentcontributed = (this.autoEquity.TotalContibutedDate / this.autoEquity.TotalCommitted) * 100;
-
-  //  this.lstAutoEquity.push(this.autoEquity);
-  //  this.flexgrdAutoEquity.invalidate();
-  //}
-
-
   getEquityValues() {
-    var TotalnoteInitialRequiredEquity = 0, TotalnoteInitialAdditionalEquity = 0;
-    var sTotalRequiredEquity = 0, sTotalAdditionalEquity = 0;
-    var sRequiredEquity = 0;
-    var sAdditionalEquity = 0;
-    var sEquityatClosing = 0;
-    if (this._deal.EquityatClosing == 0 || this._deal.EquityatClosing == null || this._deal.EquityatClosing == undefined) {
-      sEquityatClosing = 0;
-    }
-    else {
-      sEquityatClosing = this._deal.EquityatClosing;
-    }
-    if (this.listdealfunding) {
-      var today = new Date();
-      var appliedfunding = this.listdealfunding.filter(x => x.Date < today);
-      if (this.lstAdjustedTotalCommitment) {
-        for (var i = 0; i < this.lstAdjustedTotalCommitment.items.length; i++) {
-          if (this.lstAdjustedTotalCommitment.items[i].TotalRequiredEquity) {
-            sTotalRequiredEquity = sTotalRequiredEquity + parseFloat(this.lstAdjustedTotalCommitment.items[i].TotalRequiredEquity);
-          }
-          if (this.lstAdjustedTotalCommitment.items[i].TotalAdditionalEquity) {
-            sTotalAdditionalEquity = sTotalAdditionalEquity + parseFloat(this.lstAdjustedTotalCommitment.items[i].TotalAdditionalEquity);
-          }
+
+    if (this._lstEquitySummary) {
+      for (var h = 0; h < this._lstEquitySummary.length; h++) {
+        if (this._lstEquitySummary[h].Type == "FF Required Equity") {
+          this._autoTotalContriToDate = this.formatNumberforTwoDecimalplaces(this.GetDefaultValue(this._lstEquitySummary[h]["EquityContributedToDate"]));
         }
-        var TotalComitted = this.GetDefaultValue(sTotalRequiredEquity + sTotalAdditionalEquity + sEquityatClosing);
-        this._autoTotalComitted = this.formatNumberforTwoDecimalplaces(this.GetDefaultValue(sTotalRequiredEquity + sTotalAdditionalEquity + sEquityatClosing));
-      }
-
-
-      if (this.lstNote) {
-        for (var i = 0; i < this.lstNote.length; i++) {
-          TotalnoteInitialRequiredEquity = TotalnoteInitialRequiredEquity + parseFloat(this.GetDefaultValue(this.lstNote[i].InitialRequiredEquity));
-          TotalnoteInitialAdditionalEquity = TotalnoteInitialAdditionalEquity + parseFloat(this.GetDefaultValue(this.lstNote[i].InitialAdditionalEquity));
+        if (this._lstEquitySummary[h].Type == "FF Additional Equity") {
+          this._AdditionalEquityContriToDate = this.formatNumberforTwoDecimalplaces(this.GetDefaultValue(this._lstEquitySummary[h]["EquityContributedToDate"]));
+        }
+        if (this._lstEquitySummary[h].Type == "Total Equity") {
+          this._autoTotalComitted = this.formatNumberforTwoDecimalplaces(this.GetDefaultValue(this._lstEquitySummary[h]["ExpectedEquity"]));
+          this._autoRemainingtoContribute = this.formatNumberforTwoDecimalplaces(this.GetDefaultValue(this._lstEquitySummary[h]["RemainingEquity"]));
         }
       }
-
-      if (appliedfunding) {
-        for (var i = 0; i < appliedfunding.length; i++) {
-          if (appliedfunding[i].RequiredEquity) {
-            sRequiredEquity = sRequiredEquity + parseFloat(appliedfunding[i].RequiredEquity);
-            //  sAdditionalEquity = sAdditionalEquity + parseFloat(appliedfunding[i].AdditionalEquity);
-          }
-          if (appliedfunding[i].AdditionalEquity) {
-            //  sRequiredEquity = sRequiredEquity + parseFloat(appliedfunding[i].RequiredEquity);
-            sAdditionalEquity = sAdditionalEquity + parseFloat(appliedfunding[i].AdditionalEquity);
-          }
-        }
-      }
-      this.sumRequiredEquity = sRequiredEquity;
-      this.sumAdditionalEquity = sAdditionalEquity;
-      var TotalContriToDate = this.GetDefaultValue(sRequiredEquity + sAdditionalEquity + sEquityatClosing + TotalnoteInitialRequiredEquity + TotalnoteInitialAdditionalEquity);
-      this._autoTotalContriToDate = this.formatNumberforTwoDecimalplaces(this.GetDefaultValue(sRequiredEquity + sAdditionalEquity + sEquityatClosing + TotalnoteInitialRequiredEquity + TotalnoteInitialAdditionalEquity));
-      this._autoSumAdditionalEquity = sAdditionalEquity;
-
-      this._autoRemainingtoContribute = this.formatNumberforTwoDecimalplaces(this.GetDefaultValue(parseFloat(TotalComitted) - parseFloat(TotalContriToDate)));
-
     }
   }
-
-  //ClosePopUpAutospread() {
-  //  var modal = document.getElementById('AutospreadEquitydialogbox');
-  //  modal.style.display = "none";
-  //}
 
   AddEquityRowforAM() {
     this._isFundingruleChanged = true;
@@ -12104,22 +16368,59 @@ export class DealDetailComponent extends Paginated implements OnInit {
     this.flexadjustedtotalcommitment.invalidate();
   }
 
-  //dealfundingExporttoexcel() {
-  //    wjcGridXlsx.FlexGridXlsxConverter.save(this.flexdealfunding,
-  //        {
-  //            includeColumnHeaders: true,
-  //            includeRowHeaders: false,
-  //            sheetName: "DealFunding",
-  //            includeCellStyles: false
-  //            //  formatItem: this.customContent ? this._exportFormatItem : null
-  //        },
-  //        this._deal.DealName + '_DealFunding.xlsx');
-  //}
+  fundingRuleExporttoexcel() {
+
+    var flexfundingRule = this.grdflexDynamicColForSequence.itemsSource;
+    if (flexfundingRule[0]["Estimated current balance"] == 0)
+      flexfundingRule[0]["Estimated current balance"] = "0.0";
+    if (flexfundingRule[0]["Current PIK Balance"] == 0)
+      flexfundingRule[0]["Current PIK Balance"] = "0.0";
+    if (flexfundingRule[0]["Total commitment"] == 0)
+      flexfundingRule[0]["Total commitment"] = "0.0";
+    if (flexfundingRule[0]["Adjusted Commitment"] == 0)
+      flexfundingRule[0]["Adjusted Commitment"] = "0.0";
+
+    for (var i = 1; i < 26; i++) {
+      if (flexfundingRule[0]["Funding sequence " + i] % 1 == 0) {
+        flexfundingRule[0]["Funding sequence " + i] = (flexfundingRule[0]["Funding sequence " + i] * 100 / 100).toFixed(2);
+      }
+    }
+    for (var i = 1; i < 26; i++) {
+      if (flexfundingRule[0]["Repayment sequence " + i] % 1 == 0) {
+        flexfundingRule[0]["Repayment sequence " + i] = (flexfundingRule[0]["Repayment sequence " + i] * 100 / 100).toFixed(2);
+      }
+    }
+
+    this.dealSrv.downloadexcelfilefundingRule(flexfundingRule)
+      .subscribe(fileData => {
+        this._isListFetching = false;
+        let b: any = new Blob([fileData]);
+        let dwldLink = document.createElement("a");
+        let url = URL.createObjectURL(b);
+        let isSafariBrowser = navigator.userAgent.indexOf('Safari') != -1 && navigator.userAgent.indexOf('Chrome') == -1;
+        if (isSafariBrowser) {  //if Safari open in new window to save file with random filename.
+          dwldLink.setAttribute("target", "_blank");
+        }
+        dwldLink.setAttribute("href", url);
+        dwldLink.setAttribute("download", this._deal.DealName + '_FundingRule.xlsx');
+        dwldLink.style.visibility = "hidden";
+        document.body.appendChild(dwldLink);
+        dwldLink.click();
+        document.body.removeChild(dwldLink);
+        this.isProcessComplete = false;
+      },
+        error => {
+          console.log(error);
+          // alert('Something went wrong');
+          this.isProcessComplete = false;;
+        }
+      );
+  }
 
   invalidateFeeInvoicetab() {
     if (!this._isInvoiceTabclicked) {
-      this._isInvoiceTabclicked = true;
       localStorage.setItem('ClickedTabId', 'aFeeInvoicetab');
+      this._isInvoiceTabclicked = true;
       this.GetAllFeeInvoice();
     }
   }
@@ -12326,33 +16627,15 @@ export class DealDetailComponent extends Paginated implements OnInit {
           };
         }
       }
-      //else {
-      //    if (this._deal.EnableAutospreadRepayments == true) {
-      //        if (this._deal.AutoUpdateFromUnderwriting == true) {
-      //            this.checkboxclicked = true;
-      //            this._ShowBSData = true;
-      //            this.showBSMsg = "Backshop Service currently not working.Please disable Auto-update from Underwriting to see M61 data.";
-      //            setTimeout(() => {
-      //                this._ShowBSData = false;
-      //                this.showBSMsg = '';
-      //            }, 5000);
-      //        }
-      //        this.flexautospreadrepayments.invalidate();
-      //        this.autospreadRepaygridBind();
-      //        this.autospreadRepaymentDateFieldsBS();
-      //    }
-      //}
     });
   }
 
   onChangeEnableAutoSpreadRepaymentsCheckbox(e): void {
     var checked = e.target.checked;
+    this._isdealfundingChanged = false;
     var UseruleYlist = this.lstSequenceHistory.filter(x => x.UseRuletoDetermineNoteFundingText == "3" || x.UseRuletoDetermineNoteFundingText == "Y");
     if (checked == true) {
       this._deal.EnableAutospreadRepayments = true;
-      if (this._isshowApplyNoteLevelPaydowns == false) {
-        this._deal.ApplyNoteLevelPaydowns = true;
-      }
       this._deal.AutoUpdateFromUnderwriting = true;
       this.repaymentchecked = true;
       this.autospreadRepaygridBind();
@@ -12374,12 +16657,15 @@ export class DealDetailComponent extends Paginated implements OnInit {
       if (this._isautospreadRepaymentshow == true) {
         this._isautospreadRepaymentshow = false;
       }
+      if (UseruleYlist.length == 0) {
+        this.DeleteDealFundingAndNoteFundingForUseRuleN();
+      }
     }
+    setTimeout(function () {
+      this.AppliedReadOnly();
+    }.bind(this), 100);
   }
 
-  onChangeBalanceAwareCheckbox(e): void {
-
-  }
 
   onChangeAutoUpdateFromUnderwritingCheckbox(e): void {
     this._deal.AutoUpdateFromUnderwriting = e.target.checked;
@@ -12494,7 +16780,8 @@ export class DealDetailComponent extends Paginated implements OnInit {
       blockoutperiod.setAttribute("style", "background-color: #cfcfcf;");
       repayallocationfreq.setAttribute("style", "background-color: #cfcfcf;");
     }
-    else if (this._deal.AutoUpdateFromUnderwriting == true) {
+
+    if (this._deal.AutoUpdateFromUnderwriting == true) {
       this._isReadOnlyBSDatesFields = true;
       expecteddate.setAttribute("style", "background-color: #cfcfcf;");
       effectiveDate.setAttribute("style", "background-color: #cfcfcf;");
@@ -12531,6 +16818,13 @@ export class DealDetailComponent extends Paginated implements OnInit {
         this.LatestPossibleRepaymentDateBS = null;
         this.ExpectedDateBS = null;
         this.EarliestPossibleRepaymentDateBS = null;
+
+        //null deal attributes
+
+        this._deal.ExpectedFullRepaymentDate = null;
+        this._deal.EarliestPossibleRepaymentDate = null;
+        this._deal.LatestPossibleRepaymentDate = null;
+        this._deal.AutoPrepayEffectiveDate = null;
       }
     }
     else {
@@ -12669,8 +16963,15 @@ export class DealDetailComponent extends Paginated implements OnInit {
   OnchangeExpectedfullrepayment(e) {
     this._isrepaymentChanged = true;
     this._deal.ExpectedFullRepaymentDate = e;
-  }
 
+
+    var holidayExpectedFullRepaymentDatestatus = this.checkDateisHoliday(this._deal.ExpectedFullRepaymentDate);
+    if (holidayExpectedFullRepaymentDatestatus == true) {
+      $('#ExpectedFullRepaymentDate').attr('style', 'background-color:#FFB3A7');
+    } else {
+      $('#ExpectedFullRepaymentDate').attr('style', 'background-color:none');
+    }
+  }
   OnchangePossiblerepayment(e) {
     this._isrepaymentChanged = true;
     this._deal.PossibleRepaymentdayofthemonth = e == "" ? null : this._deal.PossibleRepaymentdayofthemonth;
@@ -12689,11 +16990,25 @@ export class DealDetailComponent extends Paginated implements OnInit {
   OnchangeEarliestpossibleRepaymentdate(e) {
     this._isrepaymentChanged = true;
     this._deal.EarliestPossibleRepaymentDate = e;
+
+    var holidayEarliestPossibleRepaymentDatestatus = this.checkDateisHoliday(this._deal.EarliestPossibleRepaymentDate);
+    if (holidayEarliestPossibleRepaymentDatestatus == true) {
+      $('#EarliestPossibleRepaymentDate').attr('style', 'background-color:#FFB3A7');
+    } else {
+      $('#EarliestPossibleRepaymentDate').attr('style', 'background-color:none');
+    }
   }
 
   OnchangeLatestpossibleRepaymentdate(e) {
     this._isrepaymentChanged = true;
     this._deal.LatestPossibleRepaymentDate = e;
+
+    var holidayLatestPossibleRepaymentDatestatus = this.checkDateisHoliday(this._deal.LatestPossibleRepaymentDate);
+    if (holidayLatestPossibleRepaymentDatestatus == true) {
+      $('#LatestPossibleRepaymentDate').attr('style', 'background-color:#FFB3A7');
+    } else {
+      $('#LatestPossibleRepaymentDate').attr('style', 'background-color:none');
+    }
   }
 
   OnchangeBlockoutperiod(e) {
@@ -12770,7 +17085,9 @@ export class DealDetailComponent extends Paginated implements OnInit {
           "InvoiceDetailID": this.flexFeeInvoice.rows[k].dataItem.InvoiceDetailID,
           "ObjectID": this.flexFeeInvoice.rows[k].dataItem.ObjectID,
           "AmountAdj": this.flexFeeInvoice.rows[k].dataItem.AmountAdj,
-          "InvoiceComment": this.flexFeeInvoice.rows[k].dataItem.InvoiceComment
+          "InvoiceComment": this.flexFeeInvoice.rows[k].dataItem.InvoiceComment,
+          // Added NEW Invoice Comment//
+          "BatchUploadComment": this.flexFeeInvoice.rows[k].dataItem.BatchUploadComment
         });
       }
     }
@@ -12784,7 +17101,7 @@ export class DealDetailComponent extends Paginated implements OnInit {
       for (var k = 0; k < this.lstFeeInvoice.length; k++) {
         var FeeAmtdec = this.lstFeeInvoice[k].AmountAdj;
         if (Math.floor(FeeAmtdec) === FeeAmtdec) {
-          deccount = 0;
+          deccount = 0; ``
         }
         else {
           if ((FeeAmtdec % 1) != 0) {
@@ -12807,79 +17124,188 @@ export class DealDetailComponent extends Paginated implements OnInit {
   generateAutospreadRepayment() {
     if (this.lstNote[0] != null) {
       this.isShowGenerateAutospreadRepay = true;
+      this._isShowSaveDeal = false;
+      var dfvalidation = "";
       var maxmat = null;
       var maxextendedmat = null;
-      var maxInitialMaturityDate = new Date(Math.max.apply(null, this.lstNote.map(x => x.InitialMaturityDate)));
-      var maxExtendedMaturity = new Date(Math.max.apply(null, this.lstNote.map(x => x.ExtendedMaturityCurrent)));
-      var maxFullyExtendedMaturityDate = new Date(Math.max.apply(null, this.lstNote.map(x => x.FullyExtendedMaturityDate)));
-      var maxExpectedMaturityDate = new Date(Math.max.apply(null, this.lstNote.map(x => x.ExpectedMaturityDate)));
-      var maxActualPayoffDate = new Date(Math.max.apply(null, this.lstNote.map(x => x.ActualPayoffDate)));
+      var max_ExtensionMat = null;
+      this.ConvertInSequenceList();
+      var maxInitialMaturityDate = new Date('1970-01-01Z00:00:00:000');
+      var maxFullyExtendedMaturityDate = new Date('1970-01-01Z00:00:00:000');
+      var maxExtendedMaturity = new Date('1970-01-01Z00:00:00:000');
+      max_ExtensionMat = null;
+      var maxActualPayoffDate = new Date('1970-01-01Z00:00:00:000');
+
+      var usePayOffasmaturity = false;
+      var useExtenstionMaturity = true;
+      if (this.maturityList !== undefined) {
+        if (this.maturityList.length > 0) {
+          var vlen = this.maturityList.filter(x => x.ActualPayoffDate == null).length;
+          if (vlen == 0) {
+            usePayOffasmaturity = true;
+          }
+        }
+      }
+
+      dfvalidation = this.ValidateDealFunding();
+      if (this.isMaturityDataChanged == true) {
+        //708	118	Initial
+        //709	118	Extension
+        //710	118	Fully extended
+        //this.selectedGroupName
+        if (this._lstChangedMaturityData !== undefined) {
+          if (this._lstChangedMaturityData.length > 0) {
+            for (var i = 0; i < this._lstChangedMaturityData.length; i++) {
+              if (this._lstChangedMaturityData[i].Approved == 3 && this._lstChangedMaturityData[i].IsDeleted == 0 && this._lstChangedMaturityData[i].GroupName == this.selectedGroupName) {
+                if (this._lstChangedMaturityData[i].MaturityType == 708) {
+                  if (new Date(this._lstChangedMaturityData[i].MaturityDate) > maxInitialMaturityDate) {
+                    maxInitialMaturityDate = this._lstChangedMaturityData[i].MaturityDate;
+                  }
+                }
+
+                if (this._lstChangedMaturityData[i].MaturityType == 710) {
+                  if (new Date(this._lstChangedMaturityData[i].MaturityDate) > maxFullyExtendedMaturityDate) {
+                    maxFullyExtendedMaturityDate = this._lstChangedMaturityData[i].MaturityDate;
+                  }
+                }
+                if (this._lstChangedMaturityData[i].MaturityType == 709) {
+                  if (new Date(this._lstChangedMaturityData[i].MaturityDate) > maxExtendedMaturity) {
+                    maxExtendedMaturity = this._lstChangedMaturityData[i].MaturityDate;
+                  }
+                }
+              }
+            }
+
+            if (this.maturityActualPayoffDate != null) {
+              maxActualPayoffDate = new Date(this.maturityActualPayoffDate);
+            }
+          }
+        }
+        if (this.maturityList !== undefined) {
+          if (this.maturityList.length > 0) {
+
+            for (var i = 0; i < this.maturityList.length; i++) {
+              if (this.maturityList[i].ApprovedText == "Y" && this.maturityList[i].isDeleted == 0 && this.maturityList[i].MaturityGroupName != this.selectedGroupName) {
+                if (this.maturityList[i].MaturityTypeText == "Initial") {
+                  if (new Date(this.maturityList[i].MaturityDate) > maxInitialMaturityDate) {
+                    maxInitialMaturityDate = this.maturityList[i].MaturityDate;
+                  }
+                }
+
+                if (this.maturityList[i].MaturityTypeText == "Fully extended") {
+                  if (new Date(this.maturityList[i].MaturityDate) > maxFullyExtendedMaturityDate) {
+                    maxFullyExtendedMaturityDate = this.maturityList[i].MaturityDate;
+                  }
+                }
+                if (this.maturityList[i].MaturityTypeText == "Extension") {
+                  if (new Date(this.maturityList[i].MaturityDate) > maxExtendedMaturity) {
+                    maxExtendedMaturity = this.maturityList[i].MaturityDate;
+                  }
+                }
+              }
+
+              if (this.maturityList[i].ActualPayoffDate) {
+                if (new Date(this.maturityList[i].ActualPayoffDate) > maxActualPayoffDate) {
+                  maxActualPayoffDate = this.maturityList[i].ActualPayoffDate;
+                }
+              }
+            }
+          }
+        }
+
+      } else {
+        if (this.maturityList !== undefined) {
+          if (this.maturityList.length > 0) {
+
+            for (var i = 0; i < this.maturityList.length; i++) {
+              if (this.maturityList[i].ApprovedText == "Y" && this.maturityList[i].isDeleted == 0) {
+                if (this.maturityList[i].MaturityTypeText == "Initial") {
+                  if (new Date(this.maturityList[i].MaturityDate) > maxInitialMaturityDate) {
+                    maxInitialMaturityDate = this.maturityList[i].MaturityDate;
+                  }
+                }
+
+                if (this.maturityList[i].MaturityTypeText == "Fully extended") {
+                  if (new Date(this.maturityList[i].MaturityDate) > maxFullyExtendedMaturityDate) {
+                    maxFullyExtendedMaturityDate = this.maturityList[i].MaturityDate;
+                  }
+                }
+                if (this.maturityList[i].MaturityTypeText == "Extension") {
+                  if (new Date(this.maturityList[i].MaturityDate) > maxExtendedMaturity) {
+                    maxExtendedMaturity = this.maturityList[i].MaturityDate;
+                  }
+                }
+              }
+
+              if (this.maturityList[i].ActualPayoffDate) {
+                if (new Date(this.maturityList[i].ActualPayoffDate) > maxActualPayoffDate) {
+                  maxActualPayoffDate = this.maturityList[i].ActualPayoffDate;
+                }
+              }
+            }
+          }
+        }
+      }
+      if (maxInitialMaturityDate.getFullYear() < 2000) {
+        maxInitialMaturityDate = new Date(Math.max.apply(null, this.lstNote.map(x => x.InitialMaturityDate)));
+        if (maxInitialMaturityDate.getFullYear() < 2000) {
+          maxInitialMaturityDate = null;
+        }
+      }
+      if (maxFullyExtendedMaturityDate.getFullYear() < 2000) {
+        maxFullyExtendedMaturityDate = new Date(Math.max.apply(null, this.lstNote.map(x => x.FullyExtendedMaturityDate)));
+        if (maxFullyExtendedMaturityDate.getFullYear() < 2000) {
+          maxFullyExtendedMaturityDate = null;
+        }
+      }
+      if (maxExtendedMaturity.getFullYear() < 2000) {
+        maxExtendedMaturity = new Date(Math.max.apply(null, this.lstNote.map(x => x.ExtendedMaturityCurrent)));
+        max_ExtensionMat = maxExtendedMaturity;
+        if (maxExtendedMaturity.getFullYear() < 2000) {
+          maxExtendedMaturity = null;
+          max_ExtensionMat = this._deal.max_ExtensionMat;
+        }
+      }
+      else {
+        max_ExtensionMat = maxExtendedMaturity;
+      }
+
+      if (maxActualPayoffDate.getFullYear() < 2000) {
+        maxActualPayoffDate = new Date(Math.max.apply(null, this.lstNote.map(x => x.ActualPayoffDate)));
+        if (maxActualPayoffDate.getFullYear() < 2000) {
+          maxActualPayoffDate = null;
+        }
+      }
+
       if (maxActualPayoffDate != null || maxActualPayoffDate != undefined) {
         if (maxActualPayoffDate.getFullYear() < 2000) {
 
           maxActualPayoffDate = null;
         }
       }
-      if (maxExtendedMaturity != null || maxExtendedMaturity != undefined) {
-        if (maxExtendedMaturity.getFullYear() < 2000) {
-          maxExtendedMaturity = null;
+      if (max_ExtensionMat != null) {
+        if (max_ExtensionMat < maxInitialMaturityDate) {
+          useExtenstionMaturity = false;
         }
       }
-      if (maxFullyExtendedMaturityDate != null || maxFullyExtendedMaturityDate != undefined) {
-        if (maxFullyExtendedMaturityDate.getFullYear() < 2000) {
 
-          maxFullyExtendedMaturityDate = null;
-        }
-      }
-      if (maxExpectedMaturityDate != null || maxExpectedMaturityDate != undefined) {
-        if (maxExpectedMaturityDate.getFullYear() < 2000) {
-
-          maxExpectedMaturityDate = null;
-        }
-      }
       var today = new Date();
-
       //ActualPayoffDate
-      var distinct = [];
-      var uniquedates = {};
-      var listnotes = this.lstNote;
-      for (var item, i = 0; item = listnotes[i++];) {
-        var actualpayoffdate = item.ActualPayoffDate;
-        if (!(actualpayoffdate in uniquedates)) {
-          uniquedates[actualpayoffdate] = 1;
-          distinct.push(actualpayoffdate);
-        }
-      }
-
-      if (distinct.length == 1 && distinct[0] != null) {
-        maxmat = actualpayoffdate;
+      if (maxActualPayoffDate != null && usePayOffasmaturity == true) {
+        maxmat = maxActualPayoffDate;
+      } else if (max_ExtensionMat != null && useExtenstionMaturity == true) {
+        maxmat = max_ExtensionMat;
       }
       else {
         var nextInitialMaturityDate = this.getnextbusinessDate(new Date(JSON.parse(JSON.stringify(maxInitialMaturityDate))), -20, false);
         if (today >= nextInitialMaturityDate) {
           var nextExtendedMaturityDate = this.getnextbusinessDate(new Date(JSON.parse(JSON.stringify(maxExtendedMaturity))), -20, false);
           if (today >= nextExtendedMaturityDate) {
-            if (today >= nextExtendedMaturityDate) {
-              if (maxFullyExtendedMaturityDate > maxExpectedMaturityDate)
-                maxmat = maxExpectedMaturityDate
-              else
-                maxmat = maxFullyExtendedMaturityDate;
-            }
-            else {
-              if (nextExtendedMaturityDate > maxExpectedMaturityDate)
-                maxmat = maxExpectedMaturityDate
-              else
-                maxmat = nextExtendedMaturityDate
-            }
-
+            maxmat = maxFullyExtendedMaturityDate;
           }
           else {
-            if (maxExtendedMaturity > maxExpectedMaturityDate)
-              maxmat = maxExpectedMaturityDate
-            else
-              maxmat = maxExtendedMaturity;
+            maxmat = maxExtendedMaturity;
           }
-
         }
         else {
           //Use InitialMaturityDate if it is smaller than today date
@@ -12922,7 +17348,7 @@ export class DealDetailComponent extends Paginated implements OnInit {
           comment = notwireDealfunding[t].Comment;
         }
         if (purpose == "Paydown") {
-          if (comment == "") {
+          if (comment == "" || notwireDealfunding[t].GeneratedBy == 747) {
             checkfortotal = false
           } else {
             checkfortotal = true
@@ -12930,8 +17356,8 @@ export class DealDetailComponent extends Paginated implements OnInit {
         }
         if (checkfortotal == true) {
           //increment for adding new column in dealfunding grid
-          if (this.dynamicColList.length > 31) {
-            for (var m = 32; m < this.dynamicColList.length; m++) {
+          if (this.dynamicColList.length > 35) {
+            for (var m = 36; m < this.dynamicColList.length; m++) {
               if (this.dynamicColList[m] != "Date" && this.dynamicColList[m] != "PurposeID" && this.dynamicColList[m] != "DealFundingRowno" && this.dynamicColList[m] != "Applied") {
                 if (notwireDealfunding[t][this.dynamicColList[m]]) {
                   if (notwireDealfunding[t][this.dynamicColList[m]].toString().includes(',')) {
@@ -12972,25 +17398,57 @@ export class DealDetailComponent extends Paginated implements OnInit {
     if (fundingdates != "") {
       fundingerror = fundingerror + "<p>" + "At " + fundingdates.slice(0, fundingdates.length - 2) + " sum of note funding is not equal to deal funding." + "</p>";
     }
+    let isExpectedFullRepaymentDateHoliday = false, isEarliestPossibleRepaymentDateHoliday = false, isLatestPossibleRepaymentDateHoliday = false;
+    let HolidayErrormsg = '';
+    if (this.checkDateisHoliday(this._deal.ExpectedFullRepaymentDate))
+      isExpectedFullRepaymentDateHoliday = true;
 
+
+    if (this.checkDateisHoliday(this._deal.EarliestPossibleRepaymentDate))
+      isEarliestPossibleRepaymentDateHoliday = true;
+
+
+    if (this.checkDateisHoliday(this._deal.LatestPossibleRepaymentDate))
+      isLatestPossibleRepaymentDateHoliday = true;
+
+
+    if (isExpectedFullRepaymentDateHoliday || isEarliestPossibleRepaymentDateHoliday || isLatestPossibleRepaymentDateHoliday) {
+      HolidayErrormsg = "You have entered";
+      if (isExpectedFullRepaymentDateHoliday)
+        HolidayErrormsg = HolidayErrormsg + " Expected Full Repayment Date (" + this._deal.ExpectedFullRepaymentDate + "),"
+
+      if (isEarliestPossibleRepaymentDateHoliday)
+        HolidayErrormsg = HolidayErrormsg + " Earliest Possible Repayment Date (" + this._deal.EarliestPossibleRepaymentDate + "),"
+
+      if (isLatestPossibleRepaymentDateHoliday)
+        HolidayErrormsg = HolidayErrormsg + " Latest Possible Repayment Date (" + this._deal.LatestPossibleRepaymentDate + "),"
+
+      HolidayErrormsg = HolidayErrormsg.substring(0, HolidayErrormsg.length - 1) + " which is either on holiday or weekend. Please enter different date.";
+    }
+    if (HolidayErrormsg)
+      fundingerror = HolidayErrormsg;
+
+    if (dfvalidation != "") {
+      fundingerror = fundingerror + dfvalidation;
+    }
     if (fundingerror == "") {
       if (this._isautospreadRepaymentshow) {
         this.convertDatetoGMTGrid(this.listdealfunding, 'DealFunding');
         if (this._deal.EnableAutoSpread == true) {
           this.convertDatetoGMTGrid(this.lstautospreadrule, "Auto Spread");
         }
-
         this._isListFetching = true;
         this.AssginValuesToDealDataContract();
         this.UpdateNoteDropDowns();
         this.lstNoteFunding = [];
-        this.Dealfuturefunding.maxMaturityDate = this.convertDatetoGMT(maxextendedmat);
+        this.Dealfuturefunding.maxMaturityDate = this.convertDatetoGMT(maxFullyExtendedMaturityDate);
         this.Dealfuturefunding.EnableAutoSpread = this._deal.EnableAutoSpread;
         this.Dealfuturefunding.ServicerDropDate = this._deal.ServicerDropDate;
         this.Dealfuturefunding.FirstPaymentDate = this._deal.FirstPaymentDate;
         this.Dealfuturefunding.ServicereDayAjustement = this._deal.ServicereDayAjustement;
         this.Dealfuturefunding.ListNoteRepaymentBalances = this._deal.ListNoteRepaymentBalances;
         this.Dealfuturefunding.ListHoliday = this.ListHoliday;
+        this.Dealfuturefunding.LastWireConfirmDate_db = this._deal.LastWireConfirmDate_db;
         this.Dealfuturefunding.EnableAutospreadUseRuleN = true;
         //   this.Dealfuturefunding.amort = this._deal.amort();
         this.CallPayRuleFutureFunding(this.Dealfuturefunding);
@@ -13001,26 +17459,49 @@ export class DealDetailComponent extends Paginated implements OnInit {
       this.CustomAlert(fundingerror);
       this._isListFetching = false;
       this.isShowGenerateAutospreadRepay = false;
+      this._isShowSaveDeal = true;
     }
 
   }
 
-
   dealfundingExporttoexcel() {
     this._isListFetching = true;
-    var flexdealfunding = this.flexdealfunding.itemsSource._src;
+    var flexdealfunding = JSON.parse(JSON.stringify(this.flexdealfunding.itemsSource._src));
     //  flexdealfunding[0]["NotesCount"] = this.lstNote.length;
-    flexdealfunding[0]["NotesCount"] = this.flexdealfunding.columns.length - 11;
+    flexdealfunding[0]["NotesCount"] = this.flexdealfunding.columns.length - 14;
     for (var k = 0; k < flexdealfunding.length; k++) {
       var dealfundingcolumns = Object.keys(flexdealfunding[k]);
+      //update status
+
+      if (flexdealfunding[k].WF_CurrentStatusDisplayName == null || flexdealfunding[k].WF_CurrentStatusDisplayName == "") {
+        if (flexdealfunding[k].Applied == true) {
+          flexdealfunding[k].WF_CurrentStatusDisplayName = "Completed";
+        } else {
+          flexdealfunding[k].WF_CurrentStatusDisplayName = "Projected";
+        }
+      }
+
       if (flexdealfunding[k].Date != null) {
         flexdealfunding[k].Date = this.convertDatetoGMT(flexdealfunding[k].Date);
       }
       if (flexdealfunding[k].Value) {
-        flexdealfunding[k].Value = flexdealfunding[k].Value.toString()
+        flexdealfunding[k].Value = flexdealfunding[k].Value.toString();
       }
-
-
+      else {
+        flexdealfunding[k].Value = "0";
+      }
+      if (flexdealfunding[k].RequiredEquity) {
+        flexdealfunding[k].RequiredEquity = flexdealfunding[k].RequiredEquity.toString();
+      }
+      else {
+        flexdealfunding[k].RequiredEquity = "0";
+      }
+      if (flexdealfunding[k].AdditionalEquity) {
+        flexdealfunding[k].AdditionalEquity = parseFloat((flexdealfunding[k].AdditionalEquity).toFixed(2));
+      }
+      else {
+        flexdealfunding[k].AdditionalEquity = "0";
+      }
       if (flexdealfunding[k].PurposeText) {
         if (!(Number(flexdealfunding[k].PurposeText).toString() == "NaN" || Number(flexdealfunding[k].PurposeText) == 0)) {
           var currentpurposeid;
@@ -13029,6 +17510,13 @@ export class DealDetailComponent extends Paginated implements OnInit {
         }
       }
 
+      if (flexdealfunding[k].AdjustmentType) {
+        if (!(Number(flexdealfunding[k].AdjustmentType).toString() == "NaN" || Number(flexdealfunding[k].AdjustmentType) == 0)) {
+          var currentAdjustmentType;
+          currentAdjustmentType = Number(flexdealfunding[k].AdjustmentType);
+          flexdealfunding[k].AdjustmentType = this.lstAdjustmentType.find(x => x.LookupID == currentAdjustmentType).Name;
+        }
+      }
       for (var i = 0; i < this.lstNote.length; i++) {
         if (dealfundingcolumns.includes(this.lstNote[i].Name)) {
           if (flexdealfunding[k][this.lstNote[i].Name]) {
@@ -13040,15 +17528,21 @@ export class DealDetailComponent extends Paginated implements OnInit {
         }
       }
     }
-
     this.dealSrv.downloadexcelfile(flexdealfunding)
       .subscribe(fileData => {
         this._isListFetching = false;
         for (var k = 0; k < flexdealfunding.length; k++) {
-
           if (flexdealfunding[k].Value) {
 
             flexdealfunding[k].Value = parseFloat(flexdealfunding[k].Value);
+          }
+          if (flexdealfunding[k].RequiredEquity) {
+
+            flexdealfunding[k].RequiredEquity = parseFloat(flexdealfunding[k].RequiredEquity);
+          }
+          if (flexdealfunding[k].AdditionalEquity) {
+
+            flexdealfunding[k].AdditionalEquity = parseFloat(flexdealfunding[k].AdditionalEquity);
           }
           for (var i = 0; i < this.lstNote.length; i++) {
             if (dealfundingcolumns.includes(this.lstNote[i].Name)) {
@@ -13098,6 +17592,9 @@ export class DealDetailComponent extends Paginated implements OnInit {
   EnableDisableAutospreadRepayments() {
     var check = 0;
     var result = this.listdealfunding.filter(x => x.PurposeText == "Full Payoff");
+    if (result === undefined || result === null || result.length == 0) {
+      result = this.listdealfunding.filter(x => x.PurposeText == "630");
+    }
     if (result !== undefined) {
       if (result !== null) {
         if (result.length > 0) {
@@ -13106,6 +17603,8 @@ export class DealDetailComponent extends Paginated implements OnInit {
           this._deal.ApplyNoteLevelPaydowns = false;
           this.repaymentchecked = false;
           this._ispaidofdeal = true;
+
+          $("#EnableAutoSpreadRepayments").attr("checked", false);
           $('#EnableAutoSpreadRepayments').attr("disabled", "disabled");
           $('#EnableAutoSpreadRepayments').attr('style', 'background-color:#D3D3D3');
         }
@@ -13129,17 +17628,35 @@ export class DealDetailComponent extends Paginated implements OnInit {
     }
     if (this._ispaidofdeal == true) {
       if (UseRuleNDeal == true) {
+        this.DeleteDealFundingAndNoteFundingForUseRuleN();
         this._isautospreadRepaymentshow = false;
         this._deal.EnableAutospreadRepayments = false;
         this._deal.ApplyNoteLevelPaydowns = false;
         this.DealBtntype = 0;
+      } else {
+        this._deal.EnableAutospreadRepayments = false;
+        this._deal.AutoUpdateFromUnderwriting = false;
+        this.repaymentchecked = false;
       }
 
     } else {
       if (UseRuleNDeal == true) {
+
+        if (this.LastPurposeType == '630' || "Full Payoff") {
+          this._deal.EnableAutospreadRepayments = this._deal.EnableAutospreadRepayments_db;
+        }
         if (this._deal.EnableAutospreadRepayments == true) {
+
+          this._deal.EnableAutospreadRepayments = true;
+          //Commented date: 5/31/2022
+          //  this._deal.AutoUpdateFromUnderwriting = true;
+          this.repaymentchecked = true;
+          this.autospreadRepaygridBind();
+          this.autospreadRepaymentDateFieldsBS();
           this._isautospreadRepaymentshow = true;
           this.DealBtntype = 2;
+          $("#EnableAutoSpreadRepayments").attr("checked", true);
+
         } else {
 
           this._isautospreadRepaymentshow = false;
@@ -13157,10 +17674,292 @@ export class DealDetailComponent extends Paginated implements OnInit {
       this.createMaturityConfigurationList();
 
     }
-    localStorage.setItem('ClickedTabId', 'aMaturitytab');
+    // localStorage.setItem('ClickedTabId', 'aMaturitytab');
     setTimeout(() => {
       this._isListFetching = false;
     }, 1000);
+  }
+  invalidateAccountingClose() {
+
+    this._isListFetching = true;
+    this._isShowAccountingClose = true;
+    localStorage.setItem('ClickedTabId', 'aAccountingtab');
+    this.getAllAccountingHistory();
+
+    error => {
+      this._isListFetching = false;
+      console.error('Error: ' + error);
+    }
+    setTimeout(() => {
+      this._isListFetching = false;
+    }, 1000);
+  }
+  getAllAccountingHistory() {
+    this.dealSrv.getAccountingClosebyDealid(this._deal.DealID, this._pageIndexAccountingClose, 1000).subscribe(res => {
+      if (res.Succeeded) {
+        this.lstdealaccountingClose = res.dt;
+        this.ConvertToBindableDateAccountingClose(this.lstdealaccountingClose);
+        this.LastActivityType = this.lstdealaccountingClose[0].LastActivityType;
+
+      }
+    });
+  }
+
+  validateDealAccoutingClose() {
+    var newclosedate, ClosingDateMonthend, MaturityMonthend, maxClosingDate;
+    var accountingvalidmsg = "";
+    var todaydate = new Date();
+    var currentCloseDate = new Date(this._closeDateAccounting);
+    var LastMonthEndDate = new Date(todaydate.getFullYear(), todaydate.getMonth(), 0);
+
+    if (!this._closeDateAccounting) {
+      accountingvalidmsg = "<p> Close Date can not be blank.</p>";
+    }
+    else {
+      newclosedate = new Date(this._closeDateAccounting);
+
+      if (this.lstdealaccountingClose.length > 0) {
+        MaturityMonthend = this.GetLastDayOftheMonth(this.lstdealaccountingClose[0].Maturity);
+        if (this.lstdealaccountingClose[0].LastAccountingCloseDate) {
+          maxClosingDate = new Date(this.lstdealaccountingClose[0].LastAccountingCloseDate);
+        }
+        else {
+          //Logic to get max closing date
+          var minClosingDate = null;
+          if (this.lstNote) {
+            for (var val = 0; val < this.lstNote.length; val++) {
+              var current = this.lstNote[val];
+              if (minClosingDate === null || current.ClosingDate < minClosingDate) {
+                minClosingDate = current.ClosingDate;
+              }
+            }
+            maxClosingDate = minClosingDate;
+          }
+
+        }
+        ClosingDateMonthend = this.GetLastDayOftheMonth(maxClosingDate);
+      }
+      else {
+        //Logic to get max closing date
+        var minClosingDate = null, maxMaturity = null;
+
+        if (this.lstNote) {
+          for (var val = 0; val < this.lstNote.length; val++) {
+            var current = this.lstNote[val];
+            if (minClosingDate === null || current.ClosingDate < minClosingDate) {
+              minClosingDate = current.ClosingDate;
+            }
+          }
+
+          for (var val = 0; val < this.lstSequenceHistory.length; val++) {
+            var current = this.lstSequenceHistory[val];
+            if (maxMaturity === null || current.Maturity < maxMaturity) {
+              maxMaturity = current.Maturity;
+            }
+          }
+        }
+
+        ClosingDateMonthend = this.GetLastDayOftheMonth(minClosingDate);
+        MaturityMonthend = this.GetLastDayOftheMonth(maxMaturity);
+        maxClosingDate = new Date(minClosingDate);
+
+      }
+
+
+      if (this.CheckDateisLastDayoftheMonth(newclosedate) == false) {
+        accountingvalidmsg += "<p> Close period date " + this.convertDateToBindable(newclosedate) + " should be the end of the month.</p>";
+      }
+
+      if (newclosedate > LastMonthEndDate) {
+        accountingvalidmsg += "<p> Close period date " + this.convertDateToBindable(newclosedate) + " cannot be greater than end of the last month " + this.convertDateToBindable(LastMonthEndDate) + ".</p>";
+      }
+
+
+
+      if (currentCloseDate < ClosingDateMonthend || currentCloseDate > LastMonthEndDate) {
+        accountingvalidmsg += "<p> Close period date " + this.convertDateToBindable(this._closeDateAccounting) + " should be between " + this.convertDateToBindable(ClosingDateMonthend) + " and " + this.convertDateToBindable(LastMonthEndDate) + ".</p>";
+      }
+
+      if (currentCloseDate.toDateString() == maxClosingDate.toDateString()) {
+        //Close Period date should not be equal to last close .
+        accountingvalidmsg += "<p> Close period date " + this.convertDateToBindable(this._closeDateAccounting) + " is already Closed" + ".</p>";
+      }
+
+      if (currentCloseDate < maxClosingDate) {
+        //Close Period date should not be less than maxclosing Date. 
+        accountingvalidmsg += "<p> Close period date can not be less than " + this.convertDateToBindable(maxClosingDate) + ".</p>";
+      }
+    }
+    if (accountingvalidmsg) {
+      this.CustomAlert(accountingvalidmsg);
+      this._isListFetching = false;
+      return false;
+    }
+    else {
+      return true;
+    }
+
+  }
+
+  SaveAccountingClose() {
+    this._isListFetching = true;
+    var savedealclose = '';
+
+    if (this.validateDealAccoutingClose()) {
+      var closeDate = this.convertDateToBindable(this._closeDateAccounting);
+      var acccomment = this.acccomment == undefined ? "" : this.acccomment;
+
+      savedealclose = this._deal.CREDealID + "|" + closeDate + "|" + acccomment;
+
+      this.dealSrv.savedealaccountingClose(savedealclose).subscribe(res => {
+        if (res.Succeeded) {
+
+          this._ShowmessagedivMsg = "Deal has been closed for accounting for the period " + this.convertDateToBindable(this._closeDateAccounting) + " .";
+          this._closeDateAccounting = null;
+          this._openDateAccounting = null;
+          this.acccomment = null;
+          this.getAllAccountingHistory();
+          this._isListFetching = false;
+          this._Showmessagediv = true;
+
+
+          setTimeout(function () {
+            this._Showmessagediv = false;
+          }.bind(this), 2000);
+        }
+      });
+    }
+  }
+
+
+  validateDealAccoutingOpen() {
+    var accountingvalidmsg = "", LastAccountingOpenDate, LastAccountingOpenDateMonthEnd, MaturityMonthend, ClosingDateMonthend, ClosingDate, LastAccountingCloseDate;
+
+    if (!this._openDateAccounting) {
+      accountingvalidmsg = "<p> Open Date can not be blank.</p>";
+    }
+    else {
+      var maxAccClosingDate;
+      if (this.lstdealaccountingClose.length > 0) {
+        LastAccountingOpenDate = this.lstdealaccountingClose[0].LastAccountingOpenDate;
+        LastAccountingOpenDateMonthEnd = this.GetLastDayOftheMonth(this.lstdealaccountingClose[0].LastAccountingOpenDate);
+        MaturityMonthend = this.GetLastDayOftheMonth(this.lstdealaccountingClose[0].Maturity);
+        ClosingDateMonthend = this.GetLastDayOftheMonth(this.lstdealaccountingClose[0].ClosingDate);
+        ClosingDate = this.lstdealaccountingClose[0].ClosingDate;
+
+        if (this.lstdealaccountingClose[0].LastAccountingCloseDate) {
+          LastAccountingOpenDateMonthEnd = new Date(this.lstdealaccountingClose[0].LastAccountingCloseDate);
+          LastAccountingCloseDate = this.lstdealaccountingClose[0].LastAccountingCloseDate;
+        }
+        else {
+          var minClosingDate = null;
+          if (this.lstNote) {
+            for (var val = 0; val < this.lstNote.length; val++) {
+              var current = this.lstNote[val];
+              if (minClosingDate === null || current.ClosingDate < minClosingDate) {
+                minClosingDate = current.ClosingDate;
+              }
+            }
+            ClosingDate = minClosingDate;
+          }
+
+
+        }
+      }
+      else {
+        var minClosingDate = null, maxMaturity = null;
+
+        //Logic to get max closing date
+        var minClosingDate = null, maxMaturity = null;
+
+        if (this.lstNote) {
+          for (var val = 0; val < this.lstNote.length; val++) {
+            var current = this.lstNote[val];
+            if (minClosingDate === null || current.ClosingDate < minClosingDate) {
+              minClosingDate = current.ClosingDate;
+            }
+          }
+
+          for (var val = 0; val < this.lstSequenceHistory.length; val++) {
+            var current = this.lstSequenceHistory[val];
+            if (maxMaturity === null || current.Maturity < maxMaturity) {
+              maxMaturity = current.Maturity;
+            }
+          }
+        }
+
+        ClosingDateMonthend = this.GetLastDayOftheMonth(minClosingDate);
+        MaturityMonthend = this.GetLastDayOftheMonth(maxMaturity);
+        ClosingDate = new Date(minClosingDate);
+
+      }
+
+
+      if (this.lstdealaccountingClose[0].LastAccountingCloseDate == null) {
+        accountingvalidmsg += "<p> you can not open this accounting period there is no closed accounting.</p>";
+      }
+      else {
+
+
+        var currentOpenDate = new Date(this._openDateAccounting);
+        if (this.CheckDateisLastDayoftheMonth(currentOpenDate) == false) {
+          accountingvalidmsg += "<p> Open period date " + this.convertDateToBindable(currentOpenDate) + " should be the end of the month.</p>";
+        }
+
+        //open date should be between close and maturity
+        if (currentOpenDate < new Date(ClosingDate) || currentOpenDate > MaturityMonthend) {
+          accountingvalidmsg += "<p> Open period date " + this.convertDateToBindable(this._openDateAccounting) + " should be between " + this.convertDateToBindable(ClosingDateMonthend) + " and " + this.convertDateToBindable(MaturityMonthend) + ".</p>";
+        }
+        if (currentOpenDate > new Date(LastAccountingCloseDate)) {
+          //Open Period date cannot be greater than last accounting close date.
+          accountingvalidmsg += "<p> Open period date " + this.convertDateToBindable(this._openDateAccounting) + " cannot be greater than last accounting close date " + this.convertDateToBindable(LastAccountingCloseDate) + ".</p>";
+        }
+      }
+
+    }
+    if (accountingvalidmsg) {
+      this.CustomAlert(accountingvalidmsg);
+      this._isListFetching = false;
+      return false;
+    }
+    else {
+      return true;
+    }
+
+
+  }
+
+  SaveAccountingOpen() {
+    this._isListFetching = true;
+    var savedealOpen = '';
+
+    if (this.validateDealAccoutingOpen()) {
+      var OpenDate = this.convertDateToBindable(this._openDateAccounting);
+      var acccomment = this.acccomment == undefined ? "" : this.acccomment;
+      savedealOpen = this._deal.CREDealID + "|" + OpenDate + "|" + acccomment;
+
+      this.dealSrv.savedealaccountingOpen(savedealOpen).subscribe(res => {
+        if (res.Succeeded) {
+          this._ShowmessagedivMsg = "Deal has been opened for accounting for the period " + this.convertDateToBindable(this._openDateAccounting) + " .";
+          this._closeDateAccounting = null;
+          this._openDateAccounting = null;
+          this.acccomment = null;
+          this.getAllAccountingHistory();
+          this._isListFetching = false;
+          this._Showmessagediv = true;
+
+          setTimeout(function () {
+            this._Showmessagediv = false;
+          }.bind(this), 2000);
+        }
+      });
+    }
+  }
+
+  GetLastDayOftheMonth(date) {
+    date = new Date(date);
+    var lastDate = new Date(date.getFullYear(), date.getMonth() + 1, 0);
+    return lastDate;
   }
 
   getDealMaturitybyID(id) {
@@ -13173,6 +17972,7 @@ export class DealDetailComponent extends Paginated implements OnInit {
         this.ConvertToBindableAnyListDate(this.maturityList, 'Maturity');
         for (var k = 0; k < this.maturityList.length; k++) {
           this.maturityList[k].IsValidateMaturityDate = true;
+          this.maturityList[k].IsSoftholidate = false;
           this.originalMaturityList.push({
             'Approved': this.maturityList[k].Approved,
             'ApprovedText': this.maturityList[k].ApprovedText,
@@ -13187,9 +17987,13 @@ export class DealDetailComponent extends Paginated implements OnInit {
             'ScheduleID': this.maturityList[k].ScheduleID,
             'isDeleted': this.maturityList[k].isDeleted,
             'IsValidateMaturityDate': this.maturityList[k].IsValidateMaturityDate,
+            'IsSoftholidate': this.maturityList[k].IsSoftholidate,
             'CRENoteID': this.maturityList[k].CRENoteID,
             'MaturityMethodID': this.maturityList[k].MaturityMethodID,
-            'MaturityGroupName': this.maturityList[k].MaturityGroupName
+            'MaturityGroupName': this.maturityList[k].MaturityGroupName,
+
+            'ExtensionType': this.maturityList[k].ExtensionType,
+            'ExtensionTypeText': this.maturityList[k].ExtensionTypeText
           });
         }
         this.createMaturityConfigurationList();
@@ -13204,6 +18008,7 @@ export class DealDetailComponent extends Paginated implements OnInit {
     var lstdata = [];
     var lstConfigmat = [];
     var newnotelst = [];
+    // var noteidUnique = this.Getunique(this.lstNote, 'CRENoteID');
     var lstnote = this.lstNote.filter(x => !(x.CRENoteID == undefined || x.CRENoteID == ''));
     if (this.lstMaturityConfiguration.length == 0 || this.lstMaturityConfiguration == undefined) {
       lstdata = lstnote;
@@ -13292,12 +18097,47 @@ export class DealDetailComponent extends Paginated implements OnInit {
       );
     }
 
-    groupname = this.lstMaturityConfiguration.filter(x => x.NoteSequenceNumber == 1);
+    //groupname = this.lstMaturityConfiguration.filter(x => x.NoteSequenceNumber == 1);
+    groupname = uniquieData[0];
+
     this.lstGroupName = matconfigdata;
-    this.invalidateMaturitygridData(this.maturityList, groupname[0]["MaturityGroupName"]);
+    //this.invalidateMaturitygridData(this.maturityList, groupname[0]["MaturityGroupName"]);
+    this.invalidateMaturitygridData(this.maturityList, groupname);
     this.GetScheduleEffectiveDateCount();
   }
 
+  checkifshoftoliday(date) {
+    var formateddate = this.convertDateToBindable(date);
+    var currentdatearry = this.ListHoliday.filter(x => this.convertDateToBindable(x.HolidayDate) == formateddate && x.HolidayTypeID == 411);
+    var issoftholidaydate = false;
+    if (currentdatearry != null && currentdatearry.length > 0) {
+      if (currentdatearry[0].IsSoftHoliday == 3) {
+        issoftholidaydate = true;
+      }
+    }
+    return issoftholidaydate;
+  }
+
+  checkholidayType(date) {
+    var holidayType = 0;
+    var tempdate = new Date(date);
+    var maturitydateday = tempdate.getDay();
+    if (maturitydateday == 6 || maturitydateday == 0) {
+      holidayType = 3;
+    } else {
+      var formateddate = this.convertDateToBindable(date);
+      var currentdatearry = this.ListHoliday.filter(x => this.convertDateToBindable(x.HolidayDate) == formateddate && x.HolidayTypeID == 411);
+
+      if (currentdatearry != null && currentdatearry.length > 0) {
+        if (currentdatearry[0].IsSoftHoliday == 3) {
+          holidayType = 1;
+        } else { holidayType = 2; }
+      }
+    }
+
+
+    return holidayType;
+  }
   invalidateMaturitygridData(data, groupName) {
     this._isMaturityTabClicked = true;
     var filteredmatlist = [];
@@ -13344,6 +18184,10 @@ export class DealDetailComponent extends Paginated implements OnInit {
     }, 200);
 
     if (filteredmatlist.length > 0) {
+      if (this._isMattabclicked == false) {
+        this.OldmaturityEffectiveDate = filteredmatlist[0].EffectiveDate;
+        this._isMattabclicked = true;
+      }
       this.maturityEffectiveDate = filteredmatlist[0].EffectiveDate;
       this.maturityActualPayoffDate = filteredmatlist[0].ActualPayoffDate;
       this.maturityExpectedMaturityDate = filteredmatlist[0].ExpectedMaturityDate;
@@ -13353,13 +18197,16 @@ export class DealDetailComponent extends Paginated implements OnInit {
       this.maturityActualPayoffDate = null;
       this.maturityExpectedMaturityDate = null;
       this.maturityOpenPrepaymentDate = null;
+      this.OldmaturityEffectiveDate = null;
     }
     if (this.maturityActualPayoffDate) {
       isdate = true;
     } else {
       isdate = false;
       for (var k = 0; k < this.flexMaturity.rows.length - 1; k++) {
-        var holidaydatestatus = this.holidayDateCheck(this.flexMaturity.rows[k].dataItem.MaturityDate, k, 'grid');
+        if (this.flexMaturity.rows[k].dataItem.MaturityDate !== undefined && this.flexMaturity.rows[k].dataItem.MaturityDate !== "") {
+          this.holidayDateCheck(this.flexMaturity.rows[k].dataItem.MaturityDate, k, 'grid');
+        }
       }
     }
 
@@ -13378,17 +18225,20 @@ export class DealDetailComponent extends Paginated implements OnInit {
         }
         else {
           if (isdate == true) {
-            if (panel.columns[c].header == 'Maturity date' || panel.columns[c].header == 'Type' || panel.columns[c].header == 'Approved' || panel.columns[c].header == 'Delete') {
+            if (panel.columns[c].header == 'Maturity date' || panel.columns[c].header == 'Type' || panel.columns[c].header == 'Approved' || panel.columns[c].header == 'Delete' || panel.columns[c].header == 'Extension Type') {
               cell.style.backgroundColor = '#cfcfcf';
             }
           }
           else {
             if (panel.columns[c].header == 'Maturity date') {
               if (panel.rows[r].dataItem) {
-                if (panel.rows[r].dataItem.IsValidateMaturityDate == false) {
-                  cell.style.backgroundColor = '#FFB3A7';
-                } else {
-                  cell.style.backgroundColor = null;
+                if (panel.rows[r].dataItem.IsSoftholidate == true) { cell.style.backgroundColor = '#ffbf00'; }
+                else {
+                  if (panel.rows[r].dataItem.IsValidateMaturityDate == false) {
+                    cell.style.backgroundColor = '#FFB3A7';
+                  } else {
+                    cell.style.backgroundColor = null;
+                  }
                 }
               }
             }
@@ -13416,12 +18266,17 @@ export class DealDetailComponent extends Paginated implements OnInit {
         var holidayopenprepaydatestatus = this.holidayDateCheck(this.maturityOpenPrepaymentDate, k, 'otherdate');
 
         if (holidayeffectivedatestatus == true) {
-          $('#EffectiveDate').attr('style', 'background-color:#FFB3A7');
+          if (this.checkifshoftoliday(this.maturityEffectiveDate) == true) {
+            $('#EffectiveDate').attr('style', 'background-color:#ffbf00');
+          } else {
+            $('#EffectiveDate').attr('style', 'background-color:#FFB3A7');
+          }
         } else {
           $('#EffectiveDate').attr('style', 'background-color:none');
         }
         if (holidayopenprepaydatestatus == true) {
-          $('#OpenPrepaymentDate').attr('style', 'background-color:#FFB3A7');
+          if (this.checkifshoftoliday(this.maturityOpenPrepaymentDate) == true) { $('#OpenPrepaymentDate').attr('style', 'background-color:#ffbf00'); } else { $('#OpenPrepaymentDate').attr('style', 'background-color:#FFB3A7'); }
+
         }
         else {
           $('#OpenPrepaymentDate').attr('style', 'background-color:none');
@@ -13429,7 +18284,9 @@ export class DealDetailComponent extends Paginated implements OnInit {
       }
       var holidayactualpayoffdatestatus = this.holidayDateCheck(this.maturityActualPayoffDate, k, 'otherdate');
       if (holidayactualpayoffdatestatus == true) {
-        $('#ActualPayoffDate').attr('style', 'background-color:#FFB3A7');
+        if (this.checkifshoftoliday(this.maturityActualPayoffDate) == true) { $('#ActualPayoffDate').attr('style', 'background-color:#ffbf00'); }
+        else { $('#ActualPayoffDate').attr('style', 'background-color:#FFB3A7'); }
+
       } else {
         $('#ActualPayoffDate').attr('style', 'background-color:none');
       }
@@ -13617,11 +18474,18 @@ export class DealDetailComponent extends Paginated implements OnInit {
   }
 
   cellDealMaturityEdit(maturityFlex: wjcGrid.FlexGrid, e: wjcGrid.CellEditEndingEventArgs) {
+    this.isMaturityDataChanged = true;
     this.previousMaturityType = maturityFlex.rows[e.row].dataItem.MaturityType;
     if (!(Number(maturityFlex.rows[e.row].dataItem.MaturityTypeText).toString() == "NaN" || Number(maturityFlex.rows[e.row].dataItem.MaturityTypeText) == 0)) {
       maturityFlex.rows[e.row].dataItem.MaturityType = maturityFlex.rows[e.row].dataItem.MaturityTypeText;
       maturityFlex.rows[e.row].dataItem.MaturityTypeText = this.maturityTypeList.filter(x => x.LookupID.toString() == maturityFlex.rows[e.row].dataItem.MaturityTypeText)[0].Name;
     }
+
+    if (!(Number(maturityFlex.rows[e.row].dataItem.ExtensionTypeText).toString() == "NaN" || Number(maturityFlex.rows[e.row].dataItem.ExtensionTypeText) == 0)) {
+      maturityFlex.rows[e.row].dataItem.ExtensionType = maturityFlex.rows[e.row].dataItem.ExtensionTypeText;
+      maturityFlex.rows[e.row].dataItem.ExtensionTypeText = this.ExtensionTypeTypeList.filter(x => x.LookupID.toString() == maturityFlex.rows[e.row].dataItem.ExtensionTypeText)[0].Name;
+    }
+
     if (!(maturityFlex.rows[e.row].dataItem.MaturityTypeText == "" || maturityFlex.rows[e.row].dataItem.MaturityTypeText == undefined)) {
       if (maturityFlex.rows[e.row].dataItem.MaturityType.toString() == "708" || maturityFlex.rows[e.row].dataItem.MaturityType.toString() == "710") {
         maturityFlex.rows[e.row].dataItem.ApprovedText = 'Y';
@@ -13640,16 +18504,27 @@ export class DealDetailComponent extends Paginated implements OnInit {
         maturityFlex.rows[e.row].dataItem.ApprovedText = this.maturityApprovedList.filter(x => x.LookupID.toString() == maturityFlex.rows[e.row].dataItem.ApprovedText)[0].Name;
       }
     }
+    var res = this.checkholidayType(maturityFlex.rows[e.row].dataItem.MaturityDate);
+    if (res == 1) {
+      maturityFlex.rows[e.row].dataItem.IsSoftholidate = true;
+    }
     this.createMaturityList('Edit', e.row, this.selectedGroupName);
   }
 
   CopiedDealMaturity(maturityFlex: wjcGrid.FlexGrid, e: wjcGrid.CellEditEndingEventArgs) {
+
+    this.isMaturityDataChanged = true;
     var rownum = '';
     for (var m = 0; m < maturityFlex.rows.length - 1; m++) {
       if (!(Number(maturityFlex.rows[m].dataItem.MaturityTypeText).toString() == "NaN" || Number(maturityFlex.rows[m].dataItem.MaturityTypeText) == 0)) {
         maturityFlex.rows[m].dataItem.MaturityType = maturityFlex.rows[m].dataItem.MaturityTypeText;
         maturityFlex.rows[m].dataItem.MaturityTypeText = this.maturityTypeList.filter(x => x.LookupID.toString() == maturityFlex.rows[m].dataItem.MaturityTypeText)[0].Name;
       }
+      if (!(Number(maturityFlex.rows[m].dataItem.ExtensionTypeText).toString() == "NaN" || Number(maturityFlex.rows[m].dataItem.ExtensionTypeText) == 0)) {
+        maturityFlex.rows[m].dataItem.ExtensionType = maturityFlex.rows[m].dataItem.ExtensionTypeText;
+        maturityFlex.rows[m].dataItem.ExtensionTypeText = this.ExtensionTypeTypeList.filter(x => x.LookupID.toString() == maturityFlex.rows[m].dataItem.ExtensionTypeText)[0].Name;
+      }
+
       if (!(maturityFlex.rows[m].dataItem.MaturityTypeText == "" || maturityFlex.rows[m].dataItem.MaturityTypeText == undefined)) {
         if (maturityFlex.rows[m].dataItem.MaturityType.toString() == "708" || maturityFlex.rows[m].dataItem.MaturityType.toString() == "710") {
           maturityFlex.rows[m].dataItem.ApprovedText = 'Y';
@@ -13675,6 +18550,11 @@ export class DealDetailComponent extends Paginated implements OnInit {
         }
       }
     }
+
+    var res = this.checkholidayType(maturityFlex.rows[e.row].dataItem.MaturityDate);
+    if (res == 1) {
+      maturityFlex.rows[e.row].dataItem.IsSoftholidate = true;
+    }
     this.createMaturityList('Copy', rownum, this.selectedGroupName);
   }
 
@@ -13684,6 +18564,7 @@ export class DealDetailComponent extends Paginated implements OnInit {
     var NoteID = '';
     var minNoteValue;
     var minCRENoteID;
+    this._lstChangedMaturityData = [];
     if (groupname.includes(":")) {
       var splittedgroupname = this.selectedGroupName.split(":");
       CRENoteID = splittedgroupname[0];
@@ -13699,23 +18580,33 @@ export class DealDetailComponent extends Paginated implements OnInit {
       }
     }
     if (CRENoteID != '') {
-      NoteID = this.lstNote.filter(x => x.CRENoteID == CRENoteID)[0].NoteId;
-      if (NoteID == undefined) {
+      var notes = this.lstNote.filter(x => x.CRENoteID == CRENoteID);
+      if (notes.length > 0)
+        NoteID = notes[0].NoteId;
+      if (NoteID == undefined || NoteID == "") {
         NoteID = '00000000-0000-0000-0000-000000000000';
       }
       this.selectedNoteID = NoteID;
     }
+    var maturitymethodID;
+    var maturitymethodname = this.lstMaturityConfiguration.filter(x => x.MaturityGroupName == groupname);
+    if (maturitymethodname.length > 0) {
+      maturitymethodID = maturitymethodname[0].MaturityMethodID;
+    } else {
+      var notematuritymethodID = this.lstMaturityConfiguration.filter(x => x.MaturityMethodIDText == 'Note level');
+      if (notematuritymethodID.length > 0) {
+        maturitymethodID = notematuritymethodID[0].MaturityMethodID;
+      } else {
+        maturitymethodID = "723";
+      }
+    }
 
-    for (var g = 0; g < this.maturityList.length; g++) {
+    for (var g = this.maturityList.length - 1; g >= 0; g--) {
       if (CRENoteID != '') {
         if (this.maturityList[g].NoteID == NoteID) {
-          if (this.maturityList[g].MaturityType || this.maturityList[g].MaturityDate) {
-            if (this.maturityList[g].isDeleted != 1) {
-              if (this.maturityList[g].MaturityType.toString() == "" || this.maturityList[g].MaturityType.toString() == "708" || this.maturityList[g].MaturityType.toString() == "709" || this.maturityList[g].MaturityType.toString() == "710") {
-                this.maturityList.splice(g, 1);
-                g = g - 1;
-              }
-            }
+          if (this.maturityList[g].isDeleted != 1) {
+            this.maturityList.splice(g, 1);
+
           }
         }
       }
@@ -13761,8 +18652,10 @@ export class DealDetailComponent extends Paginated implements OnInit {
               this.flexMaturity.rows[h].dataItem.IsSaved = 'false';
             }
           } else {
-            if (this.flexMaturity.rows[h].dataItem.MaturityType.toString() == '709') {
-              this.flexMaturity.rows[h].dataItem.IsSaved = 'true';
+            if (this.flexMaturity.rows[h].dataItem.MaturityType != null) {
+              if (this.flexMaturity.rows[h].dataItem.MaturityType.toString() == '709') {
+                this.flexMaturity.rows[h].dataItem.IsSaved = 'true';
+              }
             }
           }
           if (!('Rowno' in this.flexMaturity.rows[h].dataItem)) {
@@ -13772,8 +18665,7 @@ export class DealDetailComponent extends Paginated implements OnInit {
         }
       }
     }
-    var dtMaturity = [], dtMaturityList = [], originalmatextList = [], _originalmatextlst = [];
-
+    var dtMaturity = [], originalmatextList = [], _originalmatextlst = [];
     if (this.maturityList.length > 0) {
       for (var k = 0; k < this.maturityList.length; k++) {
         if (this.maturityList[k].NoteID == NoteID) {
@@ -13790,13 +18682,42 @@ export class DealDetailComponent extends Paginated implements OnInit {
               'ExpectedMaturityDate': this.maturityExpectedMaturityDate == null ? null : this.convertDatetoGMT(this.maturityExpectedMaturityDate),
               'OpenPrepaymentDate': this.maturityOpenPrepaymentDate == null ? null : this.convertDatetoGMT(this.maturityOpenPrepaymentDate),
               'CRENoteID': this.maturityList[k].CRENoteID,
-              'MaturityMethodID': this.maturityList[k].MaturityMethodID
+              'MaturityMethodID': this.maturityList[k].MaturityMethodID == undefined ? maturitymethodID : this.maturityList[k].MaturityMethodID,
+              'ExtensionType': this.maturityList[k].ExtensionType
+            });
+
+            this._lstChangedMaturityData.push({
+              'MaturityDate': this.convertDatetoGMT(this.maturityList[k].MaturityDate),
+              'MaturityType': this.maturityList[k].MaturityType,
+              'Approved': this.maturityList[k].Approved,
+              'IsDeleted': this.maturityList[k].isDeleted,
+              'GroupName': groupname,
+              'NoteID': this.maturityList[k].NoteID,
+              'ExtensionType ': this.maturityList[k].ExtensionType
             });
           }
         }
       }
     }
-    //dtMaturityList = dtMaturity;
+    if (dtMaturity.length == 0) {
+      this.maturityOtherFieldsList = [];
+      this.maturityOtherFieldsList.push({
+        'DealID': this._deal.DealID,
+        'NoteID': NoteID,
+        'EffectiveDate': null,
+        'MaturityDate': null,
+        'MaturityType': null,
+        'Approved': null,
+        'IsDeleted': 0,
+        'ActualPayoffDate': this.maturityActualPayoffDate == null ? null : this.convertDatetoGMT(this.maturityActualPayoffDate),
+        'ExpectedMaturityDate': this.maturityExpectedMaturityDate == null ? null : this.convertDatetoGMT(this.maturityExpectedMaturityDate),
+        'OpenPrepaymentDate': this.maturityOpenPrepaymentDate == null ? null : this.convertDatetoGMT(this.maturityOpenPrepaymentDate),
+        'CRENoteID': CRENoteID,
+        'MaturityMethodID': maturitymethodID,
+        'ExtensionType': null,
+      });
+    }
+
     if (this.noteMaturityList.length > 0) {
       // remove old rows of selected note id
       var j = 0;
@@ -13818,7 +18739,7 @@ export class DealDetailComponent extends Paginated implements OnInit {
 
     notedata = this.lstNote.filter(x => x.CRENoteID == CRENoteID);
     if (dtMaturity.length > 0) {
-      _originalmatextlst = this.originalMaturityList.filter(x => x.NoteID == dtMaturity[0].NoteID && x.MaturityType.toString() == "709");
+      _originalmatextlst = this.originalMaturityList.filter(x => x.NoteID == dtMaturity[0].NoteID && x.MaturityType != null && x.MaturityType.toString() == "709");
       if (_originalmatextlst.length > 0) {
         for (var m = 0; m < _originalmatextlst.length; m++) {
           if (_originalmatextlst[m].Approved) {
@@ -13836,54 +18757,54 @@ export class DealDetailComponent extends Paginated implements OnInit {
       var fullyextendedmatList = [];
       var extensionList = [];
       var YextensionList = [];
-      var expectedList = [];
       var mattypefound = false;
       var effectivedateerr = '';
       var maturitytypeerr = '';
       var maturitydateerr = '';
       var minextmaturitydateerr = '';
       var _ismaturitydate = false;
-      var _isholidaydatefound = '';
       var minmaturitydate = '';
       var minextensiondate, minoriginalextensiondate;
       for (var l = 0; l < dtMaturity.length; l++) {
         if (dtMaturity[l].IsDeleted != 1) {
-          if (dtMaturity[l].MaturityType.toString() == "708") {
-            initialmatList.push(dtMaturity[l]);
-          }
-          if (dtMaturity[l].MaturityType.toString() == "710") {
-            fullyextendedmatList.push(dtMaturity[l]);
-          }
-          if (dtMaturity[l].MaturityType.toString() == "709") {
-            extensionList.push(dtMaturity[l]);
-          }
-          if (dtMaturity[l].MaturityType.toString() == "709" && dtMaturity[l].Approved != undefined && dtMaturity[l].Approved.toString() == "3") {
-            YextensionList.push(dtMaturity[l]);
-          }
-
-          if (dtMaturity[l].EffectiveDate == null) {
-            if (!effectivedateerr.includes(notedata[0].Name)) {
-              effectivedateerr = effectivedateerr + notedata[0].Name + ', ';
-              _ismaturitydate = true;
+          if (dtMaturity[l].MaturityType != null) {
+            if (dtMaturity[l].MaturityType.toString() == "708") {
+              initialmatList.push(dtMaturity[l]);
             }
-          }
-
-          if (dtMaturity[l].MaturityType == null || dtMaturity[l].MaturityType == "" || dtMaturity[l].MaturityType == undefined) {
-            if (!maturitytypeerr.includes(notedata[0].Name)) {
-              maturitytypeerr = maturitytypeerr + notedata[0].Name + ', ';
+            if (dtMaturity[l].MaturityType.toString() == "710") {
+              fullyextendedmatList.push(dtMaturity[l]);
             }
-          }
-
-          if (isNaN(dtMaturity[l].MaturityDate.getTime()) || dtMaturity[l].MaturityDate == null || dtMaturity[l].MaturityDate == "" || dtMaturity[l].MaturityDate == undefined) {
-            if (!maturitydateerr.includes(notedata[0].Name)) {
-              maturitydateerr = maturitydateerr + notedata[0].Name + ', ';
+            if (dtMaturity[l].MaturityType.toString() == "709") {
+              extensionList.push(dtMaturity[l]);
             }
-          }
-          else if (new Date(dtMaturity[l].MaturityDate.getTime()).getTime() < new Date(notedata[0].ClosingDate).getTime()) {
-            if (dtMaturity[l].MaturityType.toString() == '708' || dtMaturity[l].MaturityType.toString() == '709' || dtMaturity[l].MaturityType.toString() == '710') {
-              var date = this.convertDateToBindable(dtMaturity[l].MaturityDate);
-              if (!minmaturitydate.includes(date)) {
-                minmaturitydate = minmaturitydate + date + ', ';
+            if (dtMaturity[l].MaturityType.toString() == "709" && dtMaturity[l].Approved != undefined && dtMaturity[l].Approved.toString() == "3") {
+              YextensionList.push(dtMaturity[l]);
+            }
+
+            if (dtMaturity[l].EffectiveDate == null) {
+              if (!effectivedateerr.includes(notedata[0].Name)) {
+                effectivedateerr = effectivedateerr + notedata[0].Name + ', ';
+                _ismaturitydate = true;
+              }
+            }
+
+            if (dtMaturity[l].MaturityType == null || dtMaturity[l].MaturityType == "" || dtMaturity[l].MaturityType == undefined) {
+              if (!maturitytypeerr.includes(notedata[0].Name)) {
+                maturitytypeerr = maturitytypeerr + notedata[0].Name + ', ';
+              }
+            }
+
+            if (isNaN(dtMaturity[l].MaturityDate.getTime()) || dtMaturity[l].MaturityDate == null || dtMaturity[l].MaturityDate == "" || dtMaturity[l].MaturityDate == undefined) {
+              if (!maturitydateerr.includes(notedata[0].Name)) {
+                maturitydateerr = maturitydateerr + notedata[0].Name + ', ';
+              }
+            }
+            else if (new Date(dtMaturity[l].MaturityDate.getTime()).getTime() < new Date(notedata[0].ClosingDate).getTime()) {
+              if (dtMaturity[l].MaturityType.toString() == '708' || dtMaturity[l].MaturityType.toString() == '709' || dtMaturity[l].MaturityType.toString() == '710') {
+                var date = this.convertDateToBindable(dtMaturity[l].MaturityDate);
+                if (!minmaturitydate.includes(date)) {
+                  minmaturitydate = minmaturitydate + date + ', ';
+                }
               }
             }
           }
@@ -13948,6 +18869,12 @@ export class DealDetailComponent extends Paginated implements OnInit {
         duplicatedmaterror = duplicatedmaterror + "<p>" + effectivedateerr.slice(0, -2) + ": Effective date can not be blank." + "</p>";
       }
 
+      if (dtMaturity.length == 0) {
+        if (this.maturityEffectiveDate != null) {
+          duplicatedmaterror = duplicatedmaterror + "<p>" + "Please enter initial maturity date if Effective date is entered." + "</p>";
+        }
+      }
+
       if (initialmatList.length > 1) {
         mattypefound = true;
         duplicatedmaterror = duplicatedmaterror + "<p>" + notedata[0].Name + ": Initial maturity already exists." + "</p>";
@@ -14010,7 +18937,7 @@ export class DealDetailComponent extends Paginated implements OnInit {
         for (var k = 0; k < fullyextendedmatList.length; k++) {
           if (initialmatList.length > 0) {
             for (var l = 0; l < initialmatList.length; l++) {
-              if (fullyextendedmatList[k].MaturityDate < initialmatList[l].MaturityDate) {
+              if (initialmatList[l].MaturityDate > fullyextendedmatList[k].MaturityDate) {
                 var date = this.convertDateToBindable(fullyextendedmatList[k].MaturityDate);
                 if (!fullyextdate.includes(date)) {
                   fullyextdate += fullyextdate + date + ', ';
@@ -14021,18 +18948,33 @@ export class DealDetailComponent extends Paginated implements OnInit {
         }
       }
       if (fullyextdate != '') {
-        duplicatedmaterror = duplicatedmaterror + "<p>" + notedata[0].Name + ": Fully extended date can not be smaller than initial maturity date - " + fullyextdate.slice(0, -2) + "</p>";
+        duplicatedmaterror = duplicatedmaterror + "<p>" + notedata[0].Name + ": Initial maturity date can not be greater than Fully extended date - " + fullyextdate.slice(0, -2) + "</p>";
       }
       if (mattypefound == true || _ismaturitydate == false) {
         if (modename == 'Edit') {
           var initiallst = this.maturityList.filter(x => x.NoteID == NoteID);
+          var fullyexttype = this.originalMaturityList.filter(x => x.NoteID == dtMaturity[0].NoteID && x.MaturityType != null && x.MaturityType.toString() == "710");
+          var initialtype = this.originalMaturityList.filter(x => x.NoteID == dtMaturity[0].NoteID && x.MaturityType != null && x.MaturityType.toString() == "708");
           if (initiallst.length > 0) {
             if (this.flexMaturity.rows[rownum].dataItem.IsSaved == 'true') {
-              if (this.flexMaturity.rows[rownum].dataItem.MaturityType.toString() == '710' || this.flexMaturity.rows[rownum].dataItem.MaturityType.toString() == '708') {
-                this.flexMaturity.rows[rownum].dataItem.MaturityTypeText = '';
-                this.flexMaturity.rows[rownum].dataItem.MaturityType = '';
-                this.flexMaturity.rows[rownum].dataItem.ApprovedText = '';
-                this.flexMaturity.rows[rownum].dataItem.Approved = '';
+              if (this.flexMaturity.rows[rownum].dataItem.MaturityType != null) {
+                if (this.flexMaturity.rows[rownum].dataItem.MaturityType.toString() == '710' && fullyexttype.length > 0) {
+                  this.flexMaturity.rows[rownum].dataItem.MaturityTypeText = '';
+                  this.flexMaturity.rows[rownum].dataItem.MaturityType = '';
+                  this.flexMaturity.rows[rownum].dataItem.ApprovedText = '';
+                  this.flexMaturity.rows[rownum].dataItem.Approved = '';
+                  this.flexMaturity.rows[rownum].dataItem.ExtensionType = '';
+                  this.flexMaturity.rows[rownum].dataItem.ExtensionTypeText = '';
+                }
+                if (this.flexMaturity.rows[rownum].dataItem.MaturityType.toString() == '708' && initialtype.length > 0) {
+                  this.flexMaturity.rows[rownum].dataItem.MaturityTypeText = '';
+                  this.flexMaturity.rows[rownum].dataItem.MaturityType = '';
+                  this.flexMaturity.rows[rownum].dataItem.ApprovedText = '';
+                  this.flexMaturity.rows[rownum].dataItem.Approved = '';
+
+                  this.flexMaturity.rows[rownum].dataItem.ExtensionType = '';
+                  this.flexMaturity.rows[rownum].dataItem.ExtensionTypeText = '';
+                }
               }
             }
             else if (this.flexMaturity.rows[rownum].dataItem.IsSaved == 'false') {
@@ -14041,6 +18983,10 @@ export class DealDetailComponent extends Paginated implements OnInit {
                 this.flexMaturity.rows[rownum].dataItem.MaturityType = '';
                 this.flexMaturity.rows[rownum].dataItem.ApprovedText = '';
                 this.flexMaturity.rows[rownum].dataItem.Approved = '';
+
+                this.flexMaturity.rows[rownum].dataItem.ExtensionType = '';
+                this.flexMaturity.rows[rownum].dataItem.ExtensionTypeText = '';
+
               }
               else if (!(this.previousMaturityType == '' || this.previousMaturityType == undefined)) {
                 if (this.previousMaturityType.toString() == '710' || this.previousMaturityType.toString() == '708') {
@@ -14053,35 +18999,68 @@ export class DealDetailComponent extends Paginated implements OnInit {
         }
         if (modename == 'Copy') {
           var notelstfilter = this.maturityList.filter(x => x.NoteID == NoteID);
-          var initiallstType = notelstfilter.filter(x => x.MaturityType.toString() == '708');
-          var initiallstRowno = initiallstType.reduce((min, p) => p.Rowno < min ? p.Rowno : min, initiallstType[0].Rowno);
-          var fullyextendedlstType = notelstfilter.filter(x => x.MaturityType.toString() == '710');
-          var fullyextendedlstRowno = fullyextendedlstType.reduce((min, p) => p.Rowno < min ? p.Rowno : min, fullyextendedlstType[0].Rowno);
+          var initiallstType = notelstfilter.filter(x => x.MaturityType != null && x.MaturityType.toString() == '708');
+          if (initiallstType.length > 0) {
+            var mininitiallstRowno = initiallstType.reduce((min, p) => p.Rowno < min ? p.Rowno : min, initiallstType[0].Rowno);
+            var maxinitiallstRowno = initiallstType.reduce((max, p) => p.Rowno > max ? p.Rowno : max, initiallstType[0].Rowno);
+          }
+          var fullyextendedlstType = notelstfilter.filter(x => x.MaturityType != null && x.MaturityType.toString() == '710');
+          if (fullyextendedlstType.length > 0) {
+            var minfullyextendedlstRowno = fullyextendedlstType.reduce((min, p) => p.Rowno < min ? p.Rowno : min, fullyextendedlstType[0].Rowno);
+            var maxfullyextendedlstRowno = fullyextendedlstType.reduce((max, p) => p.Rowno > max ? p.Rowno : max, fullyextendedlstType[0].Rowno);
+          }
           for (var m = 0; m < this.flexMaturity.rows.length - 1; m++) {
             if (this.flexMaturity.rows[m].dataItem) {
               if (this.flexMaturity.rows[m].dataItem.IsSaved == 'true') {
-                if (this.flexMaturity.rows[m].dataItem.MaturityType.toString() == "708" || this.flexMaturity.rows[m].dataItem.MaturityType.toString() == "710") {
-                  this.flexMaturity.rows[m].dataItem.MaturityType = '';
-                  this.flexMaturity.rows[m].dataItem.MaturityTypeText = '';
-                  this.flexMaturity.rows[m].dataItem.ApprovedText = '';
-                  this.flexMaturity.rows[m].dataItem.Approved = '';
+                if (this.flexMaturity.rows[m].dataItem.MaturityType != null) {
+                  if (this.flexMaturity.rows[m].dataItem.MaturityType.toString() == "708") {
+                    if (!(maxinitiallstRowno == m || maxinitiallstRowno == mininitiallstRowno)) {
+                      this.flexMaturity.rows[m].dataItem.MaturityType = '';
+                      this.flexMaturity.rows[m].dataItem.MaturityTypeText = '';
+                      this.flexMaturity.rows[m].dataItem.ApprovedText = '';
+                      this.flexMaturity.rows[m].dataItem.Approved = '';
+
+                      this.flexMaturity.rows[m].dataItem.ExtensionType = '';
+                      this.flexMaturity.rows[m].dataItem.ExtensionTypeText = '';
+
+                    }
+                  }
+                  if (this.flexMaturity.rows[m].dataItem.MaturityType.toString() == "710") {
+                    if (!(maxfullyextendedlstRowno == m && maxfullyextendedlstRowno == minfullyextendedlstRowno)) {
+                      this.flexMaturity.rows[m].dataItem.MaturityType = '';
+                      this.flexMaturity.rows[m].dataItem.MaturityTypeText = '';
+                      this.flexMaturity.rows[m].dataItem.ApprovedText = '';
+                      this.flexMaturity.rows[m].dataItem.Approved = '';
+
+                      this.flexMaturity.rows[m].dataItem.ExtensionType = '';
+                      this.flexMaturity.rows[m].dataItem.ExtensionTypeText = '';
+                    }
+                  }
                 }
               } else if (this.flexMaturity.rows[m].dataItem.IsSaved == 'false') {
                 if (mattypefound == true) {
                   if (initialmatList.length > 0) {
-                    if (this.flexMaturity.rows[m].dataItem.Rowno > initiallstRowno && m != fullyextendedlstRowno) {
+                    if (this.flexMaturity.rows[m].dataItem.Rowno > mininitiallstRowno && m != maxfullyextendedlstRowno) {
                       this.flexMaturity.rows[m].dataItem.MaturityType = '';
                       this.flexMaturity.rows[m].dataItem.MaturityTypeText = '';
                       this.flexMaturity.rows[m].dataItem.ApprovedText = '';
                       this.flexMaturity.rows[m].dataItem.Approved = '';
+
+                      this.flexMaturity.rows[m].dataItem.ExtensionType = '';
+                      this.flexMaturity.rows[m].dataItem.ExtensionTypeText = '';
+
                     }
                   }
                   if (fullyextendedlstType.length > 0) {
-                    if (this.flexMaturity.rows[m].dataItem.Rowno > fullyextendedlstRowno && m != initiallstRowno) {
+                    if (this.flexMaturity.rows[m].dataItem.Rowno > minfullyextendedlstRowno && m != maxfullyextendedlstRowno) {
                       this.flexMaturity.rows[m].dataItem.MaturityType = '';
                       this.flexMaturity.rows[m].dataItem.MaturityTypeText = '';
                       this.flexMaturity.rows[m].dataItem.ApprovedText = '';
                       this.flexMaturity.rows[m].dataItem.Approved = '';
+
+                      this.flexMaturity.rows[m].dataItem.ExtensionType = '';
+                      this.flexMaturity.rows[m].dataItem.ExtensionTypeText = '';
+
                     }
                   }
                 }
@@ -14104,12 +19083,23 @@ export class DealDetailComponent extends Paginated implements OnInit {
     var lstgroupnote = lstgroupseqno.map(item => item.CRENoteID);
     lstgroupnote.forEach((e) => {
       var j = 0;
-      while (j < this.noteMaturityList.length) {
-        if (this.noteMaturityList[j].CRENoteID == e) {
-          this.noteMaturityList.splice(j, 1);
-          j = 0;
-        } else {
-          j++;
+      if (this.noteMaturityList.length > 0) {
+        while (j < this.noteMaturityList.length) {
+          if (this.noteMaturityList[j].CRENoteID == e) {
+            this.noteMaturityList.splice(j, 1);
+            j = 0;
+          } else {
+            j++;
+          }
+        }
+      } else if (this.maturityOtherFieldsList.length > 0) {
+        while (j < this.maturityOtherFieldsList.length) {
+          if (this.maturityOtherFieldsList[j].CRENoteID == e) {
+            this.maturityOtherFieldsList.splice(j, 1);
+            j = 0;
+          } else {
+            j++;
+          }
         }
       }
     });
@@ -14121,28 +19111,47 @@ export class DealDetailComponent extends Paginated implements OnInit {
       if (lstNoteID.length > 0) {
         NoteID = this.maturityList.find(x => x.CRENoteID == e).NoteID;
       } else {
-        NoteID = '00000000-0000-0000-0000-000000000000';
+        var _lstNoteID = this.lstNote.filter(x => x.CRENoteID == e);
+        if (_lstNoteID.length > 0) {
+          NoteID = this.lstNote.find(x => x.CRENoteID == e).NoteId;
+        }
+        else {
+          NoteID = '00000000-0000-0000-0000-000000000000';
+        }
       }
-      for (var k = 0; k < dtMaturity.length; k++) {
+      var dtmat = [];
+      if (dtMaturity.length > 0) {
+        dtmat = dtMaturity;
+      } else {
+        dtmat = this.maturityOtherFieldsList;
+      }
+      for (var k = 0; k < dtmat.length; k++) {
         lstMat.push({
-          'DealID': dtMaturity[k].DealID,
+          'DealID': dtmat[k].DealID,
           'NoteID': NoteID,
-          'EffectiveDate': dtMaturity[k].EffectiveDate,
-          'MaturityDate': dtMaturity[k].MaturityDate,
-          'MaturityType': dtMaturity[k].MaturityType,
-          'Approved': dtMaturity[k].Approved,
-          'IsDeleted': dtMaturity[k].IsDeleted,
-          'ActualPayoffDate': dtMaturity[k].ActualPayoffDate,
-          'ExpectedMaturityDate': dtMaturity[k].ExpectedMaturityDate,
-          'OpenPrepaymentDate': dtMaturity[k].OpenPrepaymentDate,
+          'EffectiveDate': dtmat[k].EffectiveDate,
+          'MaturityDate': dtmat[k].MaturityDate,
+          'MaturityType': dtmat[k].MaturityType,
+          'Approved': dtmat[k].Approved,
+          'IsDeleted': dtmat[k].IsDeleted,
+          'ActualPayoffDate': dtmat[k].ActualPayoffDate,
+          'ExpectedMaturityDate': dtmat[k].ExpectedMaturityDate,
+          'OpenPrepaymentDate': dtmat[k].OpenPrepaymentDate,
           'CRENoteID': e,
-          'MaturityMethodID': dtMaturity[k].MaturityMethodID,
+          'MaturityMethodID': dtmat[k].MaturityMethodID,
+          'ExtensionType': dtmat[k].ExtensionType
         });
       }
     });
+
     if (lstMat.length > 0) {
       for (var g = 0; g < lstMat.length; g++) {
-        this.noteMaturityList.push(lstMat[g]);
+        if (this.noteMaturityList.length > 0) {
+          this.noteMaturityList.push(lstMat[g]);
+        }
+        else {
+          this.maturityOtherFieldsList.push(lstMat[g]);
+        }
       }
     }
     this._isMaturityError = '';
@@ -14151,7 +19160,6 @@ export class DealDetailComponent extends Paginated implements OnInit {
       this.CustomAlert(duplicatedmaterror);
     }
   }
-
 
   holidayDateCheck(date, rownum, mode) {
     var _iserrfound = false;
@@ -14162,19 +19170,37 @@ export class DealDetailComponent extends Paginated implements OnInit {
         maturitydateday = date.getDay();
         if (this.flexMaturity.rows[rownum]) {
           if (this.flexMaturity.rows[rownum].dataItem) {
-            if (maturitydateday == 6 || maturitydateday == 0 || this.ListHoliday.filter(x => this.convertDateToBindable(x.HolidayDate) == formateddate && x.HolidayTypeID == 411).length > 0
-            ) {
 
-              this.flexMaturity.rows[rownum].dataItem.IsValidateMaturityDate = false;
-              this._isvalidateMaturityHoliday = false;
+            if (this.ListHoliday != null && this.ListHoliday !== undefined) {
+              if (maturitydateday == 6 || maturitydateday == 0 || this.ListHoliday.filter(x => this.convertDateToBindable(x.HolidayDate) == formateddate && x.HolidayTypeID == 411).length > 0
+              ) {
+
+                this.flexMaturity.rows[rownum].dataItem.IsValidateMaturityDate = false;
+                this._isvalidateMaturityHoliday = false;
+              }
+              else {
+                this.flexMaturity.rows[rownum].dataItem.IsValidateMaturityDate = true;
+                this._isvalidateMaturityHoliday = true;
+              }
             }
-            else {
-              this.flexMaturity.rows[rownum].dataItem.IsValidateMaturityDate = true;
-              this._isvalidateMaturityHoliday = true;
-            }
+
           }
         }
         else {
+          if (this.ListHoliday != null && this.ListHoliday !== undefined) {
+            maturitydateday = new Date(date).getDay();
+            if (maturitydateday == 6 || maturitydateday == 0 || this.ListHoliday.filter(x => this.convertDateToBindable(x.HolidayDate) == formateddate && x.HolidayTypeID == 411).length > 0
+            ) {
+              this._isvalidateMaturityHoliday = false;
+            } else {
+              this._isvalidateMaturityHoliday = true;
+            }
+          }
+
+        }
+      } else {
+
+        if (this.ListHoliday != null && this.ListHoliday !== undefined) {
           maturitydateday = new Date(date).getDay();
           if (maturitydateday == 6 || maturitydateday == 0 || this.ListHoliday.filter(x => this.convertDateToBindable(x.HolidayDate) == formateddate && x.HolidayTypeID == 411).length > 0
           ) {
@@ -14183,14 +19209,7 @@ export class DealDetailComponent extends Paginated implements OnInit {
             this._isvalidateMaturityHoliday = true;
           }
         }
-      } else {
-        maturitydateday = new Date(date).getDay();
-        if (maturitydateday == 6 || maturitydateday == 0 || this.ListHoliday.filter(x => this.convertDateToBindable(x.HolidayDate) == formateddate && x.HolidayTypeID == 411).length > 0
-        ) {
-          this._isvalidateMaturityHoliday = false;
-        } else {
-          this._isvalidateMaturityHoliday = true;
-        }
+
       }
       if (!this._isvalidateMaturityHoliday) {
         _iserrfound = true;
@@ -14226,6 +19245,13 @@ export class DealDetailComponent extends Paginated implements OnInit {
     }
   }
 
+  PrePayRuleTypeChange(val) {
+    //to be done
+    if (val == 0) {
+      //for new  --Create New--
+
+    }
+  }
   OnchangeExpectedMaturityDate(val) {
     var checkedactualpayoff = val;
     if (checkedactualpayoff == "") {
@@ -14242,6 +19268,7 @@ export class DealDetailComponent extends Paginated implements OnInit {
   }
 
   OnchangeActualPayoffDate(val) {
+    this.isMaturityDataChanged = true;
     var checkedactualpayoff = val;
     if (checkedactualpayoff == "") {
       this.maturityActualPayoffDate = null;
@@ -14259,6 +19286,7 @@ export class DealDetailComponent extends Paginated implements OnInit {
 
 
   OnchangeopenPrepaymentDate(val) {
+    this.isMaturityDataChanged = true;
     var checkedactualpayoff = val;
     if (checkedactualpayoff == "") {
       this.maturityOpenPrepaymentDate = null;
@@ -14274,18 +19302,33 @@ export class DealDetailComponent extends Paginated implements OnInit {
     this.onChangeMaturityDates();
   }
 
+  OnchangematurityAdjustmentMonthsOverride(val) {
+    this.isMaturityDataChanged = true;
+    this._deal.MaturityAdjMonthsOverride = val;
+  }
+
+
   openEffectiveDatepopup(val) {
-    this._previousMaturityEffectivedate = this.maturityEffectiveDate;
-    if (new Date(val).getTime() < new Date(this.maturityEffectiveDate).getTime()) {
-      var modalDelete = document.getElementById('maturityEffectiveDateDialogbox');
-      modalDelete.style.display = "block";
-      $.getScript("/js/jsDrag.js");
-    } else {
-      this.OnchangematurityEffectiveDate(val);
+    if (this.OldmaturityEffectiveDate !== undefined && this.OldmaturityEffectiveDate !== null) {
+      this.isMaturityDataChanged = true;
+      this._previousMaturityEffectivedate = this.maturityEffectiveDate;
+      var month = new Date(this.OldmaturityEffectiveDate).getMonth() + 1;
+      var maturitydate = month + '/' + new Date(this.OldmaturityEffectiveDate).getDate() + '/' + new Date(this.OldmaturityEffectiveDate).getFullYear();
+
+      if (new Date(val) < new Date(maturitydate)) {
+        var modalDelete = document.getElementById('maturityEffectiveDateDialogbox');
+        modalDelete.style.display = "block";
+        $.getScript("/js/jsDrag.js");
+      }
+      else {
+        this.OnchangematurityEffectiveDate(val);
+      }
     }
+
   }
 
   OnchangematurityEffectiveDate(val) {
+    this.isMaturityDataChanged = true;
     var checkedactualpayoff = val;//
     this.ClosePopUpMaturityEffectiveDate();
     if (checkedactualpayoff == "") {
@@ -14310,6 +19353,7 @@ export class DealDetailComponent extends Paginated implements OnInit {
   }
 
   onChangeMaturityDates() {
+    this.isMaturityDataChanged = true;
     var groupname = this.selectedGroupName;
     var CRENoteID = '';
     var minNoteValue, minCRENoteID;
@@ -14360,15 +19404,16 @@ export class DealDetailComponent extends Paginated implements OnInit {
         'ExpectedMaturityDate': this.maturityExpectedMaturityDate == null ? null : this.convertDatetoGMT(this.maturityExpectedMaturityDate),
         'OpenPrepaymentDate': this.maturityOpenPrepaymentDate == null ? null : this.convertDatetoGMT(this.maturityOpenPrepaymentDate),
         'CRENoteID': CRENoteID,
-        'MaturityMethodID': ''
+        'MaturityMethodID': '',
+        'ExtensionType': ''
       });
       this.maturityList[len] = dtmat[0];
     }
     this.createMaturityList('Change', null, this.selectedGroupName);
     this.invalidateMaturitygridData(this.maturityList, this.selectedGroupName);
   }
-
   cellEditbeginMaturity(s, e) {
+    this.isMaturityDataChanged = true;
     var maturityTypeindex = s.getColumn("MaturityTypeText").index;
     var approvedindex = s.getColumn("ApprovedText").index;
     var maturitydateindex = s.getColumn("MaturityDate").index;
@@ -14390,10 +19435,11 @@ export class DealDetailComponent extends Paginated implements OnInit {
   }
   invalidateReserveTab() {
     if (!this._isReserveTabClicked) {
-      this._isReserveTabClicked = true;
       localStorage.setItem('ClickedTabId', 'aReservetab');
+      this._isReserveTabClicked = true;
       this.getAllReserveAccounts();
     }
+
     //this._isListFetching = true;
     //if (this._isReserveTabClicked == false) {
     //    this.getAllReserveAccounts();
@@ -14425,9 +19471,9 @@ export class DealDetailComponent extends Paginated implements OnInit {
           if (datadt[j].InitialBalanceDate != null) {
             datadt[j].InitialBalanceDate = new Date(this.convertDateToReserveBindable(datadt[j].InitialBalanceDate));
           }
-          if (datadt[j].EstimatedReserveBalance == 0 || datadt[j].EstimatedReserveBalance == null) {
-            datadt[j].EstimatedReserveBalance = datadt[j].InitialFundingAmount;
-          }
+          //if (datadt[j].EstimatedReserveBalance == 0 || datadt[j].EstimatedReserveBalance == null) {
+          //  datadt[j].EstimatedReserveBalance = datadt[j].InitialFundingAmount;
+          //}
         }
         this.reserveAccountsList = datadt;
         if (this.reserveAccountsList.length > 0) {
@@ -14464,6 +19510,7 @@ export class DealDetailComponent extends Paginated implements OnInit {
               }
             }
           }
+          this._bindGridDropdowsReserveAccount();
         }
         setTimeout(function () {
           this.flexReserveAccounts.invalidate(true);
@@ -14708,18 +19755,12 @@ export class DealDetailComponent extends Paginated implements OnInit {
       this.reserveScheduleList[e.row] = this._listReserveSchedule.currentEditItem;
     }
 
-    this.onChangereserveamount(e.row, e.row, e.col, 'EditSchedule');
+    this.onChangereserveamount(e.row, e.row, e.col, 'EditSchedule', false);
 
     if (e.col.toString() == datecol.toString()) {
       var maxappliedDate = new Date(Math.max.apply(null, this.reserveScheduleList.filter(x => x.Applied == true).map(x => x.Date)));
       if (this.reserveScheduleList[e.row].Date < maxappliedDate) {
-        if (this.reserveScheduleList[e.row].Date == undefined) {
-          this.reserveScheduleList[e.row].Date = "";
-        }
-        else {
-          //this.reserveScheduleList[e.row].Date = new Date(this.convertDateToBindable(this.reservepreviousDate));
-          this.reserveScheduleList[e.row].Date = new Date(this.convertDateToBindable(this.reserveScheduleList[e.row].Date));
-        }
+        this.reserveScheduleList[e.row].Date = "";
         this.CustomAlert("Date cannot be less than last wire confirmed date " + this.convertDateToBindable(maxappliedDate));
       }
       else {
@@ -14745,49 +19786,82 @@ export class DealDetailComponent extends Paginated implements OnInit {
     var row = scheduleflex.selection.bottomRow;
     var toprow = scheduleflex.selection.topRow;
     for (var m = toprow; m <= row; m++) {
-      if (!('_IsRowChanged' in scheduleflex.rows[m].dataItem)) {
-        scheduleflex.rows[m].dataItem._IsRowChanged = true;
-      }
-      if (!('isDeleted' in scheduleflex.rows[m].dataItem)) {
-        scheduleflex.rows[m].dataItem.isDeleted = 0;
-      }
-      if (!('Comment' in scheduleflex.rows[m].dataItem)) {
-        scheduleflex.rows[m].dataItem.Comment = null;
-      }
-      if (!(Number(scheduleflex.rows[m].dataItem.PurposeTypeText).toString() == "NaN" || Number(scheduleflex.rows[m].dataItem.PurposeTypeText) == 0)) {
-        scheduleflex.rows[m].dataItem.PurposeID = scheduleflex.rows[m].dataItem.PurposeTypeText;
-        scheduleflex.rows[m].dataItem.PurposeTypeText = this.lstReserveSchedulePurposeType.filter(x => x.LookupID.toString() == scheduleflex.rows[m].dataItem.PurposeTypeText)[0].Name;
-      }
-      scheduleflex.rows[m].dataItem.Applied = false;
-      if (scheduleflex.rows[m].dataItem.PurposeTypeText == 'Reserve Release') {
-        for (var l = 0; l < this.reserveAccountsList.length; l++) {
-          var colindex = scheduleflex.getColumn(this.reserveAccountsList[l].ReserveAccountName).index;
-          var cellvalue = scheduleflex.getCellData(m, colindex, false);
-          if (cellvalue > 0) {
-            scheduleflex.setCellData(m, colindex, -1 * cellvalue);
+
+      if ((scheduleflex.rows[m].dataItem.Applied == false || scheduleflex.rows[m].dataItem.Applied == undefined)
+
+        || (!('DealReserveScheduleID' in scheduleflex.rows[m].dataItem))
+      ) {
+        if (!('_IsRowChanged' in scheduleflex.rows[m].dataItem)) {
+          scheduleflex.rows[m].dataItem._IsRowChanged = true;
+        }
+        if (!('isDeleted' in scheduleflex.rows[m].dataItem)) {
+          scheduleflex.rows[m].dataItem.isDeleted = 0;
+        }
+        if (!('Comment' in scheduleflex.rows[m].dataItem)) {
+          scheduleflex.rows[m].dataItem.Comment = null;
+        }
+        if (!(Number(scheduleflex.rows[m].dataItem.PurposeTypeText).toString() == "NaN" || Number(scheduleflex.rows[m].dataItem.PurposeTypeText) == 0)) {
+          scheduleflex.rows[m].dataItem.PurposeID = scheduleflex.rows[m].dataItem.PurposeTypeText;
+          scheduleflex.rows[m].dataItem.PurposeTypeText = this.lstReserveSchedulePurposeType.filter(x => x.LookupID.toString() == scheduleflex.rows[m].dataItem.PurposeTypeText)[0].Name;
+        }
+        scheduleflex.rows[m].dataItem.Applied = false;
+        if (scheduleflex.rows[m].dataItem.PurposeTypeText == 'Reserve Release') {
+          for (var l = 0; l < this.reserveAccountsList.length; l++) {
+            var colindex = scheduleflex.getColumn(this.reserveAccountsList[l].ReserveAccountName).index;
+            var cellvalue = scheduleflex.getCellData(m, colindex, false);
+            if (cellvalue > 0) {
+              scheduleflex.setCellData(m, colindex, -1 * cellvalue);
+            }
           }
         }
+        this.reserveScheduleList[m] = scheduleflex.rows[m].dataItem;
+        if (scheduleflex.rows[m].dataItem.Date) {
+          var accsDate = new Date(scheduleflex.rows[m].dataItem.Date);
+          var formateddate = this.convertDateToReserveBindable(accsDate);
+          var accScheduledateday = accsDate.getDay();
+          if (accScheduledateday == 6 || accScheduledateday == 0 || this.ListHoliday.filter(x => this.convertDateToBindable(x.HolidayDate) == formateddate && x.HolidayTypeID == 411).length > 0
+          ) {
+            this.flexReserveSchedule.rows[m].dataItem.IsValidateHoliday = 'false';
+          }
+          else {
+            this.flexReserveSchedule.rows[m].dataItem.IsValidateHoliday = 'true';
+          }
+        }
+
       }
-      this.reserveScheduleList[m] = scheduleflex.rows[m].dataItem;
-      if (scheduleflex.rows[m].dataItem.Date) {
-        var accsDate = new Date(scheduleflex.rows[m].dataItem.Date);
-        var formateddate = this.convertDateToReserveBindable(accsDate);
-        var accScheduledateday = accsDate.getDay();
-        if (accScheduledateday == 6 || accScheduledateday == 0 || this.ListHoliday.filter(x => this.convertDateToBindable(x.HolidayDate) == formateddate && x.HolidayTypeID == 411).length > 0
-        ) {
-          this.flexReserveSchedule.rows[m].dataItem.IsValidateHoliday = 'false';
-        }
-        else {
-          this.flexReserveSchedule.rows[m].dataItem.IsValidateHoliday = 'true';
-        }
+      else {
+        e.cancel = true;
       }
 
     }
     this.reserveAppliedReadOnly();
-    this.onChangereserveamount(toprow, row, null, 'CopySchedule');
+    this.onChangereserveamount(toprow, row, null, 'CopySchedule', false);
   }
 
-  onChangereserveamount(startrowno: number, endrowno: number, colnum, mode) {
+
+
+  cellPastingReserveSchedule(scheduleflex: wjcGrid.FlexGrid, e: wjcGrid.CellEditEndingEventArgs) {
+    var statuscol = this.flexReserveSchedule.getColumn("WF_CurrentStatusDisplayName").index;
+    var datecol = this.flexReserveSchedule.getColumn("Date").index;
+    var row = scheduleflex.selection.bottomRow;
+    var toprow = scheduleflex.selection.topRow;
+    for (var m = toprow; m <= row; m++) {
+
+      if ((scheduleflex.rows[m].dataItem.Applied == false || scheduleflex.rows[m].dataItem.Applied == undefined)
+
+        || (!('DealReserveScheduleID' in scheduleflex.rows[m].dataItem))
+      ) {
+        e.cancel = false
+          ;
+      }
+      else {
+        e.cancel = true;
+      }
+
+    }
+  }
+
+  onChangereserveamount(startrowno: number, endrowno: number, colnum, mode, isChecked) {
     var _isestimatedbalzero = false;
     var _isInitialFundingsmaller = false;
     var accnamewiseamount: any = 0;
@@ -14798,6 +19872,8 @@ export class DealDetailComponent extends Paginated implements OnInit {
     var scheduleKeys = Object.keys(this.flexReserveSchedule.rows[startrowno].dataItem);
     var schedulevalues = Object.values(this.flexReserveSchedule.rows[startrowno].dataItem);
     var rowarr = [];
+
+    var accnamecoltotalUnWired: any = 0;
     rowarr.push(startrowno);
     if (endrowno > startrowno) {
       var temp = startrowno;
@@ -14869,9 +19945,11 @@ export class DealDetailComponent extends Paginated implements OnInit {
     // to check estimated balance
     for (var a = 0; a < this.reserveAccountsList.length; a++) {
       accnamecoltotal = 0;
+      accnamecoltotalUnWired = 0;
       //filteredlst = this.reserveScheduleList.filter(x => x.Date <= todaysdate);
       if (this.reserveScheduleList.length > 0) {
         for (var m = 0; m < this.reserveScheduleList.length; m++) {
+          //if (this.reserveScheduleList[m].Applied == false || this.reserveScheduleList[m].Applied == undefined) {
           var scheduleKeys = Object.keys(this.reserveScheduleList[m]);
           var schedulevalues = Object.values(this.reserveScheduleList[m]);
           for (var n = 0; n < scheduleKeys.length; n++) {
@@ -14880,10 +19958,19 @@ export class DealDetailComponent extends Paginated implements OnInit {
                 schedulevalues[n] = 0;
               }
               accnamecoltotal = accnamecoltotal + schedulevalues[n];
+
+              if (this.reserveScheduleList[m].Applied == false || this.reserveScheduleList[m].Applied == undefined) {
+                accnamecoltotalUnWired = accnamecoltotalUnWired + schedulevalues[n];
+              }
             }
+            //}
           }
         }
-        estimatedreservebal = this.flexReserveAccounts.rows[a].dataItem.InitialFundingAmount + accnamecoltotal;
+        //estimatedreservebal = this.flexReserveAccounts.rows[a].dataItem.InitialFundingAmount + accnamecoltotal;
+        //estimatedreservebal = this.flexReserveAccounts.rows[a].dataItem.EstimatedReserveBalanceOrg + accnamecoltotalUnWired;
+        estimatedreservebal = this.flexReserveAccounts.rows[a].dataItem.EstimatedReserveBalance + accnamecoltotalUnWired;
+
+
         if (_isInitialFundingsmaller == false) {
           if (estimatedreservebal < 0) {
             var _colno = this.flexReserveSchedule.getColumn(this.reserveAccountsList[a].ReserveAccountName).index;
@@ -14912,19 +19999,44 @@ export class DealDetailComponent extends Paginated implements OnInit {
       for (var a = 0; a < this.reserveAccountsList.length; a++) {
         accnamecoltotal = 0;
 
-        for (var appl = 0; appl < lstAppliedOnly.length; appl++) {
+        //if (lstAppliedOnly.length > 0) {
 
-          var scheduleKeys = Object.keys(lstAppliedOnly[appl]);
-          var schedulevalues = Object.values(lstAppliedOnly[appl]);
+        //  for (var appl = 0; appl < lstAppliedOnly.length; appl++) {
+
+        //    var scheduleKeys = Object.keys(lstAppliedOnly[appl]);
+        //    var schedulevalues = Object.values(lstAppliedOnly[appl]);
+        //    for (var n = 0; n < scheduleKeys.length; n++) {
+        //      if (this.reserveAccountsList[a].ReserveAccountName == scheduleKeys[n]) {
+        //        if (schedulevalues[n] == null) {
+        //          schedulevalues[n] = 0;
+        //        }
+        //        accnamecoltotal = accnamecoltotal + schedulevalues[n];
+        //      }
+        //    }
+        //  }
+        //}
+        //else {
+        //filteredlst = this.reserveScheduleList.filter(x => x.Date <= todaysdate);
+        if (this.reserveScheduleList.length > 0) {
+          var scheduleKeys = Object.keys(this.reserveScheduleList[startrowno]);
+          var schedulevalues = Object.values(this.reserveScheduleList[startrowno]);
           for (var n = 0; n < scheduleKeys.length; n++) {
             if (this.reserveAccountsList[a].ReserveAccountName == scheduleKeys[n]) {
               if (schedulevalues[n] == null) {
                 schedulevalues[n] = 0;
               }
-              accnamecoltotal = accnamecoltotal + schedulevalues[n];
+              if (isChecked == true) {
+                accnamecoltotal = accnamecoltotal + schedulevalues[n];
+              }
+              else {
+                accnamecoltotal = accnamecoltotal - Number(schedulevalues[n]);
+              }
             }
           }
+
+
         }
+        //}
 
 
         //if (this.flexReserveSchedule.rows[startrowno].dataItem.Applied == true) {
@@ -14934,8 +20046,12 @@ export class DealDetailComponent extends Paginated implements OnInit {
         //    estimatedreservebal = this.flexReserveAccounts.rows[a].dataItem.EstimatedReserveBalance - accnamecoltotal;
         //}
         //this.flexReserveAccounts.rows[a].dataItem.EstimatedReserveBalance = estimatedreservebal;
-        this.flexReserveAccounts.rows[a].dataItem.EstimatedReserveBalance = this.flexReserveAccounts.rows[a].dataItem.InitialFundingAmount + accnamecoltotal;
+        //this.flexReserveAccounts.rows[a].dataItem.EstimatedReserveBalance = this.flexReserveAccounts.rows[a].dataItem.InitialFundingAmount + accnamecoltotal;
+        this.flexReserveAccounts.rows[a].dataItem.EstimatedReserveBalance = this.flexReserveAccounts.rows[a].dataItem.EstimatedReserveBalance + accnamecoltotal;
+
       }
+
+
     }
 
     for (var m = 0; m < this.reserveScheduleList.length; m++) {
@@ -15036,11 +20152,13 @@ export class DealDetailComponent extends Paginated implements OnInit {
             _isvalidation = _isvalidation + 'Initial balance date' + ', ';
           }
         }
-        if (this.reserveAccountsList[j].InitialFundingAmount == "" || this.reserveAccountsList[j].InitialFundingAmount == null || this.reserveAccountsList[j].InitialFundingAmount == undefined) {
-          if (!_isvalidation.includes('Initial funding amount')) {
-            _isvalidation = _isvalidation + 'Initial funding amount' + ', ';
-          }
-        } else if (this.reserveAccountsList[j].InitialFundingAmount < 0) {
+        //if (this.reserveAccountsList[j].InitialFundingAmount == "" || this.reserveAccountsList[j].InitialFundingAmount == null || this.reserveAccountsList[j].InitialFundingAmount == undefined) {
+        //  if (!_isvalidation.includes('Initial funding amount')) {
+        //    _isvalidation = _isvalidation + 'Initial funding amount' + ', ';
+        //  }
+        //} else
+
+        if (this.reserveAccountsList[j].InitialFundingAmount < 0) {
           if (!negativeInitialFundingAmount.includes(this.reserveAccountsList[j].InitialFundingAmount)) {
             negativeInitialFundingAmount += this.reserveAccountsList[j].InitialFundingAmount + ', ';
           }
@@ -15075,11 +20193,20 @@ export class DealDetailComponent extends Paginated implements OnInit {
     // for unique reserve account name
     var _isfoundduplicateName = '';
     for (var j = 0; j < this.reserveAccountsList.length; j++) {
+      if (!(Number(this.reserveAccountsList[j].ReserveAccountName).toString() == "NaN" || Number(this.reserveAccountsList[j].ReserveAccountName) == 0)) {
+        this.reserveAccountsList[j].ReserveAccountMasterID = Number(this.reserveAccountsList[j].ReserveAccountName);
+      }
+    }
+
+
+    for (var j = 0; j < this.reserveAccountsList.length; j++) {
       for (var l = j + 1; l < this.reserveAccountsList.length; l++) {
-        if (this.reserveAccountsList[j].ReserveAccountName != undefined) {
-          if (this.reserveAccountsList[j].ReserveAccountName == this.reserveAccountsList[l].ReserveAccountName) {
-            if (!_isfoundduplicateName.includes(this.reserveAccountsList[j].ReserveAccountName)) {
-              _isfoundduplicateName = _isfoundduplicateName + this.reserveAccountsList[j].ReserveAccountName + ', ';
+
+        if (this.reserveAccountsList[j].ReserveAccountMasterID != undefined) {
+          if (this.reserveAccountsList[j].ReserveAccountMasterID == this.reserveAccountsList[l].ReserveAccountMasterID) {
+            if (!_isfoundduplicateName.includes(this.reserveAccountsList[j].ReserveAccountMasterID)) {
+              _isfoundduplicateName = _isfoundduplicateName +
+                this.lstReserveAccountMaster.filter(x => x.ReserveAccountMasterID == this.reserveAccountsList[j].ReserveAccountMasterID)[0].ReserveAccountName + ', ';
             }
           }
         }
@@ -15104,6 +20231,7 @@ export class DealDetailComponent extends Paginated implements OnInit {
     var _isnegativeamountval = false;
     var _ispositiveamountval = false;
     var accountname = '';
+    var accnamecoltotalUnWired: any = 0;
     // find minimum date and initial funding total amount in account grid
     if (this.reserveAccountsList !== undefined && this.reserveAccountsList != null && this.reserveAccountsList.length > 0) {
       var _mindate = this.reserveAccountsList[0].InitialBalanceDate;
@@ -15229,6 +20357,7 @@ export class DealDetailComponent extends Paginated implements OnInit {
     if (this.reserveScheduleList.length > 0) {
       for (var m = 0; m < this.reserveAccountsList.length; m++) {
         var reservescheduletotalamount = 0;
+        accnamecoltotalUnWired = 0;
         for (var l = 0; l < this.reserveScheduleList.length; l++) {
           var rowscheduleKeys = Object.keys(this.reserveScheduleList[l]);
           var rowschedulevalues = Object.values(this.reserveScheduleList[l]);
@@ -15242,10 +20371,17 @@ export class DealDetailComponent extends Paginated implements OnInit {
               }
               //amount = -1 * amount;
               reservescheduletotalamount = reservescheduletotalamount + amount;
+              if (this.reserveScheduleList[l].Applied == false || this.reserveScheduleList[l].Applied == undefined) {
+                accnamecoltotalUnWired = accnamecoltotalUnWired + rowschedulevalues[n];
+              }
             }
           }
         }
-        var estimatedreservebal = this.reserveAccountsList[m].InitialFundingAmount - reservescheduletotalamount;
+        //var estimatedreservebal = this.reserveAccountsList[m].InitialFundingAmount - reservescheduletotalamount;
+        //var estimatedreservebal = this.reserveAccountsList[m].EstimatedReserveBalance - reservescheduletotalamount;
+        var estimatedreservebal = this.reserveAccountsList[m].EstimatedReserveBalance + accnamecoltotalUnWired;
+
+
         if (estimatedreservebal < 0) {
           if (!accountname.includes(this.reserveAccountsList[m].ReserveAccountName)) {
             accountname = accountname + this.reserveAccountsList[m].ReserveAccountName + ', ';
@@ -15272,7 +20408,8 @@ export class DealDetailComponent extends Paginated implements OnInit {
             }
             accnamewiseamount = accnamewiseamount + schedulevalues[n];
 
-            if (this.reserveScheduleList[m].Applied || this.reserveScheduleList[m].PurposeTypeText == 'Reserve Release') {
+            //if (this.reserveScheduleList[m].Applied || this.reserveScheduleList[m].PurposeTypeText == 'Reserve Release') {
+            if (this.reserveScheduleList[m].Applied == false || this.reserveScheduleList[m].Applied == undefined) {
               sumwireConfirmAndNegAMt = sumwireConfirmAndNegAMt + schedulevalues[n]
             }
           }
@@ -15285,7 +20422,8 @@ export class DealDetailComponent extends Paginated implements OnInit {
       //    }
       //}
 
-      if ((this.reserveAccountsList[a].InitialFundingAmount + sumwireConfirmAndNegAMt) < 0) {
+      //if ((this.reserveAccountsList[a].InitialFundingAmount + sumwireConfirmAndNegAMt) < 0) {
+      if ((this.reserveAccountsList[a].EstimatedReserveBalance + sumwireConfirmAndNegAMt) < 0) {
         if (!_isNotEnoughtCurrBal.includes(this.reserveAccountsList[a].ReserveAccountName)) {
           _isNotEnoughtCurrBal = _isNotEnoughtCurrBal + this.reserveAccountsList[a].ReserveAccountName + ', ';
         }
@@ -15373,11 +20511,16 @@ export class DealDetailComponent extends Paginated implements OnInit {
         if (!('CREReserveAccountID' in this.reserveAccountsList[j])) {
           this.reserveAccountsList[j].CREReserveAccountID = 0;
         }
+
+        if (!(Number(this.reserveAccountsList[j].ReserveAccountName).toString() == "NaN" || Number(this.reserveAccountsList[j].ReserveAccountName) == 0)) {
+          this.reserveAccountsList[j].ReserveAccountMasterID = Number(this.reserveAccountsList[j].ReserveAccountName);
+        }
         dtReserveAccount.push({
           'ReserveAccountGUID': this.reserveAccountsList[j].ReserveAccountGUID,
           'DealID': this.reserveAccountsList[j].DealID,
           'CREReserveAccountID': this.reserveAccountsList[j].CREReserveAccountID,
           'ReserveAccountName': this.reserveAccountsList[j].ReserveAccountName,
+          'ReserveAccountMasterID': this.reserveAccountsList[j].ReserveAccountMasterID,
           'InitialBalanceDate': this.convertDatetoGMT(this.reserveAccountsList[j].InitialBalanceDate),
           'InitialFundingAmount': this.reserveAccountsList[j].InitialFundingAmount,
           'EstimatedReserveBalance': !(this.reserveAccountsList[j].EstimatedReserveBalance) ? 0 : this.reserveAccountsList[j].EstimatedReserveBalance,
@@ -15480,7 +20623,7 @@ export class DealDetailComponent extends Paginated implements OnInit {
   showReserveCommentEmptyAlert(comment, DealReserveScheduleGUID, date, amount, purposetype) {
     var workflowerror = "";
     if (comment == '' || comment == null || comment == undefined) {
-      workflowerror = workflowerror + "<p>" + "Adding comment is mandatory for reserve draw approval process." + "</p>";
+      workflowerror = workflowerror + "<p>" + "Inputting a Comment is mandatory for the reserve workflow process." + "</p>";
       this.CustomAlert(workflowerror);
     }
     else {
@@ -15497,10 +20640,11 @@ export class DealDetailComponent extends Paginated implements OnInit {
     }
   }
 
-  changeReserveScheduleApplied(reserveScheduleID: string, value: boolean, reserveflexGrid: wjcGrid.Row): void {
+  changeReserveScheduleApplied(reserveScheduleID: string, value: boolean, reserveflexGrid: wjcGrid.Row, e): void {
     if (!('_IsRowChanged' in this.flexReserveSchedule.rows[reserveflexGrid.index].dataItem)) {
       this.flexReserveSchedule.rows[reserveflexGrid.index].dataItem._IsRowChanged = true;
     }
+
     this.reserveScheduleList[reserveflexGrid.index] = this.flexReserveSchedule.rows[reserveflexGrid.index].dataItem;
     if (this.reserveScheduleList[reserveflexGrid.index].Date == undefined) {
       this.flexReserveSchedule.rows[reserveflexGrid.index].dataItem.Applied = false;
@@ -15509,9 +20653,19 @@ export class DealDetailComponent extends Paginated implements OnInit {
       return;
     }
     if (value == true) {
-      if (this.reserveScheduleList.length > 1) {
+      if (this.reserveScheduleList[reserveflexGrid.index].PurposeTypeText == 'Reserve Release') {
+        if (!(this.reserveScheduleList[reserveflexGrid.index].WF_CurrentStatusDisplayName == "Completed") || this.reserveScheduleList[reserveflexGrid.index].WF_CurrentStatusDisplayName == null) {
+          this.CustomAlert("You cannot wire confirm the record as the workflow status is not completed.");
+          this.flexReserveSchedule.rows[reserveflexGrid.index].dataItem.Applied = false;
+          e.target.checked = false;
+          this.flexReserveSchedule.invalidate();
+          return;
+        }
+      }
+
+      if (this.reserveScheduleList.length >= 1) {
         var lstDates = this.reserveScheduleList.filter(x => x.Applied == false).map(x => x.Date);
-        if (lstDates.length >= 1) {
+        if (lstDates.length > 1) {
           var minDate: any;
           minDate = null;
           // var minDate = new Date(Math.min.apply(null, this.listdealfunding.filter(x => x.Applied == false).map(x => x.Date)));
@@ -15529,7 +20683,9 @@ export class DealDetailComponent extends Paginated implements OnInit {
           var wcDate = new Date(reserveflexGrid.dataItem.Date);
           if (wcDate.toString() != minDate.toString()) {
             reserveflexGrid.dataItem.Applied = false;
+            e.target.checked = false;
             this.flexReserveSchedule.invalidate();
+
             this.CustomAlert("You can't confirm wire on a later date without confirming all wires in between.")
             return;
           }
@@ -15538,6 +20694,7 @@ export class DealDetailComponent extends Paginated implements OnInit {
             var nextbdate = this.getnextbusinessDate(today, 20, true);
             if (wcDate > nextbdate) {
               reserveflexGrid.dataItem.Applied = false;
+              e.target.checked = false;
               this.flexReserveSchedule.invalidate();
               this.CustomAlert("You can only confirm up to " + this.convertDateToBindable(nextbdate) + ".")
               return;
@@ -15547,6 +20704,7 @@ export class DealDetailComponent extends Paginated implements OnInit {
           var applieddate = this.reserveScheduleList[reserveflexGrid.index].Date;
           if (lstDates[0] < reserveflexGrid.dataItem.Date) {
             reserveflexGrid.dataItem.Applied = false;
+            e.target.checked = false;
             this.flexReserveSchedule.invalidate();
             this.CustomAlert("You can't confirm wire on a later date without confirming all wires in between.")
             return;
@@ -15562,13 +20720,14 @@ export class DealDetailComponent extends Paginated implements OnInit {
           if (wcDate.toString() != maxDate.toString()) {
             this.flexReserveSchedule.invalidate();
             this.CustomAlert("You can't remove a wire confirmation on an earlier date without removing the wire confirmation on later dates.")
+            e.target.checked = true;
             return;
           }
         }
       }
     }
     this.reserveScheduleList[reserveflexGrid.index].Applied = value;
-    this.onChangereserveamount(reserveflexGrid.index, this.flexReserveSchedule.rows.length - 1, null, 'Applied');
+    this.onChangereserveamount(reserveflexGrid.index, this.flexReserveSchedule.rows.length - 1, null, 'Applied', value);
     this.reserveAppliedReadOnly();
   }
 
@@ -15796,6 +20955,7 @@ export class DealDetailComponent extends Paginated implements OnInit {
   }
 
   maturityConfigurationSetup() {
+    this.isMaturityDataChanged = true;
     var data = [];
     var uniquieData = [];
     var errmsg = '';
@@ -15896,6 +21056,21 @@ export class DealDetailComponent extends Paginated implements OnInit {
     }
   }
 
+  showcalcstatus() {
+    var status = setInterval(() => {
+      this.dealSrv.GetDealCalculationStatus(this._deal.DealID).subscribe(res => {
+        if (res.Succeeded) {
+          this.DealCalcuStatus = res.DealCalcuStatus;
+          if ((this.DealCalcuStatus == "Completed")) {
+            clearInterval(status);
+
+          }
+        }
+
+      });
+    }, 30000);
+  }
+
   checkMaturityMaxEffectiveDate() {
     var mineffectivedate: any;
     var filteredeffectivedatelst = [];
@@ -15908,24 +21083,25 @@ export class DealDetailComponent extends Paginated implements OnInit {
       if (minNoteValue) {
         minCRENoteID = this.lstMaturityConfiguration.find(x => x.NoteSequenceNumber == minNoteValue).CRENoteID;
       }
-
-      mineffectivedate = this.maturityEffectiveDateslst.filter(x => x.CRENoteID == minCRENoteID)[0].EffectiveDate;
-      for (var k = 0; k < methodfilterlst.length; k++) {
-        for (var l = 0; l < this.maturityEffectiveDateslst.length; l++) {
-          if (this.maturityEffectiveDateslst[l].CRENoteID == methodfilterlst[k].CRENoteID) {
-            filteredeffectivedatelst.push({
-              'CRENoteID': this.maturityEffectiveDateslst[l].CRENoteID,
-              'EffectiveDate': this.maturityEffectiveDateslst[l].EffectiveDate
-            });
+      if (this.maturityEffectiveDateslst.length > 0) {
+        mineffectivedate = this.maturityEffectiveDateslst.filter(x => x.CRENoteID == minCRENoteID)[0].EffectiveDate;
+        for (var k = 0; k < methodfilterlst.length; k++) {
+          for (var l = 0; l < this.maturityEffectiveDateslst.length; l++) {
+            if (this.maturityEffectiveDateslst[l].CRENoteID == methodfilterlst[k].CRENoteID) {
+              filteredeffectivedatelst.push({
+                'CRENoteID': this.maturityEffectiveDateslst[l].CRENoteID,
+                'EffectiveDate': this.maturityEffectiveDateslst[l].EffectiveDate
+              });
+            }
           }
         }
-      }
-      maxeffectivedate = filteredeffectivedatelst.reduce((max, date) => (date.EffectiveDate > max ? date.EffectiveDate : max), filteredeffectivedatelst[0].EffectiveDate);
+        maxeffectivedate = filteredeffectivedatelst.reduce((max, date) => (date.EffectiveDate > max ? date.EffectiveDate : max), filteredeffectivedatelst[0].EffectiveDate);
 
-      if (new Date(maxeffectivedate) > new Date(mineffectivedate)) {
-        for (var n = 0; n < filteredeffectivedatelst.length; n++) {
-          if (new Date(filteredeffectivedatelst[n].EffectiveDate) > new Date(mineffectivedate)) {
-            _foundCRENoteID = _foundCRENoteID + filteredeffectivedatelst[n].CRENoteID + ', ';
+        if (new Date(maxeffectivedate) > new Date(mineffectivedate)) {
+          for (var n = 0; n < filteredeffectivedatelst.length; n++) {
+            if (new Date(filteredeffectivedatelst[n].EffectiveDate) > new Date(mineffectivedate)) {
+              _foundCRENoteID = _foundCRENoteID + filteredeffectivedatelst[n].CRENoteID + ', ';
+            }
           }
         }
       }
@@ -15960,711 +21136,2498 @@ export class DealDetailComponent extends Paginated implements OnInit {
         }
       }
     }
-    //} else {
-    //    var splittedname = this.selectedGroupName.split(":");
-    //    this.tooltipList[0] = splittedname[1];
-    //}
-  }
-  private ConvertToBindableDatePrepayProjection(Data) {
-    for (var i = 0; i < Data.length; i++) {
-      if (this._lstPrepayPremiumnew[i].PrepayDate != null) {
-        this._lstPrepayPremiumnew[i].PrepayDate = this.convertDateToBindable(this._lstPrepayPremiumnew[i].PrepayDate);
-      }
 
-      if (this._lstPrepayPremiumnew[i].OpenPrepaymentDate != null) {
-        this._lstPrepayPremiumnew[i].OpenPrepaymentDate = this.convertDateToBindable(this._lstPrepayPremiumnew[i].OpenPrepaymentDate);
+  }
+
+  SetActiveTab(tab) {
+    if (tab.trim().toLowerCase() == 'invoice') {
+      this.ClickedTab = "aFeeInvoicetab";
+    }
+  }
+  checkDateisHoliday(date) {
+    var sdate = new Date(date), isHoliday: any = false;
+    var formateddate = this.convertDateToBindable(date);
+    var dealfundingday = sdate.getDay();
+    if (dealfundingday == 6 || dealfundingday == 0 || this.ListHoliday.filter(x => this.convertDateToBindable(x.HolidayDate) == formateddate && x.HolidayTypeID == 411 && x.IsSoftHoliday != 3).length > 0) {
+      isHoliday = true;
+
+    }
+    return isHoliday;
+  }
+
+  ChangeNonCommitmentAdjustment(dealFundingID: string, _value: boolean, flexGridrw: wjcGrid.Row, e): void {
+    var DealFundingRowno = flexGridrw.dataItem.DealFundingRowno;
+    this.fundingaddFooterRowForNonCommitment(this.flexdealfunding, e);
+    var lnotefunding = this.lstNoteFunding.filter(x => x.DealFundingRowno == DealFundingRowno);
+
+    if (_value == true) {
+      flexGridrw.dataItem.NonCommitmentAdj = true;
+      for (var i = 0; i < lnotefunding.length; i++) {
+        lnotefunding[i].NonCommitmentAdj = true;
       }
+      this.syncDealfundingandTotalcommitmentlistforNnotes(this.listdealfunding);
+
+
+    } else {
+      flexGridrw.dataItem.NonCommitmentAdj = false;
+      for (var i = 0; i < lnotefunding.length; i++) {
+        lnotefunding[i].NonCommitmentAdj = false;
+      }
+      this.syncDealfundingandTotalcommitmentlistforNnotes(this.listdealfunding);
+
+    }
+    // this.flexdealfunding.invalidate();
+    // flexGridrw.formatItem.addHandler(this._fmtItem, this);
+
+
+  }
+
+
+  CheckDateisLastDayoftheMonth(date) {
+    let d1 = new Date(date);
+    d1.setDate(d1.getDate() + 1);
+    if (d1.getDate() === 1) {
+      //'Date is the last day of the month.';
+      return true;
+    } else {
+      //'Date is not the last day of the month.';
+      return false;
     }
   }
 
-  private ConvertToBindableDatePrepayAllocation(Data) {
-    for (var i = 0; i < Data.length; i++) {
-      if (this._lstPrepayAllocations[i].PrepayDate != null) {
-        this._lstPrepayAllocations[i].PrepayDate = this.convertDateToBindable(this._lstPrepayAllocations[i].PrepayDate);
+
+  commitmentExporttoexcel() {
+    var flexCommitment = this.flexadjustedtotalcommitment.itemsSource._src;
+
+    var excCommitment = [];
+
+
+
+    for (var k = 0; k < flexCommitment.length; k++) {
+      excCommitment.push({ 'Date': Date.now() });
+      var commitmentcolumns = Object.keys(flexCommitment[k]);
+      excCommitment[k]["NotesCount"] = (this.flexadjustedtotalcommitment.columns.length - 9).toString();
+      if (flexCommitment[k].Date != null) {
+        excCommitment[k].Date = this.convertDatetoGMT(flexCommitment[k].Date);
       }
 
-    }
-  }
-  private ConvertToBindableDatePrepayAdjustment(Data) {
-    for (var i = 0; i < Data.length; i++) {
-      if (this._lstprepayadjustment[i].Date != null) {
-        this._lstprepayadjustment[i].Date = this.convertDateToBindable(this._lstprepayadjustment[i].Date);
-      }
-    }
-  }
-  private ConvertToBindableDateSpreadMaintenance(Data) {
-    for (var i = 0; i < Data.length; i++) {
-      if (this._lstSpreadMaintenance[i].SpreadDate != null) {
-        this._lstSpreadMaintenance[i].SpreadDate = this.convertDateToBindable(this._lstSpreadMaintenance[i].SpreadDate);
-      }
-    }
-  }
-  private ConvertToBindableDateMinimumMult(Data) {
-    for (var i = 0; i < Data.length; i++) {
-      if (this._lstMinimumMult[i].MiniSpreadDate != null) {
-        this._lstMinimumMult[i].MiniSpreadDate = this.convertDateToBindable(this._lstMinimumMult[i].MiniSpreadDate);
-      }
-    }
-  }
+      excCommitment[k]["Type"] = flexCommitment[k].TypeText.toString();
 
-  GetDealPrepayProjectionByDealId() {
-    this.dealSrv.getdealprepayprojectionbydealid(this._deal.DealID).subscribe(res => {
-      if (res.Succeeded) {
-
-        var lstPrepayProjection = res.lstPrepayProjection;
-        this.Prepaylastupdated = res.Prepaylastupdated;
-        this.PrepaylastupdatedBy = res.PrepaylastupdatedBy;
-        if (this.Prepaylastupdated == null && this.Prepaylastupdated == '') {
-          this.divPrepayLastUpdated = false;
-        }
-        else {
-          this.divPrepayLastUpdated = true;
-        }
-        if (lstPrepayProjection.length > 0) {
-
-          this._lstPrepayPremiumnew = lstPrepayProjection;
-          this.ConvertToBindableDatePrepayProjection(this._lstPrepayPremiumnew);
-          for (var i = 0; i < this._lstPrepayPremiumnew.length; i++) {
-            if (this._lstPrepayPremiumnew[i].OpenPrepaymentDate != null) {
-              if (this._lstPrepayPremiumnew[i].OpenPrepaymentDate == "01/01/1900") {
-                this._lstPrepayPremiumnew[i].OpenPrepaymentDate = "";
-              }
-
-            }
-          }
-          this.PrepayPremium.selectionMode = wjcGrid.SelectionMode.None;
-
-        }
-        else {
-          this._lstPrepayPremiumnew = [];
-          this.PrepayPremium.invalidate();
-          this.PrepayPremium.selectionMode = wjcGrid.SelectionMode.None;
-        }
+      if (flexCommitment[k].DealAdjustmentHistory) {
+        excCommitment[k]["Adjustment History (Deal)"] = flexCommitment[k].DealAdjustmentHistory.toFixed(2).toString();
       }
       else {
-        this._lstPrepayPremiumnew = [];
-        this.PrepayPremium.invalidate();
-        this.PrepayPremium.selectionMode = wjcGrid.SelectionMode.None;
-      }
-    });
-
-  }
-
-  GetDealPrepayAllocationsByDealId() {
-    this.dealSrv.getdealprepayallocationbydealid(this._deal.DealID).subscribe(res => {
-      if (res.Succeeded) {
-        this._lstPrepayAllocations = res.lstPrepayAllocations;
-        this.ConvertToBindableDatePrepayAllocation(this._lstPrepayAllocations);
-        this.getprepaypremiumbyprepaydate();
-      }
-    });
-
-  }
-
-  //getprepaypremiumbyprepaydate(prepaydate: any): void {
-  //    return this._lstPrepayAllocations.filter(x => x.PrepayDate == prepaydate && x.DealID == this._deal.DealID);
-  //}
-
-
-
-  getprepaypremiumbyprepaydate(): void {
-    // this._lstPrepayAllocations=this._lstPrepayAllocations.filter(x => x.PrepayDate == prepaydate && x.DealID == this._deal.DealID);
-    var itemsPrepayAll = this._lstPrepayAllocations;
-    var dealID = this._deal.DealID;
-    new wjcGridDetail.FlexGridDetailProvider(this.PrepayPremium, {
-      maxHeight: 250,
-      isAnimated: true,
-      // detailVisibilityMode: 'ExpandMulti',
-      // selectionMode:'Cell',
-      createDetailCell: function (row) {
-        var cell = document.createElement('div');
-        var detailGrid = new wjcGrid.FlexGrid(cell, {
-          headersVisibility: wjcGrid.HeadersVisibility.Column,
-          isReadOnly: false,
-          autoGenerateColumns: false,
-          selectionMode: 'Cell',
-          itemsSource: itemsPrepayAll.filter(x => x.PrepayDate == row._data.PrepayDate && x.DealID == dealID),
-          columns: [{
-            header: 'Note Id',
-            binding: 'CRENoteID',
-            isReadOnly: true,
-            width: 200
-          },
-          {
-            header: 'Prepay Premium Allocation',
-            binding: 'MinmultDue',
-            isReadOnly: true,
-            width: 250,
-            dataType: 'Number',
-            aggregate: 'Sum'
-          }
-          ]
-        });
-        setTimeout(function () {
-          detailGrid.select(-1, -1);
-        }.bind(this), 50);
-        return cell;
+        excCommitment[k]["Adjustment History (Deal)"] = "0";
       }
 
-    });
-  }
 
-
-
-
-  getprepaypremiumDetaildatabydealId() {
-
-    this.dealSrv.getprepaypremiumdetaildatabydeal(this._deal.DealID).subscribe(res => {
-      if (res.Succeeded) {
-        var data: any = res.lstPrepay;
-        this._prepaymentpremium.PrepayScheduleId = data;
-
-        var lstprepayadjustment = res.lstDealPrepay;
-
-        var lstSpreadMaintenance = res.lstDealSpreadMaintenance;
-        var lstMiniSpreadInterest = res.lstDealMiniSpread;
-        var lstMiniFee = res.lstDealMiniFee;
-        var lstDealSpreadMaintenanceDeallevel = res.lstDealSpreadMaintenanceDeallevel;
-
-        if (lstprepayadjustment.length > 0) {
-
-          this._lstprepayadjustment = lstprepayadjustment;
-          this.ConvertToBindableDatePrepayAdjustment(this._lstprepayadjustment);
-        }
-        else {
-          this.prepayadjustment.invalidate();
-
-        }
-
-        if (this._prepaymentpremium.HasNoteLevelSMSchedule == true) {
-          if (lstSpreadMaintenance.length > 0) {
-
-            //  this._lstSpreadMaintenance = lstSpreadMaintenance;
-            this._lstSpreadMaintenance_note = lstSpreadMaintenance
-            //  this.ConvertToBindableDateSpreadMaintenance(this._lstSpreadMaintenance);
-
-            setTimeout(function () {
-              this.SpreadMaintenance.invalidate();
-            }.bind(this), 2000);
-          }
-
-          else {
-
-            this._lstSpreadMaintenance.push({
-              'CalcAfterPayoff': false
-            });
-
-          }
-        }
-        else {
-          if (lstDealSpreadMaintenanceDeallevel.length > 0) {
-
-            // this._lstSpreadMaintenance = lstDealSpreadMaintenanceDeallevel;
-            this._lstSpreadMaintenance_deal = lstDealSpreadMaintenanceDeallevel;
-            //  this.ConvertToBindableDateSpreadMaintenance(this._lstSpreadMaintenance);
-
-          }
-
-          else {
-
-            this._lstSpreadMaintenance.push({
-              'CalcAfterPayoff': false
-            });
-
-          }
-
-        }
-
-        if (lstMiniSpreadInterest.length > 0) {
-          this._lstMinimumMult = lstMiniSpreadInterest;
-          this.ConvertToBindableDateMinimumMult(this._lstMinimumMult);
-        }
-        else {
-          //  this.MinimumMult.invalidate();
-
-        }
-
-        if (lstMiniFee.length > 0) {
-          this._lstMinimumFee = lstMiniFee;
-        }
-        else {
-          this._lstMinimumFee.push({
-            'UseActualFees': false
-          });
-        }
-
-
-        this.EnableDisableMiniFeeGrid(this._prepaymentpremium.Includefeesincredits);
-        //  this.EnabledDisabledNoteColumn(this._prepaymentpremium.HasNoteLevelSMSchedule);
-        this.PrePaymentMethodChange(this._prepaymentpremium.PrepaymentMethod);
-      }
-    });
-
-  }
-
-  PrePaymentMethodChange(newvalue): void {
-    if (newvalue == 738) {
-      this.spreadmaintenancediv = true;
-      this.minispreadinterestdiv = false;
-      if (!this._isPrepaymentmethodClicked) {
-        this._isPrepaymentmethodClicked = true;
-        setTimeout(function () {
-          this.EnabledDisabledNoteColumn(this._prepaymentpremium.HasNoteLevelSMSchedule);
-        }.bind(this), 100);
+      if (flexCommitment[k].AdjustedCommitment) {
+        excCommitment[k]["Adjusted Commitment"] = flexCommitment[k].AdjustedCommitment.toFixed(2).toString();
       }
       else {
-        if (this._prepaymentpremium.HasNoteLevelSMSchedule == true) {
-          setTimeout(function () {
-            var dialogoverlay = document.getElementById('divSpreadMaintenance');
-            dialogoverlay.style.width = "700px";
-            var dialogoverlay1 = document.getElementById('divgridSpreadMaintenance');
-            dialogoverlay1.style.width = "700px";
-            var SpreadMaintenance = this.SpreadMaintenance
+        excCommitment[k]["Adjusted Commitment"] = "0";
+      }
 
-            this._showHidenote = true
-            if (SpreadMaintenance) {
-              var colNoteId = SpreadMaintenance.columns.getColumn('CRENoteID');
-              if (colNoteId) {
-               // colNoteId.showDropDown = true;
-                colNoteId.dataMap = this._buildDataMapWithoutLookupForNoteId(this.lstNote);
+      if (flexCommitment[k].TotalCommitment) {
+        excCommitment[k]["M61 Total Commitment"] = flexCommitment[k].TotalCommitment.toString();
+      }
+      else {
+        excCommitment[k]["M61 Total Commitment"] = "0";
+      }
+
+      if (flexCommitment[k].TotalEquityatClosing) {
+        excCommitment[k]["Total Equity at Closing"] = flexCommitment[k].TotalEquityatClosing.toString();
+      }
+      else {
+        excCommitment[k]["Total Equity at Closing"] = "0";
+      }
+
+
+      if (flexCommitment[k].TotalRequiredEquity) {
+        excCommitment[k]["Total Required Equity"] = flexCommitment[k].TotalRequiredEquity.toString();
+      }
+      else {
+        excCommitment[k]["Total Required Equity"] = "0";
+      }
+
+      /*
+      if (flexCommitment[k].TotalAdditionalEquity) {
+        excCommitment[k]["Total Additional Equity"] = flexCommitment[k].TotalAdditionalEquity.toString();
+      }
+      else {
+        excCommitment[k]["Total Additional Equity"] = "0";
+      }
+      */
+
+      excCommitment[k]["Comments"] = flexCommitment[k].Comments;
+      for (var i = 0; i < this.lstNote.length; i++) {
+        if (commitmentcolumns.includes(this.lstNote[i].CRENoteID + "_Noteid")) {
+          if (flexCommitment[k][this.lstNote[i].CRENoteID + "_Noteid"]) {
+            //  excCommitment[k][this.lstNote[i].Name] = parseFloat(flexCommitment[k][this.lstNote[i].CRENoteID + "_Noteid"]);
+            excCommitment[k][this.lstNote[i].Name.trim()] = (flexCommitment[k][this.lstNote[i].CRENoteID + "_Noteid"]).toString();
+          }
+          else {
+            excCommitment[k][this.lstNote[i].Name.trim()] = "0";
+          }
+        }
+        else {
+          console.log("NO commitment");
+          console.log(flexCommitment[k][this.lstNote[i].CRENoteID + "_Noteid"]);
+        }
+      }
+    }
+    this.dealSrv.downloadexcelCommitment(excCommitment)
+      .subscribe(fileData => {
+        this._isListFetching = false;
+        let b: any = new Blob([fileData]);
+        let dwldLink = document.createElement("a");
+        let url = URL.createObjectURL(b);
+        let isSafariBrowser = navigator.userAgent.indexOf('Safari') != -1 && navigator.userAgent.indexOf('Chrome') == -1;
+        if (isSafariBrowser) {  //if Safari open in new window to save file with random filename.
+          dwldLink.setAttribute("target", "_blank");
+        }
+        dwldLink.setAttribute("href", url);
+        dwldLink.setAttribute("download", this._deal.DealName + '_Commitment.xlsx');
+        dwldLink.style.visibility = "hidden";
+        document.body.appendChild(dwldLink);
+        dwldLink.click();
+        document.body.removeChild(dwldLink);
+        this.isProcessComplete = false;
+      },
+        error => {
+          console.log(error);
+          // alert('Something went wrong');
+          this.isProcessComplete = false;;
+        }
+      );
+  }
+
+  CalculateCurrentMaturity() {
+    if (this.lstNote[0] != null) {
+      var maxInitialMaturityDate = new Date('1970-01-01Z00:00:00:000');
+      var maxFullyExtendedMaturityDate = new Date('1970-01-01Z00:00:00:000');
+      var maxExtendedMaturity = new Date('1970-01-01Z00:00:00:000');
+      var max_ExtensionMat = null;
+      var maxActualPayoffDate = new Date('1970-01-01Z00:00:00:000');
+      var maxmat = null;
+
+      var usePayOffasmaturity = false;
+      var useExtenstionMaturity = true;
+      if (this.maturityList !== undefined) {
+        if (this.maturityList.length > 0) {
+          var vlen = this.maturityList.filter(x => x.ActualPayoffDate == null).length;
+          if (vlen == 0) {
+            usePayOffasmaturity = true;
+          }
+        }
+      }
+
+      if (this.isMaturityDataChanged == true) {
+        //708	118	Initial
+        //709	118	Extension
+        //710	118	Fully extended
+        //this.selectedGroupName
+        if (this._lstChangedMaturityData !== undefined) {
+          if (this._lstChangedMaturityData.length > 0) {
+            for (var i = 0; i < this._lstChangedMaturityData.length; i++) {
+              if (this._lstChangedMaturityData[i].Approved == 3 && this._lstChangedMaturityData[i].IsDeleted == 0 && this._lstChangedMaturityData[i].GroupName == this.selectedGroupName) {
+                if (this._lstChangedMaturityData[i].MaturityType == 708) {
+                  if (new Date(this._lstChangedMaturityData[i].MaturityDate) > maxInitialMaturityDate) {
+                    maxInitialMaturityDate = this._lstChangedMaturityData[i].MaturityDate;
+                  }
+                }
+
+                if (this._lstChangedMaturityData[i].MaturityType == 710) {
+                  if (new Date(this._lstChangedMaturityData[i].MaturityDate) > maxFullyExtendedMaturityDate) {
+                    maxFullyExtendedMaturityDate = this._lstChangedMaturityData[i].MaturityDate;
+                  }
+                }
+                if (this._lstChangedMaturityData[i].MaturityType == 709) {
+                  if (new Date(this._lstChangedMaturityData[i].MaturityDate) > maxExtendedMaturity) {
+                    maxExtendedMaturity = this._lstChangedMaturityData[i].MaturityDate;
+                  }
+                }
               }
             }
-          }.bind(this), 100);
-        }
-        else {
-
-          setTimeout(function () {
-            this._showHidenote = false
-            var dialogoverlay = document.getElementById('divSpreadMaintenance');
-            dialogoverlay.style.width = "500px";
-            var dialogoverlay1 = document.getElementById('divgridSpreadMaintenance');
-            dialogoverlay1.style.width = "500px";
-
-          }.bind(this), 100);
-        }
-      }
-    }
-    if (newvalue == 739 || newvalue == 740) {
-      this.minispreadinterestdiv = true;
-      this.spreadmaintenancediv = false;
-      this.EnableDisableMiniFeeGrid(this._prepaymentpremium.Includefeesincredits);
-    }
-    if (newvalue == 741) {
-      this.spreadmaintenancediv = true;
-      this.minispreadinterestdiv = true;
-      this.EnableDisableMiniFeeGrid(this._prepaymentpremium.Includefeesincredits);
-      if (!this._isPrepaymentmethodClicked) {
-        this._isPrepaymentmethodClicked = true;
-        setTimeout(function () {
-          this.EnabledDisabledNoteColumn(this._prepaymentpremium.HasNoteLevelSMSchedule);
-        }.bind(this), 100);
-      }
-      if (this._prepaymentpremium.HasNoteLevelSMSchedule == true) {
-        setTimeout(function () {
-          var SpreadMaintenance = this.SpreadMaintenance
-
-          if (SpreadMaintenance) {
-            var colNoteId = SpreadMaintenance.columns.getColumn('CRENoteID');
-            if (colNoteId) {
-             // colNoteId.showDropDown = true;
-              colNoteId.dataMap = this._buildDataMapWithoutLookupForNoteId(this.lstNote);
+            if (this.maturityActualPayoffDate != null) {
+              maxActualPayoffDate = new Date(this.maturityActualPayoffDate);
             }
           }
-        }.bind(this), 100);
-      }
-
-      setTimeout(function () {
-        if (this._prepaymentpremium.HasNoteLevelSMSchedule == true) {
-          var dialogoverlay = document.getElementById('divSpreadMaintenance');
-          dialogoverlay.style.width = "700px";
-          var dialogoverlay1 = document.getElementById('divgridSpreadMaintenance');
-          dialogoverlay1.style.width = "700px";
         }
-        else {
-          var dialogoverlay = document.getElementById('divSpreadMaintenance');
-          dialogoverlay.style.width = "500px";
-          var dialogoverlay1 = document.getElementById('divgridSpreadMaintenance');
-          dialogoverlay1.style.width = "500px";
-        }
-      }.bind(this), 100);
-    }
-  }
-
-  AddNewPrePayPremium() {
-    if (this._lstprepayadjustment.length > 0) {
-      for (var h = 0; h < this._lstprepayadjustment.length; h++) {
-        this._lstprepayadjustmentNew.push({
-          // this.adjustedcommitmentheadervalues[n] == null ? 0
-          'PrepayAdjustmentId': this._lstprepayadjustment[h].PrepayAdjustmentId == null ? 0 : this._lstprepayadjustment[h].PrepayAdjustmentId,
-          'Date': this.convertDateToBindable(this._lstprepayadjustment[h].Date),
-          'PrepayAdjAmt': this._lstprepayadjustment[h].PrepayAdjAmt,
-          'Comment': this._lstprepayadjustment[h].Comment
-        });
-
-      }
-    }
-    // this._lstSpreadMaintenance.splice(0, 1);
-    if (this._prepaymentpremium.HasNoteLevelSMSchedule == false || this._prepaymentpremium.HasNoteLevelSMSchedule == null) {
-      // var CRENoteList = this.lstNote.map(item => item.NoteId).filter((value, index, self) => self.indexOf(value) === index)
-      if (this._lstSpreadMaintenance.length > 0) {
-        for (var h = 0; h < this._lstSpreadMaintenance.length; h++) {
-          // for (var k = 0; k < CRENoteList.length; k++) {
-          this._lstSpreadMaintenancenew.push({
-            'SpreadMaintenanceScheduleId': this._lstSpreadMaintenance[h].SpreadMaintenanceScheduleId == null ? 0 : this._lstSpreadMaintenance[h].SpreadMaintenanceScheduleId,
-            'NoteID': null,
-            /* 'CRENoteID': this._lstSpreadMaintenance[k].CRENoteID,*/
-            'SpreadDate': this.convertDateToBindable(this._lstSpreadMaintenance[h].SpreadDate),
-            'Spread': this._lstSpreadMaintenance[h].Spread,
-            'CalcAfterPayoff': this._lstSpreadMaintenance[h].CalcAfterPayoff
-          });
-          // }
-        }
-      }
-    }
-    else {
-      if (this._lstSpreadMaintenance.length > 0) {
-        for (var h = 0; h < this._lstSpreadMaintenance.length; h++) {
-          this._lstSpreadMaintenancenew.push({
-            'SpreadMaintenanceScheduleId': this._lstSpreadMaintenance[h].SpreadMaintenanceScheduleId == null ? 0 : this._lstSpreadMaintenance[h].SpreadMaintenanceScheduleId,
-            'NoteId': this._lstSpreadMaintenance[h].CRENoteID,
-            /*'NoteId': this._lstSpreadMaintenance[h].NoteId == undefined ? this._lstSpreadMaintenance[h].CRENoteID : this._lstSpreadMaintenance[h].NoteId,
-             'CRENoteID': this._lstSpreadMaintenance[k].CRENoteID,*/
-            'SpreadDate': this.convertDateToBindable(this._lstSpreadMaintenance[h].SpreadDate),
-            'Spread': this._lstSpreadMaintenance[h].Spread,
-            'CalcAfterPayoff': this._lstSpreadMaintenance[h].CalcAfterPayoff
-          });
-        }
-      }
-    }
-    if (this._lstMinimumMult.length > 0) {
-      for (var h = 0; h < this._lstMinimumMult.length; h++) {
-        this._lstMinimumMultNew.push({
-          'MinMultScheduleID': this._lstMinimumMult[h].MinMultScheduleID == null ? 0 : this._lstMinimumMult[h].MinMultScheduleID,
-          'MiniSpreadDate': this.convertDateToBindable(this._lstMinimumMult[h].MiniSpreadDate),
-          'MinMultAmount': this._lstMinimumMult[h].MinMultAmount
-        });
-      }
-    }
-    if (this._lstMinimumFee.length > 0) {
-      for (var h = 0; h < this._lstMinimumFee.length; h++) {
-        this._lstMinimumFeeNew.push({
-          'FeeCreditsID': this._lstMinimumFee[h].FeeCreditsID == null ? 0 : this._lstMinimumFee[h].FeeCreditsID,
-          'FeeTypeNameText': this._lstMinimumFee[h].FeeTypeNameText,
-          'FeeCreditOverride': this._lstMinimumFee[h].FeeCreditOverride,
-          'UseActualFees': this._lstMinimumFee[h].UseActualFees
-        });
-      }
-    }
-    this._prepaymentpremium.PrepayAdjustmentList = this._lstprepayadjustmentNew;
-    this._prepaymentpremium.SpreadMaintenanceScheduleList = this._lstSpreadMaintenancenew;
-    this._prepaymentpremium.MinMultScheduleList = this._lstMinimumMultNew;
-    this._prepaymentpremium.FeeCreditsList = this._lstMinimumFeeNew;
-
-    this.dealSrv.addNewPrepaySchedule(this._prepaymentpremium).subscribe(res => {
-      if (res.Succeeded) {
-        this.saveprepayruletemplate();
-      }
-    });
-  }
 
 
-  //save prepay rule template
-  saveprepayruletemplate() {
-    var DefaultScenarioID = this._lstScenario.find(x => x.ScenarioName == "Default").AnalysisID;
-    if (this._prepaymentpremium.PrePaymentRuleType != 0) {
-      this._lstRuleTypeSetupNew.push({
-        'AnalysisID': DefaultScenarioID,
-        'DealID': this._deal.DealID,
-        'RuleTypeMasterID': 4,
-        'RuleTypeDetailID': this._prepaymentpremium.PrePaymentRuleType,
+        if (this.maturityList !== undefined) {
+          if (this.maturityList.length > 0) {
 
-      });
-      this.dealSrv.addupdatedealruletypesetup(this._lstRuleTypeSetupNew).subscribe(res => {
-        if (res.Succeeded) {
-          if (this.isPrepayCalcClicked == true) {
-            this.isPrepayCalcClicked = false;
-            this.PrepayCalcSubmit();
+            for (var i = 0; i < this.maturityList.length; i++) {
+              if (this.maturityList[i].ApprovedText == "Y" && this.maturityList[i].isDeleted == 0 && this.maturityList[i].MaturityGroupName != this.selectedGroupName) {
+                if (this.maturityList[i].MaturityTypeText == "Initial") {
+                  if (new Date(this.maturityList[i].MaturityDate) > maxInitialMaturityDate) {
+                    maxInitialMaturityDate = this.maturityList[i].MaturityDate;
+                  }
+                }
+
+                if (this.maturityList[i].MaturityTypeText == "Fully extended") {
+                  if (new Date(this.maturityList[i].MaturityDate) > maxFullyExtendedMaturityDate) {
+                    maxFullyExtendedMaturityDate = this.maturityList[i].MaturityDate;
+                  }
+                }
+                if (this.maturityList[i].MaturityTypeText == "Extension") {
+                  if (new Date(this.maturityList[i].MaturityDate) > maxExtendedMaturity) {
+                    maxExtendedMaturity = this.maturityList[i].MaturityDate;
+                  }
+                }
+              }
+
+              if (this.maturityList[i].ActualPayoffDate) {
+                if (new Date(this.maturityList[i].ActualPayoffDate) > maxActualPayoffDate) {
+                  maxActualPayoffDate = this.maturityList[i].ActualPayoffDate;
+                }
+              }
+            }
           }
         }
-      });
+
+      } else {
+        if (this.maturityList !== undefined) {
+          if (this.maturityList.length > 0) {
+
+            for (var i = 0; i < this.maturityList.length; i++) {
+              if (this.maturityList[i].ApprovedText == "Y" && this.maturityList[i].isDeleted == 0) {
+                if (this.maturityList[i].MaturityTypeText == "Initial") {
+                  if (new Date(this.maturityList[i].MaturityDate) > maxInitialMaturityDate) {
+                    maxInitialMaturityDate = this.maturityList[i].MaturityDate;
+                  }
+                }
+
+                if (this.maturityList[i].MaturityTypeText == "Fully extended") {
+                  if (new Date(this.maturityList[i].MaturityDate) > maxFullyExtendedMaturityDate) {
+                    maxFullyExtendedMaturityDate = this.maturityList[i].MaturityDate;
+                  }
+                }
+                if (this.maturityList[i].MaturityTypeText == "Extension") {
+                  if (new Date(this.maturityList[i].MaturityDate) > maxExtendedMaturity) {
+                    maxExtendedMaturity = this.maturityList[i].MaturityDate;
+                  }
+                }
+              }
+
+              if (this.maturityList[i].ActualPayoffDate) {
+                if (new Date(this.maturityList[i].ActualPayoffDate) > maxActualPayoffDate) {
+                  maxActualPayoffDate = this.maturityList[i].ActualPayoffDate;
+                }
+              }
+            }
+          }
+        }
+      }
+
+      if (maxInitialMaturityDate.getFullYear() < 2000) {
+        maxInitialMaturityDate = new Date(Math.max.apply(null, this.lstNote.map(x => x.InitialMaturityDate)));
+        if (maxInitialMaturityDate.getFullYear() < 2000) {
+          maxInitialMaturityDate = null;
+        }
+      }
+      if (maxFullyExtendedMaturityDate.getFullYear() < 2000) {
+        maxFullyExtendedMaturityDate = new Date(Math.max.apply(null, this.lstNote.map(x => x.FullyExtendedMaturityDate)));
+        if (maxFullyExtendedMaturityDate.getFullYear() < 2000) {
+          maxFullyExtendedMaturityDate = null;
+        }
+      }
+      if (maxExtendedMaturity.getFullYear() < 2000) {
+        maxExtendedMaturity = new Date(Math.max.apply(null, this.lstNote.map(x => x.ExtendedMaturityCurrent)));
+        max_ExtensionMat = maxExtendedMaturity;
+        if (maxExtendedMaturity.getFullYear() < 2000) {
+          maxExtendedMaturity = null;
+          max_ExtensionMat = this._deal.max_ExtensionMat;
+        }
+      } else {
+        max_ExtensionMat = maxExtendedMaturity;
+      }
+
+      if (maxActualPayoffDate.getFullYear() < 2000) {
+        maxActualPayoffDate = new Date(Math.max.apply(null, this.lstNote.map(x => x.ActualPayoffDate)));
+        if (maxActualPayoffDate.getFullYear() < 2000) {
+          maxActualPayoffDate = null;
+        }
+      }
+
+      if (maxActualPayoffDate != null || maxActualPayoffDate != undefined) {
+        if (maxActualPayoffDate.getFullYear() < 2000) {
+
+          maxActualPayoffDate = null;
+        }
+      }
+      if (maxExtendedMaturity != null || maxExtendedMaturity != undefined) {
+        if (maxExtendedMaturity.getFullYear() < 2000) {
+          maxExtendedMaturity = null;
+        }
+      }
+      if (max_ExtensionMat != null) {
+        if (max_ExtensionMat < maxInitialMaturityDate) {
+          useExtenstionMaturity = false;
+        }
+      }
+
+      var today = new Date();
+      if (maxActualPayoffDate != null && usePayOffasmaturity == true) {
+        maxmat = maxActualPayoffDate;
+      }
+      else if (max_ExtensionMat != null && useExtenstionMaturity == true) {
+        maxmat = max_ExtensionMat;
+      }
+      else {
+        var nextInitialMaturityDate = this.getnextbusinessDate(new Date(JSON.parse(JSON.stringify(maxInitialMaturityDate))), -20, false);
+        if (today >= nextInitialMaturityDate) {
+          var nextExtendedMaturityDate = this.getnextbusinessDate(new Date(JSON.parse(JSON.stringify(maxExtendedMaturity))), -20, false);
+          if (today >= nextExtendedMaturityDate) {
+            maxmat = maxFullyExtendedMaturityDate;
+          }
+          else {
+            maxmat = maxExtendedMaturity;
+          }
+
+        }
+        else {
+          //Use InitialMaturityDate if it is smaller than today date
+          maxmat = maxInitialMaturityDate
+        }
+        maxmat = this.getPreviousWorkingDate(new Date(JSON.parse(JSON.stringify(maxmat))));
+
+      }
+
+      //var formateddate = this.utils.convertDateToBindable(maxmat);
+
+      //for (var i = 0; i < this.lstNote.length; i++)
+      //{
+      //  this.lstNote[i].CurrentMaturityDate = formateddate;
+      //}
+      return maxmat;
     }
   }
 
-  //calc prepay
-  SubmitPrepayCalcRequest(): void {
-    this._isShowLoader = true;
-    this.isPrepayCalcClicked = true;
-    var prepaydateerror = "";
-    if (this._deal.PrePayDate == null || this._deal.PrePayDate === undefined) {
-      prepaydateerror = "<p>" + "Prepay date can not be blank. Please enter a date. " + "</p>";
-      this.CustomAlert(prepaydateerror);
-      this._isShowLoader = false;
+  //ServicingWatchlist code
+  invalidateServicingWatchlist() {
+    this.IsServicingWatchlisttabClicked = true;
+    this.getAccountingBasis();
+    if (this.IsServicingWatchlistDataLoaded == false) {
+      this.getAutoDistributeWriteoffByDealID(this._deal);
+      this.HideUnhideGrids();
+
+    }
+
+  }
+
+  HideUnhideGrids() {
+    this.GetServicingWatchListDatabyDealid();
+  }
+
+  GetServicingWatchListDatabyDealid() {
+    this._isListFetching = true;
+    this.dealSrv.GetServicingWatchListDatabyDealid(this._deal.DealID).subscribe(res => {
+      if (res.Succeeded) {
+
+        this.lstServicingWatchlistLegal = res.ListServicingWatchlistLegal;
+        this.ConvertToBindableDateServicingWatch(this.lstServicingWatchlistLegal, "Legal");
+        this.cvServicingWatchlistLegal = new wjcCore.CollectionView(this.lstServicingWatchlistLegal);
+        this.cvServicingWatchlistLegal.trackChanges = true;
+        this.flexServicingWatchlistLegal.invalidate();
+
+        this.lstServicingWatchlistAccounting = res.ListServicingWatchlistAccounting;
+        this.ConvertToBindableDateServicingWatch(this.lstServicingWatchlistAccounting, "Accounting");
+        this.cvServicingWatchlistAccounting = new wjcCore.CollectionView(this.lstServicingWatchlistAccounting);
+        this.cvServicingWatchlistAccounting.trackChanges = true;
+        this.flexServicingWatchlistAccounting.invalidate();
+        this.PotentialImpairmentGridbind(res.dt, 'null')
+        this._bindGridDropdowsServicingWatchlist();
+        if (this.IsServicingWatchlistDataLoaded == false) {
+          this.IsServicingWatchlistDataLoaded = true;
+        }
+      }
+    });
+
+
+  }
+
+  private _bindGridDropdowsServicingWatchlist() {
+
+    var flexServicingWatchlistAccounting = this.flexServicingWatchlistAccounting;
+    if (flexServicingWatchlistAccounting) {
+      var colTypeText = flexServicingWatchlistAccounting.getColumn('TypeTextAccounting');
+      if (colTypeText) {
+        colTypeText.dataMap = this._buildDataMap(this.lstAccountingType, 'LookupID', 'Name');
+      }
+    }
+    var flexServicingPotentialImpairment = this.flexServicingPotentialImpairment;
+    if (flexServicingPotentialImpairment) {
+      var colTypeText = flexServicingPotentialImpairment.getColumn('AdjustmentType');
+      if (colTypeText) {
+        colTypeText.dataMap = this._buildDataMap(this.lstAdjustmentTypeImpairment, 'LookupID', 'Name');
+      }
+    }
+  }
+
+  private _bindGridDropdowsReserveAccount() {
+
+    var flexReserveAccounts = this.flexReserveAccounts;
+
+    if (flexReserveAccounts) {
+      var colTypeText = flexReserveAccounts.getColumn('ReserveAccountName');
+      if (colTypeText) {
+        colTypeText.dataMap = this._buildDataMap(this.lstReserveAccountMaster, 'ReserveAccountMasterID', 'ReserveAccountName');
+      }
+    }
+
+  }
+  private ConvertToBindableDateServicingWatch(Data, gridtype) {
+    if (gridtype == "Legal") {
+      for (var i = 0; i < Data.length; i++) {
+        if (this.lstServicingWatchlistLegal[i].StartDate != null) {
+          this.lstServicingWatchlistLegal[i].StartDate = this.utils.convertDateToBindable(this.lstServicingWatchlistLegal[i].StartDate);
+        }
+        if (this.lstServicingWatchlistLegal[i].EndDate != null) {
+          this.lstServicingWatchlistLegal[i].EndDate = this.utils.convertDateToBindable(this.lstServicingWatchlistLegal[i].EndDate);
+        }
+
+      }
+    }
+
+    if (gridtype == "Accounting") {
+      for (var i = 0; i < Data.length; i++) {
+        if (this.lstServicingWatchlistAccounting[i].StartDate != null) {
+          this.lstServicingWatchlistAccounting[i].StartDate = this.utils.convertDateToBindable(this.lstServicingWatchlistAccounting[i].StartDate);
+        }
+        if (this.lstServicingWatchlistAccounting[i].EndDate != null) {
+          this.lstServicingWatchlistAccounting[i].EndDate = this.utils.convertDateToBindable(this.lstServicingWatchlistAccounting[i].EndDate);
+        }
+
+      }
+    }
+
+    // start
+    if (gridtype == "PotentialImpairment") {
+      for (var i = 0; i < Data.length; i++) {
+        if (this.lstServicingPotentialImpairment[i].Date != null) {
+          this.lstServicingPotentialImpairment[i].Date = this.utils.convertDateToBindable(this.lstServicingPotentialImpairment[i].Date);
+        }
+      }
+    }
+    // end
+  }
+  cellBeginEditPotentialImpairment(PotentialImpairmentflex: wjcGrid.FlexGrid, e: wjcGrid.CellEditEndingEventArgs) {
+
+    var appliedcol = this.flexServicingPotentialImpairment.getColumn("Applied").index;
+    if (e.col.toString() == appliedcol.toString()) {
+      e.cancel = true;
       return;
     }
-    else {
-      this._prepaymentpremium.PrepayDate = this.convertDatetoGMT(this._deal.PrePayDate);
-      this.divPrepayCalculationStatus = true;
-      this.PrepayCalcStatus = "Processing";
+  }
+
+  cellEditPotentialImpairment(PotentialImpairmentflex: wjcGrid.FlexGrid, e: wjcGrid.CellEditEndingEventArgs) {
+
+
+    var datecol = this.flexServicingPotentialImpairment.getColumn("Date").index;
+    var amtcol = this.flexServicingPotentialImpairment.getColumn("Amount").index;
+    var commentcol = this.flexServicingPotentialImpairment.getColumn("Comment").index;
+    var appliedcol = this.flexServicingPotentialImpairment.getColumn("Applied").index;
+    if (e.col.toString() == appliedcol.toString()) {
+      e.cancel = true;
+      return;
     }
 
-    this._prepaymentpremium.DealID = this._deal.DealID;
-    this.AddNewPrePayPremium();
-    // this.saveprepayruletemplate();
+    if (e.col.toString() != datecol.toString() && e.col.toString() != amtcol.toString() && e.col.toString() != commentcol.toString() && e.col.toString() != appliedcol.toString()) {
 
-  }
-
-  PrepayCalcSubmit() {
-   // var dealid = this._deal.DealID;
-    this.dealSrv.CalcPrepaySchedule(this._deal).subscribe(res => {
-      if (res.Succeeded) {
-        this.showPrepayCalcStatus();
-        // this.PrepayCalcStatus = "Running";
-        this._isShowLoader = false;
-        this._ShowmessagedivMsg = "Calculate Prepay saved successfully.";
-        this._Showmessagediv = true;
-        setTimeout(() => {
-          this._Showmessagediv = false;
-        }, 3000);
-        this.showprepaycalcstatuswithinterval();
-
+      var cellvalue = PotentialImpairmentflex.getCellData(e.row, e.col, false);
+      if (cellvalue < 0) {
+        PotentialImpairmentflex.setCellData(e.row, e.col, -1 * cellvalue);
       }
+    }
 
-    });
-  }
-
-  showprepaycalcstatuswithinterval() {
-    this._isShowLoader = false;
-    this.divPrepayCalculationStatus = true;
-    var status = setInterval(() => {
-      this.dealSrv.getprepaycalculationstatus(this._deal.DealID).subscribe(res => {
-        if (res.Succeeded) {
-          this.PrepayCalcStatus = res.PrepayCalcuStatus;
-          this.CalculationErorMessage = res.CalculationErrorMessage
-          if (this.PrepayCalcStatus == "Completed") {
-            clearInterval(status);
-            // this.showprepaycalcstatusmessage(this.CalculationErorMessage);
-            this.GetDealPrepayAllocationsByDealId();
-            this.GetDealPrepayProjectionByDealId();
-            this._isShowLoader = false;
-          }
-          else if (this.PrepayCalcStatus == "Failed") {
-            clearInterval(status);
-            // this.showprepaycalcstatusmessage(this.CalculationErorMessage);
-            this._isShowLoader = false;
+    if (this.lstServicingPotentialImpairment[e.row].RowNo === null || this.lstServicingPotentialImpairment[e.row].RowNo === undefined) {
+      var maxrownumber = 0;
+      for (var n1 = 0; n1 < this.lstServicingPotentialImpairment.length; n1++) {
+        if (this.lstServicingPotentialImpairment[n1].RowNo !== undefined && this.lstServicingPotentialImpairment[n1].RowNo != null) {
+          if (this.lstServicingPotentialImpairment[n1].RowNo > maxrownumber) {
+            maxrownumber = this.lstServicingPotentialImpairment[n1].RowNo;
           }
         }
+      }
+      this.lstServicingPotentialImpairment[e.row].RowNo = maxrownumber + 1;
 
-      });
-    }, 10000);
+    }
+
+    // row total will not work when EnableAutoDistributePrincipalWriteoff is true
+    if (this._deal.EnableAutoDistributePrincipalWriteoff != true) {
+      var TotalAmount = 0
+      for (var n = 0; n < this.potentialImpairmentdynamicnotescol.length; n++) {
+        var notetotalcommitmentcol = 0;
+        var _isbracket = this.potentialImpairmentdynamicnotescol[n].indexOf("_");
+        if (_isbracket > -1) {
+          if (this.potentialImpairmentdynamicnotescol[n].includes("_Noteid")) {
+
+            TotalAmount += this.lstServicingPotentialImpairment[e.row][this.potentialImpairmentdynamicnotescol[n]] == null ? 0 : parseFloat(this.lstServicingPotentialImpairment[e.row][this.potentialImpairmentdynamicnotescol[n]])
+          }
+        }
+      }
+      this.flexServicingPotentialImpairment.rows[e.row].dataItem.Amount = TotalAmount;
+    }
+
+    if (e.col.toString() == datecol.toString() && this.lstServicingPotentialImpairment[e.row].Date) {
+      var maxappliedDate = new Date(Math.max.apply(null, this.lstServicingPotentialImpairment.filter(x => x.Applied == true).map(x => this.convertDatetoGMT(x.Date))));
+      if (this.convertDatetoGMT(this.lstServicingPotentialImpairment[e.row].Date) < maxappliedDate) {
+        this.lstServicingPotentialImpairment[e.row].Date = "";
+        this.CustomAlert("Date cannot be less than last wire confirmed date " + this.convertDateToBindable(maxappliedDate));
+      }
+      else {
+        if (this.lstServicingPotentialImpairment[e.row].Date) {
+          var accsDate = this.lstServicingPotentialImpairment[e.row].Date;
+          var formateddate = this.convertDateToBindable(accsDate);
+          var accScheduledateday = accsDate.getDay();
+          if (accScheduledateday == 6 || accScheduledateday == 0 || this.ListHoliday.filter(x => this.convertDateToBindable(x.HolidayDate) == formateddate && x.HolidayTypeID == 411).length > 0
+          ) {
+            this.flexServicingPotentialImpairment.rows[e.row].dataItem.IsValidateHoliday = 'false';
+          }
+          else {
+            this.flexServicingPotentialImpairment.rows[e.row].dataItem.IsValidateHoliday = 'true';
+          }
+        }
+      }
+    }
+    if (e.col.toString() == amtcol.toString() && this.flagIsAutoDistibutePressed == true) {
+      //this.flagPrincipalWriteoffAmountDistributed = false;
+      if (this._deal.EnableAutoDistributePrincipalWriteoff == true) this.flagIsAutoDistibutePressed = false; else this.flagIsAutoDistibutePressed = true;
+    }
   }
 
-  showPrepayCalcStatus() {
-    this.dealSrv.getprepaycalculationstatus(this._deal.DealID).subscribe(res => {
-      if (res.Succeeded) {
-        this.PrepayCalcStatus = res.PrepayCalcuStatus;
-        this.CalculationErorMessage = res.CalculationErrorMessage;
-        if (this.PrepayCalcStatus == "" || this.PrepayCalcStatus == undefined) {
-          this.divPrepayCalculationStatus = false;
-        }
-        else {
-          this.divPrepayCalculationStatus = true;
+  changeImpairmentApplied(value: boolean, flexGridrw: wjcGrid.Row, e): void {
+    //this._isdealfundingEdit = false;
+    this._isdealfundingChanged = false;
 
+
+
+    if (value == false) {
+      var maxDate = new Date(Math.max.apply(null, this.lstServicingPotentialImpairment.filter(x => x.Applied == true).map(x => this.convertDatetoGMT(x.Date))));
+      if (maxDate.toJSON()) {
+        if (flexGridrw.dataItem.Date) {
+          var wcDate = new Date(flexGridrw.dataItem.Date);
+          if (this.convertDatetoGMT(wcDate).toString() != maxDate.toString()) {
+            this.flexServicingPotentialImpairment.invalidate();
+            this.CustomAlert("You can't remove a wire confirmation on an earlier date without removing the wire confirmation on later dates.")
+            e.target.checked = true;
+            this.flexServicingPotentialImpairment.rows[flexGridrw.index].dataItem.Applied = true;
+            return;
+          }
+        }
+      }
+      if (this._deal.EnableAutoDistributePrincipalWriteoff == true) this.flagIsAutoDistibutePressed = false; else this.flagIsAutoDistibutePressed = true;
+      flexGridrw.isReadOnly = false;
+      flexGridrw.dataItem.Applied = false;
+      e.target.checked = false;
+      flexGridrw.cssClass = "customgridrowcolornotapplied";
+      this.AddPotentialImpairmentTODealfundingGrid();
+    }
+    else if (this.flagIsAutoDistibutePressed == true) {
+      if (value == true) {
+        var minDate = new Date(Math.min.apply(null, this.lstServicingPotentialImpairment.filter(x => x.Applied == false).map(x => this.convertDatetoGMT(x.Date))));
+        if (minDate.toJSON()) {
+          if (flexGridrw.dataItem.Date) {
+            var wcDate = new Date(flexGridrw.dataItem.Date);
+            if (this.convertDatetoGMT(wcDate).toString() != minDate.toString()) {
+              this.flexServicingPotentialImpairment.rows[flexGridrw.index].dataItem.Applied = false;
+              this.CustomAlert("You can't confirm wire on a later date without confirming all wires in between.")
+              e.target.checked = false;
+              return;
+            }
+          }
+
+        }
+
+        var maxappliedDate = new Date(Math.max.apply(null, this.listdealfunding.filter(x => x.Applied == true).map(x => x.Date)));
+
+        if (maxappliedDate && maxappliedDate.toString() != "Invalid Date") {
+          var wcDate = new Date(flexGridrw.dataItem.Date);
+          if (this.convertDatetoGMT(wcDate) < this.convertDatetoGMT(maxappliedDate)) {
+            this.flexServicingPotentialImpairment.rows[flexGridrw.index].dataItem.Applied = false;
+            this.CustomAlert("A date lower than the most recent wire confirm date of the deal funding cannot be used for wire confirm.")
+            e.target.checked = false;
+            return;
+          }
+
+        }
+
+        var wcDate = new Date(flexGridrw.dataItem.Date);
+        if (this.convertDatetoGMT(wcDate) > this.convertDatetoGMT(this._currentDate)) {
+          this.flexServicingPotentialImpairment.rows[flexGridrw.index].dataItem.Applied = false;
+          this.CustomAlert("You can't confirm wire on a date greater than the current date.")
+          e.target.checked = false;
+          return;
+        }
+
+        var minNonappliedDate = new Date(Math.min.apply(null, this.listdealfunding.filter(x => x.Applied == false).map(x => x.Date)));
+        if (minNonappliedDate && minNonappliedDate.toString() != "Invalid Date") {
+          var wcDate = new Date(flexGridrw.dataItem.Date);
+          if (this.convertDatetoGMT(wcDate) > this.convertDatetoGMT(minNonappliedDate)) {
+            this.flexServicingPotentialImpairment.rows[flexGridrw.index].dataItem.Applied = false;
+            this.CustomAlert("A date greater than the most recent non wire confirm date of the deal funding cannot be used for wire confirm.")
+            e.target.checked = false;
+            return;
+          }
         }
 
       }
+      this.flexServicingPotentialImpairment.rows[flexGridrw.index].dataItem.Applied = value;
+      if (value == true) {
+        flexGridrw.isReadOnly = true;
+        flexGridrw.dataItem.Applied = true;
+        e.target.checked = true;
+        flexGridrw.cssClass = "customgridrowcolor"
+      }
+      else if (value == false) {
+        flexGridrw.isReadOnly = false;
+        flexGridrw.dataItem.Applied = false;
+        e.target.checked = false;
+        flexGridrw.cssClass = "customgridrowcolornotapplied";
+      }
+      //
+      this.AddPotentialImpairmentTODealfundingGrid();
 
-    });
+    } else {
+      value = false;
+      flexGridrw.dataItem.Applied = false;
+      e.target.checked = false;
+
+      this.CustomAlert("You must auto distribute Writeoff amount before wire confirming the records.");
+    }
+
+    this.cvServicingPotentialImpairment.itemsEdited.push(flexGridrw.dataItem);
   }
 
+  AddPotentialImpairmentTODealfundingGrid() {
+
+    var purposeTextforImp = this.lstPurposeType.find(x => x.LookupID == 840).Name
+    this.lstDealFundingImpairmentOrg = [];
+    this.lstDealFundingImpairment = [];
+    var tempArray = JSON.parse(JSON.stringify(this.listdealfundingBlank[0]));
+
+    var tempapplied = this.lstServicingPotentialImpairment.filter(x => x.Applied == true && this.convertDatetoGMT(x.Date) < this._currentDate);
 
 
-  showprepaycalcstatusmessage(Statusname: string) {
-    this._isShowLoader = true;
-    this._lstprepayCalculationLog = [];
-    this._lstloggedFile = [];
-    this.PrepayFailedMessage = "";
-    this.dealSrv.GetPrepayCalcStatusMessage(this._deal.DealID).subscribe(res => {
-      if (res.Succeeded) {
-        var PrepayCalcFailedStatusData = res.PrepayCalcFailedStatusData;
-        var loggedfiledata = res.loggedfiledata;
-        if (Statusname == "Failed") {
-          if (this.CalculationErorMessage == "Note calculated successfully but failed to save data in DB.") {
-            this.divPrepaySystemLog = true;
-            this.PrepayFailedMessage = PrepayCalcFailedStatusData.Message;
+    for (var nlc = 0; nlc < tempapplied.length; nlc++) {
+      this.lstDealFundingImpairmentOrg.push(tempArray);
+      this.lstDealFundingImpairment.push(tempArray);
+      tempArray = [];
+      tempArray = JSON.parse(JSON.stringify(this.listdealfundingBlank[0]));
+    }
 
-            this.PrepayFailedMessageBody = PrepayCalcFailedStatusData.Message_StackTrace;
-            var newstrings = this.PrepayFailedMessageBody.split("\n");
-            if (newstrings.length > 0) {
-              for (var h = 0; h < newstrings.length; h++) {
-                this._lstprepayCalculationLog.push({
-                  'PrepayMessage': newstrings[h]
-                });
+    for (var nlc = 0; nlc < tempapplied.length; nlc++) {
 
+      for (var n = 0; n < this.potentialImpairmentdynamicnotescol.length; n++) {
+        var _isbracket = this.potentialImpairmentdynamicnotescol[n].indexOf("_");
+        if (_isbracket > -1) {
+          if (this.potentialImpairmentdynamicnotescol[n].includes("_Noteid")) {
+            var notesplitarray = this.potentialImpairmentdynamicnotescol[n].split("_Noteid");
+            var colname = this.lstNote.filter(x => x.CRENoteID == notesplitarray[0])[0].Name;
+            if (tempapplied[nlc][this.potentialImpairmentdynamicnotescol[n]] == undefined || tempapplied[nlc][this.potentialImpairmentdynamicnotescol[n]] == null) {
+              this.lstDealFundingImpairmentOrg[nlc][colname] = 0.00
+            }
+            else {
+
+              this.lstDealFundingImpairmentOrg[nlc][colname] = (tempapplied[nlc][this.potentialImpairmentdynamicnotescol[n]] != 0 ? (tempapplied[nlc][this.potentialImpairmentdynamicnotescol[n]]) * -1 : (tempapplied[nlc][this.potentialImpairmentdynamicnotescol[n]] == undefined ? 0.00 : tempapplied[nlc][this.potentialImpairmentdynamicnotescol[n]]));
+            }
+          }
+        }
+      }
+
+      this.lstDealFundingImpairmentOrg[nlc]["Value"] = tempapplied[nlc].Amount != 0 ? (tempapplied[nlc].Amount * -1) : tempapplied[nlc].Amount;
+      this.lstDealFundingImpairmentOrg[nlc]["Date"] = tempapplied[nlc].Date;
+      this.lstDealFundingImpairmentOrg[nlc]["Applied"] = tempapplied[nlc].Applied;
+      this.lstDealFundingImpairmentOrg[nlc]["AdjustmentType"] = tempapplied[nlc].AdjustmentType;
+      this.lstDealFundingImpairmentOrg[nlc]["Comment"] = tempapplied[nlc].Comment;
+      this.lstDealFundingImpairmentOrg[nlc]["PurposeID"] = 840;
+      this.lstDealFundingImpairmentOrg[nlc]["PurposeText"] = purposeTextforImp;
+      this.lstDealFundingImpairmentOrg[nlc]["WF_CurrentStatus"] = "Completed";
+      this.lstDealFundingImpairmentOrg[nlc]["WF_CurrentStatusDisplayName"] = "Completed";
+      this.lstDealFundingImpairmentOrg[nlc]["WF_IsCompleted"] = 1;
+      this.lstDealFundingImpairmentOrg[nlc]["WF_IsAllow"] = 0;
+      this.lstDealFundingImpairmentOrg[nlc]["WF_isParticipate"] = 0;
+      this.lstDealFundingImpairmentOrg[nlc]["DealID"] = this._deal.DealID;
+      this.lstDealFundingImpairmentOrg[nlc]["orgValue"] = tempapplied[nlc].Amount;
+      this.lstDealFundingImpairment[nlc]["orgValue"] = tempapplied[nlc].Amount;
+      this.lstDealFundingImpairment[nlc]["DealFundingRowno"] = 5000 + nlc;
+      this.lstDealFundingImpairment[nlc]["OrgDealFundingRowno"] = nlc;
+      this.lstDealFundingImpairment[nlc]["GeneratedBy"] = 822;
+      this.lstDealFundingImpairment[nlc]["c"] = this._deal.currentUserName;
+      this.lstDealFundingImpairment[nlc]["GeneratedByUserID"] = this._deal.currentUserID;
+      this.lstDealFundingImpairment[nlc]["RequiredEquity"] = 0.00;
+      this.lstDealFundingImpairment[nlc]["AdditionalEquity"] = 0.00;
+      this.lstDealFundingImpairment[nlc]["DrawFeeStatusName"] = "";
+      this.lstDealFundingImpairment[nlc]["DrawFeeStatus"] = null;
+
+
+    }
+
+    //update deal funding list
+    this.listdealfundingWithImpairment = [];
+    this.listdealfunding = this.listdealfunding.filter(x => x.PurposeID != 840);
+
+    if (this.listdealfunding.length == 0) {
+
+      for (var j = 0; j < this.lstDealFundingImpairmentOrg.length; j++) {
+        var dtcurretimp = this.convertDatetoGMT(this.lstDealFundingImpairmentOrg[j].Date)
+        this.listdealfundingWithImpairment.push(this.lstDealFundingImpairmentOrg[j]);
+        this.lstDealFundingImpairment[j].orgValue = 0;
+      }
+    }
+
+
+    for (var i = 0; i < this.listdealfunding.length; i++) {
+      var dtcurret = this.convertDatetoGMT(this.listdealfunding[i].Date);
+      var templist = this.lstDealFundingImpairment.filter(x => x.orgValue > 0)
+      if (templist != null && templist.length > 0) {
+        for (var j = 0; j < templist.length; j++) {
+          var dtcurretimp = this.convertDatetoGMT(templist[j].Date)
+          if (dtcurretimp < dtcurret || dtcurretimp.toString() == dtcurret.toString()) {
+
+            this.listdealfundingWithImpairment.push(templist[j]);
+            var DealFundingRowno = templist[j].OrgDealFundingRowno;
+            this.lstDealFundingImpairment[DealFundingRowno].orgValue = 0;
+          }
+        }
+      }
+      this.listdealfundingWithImpairment.push(this.listdealfunding[i]);
+      if (i == this.listdealfunding.length - 1) {
+        var tempRemaining = this.lstDealFundingImpairment.filter(x => x.orgValue > 0)
+        if (tempRemaining != null && tempRemaining.length > 0) {
+
+          for (var j = 0; j < templist.length; j++) {
+            this.listdealfundingWithImpairment.push(templist[j])
+            var DealFundingRowno = templist[j].OrgDealFundingRowno;
+            this.lstDealFundingImpairment[DealFundingRowno].orgValue = 0;
+          }
+        }
+
+      }
+    }
+
+    this.listdealfunding = this.listdealfundingWithImpairment;
+
+    this.cvDealFundingList = new wjcCore.CollectionView(this.listdealfunding);
+    this.cvDealFundingList.trackChanges = true;
+    //
+
+  }
+
+  ValidatePotentialImpairment(): string {
+
+    var errordate = '';
+    var piError = '';
+
+    if (this.IsServicingWatchlisttabClicked == true && this.lstServicingPotentialImpairment != undefined) {
+      for (var val = 0; val < this.lstNote.length; val++) {
+        var current = this.lstNote[val];
+        if (this.minClosingDate === null || this.minClosingDate == undefined || current.ClosingDate < this.minClosingDate) {
+          this.minClosingDate = current.ClosingDate;
+        }
+
+      }
+      var templstServicingPotentialImpairment = this.lstServicingPotentialImpairment.filter(x => !(x.WLDealPotentialImpairmentMasterID == null && x.Date == null && (x.Amount == null || x.Amount == 0)));
+      //check validaion the holiday and sat sun date
+      for (var i = 0; i < templstServicingPotentialImpairment.length; i++) {
+        if (templstServicingPotentialImpairment[i].Date != null) {
+          var sdate = new Date(templstServicingPotentialImpairment[i].Date);
+          var formateddate = this.convertDateToBindable(templstServicingPotentialImpairment[i].Date);
+          var dealfundingday = sdate.getDay();
+          if (dealfundingday == 6 || dealfundingday == 0
+            || this.ListHoliday.filter(x => this.convertDateToBindable(x.HolidayDate) == formateddate && x.HolidayTypeID == 411).length > 0
+          ) {
+            var dateexist = errordate.includes(this.convertDateToBindable(sdate));
+            if (!dateexist) {
+              errordate += this.convertDateToBindable(sdate) + ", ";
+              this._isvalidateHolidaySatSunForPI = false;
+            }
+          }
+        }
+        //       
+      }
+
+      if (!this._isvalidateHolidaySatSunForPI) {
+        this._isvalidateHolidaySatSunForPI = true;
+        piError = piError + "<p>" + "You have entered a potential impairment date (" + errordate + ") which is either on holiday or weekend. Please enter different date." + "</p>";
+      }
+      var total = []
+      var totalfinal = []
+      for (var n = 0; n < this.potentialImpairmentdynamicnotescol.length; n++) {
+        var notetotalcommitmentcol = 0;
+        var _isbracket = this.potentialImpairmentdynamicnotescol[n].indexOf("_");
+        if (_isbracket > -1) {
+          if (this.potentialImpairmentdynamicnotescol[n].includes("_Noteid")) {
+            var colname = this.potentialImpairmentdynamicnotescol[n];
+            total = templstServicingPotentialImpairment.filter(x => (x.AdjustmentType != 834 && x.AdjustmentType != 896 && x.AdjustmentType != 835)).reduce((acc, curr) => {
+              for (const [key, value] of Object.entries(curr)) {
+                if (key == colname) {
+                  acc[key] ??= 0;
+                  acc[key] += value;
+                }
+              }
+
+              return acc;
+            }, {});
+            var notesplitarray = this.potentialImpairmentdynamicnotescol[n].split("_Noteid");
+            var notename = this.lstNote.filter(x => x.CRENoteID == notesplitarray[0])[0].Name;
+            var TotalCommitment = this.lstNote.filter(x => x.CRENoteID == notesplitarray[0])[0].TotalCommitment;
+            var NoteType = this.lstNote.filter(x => x.CRENoteID == notesplitarray[0])[0].NoteType;
+
+            if (total[colname] > TotalCommitment && NoteType != 901) {
+              piError = piError + "<p>" + "Potential impairment total amount (" + this.formatMoney(total[colname]) + ") for " + notename + " can not be greater than the total commitment (" + this.formatMoney(TotalCommitment) + ") of that note. " + "</p>";
+            }
+          }
+        }
+      }
+      var minDate = new Date(Math.min.apply(null, this.lstServicingPotentialImpairment.filter(x => x.Date != null).map(x => new Date(x.Date))));
+
+      if (minDate.toString() != "Invalid Date") {
+        var maxDate = new Date(Math.max.apply(null, this.lstServicingPotentialImpairment.filter(x => x.Date != null).map(x => new Date(x.Date))));
+        if (minDate < this.minClosingDate || maxDate > this.maxmaturitydate) {
+          piError = piError + "<p>" + "Date in Potential impairment should be between closing <b>(" + this.convertDateToBindable(this.minClosingDate) + ") </b> and maturity <b>(" + this.convertDateToBindable(this.maxmaturitydate) + ")</b>.</p>";
+        }
+      }
+
+
+    }
+    return piError;
+  }
+  pastedPotentialImpairment(potentialflex: wjcGrid.FlexGrid, e: wjcGrid.CellEditEndingEventArgs) {
+    var TotalAmount = 0;
+    var sel = potentialflex.selection;
+    var rowcnt = 0;
+    var maxrownumber = 0;
+    for (var n1 = 0; n1 < this.lstServicingPotentialImpairment.length; n1++) {
+      if (this.lstServicingPotentialImpairment[n1].RowNo !== undefined && this.lstServicingPotentialImpairment[n1].RowNo != null) {
+        if (this.lstServicingPotentialImpairment[n1].RowNo > maxrownumber) {
+          maxrownumber = this.lstServicingPotentialImpairment[n1].RowNo;
+        }
+      }
+    }
+    maxrownumber = maxrownumber + 1;
+
+    for (var n1 = 0; n1 < this.lstServicingPotentialImpairment.length; n1++) {
+      if (this.lstServicingPotentialImpairment[n1].RowNo === undefined || this.lstServicingPotentialImpairment[n1].RowNo === null) {
+
+        this.lstServicingPotentialImpairment[n1].RowNo = maxrownumber;
+        maxrownumber = maxrownumber + 1;
+      }
+    }
+    if (this._deal.EnableAutoDistributePrincipalWriteoff != true) {
+      for (var tprow = sel.topRow; tprow <= sel.bottomRow - rowcnt; tprow++) {
+        TotalAmount = 0;
+        for (var n = 0; n < this.potentialImpairmentdynamicnotescol.length; n++) {
+          var notetotalcommitmentcol = 0;
+          var _isbracket = this.potentialImpairmentdynamicnotescol[n].indexOf("_");
+          if (_isbracket > -1) {
+            if (this.potentialImpairmentdynamicnotescol[n].includes("_Noteid")) {
+              TotalAmount += this.lstServicingPotentialImpairment[tprow][this.potentialImpairmentdynamicnotescol[n]] == null ? 0 : parseFloat(this.lstServicingPotentialImpairment[tprow][this.potentialImpairmentdynamicnotescol[n]])
+            }
+          }
+        }
+        this.flexServicingPotentialImpairment.rows[tprow].dataItem.Amount = TotalAmount;
+
+        if (this.flexServicingPotentialImpairment.rows[tprow].dataItem.Applied == true) {
+
+          if (this.lstServicingPotentialImpairmentBeforeCopy[tprow] == undefined) {
+            this.flexServicingPotentialImpairment.rows[tprow].dataItem.Applied = false;
+          }
+
+          this._isdealfundingChanged = false;
+        }
+      }
+    } else {
+      for (var tprow = sel.topRow; tprow <= sel.bottomRow - rowcnt; tprow++) {
+
+        if (this.flexServicingPotentialImpairment.rows[tprow].dataItem.Applied == true) {
+
+          if (this.lstServicingPotentialImpairmentBeforeCopy[tprow] == undefined) {
+            this.flexServicingPotentialImpairment.rows[tprow].dataItem.Applied = false;
+          }
+
+          this._isdealfundingChanged = false;
+        }
+      }
+
+    }
+
+    if (this._deal.EnableAutoDistributePrincipalWriteoff == true) this.flagIsAutoDistibutePressed = false;
+    else this.flagIsAutoDistibutePressed = true;
+    this.flexServicingPotentialImpairment.invalidate();
+    setTimeout(function () {
+      this.AppliedReadOnlyForPotentialImpairment();
+    }.bind(this), 100);
+
+
+  }
+  pastingPotentialImpairment(potentialflex: wjcGrid.FlexGrid, e: wjcGrid.CellEditEndingEventArgs) {
+    this.lstServicingPotentialImpairmentBeforeCopy = [];
+    this.lstServicingPotentialImpairmentBeforeCopy = JSON.parse(JSON.stringify(this.lstServicingPotentialImpairment));
+    //const copy = JSON.parse(JSON.stringify(this.lstServicingPotentialImpairment)) as typeof this.lstServicingPotentialImpairment;
+
+    if (this._deal.EnableAutoDistributePrincipalWriteoff == true) this.flagIsAutoDistibutePressed = false;
+    else this.flagIsAutoDistibutePressed = true;
+  }
+  AppliedReadOnlyForPotentialImpairment() {
+    if (this.lstServicingPotentialImpairment) {
+      for (var i = 0; i <= (this.lstServicingPotentialImpairment.length - 1); i++) {
+        if (this.flexServicingPotentialImpairment.rows[i]) {
+          if (this.flexServicingPotentialImpairment.rows[i].dataItem.Applied == true) {
+            if (this.flexServicingPotentialImpairment.rows[i]) {
+              this.flexServicingPotentialImpairment.rows[i].isReadOnly = true;
+              this.flexServicingPotentialImpairment.rows[i].cssClass = "customgridrowcolor";
+            }
+          }
+
+          if (this.flexServicingPotentialImpairment.rows[i].dataItem.WF_IsCompleted == 1 && this.flexServicingPotentialImpairment.rows[i].dataItem.Applied == false) {
+            if (this.flexServicingPotentialImpairment.rows[i]) {
+              this.flexServicingPotentialImpairment.rows[i].isReadOnly = true;
+              this.flexServicingPotentialImpairment.rows[i].cssClass = "customgridWFcolor";
+            }
+          }
+        }
+      }
+    }
+  }
+
+  AppliedReadOnlyForDealliability() {
+
+    setTimeout(() => {
+
+      if (this.lstDealliabilityFundingList) {
+        for (var i = 0; i <= (this.lstDealliabilityFundingList.length - 1); i++) {
+          if (this.flexDealliabilityFunding.rows[i]) {
+            if (this.flexDealliabilityFunding.rows[i].dataItem.Status == true) {
+              if (this.flexDealliabilityFunding.rows[i]) {
+                this.flexDealliabilityFunding.rows[i].isReadOnly = true;
+                this.flexDealliabilityFunding.rows[i].cssClass = "customgridrowcolor";
               }
             }
           }
         }
-        if (Statusname == "Failed" || Statusname == "Completed") {
-          var lstloggedfiledata = loggedfiledata;
-          this.divPrepayCalculationLog = true;
-          if (lstloggedfiledata.length > 0) {
-            for (var h = 0; h < lstloggedfiledata.length; h++) {
-              this._lstloggedFile.push({
-                'data': lstloggedfiledata[h]
-              });
+      }
 
+    }, 1000);
+
+
+  }
+
+  GetTransactionEntryLiabilityNoteByDealAccountId(): void {
+    this._isListFetching = true;
+    if (this._deal.DealAccountID != null) {
+      this.dealSrv.GetTransactionEntryLiabilityNoteByDealAccountId(this._deal.DealAccountID).subscribe(res => {
+        if (res.Succeeded) {
+          this.lstCashTransaction = res.LiabilityCashFlow;
+
+          if (this.lstCashTransaction && this.lstCashTransaction.length > 0) {
+            for (var i = 0; i < this.lstCashTransaction.length; i++) {
+              if (this.lstCashTransaction[i].Date != null) {
+                this.lstCashTransaction[i].Date = new Date(this.utils.convertDateToBindable(this.lstCashTransaction[i].Date));
+              }
+
+              if (this.lstCashTransaction[i].AssetDate != null) {
+                this.lstCashTransaction[i].AssetDate = new Date(this.utils.convertDateToBindable(this.lstCashTransaction[i].AssetDate));
+              }
+            }
+          }
+          setTimeout(function () {
+            this._isListFetching = false;
+          }.bind(this), 500);
+
+        }
+      });
+    }
+
+  }
+
+  GetDealLiabilitybyDealid() {
+    this._isListFetching = true;
+    this.dealSrv.GetDealLiabilitybyDealid(this._deal.DealAccountID).subscribe(res => {
+      if (res.Succeeded) {
+
+        this.lstDealliabilitySetupALLNotes = res.ListDealLiability;
+
+        this.lstDealliabilitySetup = this.lstDealliabilitySetupALLNotes.filter(item =>
+          !item.LiabilityNoteID.includes('PE') && !item.LiabilityNoteID.includes('PS')
+        );
+
+        this.lstNoteAssetMapping = res.LNoteAssetMap;
+        this.BindLiabilityFundingScheduleGrid(res.ListLiabilityFundingSchedule);
+        this.lstAssetList = res.AssetList;
+        this.lstTransactionType = res.lstLookups;
+        this.arrLiabilityNote = [];
+        this.lstAssetList.forEach((e) => {
+          if (e.AccountTypeId != 10) {
+            this.arrLiabilityNote.push(e.AssetIdName)
+          }
+        });
+
+        //Display Asset Notes
+        this.lstDealliabilitySetup.forEach((liabilitySetup) => {
+          const correspondingMappings = this.lstNoteAssetMapping.filter(
+            (mapping) => mapping.LiabilityNoteId === liabilitySetup.LiabilityNoteID
+          );
+
+          if (correspondingMappings && correspondingMappings.length > 0) {
+            const assetAccountIds = correspondingMappings.map((mapping) => mapping.AssetAccountId);
+
+            const assetNotes = [];
+            assetAccountIds.forEach((assetId) => {
+              const correspondingAsset = this.lstAssetList.find((mapping) => mapping.LookupIDGuID === assetId);
+              if (correspondingAsset) {
+                assetNotes.push(correspondingAsset.AssetIdName);
+              }
+            });
+            liabilitySetup.AssetNotes = assetNotes;
+          }
+        });
+
+        this._bindGridDropdowsDealLiabilitySetup();
+        for (var i = 0; i < this.lstDealliabilitySetup.length; i++) {
+          if (this.lstDealliabilitySetup[i].PledgeDate != null) {
+            this.lstDealliabilitySetup[i].PledgeDate = new Date(this.convertDateToBindable(this.lstDealliabilitySetup[i].PledgeDate));
+          }
+
+          if (this.lstDealliabilitySetup[i].EffectiveDate != null) {
+            this.lstDealliabilitySetup[i].EffectiveDate = new Date(this.convertDateToBindable(this.lstDealliabilitySetup[i].EffectiveDate));
+          }
+          if (this.lstDealliabilitySetup[i].MaturityDate != null) {
+            this.lstDealliabilitySetup[i].MaturityDate = new Date(this.convertDateToBindable(this.lstDealliabilitySetup[i].MaturityDate));
+          }
+
+        }
+
+        this.cvDealliabilitySetup = new wjcCore.CollectionView(this.lstDealliabilitySetup);
+        this.cvDealliabilitySetup.trackChanges = true;
+        this.flexLiabilityGrid.invalidate();
+        this._isListFetching = false;
+      } else {
+        this._ShowmessagedivWar = true;
+        this._ShowmessagedivMsgWar = "Error occurred while loading Liabilities.";
+        setTimeout(function () {
+          this._ShowmessagedivWar = true;
+          this._ShowmessagedivMsgWar = ""
+          this._isListFetching = false;
+        }.bind(this), 500);
+
+      }
+    });
+  }
+
+  formatDealLiabilityGrid(s: FlexGrid, e: FormatItemEventArgs) {
+    if (e.panel.cellType === wjcGrid.CellType.Cell) {
+      const col = s.columns[e.col];
+
+      if (col.binding === 'CurrentAdvanceRate') {
+        e.cell.style.backgroundColor = '#cfcfcf';
+      }
+      if (col.binding === 'CurrentBalance') {
+        e.cell.style.backgroundColor = '#cfcfcf';
+      }
+      if (col.binding === 'UndrawnCapacity') {
+        e.cell.style.backgroundColor = '#cfcfcf';
+      }
+    }
+  }
+
+  GetAllNoteDealLiability(isChecked: boolean) {
+    if (isChecked) {
+      this.lstDealliabilitySetupALLNotes.forEach((liabilitySetup) => {
+        const correspondingMappings = this.lstNoteAssetMapping.filter(
+          (mapping) => mapping.LiabilityNoteId === liabilitySetup.LiabilityNoteID
+        );
+
+        if (correspondingMappings && correspondingMappings.length > 0) {
+          const assetAccountIds = correspondingMappings.map((mapping) => mapping.AssetAccountId);
+
+          const assetNotes = [];
+          assetAccountIds.forEach((assetId) => {
+            const correspondingAsset = this.lstAssetList.find((mapping) => mapping.LookupIDGuID === assetId);
+            if (correspondingAsset) {
+              assetNotes.push(correspondingAsset.AssetIdName);
+            }
+          });
+          liabilitySetup.AssetNotes = assetNotes;
+        }
+      });
+      for (var i = 0; i < this.lstDealliabilitySetupALLNotes.length; i++) {
+        if (this.lstDealliabilitySetupALLNotes[i].PledgeDate != null) {
+          this.lstDealliabilitySetupALLNotes[i].PledgeDate = new Date(this.convertDateToBindable(this.lstDealliabilitySetupALLNotes[i].PledgeDate));
+        }
+
+        if (this.lstDealliabilitySetupALLNotes[i].EffectiveDate != null) {
+          this.lstDealliabilitySetupALLNotes[i].EffectiveDate = new Date(this.convertDateToBindable(this.lstDealliabilitySetupALLNotes[i].EffectiveDate));
+        }
+
+
+
+        if (this.lstDealliabilitySetupALLNotes[i].MaturityDate != null) {
+          this.lstDealliabilitySetupALLNotes[i].MaturityDate = new Date(this.convertDateToBindable(this.lstDealliabilitySetupALLNotes[i].MaturityDate));
+        }
+      }
+      this.cvDealliabilitySetup = new wjcCore.CollectionView(this.lstDealliabilitySetupALLNotes);
+      this.cvDealliabilitySetup.trackChanges = true;
+      this.flexLiabilityGrid.invalidate();
+    }
+    else {
+      this.cvDealliabilitySetup = new wjcCore.CollectionView(this.lstDealliabilitySetup);
+      this.cvDealliabilitySetup.trackChanges = true;
+      this.flexLiabilityGrid.invalidate();
+    }
+  }
+
+  GetAllLiabilityNotesOnCheckShownAllLN(isChecked: boolean) {
+    this.GetAllNoteDealLiability(isChecked);
+    this.GetAllDrawsPaydownlist(isChecked);
+  }
+
+  BindLiabilityFundingScheduleGrid(data) {
+    this.lstDealliabilityFundingList = data;
+    for (var i = 0; i < this.lstDealliabilityFundingList.length; i++) {
+      if (this.lstDealliabilityFundingList[i].TransactionDate != null) {
+        this.lstDealliabilityFundingList[i].TransactionDate = new Date(this.convertDateToBindable(this.lstDealliabilityFundingList[i].TransactionDate));
+      }
+      if (this.lstDealliabilityFundingList[i].AssetTransactionDate != null) {
+        this.lstDealliabilityFundingList[i].AssetTransactionDate = new Date(this.convertDateToBindable(this.lstDealliabilityFundingList[i].AssetTransactionDate));
+      }
+    }
+
+    this.lstDrawPayFundingListwithoutPE_PS = this.lstDealliabilityFundingList.filter(item =>
+      !item.LiabilityNoteID.includes('PE') && !item.LiabilityNoteID.includes('PS')
+    );
+
+    this.cvDealliabilityFundingList = new wjcCore.CollectionView(this.lstDrawPayFundingListwithoutPE_PS);
+    this.cvDealliabilityFundingList.trackChanges = true;
+    this.flex.invalidate();
+
+    this.AppliedReadOnlyForDealliability();
+  }
+
+  GetAllDrawsPaydownlist(isChecked: boolean) {
+    if (isChecked) {
+      this.cvDealliabilityFundingList = new wjcCore.CollectionView(this.lstDealliabilityFundingList);
+      this.cvDealliabilityFundingList.trackChanges = true;
+      this.flex.invalidate();
+    }
+    else {
+      this.cvDealliabilityFundingList = new wjcCore.CollectionView(this.lstDrawPayFundingListwithoutPE_PS);
+      this.cvDealliabilityFundingList.trackChanges = true;
+      this.flex.invalidate();
+    }
+  }
+
+  CopiedLiabilityGrid(flex: wjcGrid.FlexGrid, e: wjcGrid.CellEditEndingEventArgs) {
+    this._isLiabilitynotegridEdited = true;
+
+    for (var m = 0; m < flex.rows.length - 1; m++) {
+
+      var AssetName = this.lstDealliabilitySetup[m].AssetName;
+
+      var cAssetAccountID: any;
+      for (var i = 0; i < this.lstAssetList.length; i++) {
+        if (this.lstAssetList[i].Name == AssetName) {
+          cAssetAccountID = this.lstAssetList[i].LookupIDGuID;
+        }
+      }
+      if (cAssetAccountID === undefined || cAssetAccountID == null) {
+        this.lstDealliabilitySetup[m].AssetAccountID = AssetName;
+      } else {
+        this.lstDealliabilitySetup[m].AssetAccountID = cAssetAccountID;
+      }
+
+      var objAsset = this.lstAssetList.filter(x => x.LookupIDGuID == this.lstDealliabilitySetup[e.row].AssetAccountID);
+      if (objAsset != null && objAsset != undefined && objAsset != '') {
+        this.lstDealliabilitySetup[m].AccountTypeID = objAsset[0].AccountTypeId;
+        if (objAsset[0].AccountTypeId == 1) {
+          this.lstDealliabilitySetup[m].AssetNotes = [];
+        }
+      }
+
+    }
+
+  }
+  invalidateLiabilitiesTab() {
+    this._deal.isLiabilityTabCLicked = true;
+    if (!this._isLiabilityTabClicked) {
+      this._isLiabilityTabClicked = true;
+      this.GetDealLiabilitybyDealid();
+    }
+  }
+  addLiabilityNote() {
+    localStorage.setItem('ClickedTabId', 'aLiability');
+    var notepath = ['/#/liabilityNote/a/' + this._deal.DealAccountID];
+    window.open(notepath.toString(), '_self', '');
+  }
+
+  private getFacilitiesMap() {
+    this._isListFetching = true;
+    this.dealSrv.getAllLiabilityTypesDetail().subscribe(res => {
+      if (res.Succeeded) {
+        this.lstTypesofdebtequity = res.lstDebtEquityType;
+        this.lstdebtandequity = res.AssetList;
+
+        this.LiabilityTypeMap = new DataMap(this.lstTypesofdebtequity, 'LookupID', 'Name');
+        this.FacilitiesMap = new DataMap(this.lstdebtandequity, 'LookupIDGuID', 'Name');
+      }
+      else {
+        this._ShowmessagedivWar = true;
+        this._ShowmessagedivMsgWar = "Error occurred while loading Liabilities.";
+        setTimeout(function () {
+          this._ShowmessagedivWar = true;
+          this._ShowmessagedivMsgWar = ""
+          this._isListFetching = false;
+        }.bind(this), 500);
+
+      }
+    });
+  }
+
+  private _bindGridDropdowsDealLiabilitySetup() {
+    var flexLiabilityGrid = this.flexLiabilityGrid;
+    if (flexLiabilityGrid) {
+      var colAssetName = flexLiabilityGrid.getColumn('AssetName');
+      if (colAssetName) {
+        colAssetName.dataMap = this._buildDataMap(this.lstAssetList, 'LookupIDGuID', 'Name');
+      }
+
+      var colLiabilitySourceText = flexLiabilityGrid.getColumn('LiabilitySourceText');
+      if (colLiabilitySourceText) {
+        colLiabilitySourceText.dataMap = this._buildDataMap(this.lstLiabilitySource, 'LookupID', 'Name');
+      }
+    }
+
+    var flexDealliabilityFunding = this.flexDealliabilityFunding;
+    if (flexDealliabilityFunding) {
+      var colFundingAssetName = flexDealliabilityFunding.getColumn('AssetName');
+      if (colFundingAssetName) {
+        colFundingAssetName.dataMap = this._buildDataMap(this.lstAssetList, 'LookupIDGuID', 'Name');
+      }
+    }
+
+
+
+    //var colTransactionTypeText = flexDealliabilityFunding.getColumn('TransactionTypeText');
+    //if (colTransactionTypeText) {
+    //  colTransactionTypeText.dataMap = this._buildDataMap(this.lstTransactionType, 'LookupID', 'Name');
+    //}
+
+  }
+
+  cellEditbeginLiability(s, e) {
+    var colname = s.columns[e.col].binding;
+
+    this._isLiabilitynotegridEdited = true;
+
+    if (colname == 'AssetNotes') {
+      var AccountTypeId = this.lstAssetList.find(x => x.LookupIDGuID == s.rows[e.row].dataItem.AssetName).AccountTypeId;
+      if (AccountTypeId != 10) {
+        e.cancel = true;
+      }
+    }
+
+    var anyrownothaveLiabilityNoteID = this.lstDealliabilitySetup.some(row => row.LiabilityNoteID == undefined && row.LiabilityNoteID == null);
+
+    if (anyrownothaveLiabilityNoteID) {
+      this.lstDealliabilitySetup.forEach(row => {
+        if (row.LiabilityNoteID === undefined || row.LiabilityNoteID === null) {
+          row.LiabilityNoteID = s.rows[e.row].dataItem.LiabilityNoteID;
+        }
+      });
+    }
+
+  }
+
+  cellEditEndedDealLiabilitySetup(flexflexLiabilityGrid: wjcGrid.FlexGrid, e: wjcGrid.CellEditEndingEventArgs) {
+
+    var AssetName = this.lstDealliabilitySetup[e.row].AssetName;
+
+    var cAssetAccountID: any;
+    for (var i = 0; i < this.lstAssetList.length; i++) {
+      if (this.lstAssetList[i].Name == AssetName) {
+        cAssetAccountID = this.lstAssetList[i].LookupIDGuID;
+      }
+    }
+    if (cAssetAccountID === undefined || cAssetAccountID == null) {
+      this.lstDealliabilitySetup[e.row].AssetAccountID = AssetName;
+    } else {
+      this.lstDealliabilitySetup[e.row].AssetAccountID = cAssetAccountID;
+    }
+
+    var objAsset = this.lstAssetList.filter(x => x.LookupIDGuID == this.lstDealliabilitySetup[e.row].AssetAccountID);
+    if (objAsset != null && objAsset != undefined && objAsset != '') {
+      this.lstDealliabilitySetup[e.row].AccountTypeID = objAsset[0].AccountTypeId;
+      if (objAsset[0].AccountTypeId == 1) {
+        this.lstDealliabilitySetup[e.row].AssetNotes = [];
+      }
+    }
+
+    if (e.col == 5) {
+      if (this.lstDealliabilitySetup[e.row].LiabilityTypeID !== undefined && this.lstDealliabilitySetup[e.row].LiabilityTypeID != null) {
+        if (this.lstDealliabilitySetup[e.row].LiabilityTypeID != "") {
+          var repodata = this.lstdebtandequity.filter(x => x.LookupIDGuID == this.lstDealliabilitySetup[e.row].LiabilityTypeID);
+
+          if (repodata != undefined && repodata != null) {
+            if (repodata.length > 0) {
+              this.lstDealliabilitySetup[e.row].Provider = repodata[0].Value;
+            }
+          }
+        }
+      }
+      this.flexLiabilityGrid.invalidate(true);
+    }
+
+    //Changing the repo % should automatically update the equity %
+    if (e.col == 16) {
+      if (this.lstDealliabilitySetup) {
+        let targetAdvanceRateForRepo = null;
+
+        for (var i = 0; i < this.lstDealliabilitySetup.length; i++) {
+          if (this.lstDealliabilitySetup[i].DebtEquityTypeID === 2) {
+            targetAdvanceRateForRepo = this.lstDealliabilitySetup[i].TargetAdvanceRate;
+          }
+        }
+
+        if (targetAdvanceRateForRepo !== null) {
+          for (var i = 0; i < this.lstDealliabilitySetup.length; i++) {
+            if (this.lstDealliabilitySetup[i].DebtEquityTypeID === 4) {
+              this.lstDealliabilitySetup[i].TargetAdvanceRate = 1 - targetAdvanceRateForRepo;
+            }
+          }
+        }
+      }
+      this.flexLiabilityGrid.invalidate(true);
+    }
+
+  }
+
+  //Latest AssetNotes insertion code
+  onLiabilityNotesSelectionChange(flexflexLiabilityGrid: wjcGrid.FlexGrid, selectedItems: any[], LiabilityNoteID: any) {
+    if (LiabilityNoteID != null && LiabilityNoteID != undefined) {
+
+      this.AssetNotesUpdatedRows.push({
+        LiabilityNoteId: LiabilityNoteID
+      })
+    }
+    this.lstNoteAssetMapping = [];
+    var updatedMappings = [];
+    const selectedIt = flexflexLiabilityGrid.collectionView.currentItem;
+    var dealAccountId = this._deal.DealAccountID;
+    selectedItems.forEach(selectedItem => {
+      var i = this.lstDealliabilitySetup.indexOf(selectedIt);
+      var index = this.arrLiabilityNote.indexOf(selectedItem);
+
+      var assetAccountId = this.lstAssetList[index + 1].LookupIDGuID;
+
+      if (index !== -1) {
+        var liabilityNoteAccountId = this.lstDealliabilitySetup[i].LiabilityNoteAccountID;
+        var liabilityNoteId = this.lstDealliabilitySetup[i].LiabilityNoteID;
+        var newMapping = {
+          LiabilityNoteId: liabilityNoteId,
+          DealAccountId: dealAccountId,
+          LiabilityNoteAccountId: liabilityNoteAccountId,
+          AssetAccountId: assetAccountId
+        };
+        updatedMappings.push(newMapping);
+      }
+    });
+
+    this.lstNoteAssetMapping = [
+      ...this.lstNoteAssetMapping,
+      ...updatedMappings.filter(newMapping => (
+        !this.lstNoteAssetMapping.some(existingMapping => (
+          existingMapping.LiabilityNoteId === newMapping.LiabilityNoteId &&
+          existingMapping.DealAccountId === newMapping.DealAccountId &&
+          existingMapping.LiabilityNoteAccountId === newMapping.LiabilityNoteAccountId &&
+          existingMapping.AssetAccountId === newMapping.AssetAccountId
+        ))
+      ))
+    ];
+  }
+
+
+  cellEditEndedDealliabilityFunding(flexDealliabilityFunding: wjcGrid.FlexGrid, e: wjcGrid.CellEditEndingEventArgs) {
+
+    var LiabilityNoteID = this.lstDealliabilityFundingList[e.row].LiabilityNoteID
+    for (var i = 0; i < this.lstDealliabilitySetup.length; i++) {
+      if (this.lstDealliabilitySetup[i].LiabilityNoteID == LiabilityNoteID) {
+        this.lstDealliabilityFundingList[e.row].LiabilityNoteAccountID = this.lstDealliabilitySetup[i].LiabilityNoteAccountID;
+      }
+    }
+    var cAssetAccountID: any;
+    for (var i = 0; i < this.lstAssetList.length; i++) {
+      if (this.lstAssetList[i].Name == this.lstDealliabilityFundingList[e.row].AssetName) {
+        cAssetAccountID = this.lstAssetList[i].LookupIDGuID;
+      }
+    }
+    if (cAssetAccountID === undefined || cAssetAccountID == null) {
+      this.lstDealliabilityFundingList[e.row].AssetAccountID = this.lstDealliabilityFundingList[e.row].AssetName;
+    } else {
+      this.lstDealliabilityFundingList[e.row].AssetAccountID = cAssetAccountID;
+    }
+    this.lstDealliabilityFundingList[e.row].GeneratedBy = 822;
+    this.lstDealliabilityFundingList[e.row].GeneratedByText = this._deal.currentUserName;
+    this.lstDealliabilityFundingList[e.row].GeneratedByUserID = this._deal.currentUserID;
+  }
+
+
+  CopiedDealliabilityFunding(flexDealliabilityFunding: wjcGrid.FlexGrid, e: wjcGrid.CellEditEndingEventArgs) {
+    var sel = this.flexDealliabilityFunding.selection;
+    for (var tprow = sel.topRow; tprow <= sel.bottomRow; tprow++) {
+      var LiabilityNoteID = this.lstDealliabilityFundingList[tprow].LiabilityNoteID
+      for (var i = 0; i < this.lstDealliabilitySetup.length; i++) {
+        if (this.lstDealliabilitySetup[i].LiabilityNoteID == LiabilityNoteID) {
+          this.lstDealliabilityFundingList[tprow].LiabilityNoteAccountID = this.lstDealliabilitySetup[i].LiabilityNoteAccountID;
+        }
+      }
+
+      this.lstDealliabilityFundingList[tprow].GeneratedBy = 822;
+      this.lstDealliabilityFundingList[tprow].GeneratedByText = this._deal.currentUserName;
+      this.lstDealliabilityFundingList[tprow].GeneratedByUserID = this._deal.currentUserID;
+
+      var cAssetAccountID: any;
+      for (var i = 0; i < this.lstAssetList.length; i++) {
+        if (this.lstAssetList[i].Name == this.lstDealliabilityFundingList[tprow].AssetName) {
+          cAssetAccountID = this.lstAssetList[i].LookupIDGuID;
+        }
+      }
+      if (cAssetAccountID === undefined || cAssetAccountID == null) {
+        this.lstDealliabilityFundingList[tprow].AssetAccountID = this.lstDealliabilityFundingList[tprow].AssetName;
+      } else {
+        this.lstDealliabilityFundingList[tprow].AssetAccountID = cAssetAccountID;
+      }
+    }
+  }
+
+  addFooterRowDealliabilityFunding(flexDealliabilityFunding: wjcGrid.FlexGrid) {
+    var row = new wjcGrid.GroupRow();
+    flexDealliabilityFunding.columnFooters.rows.push(row);
+    flexDealliabilityFunding.bottomLeftCells.setCellData(0, 0, '\u03A3');
+  }
+
+  addFooterRowxLiabilityGrid(flexLiabilityGrid: wjcGrid.FlexGrid) {
+    var row = new wjcGrid.GroupRow();
+    flexLiabilityGrid.columnFooters.rows.push(row);
+    flexLiabilityGrid.bottomLeftCells.setCellData(0, 0, '\u03A3');
+
+  }
+  addFooterRowCashFlow(flexCashflowGrid: wjcGrid.FlexGrid) {
+    var row = new wjcGrid.GroupRow();
+    flexCashflowGrid.columnFooters.rows.push(row);
+    flexCashflowGrid.bottomLeftCells.setCellData(0, 0, '\u03A3');
+
+  }
+  showCashflow() {
+    if (!this._isCashflowTabClicked) {
+      this._isCashflowTabClicked = true;
+      this.GetTransactionEntryLiabilityNoteByDealAccountId();
+    }
+  }
+
+  GetAllTagNameXIRR() {
+    this.dealSrv.GetAllTagsNameXIRR().subscribe(res => {
+      if (res.Succeeded) {
+        this.lstXIRRTags = res.dt;
+      }
+    });
+  }
+
+  GetXIRROutputByObjectID() {
+    this._isListFetching = true;
+    if (this.loadoutput == true) {
+      this.dealSrv.GetXIRROutputByObjectID(this._deal.DealAccountID).subscribe(res => {
+        if (res.Succeeded) {
+          this.lstXiRRValues = res.dt;
+          this.CalculateStatus(res.dt);
+          if (this.lstXiRRValues) {
+            this._isShowNoRecordFound = true;
+            if (this.lstXiRRValues && this.lstXiRRValues.length > 0) {
+              for (var i = 0; i < this.lstXiRRValues.length; i++) {
+                if (this.lstXiRRValues[i].UpdatedDate != null) {
+                  this.lstXiRRValues[i].UpdatedDate = new Date(this.utils.convertDateToBindableWithTime(this.lstXiRRValues[i].UpdatedDate));
+                }
+                //if (this.lstXiRRValues[i].IsOverride == null || this.lstXiRRValues[i].IsOverride == 0) {
+                //  this.XiRRValues.rows[i].isReadOnly = true;
+                //}
+              }
+            }
+          } else {
+            this._isShowNoRecordFound = false;
+          }
+          setTimeout(function () {
+            this._isListFetching = false;
+            this.XiRRValues.invalidate();
+            for (var i = 0; i < this.XiRRValues.rows.length; i++) {
+              if (this.XiRRValues.rows[i].dataItem.IsOverride == null || this.XiRRValues.rows[i].dataItem.IsOverride == 0) {
+                this.XiRRValues.rows[i].isReadOnly = true;
+              }
+            }
+            this.showXirrCalcStatus();
+          }.bind(this), 500);
+        } else {
+          this._isShowNoRecordFound = false;
+          this._isListFetching = false;
+        }
+      });
+    } else { this._isListFetching = false; }
+  }
+
+  CloseXIRRViewNotes() {
+    var modal = document.getElementById('myModalXIRRViewNotes');
+    modal.style.display = "none";
+
+  }
+  XiRRValuesXiRRValuesshowXirrCalcStatus() {
+    if (this.CalculationStatus == undefined || this.CalculationStatus == "Running" || this.CalculationStatus == "Processing") {
+      var status = setInterval(() => {
+        this.dealSrv.GetXIRRCalculationStatusByObjectID(this._deal.DealAccountID).subscribe(res => {
+          if (res.Succeeded) {
+            this.CalculateStatus(res.dtCalcReq);
+            if ((this.CalculationStatus == "Completed" || this.CalculationStatus == "Failed")) {
+              this.loadoutput = true;
+              if (this.CalculationStatus == "Completed") {
+                this.GetXIRROutputByObjectID();
+              }
+              clearInterval(status);
             }
           }
 
+        });
+      }, 20000);
+    }
+  }
+
+  CalculateStatus(calcdata) {
+    //UpdatedDate	Name	calculatedby	ErrorMessage	analysisid StatusID
+    this.ErrorMessage = "";
+    if (calcdata && calcdata.length > 0) {
+      var maxdate = null;
+      for (var i = 0; i < calcdata.length; i++) {
+
+        var date1 = new Date(calcdata[i].UpdatedDate);
+        calcdata[i].UpdatedDate = date1;
+        if (maxdate == null) {
+          maxdate = date1;
+        } else if (date1 >= maxdate) {
+          maxdate = date1;
         }
-        this._isShowLoader = false;
-        setTimeout(function () {
-          let el = document.getElementById("divScroll");
-          el.scrollIntoView({
-            behavior: "smooth",
-            block: "start",
-            inline: "nearest"
 
-          });
-        }.bind(this), 1000);
       }
+      var currentstatus = calcdata.find(x => x.UpdatedDate == maxdate);
+      this.CalculationStatus = currentstatus.Status;
+      this.lastCalcDateTime = new Date(this.utils.convertDateToBindableWithTime(currentstatus.UpdatedDate));
+      this.Caculatedby = currentstatus.ReturnName;
 
-
-    });
+    } else {
+      this.CalculationStatus = "Nevercalculated";
+    }
   }
 
-  GetAllFeeType(): void {
-    if (!this._isPrepaymentTabClicked) {
-      localStorage.setItem('ClickedTabId', 'aPrepaymentPremiumtab');
-      this._isPrepaymentTabClicked = true;
-      this.showPrepayCalcStatus();
-      this.showprepaycalcstatuswithinterval();
-      this.GetDealPrepayProjectionByDealId();
-      this.GetDealPrepayAllocationsByDealId();
-      this.getprepaypremiumDetaildatabydealId();
-    }
-    if (this.rolename == 'Super Admin') {
-      this.tdopenrules = true;
-    }
-    else {
-      this.tdopenrules = false;
-    }
-    this.getprepayruletypetemplate();
-    this.getprepayruletemplate();
-    this.feeconfigurationSrv.GetAllFeeAmount().subscribe(res => {
-      if (res.Succeeded) {
-        this.listfeeamount = []
-        var data: any = res.lstFeeSchedulesConfig;
-        this.lstFeeType = data;
+  downloadDealDrawPaydownExportData(): void {
+    this._isListFetching = true;
+    var displayDate = new Date().toLocaleDateString("en-US").replace(/\//g, '-');
+    var displayTime = new Date().toLocaleTimeString("en-US").replace(/\:/g, '-');
+    var environmentName = this.dataSrv._environmentNamae != '' ? "" + this.dataSrv._environmentNamae.replace("-", "").trim() + " " : "";
+    var fileName = environmentName + "_" + this._deal.DealName + "_Draws&Paydown_" + displayDate + "_" + displayTime + ".xlsx";
+
+    this.eqSrv.GetEquityCapitalContributionExportExcel(this._deal.DealAccountID).subscribe(res => {
+      let b: any = new Blob([res]);
+      let dwldLink = document.createElement("a");
+      let url = URL.createObjectURL(b);
+      let isSafariBrowser = navigator.userAgent.indexOf('Safari') != -1 && navigator.userAgent.indexOf('Chrome') == -1;
+      if (isSafariBrowser) {  //if Safari open in new window to save file with random filename.
+        dwldLink.setAttribute("target", "_blank");
       }
+      dwldLink.setAttribute("href", url);
+      dwldLink.setAttribute("download", fileName);
+      dwldLink.style.visibility = "hidden";
+      document.body.appendChild(dwldLink);
+      dwldLink.click();
+      document.body.removeChild(dwldLink);
+      this._isListFetching = false;
     });
 
   }
-  EnabledDisabledNoteColumn(valuechecked) {
 
-    var SpreadMaintenance = this.SpreadMaintenance
+  downloadLiabilityCashflowExportData(): void {
+    this._isListFetching = true;
+    var displayDate = new Date().toLocaleDateString("en-US").replace(/\//g, '-');
+    var displayTime = new Date().toLocaleTimeString("en-US").replace(/\:/g, '-');
+    var environmentName = this.dataSrv._environmentNamae != '' ? "" + this.dataSrv._environmentNamae.replace("-", "").trim() + " " : "";
+    var fileName = environmentName + "_" + this._deal.DealName + "_" + "_Cashflows_" + displayDate + "_" + displayTime + ".xlsx";
 
-    if (valuechecked == true) {
-      this._showHidenote = true
-      if (SpreadMaintenance) {
-        var colNoteId = SpreadMaintenance.columns.getColumn('CRENoteID');
-        if (colNoteId) {
-        //  colNoteId.showDropDown = true;
-          colNoteId.dataMap = this._buildDataMapWithoutLookupForNoteId(this.lstNote);
-        }
+    this.dealSrv.GetDealLiabilityCashflowExportExcel(this._deal.DealAccountID).subscribe(res => {
+      let b: any = new Blob([res]);
+      let dwldLink = document.createElement("a");
+      let url = URL.createObjectURL(b);
+      let isSafariBrowser = navigator.userAgent.indexOf('Safari') != -1 && navigator.userAgent.indexOf('Chrome') == -1;
+      if (isSafariBrowser) {  //if Safari open in new window to save file with random filename.
+        dwldLink.setAttribute("target", "_blank");
       }
-
-      this._lstSpreadMaintenance_deal = this._lstSpreadMaintenance;
-      this._lstSpreadMaintenance = this._lstSpreadMaintenance_note;
-      var dialogoverlay = document.getElementById('divSpreadMaintenance');
-      dialogoverlay.style.width = "700px";
-      var dialogoverlay1 = document.getElementById('divgridSpreadMaintenance');
-      dialogoverlay1.style.width = "700px";
-
-    }
-    else {
-
-      this._lstSpreadMaintenance_note = this._lstSpreadMaintenance;
-      this._lstSpreadMaintenance = this._lstSpreadMaintenance_deal;
-      this._showHidenote = false
-      var dialogoverlay = document.getElementById('divSpreadMaintenance');
-      dialogoverlay.style.width = "500px";
-      var dialogoverlay1 = document.getElementById('divgridSpreadMaintenance');
-      dialogoverlay1.style.width = "500px";
-    }
-    this.ConvertToBindableDateSpreadMaintenance(this._lstSpreadMaintenance);
+      dwldLink.setAttribute("href", url);
+      dwldLink.setAttribute("download", fileName);
+      dwldLink.style.visibility = "hidden";
+      document.body.appendChild(dwldLink);
+      dwldLink.click();
+      document.body.removeChild(dwldLink);
+      this._isListFetching = false;
+    });
 
   }
 
-  EnableDisableMiniFeeGrid(gridchk) {
-    if (gridchk) {
-      this._isShowMinimumFee = true;
-      setTimeout(function () {
-        var MinimumFee = this.MinimumFee;
-        if (MinimumFee) {
-          var colFeeType = MinimumFee.columns.getColumn('FeeTypeNameText');
-          if (colFeeType) {
-            //colFeeType.showDropDown = true;
-            colFeeType.dataMap = this._buildDataMapWithoutLookupNew(this.lstFeeType);
+  SelectAll() {
+    this._chkSelectAll = !this._chkSelectAll;
+
+    for (var i = 0; i < this.flexdealfunding.rows.length; i++) {
+      if (this.flexdealfunding.rows[i].dataItem.WF_IsFlowStart == 0) {
+        if (!this.flexdealfunding.rows[i].dataItem.Applied) {
+          if (this.flexdealfunding.rows[i].dataItem.PurposeID != 840) {
+            this.flexdealfunding.rows[i].dataItem.Funding_delete = this._chkSelectAll;
           }
         }
-      }.bind(this), 500);
+      }
+    }
+    this.flexdealfunding.invalidate();
+  }
+
+  ChangeFundingDelete(_value: boolean, DealFundingRowno: number) {
+    this.listdealfunding.find(x => x.DealFundingRowno == DealFundingRowno).Funding_delete = _value;
+  }
+  showMutipleDeleteFunding(moduleName) {
+    this.modulename = moduleName;
+    var isDeleteFunding = this.listdealfunding.filter(x => x.Funding_delete == true).length;
+    if (isDeleteFunding > 0) {
+      this.isDeletedFunding = true;
+      this.deletemsg = 'Are you sure you want to delete it ?'
     }
     else {
-      this._isShowMinimumFee = false;
+      this.isDeletedFunding = false;
+      this.deletemsg = 'Please select funding to delete.'
+
+    }
+
+    var modalDelete = document.getElementById('myModalDelete');
+
+    modalDelete.style.display = "block";
+    $.getScript("/js/jsDrag.js");
+
+  }
+
+  DeleteDealfunding() {
+    for (var i = 0; i < this.flexdealfunding.rows.length - 1;) {
+      if (this.flexdealfunding.rows[i].dataItem.Funding_delete) {
+        this.deleteRowIndex = i;
+        var deldynamicCol = [];
+        deldynamicCol = this.cvDealFundingList.items[i];
+        this.deletedynamicList.push(deldynamicCol);
+        this.isrowdeleted = true;
+        var selectedDealFundingID = this.listdealfunding[this.deleteRowIndex].DealFundingID;
+        var selectedDealFundingRowno = this.listdealfunding[this.deleteRowIndex].DealFundingRowno;
+        this.cvDealFundingList.removeAt(this.deleteRowIndex);
+        var fundingwithoutchange = this.listdealfundingwithoutchange.filter(x => x.DealFundingID == selectedDealFundingID);
+        if (fundingwithoutchange != undefined && fundingwithoutchange != null) {
+
+          var DealFundingID = selectedDealFundingID;
+          var DealFundingRowno = selectedDealFundingRowno;
+          this.listdealfundingwithoutchange = this.listdealfundingwithoutchange.filter(function (obj) {
+            return obj.DealFundingID != DealFundingID;
+          });
+          for (var j = 0; j < this.lstNoteFunding.length; j++) {
+            if (this.lstNoteFunding[j].DealFundingID) {
+              if (this.lstNoteFunding[j].DealFundingID == DealFundingID) {
+                this.lstNoteFunding.splice(j, 1);
+              }
+            }
+            else {
+              if (this.lstNoteFunding[j].DealFundingRowno == DealFundingRowno) {
+                this.lstNoteFunding.splice(j, 1);
+              }
+            }
+          }
+        }
+        if (this._isAdjustedTotalCommitmentTabClicked == true) {
+          this.UpdateEquitySummary();
+        }
+      }
+      else
+        i++;
+
+    }
+    this.CloseDeletePopUp();
+  }
+
+  onChangeEnableAutoDistributeWriteoffCheckbox(e): void {
+    this._deal.EnableAutoDistributePrincipalWriteoff = e.target.checked;
+    //this.flagPrincipalWriteoffAmountDistributed = !e.target.checked;
+    if (this._deal.EnableAutoDistributePrincipalWriteoff == true) this.flagIsAutoDistibutePressed = false; else this.flagIsAutoDistibutePressed = true;
+  }
+
+  getAutoDistributeWriteoffByDealID(_objdeals: deals) {
+    this._deal.DealID = _objdeals.DealID;
+    this.dealSrv.GetAutoDistributeWriteoffByDealID(_objdeals).subscribe(res => {
+      if (res.Succeeded) {
+        var data: any = res._autodistributewriteoff;
+        this.lstAutoDistributeWriteoff = data;
+        this._deal.AutoDistributeWriteoffList = this.lstAutoDistributeWriteoff;
+
+        setTimeout(function () {
+          if (this.flexAutoDistributeWriteoff !== undefined && this.flexAutoDistributeWriteoff !== null) {
+            this.flexAutoDistributeWriteoff.invalidate();
+          }
+        }.bind(this), 1000);
+      }
+    });
+  }
+
+  AutoDistributePrincipalWriteoff() {
+    var amountCount = this.lstServicingPotentialImpairment.filter(x => (x.Amount == undefined || x.Amount == null));
+    if (amountCount.length == 0) {
+      for (var cnt = 0; cnt < this.cvServicingPotentialImpairment.items.length; cnt++) {
+        if (this.cvServicingPotentialImpairment.items[cnt].Applied == undefined) {
+          this.cvServicingPotentialImpairment.items[cnt]["Applied"] = false;
+        }
+      }
+      this.flexServicingPotentialImpairment.invalidate();
+
+      var flagDistribute = true;
+      flagDistribute = this.ValidateDistibuteAmount();
+      if (!flagDistribute) {
+
+        this.CustomAlert("Sum of non-wire confirmed WriteOff Amount can not be greater than Estimated Current Balance.");
+      }
+      else {
+        this._isShowLoader = true;
+        this._principalwriteoff.AutoDistributeWriteoffList = this.lstAutoDistributeWriteoff;
+        var lstServicingPotentialNoteWriteoff: any;
+        var lstServicingPotentialDealWriteoff: any;
+
+        lstServicingPotentialNoteWriteoff = [];
+        lstServicingPotentialDealWriteoff = [];
+        for (var nlc = 0; nlc < this.lstServicingPotentialImpairment.length; nlc++) {
+          lstServicingPotentialDealWriteoff.push(
+            {
+              'WLDealPotentialImpairmentID': this.lstServicingPotentialImpairment[nlc].WLDealPotentialImpairmentMasterID,
+              'DealID': this._deal.DealID,
+              'Date': this.lstServicingPotentialImpairment[nlc].Date,
+              'Value': this.lstServicingPotentialImpairment[nlc].Amount,
+              'AdjustmentType': this.lstServicingPotentialImpairment[nlc].AdjustmentType,
+              'Comment': this.lstServicingPotentialImpairment[nlc].Comment,
+              'RowNo': this.lstServicingPotentialImpairment[nlc].RowNo,
+              'Applied': this.lstServicingPotentialImpairment[nlc].Applied,
+              'UserID': this._deal.currentUserID,
+              'IsDeleted': 0
+            });
+
+          for (var n = 0; n < this.potentialImpairmentdynamicnotescol.length; n++) {
+            var notetotalcommitmentcol = 0;
+            var _isbracket = this.potentialImpairmentdynamicnotescol[n].indexOf("_");
+            if (_isbracket > -1) {
+              if (this.potentialImpairmentdynamicnotescol[n].includes("_Noteid")) {
+                var notesplitarray = this.potentialImpairmentdynamicnotescol[n].split("_Noteid");
+
+                lstServicingPotentialNoteWriteoff.push(
+                  {
+                    'WLDealPotentialImpairmentID': this.lstServicingPotentialImpairment[nlc].WLDealPotentialImpairmentMasterID,
+                    'DealID': this.lstServicingPotentialImpairment[nlc].DealID,
+                    'Date': this.lstServicingPotentialImpairment[nlc].Date,
+                    'AdjustmentType': this.lstServicingPotentialImpairment[nlc].AdjustmentType,
+                    'Comment': this.lstServicingPotentialImpairment[nlc].Comment,
+                    'RowNo': this.lstServicingPotentialImpairment[nlc].RowNo,
+                    'Applied': this.lstServicingPotentialImpairment[nlc].Applied,
+                    'NoteID': this.lstNote.filter(x => x.CRENoteID == notesplitarray[0])[0].NoteId,
+                    'Notename': this.lstNote.filter(x => x.CRENoteID == notesplitarray[0])[0].Name,
+                    'CRENoteID': this.lstNote.filter(x => x.CRENoteID == notesplitarray[0])[0].CRENoteID,
+                    'Value': this.lstServicingPotentialImpairment[nlc][this.potentialImpairmentdynamicnotescol[n]] == null ? parseFloat('0.00').toFixed(2) : parseFloat(this.lstServicingPotentialImpairment[nlc][this.potentialImpairmentdynamicnotescol[n]]).toFixed(2),
+                    'UserID': '',
+                    'IsDeleted': 0
+                  });
+              }
+            }
+          }
+        }
+        this._principalwriteoff.ServicingPotentialNoteWriteoffList = lstServicingPotentialNoteWriteoff;
+        this._principalwriteoff.ServicingPotentialDealWriteoffList = lstServicingPotentialDealWriteoff;
+
+        if (lstServicingPotentialDealWriteoff != null && lstServicingPotentialDealWriteoff[0] !== undefined && lstServicingPotentialDealWriteoff[0].Date !== undefined) {
+          this.dealSrv.AutoDistributePrincipalWriteoff(this._principalwriteoff).subscribe(res => {
+            if (res.Succeeded) {
+
+              var data: any = res.PrincipalWriteoffData;
+              var lstnotePrincipalWrite = res.PrincipalWriteoffData.ServicingPotentialNoteWriteoffList;
+
+              //remove old values from grid 
+              for (var nlc = 0; nlc < this.lstServicingPotentialImpairment.length; nlc++) {
+                for (var n = 0; n < this.potentialImpairmentdynamicnotescol.length; n++) {
+                  var _isbracket = this.potentialImpairmentdynamicnotescol[n].indexOf("_");
+                  if (_isbracket > -1) {
+                    if (this.lstServicingPotentialImpairment[nlc].Applied != true) {
+                      if (this.potentialImpairmentdynamicnotescol[n].includes("_Noteid")) {
+                        var notesplitarray = this.potentialImpairmentdynamicnotescol[n].split("_Noteid");
+                        this.lstServicingPotentialImpairment[nlc][this.potentialImpairmentdynamicnotescol[n]] = 0;
+                      }
+
+                    }
+
+                  }
+                }
+              }
+
+              for (var i = 0; i < this.lstServicingPotentialImpairment.length; i++) {
+                var filterdata = lstnotePrincipalWrite.filter(x => x.RowNo == this.lstServicingPotentialImpairment[i].RowNo);
+                for (var d = 0; d < filterdata.length; d++) {
+                  let PrNoteid = filterdata[d].CRENoteID + "_Noteid";
+                  this.lstServicingPotentialImpairment[i][PrNoteid] = filterdata[d].Value;
+                }
+              }
+              if (this._deal.AllowFundingDevDataFlag != undefined || this._deal.AllowFundingDevDataFlag != null) {
+                if (this._deal.AllowFundingDevDataFlag.toString() == "true") {
+                  var filename = this._deal.DealName + '_Writeoff';
+                  this.exportToExcel(filename, [data.ServicingPotentialDealWriteoffList, data.ServicingPotentialNoteWriteoffList, data.AutoDistributeWriteoffList], ['Deal Writeoff', 'Note Writeoff', 'Config Data']);
+
+                }
+              }
+              this._Showmessagediv = true;
+              this._ShowmessagedivMsg = "Principal Write-off auto distributed successfully.";
+
+              setTimeout(function () {
+                this._Showmessagediv = false;
+                this._ShowmessagedivMsg = "";
+                this._isShowLoader = false;
+                this.flexServicingPotentialImpairment.invalidate();
+              }.bind(this), 2000);
+
+            } else {
+              //Principal Write-off auto distributed successfully
+              this._ShowmessagedivWar = true;
+              this._ShowmessagedivMsgWar = "Principal Write-off auto distribution failed.";
+              setTimeout(function () {
+                this._ShowmessagedivWar = false;
+                this._ShowmessagedivMsgWar = "";
+                this._isShowLoader = false;
+                this.flexServicingPotentialImpairment.invalidate();
+              }.bind(this), 2000);
+            }
+            //
+          });
+
+          //this.flagPrincipalWriteoffAmountDistributed = true;
+        } else {
+          this._isShowLoader = false;
+          var error = "<p>" + "Please enter Principal Write-off schedule before auto distribution." + " </p>";
+          this.CustomAlert(error);
+
+        }
+        this.flagIsAutoDistibutePressed = true;
+      }
+    }
+    else {
+      this.CustomAlert("Please enter Principal Write-off schedule before auto distribution.");
+    }
+  }
+
+  changeIsOverride(value: boolean, flexGridrw: wjcGrid.Row) {
+    flexGridrw.isReadOnly = !value;
+    this.lstXiRRValues[flexGridrw.index].IsOverride = value;
+  }
+
+  ServicingPotentialImpairmentExporttoexcel() {
+    var flexPotentialImpairment = this.flexServicingPotentialImpairment.itemsSource._src;
+
+    var excPotentialImpairment = [];
+
+    for (var k = 0; k < flexPotentialImpairment.length; k++) {
+      excPotentialImpairment.push({ 'Date': Date.now() });
+      var commitmentcolumns = Object.keys(flexPotentialImpairment[k]);
+      excPotentialImpairment[k]["NotesCount"] = (this.flexServicingPotentialImpairment.columns.length - 6).toString();
+      if (flexPotentialImpairment[k].Date != null) {
+        excPotentialImpairment[k].Date = this.convertDatetoGMT(flexPotentialImpairment[k].Date);
+      }
+
+
+      if (flexPotentialImpairment[k].Amount) {
+        excPotentialImpairment[k]["Amount"] = flexPotentialImpairment[k].Amount.toFixed(2).toString();
+      }
+      else {
+        excPotentialImpairment[k]["Amount"] = "0";
+      }
+      if (flexPotentialImpairment[k].AdjustmentType == null) {
+        excPotentialImpairment[k]["Adjustment Type"] = null;
+      } else {
+        excPotentialImpairment[k]["Adjustment Type"] = this.lstAdjustmentType.find(x => x.LookupID == flexPotentialImpairment[k].AdjustmentType).Name;
+      }
+
+      excPotentialImpairment[k]["Comment"] = flexPotentialImpairment[k].Comment;
+      excPotentialImpairment[k]["Confirmed"] = flexPotentialImpairment[k].Applied;
+      for (var i = 0; i < this.lstNote.length; i++) {
+        if (commitmentcolumns.includes(this.lstNote[i].CRENoteID + "_Noteid")) {
+          if (flexPotentialImpairment[k][this.lstNote[i].CRENoteID + "_Noteid"]) {
+            //  excPotentialImpairment[k][this.lstNote[i].Name] = parseFloat(flexPotentialImpairment[k][this.lstNote[i].CRENoteID + "_Noteid"]);
+            excPotentialImpairment[k][this.lstNote[i].Name.trim()] = (flexPotentialImpairment[k][this.lstNote[i].CRENoteID + "_Noteid"]).toString();
+          }
+          else {
+            excPotentialImpairment[k][this.lstNote[i].Name.trim()] = "0";
+          }
+        }
+        else {
+          console.log("No potential impairment");
+          console.log(flexPotentialImpairment[k][this.lstNote[i].CRENoteID + "_Noteid"]);
+        }
+      }
+    }
+    this.dealSrv.downloadexcelServicingPotentialImpairment(excPotentialImpairment)
+      .subscribe(fileData => {
+        this._isListFetching = false;
+        let b: any = new Blob([fileData]);
+        let dwldLink = document.createElement("a");
+        let url = URL.createObjectURL(b);
+        let isSafariBrowser = navigator.userAgent.indexOf('Safari') != -1 && navigator.userAgent.indexOf('Chrome') == -1;
+        if (isSafariBrowser) {  //if Safari open in new window to save file with random filename.
+          dwldLink.setAttribute("target", "_blank");
+        }
+        dwldLink.setAttribute("href", url);
+        dwldLink.setAttribute("download", this._deal.DealName + '_ServicingPotentialImpairment.xlsx');
+        dwldLink.style.visibility = "hidden";
+        document.body.appendChild(dwldLink);
+        dwldLink.click();
+        document.body.removeChild(dwldLink);
+        this.isProcessComplete = false;
+      },
+        error => {
+          console.log(error);
+          // alert('Something went wrong');
+          this.isProcessComplete = false;;
+        }
+      );
+  }
+
+  ValidateDistibuteAmount(): boolean {
+    var distributeAmountTotal = 0, impairmentAmountTotal = 0;
+    var flexPotentialImpairment = this.flexServicingPotentialImpairment.itemsSource._src;
+    for (var k = 0; k < flexPotentialImpairment.length; k++) {
+      if (flexPotentialImpairment[k].Applied == false)
+        impairmentAmountTotal = impairmentAmountTotal + flexPotentialImpairment[k].Amount;
+    }
+
+    var flexDistributeWriteoff = this.lstAutoDistributeWriteoff;
+    for (var k = 0; k < flexDistributeWriteoff.length; k++) {
+      distributeAmountTotal = distributeAmountTotal + flexDistributeWriteoff[k].EstBls;
+    }
+
+    if (distributeAmountTotal < impairmentAmountTotal)
+      return false;
+    else
+      return true;
+  }
+
+  cellEditflexAutoDistributeWriteoff() {
+    this.flagIsAutoDistibutePressed = false;
+  }
+
+  getDealRelationshipByDealID(dealID: string): void {
+    this.dealSrv.GetDealRelationshipByDealID(dealID).subscribe(res => {
+      if (res.Succeeded) {
+        var data: any = res._dealRelationship;
+        this.lstDealRelationship = data;
+        setTimeout(function () {
+          this.flexDealRelationship.invalidate();
+        }.bind(this), 2000);
+      }
+    });
+  }
+
+  AddUpdateDealRelationship(): void {
+    try {
+      for (var i = 0; i < this.lstDealRelationship.length; i++) {
+        this.lstDealRelationship[i].DealID = this._deal.DealID;
+        if (!(Number(this.lstDealRelationship[i].RelationshipText).toString() == "NaN" || Number(this.lstDealRelationship[i].RelationshipText) == 0)) {
+          this.lstDealRelationship[i].RelationshipID = Number(this.lstDealRelationship[i].RelationshipText);
+        }
+      }
+    }
+    catch (err) {
+      //console.log(err);
+    }
+  }
+
+  selectionChangedHandlerDealRelationship() {
+    try {
+      for (var i = 0; i < this.lstDealRelationship.length - 1; i++) {
+        for (var j = i + 1; j < this.lstDealRelationship.length; j++) {
+          if (!(Number(this.lstDealRelationship[i].RelationshipText).toString() == "NaN" || Number(this.lstDealRelationship[i].RelationshipText) == 0)) {
+            if (!(Number(this.lstDealRelationship[j].RelationshipText).toString() == "NaN" || Number(this.lstDealRelationship[j].RelationshipText) == 0)) {
+              if (this.lstDealRelationship[i].RelationshipText == this.lstDealRelationship[j].RelationshipText) {
+                this.CustomAlert("Relationship already taken above. Please select different relationship.");
+                this.lstDealRelationship[j].RelationshipText = null;
+                break;
+              }
+            }
+            else {
+              if (this.lstDealRelationship[i].RelationshipText == this.lstDealRelationship[j].RelationshipID) {
+                this.CustomAlert("Relationship already taken above. Please select different relationship.");
+                this.lstDealRelationship[j].RelationshipText = null;
+                this.lstDealRelationship[j].RelationshipID = null;
+                break;
+              }
+            }
+          } else {
+            if (!(Number(this.lstDealRelationship[j].RelationshipText).toString() == "NaN" || Number(this.lstDealRelationship[j].RelationshipText) == 0)) {
+              if (this.lstDealRelationship[i].RelationshipID == this.lstDealRelationship[j].RelationshipText) {
+                this.CustomAlert("Relationship already taken above. Please select different relationship.");
+                this.lstDealRelationship[j].RelationshipText = null;
+                break;
+              }
+            }
+            else {
+              if (this.lstDealRelationship[i].RelationshipID == this.lstDealRelationship[j].RelationshipID) {
+                this.CustomAlert("Relationship already taken above. Please select different relationship.");
+                this.lstDealRelationship[j].RelationshipText = null;
+                this.lstDealRelationship[j].RelationshipID = null;
+                break;
+              }
+            }
+          }
+        }
+      }
+    }
+    catch (err) {
+      //console.log(err);
+    }
+  }
+
+  GetPrepaymentGroupByDealID() {
+
+    this.dealSrv.GetPrepaymentGroupByDealID(this._deal.DealID).subscribe(res => {
+      if (res.Succeeded) {
+        this._lstPrepayGroupSetup = res.dt;
+        this.cvPrepayGroupSetup = new wjcCore.CollectionView(this._lstPrepayGroupSetup);
+      }
+    });
+  }
+
+  GetPayoffStatementFeesByDealID() {
+
+    var flexPayoffStatementFees = this.flexPayoffStatementFees;
+    this.dealSrv.GetPayoffStatementFeesByDealID(this._deal.DealID).subscribe(res => {
+      if (res.Succeeded) {
+        this._lstPayoffStatementFees = res.dt;
+        this.cvPayoffStatementFees = new wjcCore.CollectionView(this._lstPayoffStatementFees);
+
+        if (flexPayoffStatementFees) {
+          var colFeeType = flexPayoffStatementFees.columns.getColumn('FeeTypeText');
+          if (colFeeType) {
+            colFeeType.dataMap = this._buildDataMap(this.lstPayoffStatementFees, 'LookupID', 'Name');
+          }
+        }
+      }
+    });
+  }
+
+  GetPrepaymentNoteSetupByDealID() {
+
+    this.dealSrv.GetPrepaymentNoteSetupByDealID(this._deal.DealID).subscribe(res => {
+      if (res.Succeeded) {
+        this._lstPrepayNoteSetup = res.dt;
+        this.cvPrepayNoteSetup = new wjcCore.CollectionView(this._lstPrepayNoteSetup);
+      }
+    });
+  }
+
+  getDistinct(array, key) {
+    const redUniq = [
+      ...array
+        .reduce((uniq, curr) => {
+          if (!uniq.has(curr[key])) {
+            uniq.set(curr[key], curr);
+          }
+          return uniq;
+        }, new Map())
+        .values()
+    ];
+    return redUniq;
+  }
+  GetPrepaymentNoteAllocationSetup() {
+
+    this.dealSrv.GetPrepaymentNoteAllocationSetup(this._deal.DealID).subscribe(res => {
+      if (res.Succeeded) {
+        this._lstPrepayNoteAllocation = res.dt;
+        var PrepayNoteAll = res.dt;
+        //Prefilled with Funding Rule
+        if (this._deal.PrepaymentAllocationMethod == 888) { //Lien & Priority
+          if (this.lstSequenceHistory) {
+            //this._deal.PrepaymentGroupSize = Math.max.apply(null, this.lstSequenceHistory.map(x => x.Priority));
+            var PrepaymentGroupSize = this.getDistinct(this.lstSequenceHistory, "LienPositionText");
+            if (PrepaymentGroupSize !== undefined && PrepaymentGroupSize !== null && PrepaymentGroupSize.length > 0) {
+              this._deal.PrepaymentGroupSize = PrepaymentGroupSize.length;
+            }
+          }
+
+          this._lstPrepayNoteAllocation = [];
+          for (var i = 0; i < this.lstSequenceHistory.length; i++) {
+            this._lstPrepayNoteAllocation[i] = this.lstSequenceHistory.filter(x => x.CRENoteID == this.lstSequenceHistory[i].CRENoteID);
+            this._lstPrepayNoteAllocation[i].CRENoteID = this.lstSequenceHistory[i].CRENoteID;
+            this._lstPrepayNoteAllocation[i].NoteName = this.lstSequenceHistory[i].Name;
+            this._lstPrepayNoteAllocation[i].LienPositionText = this.lstSequenceHistory[i].LienPositionText;
+            this._lstPrepayNoteAllocation[i].Priority = this.lstSequenceHistory[i].Priority;
+            this._lstPrepayNoteAllocation[i].GroupID = this.lstSequenceHistory[i].Priority;
+            this._lstPrepayNoteAllocation[i].GroupPriority = 1;
+
+
+            var filteredlist = PrepayNoteAll.filter(x => x.CRENoteID == this.lstSequenceHistory[i].CRENoteID);
+            if (filteredlist !== undefined && filteredlist !== null && filteredlist.length > 0) {
+              this._lstPrepayNoteAllocation[i].ExcludeText = filteredlist[0].ExcludeText;
+              this._lstPrepayNoteAllocation[i].Exclude = filteredlist[0].Exclude;
+              this._lstPrepayNoteAllocation[i].PrepaymentNoteAllocationSetupID = filteredlist[0].PrepaymentNoteAllocationSetupID;
+            }
+          }
+        } else {
+          this._lstPrepayNoteAllocation = [];
+          for (var i = 0; i < this.lstSequenceHistory.length; i++) {
+
+            this._lstPrepayNoteAllocation[i] = this.lstSequenceHistory.filter(x => x.CRENoteID == this.lstSequenceHistory[i].CRENoteID);
+            this._lstPrepayNoteAllocation[i].CRENoteID = this.lstSequenceHistory[i].CRENoteID;
+            this._lstPrepayNoteAllocation[i].NoteName = this.lstSequenceHistory[i].Name;
+            this._lstPrepayNoteAllocation[i].LienPositionText = this.lstSequenceHistory[i].LienPositionText;
+            this._lstPrepayNoteAllocation[i].Priority = this.lstSequenceHistory[i].Priority;
+
+            var filteredlist = PrepayNoteAll.filter(x => x.CRENoteID == this.lstSequenceHistory[i].CRENoteID);
+            if (filteredlist !== undefined && filteredlist !== null && filteredlist.length > 0) {
+              this._lstPrepayNoteAllocation[i].Priority = filteredlist[0].GroupID;
+              this._lstPrepayNoteAllocation[i].GroupID = filteredlist[0].GroupID;
+              this._lstPrepayNoteAllocation[i].GroupPriority = filteredlist[0].GroupPriority;
+              this._lstPrepayNoteAllocation[i].ExcludeText = filteredlist[0].ExcludeText;
+              this._lstPrepayNoteAllocation[i].Exclude = filteredlist[0].Exclude;
+
+              this._lstPrepayNoteAllocation[i].PrepaymentNoteAllocationSetupID = filteredlist[0].PrepaymentNoteAllocationSetupID;
+
+            } else {
+              this._lstPrepayNoteAllocation[i].Priority = this.lstSequenceHistory[i].Priority;
+              this._lstPrepayNoteAllocation[i].GroupID = this.lstSequenceHistory[i].Priority;
+              this._lstPrepayNoteAllocation[i].GroupPriority = this.lstSequenceHistory[i].Priority;
+              this._lstPrepayNoteAllocation[i].PrepaymentNoteAllocationSetupID = 0;
+              this._lstPrepayNoteAllocation[i].Exclude = null;
+              this._lstPrepayNoteAllocation[i].ExcludeText = null;
+            }
+
+          }
+        }
+
+
+        this.cvPrepayNoteAllocation = new wjcCore.CollectionView(this._lstPrepayNoteAllocation);
+
+        if (this._deal.PrepaymentAllocationMethod == 888) {
+          this.flexPrepayNoteAllocationSetup.columns[4].isReadOnly = true;
+          this.flexPrepayNoteAllocationSetup.columns[5].isReadOnly = true;
+        }
+        else {
+          this.flexPrepayNoteAllocationSetup.columns[4].isReadOnly = false;
+          this.flexPrepayNoteAllocationSetup.columns[5].isReadOnly = false;
+        }
+        this.flexPrepayNoteAllocationSetup.itemFormatter = function (panel, r, c, cell) {
+          if (panel.cellType != wjcGrid.CellType.Cell) {
+            return;
+          }
+          if (panel.columns[c].header == 'Note ID'
+            || panel.columns[c].header == 'Note Name'
+            || panel.columns[c].header == 'Lien Position'
+            || panel.columns[c].header == 'Priority') {
+            cell.style.backgroundColor = '#cfcfcf';
+          }
+        }
+
+      }
+    });
+  }
+
+
+  CheckifUserIsLogedIN(): void {
+    this.membershipService.CheckifUserIsLogedIN().subscribe(res => {
+      if (res.Succeeded) {
+        console.log('logged in');
+      }
+      else {
+        if (res.Message == "Authentication failed") {
+          this._router.navigate(['login']);
+        }
+      }
+    });
+  }
+
+  AllocationMethodChange(ddlval: any) {
+    if (ddlval == 888)//Lien & Priority
+    {
+      this._lstPrepayNoteAllocation = [];
+      for (var i = 0; i < this.lstSequenceHistory.length; i++) {
+        this._lstPrepayNoteAllocation[i] = [];
+        this._lstPrepayNoteAllocation[i].CRENoteID = this.lstSequenceHistory[i].CRENoteID;
+        this._lstPrepayNoteAllocation[i].NoteName = this.lstSequenceHistory[i].Name;
+        this._lstPrepayNoteAllocation[i].LienPositionText = this.lstSequenceHistory[i].LienPositionText;
+        this._lstPrepayNoteAllocation[i].Priority = this.lstSequenceHistory[i].Priority;
+        this._lstPrepayNoteAllocation[i].GroupID = this.lstSequenceHistory[i].Priority;
+        this._lstPrepayNoteAllocation[i].GroupPriority = this.lstSequenceHistory[i].Priority;
+
+      }
+      this.flexPrepayNoteAllocationSetup.columns[4].isReadOnly = true;
+      this.flexPrepayNoteAllocationSetup.columns[5].isReadOnly = true;
+      this.cvPrepayNoteAllocation = new wjcCore.CollectionView(this._lstPrepayNoteAllocation);
+
+      if (this.lstSequenceHistory) {
+        //this._deal.PrepaymentGroupSize = Math.max.apply(null, this.lstSequenceHistory.map(x => x.Priority));
+        var PrepaymentGroupSize = this.getDistinct(this.lstSequenceHistory, "LienPositionText");
+        if (PrepaymentGroupSize !== undefined && PrepaymentGroupSize !== null && PrepaymentGroupSize.length > 0) {
+          this._deal.PrepaymentGroupSize = PrepaymentGroupSize.length;
+        }
+      }
+    }
+    else //Custom
+    {
+      this.flexPrepayNoteAllocationSetup.columns[4].isReadOnly = false;
+      this.flexPrepayNoteAllocationSetup.columns[5].isReadOnly = false;
     }
 
   }
 
-  getprepayruletypetemplate() {
-    this.scenarioService.getallruletypedetail().subscribe(res => {
-      if (res.Succeeded) {
-        var PrepayRuleTemplatelist = res.lstScenarioRuleDetail;
-        var filterPrepayRuleTemplatelist = PrepayRuleTemplatelist.filter(x => x.RuleTypeName == "Prepay");
-        this.lstPrepayRuleTemplate = filterPrepayRuleTemplatelist;
-        if (this.rolename == 'Super Admin') {
-          this.lstPrepayRuleTemplate.push({
-            "RuleTypeDetailID": 0,
-            "FileName": "--Create New--"
+  CalcDealForAnalysisID(item): void {
+    this._isShowLoader = true;
+    var dealCalc: deals;
+    dealCalc = new deals(this._deal.DealID);
+    dealCalc.AnalysisID = item.AnalysisID;
+    dealCalc.DealID = this._deal.DealID;
+    this.dealSrv.CalcDealForAnalysisID(dealCalc).subscribe(res => {
+      this._isShowLoader = false;
+      this._ShowmessagedivMsg = "Deal submitted for calculation successfully.";
+      this._Showmessagediv = true;
+      setTimeout(() => {
+        this._Showmessagediv = false;
+      }, 3000);
+    });
+  }
 
-          });
-        }
+  // add/update tooltips when rendering the cells
+  formatReserveItem(s: FlexGrid, e: FormatItemEventArgs) {
+    if (e.panel == s.columnHeaders) {
+
+      var EstimatedReserveBalancecol = this.flexReserveAccounts.getColumn("EstimatedReserveBalance").index;
+      if (e.col == EstimatedReserveBalancecol) {
+        this._hdrTips.setTooltip(e.cell,
+          'Current balance is pulled from backshop');
+      }
+    }
+  }
+
+  // column header tooltips
+  private _hdrTips = new Tooltip({
+    position: PopupPosition.RightTop,
+    showAtMouse: true,
+    showDelay: 300,
+    cssClass: 'hdr-tip'
+  });
+
+  ClearReserveTooltip() {
+    this._hdrTips.dispose();
+  }
+
+  SyncReserveBalance() {
+
+    var myModelConfirmReserveSync = document.getElementById('myModelConfirmReserveSync');
+    myModelConfirmReserveSync.style.display = "block";
+    $.getScript("/js/jsDrag.js");
+  }
+
+  CloseReserveSyncPopUp() {
+    var modal = document.getElementById('myModelConfirmReserveSync');
+    modal.style.display = "none";
+  }
+
+  SyncReserveBalanceFromBackshop() {
+    this.CloseReserveSyncPopUp();
+    this._isShowLoader = true;
+    this._reserveAccountSync = new ReserveAccountSync();
+    this._reserveAccountSync.DealID = this._deal.DealID;
+    this.dealSrv.updateReserveAccountFromBackshop(this._reserveAccountSync).subscribe(res => {
+      if (res.Succeeded) {
+        this._isReserveTabClicked = false;
+        this.invalidateReserveTab()
+
+        this._Showmessagediv = true;
+        this._ShowmessagedivMsg = "Reserve balance updated successfully.";
+
+        setTimeout(function () {
+          this._Showmessagediv = false;
+          this._ShowmessagedivMsg = "";
+          this._isShowLoader = false;
+        }.bind(this), 2000);
+
+
+      }
+      else {
+        this._ShowmessagedivWar = true;
+        this._ShowmessagedivMsgWar = "Something went wrong.Please try again later.";
+        this._isShowLoader = false;
+        setTimeout(function () {
+          this._ShowmessagedivWar = false;
+          this._ShowmessagedivMsgWar = "";
+          this._isShowLoader = false;
+        }.bind(this), 2000);
+      }
+    });
+
+  }
+
+
+  getAccountingBasis() {
+    this.dealSrv.GetAccountingBasisByDealID(this._deal.DealID).subscribe(res => {
+      if (res.Succeeded) {
+        var data: any = res.dt;
+        this.lstAccountingBasis = data;
+
+        setTimeout(function () {
+          this.flexAccountingBasis.invalidate();
+        }.bind(this), 100);
       }
     });
   }
 
-  getprepayruletemplate() {
-    this._ruletype.DealID = this._deal.DealID;
-    this.dealSrv.getruletypesetupbydealid(this._ruletype).subscribe(res => {
+  OnExcludeDealFromLiabilityChange(isChecked: boolean) {
+    this._deal.ExcludeDealFromLiability = isChecked;
+  }
+
+  UpdateDealAndDownloadPayoffStatement() {
+    this._isListFetching = true;
+    for (var f = 0; f < this._lstPayoffStatementFees.length; f++) {
+      if (this._lstPayoffStatementFees[f].PayoffStatementFeesID === undefined || this._lstPayoffStatementFees[f].PayoffStatementFeesID === null || this._lstPayoffStatementFees[f].PayoffStatementFeesID == "") {
+        this._lstPayoffStatementFees[f].PayoffStatementFeesID = 0;
+      }
+      if (!(Number(this._lstPayoffStatementFees[f].FeeTypeText).toString() == "NaN" || Number(this._lstPayoffStatementFees[f].FeeTypeText) == 0)) {
+        this._lstPayoffStatementFees[f].FeeType = Number(this._lstPayoffStatementFees[f].FeeTypeText);
+      }
+    }
+    this._deal.dtPayoffStatementFees = this._lstPayoffStatementFees;
+    if (this._deal.PrePayDate != null || this._deal.PrePayDate != undefined) {
+      this._deal.PrePayDate = this.convertDatetoGMT(this._deal.PrePayDate);
+
+    }
+    this.dealSrv.UpdateDealForPayoffStatementConfigurationAPI(this._deal).subscribe(res => {
       if (res.Succeeded) {
-        this._lstRuleTypeSetupfilter = res.lstScenariorule;
-        if (this._lstRuleTypeSetupfilter) {
-          var lstprepayruletemplatebyanalysisid = this._lstRuleTypeSetupfilter.find(x => x.AnalysisName == "Default" && x.RuleTypeName == "Prepay").RuleTypeDetailID
-          this._prepaymentpremium.PrePaymentRuleType = lstprepayruletemplatebyanalysisid;
-        }
+        this._deal.PrePayDate = new Date(this.utils.convertDateToBindable(this._deal.PrePayDate));
+        this.downloadPayoffStatementExcel(this._deal.DealID, this._deal.PrePayDate, this.maturityActualPayoffDate);
+
+      }
+    });
+  }
+  downloadPayoffStatement() {
+    this._isListFetching = true;
+
+    this.fileUploadService.downloadPayoffStatement(this._deal.DealID).subscribe(fileData => {
+      let b: any = new Blob([fileData]);
+      //var url = window.URL.createObjectURL(b);
+      //window.open(url);
+
+      var displayDate = new Date().toLocaleDateString("en-US");
+      var fileName = "M61_PayoffStatement_" + this._deal.DealName + "_" + displayDate + ".pdf";
+
+      let dwldLink = document.createElement("a");
+      let url = URL.createObjectURL(b);
+      let isSafariBrowser = navigator.userAgent.indexOf('Safari') != -1 && navigator.userAgent.indexOf('Chrome') == -1;
+      if (isSafariBrowser) {  //if Safari open in new window to save file with random filename.
+        dwldLink.setAttribute("target", "_blank");
+      }
+      dwldLink.setAttribute("href", url);
+      dwldLink.setAttribute("download", fileName);
+      dwldLink.style.visibility = "hidden";
+      document.body.appendChild(dwldLink);
+      dwldLink.click();
+      document.body.removeChild(dwldLink);
+      this._isListFetching = false;
+    },
+      error => {
+
+        this._ShowmessagedivWar = true;
+        this._ShowmessagedivMsgWar = "Error occurred while generating payoff statement. Please refresh and try again or contact M61 support.";
+        this._isListFetching = false;;
+        setTimeout(function () {
+          this._ShowmessagedivWar = false;
+          this._ShowmessagedivMsgWar = "";
+        }.bind(this), 10000);
+
+      }
+    );
+  }
+
+  downloadPayoffStatementExcel(DealID, PrePayDate, maturityActualPayoffDate) {
+    this._isListFetching = true;
+    var actualPayoffDate = null;
+    if (maturityActualPayoffDate != null) {
+      actualPayoffDate = this.convertDateToBindable(maturityActualPayoffDate);
+    }
+
+    this.dealSrv.downloadPayoffStatementExcel(DealID, this.convertDateToBindable(PrePayDate), actualPayoffDate).subscribe(fileData => {
+      let b: any = new Blob([fileData]);
+      //var url = window.URL.createObjectURL(b);
+      //window.open(url);
+
+      var environmentName = this.dataSrv._environmentNamae != '' ? "" + this.dataSrv._environmentNamae.replace("-", "").trim() + " " : "";
+      var displayDate = this.utils.convertDateToBindableWithformatchar(new Date(), ".");
+      var fileName = "(" + environmentName + ")" + " Payoff Analysis_" + this._deal.DealName + "_" + displayDate + ".xlsx";
+
+      let dwldLink = document.createElement("a");
+      let url = URL.createObjectURL(b);
+      let isSafariBrowser = navigator.userAgent.indexOf('Safari') != -1 && navigator.userAgent.indexOf('Chrome') == -1;
+      if (isSafariBrowser) {  //if Safari open in new window to save file with random filename.
+        dwldLink.setAttribute("target", "_blank");
+      }
+      dwldLink.setAttribute("href", url);
+      dwldLink.setAttribute("download", fileName);
+      dwldLink.style.visibility = "hidden";
+      document.body.appendChild(dwldLink);
+      dwldLink.click();
+      document.body.removeChild(dwldLink);
+      this._isListFetching = false;
+    },
+      error => {
+        this._ShowmessagedivWar = true;
+        this._ShowmessagedivMsgWar = "Error occurred while generating payoff statement. Please refresh and try again or contact M61 support.";
+        this._isListFetching = false;
+        setTimeout(function () {
+          this._ShowmessagedivWar = false;
+          this._ShowmessagedivMsgWar = "";
+        }.bind(this), 10000);
+      }
+    );
+  }
+
+
+
+  onCalcAndGenerateEmailPrepayPayoffClick(flag) {
+    this.isGeneratePayoffEmail = flag;
+    this._Showmessagediv = true;
+    this._ShowmessagedivMsg = "Prepay Calculation is started and after that you will recieve PayOff Statement on Email.";
+    this.SubmitPrepayCalcRequest();
+    setTimeout(function () {
+      this._Showmessagediv = false;
+      this._ShowmessagedivMsg = "";
+    }.bind(this), 6000);
+  }
+
+  GetFinancingCommitment(dealid: string) {
+    this.dealSrv.GetFinancingCommitmentByDealID(dealid).subscribe(res => {
+      if (res.Succeeded) {
+        this.lstFinancingCommitment = res.dt;
       }
     });
   }
 
-  getAllPropertyType() {
-    this.dealSrv.getallpropertytype().subscribe(res => {
-      if (res.Succeeded) {
-        this.lstdealPropertyType = res.lstPropertytype;
-      }
-    });
-
-  }
-
-  getAllLoanStatus() {
-    this.dealSrv.getallloanstatus().subscribe(res => {
-      if (res.Succeeded) {
-        this.lstLoanStatus = res.lstLoanstatus;
-      }
-    });
+  addFooterRowFinancingCommitment(FinancingCommitmentgrid: wjcGrid.FlexGrid) {
+    var row = new wjcGrid.GroupRow();
+    FinancingCommitmentgrid.columnFooters.rows.push(row);
+    FinancingCommitmentgrid.bottomLeftCells.setCellData(0, 0, '\u03A3');
 
   }
 
 }
+
 const routes: Routes = [
 
   { path: '', component: DealDetailComponent }]

@@ -1,0 +1,19 @@
+
+CREATE TABLE [App].[BlobDeleteConfig] 
+(
+BlobDeleteConfigID  [int] IDENTITY(1,1) NOT NULL,
+FolderName NVARCHAR (20) NULL,
+DeletedDays int NULL,
+Module NVARCHAR (20) NULL,
+IsActive bit,
+[CreatedBy]   NVARCHAR (MAX) NULL,
+[CreatedDate] DATETIME       NULL,
+[UpdatedBy]   NVARCHAR (MAX) NULL,
+[UpdatedDate] DATETIME       NULL
+ CONSTRAINT [PK_BlobDeleteConfigID] PRIMARY KEY CLUSTERED 
+(
+	BlobDeleteConfigID ASC
+)WITH (STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
+) ON [PRIMARY] TEXTIMAGE_ON [PRIMARY]
+GO
+ 

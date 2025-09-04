@@ -7,6 +7,7 @@ using System.Data;
 using System.IO;
 using System.Net.Http;
 using System.Net.Http.Headers;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -93,9 +94,7 @@ namespace CRES.BusinessLogic
 
                     if (DealDC.notelist != null)
                     {
-#pragma warning disable CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed. Consider applying the 'await' operator to the result of the call.
                         Thread NoteThread = new Thread(() => InsertUpdateAINoteEntitiesAsync(DealDC.notelist, userid));
-#pragma warning restore CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed. Consider applying the 'await' operator to the result of the call.
                         NoteThread.Start();
                     }
                 }// end for insert entity
@@ -443,6 +442,66 @@ namespace CRES.BusinessLogic
             {
                 LoggerLogic Log = new LoggerLogic();
                 Log.WriteLogException(CRESEnums.Module.AI_Assistant.ToString(), "Error occurred  while saving note(AI Entity insert/update): Deal ID " + _noteDC[0].CRENoteID, _noteDC[0].NoteId.ToString(), userid, ex.TargetSite.Name.ToString(), "", ex);
+            }
+        }
+
+        public async Task InsertUpdateAIEntitiesAsync(string entity_type, string entity_names, string userid, string addorUpdate, string originalentitynames)
+        {
+            try
+            {
+
+                GetConfigSetting();
+                DateTime Starttime = DateTime.Now;
+                HBOTLogic hbotLogic = new HBOTLogic();
+                string AIApiAuthKey = Sectionroot.GetSection("AIApiAuthKey").Value;
+                string BaseUrl = Sectionroot.GetSection("apiPath").Value;
+                string AIEntityApi = "";
+
+                ArrayList noteidarr = new ArrayList();
+                ArrayList notenamearr = new ArrayList();
+
+                using (var client = new HttpClient())
+                {
+                    client.BaseAddress = new Uri(BaseUrl);
+                    client.DefaultRequestHeaders.Accept.Clear();
+                    client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+                    AIRealTimeEntityDataContract EntityResult = new AIRealTimeEntityDataContract();
+
+                    HttpResponseMessage _noteidresponse = new HttpResponseMessage();
+                    if (addorUpdate == "Insert")
+                    {
+                        AIEntityApi = Sectionroot.GetSection("AIAddEntityApi").Value;
+                        EntityResult.value = entity_names;
+                    }
+                    else if (addorUpdate == "Update")
+                    {
+                        AIEntityApi = Sectionroot.GetSection("AIUpdateEntityApi").Value;
+
+                        EntityResult.original_entity = originalentitynames;
+                        EntityResult.altered_entity = entity_names;
+                    }
+                    EntityResult.type = entity_type;
+                    noteidarr.Add(entity_names);
+                    EntityResult.synonym = noteidarr;
+
+                    _noteidresponse = await client.PostAsJsonAsync(AIEntityApi + AIApiAuthKey, EntityResult);
+                    if (_noteidresponse.IsSuccessStatusCode)
+                    {
+                        DateTime Endtime = DateTime.Now;
+                        hbotLogic.InsertAIApiStartandEndTime(new Guid(userid), Starttime, Endtime, addorUpdate + " " + entity_type + " Called");
+                    }
+                    else
+                    {
+                        DateTime Endtime = DateTime.Now;
+                        hbotLogic.InsertAIApiStartandEndTime(new Guid(userid), Starttime, Endtime, addorUpdate + " " + entity_type + " NotCalled");
+                    }
+                }
+
+            }
+            catch (Exception ex)
+            {
+                LoggerLogic Log = new LoggerLogic();
+                Log.WriteLogException(CRESEnums.Module.AI_Assistant.ToString(), "Error occurred  while saving note(AI Entity insert/update): Deal ID " + entity_names, entity_names, userid, ex.TargetSite.Name.ToString(), "", ex);
             }
         }
 

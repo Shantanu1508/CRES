@@ -16,7 +16,29 @@
     [UseActuals]                  INT              NULL,
 	[UseBusinessDayAdjustment]    INT              NULL,
     JsonTemplateMasterID          int              NULL,
+    [CalculationFrequency]             INT              NULL,
+    CalcEngineType             INT              NULL,
+    AllowCalcOverride             INT              NULL,
+    AllowCalcAlongWithDefault             INT              NULL,
+    AccountingClose INT null,
+	CalculateLiability int,
+    IncludeProjectedPrincipalWriteoff int,
+	[UseFinancingMaturityDateOverride]    INT              NULL,
+	[UseMaturityAdjustmentMonths]         INT     NULL,
+    [IncludeInDiscrepancy]                INT       NULL,
+    [LastCalculatedDate]                  DATETIME  NULL,
+    OperationMode NVARCHAR (256)  NULL,
+	EqDelayMonths INT            NULL,
+	FinDelayMonths INT            NULL,
+	MinEqBalForFinStart decimal(28,15)            NULL,
+	SublineEqApplyMonths INT            NULL,
+	SublineFinApplyMonths INT            NULL,
+	DebtCallDaysOfTheMonth INT            NULL,
+	CapitalCallDaysOfTheMonth INT            NULL,
     CONSTRAINT [PK_AnalysisParameterID] PRIMARY KEY CLUSTERED ([AnalysisParameterID] ASC),
     CONSTRAINT [FK_AnalysisParameter_AnalysisID] FOREIGN KEY ([AnalysisID]) REFERENCES [Core].[Analysis] ([AnalysisID])
 );
 
+GO
+ALTER TABLE [Core].[AnalysisParameter] ENABLE CHANGE_TRACKING WITH (TRACK_COLUMNS_UPDATED = ON);
+GO

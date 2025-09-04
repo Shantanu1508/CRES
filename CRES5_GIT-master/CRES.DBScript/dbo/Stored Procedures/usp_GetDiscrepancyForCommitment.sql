@@ -22,7 +22,7 @@ BEGIN
 	left join core.lookup l on l.lookupid = nd.[Type]
 	where Nd.value <> 0 
 	and l.name = 'Prepayment' and ROUND(ND.Value,2) > 0 and ROUND(ND.Value,2) > 0.20
-
+	AND d.DealName NOT LIKE '%copy%'
 	--and d.dealid = '17-0648IC'
 	--and n.noteid = 'IC_Upper Rock_B'
 

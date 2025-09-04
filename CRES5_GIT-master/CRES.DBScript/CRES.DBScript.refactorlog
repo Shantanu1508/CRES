@@ -28,4 +28,39 @@
     <Property Name="ParentElementType" Value="SqlTable" />
     <Property Name="NewName" Value="Type" />
   </Operation>
+  <Operation Name="Rename Refactor" Key="0500dc66-49fc-4d85-893e-d67805766834" ChangeDateTime="05/15/2023 10:42:28">
+    <Property Name="ElementName" Value="[Core].[Period].[StartDate]" />
+    <Property Name="ElementType" Value="SqlSimpleColumn" />
+    <Property Name="ParentElementName" Value="[Core].[Period]" />
+    <Property Name="ParentElementType" Value="SqlTable" />
+    <Property Name="NewName" Value="CloseDate" />
+  </Operation>
+  <Operation Name="Rename Refactor" Key="2de05f3b-02e9-4850-8ae9-509085a26e93" ChangeDateTime="05/15/2023 10:42:33">
+    <Property Name="ElementName" Value="[Core].[Period].[EndDate]" />
+    <Property Name="ElementType" Value="SqlSimpleColumn" />
+    <Property Name="ParentElementName" Value="[Core].[Period]" />
+    <Property Name="ParentElementType" Value="SqlTable" />
+    <Property Name="NewName" Value="OpenDate" />
+  </Operation>
+  <Operation Name="Rename Refactor" Key="74dbba32-c2ee-47d0-b918-4a70589d180f" ChangeDateTime="10/16/2023 07:14:30">
+    <Property Name="ElementName" Value="[CRE].[LiabilityNote].[AssetID]" />
+    <Property Name="ElementType" Value="SqlSimpleColumn" />
+    <Property Name="ParentElementName" Value="[CRE].[LiabilityNote]" />
+    <Property Name="ParentElementType" Value="SqlTable" />
+    <Property Name="NewName" Value="AssetAccountID" />
+  </Operation>
+  <Operation Name="Rename Refactor" Key="9c2162e0-2dc0-4014-b6d9-3a17ad692934" ChangeDateTime="10/16/2023 10:15:02">
+    <Property Name="ElementName" Value="[CRE].[LiabilityFundingSchedule].[AccountID]" />
+    <Property Name="ElementType" Value="SqlSimpleColumn" />
+    <Property Name="ParentElementName" Value="[CRE].[LiabilityFundingSchedule]" />
+    <Property Name="ParentElementType" Value="SqlTable" />
+    <Property Name="NewName" Value="LiabilityAccountID" />
+  </Operation>
+  <Operation Name="Rename Refactor" Key="7306bfb3-ab1e-44f1-bdf8-64f978a33f08" ChangeDateTime="03/06/2024 05:52:25">
+    <Property Name="ElementName" Value="[CRE].[LiabilityFundingSchedule].[Status]" />
+    <Property Name="ElementType" Value="SqlSimpleColumn" />
+    <Property Name="ParentElementName" Value="[CRE].[LiabilityFundingSchedule]" />
+    <Property Name="ParentElementType" Value="SqlTable" />
+    <Property Name="NewName" Value="Applied" />
+  </Operation>
 </Operations>

@@ -1,8 +1,8 @@
-﻿using CRES.DAL.Repository;
-using CRES.DataContract;
-using System;
+﻿using CRES.DataContract;
 using System.Collections.Generic;
+using CRES.DAL.Repository;
 using System.Data;
+using System;
 
 namespace CRES.BusinessLogic
 {
@@ -19,9 +19,9 @@ namespace CRES.BusinessLogic
             return list;
         }
 
-        public ScenarioParameterDataContract GetScenarioParameterByScenarioID(string scenarioID)
+        public ScenarioParameterDataContract GetScenarioParameterByScenarioID(string scenarioID, Guid userID)
         {
-            return _ScenarioRepository.GetScenarioParameterByScenarioID(scenarioID);
+            return _ScenarioRepository.GetScenarioParameterByScenarioID(scenarioID, userID);
         }
 
         public string InsertUpdateScenario(ScenarioParameterDataContract Scenaridc)
@@ -49,13 +49,7 @@ namespace CRES.BusinessLogic
         public DataTable GetIndexesExportData(ScenariosearchDataContract _ScenariosearchDc, string headerUserID, out int? TotalCount)
         {
             return _ScenarioRepository.GetIndexesExportData(_ScenariosearchDc, headerUserID, out TotalCount);
-        }
-
-        public void ResetDefaultToActiveScenario(string username)
-        {
-            _ScenarioRepository.ResetDefaultToActiveScenario(username);
-        }
-
+        }        
 
         public bool CheckDuplicateScenarioName(string id, string name)
         {
@@ -130,6 +124,10 @@ namespace CRES.BusinessLogic
         public string deleteScenariobyAnalysisID(string scenarioID, string headerUserID)
         {
             return _ScenarioRepository.deleteScenariobyAnalysisID(scenarioID, headerUserID);
+        }
+        public void InsertActivityLogDetail(DataTable ActivityLogDetail)
+        {
+            _ScenarioRepository.InsertActivityLogDetail(ActivityLogDetail);
         }
     }
 }

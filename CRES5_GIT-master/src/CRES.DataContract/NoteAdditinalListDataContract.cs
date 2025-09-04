@@ -1,17 +1,20 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
 
 namespace CRES.DataContract
 {
-    public class NoteAdditinalListDataContract
+ public  class NoteAdditinalListDataContract
     {
         public string NoteId { get; set; }
-        public int? ModuleId { get; set; }
+        public int? ModuleId { get; set; }       
         public Guid? SourceAccountID { get; set; }
         public string SourceAccount { get; set; }
         public Guid? TargetAccountID { get; set; }
         public string TargetAccount { get; set; }
-
+    
         public List<MaturityScenariosDataContract> MaturityScenariosList { get; set; }
 
         public List<MaturityScenariosDataContract> lstMaturity { get; set; }
@@ -32,36 +35,16 @@ namespace CRES.DataContract
         public List<PIKfromPIKSourceNoteTab> ListPIKfromPIKSourceNoteTab { get; set; }
         public List<FeeCouponStripReceivableTab> ListFeeCouponStripReceivable { get; set; }
         public List<NoteServicingLogDataContract> lstNoteServicingLog { get; set; }
+         
 
-
-
-
-        //public List<MaturityScenariosDataContract> lstMaturity { get; set; }
-
-        //public NoteDataContract noteobj { get; set; }
-
-        //public List<RateSpreadSchedule> lstRateSpreadSchedule { get; set; }
-        //public List<PrepayAndAdditionalFeeScheduleDataContract> lstNotePrepayFeeSchedule { get; set; }
-        //public List<FinancingFeeScheduleDataContract> lstFinancingFeeSchedule { get; set; }
-        //public List<StrippingScheduleDataContract> lstStrippingSchedule { get; set; }
-        //public List<FinancingScheduleDataContract> lstFinancingSchedule { get; set; }
-        //public List<DefaultScheduleDataContract> lstDefaultSchedule { get; set; }
-        //public List<NoteServicingFeeScheduleDataContract> lstServicingFeeSchedule { get; set; }
-        //public List<PIKSchedule> lstPIKSchedule { get; set; }
-        //public List<FutureFundingScheduleTab> lstFutureFundingScheduleTab { get; set; }
-        //public List<FixedAmortScheduleTab> lstFixedAmortScheduleTab { get; set; }
-        //public List<LiborScheduleTab> lstLaborScheduleTab { get; set; }
-        //public List<PIKfromPIKSourceNoteTab> lstPIKDetailScheduleTab { get; set; }
-        //public List<FeeCouponStripReceivableTab> lstFeeCouponStripReceivableTab { get; set; }
-
-        //public List<NoteServicingLogDataContract> lstNoteServicingLog { get; set; }
-
-        public List<HistoricalAccrualDataContract> lstHistAccrual { get; set; }
+       // public List<HistoricalAccrualDataContract> lstHistAccrual { get; set; }
 
         public List<ServicerDropDateSetup> lstServicerDropDateSetup { get; set; }
         public string noteValue { get; set; }
+        public int? EnableM61Calculations { get; set; }
+        public string AnalysisID { get; set; }
 
-        public string ParentNoteID { get; set; }
+        //public string ParentNoteID { get; set; }
 
         public List<NoteMarketPriceDataContract> deleteMarketPriceList { get; set; }
 

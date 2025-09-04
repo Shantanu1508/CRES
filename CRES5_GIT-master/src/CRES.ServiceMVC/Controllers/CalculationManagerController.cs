@@ -2,15 +2,20 @@
 
 using CRES.DataContract;
 using CRES.Utilities;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using Microsoft.WindowsAzure.Storage.Blob;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
+using System.Configuration;
 using System.Data;
 using System.IO;
 using System.Linq;
+using System.Net;
+using System.Net.Http;
+using System.Web.Http.Results;
 
 
 namespace CRES.Services.Controllers
@@ -18,6 +23,13 @@ namespace CRES.Services.Controllers
     [Microsoft.AspNetCore.Cors.EnableCors("CRESPolicy")]
     public class CalculationManagerController : ControllerBase
     {
+        private IHostingEnvironment _env;
+
+        public CalculationManagerController(IHostingEnvironment env)
+        {
+            _env = env;
+        }
+
         IConfigurationSection Sectionroot = null;
         [HttpPost]
         [Services.Controllers.IsAuthenticate]
@@ -25,12 +37,10 @@ namespace CRES.Services.Controllers
         [Route("api/calculation/loadcalculationstatus")]
         public IActionResult LoadCalculationStatus([FromBody] CalculationManagerDataContract DCcalc)
         {
-            GetConfigSetting();
+
             GenericResult _authenticationResult = null;
             List<CalculationManagerDataContract> lstcalculationstatus = new List<CalculationManagerDataContract>();
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
             var headerUserID = new Guid();
 
             if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
@@ -42,10 +52,9 @@ namespace CRES.Services.Controllers
             List<UserPermissionDataContract> permissionlist = upl.GetuserPermissionByUserIDAndPageName(headerUserID.ToString(), "CalculationManager");
             if (permissionlist != null && permissionlist.Count > 0)
             {
-                // var Enablem61Calculation = Sectionroot.GetSection("Enablem61Calculation").Value;
-                var Enablem61Calculation = getEnablem61CalculationValue(headerUserID.ToString());
+
                 CalculationManagerLogic calculationlogic = new CalculationManagerLogic();
-                lstcalculationstatus = calculationlogic.RefreshcalculationStatus(DCcalc, headerUserID, Enablem61Calculation);
+                lstcalculationstatus = calculationlogic.RefreshcalculationStatus(DCcalc, headerUserID);
             }
             try
             {
@@ -94,9 +103,7 @@ namespace CRES.Services.Controllers
 
             List<CalculationManagerDataContract> lstcalculationstatus = new List<CalculationManagerDataContract>();
             bool status = true;
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
             var headerUserID = new Guid();
 
             if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
@@ -126,9 +133,10 @@ namespace CRES.Services.Controllers
             try
             {
                 CalculationManagerLogic calculationlogic = new CalculationManagerLogic();
-                status = calculationlogic.QueueNotesForCalculation(nlist, headerUserID.ToString());
+                status = calculationlogic.QueueNotesForCalculation(nlist, headerUserID.ToString(), "CalcMgr");
 
-                CalculateNoteUsingM61V1Redesign(nlist);
+                //not required will remove after next release 3.8 on 5/26/2023
+                //CalculateNoteUsingM61V1Redesign(nlist);
                 _authenticationResult = new GenericResult()
                 {
                     Succeeded = true,
@@ -166,7 +174,7 @@ namespace CRES.Services.Controllers
                 V1CalcLogic v1logic = new V1CalcLogic();
                 foreach (var item in notelist)
                 {
-                    v1logic.SubmitCalcRequest(item.NoteId, 182, item.AnalysisID.ToString(), 775, false);
+                    v1logic.SubmitCalcRequest(item.NoteId, 182, item.AnalysisID.ToString(), 775, false, "");
                 }
             }
         }
@@ -178,9 +186,7 @@ namespace CRES.Services.Controllers
         public IActionResult GetCalculationStatus([FromBody] string lstcalcmgrDC)
         {
             GenericResult _authenticationResult = null;
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
             var headerUserID = new Guid();
 
             if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
@@ -220,9 +226,7 @@ namespace CRES.Services.Controllers
         public IActionResult GetAllcalcstatus()
         {
             GenericResult _authenticationResult = null;
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
             var headerUserID = new Guid();
 
 
@@ -258,6 +262,46 @@ namespace CRES.Services.Controllers
         }
 
 
+        [HttpGet]
+        [Services.Controllers.IsAuthenticate]
+        [Services.Controllers.DeflateCompression]
+        [Route("api/calculation/getcalculationsummary")]
+        public IActionResult GetCalculationSummary()
+        {
+            GenericResult _authenticationResult = null;
+            IEnumerable<string> headerValues;
+            var headerUserID = new Guid();
+            DevDashBoardLogic devDlogic = new DevDashBoardLogic();
+
+            if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
+            {
+                headerUserID = new Guid(Request.Headers["TokenUId"]);
+            }
+            DataTable calcSummary = devDlogic.GetCalculationSummary();
+            try
+            {
+                _authenticationResult = new GenericResult()
+                {
+                    Succeeded = true,
+                    Message = "Authentication succeeded",
+                    dt = calcSummary
+                };
+            }
+            catch (Exception ex)
+            {
+                LoggerLogic Log = new LoggerLogic();
+                Log.WriteLogException(CRESEnums.Module.CalculationManager.ToString(), "Error occurred in GetAllcalcstatus on calculation manager", "", "", ex.TargetSite.Name.ToString(), "", ex);
+
+                _authenticationResult = new GenericResult()
+                {
+                    Succeeded = false,
+                    Message = ex.Message
+                };
+            }
+
+            return Ok(_authenticationResult);
+        }
+
         [HttpPost]
         [Services.Controllers.IsAuthenticate]
         [Services.Controllers.DeflateCompression]
@@ -266,9 +310,7 @@ namespace CRES.Services.Controllers
         {
             GenericResult _authenticationResult = null;
             //   List<CalculationManagerDataContract> lstcalculationstatus = new List<CalculationManagerDataContract>();
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
             var headerUserID = new Guid();
 
             if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
@@ -325,9 +367,7 @@ namespace CRES.Services.Controllers
         {
             GenericResult _authenticationResult = null;
             List<BatchCalculationMasterDataContract> lstBatchlog = new List<BatchCalculationMasterDataContract>();
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
             var headerUserID = new Guid();
 
             if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
@@ -375,11 +415,11 @@ namespace CRES.Services.Controllers
         }
 
 
-        [Services.Controllers.DeflateCompression]
+        //[Services.Controllers.DeflateCompression]
+        //[Services.Controllers.IsAuthenticate]
         [HttpPost]
-        [Services.Controllers.IsAuthenticate]
         [Route("api/calculation/downloadfilecalcoutput")]
-        public IActionResult DownloadFileCalcOutput([FromBody] CalculationManagerDataContract _calcMgrData)
+        public IActionResult DownloadFileCalcOutput([FromBody] CalculationManagerDataContract _Calclist)
         {
             GenericResult _authenticationResult = null;
             CalculationManagerLogic calcMgr = new CalculationManagerLogic();
@@ -398,98 +438,175 @@ namespace CRES.Services.Controllers
             DataTable dtFutureFundingScheduleTab = new DataTable();
             DataTable dtMaturityList = new DataTable();
 
+            try
+            {
+                IEnumerable<string> headerValues;
+                var headerUserID = new Guid();
+                if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
+                {
+                    headerUserID = new Guid(Request.Headers["TokenUId"]);
+                }
+                string JSON_Filename = _Calclist.FileName;
 
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
+                if (_Calclist.CalcEngineType == 798)
+                {
+
+                    dtNotePeriodicOutputsDataContract = GetJsonFile_V1(JSON_Filename);
+
+                    DataSet ds = new DataSet();
+                    dtNotePeriodicOutputsDataContract.TableName = "Output";
+                    ds.Tables.Add(dtNotePeriodicOutputsDataContract);
+
+                    Stream stream = new StreamReader(_env.WebRootPath + "/ExcelTemplate/" + "DebugData_V1_download.xlsx").BaseStream;
+                    MemoryStream ms = WriteDataToExcel(ds, stream);
+                    return File(ms, "application/octet-stream");
+                }
+                else
+                {
+                    CalculatorDebugData _calculatorDebugData = new CalculatorDebugData();
+                    _calculatorDebugData = GetJsonFile(JSON_Filename);
+                    DownloadFileCalcOutputHelperLogic _DownloadFileCalcOutputHelperLogic = new DownloadFileCalcOutputHelperLogic();
+
+                    dtNotePeriodicOutputsDataContract = ObjToDataTable.ToDataTable(_calculatorDebugData.ListNotePeriodicOutput);
+                    DataTable dtPeriodicOutput = _DownloadFileCalcOutputHelperLogic.FormatPeriodicOutputData(dtNotePeriodicOutputsDataContract);
+
+                    dtRateTab = ObjToDataTable.ToDataTable(_calculatorDebugData.ListRateTab);
+                    DataTable dtRatesTab = _DownloadFileCalcOutputHelperLogic.FormatRatesData(dtRateTab);
+
+                    dtBalanceTab = ObjToDataTable.ToDataTable(_calculatorDebugData.ListBalanceTab);
+                    DataTable dtBalance = _DownloadFileCalcOutputHelperLogic.FormatBalanceData(dtBalanceTab);
+
+
+                    dtDatesTab = ObjToDataTable.ToDataTable(_calculatorDebugData.ListDatesTab);
+                    DataTable dtDates = _DownloadFileCalcOutputHelperLogic.FormatDatesData(dtDatesTab);
+
+                    dtFeesTab = ObjToDataTable.ToDataTable(_calculatorDebugData.ListFeesTab);
+                    DataTable dtFees = _DownloadFileCalcOutputHelperLogic.FormatFeesData(dtFeesTab);
+
+                    dtFeeOutputDataContract = ObjToDataTable.ToDataTable(_calculatorDebugData.ListFeeOutput);
+                    DataTable dtFeeOutputData = _DownloadFileCalcOutputHelperLogic.FormatFeeOutputData(dtFeeOutputDataContract);
+
+
+                    dtCouponTab = ObjToDataTable.ToDataTable(_calculatorDebugData.ListCouponTab);
+                    DataTable dtCouponData = _DownloadFileCalcOutputHelperLogic.FormatCouponData(dtCouponTab);
+
+
+                    dtGAAPBasisTab = ObjToDataTable.ToDataTable(_calculatorDebugData.ListGAAPBasisTab);
+                    DataTable dtGAAPBasisData = _DownloadFileCalcOutputHelperLogic.FormatGaapData(dtGAAPBasisTab);
+
+
+                    dtPIKInterestTab = ObjToDataTable.ToDataTable(_calculatorDebugData.ListPIKInterestTab);
+                    DataTable dtPIKData = _DownloadFileCalcOutputHelperLogic.FormatPIkData(dtPIKInterestTab);
+
+
+
+                    dtFutureFundingScheduleTab = ObjToDataTable.ToDataTable(_calculatorDebugData.ListFutureFundingScheduleTab);
+                    DataTable dtFundingData = _DownloadFileCalcOutputHelperLogic.FormatFutureFundingScheduleData(dtFutureFundingScheduleTab);
+
+                    //dtMaturityList = ObjToDataTable.ToDataTable(_calculatorDebugData.MaturityScenariosList);
+                    //dtFinancingTab = ObjToDataTable.ToDataTable(_calculatorDebugData.ListFinancingTab);
+
+                    //export to excel
+                    DataSet ds = new DataSet();
+                    dtPeriodicOutput.TableName = "PeriodicOutput";
+                    ds.Tables.Add(dtPeriodicOutput);
+
+                    dtRatesTab.TableName = "Rates";
+                    ds.Tables.Add(dtRatesTab);
+
+                    dtBalance.TableName = "Balance";
+                    ds.Tables.Add(dtBalance);
+
+                    dtDates.TableName = "Dates";
+                    ds.Tables.Add(dtDates);
+
+                    dtFees.TableName = "Fees";
+                    ds.Tables.Add(dtFees);
+
+                    dtFeeOutputData.TableName = "ListFeeOutput";
+                    ds.Tables.Add(dtFeeOutputData);
+
+                    dtCouponData.TableName = "Coupon";
+                    ds.Tables.Add(dtCouponData);
+
+                    dtGAAPBasisData.TableName = "GAAPBasis";
+                    ds.Tables.Add(dtGAAPBasisData);
+
+                    //PIK
+                    dtPIKData.TableName = "PIK";
+                    ds.Tables.Add(dtPIKData);
+
+                    dtFundingData.TableName = "Fundings";
+                    ds.Tables.Add(dtFundingData);
+
+
+
+
+                    Stream stream = new StreamReader(_env.WebRootPath + "/ExcelTemplate/" + "DebugData_download.xlsx").BaseStream;
+                    MemoryStream ms = WriteDataToExcel(ds, stream);
+                    return File(ms, "application/octet-stream");
+                }
+            }
+            catch (Exception ex)
+            {
+                LoggerLogic Log = new LoggerLogic();
+                Log.WriteLogException(CRESEnums.Module.CalculationManager.ToString(), "Error occurred in DownloadFileCalcOutput on calculation manager", "", "", ex.TargetSite.Name.ToString(), "", ex);
+
+                return StatusCode(Microsoft.AspNetCore.Http.StatusCodes.Status500InternalServerError, "InternalServerError");
+
+            }
+
+
+        }
+
+
+        [HttpPost]
+        [Services.Controllers.IsAuthenticate]
+        [Services.Controllers.DeflateCompression]
+        [Route("api/calculation/UpdateReconStatusByScenrioID")]
+        public IActionResult UpdateReconStatusByScenrioID([FromBody] CalculationManagerDataContract DCcalc)
+        {
+
+            GenericResult _authenticationResult = null;
+            List<CalculationManagerDataContract> lstcalculationstatus = new List<CalculationManagerDataContract>();
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
-
             var headerUserID = new Guid();
 
-            GetConfigSetting();
-            // var Enablem61Calculation = Sectionroot.GetSection("Enablem61Calculation").Value;
-            var Enablem61Calculation = getEnablem61CalculationValue(headerUserID.ToString());
             if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
             {
                 headerUserID = new Guid(Request.Headers["TokenUId"]);
             }
-
-            string JSON_Filename = _calcMgrData.FileName;// "2740_Default_07312019.json";
-
-            if (Enablem61Calculation == "true")
+            CalculationManagerLogic calculationlogic = new CalculationManagerLogic();
+            if (DCcalc.StatusText == "Cancel") 
             {
-                dtNotePeriodicOutputsDataContract = GetJsonFile_V1(JSON_Filename);
+                CalculationManagerLogic _calclogic = new CalculationManagerLogic();
+                _calclogic.CancelBatchCalculation(DCcalc.AnalysisID.ToString(), false);
             }
-            else
-            {
-                CalculatorDebugData _calculatorDebugData = new CalculatorDebugData();
-                _calculatorDebugData = GetJsonFile(JSON_Filename);
-
-                dtNotePeriodicOutputsDataContract = ObjToDataTable.ToDataTable(_calculatorDebugData.ListNotePeriodicOutput);
-                dtDatesTab = ObjToDataTable.ToDataTable(_calculatorDebugData.ListDatesTab);
-                dtRateTab = ObjToDataTable.ToDataTable(_calculatorDebugData.ListRateTab);
-                dtBalanceTab = ObjToDataTable.ToDataTable(_calculatorDebugData.ListBalanceTab);
-                dtFeesTab = ObjToDataTable.ToDataTable(_calculatorDebugData.ListFeesTab);
-                dtFeeOutputDataContract = ObjToDataTable.ToDataTable(_calculatorDebugData.ListFeeOutput);
-                dtCouponTab = ObjToDataTable.ToDataTable(_calculatorDebugData.ListCouponTab);
-                dtPIKInterestTab = ObjToDataTable.ToDataTable(_calculatorDebugData.ListPIKInterestTab);
-                dtGAAPBasisTab = ObjToDataTable.ToDataTable(_calculatorDebugData.ListGAAPBasisTab);
-                dtFinancingTab = ObjToDataTable.ToDataTable(_calculatorDebugData.ListFinancingTab);
-                dtFutureFundingScheduleTab = ObjToDataTable.ToDataTable(_calculatorDebugData.ListFutureFundingScheduleTab);
-                dtMaturityList = ObjToDataTable.ToDataTable(_calculatorDebugData.MaturityScenariosList);
-            }
-
+            calculationlogic.UpdateCalcStatusBYAnalysisIDAndType(DCcalc.AnalysisID.ToString(), DCcalc.StatusText, headerUserID);
 
             try
             {
-                if (dtNotePeriodicOutputsDataContract != null)
+                if (lstcalculationstatus != null)
                 {
-                    if (dtNotePeriodicOutputsDataContract.Rows.Count > 0)
+                    _authenticationResult = new GenericResult()
                     {
-                        // Logger.Write("Note Cashflows Export Data " + _noteDC.NoteId + " loaded successfully", MessageLevel.Info);
-                        _authenticationResult = new GenericResult()
-                        {
-                            Succeeded = true,
-                            Message = "success",
-                            dtNotePeriodicOutputsDataContract = dtNotePeriodicOutputsDataContract,
-                            dtBalanceTab = dtBalanceTab,
-                            dtCouponTab = dtCouponTab,
-                            dtPIKInterestTab = dtPIKInterestTab,
-                            dtFinancingTab = dtFinancingTab,
-                            dtRateTab = dtRateTab,
-                            dtFeesTab = dtFeesTab,
-                            dtDatesTab = dtDatesTab,
-                            dtGAAPBasisTab = dtGAAPBasisTab,
-                            dtFeeOutputDataContract = dtFeeOutputDataContract,
-                            dtFutureFundingScheduleTab = dtFutureFundingScheduleTab,
-                            dtMaturityList = dtMaturityList,
-                            Enablem61Calculation = Enablem61Calculation,
-                            CalcDebugFileName = JSON_Filename.Split('.')[0]
-
-                        };
-                    }
-                    else
-                    {
-                        _authenticationResult = new GenericResult()
-                        {
-                            Succeeded = false,
-                            Message = "failed"
-                        };
-                    }
+                        Succeeded = true,
+                        Message = "Authentication succeeded",
+                    };
                 }
                 else
                 {
-
                     _authenticationResult = new GenericResult()
                     {
                         Succeeded = false,
-                        Message = "failed"
+                        Message = "Authentication failed"
                     };
                 }
             }
             catch (Exception ex)
             {
                 LoggerLogic Log = new LoggerLogic();
-                Log.WriteLogException(CRESEnums.Module.CashFlowDownload.ToString(), "Error occurred in cashFlow Download on calculation manager", "", "", ex.TargetSite.Name.ToString(), "", ex);
+                Log.WriteLogException(CRESEnums.Module.CalculationManager.ToString(), "Error occurred in LoadCalculationStatus on calculation manager", "", "", ex.TargetSite.Name.ToString(), "", ex);
 
                 _authenticationResult = new GenericResult()
                 {
@@ -497,7 +614,92 @@ namespace CRES.Services.Controllers
                     Message = ex.Message
                 };
             }
+
             return Ok(_authenticationResult);
+        }
+
+
+        public MemoryStream WriteDataToExcel(DataSet dsData, Stream strm)
+        {
+
+            DataTable dt = new DataTable();
+            Stream TemplateMemoryStream = new MemoryStream();
+            List<string> lstTemplateLines = new List<string>();
+            try
+            {
+
+
+                using (var package = new OfficeOpenXml.ExcelPackage(strm))
+                {
+
+                    int iSheetsCount = 0;
+                    try
+                    {
+                        iSheetsCount = package.Workbook.Worksheets.Count;
+                    }
+                    catch (Exception)
+                    {
+                        iSheetsCount = package.Workbook.Worksheets.Count;
+                    }
+                    if (iSheetsCount > 0)
+                    {
+                        for (int i = 0; i < iSheetsCount; i++)
+                        {
+
+                            OfficeOpenXml.ExcelWorksheet worksheet;
+                            try
+                            {
+                                worksheet = package.Workbook.Worksheets[i];
+                            }
+                            catch (Exception)
+                            {
+                                worksheet = package.Workbook.Worksheets[i];
+                            }
+
+
+                            if (dsData.Tables[worksheet.Name] != null)
+                            {
+                                //for (var k = 1; k <= worksheet.Dimension.End.Column; k++)
+                                //{
+                                //    worksheet.Column(k).AutoFit();
+
+                                //}
+                                //if (i == 0)
+                                //{
+                                //    worksheet.Column(3).Style.Numberformat.Format = "mm-dd-yyyy";
+
+                                //    worksheet.Column(8).Style.Numberformat.Format = "mm-dd-yyyy";
+                                //    worksheet.Column(9).Style.Numberformat.Format = "mm-dd-yyyy";
+                                //    worksheet.Column(10).Style.Numberformat.Format = "mm-dd-yyyy";
+                                //}
+                                //if (i == 1)
+                                //{
+                                //    worksheet.Column(6).Style.Numberformat.Format = "mm-dd-yyyy";
+                                //}
+                                worksheet.Cells[1, 1].LoadFromDataTable(dsData.Tables[worksheet.Name], true);
+                            }
+
+                        }
+
+                        Byte[] fileBytes = package.GetAsByteArray();
+                        TemplateMemoryStream = new MemoryStream(fileBytes);
+                    }
+
+
+                }
+
+                return (MemoryStream)TemplateMemoryStream;
+
+
+            }
+            catch (Exception ex)
+            {
+                LoggerLogic Log = new LoggerLogic();
+                Log.WriteLogException(CRESEnums.Module.CashFlowDownload.ToString(), "Error detail(method: ReadAndUploadTemplateFile) :  ", "", "", ex.TargetSite.Name.ToString(), "", ex);
+
+                throw ex;
+            }
+
         }
 
         public CalculatorDebugData GetJsonFile(string FileName)
@@ -592,25 +794,12 @@ namespace CRES.Services.Controllers
             try
             {
                 CalculationManagerLogic _calclogic = new CalculationManagerLogic();
-                GetConfigSetting();
-                // var Enablem61Calculation = Sectionroot.GetSection("Enablem61Calculation").Value;
-                var Enablem61Calculation = getEnablem61CalculationValue(headerUserID.ToString());
-                if (Enablem61Calculation == "true")
-                {
-
-                    DataTable dt = _calclogic.CancelBatchRequestByAnalysisID(analysisid);
-                    V1CalcLogic vc = new V1CalcLogic();
-                    vc.CallBatchCancelAPI(dt);
-                }
-                else
-                {
-                    result = _calclogic.DeleteBatchCalculationRequestByAnalysisID(analysisid);
-                }
+                _calclogic.CancelBatchCalculation(analysisid,true);
 
                 _authenticationResult = new GenericResult()
                 {
                     Succeeded = true,
-                    Message = "Authentication succeeded"
+                    Message = "Succeeded"
                 };
             }
             catch (Exception ex)
@@ -623,30 +812,7 @@ namespace CRES.Services.Controllers
                     Succeeded = false,
                     Message = ex.Message
                 };
-            }
-            //delete Notes inside 'CancelBatchRequestByAnalysisID' script 
-            /*
-            result = _calclogic.DeleteBatchCalculationRequestByAnalysisID(analysisid);
-            try
-            {
-                _authenticationResult = new GenericResult()
-                {
-                    Succeeded = true,
-                    Message = result
-                };
-            }
-            catch (Exception ex)
-            {
-                LoggerLogic Log = new LoggerLogic();
-                Log.WriteLogException(CRESEnums.Module.CalculationManager.ToString(), "Error occurred in DeleteBatchCalculationRequestByAnalysisID on calculation manager", "", "", ex.TargetSite.Name.ToString(), "", ex);
-
-                _authenticationResult = new GenericResult()
-                {
-                    Succeeded = false,
-                    Message = ex.Message
-                };
-            }
-            */
+            }            
             return Ok(_authenticationResult);
 
         }
@@ -709,9 +875,7 @@ namespace CRES.Services.Controllers
         public IActionResult GetTransactionCategory()
         {
             GenericResult _authenticationResult = null;
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
             var headerUserID = new Guid();
             if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
             {

@@ -1,6 +1,12 @@
-﻿namespace CRES.DataContract
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace CRES.DataContract
 {
-    public class CRESEnums
+   public class CRESEnums
     {
         public enum Severity
         {
@@ -34,7 +40,27 @@
             GenericScheduler,
             DrawFee,
             DealSave,
-            WFNotification
+            WFNotification,
+            Automation,
+            GenerateAutomation,
+            ValuationModule,
+            DailyRatePull,            
+            ServicingWatchlist,
+            ValuationModuleAutoMation,
+            ValuationServer,
+            Equity,
+            EquityCalculator,
+            JournalEntry,
+            LiabilityNote,
+            Debt,
+            XIRRDownload,
+            XIRRCalculator,
+            XIRR,
+            DeleteBlobFile,
+            V1Calculator,
+            LiabiltyFeeInterestCalculator,
+            PrepaymentCalculator,
+            TransactionReconciliationLiability,
         }
 
         public enum Priority

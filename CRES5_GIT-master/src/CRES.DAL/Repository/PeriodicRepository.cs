@@ -3,98 +3,85 @@ using CRES.DataContract;
 using CRES.Utilities;
 using System;
 using System.Collections.Generic;
+using System.Configuration;
 using System.Data;
 using System.Data.SqlClient;
+using System.Linq;
 
 namespace CRES.DAL.Repository
 {
     public class PeriodicRepository : IPeriodicRepository
     {
 
-        //private string connstring = ConfigurationManager.ConnectionStrings["LoggingInDB"].ToString();
-        //SqlConnection connection = new SqlConnection();
-        public List<PeriodicDataContract> GetPeriodicCloseByUserID(Guid? userID, Guid? AnalysisID)
+        public DataTable GetAllPeriodicClose(Guid? PortfolioMasterGuid)
         {
+            SqlParameter p1 = new SqlParameter { ParameterName = "@PortfolioMasterGuid", Value = PortfolioMasterGuid };
+            Helper.Helper hp = new Helper.Helper();
+            SqlParameter[] sqlparam = new SqlParameter[] { p1 };
+            return hp.ExecDataTable("dbo.usp_GetAccountingClose", sqlparam);
+        }
+        public int SaveAccountingbyOpenDate(string DealIDs, DateTime OpenDate, string UserID, string Comments="")
+        {
+            
+            Helper.Helper hp = new Helper.Helper();
+            SqlParameter p1 = new SqlParameter { ParameterName = "@DealIDs", Value = DealIDs };
+            SqlParameter p2 = new SqlParameter { ParameterName = "@OpenDate", Value = OpenDate };
+            SqlParameter p3 = new SqlParameter { ParameterName = "@UserID", Value = UserID };
+            SqlParameter p4 = new SqlParameter { ParameterName = "@Comments", Value = Comments };
 
-            List<PeriodicDataContract> lstPeriodicDC = new List<PeriodicDataContract>();
+            SqlParameter[] sqlparam = new SqlParameter[] { p1, p2, p3,p4 };
+            return hp.ExecNonquery("dbo.usp_OpenPeriod", sqlparam);
+            
+        }
+        public int SaveAccountingbyCloseDate(string DealIDs, DateTime closedate, string UserID,string Comments="")
+        {
+           
+            Helper.Helper hp = new Helper.Helper();
+            SqlParameter p1 = new SqlParameter { ParameterName = "@DealIDs", Value = DealIDs };
+            SqlParameter p2 = new SqlParameter { ParameterName = "@CloseDate", Value = closedate };
+            SqlParameter p3 = new SqlParameter { ParameterName = "@AnalysisID", Value = null };
+            SqlParameter p4 = new SqlParameter { ParameterName = "@UserID", Value = UserID };
+            SqlParameter p5 = new SqlParameter { ParameterName = "@Comments", Value = Comments };
+            SqlParameter[] sqlparam = new SqlParameter[] { p1, p2, p3, p4,p5 };
+            return hp.ExecNonquery("dbo.usp_ClosePeriod", sqlparam);
+            
+        }
+        public DataTable GetAccountingCloseByDealId(string DealID, string UserID, int? pageSize, int? pageIndex, out int? TotalCount)
+        {
             DataTable dt = new DataTable();
 
-
             Helper.Helper hp = new Helper.Helper();
-            SqlParameter p1 = new SqlParameter { ParameterName = "@UserID", Value = userID };
-            SqlParameter p2 = new SqlParameter { ParameterName = "@AnalysisID", Value = AnalysisID };
-            SqlParameter[] sqlparam = new SqlParameter[] { p1, p2 };
-            dt = hp.ExecDataTable("dbo.usp_GetPeriodicCloseByUserID", sqlparam);
+            SqlParameter p1 = new SqlParameter { ParameterName = "@DealID", Value = new Guid(DealID) };
+            SqlParameter p2 = new SqlParameter { ParameterName = "@PgeIndex", Value = pageIndex };
+            SqlParameter p3 = new SqlParameter { ParameterName = "@PageSize", Value = pageSize };
+            SqlParameter p4 = new SqlParameter { ParameterName = "@totalCount", Direction = ParameterDirection.Output, Size = int.MaxValue };
 
+            SqlParameter[] sqlparam = new SqlParameter[] { p1, p2, p3, p4 };
+            dt= hp.ExecDataTable("dbo.usp_GetAccountingCloseByDealID", sqlparam);
+            TotalCount = string.IsNullOrEmpty(Convert.ToString(p4.Value)) ? 0 : Convert.ToInt32(p4.Value);
+            return dt;
+
+        }
+        public DateTime? GetLastAccountingCloseDateByDealIDORNoteID(Guid? DealID, Guid? Noteid)
+        {
+            DateTime? LastCLoseDate = Convert.ToDateTime("1/1/1900");
+            DataTable dt = new DataTable();
+            Helper.Helper hp = new Helper.Helper();
+            SqlParameter p1 = new SqlParameter { ParameterName = "@DealID", Value = DealID };
+            SqlParameter p2 = new SqlParameter { ParameterName = "@NoteID", Value = Noteid };
+            SqlParameter[] sqlparam = new SqlParameter[] { p1, p2 };
+            dt = hp.ExecDataTable("dbo.usp_GetLastAccountingCloseDateByDealIDORNoteID", sqlparam);
             foreach (DataRow dr in dt.Rows)
             {
-                PeriodicDataContract _periodicdc = new PeriodicDataContract();
-                _periodicdc.StartDate = CommonHelper.ToDateTime(dr["StartDate"]);
-                _periodicdc.EndDate = CommonHelper.ToDateTime(dr["EndDate"]);
-                _periodicdc.CreatedBy = Convert.ToString(dr["UserName"]);
-                _periodicdc.CreatedDate = CommonHelper.ToDateTime(dr["CreatedDate"]);
-
-                _periodicdc.MaxEndDate = CommonHelper.ToDateTime(dr["MaxEndDate"]);
-                _periodicdc.PeriodAutoID = CommonHelper.ToInt32(dr["PeriodAutoID"]);
-                if (Convert.ToString(dr["AnalysisID"]) != "")
-                {
-                    _periodicdc.AnalysisID = new Guid(Convert.ToString(dr["AnalysisID"]));
-                }
-                if (Convert.ToString(dr["PeriodID"]) != "")
-                {
-                    _periodicdc.PeriodID = new Guid(Convert.ToString(dr["PeriodID"]));
-                }
-
-                lstPeriodicDC.Add(_periodicdc);
+                LastCLoseDate = CommonHelper.ToDateTime(dr["LastCLoseDate"]);
             }
 
-            return lstPeriodicDC;
+            if (LastCLoseDate == null || LastCLoseDate == DateTime.MinValue)
+            {
+                LastCLoseDate = Convert.ToDateTime("1/1/1900");
+            }
+            return LastCLoseDate;
         }
-
-        public Guid? SavePeriodicClose(DateTime? StartDate, DateTime? EndDate, string AzureBlobLink, Guid? userID, Guid? AnalysisID)
-        {
-            Guid? PeriodId;
-            DataTable ret_dt = new DataTable();
-#pragma warning disable CS0219 // The variable 'dt' is assigned but its value is never used
-            DateTime dt = new DateTime();
-#pragma warning restore CS0219 // The variable 'dt' is assigned but its value is never used
-            Helper.Helper hp = new Helper.Helper();
-            SqlParameter p1 = new SqlParameter { ParameterName = "@StartDate", Value = StartDate };
-            SqlParameter p2 = new SqlParameter { ParameterName = "@EndDate", Value = EndDate };
-            SqlParameter p3 = new SqlParameter { ParameterName = "@AzureBlobLink", Value = AzureBlobLink };
-            SqlParameter p4 = new SqlParameter { ParameterName = "@UserID", Value = userID.ToString() };
-            SqlParameter p5 = new SqlParameter { ParameterName = "@AnalysisID", Value = @AnalysisID };
-            SqlParameter[] sqlparam = new SqlParameter[] { p1, p2, p3, p4, p5 };
-
-            ret_dt = hp.ExecDataTable("dbo.usp_SavePeriodicClose", sqlparam);
-            PeriodId = new Guid(ret_dt.Rows[0]["PeriodID"].ToString());
-
-            return PeriodId;
-        }
-
-
-
-        public void ImportIntoPeriodCloseArchive(DateTime? StartDate, DateTime? EndDate, Guid? PeriodId, Guid? userID, Guid? AnalysisID)
-        {
-
-            Helper.Helper hp = new Helper.Helper();
-            SqlParameter p1 = new SqlParameter { ParameterName = "@StartDate", Value = StartDate };
-            SqlParameter p2 = new SqlParameter { ParameterName = "@EndDate", Value = EndDate };
-            SqlParameter p3 = new SqlParameter { ParameterName = "@PeriodID", Value = PeriodId };
-            SqlParameter p4 = new SqlParameter { ParameterName = "@UserID", Value = userID.ToString() };
-            SqlParameter p5 = new SqlParameter { ParameterName = "@AnalysisID", Value = @AnalysisID };
-            SqlParameter[] sqlparam = new SqlParameter[] { p1, p2, p3, p4, p5 };
-
-            var result = hp.ExecNonquery("dbo.usp_ImportIntoPeriodCloseArchive", sqlparam);
-
-            // var result = dbContext.usp_ImportIntoPeriodCloseArchive(StartDate, EndDate, PeriodId, userID.ToString(), AnalysisID);
-
-        }
-
-
-
-
-
         public void UpdatePeriodicCloseAzureBlobLink(PeriodicDataContract _periodicDC)
         {
             Helper.Helper hp = new Helper.Helper();
@@ -104,11 +91,7 @@ namespace CRES.DAL.Repository
 
             SqlParameter[] sqlparam = new SqlParameter[] { p1, p2, p3 };
             hp.ExecNonquery("dbo.usp_UpdatePeriodicCloseAzureBlobLink", sqlparam);
-
-
-
         }
-
         public void ImportIntoTransactionEntryClose(DateTime? StartDate, DateTime? EndDate, Guid? PeriodId, Guid? userID, Guid? TagMasterID, Guid? AnalysisID)
         {
             Helper.Helper hp = new Helper.Helper();
@@ -121,28 +104,7 @@ namespace CRES.DAL.Repository
             SqlParameter[] sqlparam = new SqlParameter[] { p1, p2, p3, p4, p5, p6 };
             hp.ExecNonquery("dbo.usp_ImportIntoTransactionEntryClose", sqlparam);
         }
-        public void OpenPeriodicClose(Guid? userID, PeriodicDataContract _periodicDC)
-        {
-            Helper.Helper hp = new Helper.Helper();
-            SqlParameter p1 = new SqlParameter { ParameterName = "@UserID", Value = userID.ToString() };
-            SqlParameter p2 = new SqlParameter { ParameterName = "@PeriodIDs", Value = _periodicDC.PeriodIDs };
-            SqlParameter p3 = new SqlParameter { ParameterName = "@AnalysisID", Value = _periodicDC.AnalysisID };
 
-            SqlParameter[] sqlparam = new SqlParameter[] { p1, p2, p3 };
-            hp.ExecNonquery("dbo.usp_OpenPeriodicClose", sqlparam);
-
-        }
-
-        public void DeleteTagMasterTransactionEntryClose(Guid? userID, PeriodicDataContract _periodicDC)
-        {
-            Helper.Helper hp = new Helper.Helper();
-            SqlParameter p1 = new SqlParameter { ParameterName = "@UserID", Value = userID.ToString() };
-            SqlParameter p2 = new SqlParameter { ParameterName = "@PeriodIDs", Value = _periodicDC.PeriodIDs };
-            SqlParameter p3 = new SqlParameter { ParameterName = "@AnalysisID", Value = _periodicDC.AnalysisID };
-
-            SqlParameter[] sqlparam = new SqlParameter[] { p1, p2, p3 };
-            hp.ExecNonquery("dbo.usp_DeleteTagMasterTransactionEntryClose", sqlparam);
-
-        }
     }
+
 }

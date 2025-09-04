@@ -17,7 +17,7 @@ BEGIN
 
 	DECLARE @tperiod TABLE (tperiodId UNIQUEIDENTIFIER)
 
-	INSERT INTO [Core].[Period] (StartDate,EndDate,AzureBlobLink,CreatedBy,CreatedDate,UpdatedBy,UpdatedDate,AnalysisID)
+	INSERT INTO [Core].[Period] (CloseDate,OpenDate,AzureBlobLink,CreatedBy,CreatedDate,UpdatedBy,UpdatedDate,AnalysisID)
 	OUTPUT inserted.PeriodID INTO @tperiod(tperiodId)
 	VALUES(@StartDate,@EndDate,@AzureBlobLink,@UserID,GETDATE(),@UserID,GETDATE(),@AnalysisID)
 

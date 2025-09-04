@@ -1,6 +1,11 @@
-﻿using CRES.TestAutoMation.Utility;
+﻿using CRES.DataContract;
+using CRES.TestAutoMation.Utility;
+using Microsoft.VisualBasic;
 using OpenQA.Selenium;
 using OpenQA.Selenium.Support.UI;
+using static com.sun.tools.javap.TypeAnnotationWriter;
+using static CRES.DataContract.V1CalcDataContract;
+using static jdk.nashorn.@internal.codegen.CompilerConstants;
 
 namespace CRES.TestAutoMation.Pages
 {
@@ -17,13 +22,194 @@ namespace CRES.TestAutoMation.Pages
         public By password = By.Name("password");
         public By loginBtn = By.Id("login");
         public By tabFunding = By.Id("aFunding");
+        public By FundingRule = By.XPath("//span[contains(text(),' Funding Rules')]");
+        public By DealFundingSchedule = By.XPath("//span[contains(text(),' Deal Funding Schedule ')]");
+        
+        public By LiabiltyTab = By.Id("aLiability");
+        public By DealLiabilitySetup = By.XPath("//span[contains(text(),' Deal Liability Setup')]");
+        public By AddLiaButton = By.XPath("//div//button[contains(text(),'Add Liability Note')]");
+        
+        public By LiaDrawNPay = By.Id("aDrawsPaydowns");
+        public By LiaGenSchedButton = By.XPath("//div//button[contains(text(),'Generate Schedule')]");
+
+        public By LiaCashflowTab = By.Id("aCashflow");
+
+        public By Reserves = By.Id("aReservetab");
+        public By ReservesAccount = By.XPath("//div//span[contains(text(),' Reserve Accounts')]");
+
+        public By Invoice = By.Id("aFeeInvoicetab");
+        public By DealTabScrollLeft = By.Id("imgarrowleft");
+        public By DealTabScrollRight = By.Id("imgarrowright");
+
+        public By Maturity = By.Id("aMaturitytab");
+        public By MaturityConfig = By.XPath("//div//button[contains(text(),'Maturity configuration')]");
+        public By ViewHistory = By.XPath("//div//button[contains(text(),'View history')]");
+
+        public By DealAccClose = By.Id("aAccountingtab");
+        public By AccountingCloseText = By.XPath("//div//h3[contains(text(),'Accounting Close')]");
+
+        public By SpecialServicing = By.Id("aServicingWatchlisttab");
+        public By PotentialImpairment = By.XPath("//div//h3[contains(text(),'Potential Impairment')]");
+        public By Accounting =  By.XPath("//div//h3[text()='Accounting']");
+
+        public By Rules = By.Id("aRulestab");
+        public By RulesLogo = By.XPath("//div//h3[contains(text(),'Rules')]");
+
+        public By AddManu = By.Id("addmenu");
+
+        public By Debt = By.Id("aDebt");
+        public By DebtLogo = By.XPath("//div//h1[contains(text(),'Debt:')]");
+        
+        public By DebtName = By.XPath("//input[@name='DebtName']");
+        public By DebtType = By.Id("DebtType");
+        public By DebtStatus = By.Id("ddlStatus");
+        public By Currency = By.Id("Currency");
+        public By MatchTerms = By.Id("MatchTerms");
+        public By IsRevolving = By.Id("IsRevolving");
+        public By FundingNoticeBusinessDays = By.XPath("//input[@name='FundingNoticeBusinessDays']");
+        public By InitialFundingDelay = By.XPath("//input[@name='InitialFundingDelay']");
+        public By EarliestFinancingArrival = By.XPath("//input[@name='EarliestFinancingArrival']");
+        public By MaxAdvanceRate = By.XPath("//input[@name='MaxAdvanceRate']");
+        public By DebtTags = By.XPath("//input[@placeholder='Select Tags']");
+        public By OriginationDate = By.XPath("//input[@name='OriginationDate']");
+        public By OriginationFees = By.XPath("//input[@name='OriginationFees']");
+        public By RateType = By.Id("RateType");
+        public By PaydownDelay = By.XPath("//input[@name='PaydownDelay']");
+        public By DebtEffectiveDate01 = By.XPath("//input[@name='EffectiveDate']");
+        public By DebtCommitment = By.XPath("//input[@name='Commitment']");
+        public By InitialMaturityDate = By.XPath("//input[@name='InitialMaturityDate']");
+        public By InitialInterestAccrualEnddate = By.XPath("//input[@name='InitialInterestAccrualEnddate']");
+        public By AccrualFrequency = By.XPath("//input[@name='AccrualFrequency']");
+        public By PaymentDayMonth = By.XPath("//input[@name='PaymentDayMonth']");
+        public By PaymentDateBusinessDayLag = By.XPath("//input[@name='PaymentDateBusinessDayLag']");
+        public By Determinationdateleaddays = By.XPath("//input[@name='Determinationdateleaddays']");
+        public By DeterminationDateRefDayMonth = By.XPath("//input[@name='DeterminationDateRefDayMonth']");
+        public By RoundingMethod = By.Id("RoundingMethod");
+        public By IndexRoundingRule = By.XPath("//input[@name='IndexRoundingRule']");
+        public By FinanacingSpreadRate = By.XPath("//input[@name='FinanacingSpreadRate']");
+        public By PayFrequency = By.XPath("//input[@name='PayFrequency']");
+        public By IntCalcMethod = By.Id("IntCalcMethod");
+        public By DefaultIndexName = By.Id("DefaultIndexName");
+        public By TargetAdvanceRate = By.XPath("//input[@name='TargetAdvanceRate']");
+        public By DebtEffectiveDateFeeSchedule = By.XPath("//wj-input-date[@name='EffectiveDateFeeSchedule']//input");
+        public By FeeName = By.XPath("(//div[contains(@role,'gridcell')])[1]");
+        public By StartDate = By.XPath("(//div[contains(@role,'gridcell')])[2]");
+        public By EndDate = By.XPath("(//div[contains(@role,'gridcell')])[3]");
+        public By FeeType = By.XPath("(//div[contains(@role,'gridcell')])[4]//button");
+        public By AcoreOriginFee = By.XPath("//div[contains(@class,'wj-dropdown')]//div[text()='ACORE Orig Fee']");
+        public By Fee = By.XPath("(//div[contains(@role,'gridcell')])[5]");
+        public By FeeAmountOverride = By.XPath("(//div[contains(@role,'gridcell')])[6]");
+        public By BaseAmountOverride = By.XPath("(//div[contains(@role,'gridcell')])[7]");
+        public By ApplyTrueUp = By.XPath("(//div[contains(@role,'gridcell')]//button)[2]");
+        public By ApplyTrueUpYes = By.XPath("//div[contains(@class,'wj-dropdown')]//div[text()='Yes']");
+
+        public By InLvYieldCalc = By.XPath("(//div[contains(@role,'gridcell')])[7]");
+        public By FeeToBeStripped = By.XPath("(//div[contains(@role,'gridcell')])[8]");
+        public By Delete = By.XPath("(//div[contains(@role,'gridcell')])[9]");
+        public By DebtSave = By.XPath("//span//button[text()='Save']");
+
+        public By DebtMain = By.Id("aDebtMain");
+        public By InterestExpenseSetup = By.XPath("//div//h3[contains(text(),'Interest Expense Setup')]");
+        
+        public By DebtNotes = By.Id("aDebtNotes");        
+
+        public By DrawsNPaydowns = By.Id("aDrawsPaydowns");
+        public By RequestApprovalButton = By.XPath("//div//button[contains(text(),'Request Approval')]");
+        public By ConfirmedButton = By.XPath("//div//button[contains(text(),'Confirmed')]");
+
+        public By DebtAdditionalTransactions = By.Id("aAdditionalTransactions");
+
+        public By DebtCashflow = By.Id("aDebtCashflow");
+
+        public By DebtJournalEntry = By.Id("aDebtJournalLedger");
+        public By DebtSearchedResult = By.XPath("//div[@class='wj-listbox-item']");
+        public By DeletePopupCancelButton = By.XPath("//div[@class='modal-footer']//button[text()='Cancel']");
+        public By sucessmessagediv = By.XPath("//div[@id='sucessmessagediv']");
+
+        public By Equity = By.Id("aEquity");
+        public By EquityLogo = By.XPath("//div//h1[contains(text(),'Equity:')]");
+
+        public By EquityMain = By.Id("aEquityMain");
+        public By EffectiveDatebasedSetup = By.XPath("//div//h3[contains(text(),'Effective Date Based Setup')]");
+                
+        public By EquityNotes = By.Id("aEqNotes");        
+
+        public By EquityContributionNDistribution = By.Id("aContri");
+        public By SendCapitalCallNotificationButton = By.XPath("//div//button[contains(text(),'Send Capital Call Notification')]");
+        public By EquityConfirmedButton = By.XPath("//div//button[contains(text(),'Confirmed')]");
+
+        public By EquityFeeNExpenses = By.Id("afeeExpense");
+
+        public By EquityCashflow = By.Id("aEqCashflow");
+
+        public By EquityJournalEntry = By.Id("aEqJournalLedger");
+
+        public By EquityName = By.Id("EquityName");
+        
+        public By EquityType = By.Id("EquityType");
+        public By EquityStatus = By.Id("Status");
+        public By InvestorCapital = By.XPath("//wj-input-number[@id='InvestorCapital']//div//input");
+        public By CapitalReserveRequirement = By.XPath("//wj-input-number[@id='CapitalReserveRequirement']//div//input");
+        public By ReserveRequirement = By.XPath("//wj-input-number[@id='ReserveRequirement']//div//input");
+        public By CapitalCallNoticeBusinessDays = By.Id("CapitalCallNoticeBusinessDays");
+        public By InceptionDate = By.XPath("(//wj-input-date[contains(@class,'inputdate ')])[1]//input"); // Change
+        public By LastDateOfInvest = By.XPath("(//wj-input-date[contains(@class,'inputdate ')])[2]//input");
+        public By LinkedShortTermBorrowingFacility  = By.XPath("//input[@placeholder='Enter Subline']");
+        public By EqTags = By.XPath("//input[@placeholder='Select Tags']");
+
+        public By EqEffectiveDate = By.XPath("(//wj-input-date[@wj-directive-id='3']//input)[3]");
+        public By EqCommitment = By.XPath("//input[@name='Commitment']");
+        public By EqInitialMaturityDate = By.XPath("(//wj-input-date[@wj-directive-id='3']//input)[4]");       
+
+        public By JournalEntry = By.Id("aJournalLedger");
+        public By JournalEntryLabel = By.XPath("//h1[contains(text(),'Journal Entry:')]");
+        public By JournalEntryDate = By.XPath("//input[@name='JournalEntryDate']");
+        public By JeComment = By.XPath("//input[@name='Comments']");
+        public By JeAccount01  = By.XPath("(//div[contains(@class,'wj-cell') and @role='gridcell'])[1]");            //Change
+        public By JeAccount02 = By.XPath("(//div[contains(@class,'wj-cell') and @role='gridcell'])[6]");    
+        public By JeTransactionDate01  = By.XPath("(//div[contains(@class,'wj-cell') and @role='gridcell'])[2]");
+        public By JeTransactionDate02 = By.XPath("(//div[contains(@class,'wj-cell') and @role='gridcell'])[7]");
+        public By JeTransactionType01 = By.XPath("(//div[contains(@class,'wj-cell') and @role='gridcell'])[3]");
+        //public By JeTxTypeInterestExpence = By.XPath("//div[contains(@class,'wj-listbox') and text()='InterestExpence']");
+
+        public By JeTransactionType02 = By.XPath("(//div[contains(@class,'wj-cell') and @role='gridcell'])[8]");
+
+        public By JeTransactionAmount01  = By.XPath("(//div[contains(@class,'wj-cell') and @role='gridcell'])[4]");
+        public By JeTransactionAmount02 = By.XPath("(//div[contains(@class,'wj-cell') and @role='gridcell'])[9]");   
+        public By JeGridComment01  = By.XPath("(//div[contains(@class,'wj-cell') and @role='gridcell'])[5]");
+        public By JeGridComment02 = By.XPath("(//div[contains(@class,'wj-cell wj-alt') and @role='gridcell'])[4]");
+
+        public By AddLiabilityNoteButton = By.XPath("//button[text()='Add Liability Note']");
+        public By LiabilityNoteID = By.Id("txtLiabilityID");
+        public By LiabilityID = By.XPath("//input[@placeholder='Type Liability ID']");
+        public By LiabilityIdDropdown = By.XPath("//div[@class='wj-content wj-dropdown-panel wj-control wj-listbox' and @id='_dropdown']");
+        public By LiabilityAssetID = By.Id("ddlAssetID");
+        public By LiabilityStatus = By.Id("ddlStatus");
+        public By LiabilityPledgeDate = By.XPath("//input[@name='PledgeDate']");
+        public By LiabilityPaydownAdvanceRate = By.XPath("//input[@name='PaydownAdvanceRate']");
+        public By LiabilityFundingAdvanceRate = By.XPath("//input[@name='FundingAdvanceRate']");
+        public By LiabilityTargetAdvanceRate = By.XPath("//input[@name='TargetAdvanceRate']");
+        public By LiabilityMaturityDate = By.XPath("//input[@name='MaturityDate']");
+        public By RSSEffectiveDate = By.XPath("//input[@name='LatestEffectiveDaterateSchedule']");
+        public By RSSDate = By.XPath("(//div[contains(@class,'wj-cell') and @role='gridcell'])[1]");
+        public By RSSValueType = By.XPath("(//div[contains(@class,'wj-cell') and @role='gridcell'])[2]");
+        public By RSSValue = By.XPath("(//div[contains(@class,'wj-cell') and @role='gridcell'])[3]");
+        public By RSSCalcMethod = By.XPath("(//div[contains(@class,'wj-cell') and @role='gridcell'])[4]");
+        public By RSSRateOrSpreadToBeStripped = By.XPath("(//div[contains(@class,'wj-cell') and @role='gridcell'])[5]");
+        public By RSSIndexName = By.XPath("(//div[contains(@class,'wj-cell') and @role='gridcell'])[6]");
+        public By RSSDeterminationDateHolidayList = By.XPath("(//div[contains(@class,'wj-cell') and @role='gridcell'])[7]");
+        public By RSSDelete = By.XPath("(//div[contains(@class,'wj-cell') and @role='gridcell'])[8]");
+        public By LiabilityNoteLabel = By.XPath("//h1[contains(text(),' Note details:')]");
+
         public By btnGenerateFunding = By.Id("btnGenerateFutureFunding");
         public By btnRepaymentAutpspread = By.Id("btnAutospreadRepayment");
         public By btnGenerateFundingOK = By.XPath("//*[@id=\"dialogboxfoot\"]/span");
         public By btnSaveDeal = By.Id("btnSaveDeal");
         public By btnCRESvalOk = By.Id("btnCRESvalOk");
         public By successMessage1 = By.XPath("//*[@id=\"form1\"]/div/div[1]/div/strong");
+        public By noteSaveSuccessMessage = By.XPath("//div[@class='alert alert-success fade in']//strong[text()='Note saved successfully.']");
         public By successMessage = By.Id("sucessmessagediv");
+        public By successMessage02 = By.XPath("//div[contains(@id,\"sucessmessagediv\")]//strong");
         public By validationPopUp = By.Id("dialogbox");
         public By validationMessages = By.XPath("//*[@id=\"dialogboxbody\"]/p");
         public By saveDialogBox = By.Id("savedialogmessage");
@@ -31,7 +217,6 @@ namespace CRES.TestAutoMation.Pages
         public By dealSaveValidationPopup = By.Id("dialogbox");
         public By ValidationsList = By.XPath("//*[@id=\"dialogboxbody\"]/p");
         public By overrideNonCommentedRecords = By.Id("dialogboxbodyFF");
-
 
         private By tabDealAmorttab = By.Id("aDealAmorttab");
         public By btnoverrideNonCommentedRecordsOk = By.Id("btnCRESfundOkFF");
@@ -54,7 +239,9 @@ namespace CRES.TestAutoMation.Pages
         public By AsEndDate = By.XPath("//*[@id=\"flexautospreadrule\"]/div[1]/div[2]/div[1]/div[6]/div/div");
         public By FullyExtMaturityDate = By.XPath("//*[@id=\"flexMaturity\"]/div[1]/div[2]/div[1]/div[13]");
         public By Commitment_EquityTab = By.XPath("//*[@id=\"aAdjustedTotalCommitment\"]");
-        public By ExportToExcel = By.XPath("//div//span//button[text()='Export to excel']");
+        public By CommitmentExportToExcel = By.XPath("//div//span//button[text()='Export to excel']");
+        public By FundingRuleExportToExcel = By.XPath("(//div//button[text()='Export to excel'])[1]");
+        public By DealFundingExportToExcel = By.XPath("(//div//button[text()='Export to excel'])[2]");
         public By CommitmentRequiredEquity = By.XPath("//*[@id=\"DealAdjustedtotalCommitment\"]/div/div[1]/div[4]/wj-flex-grid/div[1]/div[5]/div/div[8]");
         public By enableFundingSchedule = By.ClassName("customheading");
         public By amortTab = By.Id("aDealAmorttab");
@@ -95,6 +282,7 @@ namespace CRES.TestAutoMation.Pages
         public By noteFundingElemnt = By.XPath("//*[@id=\"futurefunding\"]/div/div/div[2]/button");
         public By cashflowTab = By.Id("aCashflow");
         public By calculationStatus = By.XPath("//span[contains(@class,'badge badge')]");
+        public By calculationStatusRunning = By.XPath("//span[@class='badge badge-warning']");
         public By calculationStatusCompleted = By.XPath("//span[@class='badge badge-success']");
         public By calcButton = By.Id("btnCalcNote");
         public By calculationFullStatus = By.XPath("//*[@id=\"periodicoutput\"]/div/div/div[1]/table/tbody/tr/td[1]/label/span[1]");
@@ -107,6 +295,9 @@ namespace CRES.TestAutoMation.Pages
         public By noteActElement = By.XPath("//*[@id=\"Activitytab\"]/div/h3");
         public By closingTab = By.Id("aClosing");
         public By accountTab = By.XPath("//*[@id=\"myTab\"]/li[1]/a");
+        public By NoteRules = By.Id("aRulestab");
+        public By NoteRulesLogo = By.XPath("//div//h3[contains(text(),'Rules')]");        
+
         // public By accountTabElmnt = By.Name("FirstName");
         public By accountTabElmnt = By.XPath("//div[@Class='head fixheaderdiv']"); //For Integration
         public By preferencesTab = By.XPath("//*[@id=\"myTab\"]/li[2]/a");
@@ -149,7 +340,7 @@ namespace CRES.TestAutoMation.Pages
         public By transcAuditElmnt = By.XPath("/html/body/div/ng-component/div/div[2]/div/div/div[2]/ng-component/div/div[2]/div/div/div[2]/wj-flex-grid/div[1]/div[6]/div/div[1]");
         // public By transcAuditPage = By.XPath("/html/body/app-root/div/div[2]/div/div/div[2]/ng-component/div/div[1]/h1");
         public By transcAuditPage = By.XPath("//div[@class='head']"); // Commonfor Integration
-        public By closePeriodBtn = By.Id("btnSavePeriodicClose");
+        public By AccountingCloselogo = By.XPath("//div//h1[contains(text(),'Accounting Close')]");
         public By periodicEndDate = By.ClassName("wj-form-control");
 
 
@@ -167,10 +358,10 @@ namespace CRES.TestAutoMation.Pages
         public By batchLogElmnt = By.XPath("//*[@id=\"batchlog\"]/div/h3");
 
         public By GenerateAutomationSave = By.XPath("(//button[@class='custombutton'])[2]");        
-        public By AutomationLogTab = By.XPath("/html/body/div/ng-component/div/div[2]/div/div/div[2]/ng-component/form/div/div[2]/ul/li[2]/a");
-        public By AutomationLogText = By.XPath("(//div[@class='box1a']//h3)[2]");
+        public By AutomationLogTab = By.XPath("//div//li//a[contains(text(),'Automation Log')]");
+        public By AutomationLogText = By.XPath("//div[@id='AutomationLog']//h3");
 
-        public By refreshDataWarehouseBtn = By.ClassName("custombutton");
+        public By refreshDataWarehouseBtn = By.XPath("//span//button[contains(text(),'Refresh Data Warehouse')]");
         public By reportName = By.Id("ddlReportName");
         public By addNewTagBtn = By.Id("btnCreateRole");
         //public By workflowElmnt = By.XPath("/html/body/app-root/div/div[2]/div/div/div[2]/workflow/div/div[1]/h1"); //Not working in Integration
@@ -347,6 +538,38 @@ namespace CRES.TestAutoMation.Pages
             driver.FindElement(tabFunding).Click();
             util.WaitForElementVisible(tabFunding);
         }
+
+        public void DealScrollLeft()
+        {
+            try
+            {
+                IWebElement scrollleft = driver.FindElement(DealTabScrollLeft);
+                scrollleft.Click();
+                //util.WaitForElementVisible(tabFunding);
+            } catch
+            {  
+            }
+        }
+
+        public void DealScrollRight()
+        {
+            try
+            {
+                driver.FindElement(DealTabScrollRight).Click();
+            util.WaitForElementVisible(tabFunding);
+            }
+            catch
+            {
+            }
+        }
+
+        public string DealType()
+        {
+            IWebElement DealType = driver.FindElement(By.Id("dealBtntype"));
+            string ButtonToClick = DealType.GetAttribute("innerHTML");
+            return ButtonToClick;
+        }
+
         public void clickTotalCommitment()
         {
             util.WaitForElementVisible(totalCommitementTab);
@@ -836,9 +1059,9 @@ namespace CRES.TestAutoMation.Pages
             util.IsElementVisible(transcAuditPage);
         }
 
-        public void ClosePeriodBtn()
+        public void AccountingCloseLogo()
         {
-            util.IsElementVisible(closePeriodBtn);
+            util.IsElementVisible(AccountingCloselogo);
         }
 
         public void PeriodicEndDate()

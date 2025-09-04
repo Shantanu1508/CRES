@@ -1,12 +1,22 @@
-﻿using CRES.BusinessLogic;
-using CRES.DataContract;
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Configuration;
-using System;
+﻿using System;
 using System.Collections.Generic;
-using System.IO;
+using System.Linq;
+using System.Net;
 using System.Net.Http;
+using CRES.Utilities;
+using CRES.DataContract;
+using System.Net.Mail;
+using System.Security.Cryptography.X509Certificates;
+using System.Net.Security;
+using CRES.BusinessLogic;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.Extensions.Configuration;
+using System.IO;
+using Microsoft.AspNetCore.Http;
+using System.Web.Http.Results;
+using System.Data;
+using System.Web.Helpers;
 
 namespace CRES.Services.Controllers
 {
@@ -47,6 +57,9 @@ namespace CRES.Services.Controllers
             return Ok(_authenticationResult); ;
 
         }
+
+
+        
         [Route("api/Email/GenericSchedular")]
         [HttpGet]
         public IActionResult GenericSchedular()
@@ -273,6 +286,96 @@ namespace CRES.Services.Controllers
             }
             return Ok(_authenticationResult); ;
 
+        }
+
+        [Route("api/Email/SendServicerBalanceForServicerNotification")]
+        [HttpGet]
+        public IActionResult SendServicerBalanceForServicerNotification(string mode)
+        {
+            LoggerLogic log = new LoggerLogic();
+            NoteLogic _NoteLogic = new NoteLogic();
+            List<HolidayListDataContract> ListHoliday = _NoteLogic.GetHolidayList();
+
+            DataTable dtwells = new DataTable();
+            DataTable dtBerkadia = new DataTable();
+
+            TranscationLogic transcationLogic = new TranscationLogic();
+            log.WriteLogInfo("ServicerBalanceNotification", "SendServicerBalanceForServicerNotification Called ", "",  "B0E6697B-3534-4C09-BE0A-04473401AB93");
+            try
+            {
+                DateTime today = DateTime.Now.Date;
+                // 6th and 20th of the current month
+                DateTime sixthOfMonth = DateExtensions.CreateNewDate(today.Year, today.Month, 6);
+                DateTime twentiethOfMonth = DateExtensions.CreateNewDate(today.Year, today.Month, 20);
+
+                DateTime adjusted6th;
+                DateTime adjusted20th;
+
+                if (mode == "Debug")
+                {
+                    adjusted6th = DateExtensions.GetWorkingDayUsingOffset(today, -1, "US", ListHoliday);
+                    adjusted20th = DateExtensions.GetWorkingDayUsingOffset(today, -1, "US", ListHoliday);
+                }
+                else
+                {
+                    adjusted6th = DateExtensions.GetWorkingDayUsingOffset(sixthOfMonth, -1, "US", ListHoliday);
+                    adjusted20th = DateExtensions.GetWorkingDayUsingOffset(twentiethOfMonth, -1, "US", ListHoliday);
+
+                }
+                if (today == adjusted6th || today == adjusted20th)
+                {
+                    DataSet ds = transcationLogic.GetServicerBalanceForServicerNotification();
+
+                    if (ds.Tables.Count > 0)
+                    {
+                        dtBerkadia = ds.Tables[0];
+
+                        if (ds.Tables.Count > 1)
+                        {
+                            dtwells = ds.Tables[1];
+                        }
+                    }
+                    _iEmailNotification.SendBalancediscrepancynotificationtoServicer(dtwells, dtBerkadia);
+                    return StatusCode(Microsoft.AspNetCore.Http.StatusCodes.Status200OK, "Email sent successfully");                    
+                }
+                else
+                {
+                    log.WriteLogInfo("ServicerBalanceNotification", "No Email sent as out of date range.", " ", "B0E6697B-3534-4C09-BE0A-04473401AB93");
+                    return StatusCode(Microsoft.AspNetCore.Http.StatusCodes.Status200OK, "No Email sent as out of date range.");
+                }
+
+            }
+            catch (Exception ex)
+            {
+                log.WriteLogException("ServicerBalanceNotification", "Error in SendServicerBalanceForServicerNotification " , "", "B0E6697B-3534-4C09-BE0A-04473401AB93", "SendServicerBalanceForServicerNotification", "", ex);
+                return StatusCode(Microsoft.AspNetCore.Http.StatusCodes.Status500InternalServerError, "Error " + ex.StackTrace) ;
+            }           
+
+        }
+
+        [HttpPost("api/Email/GetDiscrepancyForCalcGapBtnDefAndFullyScenario")]
+        public IActionResult GetDiscrepancyForCalcGapBtnDefAndFullyScenario()
+        {
+            GenericResult _authenticationResult = null;
+
+            DataTable dataTable = new DataTable();
+            TranscationLogic transcationLogic = new TranscationLogic();
+
+            try
+            {
+                DataSet ds = transcationLogic.GetDiscrepancyForCalcGapBtnDefAndFullyScenario();
+
+                if (ds.Tables.Count > 0)
+                {
+                    dataTable = ds.Tables[0];
+                }
+                _iEmailNotification.SendDiscrepancyForCalcGapBtnDefAndFullyScenario(dataTable);
+                return StatusCode(Microsoft.AspNetCore.Http.StatusCodes.Status200OK, "Email sent successfully");
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(Microsoft.AspNetCore.Http.StatusCodes.Status200OK, "Error occured in GetDiscrepancyForCalcGapBtnDefAndFullyScenario: " + ex.Message);
+            }
         }
 
     }

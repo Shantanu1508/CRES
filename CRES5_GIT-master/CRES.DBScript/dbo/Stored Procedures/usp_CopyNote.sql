@@ -1,4 +1,4 @@
-  --[dbo].[usp_CopyNote] 'fdd8ec03-9d63-4512-9990-89c508983edc','2567CV1','e2f964ad-7a39-4b70-85f6-1bb93921a122','A-1 Note CV1','b0e6697b-3534-4c09-be0a-04473401ab93'
+﻿  --[dbo].[usp_CopyNote] 'fdd8ec03-9d63-4512-9990-89c508983edc','2567CV1','e2f964ad-7a39-4b70-85f6-1bb93921a122','A-1 Note CV1','b0e6697b-3534-4c09-be0a-04473401ab93'
 CREATE PROCEDURE [dbo].[usp_CopyNote]  
 	@CopyDealId nvarchar(256) ,
 	@CopyCRENewNoteID nvarchar(256) ,
@@ -69,7 +69,7 @@ INSERT INTO [Core].[Account]([AccountTypeID]
 		  ,[UpdatedDate]
 		  ,IsDeleted)
 		 OUTPUT inserted.AccountID INTO @tAccount(tAccountID)
-			Select 182,
+			Select 1,  ---182,
 				[StatusID],
 				@CopyNoteName,		
 				StartDate,
@@ -104,7 +104,7 @@ INSERT INTO [Core].[Account]([AccountTypeID]
       ,[PaymentDateBusinessDayLag]
       ,[IOTerm]
       ,[AmortTerm]
-      ,[PIKSeparateCompounding]
+      --,[PIKSeparateCompounding]
       ,[MonthlyDSOverridewhenAmortizing]
       ,[AccrualPeriodPaymentDayWhenNotEOMonth]
       ,[FirstPeriodInterestPaymentOverride]
@@ -252,6 +252,11 @@ INSERT INTO [Core].[Account]([AccountTypeID]
 		    ,InitialAdditionalEquity
 			,CommitmentUsedInFFDistribution
 			,ExtendedMaturityCurrent
+			,FirstIndexDeterminationDateOverride
+			,AccrualPeriodType
+			,AccrualPeriodBusinessDayAdj
+			,AccountingClose
+            ,TaxVendorLoanNumber
 			)
 	   	OUTPUT inserted.NoteID INTO @tNote(tNewNoteId)
 		select	@CopyAccountID
@@ -270,7 +275,7 @@ INSERT INTO [Core].[Account]([AccountTypeID]
       ,n.[PaymentDateBusinessDayLag]
       ,n.[IOTerm]
       ,n.[AmortTerm]
-      ,[PIKSeparateCompounding]
+      --,[PIKSeparateCompounding]
       ,[MonthlyDSOverridewhenAmortizing]
       ,[AccrualPeriodPaymentDayWhenNotEOMonth]
       ,[FirstPeriodInterestPaymentOverride]
@@ -418,6 +423,11 @@ INSERT INTO [Core].[Account]([AccountTypeID]
 		,InitialAdditionalEquity
 		,CommitmentUsedInFFDistribution
 		,ExtendedMaturityCurrent
+		,FirstIndexDeterminationDateOverride
+		,AccrualPeriodType
+		,AccrualPeriodBusinessDayAdj
+		,AccountingClose
+        ,'NA' as TaxVendorLoanNumber
 		from cre.note n with (NOLOCK)
 		inner join Core.Account acc with (NOLOCK) on n.Account_AccountID=acc.AccountID
 		where [Account_AccountID]=@ParentAccountID and acc.isdeleted=0
@@ -437,7 +447,7 @@ INSERT INTO [Core].[Account]([AccountTypeID]
     GETDATE(),  
     @CreatedBy,  
     GETDATE()   
-  FROM Core.Event  with (NOLOCK) where AccountID=@ParentAccountID and eventtypeid=@MaturitySchedule --and StatusID = 1  
+  FROM Core.Event  with (NOLOCK) where AccountID=@ParentAccountID and eventtypeid=@MaturitySchedule and StatusID = 1  
   
   
 --1.MaturitySchedule   
@@ -449,7 +459,7 @@ INSERT INTO core.Maturity (EventId, SelectedMaturityDate, MaturityDate,MaturityT
              EventId  
            FROM CORE.[event] se with (NOLOCK)  
            WHERE se.[EffectiveStartDate] = CONVERT(date, e.EffectiveStartDate, 101)  
-           AND se.[EventTypeID] = @MaturitySchedule --and StatusID = 1  
+           AND se.[EventTypeID] = @MaturitySchedule and se.StatusID = 1  
            AND se.AccountID = @CopyAccountID),  
            CONVERT(date, mt.SelectedMaturityDate, 101),    
       CONVERT(date, mt.MaturityDate, 101),   
@@ -462,7 +472,7 @@ INSERT INTO core.Maturity (EventId, SelectedMaturityDate, MaturityDate,MaturityT
     FROM Core.Maturity mt  with (NOLOCK)   
  inner join core.Event e   with (NOLOCK) on e.eventid =  mt.EventId  
  inner join core.Account acc   with (NOLOCK) on acc.AccountID =  e.AccountID  
-    WHERE acc.AccountID = @ParentAccountID  
+    WHERE acc.AccountID = @ParentAccountID  and e.StatusID = 1 
   
  END  
   
@@ -485,27 +495,32 @@ INSERT INTO core.Maturity (EventId, SelectedMaturityDate, MaturityDate,MaturityT
   FROM Core.Event  with (NOLOCK) where AccountID=@ParentAccountID and eventtypeid=@RateSpreadSchedule and StatusID = 1  
 IF(@@ROWCOUNT > 0)  
 BEGIN  
-  INSERT INTO core.RateSpreadSchedule (EventId, Date, ValueTypeID, Value, IntCalcMethodID, CreatedBy, CreatedDate,UpdatedBy,UpdatedDate,IndexNameID)  
-   SELECT (SELECT TOP 1  
-             EventId  
-           FROM CORE.[event] se with (NOLOCK)   
-           WHERE se.[EffectiveStartDate] = CONVERT(date, e.EffectiveStartDate, 101)  
-           AND se.[EventTypeID] = @RateSpreadSchedule --and StatusID = 1  
-           AND se.AccountID = @CopyAccountID),  
-           CONVERT(date, rs.[Date], 101),  
-           ValueTypeID,  
-           Value,  
-           IntCalcMethodID,  
-     @CreatedBy,  
-   GETDATE(),  
-   @CreatedBy,  
-   GETDATE()  ,
-   rs.IndexNameID 
-    FROM Core.RateSpreadSchedule rs with (NOLOCK)   
- inner join core.Event e  with (NOLOCK) on e.eventid =  rs.EventId  
- inner join core.Account acc  with (NOLOCK) on acc.AccountID =  e.AccountID  
-    WHERE rs.[date] is not null and ValueTypeID IS NOT NULL  
- and acc.AccountID = @ParentAccountID  
+	INSERT INTO core.RateSpreadSchedule (EventId, Date, ValueTypeID, Value, IntCalcMethodID, CreatedBy, CreatedDate,UpdatedBy,UpdatedDate,IndexNameID)  
+	Select EventId, Date, ValueTypeID, Value, IntCalcMethodID, CreatedBy, CreatedDate,UpdatedBy,UpdatedDate,IndexNameID 
+	from (
+		SELECT (SELECT TOP 1  
+			EventId  
+			FROM CORE.[event] se with (NOLOCK)   
+			WHERE se.[EffectiveStartDate] = CONVERT(date, e.EffectiveStartDate, 101)  
+			AND se.[EventTypeID] = 14 --and StatusID = 1  
+			AND se.AccountID = @CopyAccountID) eventid,  
+		CONVERT(date, rs.[Date], 101) [Date],  
+		ValueTypeID,  
+		Value,  
+		IntCalcMethodID,  
+		@CreatedBy as CreatedBy,  
+		GETDATE() as Createddate,  
+		@CreatedBy as UpdatedBy,  
+		GETDATE() as Updateddate,
+		rs.IndexNameID 
+		FROM Core.RateSpreadSchedule rs with (NOLOCK)   
+		inner join core.Event e  with (NOLOCK) on e.eventid =  rs.EventId  
+		inner join core.Account acc  with (NOLOCK) on acc.AccountID =  e.AccountID  
+		WHERE rs.[date] is not null and ValueTypeID IS NOT NULL  
+		and acc.AccountID = @ParentAccountID
+	)a
+	where eventid is not null
+
    
 END  
   
@@ -750,7 +765,7 @@ EventTypeID,
    
   IF(@@ROWCOUNT > 0)  
 BEGIN  
-INSERT INTO core.PIKSchedule (EventID,SourceAccountID,TargetAccountID,AdditionalIntRate,AdditionalSpread,IndexFloor,IntCompoundingRate,IntCompoundingSpread,StartDate,EndDate,IntCapAmt,PurBal,AccCapBal,CreatedBy, CreatedDate,UpdatedBy,UpdatedDate, [PIKReasonCodeID],[PIKComments],[PIKIntCalcMethodID])  
+INSERT INTO core.PIKSchedule (EventID,SourceAccountID,TargetAccountID,AdditionalIntRate,AdditionalSpread,IndexFloor,IntCompoundingRate,IntCompoundingSpread,StartDate,EndDate,IntCapAmt,PurBal,AccCapBal,CreatedBy, CreatedDate,UpdatedBy,UpdatedDate, [PIKReasonCodeID],[PIKComments],[PIKIntCalcMethodID],PeriodicRateCapAmount ,PeriodicRateCapPercent)  
      SELECT (SELECT TOP 1  
              EventId  
            FROM CORE.[event] se  
@@ -776,7 +791,9 @@ INSERT INTO core.PIKSchedule (EventID,SourceAccountID,TargetAccountID,Additional
 
 	[PIKReasonCodeID],
 	[PIKComments],
-	[PIKIntCalcMethodID] 
+	[PIKIntCalcMethodID] ,
+	PeriodicRateCapAmount ,
+	PeriodicRateCapPercent
     FROM Core.PIKSchedule PIK  with (NOLOCK)  
  inner join core.Event e  with (NOLOCK) on e.eventid =  PIK.EventId  
  inner join core.Account acc  with (NOLOCK) on acc.AccountID =  e.AccountID  
@@ -1090,8 +1107,10 @@ from core.Exceptions
    ,@CreatedBy  
    ,GETDATE()  
   from CRE.NotePeriodicCalc nc  
-  inner join CRE.PayruleSetup ps on ps.StripTransferFrom=nc.NoteID   
-  where nc.NoteID=@ParentNoteID  
+  Inner Join core.Account acc on acc.AccountID = nc.AccountID
+  Inner Join cre.note n on n.Account_AccountID = acc.AccountID
+  inner join CRE.PayruleSetup ps on ps.StripTransferFrom=n.NoteID   
+  where n.NoteID=@ParentNoteID  and acc.AccountTypeID = 1
   
   
   
@@ -1128,7 +1147,75 @@ from core.Exceptions
    ----Add into searchitem table
 	 Declare @LookupIdForNote int = (Select lookupid from core.Lookup where name = 'Note');
 
-EXEC [App].[usp_AddUpdateObject] @CopyNoteID,@LookupIdForNote ,'Kbaderia','Kbaderia'
+	EXEC [App].[usp_AddUpdateObject] @CopyNoteID,@LookupIdForNote ,'Kbaderia','Kbaderia'
+
+
+	----Add critical exception if maturity missing
+	IF NOT EXISTS(
+		Select Distinct mat.MaturityID from [CORE].Maturity mat  
+		INNER JOIN [CORE].[Event] e on e.EventID = mat.EventId  
+		INNER JOIN [CORE].[Account] acc ON acc.AccountID = e.AccountID
+		INNER JOIN [CRE].[Note] n ON n.Account_AccountID = acc.AccountID
+		where e.StatusID = 1 and acc.IsDeleted = 0
+		and n.noteid = @newnoteId
+	)
+	BEGIN	
+		--declare @TableTypeExceptions [TableTypeExceptions]
+		--Insert into @TableTypeExceptions([ObjectID],[ObjectTypeText],[FieldName],[Summary],[ActionLevelText])
+		--Select @newnoteId,'Note','Maturity scenarios List','Maturity scenario cannot be empty','Critical'
+
+		--exec [dbo].[usp_InsertUpdateExceptions] @TableTypeExceptions,@UpdatedBy,@UpdatedBy 
+
+		Delete from core.Exceptions where ObjectID=@newnoteId and [ObjectTypeID] = 182 and [FieldName] = 'Maturity scenarios List'
+
+		INSERT into core.Exceptions ([ObjectID],[ObjectTypeID],[FieldName],[Summary],[ActionLevelID],[CreatedBy],[CreatedDate],[UpdatedBy],[UpdatedDate])
+		Values(@newnoteId,182,'Maturity scenarios List','Maturity scenario cannot be empty',293,@CreatedBy,getdate(),@CreatedBy,getdate())
+	END
 	
   
+
+
+	--IF EXISTS(Select top 1 TagMasterXIRRID from cre.TagMasterXIRR where [Name] = 'Portfolio Whole Loan')
+	--BEGIN
+	--	Declare @TagMasterXIRRID int = (Select top 1 TagMasterXIRRID from cre.TagMasterXIRR where [Name] = 'Portfolio Whole Loan')
+	--	EXEC [dbo].[usp_InsertUpdateTagAccountMappingXIRR] @CopyAccountID,@TagMasterXIRRID,@CreatedBy
+	--END
+
+
+    ---Copy tags
+	INSERT INTO [CRE].[TagAccountMappingXIRR]([AccountID],[TagMasterXIRRID],[CreatedBy],[CreatedDate],[UpdatedBy],[UpdatedDate])
+	Select @CopyAccountID,[TagMasterXIRRID],[CreatedBy],[CreatedDate],[UpdatedBy],[UpdatedDate] From [CRE].[TagAccountMappingXIRR]
+	Where AccountID = @ParentAccountID
+	----==============
+
+
+ -- ---========================================================================================
+	--Declare @LastAccountingCloseDate date;
+
+	--SET @LastAccountingCloseDate=(
+	--	Select CAST(ISNULL(LastAccountingCloseDate,'1/1/1900') as Date) as LastAccountingCloseDate
+	--	from(
+	--		Select 
+	--		d.DealID,n.noteid,p.CloseDate as LastAccountingCloseDate	
+	--		,ROW_NUMBER() OVER (Partition BY d.dealid,n.noteid order by d.dealid,n.noteid,p.updateddate desc) rno
+	--		from cre.deal d
+	--		Inner join cre.note n on n.dealid = d.dealid
+	--		Left join (
+	--			Select dealid,CloseDate,updateddate
+	--			from CORE.[Period]
+	--			where CloseDate is not null
+	--		)p on d.dealid = p.dealid 
+	--		Where d.IsDeleted <> 1
+
+	--		and n.noteid = @ParentNoteID
+	--	)a
+	--	where a.rno = 1
+	--)
+
+	--exec [dbo].[usp_DeleteDataByLastAccountingClosedate]  @newnoteId,@LastAccountingCloseDate
+	-----========================================================================================
+
 END  
+
+
+

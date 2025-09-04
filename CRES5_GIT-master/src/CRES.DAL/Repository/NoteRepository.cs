@@ -1,11 +1,15 @@
-﻿using CRES.DAL.IRepository;
+﻿
+using CRES.DAL.Helper;
+using CRES.DAL.IRepository;
 using CRES.DataContract;
 using CRES.Utilities;
+using Microsoft.VisualBasic;
 using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Data.SqlClient;
 using System.Linq;
+using static CRES.DataContract.V1CalcDataContract;
 
 namespace CRES.DAL.Repository
 {
@@ -158,6 +162,8 @@ namespace CRES.DAL.Repository
                     _notedc.NoteTransferDate = CommonHelper.ToDateTime(dr["NoteTransferDate"]);
                     _notedc.OriginalCRENoteID = Convert.ToString(dr["CRENoteID"]);
                     _notedc.OriginalNoteName = Convert.ToString(dr["Name"]);
+
+                    _notedc.FirstIndexDeterminationDateOverride = CommonHelper.ToDateTime(dr["FirstIndexDeterminationDateOverride"]);
                     lstNoteDC.Add(_notedc);
 
                 }
@@ -234,7 +240,11 @@ namespace CRES.DAL.Repository
                     _notedc.MaturityGroupName = Convert.ToString(dr["MaturityGroupName"]);
                     _notedc.MaturityMethodID = CommonHelper.ToInt32(dr["MaturityMethodID"]);
                     _notedc.MaturityMethodIDText = Convert.ToString(dr["MaturityMethodIDText"]);
+                    _notedc.NoteType = CommonHelper.ToInt32(dr["NoteType"]);
+                    _notedc.NoteTypeText = Convert.ToString(dr["NoteTypeText"]);
                     _notedc.NoteSequenceNumber = CommonHelper.ToInt32(dr["NoteSequenceNumber"]);
+                    _notedc.InitialFundingAmount = CommonHelper.ToDecimal(dr["InitialFundingAmount"]);
+                    
                     lstNoteDC.Add(_notedc);
                 }
                 TotalCount = string.IsNullOrEmpty(Convert.ToString(p5.Value)) ? 0 : Convert.ToInt32(p5.Value);
@@ -298,11 +308,13 @@ namespace CRES.DAL.Repository
                     SqlParameter p27 = new SqlParameter { ParameterName = "@StraightLineAmortOverride", Value = note.StraightLineAmortOverride };
                     SqlParameter p28 = new SqlParameter { ParameterName = "@UseRuletoDetermineAmortization", Value = note.UseRuletoDetermineAmortization };
                     SqlParameter p29 = new SqlParameter { ParameterName = "@OriginalTotalCommitment", Value = note.OriginalTotalCommitment };
-                    SqlParameter p30 = new SqlParameter { ParameterName = "@newnoteId", Direction = ParameterDirection.Output, Size = int.MaxValue };
+                    SqlParameter p30 = new SqlParameter { ParameterName = "@WeightedSpread", Value = note.WeightedSpread };
+                    SqlParameter p31 = new SqlParameter { ParameterName = "@NetCapitalInvested", Value = note.NetCapitalInvested };
+                    SqlParameter p32 = new SqlParameter { ParameterName = "@newnoteId", Direction = ParameterDirection.Output, Size = int.MaxValue };
 
-                    SqlParameter[] sqlparam = new SqlParameter[] { p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15, p16, p18, p21, p22, p23, p24, p25, p26, p27, p28, p29, p30 };
+                    SqlParameter[] sqlparam = new SqlParameter[] { p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15, p16, p18, p21, p22, p23, p24, p25, p26, p27, p28, p29, p30, p31, p32 };
                     var res = hp.ExecNonquery("dbo.usp_AddUpdateNoteFromDealDetail", sqlparam);
-                    Newnoteid = Convert.ToString(p30.Value);
+                    Newnoteid = Convert.ToString(p32.Value);
 
                     if (res != 0)
                     {
@@ -354,9 +366,7 @@ namespace CRES.DAL.Repository
 
             // bool retValue = false;
 
-#pragma warning disable CS0219 // The variable 'count' is assigned but its value is never used
             int count = 0;
-#pragma warning restore CS0219 // The variable 'count' is assigned but its value is never used
             string Newnoteid = "";
             foreach (var note in noteDataContract)
             {
@@ -531,19 +541,30 @@ namespace CRES.DAL.Repository
                     SqlParameter p159 = new SqlParameter { ParameterName = "@OriginationFeePercentageRP", Value = note.OriginationFeePercentageRP };
                     SqlParameter p160 = new SqlParameter { ParameterName = "@ImpactCommitmentCalc", Value = note.ImpactCommitmentCalc };
 
+                    SqlParameter p161 = new SqlParameter { ParameterName = "@FirstIndexDeterminationDateOverride", Value = note.FirstIndexDeterminationDateOverride };
+                    SqlParameter p162 = new SqlParameter { ParameterName = "@AccrualPeriodType", Value = note.AccrualPeriodType };
+                    SqlParameter p163 = new SqlParameter { ParameterName = "@AccrualPeriodBusinessDayAdj", Value = note.AccrualPeriodBusinessDayAdj };
+                    SqlParameter p164 = new SqlParameter { ParameterName = "@AccountingClose", Value = note.AccountingClose };
+
+                    SqlParameter p165 = new SqlParameter { ParameterName = "@InterestCalculationRuleForPIKPaydowns", Value = note.InterestCalculationRuleForPIKPaydowns };
+                    SqlParameter p166 = new SqlParameter { ParameterName = "@UPBAtForeclosure", Value = note.UPBAtForeclosure };
+                    SqlParameter p167 = new SqlParameter { ParameterName = "@FullIOTermFlag", Value = note.FullIOTermFlag };
+                    SqlParameter p168 = new SqlParameter { ParameterName = "@NoteType", Value = note.NoteType };
+                    SqlParameter p169 = new SqlParameter { ParameterName = "@InterestOnlyNote", Value = note.InterestOnlyNote };
+                    SqlParameter p170 = new SqlParameter { ParameterName = "@ConstantPaymentMethod", Value = note.ConstantPaymentMethod };
+                    SqlParameter p171 = new SqlParameter { ParameterName = "@PaymentDateAccrualPeriod", Value = note.PaymentDateAccrualPeriod };
+
                     SqlParameter[] sqlparam = new SqlParameter[] {
                      p1,p2,p3,p4,p5,p6,p7,p8,p9,p10,p11,p12,p13,p14,p15,p16,p17,p18,p19,p20,p21,p22,p23,p24,p25,p26,p27,p28,p29,p30,
                      p31,p32,p33,p34,p35,p36,p37,p38,p39,p40,p41,p47,p48,p49,p50,p51,p52,p53,p54,p55,p56,p57,p58,p59,p60,
                      p61,p62,p63,p64,p65,p66,p67,p68,p69,p70,p71,p72,p73,p74,p75,p76,p77,p78,p79,p80,p81,p82,p83,p84,p85,p86,p87,p88,p89,p90,
                      p91,p92,p93,p94,p95,p96,p97,p98,p99,p100,p101,p102,p103,p104,p105,p106,p107,p108,p109,p110,p111,p112,p113,p114,p115,p116,
                      p118,p119,p120,p121,p122,p123,p127,p128,p129,p130,p131,p132,p133,p134,p135,p136,p137,p138,p139,p140,
-                     p141,p142,p143,p144,p145,p146,p147,p148,p149,p150,p151,p152,p153,p155,p156,p157,p158,p159,p160
+                     p141,p142,p143,p144,p145,p146,p147,p148,p149,p150,p151,p152,p153,p155,p156,p157,p158,p159,p160,p161,p162,p163,p164,p165,p166,p167,p168,p169,p170,p171
                     };
 
                     hp.ExecNonquery("dbo.usp_AddUpdateNote", sqlparam);
                     Newnoteid = Convert.ToString(p133.Value);
-                    //if (string.IsNullOrEmpty(note.AccountID))
-                    //    note.AccountID = default(Guid).ToString();
 
                     if (Newnoteid != "00000000-0000-0000-0000-000000000000")
                     {
@@ -602,7 +623,6 @@ namespace CRES.DAL.Repository
 
                 if (dt != null && dt.Rows.Count > 0)
                 {
-
                     _notedc.NoteId = Convert.ToString(dt.Rows[0]["NoteID"]);
                     _notedc.Name = Convert.ToString(dt.Rows[0]["Name"]);
                     _notedc.AccountID = Convert.ToString(dt.Rows[0]["Account_AccountID"]);
@@ -622,7 +642,6 @@ namespace CRES.DAL.Repository
                     _notedc.PayFrequency = CommonHelper.ToInt32(dt.Rows[0]["PayFrequency"]);
                     _notedc.IOTerm = CommonHelper.ToInt32(dt.Rows[0]["IOTerm"]);
                     _notedc.AmortTerm = CommonHelper.ToInt32(dt.Rows[0]["AmortTerm"]);
-                    _notedc.PIKSeparateCompounding = CommonHelper.ToInt32(dt.Rows[0]["PIKSeparateCompounding"]);
                     _notedc.MonthlyDSOverridewhenAmortizing = CommonHelper.ToDecimal(dt.Rows[0]["MonthlyDSOverridewhenAmortizing"]);
                     _notedc.AccrualPeriodPaymentDayWhenNotEOMonth = CommonHelper.ToInt32(dt.Rows[0]["AccrualPeriodPaymentDayWhenNotEOMonth"]);
                     _notedc.FirstPeriodInterestPaymentOverride = CommonHelper.ToDecimal(dt.Rows[0]["FirstPeriodInterestPaymentOverride"]);
@@ -727,7 +746,6 @@ namespace CRES.DAL.Repository
                     _notedc.FixedAmortSchedule = CommonHelper.ToInt32(dt.Rows[0]["FixedAmortSchedule"]);
                     _notedc.FixedAmortScheduleText = Convert.ToString(dt.Rows[0]["FixedAmortScheduleText"]);
                     _notedc.IncludeServicingPaymentOverrideinLevelYieldText = Convert.ToString(dt.Rows[0]["IncludeServicingPaymentOverrideinLevelYieldText"]);
-                    _notedc.PIKSeparateCompoundingText = Convert.ToString(dt.Rows[0]["PIKSeparateCompoundingText"]);
                     _notedc.StubPaidinAdvanceYNText = Convert.ToString(dt.Rows[0]["StubPaidinAdvanceYNText"]);
                     _notedc.ModelFinancingDrawsForFutureFundingsText = Convert.ToString(dt.Rows[0]["ModelFinancingDrawsForFutureFundingsText"]);
                     _notedc.NoofdaysrelPaymentDaterollnextpaymentcycle = CommonHelper.ToInt32(dt.Rows[0]["NoofdaysrelPaymentDaterollnextpaymentcycle"]);
@@ -784,6 +802,10 @@ namespace CRES.DAL.Repository
                     _notedc.DayoftheMonth = CommonHelper.ToInt32(dt.Rows[0]["DayoftheMonth"]);
                     _notedc.InterestCalculationRuleForPaydowns = CommonHelper.ToInt32(dt.Rows[0]["InterestCalculationRuleForPaydowns"]);
                     _notedc.InterestCalculationRuleForPaydownsText = Convert.ToString(dt.Rows[0]["InterestCalculationRuleForPaydownsText"]);
+
+                    _notedc.InterestCalculationRuleForPIKPaydowns = CommonHelper.ToInt32(dt.Rows[0]["InterestCalculationRuleForPIKPaydowns"]);
+                    _notedc.InterestCalculationRuleForPIKPaydownsText = Convert.ToString(dt.Rows[0]["InterestCalculationRuleForPIKPaydownsText"]);
+
                     _notedc.PIKInterestAddedToBalanceBasedOnBusinessAdjustedDate = CommonHelper.ToInt32(dt.Rows[0]["PIKInterestAddedToBalanceBasedOnBusinessAdjustedDate"]);
                     _notedc.PIKInterestAddedToBalanceBasedOnBusinessAdjustedDateText = Convert.ToString(dt.Rows[0]["PIKInterestAddedToBalanceBasedOnBusinessAdjustedDateText"]);
                     _notedc.EnableDebug = Convert.ToBoolean(dt.Rows[0]["isAllowDebugInCalc"]);
@@ -807,11 +829,37 @@ namespace CRES.DAL.Repository
                     _notedc.OriginalCRENoteID = Convert.ToString(dt.Rows[0]["CRENoteID"]);
                     _notedc.OriginalNoteName = Convert.ToString(dt.Rows[0]["Name"]);
                     _notedc.AllowYieldConfigData = Convert.ToBoolean(dt.Rows[0]["AllowYieldConfigData"]);
+                    _notedc.AllowDailyGAAPBasisComponents = dt.Rows[0]["AllowGaapComponentInCashflowDownload"].ToString();
+
+
                     ////_notedc.BalanceAware = Convert.ToBoolean(dt.Rows[0]["BalanceAware"]);
                     _notedc.OriginationFeePercentageRP = CommonHelper.ToDecimal(dt.Rows[0]["OriginationFeePercentageRP"]);
                     //_notedc.CalcByNewMaturitySetup = CommonHelper.ToBoolean(dt.Rows[0]["CalcByNewMaturitySetup"]);
-                    //_notedc.ImpactCommitmentCalc = CommonHelper.ToInt32(dt.Rows[0]["ImpactCommitmentCalc"]);
+                    _notedc.ImpactCommitmentCalc = CommonHelper.ToInt32(dt.Rows[0]["ImpactCommitmentCalc"]);
+                    _notedc.CalcEngineTypeText = Convert.ToString(dt.Rows[0]["CalcEngineTypeText"]);
+                    _notedc.FirstIndexDeterminationDateOverride = CommonHelper.ToDateTime(dt.Rows[0]["FirstIndexDeterminationDateOverride"]);
 
+                    _notedc.AccrualPeriodType = CommonHelper.ToInt32(dt.Rows[0]["AccrualPeriodType"]);
+                    _notedc.AccrualPeriodTypetext = Convert.ToString(dt.Rows[0]["AccrualPeriodTypetext"]);
+
+                    _notedc.AccrualPeriodBusinessDayAdj = CommonHelper.ToInt32(dt.Rows[0]["AccrualPeriodBusinessDayAdj"]);
+                    _notedc.AccrualPeriodBusinessDayAdjText = Convert.ToString(dt.Rows[0]["AccrualPeriodBusinessDayAdjText"]);
+
+                    _notedc.AccountingClose = CommonHelper.ToInt32(dt.Rows[0]["AccountingClose"]);
+                    _notedc.AccountingCloseText = Convert.ToString(dt.Rows[0]["AccountingClosetext"]);
+                    _notedc.UPBAtForeclosure = CommonHelper.ToDecimal(dt.Rows[0]["UPBAtForeclosure"]);
+
+                    _notedc.FullIOTermFlag = CommonHelper.ToInt32(dt.Rows[0]["FullIOTermFlag"]);
+                    _notedc.FullIOTermFlagText = Convert.ToString(dt.Rows[0]["FullIOTermFlagText"]);
+                    _notedc.NoteType = CommonHelper.ToInt32(dt.Rows[0]["NoteType"]);
+                    _notedc.MaturityAdjMonthsOverride = CommonHelper.ToInt32(dt.Rows[0]["MaturityAdjMonthsOverride"]);
+                    _notedc.InterestOnlyNote = CommonHelper.ToInt32(dt.Rows[0]["InterestOnlyNote"]);
+                    _notedc.ConstantPaymentMethod = CommonHelper.ToInt32(dt.Rows[0]["ConstantPaymentMethod"]);
+                    _notedc.PaymentDateAccrualPeriod = CommonHelper.ToInt32(dt.Rows[0]["PaymentDateAccrualPeriod"]);
+                    _notedc.PaymentDateAccrualPeriodText = Convert.ToString(dt.Rows[0]["PaymentDateAccrualPeriodText"]);
+
+                    _notedc.PrepayDate = CommonHelper.ToDateTime(dt.Rows[0]["PrepayDate"]);
+                    
                 }
 
             }
@@ -854,6 +902,8 @@ namespace CRES.DAL.Repository
                     FundDataContract _FundDC = new FundDataContract();
                     _FundDC.FundID = Convert.ToInt32(dr["FundID"]);
                     _FundDC.FundName = Convert.ToString(dr["FundName"]);
+                    _FundDC.ParentFund = Convert.ToString(dr["ParentFund"]);
+                    
                     FundDC.Add(_FundDC);
                 }
             }
@@ -929,7 +979,9 @@ namespace CRES.DAL.Repository
                         Value = CommonHelper.ToDecimal(dr["Value"]),
                         IntCalcMethodText = Convert.ToString(dr["IntCalcMethodText"]),
                         RateOrSpreadToBeStripped = CommonHelper.ToDecimal(dr["RateOrSpreadToBeStripped"]),
-                        IndexNameText = Convert.ToString(dr["IndexNameText"])
+                        IndexNameText = Convert.ToString(dr["IndexNameText"]),
+                        DeterminationDateHolidayList = CommonHelper.ToInt32(dr["DeterminationDateHolidayList"]),
+                        DeterminationDateHolidayListText = Convert.ToString(dr["DeterminationDateHolidayListText"])
 
                     });
                 }
@@ -1199,7 +1251,18 @@ namespace CRES.DAL.Repository
                         PIKIntCalcMethodID = CommonHelper.ToInt32(dr["PIKIntCalcMethodID"]),
                         PIKIntCalcMethodIDText = dr["PIKIntCalcMethodIDText"].ToString(),
 
-                        PIKComments = dr["PIKComments"].ToString()
+                        PIKSeparateCompounding = CommonHelper.ToInt32(dr["PIKSeparateCompounding"]),
+                        PIKSeparateCompoundingText = dr["PIKSeparateCompoundingText"].ToString(),
+
+                        PeriodicRateCapAmount = CommonHelper.ToDecimal(dr["PeriodicRateCapAmount"]),
+                        PeriodicRateCapPercent = CommonHelper.ToDecimal(dr["PeriodicRateCapPercent"]),
+
+                        PIKComments = dr["PIKComments"].ToString(),
+                        PIKSetUp = CommonHelper.ToInt32(dr["PIKSetUp"]),
+                        PIKSetUpText = (dr["PIKSetUpText"]).ToString(),
+
+                        PIKPercentage = CommonHelper.ToDecimal(dr["PIKPercentage"]),
+
                     });
                 }
                 TotalCount = string.IsNullOrEmpty(Convert.ToString(p5.Value)) ? 0 : Convert.ToInt32(p5.Value);
@@ -1310,6 +1373,10 @@ namespace CRES.DAL.Repository
                         rss.RateOrSpreadToBeStripped = CommonHelper.ToDecimal(dr["FeetobeStripped"]);
                         rss.IndexNameID = CommonHelper.ToInt32(dr["IndexNameID"]);
                         rss.IndexNameText = Convert.ToString(dr["IndexNameText"]);
+
+                        rss.DeterminationDateHolidayList = CommonHelper.ToInt32(dr["DeterminationDateHolidayList"]);
+                        rss.DeterminationDateHolidayListText = Convert.ToString(dr["DeterminationDateHolidayListText"]);
+
                         RateSpl.Add(rss);
 
                     }
@@ -1550,6 +1617,15 @@ namespace CRES.DAL.Repository
                             _PIKSchedule.PIKIntCalcMethodIDText = (dr["PIKIntCalcMethodIDText"]).ToString();
                             _PIKSchedule.PIKComments = dr["PIKComments"].ToString();
 
+                            _PIKSchedule.PeriodicRateCapAmount = CommonHelper.ToDecimal(dr["PeriodicRateCapAmount"]);
+                            _PIKSchedule.PeriodicRateCapPercent = CommonHelper.ToDecimal(dr["PeriodicRateCapPercent"]);
+                            _PIKSchedule.PIKSetUp = CommonHelper.ToInt32(dr["PIKSetUp"]);
+                            _PIKSchedule.PIKSetUpText = (dr["PIKSetUpText"]).ToString();
+                            _PIKSchedule.PIKPercentage = CommonHelper.ToDecimal(dr["PIKPercentage"]);
+                            _PIKSchedule.PIKCurrentPayRate = CommonHelper.ToDecimal(dr["PIKCurrentPayRate"]);
+                            _PIKSchedule.PIKSeparateCompounding = CommonHelper.ToInt32(dr["PIKSeparateCompounding"]);
+                            _PIKSchedule.PIKSeparateCompoundingText = Convert.ToString(dr["PIKSeparateCompoundingText"]);
+
                             if (Convert.ToString(dr["EventId"]) != "")
                             {
                                 _PIKSchedule.EventId = new Guid(Convert.ToString(dr["EventId"]));
@@ -1647,6 +1723,8 @@ namespace CRES.DAL.Repository
                     ServicingLog.row_num = Convert.ToInt32(dr["row_num"]);
                     ServicingLog.TransactionDate = CommonHelper.ToDateTime(dr["TransactionDate"]);
                     ServicingLog.TransactionAmount = CommonHelper.ToDecimal(dr["Amount"]);
+                    ServicingLog.WriteOffAmount = CommonHelper.ToDecimal(dr["WriteOffAmount"]);
+
                     ServicingLog.TransactionType = CommonHelper.ToInt32(dr["TransactionType"]);
                     ServicingLog.TransactionTypeText = Convert.ToString(dr["TransactionTypeText"]);
                     ServicingLog.RelatedtoModeledPMTDate = CommonHelper.ToDateTime(dr["RelatedtoModeledPMTDate"]);
@@ -1694,6 +1772,11 @@ namespace CRES.DAL.Repository
                     //  if (ServicingLog.Ignore == true) ServicingLog.Final_ValueUsedInCalc = ServicingLog.OverrideValue;
                     // if (ServicingLog.OverrideValue == 0 && ServicingLog.M61Value == false && ServicingLog.ServicerValue == false && ServicingLog.Ignore == false) ServicingLog.Final_ValueUsedInCalc = ServicingLog.CalculatedAmount;
 
+                    if (ServicingLog.ServicerMasterID == 6 || ServicingLog.ServicerMasterID == 7)
+                    {
+                        if (ServicingLog.M61Value == false && ServicingLog.ServicerValue == false)
+                            ServicingLog.Final_ValueUsedInCalc = ServicingLog.CalculatedAmount;
+                    }
                     _noteAdd.lstNoteServicingLog.Add(ServicingLog);
                 }
 
@@ -1708,9 +1791,160 @@ namespace CRES.DAL.Repository
                 throw ex;
             }
         }
+
+        public NoteAdditinalListDataContract GetNoteAdditional_RSSFEE(Guid? noteId, Guid? userID)
+        {
+            try
+            {
+                NoteAdditinalListDataContract _noteAdd = new NoteAdditinalListDataContract();
+
+                DataTable dt = new DataTable();
+                Helper.Helper hp = new Helper.Helper();
+                SqlParameter p1 = new SqlParameter { ParameterName = "@NoteID", Value = noteId };
+                SqlParameter p2 = new SqlParameter { ParameterName = "@UserID", Value = userID };
+                SqlParameter[] sqlparam = new SqlParameter[] { p1, p2 };
+                dt = hp.ExecDataTable("dbo.usp_GetNoteAdditionalRecordbyNoteId_RSSFEE", sqlparam);
+
+                var resRat = dt.Select("ModuleId = 14");
+                if (resRat.Length > 0)
+                {
+                    DataTable resRateSpreadSch = dt.Select("ModuleId = 14").CopyToDataTable();
+                    List<RateSpreadSchedule> RateSpl = new List<RateSpreadSchedule>();
+                    foreach (DataRow dr in resRateSpreadSch.Rows)
+                    {
+                        RateSpreadSchedule rss = new RateSpreadSchedule();
+                        if (Convert.ToString(dr["EventId"]) != "")
+                        {
+                            rss.EventId = new Guid(Convert.ToString(dr["EventId"]));
+                        }
+                        rss.EffectiveDate = CommonHelper.ToDateTime(dr["EffectiveDate"]);
+                        rss.Date = CommonHelper.ToDateTime(dr["Date"]);
+                        rss.ValueTypeID = CommonHelper.ToInt32(dr["ValueTypeID"]);
+                        rss.ValueTypeText = Convert.ToString(dr["ValueTypeText"]);
+                        rss.Value = CommonHelper.ToDecimal(dr["Value"]);
+                        rss.IntCalcMethodID = CommonHelper.ToInt32(dr["IntCalcMethodID"]);
+                        rss.IntCalcMethodText = Convert.ToString(dr["IntCalcMethodText"]);
+                        rss.ModuleId = CommonHelper.ToInt32(dr["ModuleId"]);
+                        rss.ScheduleID = Convert.ToString(dr["ScheduleID"]);
+                        rss.RateOrSpreadToBeStripped = CommonHelper.ToDecimal(dr["FeetobeStripped"]);
+                        rss.IndexNameID = CommonHelper.ToInt32(dr["IndexNameID"]);
+                        rss.IndexNameText = Convert.ToString(dr["IndexNameText"]);
+
+                        rss.DeterminationDateHolidayList = CommonHelper.ToInt32(dr["DeterminationDateHolidayList"]);
+                        rss.DeterminationDateHolidayListText = Convert.ToString(dr["DeterminationDateHolidayListText"]);
+
+                        RateSpl.Add(rss);
+
+                    }
+                    _noteAdd.RateSpreadScheduleList = RateSpl;
+                }
+
+                var respre = dt.Select("ModuleId = 13");
+                if (respre.Length > 0)
+                {
+                    DataTable resPrepay = dt.Select("ModuleId = 13").CopyToDataTable();
+                    List<PrepayAndAdditionalFeeScheduleDataContract> NotePrepaylst = new List<PrepayAndAdditionalFeeScheduleDataContract>();
+                    foreach (DataRow dr in resPrepay.Rows)
+                    {
+                        PrepayAndAdditionalFeeScheduleDataContract ppf = new PrepayAndAdditionalFeeScheduleDataContract();
+                        if (Convert.ToString(dr["EventId"]) != "")
+                        {
+                            ppf.EventId = new Guid(Convert.ToString(dr["EventId"]));
+                        }
+                        ppf.EffectiveDate = CommonHelper.ToDateTime(dr["EffectiveDate"]);
+                        ppf.ScheduleStartDate = CommonHelper.ToDateTime(dr["Date"]);
+                        ppf.ValueTypeID = CommonHelper.ToInt32(dr["ValueTypeID"]);
+                        ppf.ValueTypeText = Convert.ToString(dr["ValueTypeText"]);
+                        ppf.Value = CommonHelper.ToDecimal(dr["Value"]);
+                        ppf.IncludedLevelYield = CommonHelper.ToDecimal(dr["IncludedLevelYield"]);
+                        ppf.IncludedBasis = CommonHelper.ToDecimal(dr["IncludedBasis"]);
+                        ppf.ModuleId = CommonHelper.ToInt32(dr["ModuleId"]);
+                        ppf.ScheduleID = Convert.ToString(dr["ScheduleID"]);
+                        ppf.StartDate = CommonHelper.ToDateTime(dr["Date"]);
+                        ppf.FeeName = Convert.ToString(dr["FeeName"]);
+                        ppf.ScheduleEndDate = CommonHelper.ToDateTime(dr["EndDate"]);
+                        ppf.FeeAmountOverride = CommonHelper.ToDecimal(dr["FeeAmountOverride"]);
+                        ppf.BaseAmountOverride = CommonHelper.ToDecimal(dr["BaseAmountOverride"]);
+                        ppf.ApplyTrueUpFeatureID = CommonHelper.ToInt32(dr["ApplyTrueUpFeature"]);
+                        ppf.ApplyTrueUpFeatureText = Convert.ToString(dr["ApplyTrueUpFeatureText"]);
+                        ppf.PercentageOfFeeToBeStripped = CommonHelper.ToDecimal(dr["FeetobeStripped"]);
+
+                        NotePrepaylst.Add(ppf);
+
+                    }
+                    _noteAdd.NotePrepayAndAdditionalFeeScheduleList = NotePrepaylst;
+                }
+
+                var respik = dt.Select("ModuleId = 12");
+                if (respik.Length > 0)
+                {
+                    DataTable resPIKSchedule = dt.Select("ModuleId = 12").CopyToDataTable();
+
+                    if (resPIKSchedule != null)
+                    {
+                        List<PIKSchedule> NotePIKScheduleList = new List<PIKSchedule>();
+                        foreach (DataRow dr in resPIKSchedule.Rows)
+                        {
+                            PIKSchedule _PIKSchedule = new PIKSchedule();
+                            _PIKSchedule.EffectiveDate = CommonHelper.ToDateTime(dr["EffectiveDate"]);
+                            _PIKSchedule.StartDate = CommonHelper.ToDateTime(dr["StartDate"]);
+                            _PIKSchedule.EndDate = CommonHelper.ToDateTime(dr["EndDate"]);
+                            if (Convert.ToString(dr["SourceAccountID"]) != "")
+                            {
+                                _PIKSchedule.SourceAccountID = new Guid(Convert.ToString(dr["SourceAccountID"]));
+                            }
+
+                            _PIKSchedule.SourceAccount = Convert.ToString(dr["SourceAccountText"]);
+                            if (Convert.ToString(dr["TargetAccountID"]) != "")
+                            {
+                                _PIKSchedule.TargetAccountID = new Guid(Convert.ToString(dr["TargetAccountID"]));
+                            }
+                            _PIKSchedule.TargetAccount = Convert.ToString(dr["TargetAccountText"]);
+                            _PIKSchedule.AdditionalIntRate = CommonHelper.ToDecimal(dr["AdditionalIntRate"]);
+                            _PIKSchedule.AdditionalSpread = CommonHelper.ToDecimal(dr["AdditionalSpread"]);
+                            _PIKSchedule.IndexFloor = CommonHelper.ToDecimal(dr["IndexFloor"]);
+                            _PIKSchedule.IntCompoundingRate = CommonHelper.ToDecimal(dr["IntCompoundingRate"]);
+                            _PIKSchedule.IntCompoundingSpread = CommonHelper.ToDecimal(dr["IntCompoundingSpread"]);
+                            _PIKSchedule.IntCapAmt = CommonHelper.ToDecimal(dr["IntCapAmt"]);
+                            _PIKSchedule.PurBal = CommonHelper.ToDecimal(dr["PurBal"]);
+                            _PIKSchedule.AccCapBal = CommonHelper.ToDecimal(dr["AccCapBal"]);
+                            _PIKSchedule.PIKReasonCodeID = CommonHelper.ToInt32(dr["PIKReasonCodeID"]);
+                            _PIKSchedule.PIKReasonCodeIDtext = (dr["PIKReasonCodeText"]).ToString();
+                            _PIKSchedule.PIKIntCalcMethodID = CommonHelper.ToInt32(dr["PIKIntCalcMethodID"]);
+                            _PIKSchedule.PIKIntCalcMethodIDText = (dr["PIKIntCalcMethodIDText"]).ToString();
+                            _PIKSchedule.PIKComments = dr["PIKComments"].ToString();
+
+                            _PIKSchedule.PeriodicRateCapAmount = CommonHelper.ToDecimal(dr["PeriodicRateCapAmount"]);
+                            _PIKSchedule.PeriodicRateCapPercent = CommonHelper.ToDecimal(dr["PeriodicRateCapPercent"]);
+                            _PIKSchedule.PIKSetUp = CommonHelper.ToInt32(dr["PIKSetUp"]);
+                            _PIKSchedule.PIKSetUpText = (dr["PIKSetUpText"]).ToString();
+                            _PIKSchedule.PIKPercentage = CommonHelper.ToDecimal(dr["PIKPercentage"]);
+                            _PIKSchedule.PIKCurrentPayRate = CommonHelper.ToDecimal(dr["PIKCurrentPayRate"]);
+                            _PIKSchedule.PIKInterestAddedToBalanceBasedOnBusinessAdjustedDate = CommonHelper.ToInt32(dr["PIKInterestAddedToBalanceBasedOnBusinessAdjustedDate"]);
+                            _PIKSchedule.ImpactCommitmentCalc = CommonHelper.ToInt32(dr["ImpactCommitmentCalc"]);
+                            _PIKSchedule.PIKSeparateCompounding = CommonHelper.ToInt32(dr["PIKSeparateCompounding"]);
+
+                            if (Convert.ToString(dr["EventId"]) != "")
+                            {
+                                _PIKSchedule.EventId = new Guid(Convert.ToString(dr["EventId"]));
+                            }
+                            _PIKSchedule.ScheduleID = Convert.ToString(dr["ScheduleID"]);
+
+                            NotePIKScheduleList.Add(_PIKSchedule);
+                        }
+                        _noteAdd.NotePIKScheduleList = NotePIKScheduleList;
+                    }
+                }
+
+                return _noteAdd;
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
         public List<EffectiveDateList> GetEffectiveDateListDataByNoteId(Guid? noteid, Guid? userID, int? pageIndex, int? pageSize, out int? TotalCount)
         {
-#pragma warning disable CS0168 // The variable 'ex' is declared but never used
             try
             {
                 List<EffectiveDateList> _effectiveDateDataContractList = new List<EffectiveDateList>();
@@ -1747,7 +1981,6 @@ namespace CRES.DAL.Repository
 
                 throw;
             }
-#pragma warning restore CS0168 // The variable 'ex' is declared but never used
         }
 
         public List<FutureFundingScheduleTab> GetFutureFundingScheduleTabListDataByNoteId(Guid? noteid, Guid? userID, int? pageIndex, int? pageSize, out int? TotalCount)
@@ -1769,7 +2002,6 @@ namespace CRES.DAL.Repository
                 dt = hp.ExecDataTable("dbo.usp_GetFutureFundingScheduleDataByNoteId", sqlparam);
                 if (dt != null && dt.Rows.Count > 0)
                 {
-
                     foreach (DataRow dr in dt.Rows)
                     {
                         _futureFundingScheduleTabList.Add(new FutureFundingScheduleTab
@@ -1779,6 +2011,8 @@ namespace CRES.DAL.Repository
                             Value = CommonHelper.ToDecimal(dr["Value"]),
                             PurposeID = CommonHelper.ToInt32(dr["PurposeID"]),
                             PurposeText = Convert.ToString(dr["PurposeText"]),
+                            AdjustmentType = CommonHelper.ToInt32(dr["AdjustmentType"]),
+                            AdjustmentTypeText = Convert.ToString(dr["AdjustmentTypeText"])
                         });
                     }
                     TotalCount = string.IsNullOrEmpty(Convert.ToString(p5.Value)) ? 0 : Convert.ToInt32(p5.Value);
@@ -1933,7 +2167,6 @@ namespace CRES.DAL.Repository
         {
             DataTable dt = new DataTable();
 
-#pragma warning disable CS0168 // The variable 'ex' is declared but never used
             try
             {
                 Helper.Helper hp = new Helper.Helper();
@@ -1947,7 +2180,6 @@ namespace CRES.DAL.Repository
             catch (Exception ex)
             {
             }
-#pragma warning restore CS0168 // The variable 'ex' is declared but never used
 
             return dt;
         }
@@ -2033,11 +2265,21 @@ namespace CRES.DAL.Repository
             noteaddilist.Columns.Add("PIKComments").DefaultValue = "";
             noteaddilist.Columns.Add("PIKIntCalcMethodID").DefaultValue = "";
             noteaddilist.Columns.Add("IndexNameID").DefaultValue = "";
+            noteaddilist.Columns.Add("PeriodicRateCapAmount").DefaultValue = "";
+            noteaddilist.Columns.Add("PeriodicRateCapPercent").DefaultValue = "";
+            noteaddilist.Columns.Add("DeterminationDateHolidayList").DefaultValue = "";
+            noteaddilist.Columns.Add("PIKSetUp").DefaultValue = "";
+            noteaddilist.Columns.Add("PIKPercentage").DefaultValue = "";
+            noteaddilist.Columns.Add("PIKCurrentPayRate").DefaultValue = "";
+            noteaddilist.Columns.Add("PIKSeparateCompounding").DefaultValue = "";
+
 
             DataTable dtChildNoteAddilist = new DataTable("mytable1");
             dtChildNoteAddilist = noteaddilist;
 
-            DataTable dt = hp.ToDataTable(_noteadditinallistDC.RateSpreadScheduleList);
+            DataTable dt = new DataTable();
+
+            dt = hp.ToDataTable(_noteadditinallistDC.RateSpreadScheduleList);
             // noteaddilist.Merge(dt);
             foreach (DataRow dr in dt.Rows)
             {
@@ -2188,6 +2430,153 @@ namespace CRES.DAL.Repository
             hp.ExecDataTablewithtable("usp_InsertUpdateNoteAdditinalList", "noteAdditinallistXML", notelist.ToXML(), "TmpnoteAdditinallist", dtChildNoteAddilist, CreatedBy, UpdatedBy, _noteadditinallistDC.noteobj.RequestType, _noteadditinallistDC.noteobj.AnalysisID.ToString());
 
             return 1;
+        }
+
+        public string InsertUpdatedNoteRateSpreadSchedule(List<RateSpreadSchedule> noteRateSpread, string userid)
+        {
+            string status = "";
+            try
+            {
+                Helper.Helper hp = new Helper.Helper();
+
+                DataTable noteRateSpreadData = new DataTable();
+                noteRateSpreadData.Columns.Add("ScheduleID");
+                noteRateSpreadData.Columns.Add("AccountID");
+                noteRateSpreadData.Columns.Add("EffectiveDate");
+                noteRateSpreadData.Columns.Add("Date");
+                noteRateSpreadData.Columns.Add("ValueTypeID");
+                noteRateSpreadData.Columns.Add("Value");
+                noteRateSpreadData.Columns.Add("IntCalcMethodID");
+                noteRateSpreadData.Columns.Add("RateOrSpreadToBeStripped");
+                noteRateSpreadData.Columns.Add("IndexNameID");
+                noteRateSpreadData.Columns.Add("DeterminationDateHolidayList");
+                noteRateSpreadData.Columns.Add("IsDeleted");
+                if (noteRateSpread != null)
+                {
+                    DataTable dt = new DataTable();
+                    dt = hp.ToDataTable(noteRateSpread);
+
+                    foreach (DataRow dr in dt.Rows)
+                    {
+                        noteRateSpreadData.ImportRow(dr);
+                    }
+                }
+
+                if (noteRateSpreadData.Rows.Count > 0)
+                {
+                    hp.ExecDataTablewithtableWithUserName("usp_InsertUpdateNoteRateSpreadSchedule", noteRateSpreadData, "tbltype_NoteRateSpreadSchedule", userid);
+                    status = "Saved";
+                }
+            }
+            catch (Exception)
+            {
+                throw;
+            }
+            return status;
+        }
+
+        public string InsertUpdatedNoteFeeSchedule(List<PrepayAndAdditionalFeeScheduleDataContract> noteFeeSchedule, string userid)
+        {
+            string status = "";
+            try
+            {
+                Helper.Helper hp = new Helper.Helper();
+
+                DataTable noteFeeScheduleData = new DataTable();
+                noteFeeScheduleData.Columns.Add("ScheduleID");
+                noteFeeScheduleData.Columns.Add("AccountID");
+                noteFeeScheduleData.Columns.Add("EffectiveDate");
+                noteFeeScheduleData.Columns.Add("StartDate");
+                noteFeeScheduleData.Columns.Add("ScheduleEndDate");
+                noteFeeScheduleData.Columns.Add("FeeName");
+                noteFeeScheduleData.Columns.Add("ValueTypeID");
+                noteFeeScheduleData.Columns.Add("Value");
+                noteFeeScheduleData.Columns.Add("FeeAmountOverride");
+                noteFeeScheduleData.Columns.Add("BaseAmountOverride");
+                noteFeeScheduleData.Columns.Add("ApplyTrueUpFeatureID");
+                noteFeeScheduleData.Columns.Add("IncludedLevelYield");
+                noteFeeScheduleData.Columns.Add("IncludedBasis");
+                noteFeeScheduleData.Columns.Add("PercentageOfFeeToBeStripped");
+                noteFeeScheduleData.Columns.Add("IsDeleted");
+                if (noteFeeSchedule != null)
+                {
+                    DataTable dt = new DataTable();
+                    dt = hp.ToDataTable(noteFeeSchedule);
+
+                    foreach (DataRow dr in dt.Rows)
+                    {
+                        noteFeeScheduleData.ImportRow(dr);
+                    }
+                }
+
+                if (noteFeeScheduleData.Rows.Count > 0)
+                {
+                    hp.ExecDataTablewithtableWithUserName("usp_InsertUpdateNoteFeeSchedule", noteFeeScheduleData, "tbltype_NoteFeeSchedule", userid);
+                    status = "Saved";
+                }
+            }
+            catch (Exception)
+            {
+                throw;
+            }
+            return status;
+        }
+
+        public string InsertUpdateNotePIKScheduleEditHistory(List<PIKSchedule> notePIKSchedule, string userid)
+        {
+            string status = "";
+            try
+            {
+                Helper.Helper hp = new Helper.Helper();
+
+                DataTable notePIKScheduleData = new DataTable();
+                notePIKScheduleData.Columns.Add("ScheduleID");
+                notePIKScheduleData.Columns.Add("AccountID");
+                notePIKScheduleData.Columns.Add("EffectiveDate");
+                notePIKScheduleData.Columns.Add("SourceAccountID");
+                notePIKScheduleData.Columns.Add("TargetAccountID");
+                notePIKScheduleData.Columns.Add("AdditionalIntRate");
+                notePIKScheduleData.Columns.Add("AdditionalSpread");
+                notePIKScheduleData.Columns.Add("IndexFloor");
+                notePIKScheduleData.Columns.Add("IntCompoundingRate");
+                notePIKScheduleData.Columns.Add("IntCompoundingSpread");
+                notePIKScheduleData.Columns.Add("StartDate");
+                notePIKScheduleData.Columns.Add("EndDate");
+                notePIKScheduleData.Columns.Add("IntCapAmt");
+                notePIKScheduleData.Columns.Add("PurBal");
+                notePIKScheduleData.Columns.Add("AccCapBal");
+                notePIKScheduleData.Columns.Add("PIKReasonCodeID");
+                notePIKScheduleData.Columns.Add("PIKComments");
+                notePIKScheduleData.Columns.Add("PIKIntCalcMethodID");
+                notePIKScheduleData.Columns.Add("PeriodicRateCapAmount");
+                notePIKScheduleData.Columns.Add("PeriodicRateCapPercent");
+                notePIKScheduleData.Columns.Add("PIKPercentage");
+                notePIKScheduleData.Columns.Add("PIKSetUp");
+                notePIKScheduleData.Columns.Add("IsDeleted");
+                notePIKScheduleData.Columns.Add("PIKCurrentPayRate");
+                notePIKScheduleData.Columns.Add("PIKSeparateCompounding");
+                if (notePIKSchedule != null)
+                {
+                    DataTable dt = new DataTable();
+                    dt = hp.ToDataTable(notePIKSchedule);
+
+                    foreach (DataRow dr in dt.Rows)
+                    {
+                        notePIKScheduleData.ImportRow(dr);
+                    }
+                }
+
+                if (notePIKScheduleData.Rows.Count > 0)
+                {
+                    hp.ExecDataTablewithtableWithUserName("usp_InsertUpdateNotePIKScheduleEditHistory", notePIKScheduleData, "tbltype_NoteEditPIKSchedule", userid);
+                    status = "Saved";
+                }
+            }
+            catch (Exception)
+            {
+                throw;
+            }
+            return status;
         }
 
         public int AddUpdateNoteArchieveAdditinalList(Guid? userid, NoteAdditinalListDataContract _noteadditinalarchievelistDC, string CreatedBy, string UpdatedBy)
@@ -2410,48 +2799,11 @@ namespace CRES.DAL.Repository
                     rss.orgPurposeID = CommonHelper.ToInt32(dr["PurposeID"]);
                     rss.OrgPurposeText = Convert.ToString(dr["PurposeText"]);
                     rss.OrgApplied = CommonHelper.ToBoolean(dr["Applied"]);
+                    rss.AdjustmentTypeText = Convert.ToString(dr["AdjustmentTypeText"]);
                     ListFutureFunding.Add(rss);
                 }
                 _noteAllSch.ListFutureFundingScheduleTab = ListFutureFunding;
             }
-            //if (_noteAllSch.ListFutureFundingScheduleTab.Count() > 0)
-            //{
-            //    _noteAllSch.FutureFundingEffactiveDate = _noteAllSch.ListFutureFundingScheduleTab.Select(x => x.EffectiveDate).ToList().First();
-            //}
-
-            //var resLiborScheduleTab = _allScheduleList.Where(x => x.EventTypeID == 18).ToList();//LIBORSchedule
-            //_noteAllSch.ListLiborScheduleTab = (from rss in resLiborScheduleTab
-            //                                    select new LiborScheduleTab()
-            //                                    {
-            //                                        NoteID = rss.NoteID,
-            //                                        AccountID = rss.AccountID,
-            //                                        //LiborScheduleID = rss.ScheduleID,
-            //                                        Date = rss.Date,
-            //                                        Value = rss.Value,
-            //                                        Event_Date = rss.Event_Date,
-            //                                        EffectiveDate = rss.EffectiveDate,
-            //                                        EffectiveEndDate = rss.EffectiveEndDate,
-            //                                        EventTypeID = rss.EventTypeID,
-            //                                        EventTypeText = rss.EventTypeText,
-            //                                        EventId = rss.EventID,
-            //                                        CreatedBy = rss.CreatedBy,
-            //                                        CreatedDate = rss.CreatedDate,
-            //                                        UpdatedBy = rss.UpdatedBy,
-            //                                        Indexoverrides = rss.IndexValue,
-            //                                        UpdatedDate = rss.UpdatedDate,
-            //                                        ModuleId = rss.EventTypeID,
-            //                                        ScheduleID = rss.ScheduleID.ToString()
-            //                                    }).ToList();
-
-            //if (_noteAllSch.lstLiborScheduleTab.Count() > 0)
-            //{
-            //    _noteAllSch.LiborScheduleEffactiveDate = _noteAllSch.lstLiborScheduleTab.Select(x => x.EffectiveDate).ToList().First();
-            //}
-
-            // var resAmortSchedule = _allScheduleList.Where(x => x.EventTypeID == 19);//AmortSchedule
-            //_noteAllSch.ListFixedAmortScheduleTab = (from rss in resAmortSchedule
-            //                                         select new FixedAmortScheduleTab()
-            //     
 
             var newdtmAmort = dt.Select("EventTypeID = 19");
             if (newdtmAmort.Length > 0)
@@ -2499,15 +2851,6 @@ namespace CRES.DAL.Repository
                 lstamortfixed.Add(amortfixedtab);
                 _noteAllSch.ListFixedAmortScheduleTab = lstamortfixed;
             }
-            //if (_noteAllSch.ListFixedAmortScheduleTab.Count() > 0)
-            //{
-            //    _noteAllSch.FixedAmortScheduleEffactiveDate = _noteAllSch.ListFixedAmortScheduleTab.Select(x => x.EffectiveDate).First();
-            //}
-
-            // var resPIKScheduleDetail = _allScheduleList.Where(x => x.EventTypeID == 17);//PIKScheduleDetail
-            //_noteAllSch.ListPIKfromPIKSourceNoteTab = (from rss in resPIKScheduleDetail
-            //                                           select new PIKfromPIKSourceNoteTab()
-            //              
 
             var newdtmpik = dt.Select("EventTypeID = 17");
             if (newdtmpik.Length > 0)
@@ -2548,21 +2891,10 @@ namespace CRES.DAL.Repository
                 _noteAllSch.ListPIKfromPIKSourceNoteTab = ListPIKfromPIKSource;
             }
 
-
-            //if (_noteAllSch.lstPIKfromPIKSourceNoteTab.Count() > 0)
-            //{
-            //    _noteAllSch.PIKfromPIKSourceNoteEffactiveDate = _noteAllSch.lstPIKfromPIKSourceNoteTab.Select(x => x.EffectiveDate).First();
-            //}
-
-            // var resFeeCouponStripReceivable = _allScheduleList.Where(x => x.EventTypeID == 20);//FeeCouponStripReceivable
-
             var newdtmfee = dt.Select("EventTypeID = 20");
             if (newdtmfee.Length > 0)
             {
                 DataTable dtmFeeCoupon = dt.Select("EventTypeID = 20").CopyToDataTable();
-                //_noteAllSch.ListFeeCouponStripReceivable = (from rss in resFeeCouponStripReceivable
-                //                                            select new FeeCouponStripReceivableTab()
-                //                                            {
 
                 List<FeeCouponStripReceivableTab> ListFeeCouponStrip = new List<FeeCouponStripReceivableTab>();
                 foreach (DataRow dr in dtmFeeCoupon.Rows)
@@ -2602,10 +2934,6 @@ namespace CRES.DAL.Repository
                 }
                 _noteAllSch.ListFeeCouponStripReceivable = ListFeeCouponStrip;
             }
-            //if (_noteAllSch.ListFeeCouponStripReceivable.Count() > 0)
-            //{
-            //    _noteAllSch.FeeCouponStripReceivableEffactiveDate = _noteAllSch.ListFeeCouponStripReceivable.Select(x => x.EffectiveDate).First();
-            //}
 
             return _noteAllSch;
         }
@@ -2621,7 +2949,7 @@ namespace CRES.DAL.Repository
             notePeriCalc.Columns.Add("ActualCashFlows");
             notePeriCalc.Columns.Add("GAAPCashFlows");
             notePeriCalc.Columns.Add("EndingGAAPBookValue");
-            notePeriCalc.Columns.Add("PIKInterestAccrualforthePeriod");
+            //notePeriCalc.Columns.Add("PIKInterestAccrualforthePeriod");
             notePeriCalc.Columns.Add("TotalAmortAccrualForPeriod");
             notePeriCalc.Columns.Add("AccumulatedAmort");
             notePeriCalc.Columns.Add("BeginningBalance");
@@ -2633,7 +2961,6 @@ namespace CRES.DAL.Repository
             notePeriCalc.Columns.Add("PrincipalPaid");
             notePeriCalc.Columns.Add("BalloonPayment");
             notePeriCalc.Columns.Add("EndingBalance");
-
             notePeriCalc.Columns.Add("EndOfPeriodWAL");
             notePeriCalc.Columns.Add("PIKInterestFromPIKSourceNote");
             notePeriCalc.Columns.Add("PIKInterestTransferredToRelatedNote");
@@ -2706,8 +3033,14 @@ namespace CRES.DAL.Repository
             notePeriCalc.Columns.Add("EndingAccumSLAmort");
             notePeriCalc.Columns.Add("EndingPreCapGAAPBasis");
             notePeriCalc.Columns.Add("PIKPrincipalPaidForThePeriod");
-
-
+            notePeriCalc.Columns.Add("RemainingUnfundedCommitment");
+            notePeriCalc.Columns.Add("CurrentPeriodPIKInterestAccrual");
+            notePeriCalc.Columns.Add("DropDateInterestDeltaBalance");
+            notePeriCalc.Columns.Add("AverageDailyBalance");
+            notePeriCalc.Columns.Add("InterestPastDue");
+            notePeriCalc.Columns.Add("InitialFunding");
+            notePeriCalc.Columns.Add("CapitalizedCostAccumulatedAmort");
+            notePeriCalc.Columns.Add("DiscountPremiumAccumulatedAmort");
             if (_notePeriodicOutputsDC != null)
             {
                 DataTable dt = new DataTable();
@@ -2718,47 +3051,13 @@ namespace CRES.DAL.Repository
                     notePeriCalc.ImportRow(dr);
                 }
             }
-
             if (notePeriCalc.Rows.Count > 0)
             {
                 string CreatedBy = _notePeriodicOutputsDC[0].CreatedBy; ;
                 string UpdatedBy = _notePeriodicOutputsDC[0].UpdatedBy;
-
                 hp.ExecDataTablewithtable("usp_InsertUpdateNotePeriodicCalcByNoteID", notePeriCalc, CreatedBy, UpdatedBy);
             }
-
-            #region Do not delete commented section
-
-            //CRESEntities dbContext = new CRESEntities();
-
-            ////dbContext.ins
-            ////_notePeriodicOutputsDC = _notePeriodicOutputsDC.RemoveAll(x=>x.n);
-
-            ////Get properties of BillingDetailEntityBulk
-            //System.Reflection.PropertyInfo[] properties = typeof(NotePeriodicOutputsDataContract).GetProperties();
-
-            ////Convert Entity Object to DataTable
-            //DataTable dt = ToDataTable(_notePeriodicOutputsDC, properties);
-
-            //string conString = System.Configuration.ConfigurationManager.ConnectionStrings["LoggingInDB"].ConnectionString;
-            //SqlConnection conn = new SqlConnection(conString);
-            //if(conn.State == ConnectionState.Open) { conn.Close(); }
-            //conn.Open();
-
-            //string noteid = dt.Rows[0]["NoteID"].ToString();
-
-            //SqlCommand com2 = new SqlCommand("usp_DeleteNotePeriodicCalcByNoteID", conn);
-            //com2.CommandType = CommandType.StoredProcedure;
-            //com2.Parameters.AddWithValue("@NoteID", noteid);
-            //com2.ExecuteNonQuery();
-
-            ////Insert Data into Database
-            //string tableName = "CRE.NotePeriodicCalc";
-            //BulkInsert(dt, tableName, conString);
-
-            #endregion Do not delete commented section
         }
-
         public void InsertNotePeriodicCalcFromCalculationManger(List<NotePeriodicOutputsDataContract> _notePeriodicOutputsDC, string username, Guid noteid)
         {
             Helper.Helper hp = new Helper.Helper();
@@ -2770,7 +3069,7 @@ namespace CRES.DAL.Repository
             notePeriCalc.Columns.Add("ActualCashFlows");
             notePeriCalc.Columns.Add("GAAPCashFlows");
             notePeriCalc.Columns.Add("EndingGAAPBookValue");
-            notePeriCalc.Columns.Add("PIKInterestAccrualforthePeriod");
+            //notePeriCalc.Columns.Add("PIKInterestAccrualforthePeriod");
             notePeriCalc.Columns.Add("TotalAmortAccrualForPeriod");
             notePeriCalc.Columns.Add("AccumulatedAmort");
             notePeriCalc.Columns.Add("BeginningBalance");
@@ -2782,7 +3081,6 @@ namespace CRES.DAL.Repository
             notePeriCalc.Columns.Add("PrincipalPaid");
             notePeriCalc.Columns.Add("BalloonPayment");
             notePeriCalc.Columns.Add("EndingBalance");
-
             notePeriCalc.Columns.Add("EndOfPeriodWAL");
             notePeriCalc.Columns.Add("PIKInterestFromPIKSourceNote");
             notePeriCalc.Columns.Add("PIKInterestTransferredToRelatedNote");
@@ -2841,7 +3139,6 @@ namespace CRES.DAL.Repository
             notePeriCalc.Columns.Add("CurrentPeriodPIKInterestAccrualPeriodEnddate");
             notePeriCalc.Columns.Add("PIKInterestPaidForThePeriod");
             notePeriCalc.Columns.Add("PIKInterestAppliedForThePeriod");
-
             notePeriCalc.Columns.Add("EndingPreCapPVBasis");
             notePeriCalc.Columns.Add("LevelYieldIncomeForThePeriod");
             notePeriCalc.Columns.Add("PVAmortTotalIncomeMethod");
@@ -2856,6 +3153,18 @@ namespace CRES.DAL.Repository
             notePeriCalc.Columns.Add("EndingAccumSLAmort");
             notePeriCalc.Columns.Add("EndingPreCapGAAPBasis");
             notePeriCalc.Columns.Add("PIKPrincipalPaidForThePeriod");
+            notePeriCalc.Columns.Add("RemainingUnfundedCommitment");
+            notePeriCalc.Columns.Add("CurrentPeriodPIKInterestAccrual");
+            notePeriCalc.Columns.Add("DropDateInterestDeltaBalance");
+            notePeriCalc.Columns.Add("AverageDailyBalance");
+            notePeriCalc.Columns.Add("InterestPastDue");
+            notePeriCalc.Columns.Add("CapitalizedCostAccumulatedAmort");
+            notePeriCalc.Columns.Add("DiscountPremiumAccumulatedAmort");
+            notePeriCalc.Columns.Add("PrincipalWriteoff");
+            notePeriCalc.Columns.Add("NetPIKAmountForThePeriod");
+
+            notePeriCalc.Columns.Add("CashInterest");
+            notePeriCalc.Columns.Add("CapitalizedInterest");
 
 
             if (_notePeriodicOutputsDC != null)
@@ -2868,6 +3177,101 @@ namespace CRES.DAL.Repository
                     dr["NoteID"] = noteid;
                     dr["UpdatedBy"] = username;
                     dr["CreatedBy"] = username;
+
+                    dr["ActualCashFlows"] = CommonHelper.ToDecimalWithRound(dr["ActualCashFlows"], 10);
+                    dr["GAAPCashFlows"] = CommonHelper.ToDecimalWithRound(dr["GAAPCashFlows"], 10);
+                    dr["EndingGAAPBookValue"] = CommonHelper.ToDecimalWithRound(dr["EndingGAAPBookValue"], 10);
+                    dr["TotalAmortAccrualForPeriod"] = CommonHelper.ToDecimalWithRound(dr["TotalAmortAccrualForPeriod"], 10);
+                    dr["AccumulatedAmort"] = CommonHelper.ToDecimalWithRound(dr["AccumulatedAmort"], 10);
+                    dr["BeginningBalance"] = CommonHelper.ToDecimalWithRound(dr["BeginningBalance"], 10);
+                    dr["TotalFutureAdvancesForThePeriod"] = CommonHelper.ToDecimalWithRound(dr["TotalFutureAdvancesForThePeriod"], 10);
+                    dr["TotalDiscretionaryCurtailmentsforthePeriod"] = CommonHelper.ToDecimalWithRound(dr["TotalDiscretionaryCurtailmentsforthePeriod"], 10);
+                    dr["TotalCouponStrippedforthePeriod"] = CommonHelper.ToDecimalWithRound(dr["TotalCouponStrippedforthePeriod"], 10);
+                    dr["CouponStrippedonPaymentDate"] = CommonHelper.ToDecimalWithRound(dr["CouponStrippedonPaymentDate"], 10);
+                    dr["ScheduledPrincipal"] = CommonHelper.ToDecimalWithRound(dr["ScheduledPrincipal"], 10);
+                    dr["PrincipalPaid"] = CommonHelper.ToDecimalWithRound(dr["PrincipalPaid"], 10);
+                    dr["BalloonPayment"] = CommonHelper.ToDecimalWithRound(dr["BalloonPayment"], 10);
+                    dr["EndingBalance"] = CommonHelper.ToDecimalWithRound(dr["EndingBalance"], 10);
+                    dr["EndOfPeriodWAL"] = CommonHelper.ToDecimalWithRound(dr["EndOfPeriodWAL"], 10);
+                    dr["PIKInterestFromPIKSourceNote"] = CommonHelper.ToDecimalWithRound(dr["PIKInterestFromPIKSourceNote"], 10);
+                    dr["PIKInterestTransferredToRelatedNote"] = CommonHelper.ToDecimalWithRound(dr["PIKInterestTransferredToRelatedNote"], 10);
+                    dr["PIKInterestForThePeriod"] = CommonHelper.ToDecimalWithRound(dr["PIKInterestForThePeriod"], 10);
+
+                    dr["BeginningPIKBalanceNotInsideLoanBalance"] = CommonHelper.ToDecimalWithRound(dr["BeginningPIKBalanceNotInsideLoanBalance"], 10);
+                    dr["PIKInterestForPeriodNotInsideLoanBalance"] = CommonHelper.ToDecimalWithRound(dr["PIKInterestForPeriodNotInsideLoanBalance"], 10);
+                    dr["PIKBalanceBalloonPayment"] = CommonHelper.ToDecimalWithRound(dr["PIKBalanceBalloonPayment"], 10);
+                    dr["EndingPIKBalanceNotInsideLoanBalance"] = CommonHelper.ToDecimalWithRound(dr["EndingPIKBalanceNotInsideLoanBalance"], 10);
+                    dr["AmortAccrualLevelYield"] = CommonHelper.ToDecimalWithRound(dr["AmortAccrualLevelYield"], 10);
+                    dr["ScheduledPrincipalShortfall"] = CommonHelper.ToDecimalWithRound(dr["ScheduledPrincipalShortfall"], 10);
+                    dr["PrincipalShortfall"] = CommonHelper.ToDecimalWithRound(dr["PrincipalShortfall"], 10);
+                    dr["PrincipalLoss"] = CommonHelper.ToDecimalWithRound(dr["PrincipalLoss"], 10);
+                    dr["InterestForPeriodShortfall"] = CommonHelper.ToDecimalWithRound(dr["InterestForPeriodShortfall"], 10);
+                    dr["InterestPaidOnPMTDateShortfall"] = CommonHelper.ToDecimalWithRound(dr["InterestPaidOnPMTDateShortfall"], 10);
+                    dr["CumulativeInterestPaidOnPMTDateShortfall"] = CommonHelper.ToDecimalWithRound(dr["CumulativeInterestPaidOnPMTDateShortfall"], 10);
+                    dr["InterestShortfallLoss"] = CommonHelper.ToDecimalWithRound(dr["InterestShortfallLoss"], 10);
+                    dr["InterestShortfallRecovery"] = CommonHelper.ToDecimalWithRound(dr["InterestShortfallRecovery"], 10);
+                    dr["BeginningFinancingBalance"] = CommonHelper.ToDecimalWithRound(dr["BeginningFinancingBalance"], 10);
+                    dr["TotalFinancingDrawsCurtailmentsForPeriod"] = CommonHelper.ToDecimalWithRound(dr["TotalFinancingDrawsCurtailmentsForPeriod"], 10);
+                    dr["FinancingBalloon"] = CommonHelper.ToDecimalWithRound(dr["FinancingBalloon"], 10);
+                    dr["EndingFinancingBalance"] = CommonHelper.ToDecimalWithRound(dr["EndingFinancingBalance"], 10);
+                    dr["FinancingInterestPaid"] = CommonHelper.ToDecimalWithRound(dr["FinancingInterestPaid"], 10);
+                    dr["FinancingFeesPaid"] = CommonHelper.ToDecimalWithRound(dr["FinancingFeesPaid"], 10);
+                    dr["PeriodLeveredYield"] = CommonHelper.ToDecimalWithRound(dr["PeriodLeveredYield"], 10);
+                    dr["OrigFeeAccrual"] = CommonHelper.ToDecimalWithRound(dr["OrigFeeAccrual"], 10);
+                    dr["DiscountPremiumAccrual"] = CommonHelper.ToDecimalWithRound(dr["DiscountPremiumAccrual"], 10);
+                    dr["ExitFeeAccrual"] = CommonHelper.ToDecimalWithRound(dr["ExitFeeAccrual"], 10);
+                    dr["AllInCouponRate"] = CommonHelper.ToDecimalWithRound(dr["AllInCouponRate"], 10);
+                    dr["CleanCost"] = CommonHelper.ToDecimalWithRound(dr["CleanCost"], 10);
+                    dr["GrossDeferredFees"] = CommonHelper.ToDecimalWithRound(dr["GrossDeferredFees"], 10);
+                    dr["DeferredFeesReceivable"] = CommonHelper.ToDecimalWithRound(dr["DeferredFeesReceivable"], 10);
+                    dr["CleanCostPrice"] = CommonHelper.ToDecimalWithRound(dr["CleanCostPrice"], 10);
+                    dr["AmortizedCostPrice"] = CommonHelper.ToDecimalWithRound(dr["AmortizedCostPrice"], 10);
+                    dr["AdditionalFeeAccrual"] = CommonHelper.ToDecimalWithRound(dr["AdditionalFeeAccrual"], 10);
+                    dr["CapitalizedCostAccrual"] = CommonHelper.ToDecimalWithRound(dr["CapitalizedCostAccrual"], 10);
+                    dr["ReversalofPriorInterestAccrual"] = CommonHelper.ToDecimalWithRound(dr["ReversalofPriorInterestAccrual"], 10);
+                    dr["InterestReceivedinCurrentPeriod"] = CommonHelper.ToDecimalWithRound(dr["InterestReceivedinCurrentPeriod"], 10);
+                    dr["CurrentPeriodInterestAccrual"] = CommonHelper.ToDecimalWithRound(dr["CurrentPeriodInterestAccrual"], 10);
+                    dr["TotalGAAPInterestFortheCurrentPeriod"] = CommonHelper.ToDecimalWithRound(dr["TotalGAAPInterestFortheCurrentPeriod"], 10);
+                    dr["InvestmentBasis"] = CommonHelper.ToDecimalWithRound(dr["InvestmentBasis"], 10);
+                    dr["CurrentPeriodInterestAccrualPeriodEnddate"] = CommonHelper.ToDecimalWithRound(dr["CurrentPeriodInterestAccrualPeriodEnddate"], 10);
+                    dr["LIBORPercentage"] = CommonHelper.ToDecimalWithRound(dr["LIBORPercentage"], 10);
+                    dr["SpreadPercentage"] = CommonHelper.ToDecimalWithRound(dr["SpreadPercentage"], 10);
+                    dr["FeeStrippedforthePeriod"] = CommonHelper.ToDecimalWithRound(dr["FeeStrippedforthePeriod"], 10);
+                    dr["PIKInterestPercentage"] = CommonHelper.ToDecimalWithRound(dr["PIKInterestPercentage"], 10);
+                    dr["AmortizedCost"] = CommonHelper.ToDecimalWithRound(dr["AmortizedCost"], 10);
+                    dr["InterestSuspenseAccountActivityforthePeriod"] = CommonHelper.ToDecimalWithRound(dr["InterestSuspenseAccountActivityforthePeriod"], 10);
+                    dr["InterestSuspenseAccountBalance"] = CommonHelper.ToDecimalWithRound(dr["InterestSuspenseAccountBalance"], 10);
+                    dr["AllInBasisValuation"] = CommonHelper.ToDecimalWithRound(dr["AllInBasisValuation"], 10);
+                    dr["AllInPIKRate"] = CommonHelper.ToDecimalWithRound(dr["AllInPIKRate"], 10);
+                    dr["CurrentPeriodPIKInterestAccrualPeriodEnddate"] = CommonHelper.ToDecimalWithRound(dr["CurrentPeriodPIKInterestAccrualPeriodEnddate"], 10);
+                    dr["PIKInterestPaidForThePeriod"] = CommonHelper.ToDecimalWithRound(dr["PIKInterestPaidForThePeriod"], 10);
+                    dr["PIKInterestAppliedForThePeriod"] = CommonHelper.ToDecimalWithRound(dr["PIKInterestAppliedForThePeriod"], 10);
+                    dr["EndingPreCapPVBasis"] = CommonHelper.ToDecimalWithRound(dr["EndingPreCapPVBasis"], 10);
+                    dr["LevelYieldIncomeForThePeriod"] = CommonHelper.ToDecimalWithRound(dr["LevelYieldIncomeForThePeriod"], 10);
+                    dr["PVAmortTotalIncomeMethod"] = CommonHelper.ToDecimalWithRound(dr["PVAmortTotalIncomeMethod"], 10);
+                    dr["EndingCleanCostLY"] = CommonHelper.ToDecimalWithRound(dr["EndingCleanCostLY"], 10);
+                    dr["EndingAccumAmort"] = CommonHelper.ToDecimalWithRound(dr["EndingAccumAmort"], 10);
+                    dr["PVAmortForThePeriod"] = CommonHelper.ToDecimalWithRound(dr["PVAmortForThePeriod"], 10);
+                    dr["EndingSLBasis"] = CommonHelper.ToDecimalWithRound(dr["EndingSLBasis"], 10);
+                    dr["SLAmortForThePeriod"] = CommonHelper.ToDecimalWithRound(dr["SLAmortForThePeriod"], 10);
+                    dr["SLAmortOfTotalFeesInclInLY"] = CommonHelper.ToDecimalWithRound(dr["SLAmortOfTotalFeesInclInLY"], 10);
+                    dr["SLAmortOfDiscountPremium"] = CommonHelper.ToDecimalWithRound(dr["SLAmortOfDiscountPremium"], 10);
+                    dr["SLAmortOfCapCost"] = CommonHelper.ToDecimalWithRound(dr["SLAmortOfCapCost"], 10);
+                    dr["EndingAccumSLAmort"] = CommonHelper.ToDecimalWithRound(dr["EndingAccumSLAmort"], 10);
+                    dr["EndingPreCapGAAPBasis"] = CommonHelper.ToDecimalWithRound(dr["EndingPreCapGAAPBasis"], 10);
+                    dr["PIKPrincipalPaidForThePeriod"] = CommonHelper.ToDecimalWithRound(dr["PIKPrincipalPaidForThePeriod"], 10);
+                    dr["RemainingUnfundedCommitment"] = CommonHelper.ToDecimalWithRound(dr["RemainingUnfundedCommitment"], 10);
+                    dr["CurrentPeriodPIKInterestAccrual"] = CommonHelper.ToDecimalWithRound(dr["CurrentPeriodPIKInterestAccrual"], 10);
+                    dr["DropDateInterestDeltaBalance"] = CommonHelper.ToDecimalWithRound(dr["DropDateInterestDeltaBalance"], 10);
+                    dr["AverageDailyBalance"] = CommonHelper.ToDecimalWithRound(dr["AverageDailyBalance"], 10);
+                    dr["InterestPastDue"] = CommonHelper.ToDecimalWithRound(dr["InterestPastDue"], 10);
+                    dr["CapitalizedCostAccumulatedAmort"] = CommonHelper.ToDecimalWithRound(dr["CapitalizedCostAccumulatedAmort"], 10);
+                    dr["DiscountPremiumAccumulatedAmort"] = CommonHelper.ToDecimalWithRound(dr["DiscountPremiumAccumulatedAmort"], 10);
+                    dr["PrincipalWriteoff"] = CommonHelper.ToDecimalWithRound(dr["PrincipalWriteoff"], 10);
+                    dr["NetPIKAmountForThePeriod"] = CommonHelper.ToDecimalWithRound(dr["NetPIKAmountForThePeriod"], 10);
+
+                    dr["CashInterest"] = CommonHelper.ToDecimalWithRound(dr["CashInterest"], 10);
+                    dr["CapitalizedInterest"] = CommonHelper.ToDecimalWithRound(dr["CapitalizedInterest"], 10);
 
                     notePeriCalc.ImportRow(dr);
                 }
@@ -2890,7 +3294,7 @@ namespace CRES.DAL.Repository
             notePeriCalc.Columns.Add("ActualCashFlows");
             notePeriCalc.Columns.Add("GAAPCashFlows");
             notePeriCalc.Columns.Add("EndingGAAPBookValue");
-            notePeriCalc.Columns.Add("PIKInterestAccrualforthePeriod");
+            //notePeriCalc.Columns.Add("PIKInterestAccrualforthePeriod");
             notePeriCalc.Columns.Add("TotalAmortAccrualForPeriod");
             notePeriCalc.Columns.Add("AccumulatedAmort");
             notePeriCalc.Columns.Add("BeginningBalance");
@@ -2974,6 +3378,17 @@ namespace CRES.DAL.Repository
             notePeriCalc.Columns.Add("EndingAccumSLAmort");
             notePeriCalc.Columns.Add("EndingPreCapGAAPBasis");
             notePeriCalc.Columns.Add("PIKPrincipalPaidForThePeriod");
+            notePeriCalc.Columns.Add("RemainingUnfundedCommitment");
+            notePeriCalc.Columns.Add("CurrentPeriodPIKInterestAccrual");
+            notePeriCalc.Columns.Add("DropDateInterestDeltaBalance");
+            notePeriCalc.Columns.Add("AverageDailyBalance");
+            notePeriCalc.Columns.Add("InterestPastDue");
+            notePeriCalc.Columns.Add("CapitalizedCostAccumulatedAmort");
+            notePeriCalc.Columns.Add("DiscountPremiumAccumulatedAmort");
+            notePeriCalc.Columns.Add("PrincipalWriteoff");
+            notePeriCalc.Columns.Add("NetPIKAmountForThePeriod");
+            notePeriCalc.Columns.Add("CashInterest");
+            notePeriCalc.Columns.Add("CapitalizedInterest");
 
             if (_notePeriodicOutputsDC != null)
             {
@@ -3007,7 +3422,7 @@ namespace CRES.DAL.Repository
             notePeriCalc.Columns.Add("ActualCashFlows");
             notePeriCalc.Columns.Add("GAAPCashFlows");
             notePeriCalc.Columns.Add("EndingGAAPBookValue");
-            notePeriCalc.Columns.Add("PIKInterestAccrualforthePeriod");
+            //notePeriCalc.Columns.Add("PIKInterestAccrualforthePeriod");
             notePeriCalc.Columns.Add("TotalAmortAccrualForPeriod");
             notePeriCalc.Columns.Add("AccumulatedAmort");
             notePeriCalc.Columns.Add("BeginningBalance");
@@ -3092,7 +3507,17 @@ namespace CRES.DAL.Repository
             notePeriCalc.Columns.Add("EndingAccumSLAmort");
             notePeriCalc.Columns.Add("EndingPreCapGAAPBasis");
             notePeriCalc.Columns.Add("PIKPrincipalPaidForThePeriod");
-
+            notePeriCalc.Columns.Add("RemainingUnfundedCommitment");
+            notePeriCalc.Columns.Add("CurrentPeriodPIKInterestAccrual");
+            notePeriCalc.Columns.Add("DropDateInterestDeltaBalance");
+            notePeriCalc.Columns.Add("AverageDailyBalance");
+            notePeriCalc.Columns.Add("InterestPastDue");
+            notePeriCalc.Columns.Add("CapitalizedCostAccumulatedAmort");
+            notePeriCalc.Columns.Add("DiscountPremiumAccumulatedAmort");
+            notePeriCalc.Columns.Add("PrincipalWriteoff");
+            notePeriCalc.Columns.Add("NetPIKAmountForThePeriod");
+            notePeriCalc.Columns.Add("CashInterest");
+            notePeriCalc.Columns.Add("CapitalizedInterest");
             if (_notePeriodicOutputsDC != null)
             {
                 DataTable dt = new DataTable();
@@ -3125,7 +3550,7 @@ namespace CRES.DAL.Repository
             notePeriCalc.Columns.Add("ActualCashFlows");
             notePeriCalc.Columns.Add("GAAPCashFlows");
             notePeriCalc.Columns.Add("EndingGAAPBookValue");
-            notePeriCalc.Columns.Add("PIKInterestAccrualforthePeriod");
+            //notePeriCalc.Columns.Add("PIKInterestAccrualforthePeriod");
             notePeriCalc.Columns.Add("TotalAmortAccrualForPeriod");
             notePeriCalc.Columns.Add("AccumulatedAmort");
             notePeriCalc.Columns.Add("BeginningBalance");
@@ -3211,7 +3636,17 @@ namespace CRES.DAL.Repository
             notePeriCalc.Columns.Add("EndingAccumSLAmort");
             notePeriCalc.Columns.Add("EndingPreCapGAAPBasis");
             notePeriCalc.Columns.Add("PIKPrincipalPaidForThePeriod");
-
+            notePeriCalc.Columns.Add("RemainingUnfundedCommitment");
+            notePeriCalc.Columns.Add("CurrentPeriodPIKInterestAccrual");
+            notePeriCalc.Columns.Add("DropDateInterestDeltaBalance");
+            notePeriCalc.Columns.Add("AverageDailyBalance");
+            notePeriCalc.Columns.Add("InterestPastDue");
+            notePeriCalc.Columns.Add("CapitalizedCostAccumulatedAmort");
+            notePeriCalc.Columns.Add("DiscountPremiumAccumulatedAmort");
+            notePeriCalc.Columns.Add("PrincipalWriteoff");
+            notePeriCalc.Columns.Add("NetPIKAmountForThePeriod");
+            notePeriCalc.Columns.Add("CashInterest");
+            notePeriCalc.Columns.Add("CapitalizedInterest");
             if (_notePeriodicOutputsDC != null)
             {
                 DataTable dt = new DataTable();
@@ -3487,13 +3922,17 @@ namespace CRES.DAL.Repository
                 SqlParameter p124 = new SqlParameter { ParameterName = "@ExitFeeAmortCheckText", Value = note.ExitFeeAmortCheckText };
                 SqlParameter p125 = new SqlParameter { ParameterName = "@FixedAmortScheduleText", Value = note.FixedAmortScheduleText };
                 SqlParameter p126 = new SqlParameter { ParameterName = "@TotalCommitmentExtensionFeeisBasedOn", Value = note.TotalCommitmentExtensionFeeisBasedOn };
-                SqlParameter p127 = new SqlParameter { ParameterName = "@newnoteId", Direction = ParameterDirection.Output, Size = int.MaxValue };
+
+                SqlParameter p127 = new SqlParameter { ParameterName = "@FirstIndexDeterminationDateOverride", Value = note.FirstIndexDeterminationDateOverride };
+                SqlParameter p128 = new SqlParameter { ParameterName = "@newnoteId", Direction = ParameterDirection.Output, Size = int.MaxValue };
+
+
                 SqlParameter[] sqlparam = new SqlParameter[] { p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15, p16, p17, p18, p19, p20, p21, p22, p23,
                                                             p24, p25, p26, p27, p28, p29, p30, p31, p32, p33, p34, p35, p36, p37, p38, p39, p40, p41,p47, p48, p49, p50, p51, p52, p53, p54, p55, p56, p57, p58, p59,
                                                             p60, p61, p62, p63, p64, p65, p66, p67, p68, p69, p70, p71, p72, p73, p74, p75, p76, p77, p78, p79,
                                                             p80, p81, p82, p83, p84, p85, p86, p87, p88, p89, p90, p91, p92, p93, p94, p95, p96, p97, p98, p99, p100, p101,
                                                             p102, p103, p104, p105, p106, p107, p108, p109, p110, p111, p112, p113, p114, p115, p116, p117, p118, p119, p120,
-                                                            p121, p122, p123, p124, p125, p126, p127 };
+                                                            p121, p122, p123, p124, p125, p126, p127,p128 };
                 var res = hp.ExecuteScalar("dbo.usp_AddUpdateNoteFromCalculatorService", sqlparam);
                 Newnoteid = Convert.ToString(p127.Value);
 
@@ -3559,7 +3998,12 @@ namespace CRES.DAL.Repository
                     _notePeriodicOutputsDataContract.ActualCashFlows = CommonHelper.ToDecimal(dr["ActualCashFlows"]);
                     _notePeriodicOutputsDataContract.GAAPCashFlows = CommonHelper.ToDecimal(dr["GAAPCashFlows"]);
                     _notePeriodicOutputsDataContract.EndingGAAPBookValue = CommonHelper.ToDecimal(dr["EndingGAAPBookValue"]);
-                    _notePeriodicOutputsDataContract.PIKInterestAccrualforthePeriod = CommonHelper.ToDecimal(dr["PIKInterestAccrualforthePeriod"]);
+
+                    //_notePeriodicOutputsDataContract.PIKInterestAccrualforthePeriod = CommonHelper.ToDecimal(dr["PIKInterestAccrualforthePeriod"]);
+                    _notePeriodicOutputsDataContract.CurrentPeriodInterestAccrualPeriodEnddate = CommonHelper.ToDecimal(dr["CurrentPeriodInterestAccrualPeriodEnddate"]);
+                    _notePeriodicOutputsDataContract.CurrentPeriodPIKInterestAccrualPeriodEnddate = CommonHelper.ToDecimal(dr["CurrentPeriodPIKInterestAccrualPeriodEnddate"]);
+
+
                     _notePeriodicOutputsDataContract.TotalAmortAccrualForPeriod = CommonHelper.ToDecimal(dr["TotalAmortAccrualForPeriod"]);
                     _notePeriodicOutputsDataContract.AccumulatedAmort = CommonHelper.ToDecimal(dr["AccumulatedAmort"]);
                     _notePeriodicOutputsDataContract.BeginningBalance = CommonHelper.ToDecimal(dr["BeginningBalance"]);
@@ -3615,7 +4059,7 @@ namespace CRES.DAL.Repository
                     _notePeriodicOutputsDataContract.CurrentPeriodInterestAccrual = CommonHelper.ToDecimal(dr["CurrentPeriodInterestAccrual"]);
                     _notePeriodicOutputsDataContract.TotalGAAPInterestFortheCurrentPeriod = CommonHelper.ToDecimal(dr["TotalGAAPInterestFortheCurrentPeriod"]);
                     _notePeriodicOutputsDataContract.InvestmentBasis = CommonHelper.ToDecimal(dr["InvestmentBasis"]);
-                    _notePeriodicOutputsDataContract.CurrentPeriodInterestAccrualPeriodEnddate = CommonHelper.ToDecimal(dr["CurrentPeriodInterestAccrualPeriodEnddate"]);
+
                     _notePeriodicOutputsDataContract.AmortizedCost = CommonHelper.ToDecimal(dr["AmortizedCost"]);
                     if (Convert.ToString(dr["AnalysisID"]) != "")
                     {
@@ -3628,7 +4072,7 @@ namespace CRES.DAL.Repository
                     _notePeriodicOutputsDataContract.CalculationStatus = Convert.ToString(dr["CalculationStatus"]);
                     _notePeriodicOutputsDataContract.AllInBasisValuation = CommonHelper.ToDecimal(dr["AllInBasisValuation"]);
                     _notePeriodicOutputsDataContract.AllInPIKRate = CommonHelper.ToDecimal(dr["AllInPIKRate"]);
-                    _notePeriodicOutputsDataContract.CurrentPeriodPIKInterestAccrualPeriodEnddate = CommonHelper.ToDecimal(dr["CurrentPeriodPIKInterestAccrualPeriodEnddate"]);
+
                     _notePeriodicOutputsDataContract.PIKInterestPaidForThePeriod = CommonHelper.ToDecimal(dr["PIKInterestPaidForThePeriod"]);
                     _notePeriodicOutputsDataContract.PIKInterestAppliedForThePeriod = CommonHelper.ToDecimal(dr["PIKInterestAppliedForThePeriod"]);
 
@@ -3646,8 +4090,23 @@ namespace CRES.DAL.Repository
                     _notePeriodicOutputsDataContract.EndingAccumSLAmort = CommonHelper.ToDecimal(dr["EndingAccumSLAmort"]);
                     _notePeriodicOutputsDataContract.EndingPreCapGAAPBasis = CommonHelper.ToDecimal(dr["EndingPreCapGAAPBasis"]);
                     _notePeriodicOutputsDataContract.PIKPrincipalPaidForThePeriod = CommonHelper.ToDecimal(dr["PIKPrincipalPaidForThePeriod"]);
+                    _notePeriodicOutputsDataContract.RemainingUnfundedCommitment = CommonHelper.ToDecimal(dr["RemainingUnfundedCommitment"]);
+                    _notePeriodicOutputsDataContract.AccountingCloseDate = CommonHelper.ToDateTime(dr["accountingclosedate"]);
+                    _notePeriodicOutputsDataContract.CurrentPeriodPIKInterestAccrual = CommonHelper.ToDecimal(dr["CurrentPeriodPIKInterestAccrual"]);
+                    _notePeriodicOutputsDataContract.DropDateInterestDeltaBalance = CommonHelper.ToDecimal(dr["DropDateInterestDeltaBalance"]);
+                    _notePeriodicOutputsDataContract.AverageDailyBalance = CommonHelper.ToDecimal(dr["AverageDailyBalance"]);
+                    _notePeriodicOutputsDataContract.InterestPastDue = CommonHelper.ToDecimal(dr["InterestPastDue"]);
+                    _notePeriodicOutputsDataContract.CapitalizedCostAccumulatedAmort = CommonHelper.ToDecimal(dr["CapitalizedCostAccumulatedAmort"]);
+                    _notePeriodicOutputsDataContract.DiscountPremiumAccumulatedAmort = CommonHelper.ToDecimal(dr["DiscountPremiumAccumulatedAmort"]);
+                    _notePeriodicOutputsDataContract.PrincipalWriteoff = CommonHelper.ToDecimal(dr["PrincipalWriteoff"]);
+                    _notePeriodicOutputsDataContract.NetPIKAmountForThePeriod = CommonHelper.ToDecimal(dr["NetPIKAmountForThePeriod"]);
+
+                    _notePeriodicOutputsDataContract.CashInterest = CommonHelper.ToDecimal(dr["CashInterest"]);
+                    _notePeriodicOutputsDataContract.CapitalizedInterest = CommonHelper.ToDecimal(dr["CapitalizedInterest"]);
 
                     _notePeriodicOutputsDataContractList.Add(_notePeriodicOutputsDataContract);
+
+
                 }
 
                 return _notePeriodicOutputsDataContractList;
@@ -3680,14 +4139,23 @@ namespace CRES.DAL.Repository
                 _transactionEntryDataContract.Amount = CommonHelper.ToDecimal(dr["Amount"]);
                 _transactionEntryDataContract.Type = Convert.ToString(dr["Type"]);
                 _transactionEntryDataContract.FeeName = Convert.ToString(dr["FeeName"]);
-                _transactionEntryDataContract.LIBORPercentage = CommonHelper.ToDecimal(dr["LIBORPercentage"]);
+
                 _transactionEntryDataContract.PIKInterestPercentage = CommonHelper.ToDecimal(dr["PIKInterestPercentage"]);
+
                 _transactionEntryDataContract.SpreadPercentage = CommonHelper.ToDecimal(dr["SpreadPercentage"]);
+                _transactionEntryDataContract.LIBORPercentage = CommonHelper.ToDecimal(dr["LIBORPercentage"]);
+
                 _transactionEntryDataContract.TransactionDateByRule = CommonHelper.ToDateTime(dr["TransactionDateByRule"]);
                 _transactionEntryDataContract.DueDate = CommonHelper.ToDateTime(dr["DueDate"]);
                 _transactionEntryDataContract.RemitDate = CommonHelper.ToDateTime(dr["RemitDate"]);
                 _transactionEntryDataContract.TransactionCategory = Convert.ToString(dr["TransactionCategory"]);
                 _transactionEntryDataContract.Comment = Convert.ToString(dr["Comment"]);
+                _transactionEntryDataContract.AdjustmentType = Convert.ToString(dr["AdjustmentType"]);
+                _transactionEntryDataContract.AllInCouponRate = CommonHelper.ToDecimal(dr["AllInCouponRate"]);
+
+                _transactionEntryDataContract.RawIndexPercentage = CommonHelper.ToDecimal(dr["RawIndexPercentage"]);
+                _transactionEntryDataContract.AccountingCloseDate = CommonHelper.ToDateTime(dr["AccountingCloseDate"]);
+                _transactionEntryDataContract.PurposeType = Convert.ToString(dr["PurposeType"]);
 
                 _transactionEntryDataContractList.Add(_transactionEntryDataContract);
             }
@@ -3697,7 +4165,6 @@ namespace CRES.DAL.Repository
         {
             DataTable dt = new DataTable();
 
-#pragma warning disable CS0168 // The variable 'ex' is declared but never used
             try
             {
                 Helper.Helper hp = new Helper.Helper();
@@ -3709,7 +4176,6 @@ namespace CRES.DAL.Repository
             catch (Exception ex)
             {
             }
-#pragma warning restore CS0168 // The variable 'ex' is declared but never used
 
             return dt;
         }
@@ -3718,9 +4184,7 @@ namespace CRES.DAL.Repository
 
         public void InsertNoteFutureFunding(List<PayruleTargetNoteFundingScheduleDataContract> NoteFundings, string username)
         {
-#pragma warning disable CS0219 // The variable 'status' is assigned but its value is never used
             string status = "";
-#pragma warning restore CS0219 // The variable 'status' is assigned but its value is never used
             Helper.Helper hp = new Helper.Helper();
             DataTable dNoteFundings = new DataTable();
 
@@ -3730,6 +4194,7 @@ namespace CRES.DAL.Repository
             dNoteFundings.Columns.Add("PurposeID");
             dNoteFundings.Columns.Add("AccountId");
             dNoteFundings.Columns.Add("Applied");
+            dNoteFundings.Columns.Add("AdjustmentType");
             dNoteFundings.Columns.Add("DrawFundingId");
             dNoteFundings.Columns.Add("Comments");
             dNoteFundings.Columns.Add("DealFundingRowno");
@@ -3772,6 +4237,7 @@ namespace CRES.DAL.Repository
             dNoteFundings.Columns.Add("PurposeID");
             dNoteFundings.Columns.Add("AccountId");
             dNoteFundings.Columns.Add("Applied");
+            dNoteFundings.Columns.Add("NonCommitmentAdj");
             dNoteFundings.Columns.Add("DrawFundingId");
             dNoteFundings.Columns.Add("Comments");
             dNoteFundings.Columns.Add("DealFundingRowno");
@@ -3815,6 +4281,7 @@ namespace CRES.DAL.Repository
             dNoteFundings.Columns.Add("PurposeID");
             dNoteFundings.Columns.Add("AccountId");
             dNoteFundings.Columns.Add("Applied");
+            dNoteFundings.Columns.Add("NonCommitmentAdj");
             dNoteFundings.Columns.Add("DrawFundingId");
             dNoteFundings.Columns.Add("Comments");
             dNoteFundings.Columns.Add("DealFundingRowno");
@@ -3841,6 +4308,65 @@ namespace CRES.DAL.Repository
             if (dNoteFundings.Rows.Count > 0)
             {
                 status = hp.InsertFFBackshop("dbo.usp_ExportFutureFundingFromCRES", dNoteFundings, username, "notefunding", true);
+            }
+
+            return status;
+        }
+
+
+        public string ExportFutureFundingFromCRES_API(List<PayruleTargetNoteFundingScheduleDataContract> NoteFundings, string username, DealDataContract dealdc)
+        {
+            string status = "success";
+            Helper.Helper hp = new Helper.Helper();
+            DataTable dNoteFundings = new DataTable();
+
+            dNoteFundings.Columns.Add("NoteID");
+            dNoteFundings.Columns.Add("Value");
+            dNoteFundings.Columns.Add("Date");
+            dNoteFundings.Columns.Add("PurposeID");
+            dNoteFundings.Columns.Add("AccountId");
+            dNoteFundings.Columns.Add("Applied");
+            dNoteFundings.Columns.Add("NonCommitmentAdj");
+            dNoteFundings.Columns.Add("DrawFundingId");
+            dNoteFundings.Columns.Add("Comments");
+            dNoteFundings.Columns.Add("DealFundingRowno");
+            dNoteFundings.Columns.Add("isDeleted");
+            dNoteFundings.Columns.Add("WF_CurrentStatus");
+            dNoteFundings.Columns.Add("GeneratedBy");
+            //dNoteFundings.Columns.Add("EventId");
+            //dNoteFundings.Columns.Add("CreatedDate");
+            //dNoteFundings.Columns.Add("CreatedBy");
+            //dNoteFundings.Columns.Add("UpdatedDate");
+            //dNoteFundings.Columns.Add("UpdatedBy");
+
+            if (NoteFundings != null)
+            {
+                DataTable dt = new DataTable();
+                dt = ObjToDataTable.ToDataTable(NoteFundings);
+
+                foreach (DataRow dr in dt.Rows)
+                {
+                    dNoteFundings.ImportRow(dr);
+                }
+            }
+
+            if (dNoteFundings.Rows.Count > 0)
+            {
+                status = hp.InsertFFBackshop("dbo.usp_ExportFutureFundingFromCRES_API", dNoteFundings, username, "notefunding", true);
+            }
+            else
+            {
+                //deals do not have any funding data (delete from backshop as well)
+                foreach (var item in dealdc.Listnoteid)
+                {
+                    DataRow row = dNoteFundings.NewRow();
+                    row["NoteID"] = item;
+
+                    dNoteFundings.Rows.Add(row);
+                }
+
+
+                status = hp.InsertFFBackshop("dbo.usp_ExportFutureFundingFromCRES_API", dNoteFundings, username, "notefunding", true);
             }
 
             return status;
@@ -3905,7 +4431,7 @@ namespace CRES.DAL.Repository
             return _liborScheduleTabList;
         }
 
-        public void InsertCashflowTransaction(List<TransactionEntry> _lsttransactionEntryDC, string NoteId, string CreatedBy)
+        public void InsertCashflowTransaction(List<TransactionEntry> _lsttransactionEntryDC, string NoteId, string CreatedBy, DateTime? MaturityUsedInCalc)
         {
             Helper.Helper hp = new Helper.Helper();
 
@@ -3922,6 +4448,14 @@ namespace CRES.DAL.Repository
             dtTranscation.Columns.Add("TransactionDateByRule");
             dtTranscation.Columns.Add("TransactionDateServicingLog");
             dtTranscation.Columns.Add("RemittanceDate");
+            dtTranscation.Columns.Add("AdjustmentType");
+            dtTranscation.Columns.Add("AllInCouponRate");
+            dtTranscation.Columns.Add("IndexDeterminationDate");
+            dtTranscation.Columns.Add("BalloonRepayAmount");
+            dtTranscation.Columns.Add("IndexValue");
+            dtTranscation.Columns.Add("SpreadValue");
+            dtTranscation.Columns.Add("OriginalIndex");
+            dtTranscation.Columns.Add("LiborPercentage");
 
             if (_lsttransactionEntryDC != null)
             {
@@ -3939,7 +4473,9 @@ namespace CRES.DAL.Repository
                 SqlParameter p1 = new SqlParameter { ParameterName = "@TableTypeTransactionEntry", Value = dtTranscation };
                 SqlParameter p2 = new SqlParameter { ParameterName = "@NoteId", Value = new Guid(NoteId) };
                 SqlParameter p3 = new SqlParameter { ParameterName = "@CreatedBy", Value = CreatedBy };
-                SqlParameter[] sqlparam = new SqlParameter[] { p1, p2, p3 };
+                SqlParameter p4 = new SqlParameter { ParameterName = "@MaturityUsedInCalc", Value = MaturityUsedInCalc };
+
+                SqlParameter[] sqlparam = new SqlParameter[] { p1, p2, p3,p4 };
                 hp.ExecDataTablewithparams("dbo.usp_InsertTransactionEntry", sqlparam);
             }
         }
@@ -4061,6 +4597,75 @@ namespace CRES.DAL.Repository
             return dt;
         }
 
+
+        public DataTable GetNoteCashflowsExportData_All(string AnalysisID)
+        {
+            DataTable dt = new DataTable();
+            try
+            {
+                Helper.Helper hp = new Helper.Helper();
+                SqlParameter p1 = new SqlParameter { ParameterName = "@AnalysisID", Value = AnalysisID };
+                SqlParameter[] sqlparam = new SqlParameter[] { p1 };
+                dt = hp.ExecDataTable("usp_GetNoteCashflowsExportData_All", sqlparam);
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+            return dt;
+        }
+
+        public DataTable CheckDuplicateTransactionCashflowDownload(string AnalysisID)
+        {
+            DataTable dt = new DataTable();
+            try
+            {
+                Helper.Helper hp = new Helper.Helper();
+                SqlParameter p1 = new SqlParameter { ParameterName = "@AnalysisID", Value = AnalysisID };
+                SqlParameter[] sqlparam = new SqlParameter[] { p1 };
+                dt = hp.ExecDataTable("usp_CheckDuplicateTransactionCashflowDownload", sqlparam);
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+            return dt;
+        }
+        public DataTable CheckDuplicateTransactionCashflowDownloadAnalysis_Deal(string AnalysisID, string DealID)
+        {
+            DataTable dt = new DataTable();
+            try
+            {
+                Helper.Helper hp = new Helper.Helper();
+                SqlParameter p1 = new SqlParameter { ParameterName = "@AnalysisID", Value = AnalysisID };
+                SqlParameter p2 = new SqlParameter { ParameterName = "@DealID", Value = DealID };
+                SqlParameter[] sqlparam = new SqlParameter[] { p1, p2 };
+                dt = hp.ExecDataTable("usp_CheckDuplicateTransactionCashflowDownload", sqlparam);
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+            return dt;
+        }
+        public DataTable CheckDuplicateTransactionCashflowDownloadByAnalysis_Note(string AnalysisID, string NoteID)
+        {
+            DataTable dt = new DataTable();
+            try
+            {
+                Helper.Helper hp = new Helper.Helper();
+                SqlParameter p1 = new SqlParameter { ParameterName = "@AnalysisID", Value = AnalysisID };
+                SqlParameter p3 = new SqlParameter { ParameterName = "@NoteID", Value = NoteID };
+                SqlParameter[] sqlparam = new SqlParameter[] { p1, p3 };
+                dt = hp.ExecDataTable("usp_CheckDuplicateTransactionCashflowDownload", sqlparam);
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+            return dt;
+        }
+
         public void InsertNoteTransactionDetail(List<ServicingLogTab> _lstCalcValDC, string NoteId, string CreatedBy)
         {
             Helper.Helper hp = new Helper.Helper();
@@ -4121,7 +4726,10 @@ namespace CRES.DAL.Repository
                     ServicingLog.TransactionDateByRule = CommonHelper.ToDateTime(dr["TransactionDateByRule"]);
                     ServicingLog.TransactionDateServicingLog = CommonHelper.ToDateTime(dr["TransactionDateServicingLog"]);
                     ServicingLog.RemittanceDate = CommonHelper.ToDateTime(dr["RemittanceDate"]);
-
+                    ServicingLog.InitialInterestAccrualEndDate = CommonHelper.ToDateTime(dr["InitialInterestAccrualEndDate"]);
+                    ServicingLog.WriteOffAmount = CommonHelper.ToDecimal(dr["WriteOffAmount"]);
+                    ServicingLog.CashInterest = CommonHelper.ToDecimal(dr["CashInterest"]);
+                    ServicingLog.CapitalizedInterest = CommonHelper.ToDecimal(dr["CapitalizedInterest"]);
                     lstserviceinglog.Add(ServicingLog);
                 }
                 return lstserviceinglog;
@@ -4132,6 +4740,37 @@ namespace CRES.DAL.Repository
             }
         }
 
+        public List<ServicingWatchListCalcDataContract> GetServicingWatchListForCalc(string NoteID)
+        {
+            try
+            {
+                //added comment 
+                DataTable dt = new DataTable();
+                List<ServicingWatchListCalcDataContract> lst = new List<ServicingWatchListCalcDataContract>();
+                Helper.Helper hp = new Helper.Helper();
+                SqlParameter p1 = new SqlParameter { ParameterName = "@NoteID", Value = NoteID };
+                SqlParameter[] sqlparam = new SqlParameter[] { p1 };
+                dt = hp.ExecDataTable("dbo.usp_GetServicingWatchListForCalc", sqlparam);
+
+                foreach (DataRow dr in dt.Rows)
+                {
+                    ServicingWatchListCalcDataContract Servicing = new ServicingWatchListCalcDataContract();
+
+                    Servicing.NoteID = Convert.ToString(dr["noteid"]);
+                    Servicing.CreNoteID = Convert.ToString(dr["crenoteid"]);
+                    Servicing.Amount = CommonHelper.ToDecimal(dr["amount"]);
+                    Servicing.Date = CommonHelper.ToDateTime(dr["date"]);
+                    Servicing.EffectiveDate = CommonHelper.ToDateTime(dr["date"]);
+
+                    lst.Add(Servicing);
+                }
+                return lst;
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
         public List<PayruleNoteDetailFundingDataContract> GetNotesForPayruleCalculationByDealID(String dealID, Guid? userID, int? pgeIndex, int? pageSize, out int? TotalCount)
         {
             DataTable dt = new DataTable();
@@ -4277,6 +4916,7 @@ namespace CRES.DAL.Repository
                 Holidaydc.HolidayDate = CommonHelper.ToDateTime(dr["HoliDayDate"]);
                 Holidaydc.HolidayTypeID = Convert.ToInt32(dr["HoliDayTypeID"]);
                 Holidaydc.HolidayTypeText = Convert.ToString(dr["HolidayTypeText"]);
+                Holidaydc.IsSoftHoliday = CommonHelper.ToInt32(dr["isSoftHoliday"]);
                 lstHoliday.Add(Holidaydc);
             }
             return lstHoliday;
@@ -4293,6 +4933,8 @@ namespace CRES.DAL.Repository
                 HolidayListDataContract Holidaydc = new HolidayListDataContract();
                 Holidaydc.HolidayDate = CommonHelper.ToDateTime(dr["HoliDayDate"]);
                 Holidaydc.HolidayTypeID = Convert.ToInt32(dr["HoliDayTypeID"]);
+                Holidaydc.HolidayType = Convert.ToString(dr["HolidayTypeText"]);
+                Holidaydc.IsSoftHoliday = CommonHelper.ToInt32(dr["isSoftHoliday"]);
 
                 if (Convert.ToString(dr["HolidayTypeText"]) != "")
                 {
@@ -4309,6 +4951,8 @@ namespace CRES.DAL.Repository
                         Holidaydc.HolidayTypeText = Convert.ToString(dr["HolidayTypeText"]);
                     }
                 }
+
+
 
                 lstHoliday.Add(Holidaydc);
             }
@@ -4390,7 +5034,6 @@ namespace CRES.DAL.Repository
         {
             DataTable dt = new DataTable();
 
-#pragma warning disable CS0168 // The variable 'ex' is declared but never used
             try
             {
                 Helper.Helper hp = new Helper.Helper();
@@ -4403,7 +5046,6 @@ namespace CRES.DAL.Repository
             catch (Exception ex)
             {
             }
-#pragma warning restore CS0168 // The variable 'ex' is declared but never used
 
             return dt;
         }
@@ -4413,7 +5055,6 @@ namespace CRES.DAL.Repository
             DataTable dt = new DataTable();
             DataSet ds = new DataSet();
 
-#pragma warning disable CS0168 // The variable 'ex' is declared but never used
             try
             {
                 Helper.Helper hp = new Helper.Helper();
@@ -4427,7 +5068,6 @@ namespace CRES.DAL.Repository
             catch (Exception ex)
             {
             }
-#pragma warning restore CS0168 // The variable 'ex' is declared but never used
 
             return ds;
         }
@@ -4487,10 +5127,29 @@ namespace CRES.DAL.Repository
             return _FeeTypeList;
         }
 
+        public List<FeeSchedulesConfigDataContract> GetAllFeeTypesFromFeeSchedulesConfigLiability()
+        {
+            DataTable dt = new DataTable();
+            List<FeeSchedulesConfigDataContract> _FeeTypeList = new List<FeeSchedulesConfigDataContract>();
+            Helper.Helper hp = new Helper.Helper();
+            dt = hp.ExecDataTable("dbo.usp_GetAllFeeTypesFromFeeSchedulesConfigLiability");
+            // var feeTypeList = dbContext.usp_GetAllFeeTypesFromFeeSchedulesConfig();
+
+            foreach (DataRow dr in dt.Rows)
+            {
+                FeeSchedulesConfigDataContract _feetype = new DataContract.FeeSchedulesConfigDataContract();
+                _feetype.LookupID = CommonHelper.ToInt32(dr["FeeTypeNameID"]);
+                _feetype.Name = Convert.ToString(dr["FeeTypeNameText"]);
+
+                _FeeTypeList.Add(_feetype);
+            }
+            return _FeeTypeList;
+        }
+
         public List<HistoricalAccrualDataContract> GetAccrualFieldsFromNotePeriodicByNoteID(Guid? NoteId, Guid? UserID, Guid? AnalysisID)
         {
             DataTable dt = new DataTable();
-            List<HistoricalAccrualDataContract> _PeriodCloseArchiveList = new List<HistoricalAccrualDataContract>();
+            List<HistoricalAccrualDataContract> _AccountingClosePeriodicArchiveList = new List<HistoricalAccrualDataContract>();
             Helper.Helper hp = new Helper.Helper();
             SqlParameter p1 = new SqlParameter { ParameterName = "@NoteID", Value = NoteId };
             SqlParameter p2 = new SqlParameter { ParameterName = "@UserID", Value = UserID.ToString() };
@@ -4501,14 +5160,10 @@ namespace CRES.DAL.Repository
             foreach (DataRow dr in dt.Rows)
             {
                 HistoricalAccrualDataContract _perClose = new DataContract.HistoricalAccrualDataContract();
-                if (Convert.ToInt32(dr["PVBasis"]) + Convert.ToInt32(dr["DeferredFeeAccrual"]) + Convert.ToInt32(dr["DiscountPremiumAccrual"]) + Convert.ToInt32(dr["CapitalizedCostAccrual"]) != 0)
-
-
-                // if (item.PVBasis.GetValueOrDefault(0) + item.DeferredFeeAccrual.GetValueOrDefault(0) + item.DiscountPremiumAccrual.GetValueOrDefault(0) + item.CapitalizedCostAccrual.GetValueOrDefault(0) != 0)
+                //if (Convert.ToInt32(dr["PVBasis"]) + Convert.ToInt32(dr["DeferredFeeAccrual"]) + Convert.ToInt32(dr["DiscountPremiumAccrual"]) + Convert.ToInt32(dr["CapitalizedCostAccrual"]) != 0)
+                //if (Convert.ToInt32(dr["gaapbv"]) + Convert.ToInt32(dr["cum_am_disc"]) + Convert.ToInt32(dr["feeamort"]) + Convert.ToInt32(dr["cum_am_fee"]) + Convert.ToInt32(dr["cum_dailypikint"]) + Convert.ToInt32(dr["cum_baladdon_am"]) + Convert.ToInt32(dr["cum_baladdon_nonam"]) + Convert.ToInt32(dr["cum_dailyint"]) + Convert.ToInt32(dr["cum_ddbaladdon"]) + Convert.ToInt32(dr["cum_ddintdelta"]) + Convert.ToInt32(dr["cum_am_capcosts"]) + Convert.ToInt32(dr["endbal"]) + Convert.ToInt32(dr["initbal"]) + Convert.ToInt32(dr["cum_fee_levyld"]) + Convert.ToInt32(dr["period_ddintdelta_shifted"]) + Convert.ToInt32(dr["intdeltabal"]) != 0)
                 {
-#pragma warning disable CS0219 // The variable 'sum' is assigned but its value is never used
                     int sum = 0;
-#pragma warning restore CS0219 // The variable 'sum' is assigned but its value is never used
 
                     if (Convert.ToString(dr["NoteID"]) != "")
                     {
@@ -4516,15 +5171,30 @@ namespace CRES.DAL.Repository
                     }
 
                     _perClose.PeriodDate = CommonHelper.ToDateTime(dr["PeriodEndDate"]);
-                    _perClose.PVBasis = CommonHelper.ToDecimal(dr["PVBasis"]);
-                    _perClose.DeferredFeeAccrual = CommonHelper.ToDecimal(dr["DeferredFeeAccrual"]);
-                    _perClose.DiscountPremiumAccrual = CommonHelper.ToDecimal(dr["DiscountPremiumAccrual"]);
-                    _perClose.CapitalizedCostAccrual = CommonHelper.ToDecimal(dr["CapitalizedCostAccrual"]);
-                    _perClose.AllInBasisValuation = CommonHelper.ToDecimal(dr["AllInBasisValuation"]);
-                    _PeriodCloseArchiveList.Add(_perClose);
+
+                    //_perClose.gaapbv = CommonHelper.ToDecimal(dr["gaapbv"]);
+                    //_perClose.cum_am_disc = CommonHelper.ToDecimal(dr["cum_am_disc"]);
+                    //_perClose.feeamort = CommonHelper.ToDecimal(dr["feeamort"]);
+                    //_perClose.cum_am_fee = CommonHelper.ToDecimal(dr["cum_am_fee"]);
+                    //_perClose.cum_dailypikint = CommonHelper.ToDecimal(dr["cum_dailypikint"]);
+                    //_perClose.cum_baladdon_am = CommonHelper.ToDecimal(dr["cum_baladdon_am"]);
+                    //_perClose.cum_baladdon_nonam = CommonHelper.ToDecimal(dr["cum_baladdon_nonam"]);
+                    //_perClose.cum_dailyint = CommonHelper.ToDecimal(dr["cum_dailyint"]);
+                    //_perClose.cum_ddbaladdon = CommonHelper.ToDecimal(dr["cum_ddbaladdon"]);
+                    //_perClose.cum_ddintdelta = CommonHelper.ToDecimal(dr["cum_ddintdelta"]);
+                    //_perClose.cum_am_capcosts = CommonHelper.ToDecimal(dr["cum_am_capcosts"]);
+                    //_perClose.endbal = CommonHelper.ToDecimal(dr["endbal"]);
+                    //_perClose.initbal = CommonHelper.ToDecimal(dr["initbal"]);
+                    //_perClose.cum_fee_levyld = CommonHelper.ToDecimal(dr["cum_fee_levyld"]);
+                    //_perClose.period_ddintdelta_shifted = CommonHelper.ToDecimal(dr["period_ddintdelta_shifted"]);
+                    //_perClose.intdeltabal = CommonHelper.ToDecimal(dr["intdeltabal"]);
+
+
+
+                    _AccountingClosePeriodicArchiveList.Add(_perClose);
                 }
             }
-            return _PeriodCloseArchiveList;
+            return _AccountingClosePeriodicArchiveList;
         }
 
         public List<LookupMasterDataContract> GetLookupForMaster()
@@ -4566,7 +5236,12 @@ namespace CRES.DAL.Repository
             {
                 ddb.CalcStatus = Convert.ToString(dr["CalculationStatus"]);
                 ddb.LastUpdated = CommonHelper.ToDateTime(dr["UpdatedDate"]);
+                ddb.AccountingCloseDate = CommonHelper.ToDateTime(dr["accountingclosedate"]);
+
+                ddb.CalcEngineTypeText = Convert.ToString(dr["CalcEngineTypeText"]);
                 ddb.RequestBy = Convert.ToString(dr["UpdatedBy"]);
+                ddb.ErrorMessage = Convert.ToString(dr["ErrorMessage"]);
+
             }
             return ddb;
         }
@@ -4683,6 +5358,14 @@ namespace CRES.DAL.Repository
             dtInterestCalculator.Columns.Add("EndingBalance");
             dtInterestCalculator.Columns.Add("AnalysisID");
 
+            dtInterestCalculator.Columns.Add("SpreadOrRate");
+            dtInterestCalculator.Columns.Add("IndexRate");
+            dtInterestCalculator.Columns.Add("AllInCouponRate");
+            dtInterestCalculator.Columns.Add("AllInPikRate");
+            dtInterestCalculator.Columns.Add("PikSpreadOrRate");
+            dtInterestCalculator.Columns.Add("PIKIndexRate");
+
+
             if (ListDailyInterest != null)
             {
                 DataTable dt = new DataTable();
@@ -4716,8 +5399,8 @@ namespace CRES.DAL.Repository
             dtDailyGaap.Columns.Add("EndingBalance");
             dtDailyGaap.Columns.Add("GrossDeferredFees");
             dtDailyGaap.Columns.Add("CleanCost");
-            dtDailyGaap.Columns.Add("CurrentPeriodInterestAccrualPeriodEnddate");
-            dtDailyGaap.Columns.Add("CurrentPeriodPIKInterestAccrualPeriodEnddate");
+            dtDailyGaap.Columns.Add("CurrentPeriodInterestAccrual");
+            dtDailyGaap.Columns.Add("CurrentPeriodPIKInterestAccrual");
             dtDailyGaap.Columns.Add("InterestSuspenseAccountBalance");
             dtDailyGaap.Columns.Add("AnalysisID");
 
@@ -4758,6 +5441,7 @@ namespace CRES.DAL.Repository
             dtInterestCalculator.Columns.Add("AdditionalPIKSpreadfromPIKTable");
             dtInterestCalculator.Columns.Add("PIKIndexFloorfromPIKTable");
             dtInterestCalculator.Columns.Add("AnalysisID");
+            dtInterestCalculator.Columns.Add("IsPaymentDate");
 
             if (ListDailyInterest != null)
             {
@@ -4791,6 +5475,8 @@ namespace CRES.DAL.Repository
                 FinancingSourceDataContract financingSource = new FinancingSourceDataContract();
                 financingSource.FinancingSourceMasterID = Convert.ToInt32(dr["FinancingSourceMasterID"]);
                 financingSource.FinancingSourceName = Convert.ToString(dr["FinancingSourceName"]);
+                financingSource.ParentClient = Convert.ToString(dr["ParentClient"]);
+
                 _financingSourceList.Add(financingSource);
             }
             return _financingSourceList;
@@ -5215,7 +5901,6 @@ namespace CRES.DAL.Repository
         {
             DataTable dt = new DataTable();
 
-#pragma warning disable CS0168 // The variable 'ex' is declared but never used
             try
             {
                 Helper.Helper hp = new Helper.Helper();
@@ -5230,7 +5915,6 @@ namespace CRES.DAL.Repository
             catch (Exception ex)
             {
             }
-#pragma warning restore CS0168 // The variable 'ex' is declared but never used
 
             return dt;
         }
@@ -5325,5 +6009,137 @@ namespace CRES.DAL.Repository
 
             return list;
         }
+
+        public void InsertUpdateUserPreference(UserPreferenceDataContract log)
+        {
+            try
+            {
+
+                Helper.Helper hp = new Helper.Helper();
+                SqlParameter p1 = new SqlParameter { ParameterName = "@UserId", Value = log.userid };
+                SqlParameter p2 = new SqlParameter { ParameterName = "@ParentModuleName", Value = log.ParentModuleName };
+                SqlParameter p3 = new SqlParameter { ParameterName = "@ModuleType", Value = log.ModuleType };
+                SqlParameter p4 = new SqlParameter { ParameterName = "@ModuleName", Value = log.ModuleName };
+                SqlParameter p5 = new SqlParameter { ParameterName = "@HTMLTagID", Value = log.HTMLTagID };
+                SqlParameter p6 = new SqlParameter { ParameterName = "@IsActive", Value = log.IsActive };
+                SqlParameter p7 = new SqlParameter { ParameterName = "@UpdatedBy", Value = log.UpdatedBy };
+
+                SqlParameter[] sqlparam = new SqlParameter[] { p1, p2, p3, p4, p5, p6, p7 };
+                DataTable dt = hp.ExecDataTable("usp_InsertUpdateUserPreference", sqlparam);
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
+
+        public DataTable GetUserPreferenceByUserID(string userid)
+        {
+            DataTable dt = new DataTable();
+
+            try
+            {
+                Helper.Helper hp = new Helper.Helper();
+                SqlParameter p1 = new SqlParameter { ParameterName = "@UserId", Value = userid };
+                SqlParameter[] sqlparam = new SqlParameter[] { p1 };
+                dt = hp.ExecDataTable("usp_GetUserPreferenceByUserID", sqlparam);
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+
+            return dt;
+        }
+
+        public DataTable GetDashBoardDataByNoteID(Guid NoteId)
+        {
+            DataTable dt = new DataTable();
+
+            try
+            {
+                Helper.Helper hp = new Helper.Helper();
+                SqlParameter p1 = new SqlParameter { ParameterName = "@NoteId", Value = NoteId };
+                SqlParameter[] sqlparam = new SqlParameter[] { p1 };
+                dt = hp.ExecDataTable("usp_GetDashBoardDataByNoteID", sqlparam);
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+
+            return dt;
+        }
+
+        public void ImportBackshopTableForDiscrepancy()
+        {
+            try
+            {
+                Helper.Helper hp = new Helper.Helper();
+                
+                hp.ExecDataTable("DW.usp_DeltaJobDiscrepancy");
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
+
+        public DataTable GetNoteTranchePercentageByNoteId(string NoteId)
+        {
+            DataTable dt = new DataTable();
+            try
+            {
+                Helper.Helper hp = new Helper.Helper();
+                SqlParameter p1 = new SqlParameter { ParameterName = "@NoteID", Value = NoteId };
+                SqlParameter[] sqlparam = new SqlParameter[] { p1 };
+                dt = hp.ExecDataTable("usp_GetNoteTranchePercentageByNoteIdOrCRENoteId", sqlparam);
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+
+            return dt;
+        }
+
+        public void UpdateNoteTranchePercentage(string CreNoteId)
+        {
+            try
+            {
+
+                Helper.Helper hp = new Helper.Helper();
+                SqlParameter p1 = new SqlParameter { ParameterName = "@CRENoteId", Value = CreNoteId };
+                SqlParameter[] sqlparam = new SqlParameter[] { p1};
+                DataTable dt = hp.ExecDataTable("usp_UpdateNoteTranchePercentageFromBackshop", sqlparam);
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
+
+        public void UpdateParentClient(DataTable dtFinancingSource, Guid UserID)
+        {
+            Helper.Helper hp = new Helper.Helper();
+            SqlParameter p1 = new SqlParameter { ParameterName = "@TableTypeFinancingSourceMaster", Value = dtFinancingSource };
+            SqlParameter p2 = new SqlParameter { ParameterName = "@UserID", Value = UserID };
+
+            SqlParameter[] sqlparam = new SqlParameter[] { p1, p2 };
+            hp.ExecDataTablewithparams("dbo.usp_UpdateParentClient", sqlparam);
+        }
+
+        public void UpdateParentFund(DataTable dtFinancingSource, Guid UserID)
+        {
+            Helper.Helper hp = new Helper.Helper();
+            SqlParameter p1 = new SqlParameter { ParameterName = "@TableTypeFund", Value = dtFinancingSource };
+            SqlParameter p2 = new SqlParameter { ParameterName = "@UserID", Value = UserID };
+
+            SqlParameter[] sqlparam = new SqlParameter[] { p1, p2 };
+            hp.ExecDataTablewithparams("dbo.usp_UpdateParentFund", sqlparam);
+        }
+
+        
+
     }
 }

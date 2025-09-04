@@ -9,17 +9,22 @@ namespace CRES.DAL.IRepository
     {
         List<DevDashBoardDataContract> GetCalculationStaus(Guid analysisID);
         List<DevDashBoardDataContract> GetFailedNotes(string logtype, Guid UserID);
-        List<DevDashBoardDataContract> UserRequestCount(Guid analysisID);
-        List<DevDashBoardDataContract> GetFastestandSlowest(Guid analysisID);
+        List<DevDashBoardDataContract> UserRequestCount(Guid analysisID); 
         DataTable GetNoteIDAndAnalysisID(string crenoteid);
 
-        //  DataTable GetDatabaseStatus(string currenttime,Guid UserID);
+      //  DataTable GetDatabaseStatus(string currenttime,Guid UserID);
         void CalculateMultipleNotes(string multuplenotes, string AnalysisID);
         void CalcAllNotes(string AnalysisID, string username);
-        //  List<DevDashBoardDataContract> CheckWorkflowStatus(string workflowtext);
+      //  List<DevDashBoardDataContract> CheckWorkflowStatus(string workflowtext);
         DataTable GetErrorLogs();
         DataTable ShowUserSummary();
-        List<DevDashBoardDataContract> GetAIDashBoardData();
-        List<DevDashBoardDataContract> GetAIUserData(string username);
+        DataTable GetErrorForEmail();
+        List<DevDashBoardDataContract> GetXIRRStatusSummaryfordevdash();
+        List<DevDashBoardDataContract> GetCalculationStatusForValuationDashBoard();
+        List<EnvConfigDataContract> GetEnvConfig();
+        string CheckEnvConnection(EnvConfigDataContract selectedEnvConfig);
+        string ImportDealFromOtherSource(EnvConfigDataContract selectedEnvConfig, string UpdatedBy);
+
+        public void CalculateMultipleDeals(string multupledeals, string AnalysisID);
     }
 }

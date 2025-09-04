@@ -12,7 +12,9 @@
     [WireConfirm]               BIT              NULL,
     [DrawFundingId]             NVARCHAR (256)   NULL,
     [WF_CurrentStatus]          NVARCHAR (256)   NULL,
-    [PIKReasonCode]             NVARCHAR (256)   NULL
+    [PIKReasonCode]             NVARCHAR (256)   NULL,
+    DealID  UNIQUEIDENTIFIER null,
+    IsDeleted bit
 );
 
 go

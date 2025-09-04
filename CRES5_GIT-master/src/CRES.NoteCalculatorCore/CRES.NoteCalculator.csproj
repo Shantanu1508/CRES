@@ -7,6 +7,11 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Deedle" Version="3.0.0" />
+    <PackageReference Include="Microsoft.Data.Analysis" Version="0.21.0" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\CRES.DAL\CRES.DAL.csproj" />
     <ProjectReference Include="..\CRES.DataContract\CRES.DataContract.csproj" />
     <ProjectReference Include="..\CRES.Utilities\CRES.Utilities.csproj" />

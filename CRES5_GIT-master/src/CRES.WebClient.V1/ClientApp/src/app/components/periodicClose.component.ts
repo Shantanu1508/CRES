@@ -12,14 +12,13 @@ import { WjGridModule } from '@grapecity/wijmo.angular2.grid';
 import { WjInputModule } from '@grapecity/wijmo.angular2.input';
 import { WjGridFilterModule } from '@grapecity/wijmo.angular2.grid.filter';
 import { userdefaultsetting } from '../core/domain/userDefaultSetting.model';
-declare var $: any;
-import { functionService } from '../core/services/function.service';
+declare var $: any; 
 import { UtilityService } from '../core/services/utility.service';
 
 @Component({
   selector: "PeriodicClose",
   templateUrl: "./periodicClose.html",
-  providers: [PeriodicDataService, Periodic, functionService] //NoteService, dealService, UtilityService, MembershipService, FileUploadService, functionService]
+  providers: [PeriodicDataService, Periodic] //NoteService, dealService, UtilityService, MembershipService, FileUploadService, functionService]
 })
 
 export class PeriodicCloseComponent extends Paginated {
@@ -58,8 +57,7 @@ export class PeriodicCloseComponent extends Paginated {
 
   constructor(private activatedRoute: ActivatedRoute,
    // private ng2FileInputService: Ng2FileInputService,
-    private _router: Router,
-    public functionServiceSrv: functionService,
+    private _router: Router, 
     public _periodicservice: PeriodicDataService, public _utilityService: UtilityService) {
     super(10, 1, 0);
 

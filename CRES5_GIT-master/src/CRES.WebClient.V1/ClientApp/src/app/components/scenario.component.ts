@@ -1,14 +1,11 @@
 import { Component, OnInit, Inject, Compiler, ViewChild } from '@angular/core';
 import { Router, ActivatedRoute, Params, Route } from '@angular/router';
-//import {Scenario} from "../core/domain/scenario"
 import * as wjNg2Grid from '@grapecity/wijmo.angular2.grid';
-import { OperationResult } from '../core/domain/operationResult.model';
 import { scenarioService } from '../core/services/scenario.service';
 import { NotificationService } from '../core/services/notification.service'
 
 import { UtilityService } from '../core/services/utility.service';
-import { Paginated } from '../core/common/paginated.service';
-
+import * as wjcCore from '@grapecity/wijmo';
 import * as wjcGrid from '@grapecity/wijmo.grid';
 
 import { ModuleWithProviders, NgModule } from '@angular/core';
@@ -43,6 +40,9 @@ export class ScenarioComponent {
 
   public user: User;
 
+  public data !: wjcCore.CollectionView;
+  public _chkShowAllActiveInactiveScenarios = false;
+
   public Message: any = '';
   public _ShowSuccessmessagediv: boolean = false;
   public _ShowSuccessmessage: any;
@@ -58,12 +58,14 @@ export class ScenarioComponent {
   @ViewChild('flexscenario') flexScenario!: wjcGrid.FlexGrid;
   _calculationManagerList: CalculationManagerList = new CalculationManagerList("");
   public _isShowLoader: boolean = false;
+  lstCheckDuplicateTransactionCashflow: any;
+
   constructor(private _router: Router,
     public scenarioService: scenarioService,
     public noteSrv: NoteService,
     public utilityService: UtilityService,
     public notificationService: NotificationService) {
-    var _scenarioid: any = window.localStorage.getItem("scenarioid"); 
+    var _scenarioid: any = window.localStorage.getItem("scenarioid");
     this._calculationManagerList.AnalysisID = _scenarioid;
     var _user: any = localStorage.getItem('user');
     this.user = JSON.parse(_user);
@@ -80,14 +82,12 @@ export class ScenarioComponent {
       localStorage.setItem('successmsgscenario', JSON.stringify(''));
 
       //to hide _Showmessagediv after 5 sec
-      setTimeout( () => {
+      setTimeout(() => {
         this._ShowSuccessmessagediv = false;
       }, 5000);
 
-      setTimeout( () => {
+      setTimeout(() => {
         if (this.flexScenario) {
-          this.flexScenario.autoSizeColumns(0, this.flexScenario.columns.length, false, 20);
-          this.flexScenario.columns[0].width = 350; // for Note Id
         }
       }, 1);
 
@@ -98,6 +98,9 @@ export class ScenarioComponent {
       if (typeof res.UserPermissionList !== 'undefined' && res.UserPermissionList.length > 0) {
         var data = res.lstScenario;
         this.lstScenarioData = data;
+        this.ConvertToBindableDate(this.lstScenarioData, "", "en-US");
+        var lstActiveScenario = this.lstScenarioData.filter(x => x.ScenarioStatusText == "Active");
+        this.data = new wjcCore.CollectionView(lstActiveScenario);
         this.TotalCount = data.lenght;
         setTimeout(() => {
           this.flexScenario.selectionMode = wjcGrid.SelectionMode.None;
@@ -124,23 +127,35 @@ export class ScenarioComponent {
     this._router.navigate(['/scenariodetail', "00000000-0000-0000-0000-000000000000"]);
   }
 
-  ResetDefaultToActiveScenario(): void {
-    try {
-      this._isScenarioListFetching = true;
-      this.scenarioService.ResetDefaultToActiveScenario(this._calculationManagerList).subscribe(res => {
-        if (res.Succeeded) {
-          this.GetAllScenario();
-          this._ShowSuccessmessagediv = true;
-          this._isScenarioListFetching = false;
-          var msg = "Default Scenario is marked as active and notes sent to server for calculation.";
-          this.ShowSuccessmessageDiv(msg);
-        }
-        else {
-          this._router.navigate(['login']);
-        }
-      });
-    } catch (err) {
-    }
+  CustomAlert(dialog): void {
+    var winW = window.innerWidth;
+    var winH = window.innerHeight;
+    var dialogbox = document.getElementById('dialogbox');
+    dialogbox.style.left = (winW / 2) - (550 * .5) + "px";
+    dialogbox.style.top = "100px";
+    dialogbox.style.display = "block";
+    dialogbox.style.zIndex = "10000";
+    document.getElementById('dialogboxbody').innerHTML = dialog;
+  }
+  ok(): void {
+    document.getElementById('dialogbox').style.display = "none";
+    document.getElementById('dialogoverlay').style.display = "none";
+  }
+  CheckDuplicateTransactionCashflow(obj: any): void {
+    this._isShowLoader = true;
+    var downloadCashFlow = new DownloadCashFlow();
+    downloadCashFlow.Pagename = "Scenario";
+    downloadCashFlow.AnalysisID = obj.AnalysisID;
+    this.noteSrv.CheckDuplicateTransactionCashflow(downloadCashFlow).subscribe(res => {
+      this.lstCheckDuplicateTransactionCashflow = res.CheckDuplicateData
+      if (this.lstCheckDuplicateTransactionCashflow != null) {
+        this.CustomAlert("There is a duplicate transaction we found in cashflow download, please try after some time.");
+      }
+      else {
+        this.DownloadScenario(obj);
+      }
+      this._isShowLoader = false;
+    });
   }
 
   DownloadScenario(obj: any): void {
@@ -173,29 +188,9 @@ export class ScenarioComponent {
       document.body.removeChild(dwldLink);
       this._isShowLoader = false;
     });
-    
+
   }
 
-  /*
-  exportToExcel(filename: any, arr : any, sheets: any) {
-    const fileName = filename + '.xlsx';
-    var ws = XLSX.WorkSheet;
-    var wb = XLSX.WorkBook;
-    wb = XLSX.utils.book_new();
-    wb.Props = {
-      Title: "CRES",
-      Subject: fileName,
-      Author: "M61",
-      CreatedDate: Date.now()
-    };
-    for (var i = 0; i < arr.length; i++) {
-      ws = XLSX.utils.json_to_sheet(arr[i]);
-
-      XLSX.utils.book_append_sheet(wb, ws, sheets[i]);
-    }
-    XLSX.writeFile(wb, fileName);
-  }
-*/
 
   downloadFile(objArray: any) {
 
@@ -248,53 +243,93 @@ export class ScenarioComponent {
     }
     return str;
   }
-    DeleteSce(deleteditem: any) {
-        var customdialogbox = document.getElementById('Deletedialogbox');
-        customdialogbox.style.display = "block";
-        this._deletedScenario = deleteditem;
-        this._DeleteMsgText = ' Are you sure you want to delete the ' + deleteditem.ScenarioName + ' Scenario' ;
-        $.getScript("/js/jsDrag.js");
-    }
+  DeleteSce(deleteditem: any) {
+    var customdialogbox = document.getElementById('Deletedialogbox');
+    customdialogbox.style.display = "block";
+    this._deletedScenario = deleteditem;
+    this._DeleteMsgText = ' Are you sure you want to delete the ' + deleteditem.ScenarioName + ' Scenario';
+    $.getScript("/js/jsDrag.js");
+  }
 
-    DeleteScenario() {
-        this.scenarioService.deleteScenario(this._deletedScenario.AnalysisID)
-            .subscribe(res => {
-                if (res.Succeeded) {
-                    this.GetAllScenario();
-                    this._isShowLoader = false;
-                    this._ShowSuccessmessage = 'Scenario deleted successfully.'
-                    this._ShowSuccessmessagediv = true;
-                    this.ClosePopUp();
-                    setTimeout(function () {
-                        this._ShowSuccessmessagediv = false;
-                    }.bind(this), 5000);
+  DeleteScenario() {
+    this.scenarioService.deleteScenario(this._deletedScenario)
+      .subscribe(res => {
+        if (res.Succeeded) {
+          this.GetAllScenario();
+          this._isShowLoader = false;
+          this._ShowSuccessmessage = 'Scenario deleted successfully.'
+          this._ShowSuccessmessagediv = true;
+          this.ClosePopUp();
+          
+          setTimeout(function () {
+            this._ShowSuccessmessagediv = false;
+            this.onChangeShowAllActiveInactiveScenarios(this._chkShowAllActiveInactiveScenarios);
+          }.bind(this), 5000);
 
-                    //
-                }
-                else {
-                    this.ClosePopUp();
-                    this._isShowLoader = false;
-                    this.Message = "Something went wrong.Please try after some time.";
-                    this._Showmessagediv = true;
-                    setTimeout(function () {
-                        this._Showmessagediv = false;
-                    }.bind(this), 5000);
-                   
-                }
-            },
-                error => {
-                    if (error.status == 401) {
-                        this.notificationService.printErrorMessage('Authentication required');
-                        this.utilityService.navigateToSignIn();
-                    }
-                }
-            );
+          //
+        }
+        else {
+          this.ClosePopUp();
+          this._isShowLoader = false;
+          this.Message = "Something went wrong.Please try after some time.";
+          this._Showmessagediv = true;
+          setTimeout(function () {
+            this._Showmessagediv = false;
+          }.bind(this), 5000);
+
+        }
+      },
+        error => {
+          if (error.status == 401) {
+            this.notificationService.printErrorMessage('Authentication required');
+            this.utilityService.navigateToSignIn();
+          }
+        }
+      );
+  }
+  ClosePopUp() {
+    var modal = document.getElementById('Deletedialogbox');
+    modal.style.display = "none";
+
+  }
+
+
+  private _initData() {
+    // create CollectionView
+    //this.data = new wjcCore.CollectionView(this.lstUsers);
+    this.onChangeShowAllActiveInactiveScenarios(this._chkShowAllActiveInactiveScenarios);
+    this.data = new wjcCore.CollectionView(this.lstScenarioData);
+
+    // track changes
+    this.data.trackChanges = true;
+  }
+
+  onChangeShowAllActiveInactiveScenarios(newvalue): void {
+    // var checked = e.target.checked;
+
+    if (newvalue == true) {
+      this.data = new wjcCore.CollectionView(this.lstScenarioData);
+      this._chkShowAllActiveInactiveScenarios = true;
     }
-    ClosePopUp() {
-        var modal = document.getElementById('Deletedialogbox');
-        modal.style.display = "none";
-        
+    else {
+      var lstActiveScenario = this.lstScenarioData.filter(x => x.ScenarioStatusText == "Active");
+      this.data = new wjcCore.CollectionView(lstActiveScenario);
+      this._chkShowAllActiveInactiveScenarios = false;
     }
+    this.data.trackChanges = true;
+
+  }
+
+  private ConvertToBindableDate(Data, modulename, locale: string) {
+    var options = { year: "numeric", month: "numeric", day: "numeric" };
+
+    for (var i = 0; i < Data.length; i++) {
+      if (this.lstScenarioData[i].LastCalculatedDate != null) {
+        this.lstScenarioData[i].LastCalculatedDate = new Date(this.lstScenarioData[i].LastCalculatedDate.toString());
+      }
+    }
+  }
+
 }
 
 

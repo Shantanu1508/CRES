@@ -26,11 +26,13 @@ From [DW].[TransactionEntryBI] T
 outer apply (Select MAX(T1.Date) Date, CRENoteID from  [DW].[TransactionEntryBI] T1
 				Where Type = 'InterestPaid' and T.CRENoteID =  T1.CRENoteID
 				and 	T.AnalysisID = T1.AnalysisID  and T.Type =  T1.Type 
+				and T1.AccountTypeID = 1
 				Group by T1.CRENoteID
 
 				)X
 Where 
  Type = 'InterestPaid' and T.Date = x.Date
+ and T.AccountTypeID = 1
 
 
 

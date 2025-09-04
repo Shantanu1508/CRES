@@ -1,9 +1,11 @@
-﻿using CRES.DataContract;
+﻿using CRES.DAL.IRepository;
+using CRES.DataContract;
 using CRES.Utilities;
 using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Data.SqlClient;
+using System.Linq;
 
 namespace CRES.DAL.Repository
 {
@@ -13,7 +15,6 @@ namespace CRES.DAL.Repository
         {
 
             DataTable dt = new DataTable();
-#pragma warning disable CS0168 // The variable 'ex' is declared but never used
             try
             {
                 Helper.Helper hp = new Helper.Helper();
@@ -27,7 +28,6 @@ namespace CRES.DAL.Repository
             {
 
             }
-#pragma warning restore CS0168 // The variable 'ex' is declared but never used
 
             return dt;
         }
@@ -109,6 +109,11 @@ namespace CRES.DAL.Repository
                     indexdc.CreatedDate = CommonHelper.ToDateTime(dt.Rows[0]["CreatedDate"]);
                     indexdc.UpdatedBy = Convert.ToString(dt.Rows[0]["UpdatedBy"]);
                     indexdc.UpdatedDate = CommonHelper.ToDateTime(dt.Rows[0]["UpdatedDate"]);
+                    indexdc.Status = CommonHelper.ToInt32(dt.Rows[0]["Status"]);
+                    indexdc.StatusText = Convert.ToString(dt.Rows[0]["StatusText"]);
+                    indexdc.IsAssignedToScenario = CommonHelper.ToBoolean(dt.Rows[0]["IsAssignedToScenario"]);
+                    indexdc.ScenarioList = Convert.ToString(dt.Rows[0]["ScenarioList"]);
+
                 }
                 return indexdc;
 
@@ -133,7 +138,8 @@ namespace CRES.DAL.Repository
             SqlParameter p7 = new SqlParameter { ParameterName = "@UpdatedBy", Value = _indexesMasterDC.UpdatedBy };
             SqlParameter p8 = new SqlParameter { ParameterName = "@UpdatedDate", Value = _indexesMasterDC.UpdatedDate };
             SqlParameter p9 = new SqlParameter { ParameterName = "@newIndexesMasterGuid", Direction = ParameterDirection.Output, Size = int.MaxValue };
-            SqlParameter[] sqlparam = new SqlParameter[] { p1, p2, p3, p4, p5, p6, p7, p8, p9 };
+            SqlParameter p10 = new SqlParameter { ParameterName = "@Status", Value = _indexesMasterDC.Status }; 
+            SqlParameter[] sqlparam = new SqlParameter[] { p1, p2, p3, p4, p5, p6, p7, p8, p9, p10 };
             hp.ExecNonquery("dbo.usp_SaveIndexesMasterDetail", sqlparam);
             //  ObjectParameter newIndexesMasterGuid = new ObjectParameter("newIndexesMasterGuid", typeof(string));
 
@@ -190,7 +196,7 @@ namespace CRES.DAL.Repository
                 _indexDC.CreatedDate = CommonHelper.ToDateTime(dr["CreatedDate"]);
                 _indexDC.UpdatedBy = Convert.ToString(dr["UpdatedBy"]);
                 _indexDC.UpdatedDate = CommonHelper.ToDateTime(dr["UpdatedDate"]);
-
+                _indexDC.StatusText = Convert.ToString(dr["StatusText"]);
 
                 lstIndexMasterDC.Add(_indexDC);
             }
@@ -218,7 +224,6 @@ namespace CRES.DAL.Repository
             DataTable newdt = new DataTable();
             int tcount = 0;
             //  ObjectParameter totalCount = new ObjectParameter("TotalCount", typeof(int));
-#pragma warning disable CS0168 // The variable 'ex' is declared but never used
             try
             {
                 Helper.Helper hp = new Helper.Helper();
@@ -233,7 +238,6 @@ namespace CRES.DAL.Repository
             catch (Exception ex)
             {
             }
-#pragma warning restore CS0168 // The variable 'ex' is declared but never used
             TotalCount = tcount;
             if (dt.Rows.Count == 1)
                 return newdt;
@@ -247,7 +251,6 @@ namespace CRES.DAL.Repository
             DataTable dt = new DataTable();
             int tcount = 0;
             // ObjectParameter totalCount = new ObjectParameter("TotalCount", typeof(int));
-#pragma warning disable CS0168 // The variable 'ex' is declared but never used
             try
             {
                 Helper.Helper hp = new Helper.Helper();
@@ -273,7 +276,6 @@ namespace CRES.DAL.Repository
             catch (Exception ex)
             {
             }
-#pragma warning restore CS0168 // The variable 'ex' is declared but never used
             TotalCount = tcount;
             return dt;
         }
@@ -284,7 +286,6 @@ namespace CRES.DAL.Repository
             DataTable newdt = new DataTable();
             int tcount = 0;
             // ObjectParameter totalCount = new ObjectParameter("TotalCount", typeof(int));
-#pragma warning disable CS0168 // The variable 'ex' is declared but never used
             try
             {
                 Helper.Helper hp = new Helper.Helper();
@@ -301,7 +302,6 @@ namespace CRES.DAL.Repository
             catch (Exception ex)
             {
             }
-#pragma warning restore CS0168 // The variable 'ex' is declared but never used
             TotalCount = tcount;
 
             //if (dt.Rows.Count == 1)
@@ -335,6 +335,27 @@ namespace CRES.DAL.Repository
             hp.ExecDataTablewithtableforjson("dbo.usp_InsertIndexTypeOutputJsonInfo", "indextypelist", dtjsonresult, IndexName, UserID);
 
             return 1;
+        }
+
+        public DataTable InsertUpdateMissingIndexList(string IndexesMasterGuid, int IndexTypeID, string username)
+        {
+            try
+            {
+                DataTable dt = new DataTable();
+                Helper.Helper hp = new Helper.Helper();
+                SqlParameter p1 = new SqlParameter { ParameterName = "@IndexesMasterGuid", Value = new Guid(IndexesMasterGuid) };
+                SqlParameter p2 = new SqlParameter { ParameterName = "@IndexTypeID", Value = IndexTypeID };
+                SqlParameter p3 = new SqlParameter { ParameterName = "@UserID", Value = username };
+                SqlParameter[] sqlparam = new SqlParameter[] { p1, p2, p3 };
+                dt = hp.ExecDataTable("dbo.usp_InsertUpdateMissingIndexList", sqlparam);
+
+                return dt;
+            }
+            catch (Exception ex)
+            {
+                throw;
+            }
+
         }
     }
 }

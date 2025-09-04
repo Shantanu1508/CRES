@@ -1,11 +1,15 @@
-﻿using CRES.DAL.Repository;
-using CRES.DataContract;
+﻿using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using CRES.DAL.Repository;
+using CRES.DataContract;
 
 
 namespace CRES.BusinessLogic
 {
-    public class SearchLogic
+  public  class SearchLogic
     {
 
         SearchRepository SearchRepository = new SearchRepository();
@@ -22,7 +26,7 @@ namespace CRES.BusinessLogic
 
         //}
 
-
+        
         public List<SearchDataContract> GetAutoSearchDataPIKAccount(System.Guid? userID, int? pageIndex, int? pageSize, string serchKey, out int? TotalCount)
         {
             return SearchRepository.GetAutoSearchDataPIKAccount(userID, pageIndex, pageSize, serchKey, out TotalCount);
@@ -32,7 +36,7 @@ namespace CRES.BusinessLogic
 
         public void UpdateRankInSearchItem(System.Guid? ObjectID, string SearchText)
         {
-
+            
             SearchRepository.UpdateRankInSearchItem(ObjectID, SearchText);
         }
 

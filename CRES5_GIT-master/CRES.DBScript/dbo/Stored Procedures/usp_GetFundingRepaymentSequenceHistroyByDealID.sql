@@ -1,6 +1,6 @@
-﻿-- [dbo].[usp_GetFundingRepaymentSequenceHistroyByDealID] '8918EE99-EF41-4B9B-BEF0-EF466D6960D8'
+﻿-- [dbo].[usp_GetFundingRepaymentSequenceHistroyByDealID] '38C8C163-D0BC-4017-B56C-FC053C53F13B'
 
-CREATE PROCEDURE [dbo].[usp_GetFundingRepaymentSequenceHistroyByDealID] --'F160E8FD-C5F5-4D6F-8F0A-09D338BCA4C1'  
+CREATE PROCEDURE [dbo].[usp_GetFundingRepaymentSequenceHistroyByDealID] 
  @DealID as uniqueidentifier   
 AS   
 BEGIN   
@@ -22,13 +22,89 @@ Declare @InActive as nvarchar(256);
 Declare @Active as nvarchar(256);   
 set @InActive=(select LookupID from core.lookup where name ='InActive' and ParentID=1);   
 set @Active=(select LookupID from core.lookup where name ='Active' and ParentID=1);   
-   
- --,@DealID as nvarchar(MAX)='5e29a13a-a205-46ab-89f1-e7d819bce3ed'   
- set @query1=N'Select * from(    
+
+----======================
+IF OBJECT_ID('tempdb..#tblNPC') IS NOT NULL         
+	DROP TABLE #tblNPC
+
+CREATE TABLE #tblNPC(              
+   AnalysisID  UNIQUEIDENTIFIER,
+   AccountID  UNIQUEIDENTIFIER,
+   PeriodEndDate Date,
+   RemainingUnfundedCommitment   decimal(28,15),
+   EndingBalance      decimal(28,15)    
+)   
+
+INSERT INTO #tblNPC (AnalysisID,AccountID,PeriodEndDate,RemainingUnfundedCommitment,EndingBalance)
+Select nc.AnalysisID,nc.AccountID,PeriodEndDate,RemainingUnfundedCommitment,nc.EndingBalance
+from cre.NotePeriodicCalc nc
+inner join cre.note n on n.Account_AccountID =nc.AccountID 
+Inner join core.account acc on acc.AccountID = n.Account_AccountID
+where acc.IsDeleted <> 1
+and Analysisid = @AnalysisID
+and n.dealid = @DealID
+
+---===================
+IF OBJECT_ID('tempdb..#tblTranEntry') IS NOT NULL         
+	DROP TABLE #tblTranEntry
+
+CREATE TABLE #tblTranEntry(              
+   AnalysisID  UNIQUEIDENTIFIER,
+   AccountID  UNIQUEIDENTIFIER,
+   [Type] nvarchar(256),
+   [Date] Date,
+   Amount   decimal(28,15)
+)   
+
+INSERT INTO #tblTranEntry (AnalysisID,AccountID,[Type],[date],Amount)
+Select tr.analysisID,tr.AccountID,tr.[Type],tr.date,tr.Amount
+from cre.transactionEntry Tr
+Inner JOIN [CORE].[Account] acc ON acc.AccountID = tr.AccountID
+Inner join cre.note n on n.Account_AccountID = acc.AccountID
+where tr.analysisID =  @AnalysisID 
+and tr.[Type] in ('PikPrincipalPaid','PIKPrincipalFunding','Balloon')
+and n.dealid = @DealID
+and acc.AccounttypeID = 1
+and acc.IsDeleted <> 1
+----=========================
+
+ 
+SET @ColPivot = STUFF((SELECT ',' + QUOTENAME(cast(a.SeqName as nvarchar(256)) +' '+ cast(a.SequenceNo as nvarchar(256)))
+				from (
+					Select Distinct LSequenceTypeID.Name as SeqName,SequenceNo
+					from [CRE].[FundingRepaymentSequence] fs
+					INNER JOIN [CRE].[Note] n ON fs.NoteID=n.NoteID
+					inner join Core.Account a on a.AccountID=n.Account_AccountID 
+					LEFT JOIN [CORE].[Lookup] LSequenceTypeID ON LSequenceTypeID.LookupID = fs.SequenceType
+					where a.isdeleted <> 1 and n.DealID =@DealID
+				)a
+				Order by a.SeqName,a.SequenceNo
+
+				FOR XML PATH(''), TYPE
+				).value('.', 'NVARCHAR(MAX)')
+				,1,1,'') 
+
+
+IF (@ColPivot is null)
+BEGIN
+	SET @query1=N'Select  a.NoteID,a.CRENoteID,a.Name,a.Maturity,a.WeightedSpread,a.EffectiveRate,a.NetCapitalInvested,a.EstBls,a.EndingBalance,a.lienposition,a.LienPositionText,a.Priority,a.FinancingSource,a.UseRuletoDetermineNoteFunding,a.UseRuletoDetermineNoteFundingText,a.FundingPriority,a.RepaymentPriority,a.TotalCommitment,a.AdjustedTotalCommitment,a.AggregatedTotal,a.UnfundedCommitment,ISNULL(a.InitialFundingAmount,0) as InitialFundingAmount,a.CurrentPIKBalance,a.BalloonPayment,a.CommitmentUsedInFFDistribution,a.FundingSeq1,a.FundingSeq2,a.FundingSeq3,a.FundingSeq4,a.FundingSeq5,a.RepaymentSeq1,a.RepaymentSeq2,a.RepaymentSeq3,a.RepaymentSeq4,a.RepaymentSeq5'
+END
+ELSE
+BEGIN
+	SET @query1=N'Select  a.NoteID,a.CRENoteID,a.Name,a.Maturity,a.WeightedSpread,a.EffectiveRate,a.NetCapitalInvested,a.EstBls,a.EndingBalance,a.lienposition,a.LienPositionText,a.Priority,a.FinancingSource,a.UseRuletoDetermineNoteFunding,a.UseRuletoDetermineNoteFundingText,a.FundingPriority,a.RepaymentPriority,a.TotalCommitment,a.AdjustedTotalCommitment,a.AggregatedTotal,a.UnfundedCommitment,ISNULL(a.InitialFundingAmount,0) as InitialFundingAmount,a.CurrentPIKBalance,a.BalloonPayment,a.CommitmentUsedInFFDistribution,a.FundingSeq1,a.FundingSeq2,a.FundingSeq3,a.FundingSeq4,a.FundingSeq5,a.RepaymentSeq1,a.RepaymentSeq2,a.RepaymentSeq3,a.RepaymentSeq4,a.RepaymentSeq5
+	,b.*' 
+END
+
+
+SET @query1=@query1 + N'
+from(    
 SELECT n.NoteID  
 ,CRENoteID   
 ,a.Name Name  
-,tblMat.currMaturityDate as Maturity 
+,tblMat.currMaturityDate as Maturity
+,n.WeightedSpread
+,0.00 as EffectiveRate
+,n.UPBAtForeclosure as NetCapitalInvested
 ,ISNULL(  
 (  
  Select ISNULL(SUM(ISNULL(FS.Value,0)),0)  
@@ -46,10 +122,8 @@ SELECT n.NoteID
     and n1.dealid = '''+convert(varchar(MAX),@DealID)+''' and acc.IsDeleted = 0  
     and eve.StatusID = (Select LookupID from Core.Lookup where name = ''Active'' and ParentID = 1)  
     GROUP BY n1.Account_AccountID,EventTypeID,eve.StatusID  
-   ) sEvent  
-   
- ON sEvent.AccountID = e.AccountID and e.EffectiveStartDate = sEvent.EffectiveStartDate and e.EventTypeID = sEvent.EventTypeID  
-   
+   ) sEvent     
+ ON sEvent.AccountID = e.AccountID and e.EffectiveStartDate = sEvent.EffectiveStartDate and e.EventTypeID = sEvent.EventTypeID     
  left JOIN [CORE].[Lookup] LEventTypeID ON LEventTypeID.LookupID = e.EventTypeID  
  left JOIN [CORE].[Lookup] LPurposeID ON LPurposeID.LookupID = fs.PurposeID  
  INNER JOIN [CORE].[Account] acc ON acc.AccountID = e.AccountID  
@@ -57,23 +131,13 @@ SELECT n.NoteID
  where sEvent.StatusID = e.StatusID and acc.IsDeleted = 0  
  and fs.Date = Cast(getdate() AS DATE))    
  +    
- ISNULL((select SUM((ISNULL(EndingBalance,0)))  
- from [CRE].[NotePeriodicCalc] np  
- where np.noteid = n.noteid and n.dealid = '''+convert(varchar(MAX),@DealID)+''' and PeriodEndDate = CAST(getdate() - 1 as Date) and AnalysisID = '''+convert(varchar(MAX),@AnalysisID)+'''),0)   
-  
-,0) + ISNULL(trpik.PikAmount,0) as EstBls  
- '  
-   
-SET @query2='  
-,ISNULL(  
-(select SUM((ISNULL(EndingBalance,0)))  
-from [CRE].[NotePeriodicCalc] np  
-where np.noteid = n.noteid and n.dealid = '''+convert(varchar(MAX),@DealID)+''' and PeriodEndDate = CAST(getdate() - 1 as Date) and AnalysisID = '''+convert(varchar(MAX),@AnalysisID)+''')    
-,0) EndingBalance  
- 
+ ISNULL(tblBls.EndingBalance,0)   
+,0) + ISNULL(trpik.PikAmount,0) as EstBls
+,ISNULL(tblBls.EndingBalance,0) EndingBalance   
 ,lienposition  
 ,llienposition.name as LienPositionText  
 ,[priority] as Priority  
+,FSM.FinancingSourceName as FinancingSource
 --,(case when isnull(a.StatusID,'''+convert(varchar(MAX),@Active)+''')='''+convert(varchar(MAX),@InActive)+''' Then '''+convert(varchar(MAX),@UseRuletoDetermineNoteFundingAsNo)+''' else n.UseRuletoDetermineNoteFunding END) UseRuletoDetermineNoteFunding  
 ,n.UseRuletoDetermineNoteFunding as UseRuletoDetermineNoteFunding 
 ,lUseRuletoDetermineNoteFunding.Name as UseRuletoDetermineNoteFundingText  
@@ -87,7 +151,8 @@ where np.noteid = n.noteid and n.dealid = '''+convert(varchar(MAX),@DealID)+''' 
 --,(case when isnull(n.AggregatedTotal,0) =''0'' then n.TotalCommitment
 -- else n.AggregatedTotal end) AS AggregatedTotal
 ,isnull(n.AggregatedTotal,0) AS AggregatedTotal
-,isnull(InitialFundingAmount,0) InitialFundingAmount  
+,isnull(tblUnfundComm.RemainingUnfundedCommitment,0) UnfundedCommitment  
+,InitialFundingAmount as InitialFundingAmount  
 ,isnull((CASE WHEN tr.SumPikAmount > 0 THEN tr.SumPikAmount ELSE (tr.SumPikAmount * -1) END),0) as CurrentPIKBalance 
 --,n.InitialRequiredEquity
 --,n.InitialAdditionalEquity
@@ -103,7 +168,8 @@ where np.noteid = n.noteid and n.dealid = '''+convert(varchar(MAX),@DealID)+''' 
 ,0 RepaymentSeq3  
 ,0 RepaymentSeq4  
 ,0 RepaymentSeq5 
-FROM CRE.Note n inner join Core.Account a on Account_AccountID=a.AccountID  
+
+'SET @query2=' FROM CRE.Note n inner join Core.Account a on Account_AccountID=a.AccountID  
 left join Core.Lookup l ON n.RateType=l.LookupID  
 --left join Core.Lookup lUseRuletoDetermineNoteFunding ON (case when isnull(a.StatusID,'''+convert(varchar(MAX),@Active)+''')='''+convert(varchar(MAX),@InActive)+''' Then '''+convert(varchar(MAX),@UseRuletoDetermineNoteFundingAsNo)+'''    else n.UseRuletoDetermineNoteFunding END)=lUseRuletoDetermineNoteFunding.LookupID  
 left join Core.Lookup lUseRuletoDetermineNoteFunding ON n.UseRuletoDetermineNoteFunding=lUseRuletoDetermineNoteFunding.LookupID  
@@ -158,22 +224,26 @@ left join (Select dealid,NoteID,SUM(Amount) Amount
 			group by dealid,NoteID
 	)f on f.NoteID= n.NoteID
 left join(
-	Select tr.noteid,SUM(tr.Amount) as SumPikAmount
-	from cre.transactionEntry Tr
-	inner join cre.note n on n.noteid=tr.noteid 
+	Select n.noteid,SUM(tr.Amount) as SumPikAmount
+	from #tblTranEntry Tr
+	Inner JOIN [CORE].[Account] acc ON acc.AccountID = tr.AccountID
+	Inner join cre.note n on n.Account_AccountID = acc.AccountID
 	where tr.analysisID =  '''+convert(varchar(MAX),@AnalysisID)+''' and tr.[Type] in (''PikPrincipalPaid'',''PIKPrincipalFunding'')
 	and tr.date <= CAST(getdate() as date)
-	and n.dealid = '''+convert(varchar(256),@DealID)+'''    
-	group by tr.noteid
+	and n.dealid = '''+convert(varchar(256),@DealID)+'''  
+	and acc.AccounttypeID = 1
+	group by n.noteid
 )tr on tr.noteid = n.noteid
 left join(
-	Select tr.noteid,(CASE WHEN SUM(tr.Amount) < 0 THEN SUM(tr.Amount) * -1 ELSE SUM(tr.Amount) END)  as PikAmount
-	from cre.transactionEntry Tr
-	inner join cre.note n on n.noteid=tr.noteid 
+	Select n.noteid,SUM(tr.Amount * -1)  as PikAmount
+	from #tblTranEntry Tr
+	Inner JOIN [CORE].[Account] acc ON acc.AccountID = tr.AccountID
+	Inner join cre.note n on n.Account_AccountID = acc.AccountID
 	where tr.analysisID =  '''+convert(varchar(MAX),@AnalysisID)+''' and tr.[Type] in (''PikPrincipalPaid'',''PIKPrincipalFunding'')
 	and tr.date = CAST(getdate() as date)
 	and n.dealid = '''+convert(varchar(256),@DealID)+'''    
-	group by tr.noteid
+	and acc.AccounttypeID = 1
+	group by n.noteid
 )trpik on trpik.noteid = n.noteid
 left Join(
 	Select n1.noteid,ISNULL(n1.ActualPayOffDate,ISNULL(currMat.MaturityDate,n1.FullyExtendedMaturityDate)) as currMaturityDate
@@ -211,13 +281,13 @@ left Join(
 	where acc1.IsDeleted <> 1
 	and n1.dealid = '''+convert(varchar(MAX),@DealID)+'''   
 )tblMat on tblMat.noteid = n.noteid
-
 left join (Select noteid,BalloonPayment 
 			from(  
-				select Distinct np.noteid,Date,ISNULL(Amount,0) BalloonPayment,  
-				ROW_NUMBER() Over (Partition by np.noteid Order by np.noteid,np.Date desc) as rno  
-				from [CRE].[TransactionEntry] np  
-				Inner join cre.note nn on nn.NoteID = np.NoteID  
+				select Distinct nn.noteid,Date,ISNULL(Amount,0) BalloonPayment,  
+				ROW_NUMBER() Over (Partition by nn.noteid Order by nn.noteid,np.Date desc) as rno  
+				from #tblTranEntry np  
+				Inner JOIN [CORE].[Account] acc ON acc.AccountID = np.AccountID
+				Inner join cre.note nn on nn.Account_AccountID = acc.AccountID  
 				and Type = ''Balloon'' 
 				and Amount <> 0.01
 				where nn.dealid = '''+convert(varchar(MAX),@DealID)+'''   
@@ -226,28 +296,33 @@ left join (Select noteid,BalloonPayment
 				)a 
 			where a.rno = 1
 )bp on bp.noteid = n.noteid
-
+Left Join(    
+	Select noteid,RemainingUnfundedCommitment from(    
+		Select n.noteid,RemainingUnfundedCommitment ,ROW_NUMBER() Over(Partition by n.noteid order by n.noteid,PeriodEndDate desc) rno    
+		from #tblNPC nc
+		inner join cre.note n on n.Account_AccountID =nc.AccountID 
+		where Analysisid = '''+convert(varchar(MAX),@AnalysisID)+'''
+		and nc.PeriodEndDate <= Cast(getdate() as Date)  
+		and n.dealid = '''+convert(varchar(MAX),@DealID)+'''   
+	)a where rno = 1    
+)tblUnfundComm on tblUnfundComm.NoteID = n.NoteID  
+Left Join(    
+	Select noteid,EndingBalance from(    
+		Select n.noteid,EndingBalance ,ROW_NUMBER() Over(Partition by n.noteid order by n.noteid,PeriodEndDate desc) rno    
+		from #tblNPC nc
+		inner join cre.note n on n.Account_AccountID =nc.AccountID 
+		where Analysisid = '''+convert(varchar(MAX),@AnalysisID)+'''
+		and nc.PeriodEndDate <= Cast(getdate() - 1 as Date)  
+		and n.dealid = '''+convert(varchar(MAX),@DealID)+'''   
+	)a where rno = 1    
+)tblBls on tblBls.NoteID = n.NoteID  
+LEFT JOIN [CRE].[FinancingSourceMaster] FSM ON FSM.FinancingSourceMasterID = N.FinancingSourceID
 where n.DealID = '''+convert(varchar(MAX),@DealID)+'''   
 and a.isdeleted=0   
 -- ORDER BY Account_AccountID DESC   
 ) a  
 '   
-  
-SET @ColPivot = STUFF((SELECT ',' + QUOTENAME(cast(a.SeqName as nvarchar(256)) +' '+ cast(a.SequenceNo as nvarchar(256)))
-from (
-Select Distinct LSequenceTypeID.Name as SeqName,SequenceNo
-from [CRE].[FundingRepaymentSequence] fs
-INNER JOIN [CRE].[Note] n ON fs.NoteID=n.NoteID
-LEFT JOIN [CORE].[Lookup] LSequenceTypeID ON LSequenceTypeID.LookupID = fs.SequenceType
-where n.DealID =@DealID
-)a
-Order by a.SeqName,a.SequenceNo
-
-FOR XML PATH(''), TYPE
-).value('.', 'NVARCHAR(MAX)')
-,1,1,'') 
-       
-  
+ 
 set @query = 'left join( SELECT NoteName, ' + @ColPivot + ' from    
 (   
 Select   
@@ -258,7 +333,7 @@ from [CRE].[FundingRepaymentSequence] fs
 INNER JOIN [CRE].[Note] n ON fs.NoteID=n.NoteID   
 inner join Core.Account a on a.AccountID=n.Account_AccountID   
 LEFT JOIN [CORE].[Lookup] LSequenceTypeID ON LSequenceTypeID.LookupID = fs.SequenceType   
-where n.DealID = '''+convert(varchar(MAX),@DealID)+'''   
+where a.isdeleted <> 1 and n.DealID = '''+convert(varchar(MAX),@DealID)+'''   
 ) x    
 pivot    
 (  
@@ -290,28 +365,6 @@ print @query2
 print @query   
 
 SET TRANSACTION ISOLATION LEVEL READ COMMITTED   
-
-
- 
---,case when n.ActualPayoffDate is not null then n.ActualPayoffDate  
---when (select SelectedMaturityDate from core.Maturity where EventID=   
---(select max(EventID) from core.Event where eventtypeid=11 and AccountID=(select Account_AccountID from cre.note where noteid=n.noteid))   
---) >getdate() or (n.ExtendedMaturityScenario1 is null and n.ExtendedMaturityScenario2 is null and n.ExtendedMaturityScenario3 is null and n.FullyExtendedMaturityDate is null)   
--- then (select SelectedMaturityDate from core.Maturity where EventID=   
---(select max(EventID) from core.Event where eventtypeid=11 and AccountID=(select Account_AccountID from cre.note where noteid=n.noteid))   
---) else   
---case when n.ExtendedMaturityScenario1>GETDATE() or (n.ExtendedMaturityScenario2 is null and n.ExtendedMaturityScenario3 is null and n.FullyExtendedMaturityDate is null) then n.ExtendedMaturityScenario1 else   
---case when n.ExtendedMaturityScenario2 >GETDATE() or (n.ExtendedMaturityScenario3 is null and n.FullyExtendedMaturityDate is null) then n.ExtendedMaturityScenario2 else   
---case when n.ExtendedMaturityScenario3 >GETDATE() or (n.FullyExtendedMaturityDate is null) then n.ExtendedMaturityScenario3 else  
-----case when n.ExtendedMaturityScenario3 >GETDATE() then n.FullyExtendedMaturityDate else   
--- n.FullyExtendedMaturityDate end --end   
--- end end end as Maturity    
-
-
-
-
-
-
 
 END
 GO

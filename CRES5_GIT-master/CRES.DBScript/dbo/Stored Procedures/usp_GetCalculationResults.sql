@@ -20,7 +20,7 @@ END;
  
 Select creNoteId,Username,Analysisid,RequestTime,  EndTime, l.Name StatusName
 From [Core].[CalculationRequests] c
-inner join cre.note n on n.noteid = c.noteid
+inner join cre.note n on n.Account_AccountID = c.AccountId
 Inner join core.lookup l on l.lookupid = c.statusid
 where crenoteid in (select CRENoteID from #tblListNotes) and [AnalysisID] = @AnalysisID
 and c.CalcType = 775

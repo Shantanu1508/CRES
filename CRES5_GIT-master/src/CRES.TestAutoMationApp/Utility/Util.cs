@@ -1,6 +1,6 @@
-﻿using OpenQA.Selenium;
+﻿using System;
+using OpenQA.Selenium;
 using OpenQA.Selenium.Support.UI;
-using System;
 
 namespace CRES.TestAutoMationApp.Utility
 {
@@ -16,12 +16,12 @@ namespace CRES.TestAutoMationApp.Utility
         {
             String TakesScreenshot = BaseConfiguration.TakeScreenshot();
             if (TakesScreenshot.ToString().ToLower() == "yes")
-            {
-                Screenshot ss = ((ITakesScreenshot)driver).GetScreenshot();
-                string screenshot = ss.AsBase64EncodedString;
-                byte[] screenshotAsByteArray = ss.AsByteArray;
-                string path = ProjectBaseConfiguration.ScreenShotFolder;
-                ss.SaveAsFile(path + imagename + "_" + GetTimestamp(DateTime.Now) + ".Png", OpenQA.Selenium.ScreenshotImageFormat.Png);
+            { 
+            Screenshot ss = ((ITakesScreenshot)driver).GetScreenshot();
+            string screenshot = ss.AsBase64EncodedString;
+            byte[] screenshotAsByteArray = ss.AsByteArray;
+            string path = ProjectBaseConfiguration.ScreenShotFolder;
+                ss.SaveAsFile(path + imagename + "_" + GetTimestamp(DateTime.Now) + ".Png");
             }
         }
 
@@ -35,7 +35,7 @@ namespace CRES.TestAutoMationApp.Utility
                 string screenshot = ss.AsBase64EncodedString;
                 byte[] screenshotAsByteArray = ss.AsByteArray;
                 string path = ProjectBaseConfiguration.ScreenShotFolder;
-                ss.SaveAsFile(path + imagename + "_" + GetTimestamp(DateTime.Now) + ".Png", OpenQA.Selenium.ScreenshotImageFormat.Png);
+                ss.SaveAsFile(path + imagename + "_" + GetTimestamp(DateTime.Now) + ".Png");
             }
         }
 
@@ -73,7 +73,6 @@ namespace CRES.TestAutoMationApp.Utility
         public bool ClickElement(By locator)
         {
             bool returnValue = false;
-#pragma warning disable CS0168 // The variable 'e' is declared but never used
             try
             {
                 WaitForElementVisible(locator).Click();
@@ -89,13 +88,11 @@ namespace CRES.TestAutoMationApp.Utility
                 Console.WriteLine("Unknown error " + e.Message + " occurred on page " + driver.Title);
                 returnValue = false;
             }
-#pragma warning restore CS0168 // The variable 'e' is declared but never used
             return returnValue;
         }
         public bool IsElementVisible(By locator)
         {
             bool returnValue = false;
-#pragma warning disable CS0168 // The variable 'e' is declared but never used
             try
             {
                 returnValue = WaitForElementVisible(locator).Displayed;
@@ -110,7 +107,6 @@ namespace CRES.TestAutoMationApp.Utility
                 Console.WriteLine("Unknown error " + e.Message + " occurred on page " + driver.Title);
                 returnValue = false;
             }
-#pragma warning restore CS0168 // The variable 'e' is declared but never used
             return returnValue;
         }
 
@@ -122,8 +118,6 @@ namespace CRES.TestAutoMationApp.Utility
         public bool CheckElementVisible(By locator)
         {
             bool returnValue = false;
-#pragma warning disable CS0168 // The variable 'e' is declared but never used
-#pragma warning disable CS0168 // The variable 'e' is declared but never used
             try
             {
                 returnValue = driver.FindElement(locator).Displayed;
@@ -137,8 +131,6 @@ namespace CRES.TestAutoMationApp.Utility
             {
                 returnValue = false;
             }
-#pragma warning restore CS0168 // The variable 'e' is declared but never used
-#pragma warning restore CS0168 // The variable 'e' is declared but never used
             return returnValue;
         }
 
@@ -189,5 +181,5 @@ namespace CRES.TestAutoMationApp.Utility
             return loggedInUserName;
         }
     }
-
+    
 }

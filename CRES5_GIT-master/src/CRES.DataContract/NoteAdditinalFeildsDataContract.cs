@@ -1,8 +1,12 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
 
 namespace CRES.DataContract
 {
-    public class NoteAdditinalFeildsDataContract
+   public class NoteAdditinalFeildsDataContract
     {
         public string NoteID { get; set; }
         //Maturity
@@ -20,12 +24,12 @@ namespace CRES.DataContract
         public string RateSpreadSchedule_ValueTypeText { get; set; }
         public Decimal? RateSpreadSchedule_Value { get; set; }
         public int? RateSpreadSchedule_IntCalcMethodID { get; set; }
-
+       
 
         ///Prepay And Additional Fee Schedule
         public int PrepayAndAdditionalFeeScheduleID { get; set; }
         public int PrepayAddFeeSch_EventID { get; set; }
-        public DateTime? PrepayAddFeeSch_EffectiveDate { get; set; }
+        public DateTime? PrepayAddFeeSch_EffectiveDate { get; set; }        
         public int? PrepayAddFeeSch_ValueTypeID { get; set; }
         public Decimal? PrepayAddFeeSch_Value { get; set; }
         public Decimal? PrepayAddFeeSch_IncludedLevelYield { get; set; }
@@ -48,7 +52,7 @@ namespace CRES.DataContract
         //Financing Fee Schedule
         public int FinancingFee_EventId { get; set; }
         public DateTime? FinancingFee_EffectiveDate { get; set; }
-        public DateTime? FinancingFee_Date { get; set; }
+        public DateTime? FinancingFee_Date { get; set; }     
         public int? FinancingFee_ValueTypeID { get; set; }
         public Decimal? FinancingFee_Value { get; set; }
 

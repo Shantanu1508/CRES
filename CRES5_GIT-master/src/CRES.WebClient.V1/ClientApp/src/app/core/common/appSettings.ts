@@ -2,7 +2,7 @@
 
 export class AppSettings {           
 
-    //System Setting 1
+    ////System Setting 12
     public static _dateMinRange: string = '2000-01-01 00:00:00'; //'YYYY-MM-DD'
     public static _dateMinRangeView: string = '01-01-2000'; //'YYYY-MM-DD'
     public static _storageType: string = 'AzureBlob'; // 'Box' 'AzureBlob'

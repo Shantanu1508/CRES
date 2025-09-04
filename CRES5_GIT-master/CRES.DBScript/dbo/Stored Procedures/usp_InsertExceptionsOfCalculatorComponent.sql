@@ -12,7 +12,7 @@ Set @AnalysisName = (Select name from core.analysis where AnalysisID = @Analysis
 
 IF(@AnalysisName <> 'Default')
 BEGIN
-	Delete from core.Exceptions where ObjectID=@NoteID and FieldName in ('GAAP Component' ,'Amort Fee Check','Amort Discount Premium Check','Amort Cap Cost Check')
+	---Delete from core.Exceptions where ObjectID=@NoteID and FieldName in ('GAAP Component' ,'Amort Fee Check','Amort Discount Premium Check','Amort Cap Cost Check')
 	return;
 END
 ---------------------------------------------------    
@@ -48,8 +48,10 @@ BEGIN
 		,SUM(Cleancost ) CleanCost
 		,SUM(InterestSuspenseAccountBalance)InterestSuspenseAccountBalance
 		,SUM(AccumaltedDiscountPremiumBI)AccumaltedDiscountPremiumBI
-		,SUM( CurrentPeriodPIKInterestAccrualPeriodEnddate)CurrentPeriodPIKInterestAccrualPeriodEnddate
-		,SUM(CurrentPeriodInterestAccrualPeriodEnddate)CurrentPeriodInterestAccrualPeriodEnddate
+		
+		,SUM(CurrentPeriodPIKInterestAccrual)CurrentPeriodPIKInterestAccrual
+		,SUM(CurrentPeriodInterestAccrual)CurrentPeriodInterestAccrual
+		
 		,SUM(AccumulatedAmort)AccumulatedAmort
 		,SUM(AccumalatedCapitalizedCostBI)AccumalatedCapitalizedCostBI
 		,SUM(CalcGAAP) CalcGAAP
@@ -60,9 +62,9 @@ BEGIN
 			PeriodEndDate ,
 			EndingGAAPBookValue ,
 			CleanCost ,
-			CurrentPeriodPIKInterestAccrualPeriodEnddate ,
+			CurrentPeriodPIKInterestAccrual ,
 			AccumalatedCapitalizedCostBI ,
-			CurrentPeriodInterestAccrualPeriodEnddate ,
+			CurrentPeriodInterestAccrual ,
 			AccumaltedDiscountPremiumBI ,
 			AccumulatedAmort ,
 			TotalAmortAccrualForPeriod ,
@@ -70,32 +72,37 @@ BEGIN
 			CapitalizedCostAccrual ,
 			InterestSuspenseAccountActivityforthePeriod ,
 			InterestSuspenseAccountBalance ,
-			CalcGAAP= (Cleancost-InterestSuspenseAccountBalance+[AccumaltedDiscountPremiumBI]+ [CurrentPeriodPIKInterestAccrualPeriodEnddate]+[CurrentPeriodInterestAccrualPeriodEnddate]+ AccumulatedAmort+[AccumalatedCapitalizedCostBI])
+			CalcGAAP= (Cleancost+AccumulatedAmort+[AccumaltedDiscountPremiumBI]+[AccumalatedCapitalizedCostBI]+CurrentPeriodPIKInterestAccrual+CurrentPeriodInterestAccrual+InterestSuspenseAccountBalance)
 			From(
 
 			Select
 			CreNoteid
-			,Nc.[NoteID]
+			,n.[NoteID]
 			, [PeriodEndDate]
 			, EndingGAAPBookValue
 			, ISNULL(CleanCost,0) as CleanCost
-			,ISNULL([CurrentPeriodPIKInterestAccrualPeriodEnddate],0) as CurrentPeriodPIKInterestAccrualPeriodEnddate
+			, ISNULL([CurrentPeriodInterestAccrual],0) as CurrentPeriodInterestAccrual
+			, ISNULL(CurrentPeriodPIKInterestAccrual,0) as CurrentPeriodPIKInterestAccrual
+			, ISNULL(InterestSuspenseAccountActivityforthePeriod,0) as InterestSuspenseAccountActivityforthePeriod
+			, ISNULL(InterestSuspenseAccountBalance,0) as InterestSuspenseAccountBalance		
+			
+			, ISNULL(AccumulatedAmort,0) as AccumulatedAmort
 			--,[AccumalatedCapitalizedCostBI]
-			,SUM(ISNULL(nc.CapitalizedCostAccrual,0)) OVER(PARTITION BY nc.AnalysisID,nc.NoteID ORDER BY nc.AnalysisID,nc.NoteID,nc.PeriodEndDate ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS AccumalatedCapitalizedCostBI
-			,ISNULL([CurrentPeriodInterestAccrualPeriodEnddate],0) as CurrentPeriodInterestAccrualPeriodEnddate
-			,SUM(ISNULL(nc.DiscountPremiumAccrual,0)) OVER(PARTITION BY nc.AnalysisID,nc.NoteID ORDER BY nc.AnalysisID,nc.NoteID,nc.PeriodEndDate ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS AccumaltedDiscountPremiumBI
+			--,SUM(ISNULL(nc.CapitalizedCostAccrual,0)) OVER(PARTITION BY nc.AnalysisID,n.NoteID ORDER BY nc.AnalysisID,n.NoteID,nc.PeriodEndDate ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS AccumalatedCapitalizedCostBI
+			, ISNULL(nc.CapitalizedCostAccumulatedAmort,0) AS AccumalatedCapitalizedCostBI
 			--,[AccumaltedDiscountPremiumBI]
-			,ISNULL(AccumulatedAmort,0) as AccumulatedAmort
-			,ISNULL(TotalAmortAccrualForPeriod,0) as TotalAmortAccrualForPeriod
-			,ISNULL([DiscountPremiumAccrual],0) as DiscountPremiumAccrual
-			,ISNULL([CapitalizedCostAccrual],0) as CapitalizedCostAccrual
-			,ISNULL(InterestSuspenseAccountActivityforthePeriod,0) as InterestSuspenseAccountActivityforthePeriod
-			,ISNULL(InterestSuspenseAccountBalance,0) as InterestSuspenseAccountBalance		
+			--,SUM(ISNULL(nc.DiscountPremiumAccrual,0)) OVER(PARTITION BY nc.AnalysisID,n.NoteID ORDER BY nc.AnalysisID,n.NoteID,nc.PeriodEndDate ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS AccumaltedDiscountPremiumBI
+			, ISNULL(nc.DiscountPremiumAccumulatedAmort,0) AS AccumaltedDiscountPremiumBI
+
+			, ISNULL(TotalAmortAccrualForPeriod,0) as TotalAmortAccrualForPeriod
+			, ISNULL([DiscountPremiumAccrual],0) as DiscountPremiumAccrual
+			, ISNULL([CapitalizedCostAccrual],0) as CapitalizedCostAccrual
 
 			from [cre].[NotePeriodicCalc] Nc 
-			Inner join cre.Note n on n.noteid = nc.NoteID
-			Inner JOin core.account acc on acc.accountid = n.account_accountid
-			Where acc.isdeleted <> 1
+			Inner JOin core.account acc on acc.accountid = nc.AccountID
+			Inner join cre.Note n on n.Account_AccountID = acc.AccountID
+			
+			Where acc.isdeleted <> 1 and acc.AccountTypeID = 1
 			and nc.Month is not null		
 			and Periodenddate = eomonth (Periodenddate,0)
 			and Periodenddate <> ISNULL(eomonth(n.ActualPayoffdate,0),eomonth(n.FullyextendedMaturitydate,0))	
@@ -191,8 +198,8 @@ BEGIN
 		,(ROUND(SUM(DiscountPremiumAccrual),0) - ROUND(ISNULL(tblTr.[DiscountPremium],0),0)) as Delta_AmortDiscountPremiumCheck
 		,(ROUND(SUM(CapitalizedCostAccrual),0) - ROUND(ISNULL(tblTr.[CapitalizedClosingCost],0),0)) as Delta_AmortCapCostCheck
 		from Cre.NoteperiodicCalc nc    
-		Inner join cre.note n on n.noteid = nc.noteid    
-		inner join core.account acc on acc.accountid = n.account_accountid
+		Inner JOin core.account acc on acc.accountid = nc.AccountID
+		Inner join cre.Note n on n.Account_AccountID = acc.AccountID
 		LEFT JOIN(
 			Select noteid,ISNULL([IncludedInLevelYield],0) as [IncludedInLevelYield],ISNULL([DiscountPremium],0) as [DiscountPremium],ISNULL([CapitalizedClosingCost],0) as [CapitalizedClosingCost]
 			From(
@@ -203,20 +210,24 @@ BEGIN
 					Select b.noteid,(CASE WHEN b.[Type] = 'Discount/Premium' THEN 'DiscountPremium'	WHEN b.[Type] = 'CapitalizedClosingCost' THEN 'CapitalizedClosingCost' ELSE 'IncludedInLevelYield' end ) as [Type], 
 					(SUM(Include_Amount)  + ISNULL(tblStrip.Strip_Amount,0)) Amount_Inc_reciev
 					From(
-						Select noteid,ISNULL(Amount,0) as Include_Amount,REPLACE([Type],'IncludedInLevelYield','') as [Type]
+						Select n.noteid,ISNULL(Amount,0) as Include_Amount,REPLACE([Type],'IncludedInLevelYield','') as [Type]
 						from cre.transactionEntry tr
+						Inner Join core.account acc on acc.accountid = tr.accountid
+						inner join cre.note n on n.account_accountid = acc.AccountID
 						Where ([Type] like '%IncludedInLevelYield%'	OR [Type] = 'Discount/Premium' OR [Type] = 'CapitalizedClosingCost')
 						and analysisid = @AnalysisID
-						and noteid = @NoteID
+						and n.noteid = @NoteID
 					)b
 					Left Join(
 						Select noteid,[Type],SUM(Strip_Amount) as Strip_Amount
 						From(
-							Select noteid,Amount as Strip_Amount,REPLACE(REPLACE([Type],'StripReceivable',''),'OriginationFeeStripping','OriginationFee') as [Type]
-							from cre.transactionEntry
+							Select n.noteid,Amount as Strip_Amount,REPLACE(REPLACE([Type],'StripReceivable',''),'OriginationFeeStripping','OriginationFee') as [Type]
+							from cre.transactionEntry tr
+							Inner Join core.account acc on acc.accountid = tr.accountid
+							inner join cre.note n on n.account_accountid = acc.AccountID
 							Where ([Type] like '%StripReceivable%' OR [Type] = 'OriginationFeeStripping')	
 							and analysisid = @AnalysisID
-							and noteid = @NoteID
+							and n.noteid = @NoteID
 						)a
 						group by noteid,[Type]
 
@@ -235,7 +246,7 @@ BEGIN
 		)tblTr on tblTr.noteid = n.noteid
 		where nc.[Month] is not null    and acc.isdeleted <> 1
 		and nc.AnalysisID = @AnalysisID
-		and nc.noteid = @NoteID
+		and n.noteid = @NoteID
 		group by n.crenoteid, n.noteid,tblTr.[IncludedInLevelYield],tblTr.[DiscountPremium],tblTr.[CapitalizedClosingCost]
 	)z
 	
@@ -281,3 +292,4 @@ END
     
     
 END
+GO

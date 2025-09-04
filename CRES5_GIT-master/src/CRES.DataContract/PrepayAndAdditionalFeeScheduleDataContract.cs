@@ -30,19 +30,20 @@ namespace CRES.DataContract
         public string FeeName { get; set; }
         public decimal? FeeAmountOverride { get; set; }
         public decimal? BaseAmountOverride { get; set; }
-        public string ApplyTrueUpFeatureText { get; set; }
-        public int? ApplyTrueUpFeatureID { get; set; }
-        public decimal? PercentageOfFeeToBeStripped { get; set; }
+        public  string ApplyTrueUpFeatureText { get; set; }
+        public int? ApplyTrueUpFeatureID { get; set; } 
+        public decimal? PercentageOfFeeToBeStripped  { get; set; }
         public string CreatedBy { get; set; }
         public DateTime? CreatedDate { get; set; }
         public string UpdatedBy { get; set; }
         public DateTime? UpdatedDate { get; set; }
 
         public string ScheduleID { get; set; }
-
+        
         public int? ModuleId { get; set; }
 
         public decimal? FeeToBeStripped { get; set; }
+        public bool Isdeleted { get; set; }
 
     }
 }

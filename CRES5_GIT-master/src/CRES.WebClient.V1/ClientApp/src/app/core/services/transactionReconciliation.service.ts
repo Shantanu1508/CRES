@@ -1,13 +1,14 @@
 import { Injectable } from '@angular/core';
 import { DataService } from './data.service';
 
-
 @Injectable()
 export class TranscationreconciliationService {
   private _GetgetallservicerAPI: string = 'api/excelupload/getallservicer';
+  private _GetgetallservicerLiabilityAPI: string = 'api/excelupload/getallservicerliability';
   private _GetallnotesAPI: string = 'api/note/GetAllNotes';
   private _getAllTranscationAPI: string = 'api/excelupload/GetAllTranscation';
   private _getAllTranscationWithpagingAPI: string = 'api/excelupload/GetAllTransc';
+  private _getAllTranscationLiabilityAPI: string = 'api/excelupload/getalltranscliability';
   private _fileuploadFileAPI: string = 'api/excelupload/uploadfiletoazureblob';
   private _AddUpdateTranscationReconciliationAPI: string = 'api/excelupload/AddUpdateTranscationReconciliation';
   private _saveTranscationReconciliationAPI: string = 'api/excelupload/saveTranscationReconciliation';
@@ -21,11 +22,18 @@ export class TranscationreconciliationService {
   private _GetAllTransactionByNoteAPI: string = 'api/excelupload/AllTransactionsByNoteId';
   private _DeleteAuditbyBatchlogIdAPI: string = 'api/excelupload/DeleteAuditbyBatchlogId';
   private _splitTranscationReconciliationAPI: string = 'api/excelupload/splitfeetransaction';
-  private _reconcileSplitFeeTransactionAPI: string = 'api/excelupload/reconcilesplitfeetransaction';s
+  private _reconcileSplitFeeTransactionAPI: string = 'api/excelupload/reconcilesplitfeetransaction';
+  private _getalltransactiontypeAPI: string = 'api/excelupload/getalltransactiontype';
+
+
   constructor(public datasrv: DataService) { }
 
   getAllServicer() {
     this.datasrv.set(this._GetgetallservicerAPI);
+    return this.datasrv.getAll();//
+  }
+  getAllServicerLiability() {
+    this.datasrv.set(this._GetgetallservicerLiabilityAPI);
     return this.datasrv.getAll();//
   }
 
@@ -70,6 +78,12 @@ export class TranscationreconciliationService {
     this.datasrv.set(this._getAllTranscationWithpagingAPI, pagesIndex, pagesSize);
     return this.datasrv.post(JSON.stringify(data));
   }
+  getAllTranscationLiability(data, pagesIndex, pagesSize) {
+    this.datasrv.set(this._getAllTranscationLiabilityAPI, pagesIndex, pagesSize);
+    return this.datasrv.post(JSON.stringify(data));
+  }
+
+  
 
   getHistoricalTranscation() {
     this.datasrv.set(this._GetHistoricalTranscationAPI);
@@ -118,4 +132,12 @@ export class TranscationreconciliationService {
     this.datasrv.set(this._reconcileSplitFeeTransactionAPI);
     return this.datasrv.post(JSON.stringify(transcations));
   }
+
+  //
+
+  getAllTransactionType() {
+    this.datasrv.set(this._getalltransactiontypeAPI);
+    return this.datasrv.getAll();//
+  }
+
 }

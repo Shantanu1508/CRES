@@ -140,6 +140,8 @@ BEGIN
 			 ,lSelectedMaturityDateScenario.Name as SelectedMaturityDateScenarioText
 			 ,n.ExtendedMaturityCurrent
 			  ,n.ImpactCommitmentCalc
+			  ,n.FirstIndexDeterminationDateOverride
+
 			FROM CRE.Note n inner join Core.Account a on Account_AccountID=a.AccountID
 			inner join cre.Deal d on n.DealId = d.DealId
 			left join Core.Lookup l ON n.RateType=l.LookupID
@@ -324,6 +326,7 @@ BEGIN
 				,n.NoteTransferDate
 				 ,lSelectedMaturityDateScenario.Name as SelectedMaturityDateScenarioText
 				 ,n.ExtendedMaturityCurrent
+				 ,n.FirstIndexDeterminationDateOverride
 				  FROM CRE.Note n inner join Core.Account a on Account_AccountID=a.AccountID	
 				inner join cre.Deal d on n.DealId = d.DealId
 				left join Core.Lookup l ON n.RateType=l.LookupID						

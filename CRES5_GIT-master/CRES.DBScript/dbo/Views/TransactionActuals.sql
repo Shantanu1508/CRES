@@ -28,4 +28,5 @@ where AnalysisName = 'Default'
 and T.Type 
 in ('UnusedFeeExcludedFromLevelYield', 'FloatInterest', 'InterestPaid', 
 'PrepaymentFeeExcludedFromLevelYield', 'OtherFeeExcludedFromLevelYield', 'StubInterest')
+and T.AccountTypeID = 1
 	

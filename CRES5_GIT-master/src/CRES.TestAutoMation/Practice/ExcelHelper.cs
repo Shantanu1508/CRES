@@ -1,4 +1,5 @@
-﻿using NUnit.Framework;
+﻿using CRES.TestAutoMation.TestCases;
+using NUnit.Framework;
 using sun.security.krb5;
 using System;
 using System.Collections.Generic;
@@ -7,7 +8,7 @@ using System.Text;
 
 namespace CRES.TestAutoMation.Practice
 {
-     class ExcelHelper
+    class ExcelHelper
     {
         [Test]
        public static void ExleMethod()

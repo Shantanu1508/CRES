@@ -337,7 +337,7 @@ SET @DealEndTime = GETDATE();
 						@NoteName, 
 						@PaymentFreqCd,
 						--(Select LookupID from CORE.Lookup where Name = @PaymentFreqDesc),
-						(Select LookUpID from CORE.lookup where name = 'Note'),
+						1,  ---(Select LookUpID from CORE.lookup where name = 'Note'),
 						@UserName,
 						@CreatedUpdatedDate,
 						@UserName,

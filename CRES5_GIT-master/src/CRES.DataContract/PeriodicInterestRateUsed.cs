@@ -1,11 +1,15 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
 
 namespace CRES.DataContract
 {
     public class PeriodicInterestRateUsed
     {
         public string NoteID { get; set; }
-        public DateTime? Date { get; set; }
+        public DateTime? Date { get; set; }        
         public Decimal CouponSpread { get; set; }
         public Decimal? AllInCouponRate { get; set; }
         public Decimal? AllInPikRate { get; set; }
@@ -20,5 +24,7 @@ namespace CRES.DataContract
         public DateTime CreatedDate { get; set; }
         public string UpdatedBy { get; set; }
         public DateTime UpdatedDate { get; set; }
+        public int? IsPaymentDate { get; set; }
+
     }
 }

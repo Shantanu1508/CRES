@@ -6,7 +6,7 @@
     [CreatedBy]       NVARCHAR (256) NULL,
     [CreatedDate]     DATETIME       NULL,
     [UpdatedBy]       NVARCHAR (256) NULL,
-    [UpdatedDate]     DATETIME       NULL
+    [UpdatedDate]     DATETIME       NULL    
 );
 
 go

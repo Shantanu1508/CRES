@@ -33,35 +33,50 @@
         <!--<a href="#" class="close" data-dismiss="alert" aria-label="close" title="close">×</a>-->
         <strong>No matching records found</strong>
       </div>
-      <div class="col-sm-12 customgridpadding" *ngIf="_dvEmptyWFSearchMsg == false">
+      <div class="col-sm-12 customgridpadding" *ngIf="_dvEmptyWFSearchMsg == false" id="divwfdashboard">
         <!--<center>
             <svg *ngIf="_dealListFetching" class="spinner" width="25px" height="25px" viewBox="0 0 66 66"><circle class="circle" fill="none" stroke-width="6" stroke-linecap="round" cx="33" cy="33" r="30"></circle></svg>
         </center>-->
 
         <div class="clearfix"></div>
+
         <div style="float:right !important;margin-left:0px !important;padding-bottom:10px;">
-          <wj-multi-select #multiselStatus id="multiselStatus"
+          <!--<wj-multi-select #multiselStatus id="multiselStatus"
                            [placeholder]="'Select Status'"
                            class="ibox1 multiselect-dropdown display-table-cell"
                            [headerFormat]="'{count} Status Selected'"
                            [displayMemberPath]="'StatusName'"
                            [checkedMemberPath]="'selected'"
-                           [showDropDownButton] ="true"
+                           [showDropDownButton]="true"
                            [itemsSource]="lststatus"
                            (checkedItemsChanged)="onchangedcheckeditems('change')">
-          </wj-multi-select>
-        </div>
+          </wj-multi-select>-->
 
-        <wj-flex-grid id="flex" #flex [itemsSource]="lstworkflow" [allowResizing]="'Both'" auto-generate-columns="true" allow-add-new="true" allow-sorting="true" showFilterIcons="true" class="wijmogridcss">
-          <wj-flex-grid-filter #filter></wj-flex-grid-filter>
+          <wj-multi-select #multiselStatus id="multiselStatus"
+                           [placeholder]="'Select Status'"
+                           class="multiselect-dropdown display-table-cell"
+                           [headerFormat]="'{count} Status Selected'"
+                           [displayMemberPath]="'StatusName'"
+                           [checkedMemberPath]="'selected'"
+                           [itemsSource]="lststatus"
+                           (checkedItemsChanged)="onchangedcheckeditems('change')"
+                           style="width:215px; height:30px !important;vertical-align:text-top;">
+          </wj-multi-select>
+
+        </div>
+        <div><button type="submit" class="custombutton" tabindex="1" (click)="SaveWFDashboard()">Save</button></div>
+        <wj-flex-grid id="flex" #flex [itemsSource]="cvDashBoardList" [allowResizing]="'Both'" auto-generate-columns="false" allow-add-new="false" allow-sorting="true" showFilterIcons="true" class="gridSize">
+          <wj-flex-grid-filter #filter style="height:calc(99.8vh - 190px);"></wj-flex-grid-filter>
+
+
           <wj-flex-grid-column [header]="''" [isReadOnly]="true" [width]="40">
             <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
               <div>
-                <a href='/#/workflowdetail/{{cell.item.TaskID}}' target="_blank">View</a>
+                <a href='/#/workflowdetail/{{cell.item.TaskID}}/{{cell.item.TaskTypeID}}' target="_blank">View</a>
               </div>
             </ng-template>
           </wj-flex-grid-column>
-          <wj-flex-grid-column [header]="'Deal Name'" [binding]="'DealName'" [isReadOnly]="true" [width]="'*'">
+          <wj-flex-grid-column [header]="'Deal Name'" [binding]="'DealName'" [isReadOnly]="true" [width]="110">
             <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
               <div>
                 <a href='/#/dealdetail/{{cell.item.CREDealID}}' target="_blank">{{cell.item.DealName}}</a>
@@ -69,39 +84,22 @@
             </ng-template>
           </wj-flex-grid-column>
 
-
-
-
-          <wj-flex-grid-column [header]="'Approval Deadline'" [binding]="'Deadline'" [isReadOnly]="true" align="right" [width]="140"></wj-flex-grid-column>
-          <wj-flex-grid-column [header]="'Funding Date'" [binding]="'Fundingdate'" [isReadOnly]="true" align="right" [width]="110"></wj-flex-grid-column>
-
-          <wj-flex-grid-column [header]="'Funding Amount'" [binding]="'Amount'" [isReadOnly]="true" [dataType]="'Number'" [width]="'*'" align="right" format="n2" style="display:none">
+          <wj-flex-grid-column [header]="'Approval Deadline'" [binding]="'Deadline'" [isReadOnly]="true" [width]="140"></wj-flex-grid-column>
+          <wj-flex-grid-column [header]="'Funding Date'" [binding]="'Fundingdate'" [isReadOnly]="true" [width]="110"></wj-flex-grid-column>
+          <wj-flex-grid-column [header]="'Debt Amount'" [binding]="'Amount'" [isReadOnly]="true" [dataType]="'Number'" [width]="111" format="n2" style="display:none">
             <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
               <div [ngStyle]="{color: cell.item.Amount < 0? 'red' : 'darkgreen'}">
                 {{cell.item.Amount | number:'1.2-2'}}
               </div>
             </ng-template>
           </wj-flex-grid-column>
-          <!--<wj-flex-grid-column [header]="'Funding Amount'" [binding]="'Amount'" [isReadOnly]="true" align="right" [width]="'*'"></wj-flex-grid-column>-->
-          <wj-flex-grid-column [header]="'Purpose Type'" [binding]="'PurposeIDText'" [isReadOnly]="true" [width]="'*'"></wj-flex-grid-column>
+          <wj-flex-grid-column [header]="'Purpose Type'" [binding]="'PurposeIDText'" [width]="135"></wj-flex-grid-column>
+          <wj-flex-grid-column [header]="'Status'" [binding]="'StatusName'" [isReadOnly]="true" [width]="135"></wj-flex-grid-column>
+          <wj-flex-grid-column [header]="'Primary AM'" [binding]="'PAMUsername'" [isReadOnly]="true" [width]="135"></wj-flex-grid-column>
+          <wj-flex-grid-column [header]="'Alternate AM'" [binding]="'AMOUsername'" [isReadOnly]="true" [width]="135"></wj-flex-grid-column>
+          <wj-flex-grid-column [header]="'FC Team Approval Required'" [binding]="'FundingApprovalRequired'" [isReadOnly]="true" [width]="200"></wj-flex-grid-column>
+          <wj-flex-grid-column [header]="'FC Approver'" [binding]="'UserID'" [width]="160"></wj-flex-grid-column>
 
-          <wj-flex-grid-column [header]="'Funding Status'" [binding]="'StatusName'" [isReadOnly]="true" [width]="'*'"></wj-flex-grid-column>
-          <wj-flex-grid-column [header]="'FC Team Approval Required'" [binding]="'FundingApprovalRequired'" [isReadOnly]="true" [width]="'*'"></wj-flex-grid-column>
-          <wj-flex-grid-column [header]="'Workflow Particpant'" [binding]="'Username'" [isReadOnly]="true" [width]="'*'"></wj-flex-grid-column>
-          <!--<wj-flex-grid-column [header]="'Comment'" [binding]="'Comment'" [isReadOnly]="true" align="right" [width]="'*'"></wj-flex-grid-column>-->
-          <!--<ng-template wjFlexGridDetail [maxHeight]="250" [detailVisibilityMode]="detailMode" let-item="item">
-              <wj-flex-grid [itemsSource]="getWorkflowdetailByFundingID(item.TaskID)"
-                            [headersVisibility]="'Column'">
-                  <wj-flex-grid-column [header]="'NoteID'" [binding]="'NoteName'" [width]="160">
-                      <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
-                          <div>
-                              <a href='/#/notedetail/{{cell.item.NoteID}}' routerLinkActive="active">{{cell.item.NoteName}}</a>
-                          </div>
-                      </ng-template>
-                  </wj-flex-grid-column>
-                  <wj-flex-grid-column [header]="'Amount'" [binding]="'FundingAmount'"></wj-flex-grid-column>
-              </wj-flex-grid>
-          </ng-template>-->
         </wj-flex-grid>
       </div>
     </div>

@@ -20,6 +20,10 @@ BEGIN
 			--delete note (soft delete)
 			UPDATE Core.Account set IsDeleted=1,UpdatedDate=getdate(),UpdatedBy=@UserId where AccountID = @AccountID
 			
+			update cre.note set CRENoteID = CRENoteID + '_deleted_'+replace(convert(varchar, getdate(),101),'/','') + replace(convert(varchar, getdate(),114),':','')
+			,UpdatedDate=getdate(),UpdatedBy=@UserId 
+			where  Account_AccountID = @AccountID
+
 			--delete all SearchItem associated with this note (hard delete)
 			DELETE FROM App.SearchItem WHERE Object_ObjectAutoID  in 
 			(
@@ -133,14 +137,17 @@ BEGIN
 				delete from core.event where EventTypeID = 12 and accountid = @AccountID
 				SET @DeleteCount = @@ROWCOUNT
 
-				Update cre.Note set PIKSeparateCompounding = null,PIKInterestAddedToBalanceBasedOnBusinessAdjustedDate = null where Account_AccountID = @AccountID
+				Update cre.Note set PIKInterestAddedToBalanceBasedOnBusinessAdjustedDate = null where Account_AccountID = @AccountID
+				---PIKSeparateCompounding = null,
 			END
 			ELSE IF (@LookupID = 685) --Delete Manual Cashflow
 			BEGIN
 				IF EXISTS(Select NoteID from cre.Note where EnableM61Calculations = 4 and noteid = @ModuleID)
 				BEGIN
-				Delete From CRE.TransactionEntryManual where NoteID = @ModuleID
-					Delete from CRE.TransactionEntry where NoteID =@ModuleID
+					Declare @l_Accountid uniqueidentifier = (Select Account_accountid from cre.note where noteid = @ModuleID)
+
+					Delete From CRE.TransactionEntryManual where AccountID = @l_Accountid  --@ModuleID
+					Delete from CRE.TransactionEntry where Accountid = @l_Accountid -- NoteID =@ModuleID
 					SET @DeleteCount = @@ROWCOUNT
 				END
 			END
@@ -169,7 +176,7 @@ BEGIN
 			declare @TableTypeCalculationRequests TableTypeCalculationRequests
 			insert into @TableTypeCalculationRequests(NoteId,StatusText,UserName,PriorityText)
 			Select @ModuleID,'Processing',@UserId,'Real Time'
-			exec  [dbo].[usp_QueueNotesForCalculation] @TableTypeCalculationRequests,@UserId,@UserId
+			exec  [dbo].[usp_QueueNotesForCalculation] @TableTypeCalculationRequests,@UserId,@UserId, NULL, NULL, 'DeleteNote'
 		end
 		
 
@@ -188,8 +195,18 @@ BEGIN
 		BEGIN
 			   --delete all notes associated with this deal (soft delete)
 			UPDATE Core.Account set IsDeleted=1,UpdatedDate=getdate(),UpdatedBy=@UserId where AccountID in (Select AccountID from #TempNotes)
+			
+			update cre.note set CRENoteID = CRENoteID + '_deleted_'+replace(convert(varchar, getdate(),101),'/','') + replace(convert(varchar, getdate(),114),':','')
+			,UpdatedDate=getdate(),UpdatedBy=@UserId 
+			where  Account_AccountID in (Select AccountID from #TempNotes)
+			
 			--delete deal (soft delete)
-			UPDATE CRE.Deal SET IsDeleted=1,UpdatedDate=getdate(),UpdatedBy=@UserId WHERE DealID = @ModuleID 
+
+			UPDATE Core.Account set IsDeleted=1,UpdatedDate=getdate(),UpdatedBy=@UserId where AccountID in (Select AccountID from cre.deal where DealID = @ModuleID )
+
+			UPDATE CRE.Deal SET IsDeleted=1,UpdatedDate=getdate(),UpdatedBy=@UserId ,CREDealID = CREDealID + '_deleted_'+replace(convert(varchar, getdate(),101),'/','') + replace(convert(varchar, getdate(),114),':','')
+			WHERE DealID = @ModuleID 
+
 
 			--delete all notification associated with this deals note
 			DELETE FROM [App].[UserNotification] WHERE  ObjectTypeID=182 AND ObjectID in (SELECT NoteID FROM #TempNotes)
@@ -273,7 +290,15 @@ BEGIN
 			ELSE IF (@LookupID = 398) --Delete Funding Schedules
 			BEGIN
 				Delete from [CRE].DealFunding WHERE DealID = @ModuleID
+				---SET @DeleteCount = @@ROWCOUNT
+
+				IF EXISTS(Select AccountID from #TempNotes)
+				BEGIN
+					delete from core.FundingSchedule where eventId in (Select eventID from core.event where EventTypeID = 10  and accountid in (Select AccountID from #TempNotes) )
+					delete from core.event where EventTypeID = 10 and accountid in (Select AccountID from #TempNotes)
+				END
 				SET @DeleteCount = @@ROWCOUNT
+
 			END
 			IF (@LookupID = 396 or @LookupID = 397 or @LookupID = 398)
 			BEGIN
@@ -298,7 +323,7 @@ BEGIN
 			and ActionLevelID=(select Lookupid from core.Lookup where name='Critical' and ParentID=46)
 			and ObjectTypeID=182 where n.dealId = @ModuleID and ex.ObjectID is null
 			
-			exec  [dbo].[usp_QueueNotesForCalculation] @TableTypeCalculationRequestsfordeal,@UserId,@UserId 
+			exec  [dbo].[usp_QueueNotesForCalculation] @TableTypeCalculationRequestsfordeal,@UserId,@UserId, NULL, NULL, 'DeleteDeal'
 	END
 
 END

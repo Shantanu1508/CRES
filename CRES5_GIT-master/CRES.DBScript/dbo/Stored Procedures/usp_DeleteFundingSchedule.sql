@@ -1,4 +1,5 @@
-﻿CREATE PROCEDURE [dbo].[usp_DeleteFundingSchedule]       
+﻿--Drop PROCEDURE [dbo].[usp_DeleteFundingSchedule]
+CREATE PROCEDURE [dbo].[usp_DeleteFundingSchedule]       
  @notefunding [TableTypeFundingSchedule] READONLY,      
  @UserID nvarchar(256)    
     

@@ -1,5 +1,9 @@
-﻿using CRES.DAL.Repository;
+﻿using System;
+using System.Collections.Generic;
 using System.Data;
+using System.Text;
+using CRES.DAL.Repository;
+using CRES.DataContract;
 
 namespace CRES.BusinessLogic
 {

@@ -17,6 +17,7 @@
     [CreatedDate]                           DATETIME         NULL,
     [UpdatedBy]                             NVARCHAR (256)   NULL,
     [UpdatedDate]                           DATETIME         NULL,
+    IsPaymentDate int
     CONSTRAINT [PK_PeriodicInterestRateUsedID] PRIMARY KEY CLUSTERED ([PeriodicInterestRateUsedID] ASC),
     CONSTRAINT [FK_PeriodicInterestRateUsed_Note_NoteID] FOREIGN KEY ([NoteID]) REFERENCES [CRE].[Note] ([NoteID])
 );

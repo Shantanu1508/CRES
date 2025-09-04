@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Data;
 
 namespace CRES.DataContract
 {
@@ -37,9 +38,45 @@ namespace CRES.DataContract
         public int? JsonTemplateMasterID { get; set; }
         public string TemplateName { get; set; }
 
+
+        public int? CalculationFrequency { get; set; }
+        public string CalculationFrequencyText { get; set; }
+        public int? CalcEngineType { get; set; }
+        public string CalcEngineTypeText { get; set; }
+        public int? AllowCalcOverride { get; set; }
+        public string AllowCalcOverrideText { get; set; }
+        public int? AllowCalcAlongWithDefault { get; set; }
+        public string AllowCalcAlongWithDefaultText { get; set; }
         public string Key { get; set; }
         public string Type { get; set; }
 
+        public int? AccountingClose { get; set; }
+        public string AccountingCloseText { get; set; }
+        public int? IncludeProjectedPrincipalWriteoff { get; set; }
+        public string IncludeProjectedPrincipalWriteoffText { get; set; }
+
+        public int? CalculateLiability { get; set; }
+        public string CalculateLiabilityText { get; set; }
+
+        public int? ScenarioStatus { get; set; }
+        public string ScenarioStatusText { get; set; }
+        public string jsonparam { get; set; }
+        public int? UseFinancingMaturityDateOverride { get; set; }
+        public string UseFinancingMaturityDateOverrideText { get; set; }
+        public int? UseMaturityAdjustmentMonths { get; set; }
+        public string UseMaturityAdjustmentMonthsText { get; set; }
+        public int? IncludeInDiscrepancy { get; set; }
+        public string IncludeInDiscrepancyText { get; set; }
+
+        public DateTime? LastCalculatedDate { get; set; }
+        public string OperationMode { get; set; }
+        public int? EqDelayMonths { get; set; }
+        public int? FinDelayMonths { get; set; }
+        public double? MinEqBalForFinStart { get; set; }
+        public int? SublineEqApplyMonths { get; set; }
+        public int? SublineFinApplyMonths { get; set; }
+        public int? DebtCallDaysOfTheMonth { get; set; }
+        public int? CapitalCallDaysOfTheMonth { get; set; }
     }
 
 

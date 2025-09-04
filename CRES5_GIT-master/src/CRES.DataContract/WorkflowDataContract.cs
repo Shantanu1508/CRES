@@ -1,4 +1,10 @@
-﻿namespace CRES.DataContract
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace CRES.DataContract
 {
     public class WorkflowDataContract
     {
@@ -8,7 +14,7 @@
 
         public string SecondTask { get; set; }
         public string SecondTaskTime { get; set; }
-        public string TaskStatus { get; set; }
+        public string TaskStatus { get; set; }        
 
     }
 }

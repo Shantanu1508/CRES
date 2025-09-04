@@ -3,7 +3,7 @@
 
 namespace CRES.DataContract
 {
-    public class PropertyDataContract
+public  class PropertyDataContract
     {
         public System.Guid PropertyID { get; set; }
         public string Deal_DealID { get; set; }

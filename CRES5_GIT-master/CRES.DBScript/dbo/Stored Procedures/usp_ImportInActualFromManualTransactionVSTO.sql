@@ -1,6 +1,4 @@
-﻿-- Procedure
-
-CREATE PROCEDURE [dbo].[usp_ImportInActualFromManualTransactionVSTO]
+﻿CREATE PROCEDURE [dbo].[usp_ImportInActualFromManualTransactionVSTO]
 @CreatedBy nvarchar(256) 
 
 AS
@@ -169,7 +167,7 @@ From Cre.Note,core.Analysis an
 where CRENoteID in  (Select NoteId from [IO].[L_ManualTransactionVSTO]  where [Status] = 'InProcess' and TransactionTypeID <> @TransactionTypeID)
 and an.name = 'Default'
 	
-exec [dbo].[usp_QueueNotesForCalculation] @TableTypeCalculationRequests,@CreatedBy,@CreatedBy 
+exec [dbo].[usp_QueueNotesForCalculation] @TableTypeCalculationRequests,@CreatedBy,@CreatedBy, NULL, NULL, 'ManualTransactionVSTO'
 --=================================================
 
 

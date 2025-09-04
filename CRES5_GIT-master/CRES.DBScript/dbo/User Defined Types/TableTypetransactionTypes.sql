@@ -13,6 +13,9 @@
     [UpdatedBy]                      NVARCHAR (256) NULL,
     [UpdatedDate]                    DATETIME       NULL,
     [Cash_NonCash]                   NVARCHAR(256) NULL,
-	[AccountName]                    NVARCHAR (256) NULL
+	[AccountName]                    NVARCHAR (256) NULL,
+	UsedInXIRR INT            NULL,
+	XIRRCategory                     NVARCHAR (256) NULL,
+	IsClubTransactionOnSameDate		INT NULL
 	);
 	

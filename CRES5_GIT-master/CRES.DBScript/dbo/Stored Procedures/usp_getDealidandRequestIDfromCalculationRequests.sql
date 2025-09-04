@@ -23,8 +23,9 @@ BEGIN
 
 	-- all parent Notes with BalanceAware = 0 and RequestID IS NULL (calc not started) 
 
-	SELECT c.NoteId  AS DealID,RequestID,AnalysisID   ,c.CalcType
+	SELECT n.NoteId  AS DealID,RequestID,AnalysisID   ,c.CalcType
 	FROM Core.CalculationRequests c
+	Inner Join cre.note n on n.Account_AccountID = c.AccountId
 	INNER JOIN CRE.Deal d on d.DealID = c.DealID 
 	WHERE c.AnalysisID = 'C10F3372-0FC2-4861-A9F5-148F1F80804F'
 	AND d.BalanceAware = 0

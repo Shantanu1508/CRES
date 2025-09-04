@@ -232,14 +232,16 @@ BEGIN
 	outer Apply(
 		Select n.noteid,(CASE WHEN SUM(tr.Amount) < 0 THEN SUM(tr.Amount) * -1 ELSE SUM(tr.Amount) END) as PIKFunding_afterLastPyDn
 		from cre.TransactionEntry tr
-		inner join cre.note n on n.noteid = tr.noteid
+		Inner join core.Account acc on acc.AccountID = tr.AccountID
+		inner join cre.note n on n.Account_AccountID = acc.AccountID
 		inner join cre.deal d on d.dealid = n.dealid
 		where tr.AnalysisID = @AnalysisID
 		and [type] in ('PIKPrincipalFunding','PIKPrincipalPaid','ScheduledPrincipalPaid')
 	
 		and n.noteid = fs.noteid	
 		and tr.date > fs.lastPayDown_Date
-	
+		and acc.AccountTypeID = 1
+
 		group by n.noteid
 	)tblPIKTr
 

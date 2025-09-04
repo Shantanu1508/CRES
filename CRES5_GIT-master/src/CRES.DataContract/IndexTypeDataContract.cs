@@ -1,8 +1,12 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
 
 namespace CRES.DataContract
 {
-    public class IndexTypeDataContract
+  public  class IndexTypeDataContract
     {
         public System.Guid IndexesId { get; set; }
         public DateTime Date { get; set; }
@@ -17,8 +21,8 @@ namespace CRES.DataContract
         public DateTime? StartDate { get; set; }
         public DateTime? EndDate { get; set; }
 
-        public string AnalysisID { get; set; }
-        public int IndexesMasterID { get; set; }
+        public string AnalysisID  { get; set;}
+       public int IndexesMasterID { get; set; }
         public System.Guid? IndexesMasterGuid { get; set; }
     }
 }

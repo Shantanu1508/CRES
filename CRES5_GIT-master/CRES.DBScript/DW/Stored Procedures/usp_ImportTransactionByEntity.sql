@@ -46,17 +46,26 @@ tr.CreatedDate,
 tr.UpdatedBy ,
 tr.UpdatedDate ,
 tr.AnalysisID,
-tr.AnalysisName as AnalysisName,
+ana.AnalysisName as AnalysisName,
 tr.FeeName
 
 from CRE.NoteEntityAllocation na
-inner join DW.TransactionEntryBI tr on tr.noteid = na.noteid and tr.analysisID in (Select analysisID from core.analysis where [Name] in ('Default','Expected Maturity Date (with Prepay, Index Flat)') )
-and tr.Date >= CAST(DateADD(year,-1,getdate())  as Date)    ----and tr.Date <= CAST(getdate() as Date))
 inner join cre.note n on n.noteid = na.noteid
+inner join cre.TransactionEntry tr on tr.AccountID = n.Account_AccountID and tr.analysisID in (Select analysisID from core.analysis where [Name] in ('Default','Expected Maturity Date (with Prepay, Index Flat)') )
+and tr.Date >= CAST(DateADD(year,-1,getdate())  as Date)    ----and tr.Date <= CAST(getdate() as Date))
+
 inner join cre.Entity e on e.entityID= na.entityID and e.EntityName in ('RSLIC','SNCC' ,'PIIC' ,'TMR' ,'HCC' ,'USSIC' ,'TMNF' ,'HAIH')
+
+Left Join
+(
+	Select analysisID,Name as AnalysisName 
+	from core.analysis 
+	where [Name] in ('Default','Expected Maturity Date (with Prepay, Index Flat)') 
+)ana on ana.analysisID = tr.analysisID
 
 Where tr.analysisID in (Select analysisID from core.analysis where [Name] in ('Default','Expected Maturity Date (with Prepay, Index Flat)') )
 and tr.Date >= CAST(DateADD(year,-1,getdate())  as Date) 
+
 
 
 ----and tr.Date <= CAST(getdate() as Date))

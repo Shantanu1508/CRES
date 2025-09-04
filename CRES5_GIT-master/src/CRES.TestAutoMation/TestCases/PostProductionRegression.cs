@@ -71,7 +71,7 @@ namespace CRES.TestAutoMation.TestCases
             test = extent.CreateTest("To verify copy deal").Info("Test started");
             Actions actions = new Actions(driver);
 
-            CRES_Login loginapp = new CRES_Login();
+            Login_Verification loginapp = new Login_Verification();
             Login login = new Login(driver);
             Deal deal = new Deal(driver);
             Util util = new Util(driver);

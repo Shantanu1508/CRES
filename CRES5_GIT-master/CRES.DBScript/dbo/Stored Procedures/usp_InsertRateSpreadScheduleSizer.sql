@@ -1,4 +1,5 @@
-﻿
+﻿-- Procedure
+
 CREATE PROCEDURE [dbo].[usp_InsertRateSpreadScheduleSizer] 
 @creNoteID nvarchar(256), 
 @StartDate datetime,
@@ -73,7 +74,7 @@ INSERT INTO core.RateSpreadSchedule (EventId, Date, ValueTypeID, Value, IntCalcM
 	and ValueTypeID = 778
 	and rs.IndexNameID = @IndexNameID)
 	BEGIN
-		INSERT INTO core.RateSpreadSchedule (EventId, Date, ValueTypeID, Value, IntCalcMethodID,RateOrSpreadToBeStripped, CreatedBy, CreatedDate,UpdatedBy,UpdatedDate,IndexNameID)
+		INSERT INTO core.RateSpreadSchedule (EventId, Date, ValueTypeID, Value, IntCalcMethodID,RateOrSpreadToBeStripped, CreatedBy, CreatedDate,UpdatedBy,UpdatedDate,IndexNameID,DeterminationDateHolidayList)
 		SELECT 
 		(SELECT TOP 1 EventId FROM CORE.[event] e WHERE e.[EffectiveStartDate] = CONVERT(date, @ClosingDate, 101)
 		AND e.[EventTypeID] = @RateSpreadSchedule AND e.AccountID = @accountID and e.StatusID=@Active),
@@ -86,7 +87,8 @@ INSERT INTO core.RateSpreadSchedule (EventId, Date, ValueTypeID, Value, IntCalcM
 		GETDATE(),
 		@UpdatedBy,
 		GETDATE()  ,
-		@IndexNameID		
+		@IndexNameID,
+		(CASE WHEN @IndexNameID = 245 THEN 412 ELSE  411 END)	 --245 -> 412, 777 -> 411
 	END
 
 

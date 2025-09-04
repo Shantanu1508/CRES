@@ -1,5 +1,5 @@
 ﻿{
-  "SheetName": "",
+  "SheetName": "Transactions",
   "LandingTableName": "IO.L_ManualTransaction",
   "ImportProcedureName": "usp_ImportManualTransIntoTranscationReconciliation",
   "HeaderPosition": 3,
@@ -45,7 +45,7 @@
       "SheetColumnDataType": "System.DateTime",
       "LandingColumnName": "DueDate",
       "IsMandatoryColumn": "Y",
-      "IsMandatoryValue": "Y"
+      "IsMandatoryValue": "N"
     },
     {
       "SheetColumnName": "Remit Date",

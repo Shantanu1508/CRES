@@ -12,11 +12,17 @@
     [NoteTotalCommitment]            DECIMAL (28, 15) NULL,
     [NoteAdjustedTotalCommitment]    DECIMAL (28, 15) NULL,
     [NoteAggregatedTotalCommitment]  DECIMAL (28, 15) NULL,
-	Rowno int null
+    [Rowno]                          INT              NULL,
+    CONSTRAINT [PK_NoteAdjustedCommitmentDetail_NoteAdjustedCommitmentDetailID] PRIMARY KEY CLUSTERED ([NoteAdjustedCommitmentDetailID] ASC)
 );
+
+
+GO
+ALTER TABLE [CRE].[NoteAdjustedCommitmentDetail] ENABLE CHANGE_TRACKING WITH (TRACK_COLUMNS_UPDATED = ON);
+
+
 
 go
 
-ALTER TABLE [cre].[NoteAdjustedCommitmentDetail]
-ADD CONSTRAINT PK_NoteAdjustedCommitmentDetail_NoteAdjustedCommitmentDetailID PRIMARY KEY ([NoteAdjustedCommitmentDetailID]);
+
 

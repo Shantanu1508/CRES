@@ -10,6 +10,7 @@ namespace CRES.DataContract
         public string NoteID { get; set; }
         public string CRENoteID { get; set; }
         public string NoteName { get; set; }
+        public int? StatusID { get; set; }
         public DateTime? RequestTime { get; set; }
         public string ProcessType { get; set; }
         public string ErrorMessage { get; set; }
@@ -26,6 +27,8 @@ namespace CRES.DataContract
         public string IsChart { get; set; }
         public string ChartType { get; set; }
         public string ChartName { get; set; }
-
+        public DateTime? AccountingCloseDate { get; set; }
+        public string CalcEngineTypeText { get; set; }
+        public string DealID { get; set; }
     }
 }

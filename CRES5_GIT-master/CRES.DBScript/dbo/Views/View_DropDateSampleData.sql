@@ -23,6 +23,7 @@ Outer Apply(
 	and [Type] in ('InterestPaid','PIKInterest','StubInterest')
 	and t.CRENOteid = dd.Noteid
 	and MONTH(t.Date) = MONTH(dd.MonthYear) and YEAR(t.Date) = YEAR(dd.MonthYear) 
+	and t.AccountTypeID = 1
 	group by t.crenoteid
 )Tr
 

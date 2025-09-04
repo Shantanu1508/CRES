@@ -1,5 +1,5 @@
 import { Component, ViewChild } from '@angular/core';
-import { Router} from '@angular/router';
+import { Router } from '@angular/router';
 import { NotificationService } from '../core/services/notification.service'
 import { ReportService } from './../core/services/report.service'
 import { UtilityService } from '../core/services/utility.service';
@@ -148,7 +148,7 @@ export class ReportpageComponent extends Paginated {
   }
 
 
-      //===================End Getwarehouse(Refresh Warehouse)====================================//
+  //===================End Getwarehouse(Refresh Warehouse)====================================//
 
 
 
@@ -164,7 +164,8 @@ export class ReportpageComponent extends Paginated {
     this.utilityService.setPageTitle("M61-Reports");
     this._user = JSON.parse(localStorage.getItem('user'));
     this.getReports();
-    this.GetCRESPowerBIEmbeddedStatus();
+    ////commented as we are not using it anymore
+    //this.GetCRESPowerBIEmbeddedStatus();
 
     //this.powerbistatus_off = "Turn on Power BI Service";  //Red
     // this.turnonmsg = "Power BI Service currently turned off.You can turn on the service by clicking the button ‘Turn on Power BI Service’ on this page.It will take couple of minutes to start the service.";
@@ -245,7 +246,7 @@ export class ReportpageComponent extends Paginated {
     });
   }
 
-//===============================Conversion=================================================================//
+  //===============================Conversion=================================================================//
 
   convertDateToBindable(date) {
     if (date) {
@@ -477,7 +478,7 @@ export class ReportpageComponent extends Paginated {
       return false;
     }
     else {
-      var attributeval:any = $("#txtDefaultAttribute").val()
+      var attributeval: any = $("#txtDefaultAttribute").val()
       this._attributeValue = attributeval;
       this.ClosePopUpReportFileAttribute();
       this.generateReport(this._reportFileGUID);
@@ -604,6 +605,8 @@ export class ReportpageComponent extends Paginated {
       );
   }
   //
+
+
 
   RefreshBSUnderwiting(): void {
     this._isNoteListFetching = true;

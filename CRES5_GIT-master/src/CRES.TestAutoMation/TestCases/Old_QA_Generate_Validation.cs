@@ -352,7 +352,7 @@ namespace CRES.TestAutoMation.TestCases
             {
                 test = extent.CreateTest("Deal Funding Validation").Info("Test started");
                 BrowserHelper helper = new BrowserHelper();
-                helper.DeleteChromeDriverInstances();
+                helper.DeleteBrowserDriverInstances();
 
                 string randomstring = DateTime.Now.ToString("MMddyyyyhhmmss");
                 AutomationLogic autologic = new AutomationLogic();
@@ -599,8 +599,8 @@ namespace CRES.TestAutoMation.TestCases
 
                         util.OpenUrlMultiBrowser(dealfunding + _lstDeal[loop].CREDealID.ToString(), driver);
 
-                        _autoMationOutputData.CREID = _lstDeal[loop].CREDealID;
-                        _autoMationOutputData.Name = _lstDeal[loop].DealName;
+                        _autoMationOutputData.DealID = _lstDeal[loop].CREDealID;
+                        _autoMationOutputData.DealName = _lstDeal[loop].DealName;
 
                         System.Threading.Thread.Sleep(3000);
                         dealPage.CheckDealPageLoaded();

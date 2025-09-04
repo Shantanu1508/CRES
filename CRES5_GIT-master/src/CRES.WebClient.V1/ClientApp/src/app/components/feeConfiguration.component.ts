@@ -3,7 +3,7 @@ import { Router } from '@angular/router';
 import * as wjcCore from '@grapecity/wijmo';
 import * as wjcGrid from '@grapecity/wijmo.grid';
 import { UtilityService } from '../core/services/utility.service';
-import {  NgModule } from '@angular/core';
+import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule, Routes } from '@angular/router';
@@ -72,7 +72,7 @@ export class FeeConfigurationComponent {
     this.utilityService.setPageTitle("M61–Fee Configuration");
     this.GetUserPermission();
     this.getFeeTypesFromFeeSchedulesConfig();
-    //this.GetAllFeeAmount();
+    
   }
 
   ngOnInit() {
@@ -89,10 +89,7 @@ export class FeeConfigurationComponent {
       }, 3000);
     }
 
-  }
-
-
-  // Component views are initialized
+  }  
   ngAfterViewInit() {
 
   }
@@ -149,8 +146,7 @@ export class FeeConfigurationComponent {
             setTimeout(function () {
               this.flexfeeamount.invalidate();
             }.bind(this), 200);
-
-            // this.GetAllLookups();
+            
           }
           else {
             this._router.navigate(['login']);
@@ -172,13 +168,7 @@ export class FeeConfigurationComponent {
         if (res.Succeeded) {
           if (typeof res.UserPermissionList !== 'undefined' && res.UserPermissionList.length > 0) {
             var _object = res.UserPermissionList;
-            var controlarrayedit = _object.filter(function (item) { return item.ModuleType === 'Control' && item.RightsName === 'Edit'; });
-
-            //for (var i = 0; i < controlarrayedit.length; i++) {
-            //    if (controlarrayedit[i].ChildModule == 'btnCalculationManagerDownloadCashflows') {
-            //        this._isShowDownloadCashflows = true;
-            //    }
-            //}
+            var controlarrayedit = _object.filter(function (item) { return item.ModuleType === 'Control' && item.RightsName === 'Edit'; });            
           }
         }
       });
@@ -195,7 +185,6 @@ export class FeeConfigurationComponent {
       this.lastPaymentFrequency = data.filter(x => x.ParentID == "85");
       this.lstAccrualBasis = data.filter(x => x.ParentID == "86");
       this.lstAccrualStartDate = data.filter(x => x.ParentID == "87");
-
       this.lstAccrualPeriod = data.filter(x => x.ParentID == "88");
       this.lstFeePaymentFrequency = data.filter(x => x.ParentID == "89");
       this.lstFeeCoveragePeriod = data.filter(x => x.ParentID == "90");
@@ -205,10 +194,7 @@ export class FeeConfigurationComponent {
 
       this.lstPrepayAdditinalFee_ValueType = this.lstFeeTypeLookUp;
       //set dropdown for
-
       this.lstInitialFunding = data.filter(x => x.ParentID == "91");
-
-
       this._bindGridDropdows();
     });
   }
@@ -222,31 +208,27 @@ export class FeeConfigurationComponent {
     if (flexfeefunction) {
       var colRateType = flexfeefunction.columns.getColumn('FunctionTypeText');
       if (colRateType) {
-        colRateType.showDropDown = true; // show drop-down for countries
         colRateType.dataMap = this._buildDataMap(this.lastFunctionType);
       }
 
       var colStatus = flexfeefunction.columns.getColumn('PaymentFrequencyText');
       if (colStatus) {
-        colStatus.showDropDown = true; // show drop-down for countries
+
         colStatus.dataMap = this._buildDataMap(this.lastPaymentFrequency);
       }
 
       var colRateType = flexfeefunction.columns.getColumn('AccrualBasisText');
       if (colRateType) {
-        colRateType.showDropDown = true; // show drop-down for countries
         colRateType.dataMap = this._buildDataMap(this.lstAccrualBasis);
       }
 
       var colRateType = flexfeefunction.columns.getColumn('AccrualStartDateText');
       if (colRateType) {
-        colRateType.showDropDown = true; // show drop-down for countries
         colRateType.dataMap = this._buildDataMap(this.lstAccrualStartDate);
       }
 
       var colRateType = flexfeefunction.columns.getColumn('AccrualPeriodText');
       if (colRateType) {
-        colRateType.showDropDown = true; // show drop-down for countries
         colRateType.dataMap = this._buildDataMap(this.lstAccrualPeriod);
       }
     }
@@ -254,81 +236,100 @@ export class FeeConfigurationComponent {
     if (flexfeeamount) {
       var colRateType = flexfeeamount.columns.getColumn('FeePaymentFrequencyText');
       if (colRateType) {
-        colRateType.showDropDown = true; // show drop-down for countries
         colRateType.dataMap = this._buildDataMap(this.lstFeePaymentFrequency);
       }
 
       var colRateType = flexfeeamount.columns.getColumn('FeeCoveragePeriodText');
       if (colRateType) {
-        colRateType.showDropDown = true; // show drop-down for countries
+
         colRateType.dataMap = this._buildDataMap(this.lstFeeCoveragePeriod);
       }
 
       var colRateType = flexfeeamount.columns.getColumn('FeeFunctionText'); // FeeFunctionText
       if (colRateType) {
-        colRateType.showDropDown = true; // show drop-down for countries
         colRateType.dataMap = this._buildDataMap(this.listfeefunctionfordropdown);
       }
 
 
       var colRateType = flexfeeamount.columns.getColumn('TotalCommitmentText');
       if (colRateType) {
-        colRateType.showDropDown = true; // show drop-down for countries
+
         colRateType.dataMap = this._buildDataMap(this.lstTotalCommitment);
       }
 
       var colRateType = flexfeeamount.columns.getColumn('UnscheduledPaydownsText');
       if (colRateType) {
-        colRateType.showDropDown = true; // show drop-down for countries
+
         colRateType.dataMap = this._buildDataMap(this.lstTotalCommitment);
       }
 
       var colRateType = flexfeeamount.columns.getColumn('BalloonPaymentText');
       if (colRateType) {
-        colRateType.showDropDown = true; // show drop-down for countries
+
         colRateType.dataMap = this._buildDataMap(this.lstTotalCommitment);
       }
 
       var colRateType = flexfeeamount.columns.getColumn('LoanFundingsText');
       if (colRateType) {
-        colRateType.showDropDown = true; // show drop-down for countries
+
         colRateType.dataMap = this._buildDataMap(this.lstTotalCommitment);
       }
 
       var colRateType = flexfeeamount.columns.getColumn('ScheduledPrincipalAmortizationPaymentText');
       if (colRateType) {
-        colRateType.showDropDown = true; // show drop-down for countries
+
         colRateType.dataMap = this._buildDataMap(this.lstTotalCommitment);
       }
 
       var colRateType = flexfeeamount.columns.getColumn('CurrentLoanBalanceText');
       if (colRateType) {
-        colRateType.showDropDown = true; // show drop-down for countries
+
         colRateType.dataMap = this._buildDataMap(this.lstTotalCommitment);
       }
 
       var colRateType = flexfeeamount.columns.getColumn('InterestPaymentText');
       if (colRateType) {
-        colRateType.showDropDown = true; // show drop-down for countries
+
         colRateType.dataMap = this._buildDataMap(this.lstTotalCommitment);
       }
       var colRateType = flexfeeamount.columns.getColumn('FeeNameTransText');
       if (colRateType) {
-        colRateType.showDropDown = true; // show drop-down for eeNameTrans
+
         colRateType.dataMap = this._buildDataMap(this.lstFeeTrans);
       }
 
       var colRateType = flexfeeamount.columns.getColumn('InitialFundingText');
       if (colRateType) {
-        colRateType.showDropDown = true; // show drop-down for countries
+
         colRateType.dataMap = this._buildDataMap(this.lstInitialFunding);
       }
 
       var colM61AdjustedCommitmentType = flexfeeamount.columns.getColumn('M61AdjustedCommitmentText');
       if (colM61AdjustedCommitmentType) {
-        colM61AdjustedCommitmentType.showDropDown = true; // show drop-down for countries
         colM61AdjustedCommitmentType.dataMap = this._buildDataMap(this.lstTotalCommitment);
       }
+      var colM61AdjustedCommitmentType = flexfeeamount.columns.getColumn('PIKFundingText');
+      if (colM61AdjustedCommitmentType) {
+        colM61AdjustedCommitmentType.dataMap = this._buildDataMap(this.lstTotalCommitment);
+      }
+
+      var colM61AdjustedCommitmentType = flexfeeamount.columns.getColumn('PIKPrincipalPaymentText');
+      if (colM61AdjustedCommitmentType) {
+        colM61AdjustedCommitmentType.dataMap = this._buildDataMap(this.lstTotalCommitment);
+      }
+      var colM61AdjustedCommitmentType = flexfeeamount.columns.getColumn('CurtailmentText');
+      if (colM61AdjustedCommitmentType) {
+        colM61AdjustedCommitmentType.dataMap = this._buildDataMap(this.lstTotalCommitment);
+      }
+      var colM61AdjustedCommitmentType = flexfeeamount.columns.getColumn('UpsizeAmountText');
+      if (colM61AdjustedCommitmentType) {
+        colM61AdjustedCommitmentType.dataMap = this._buildDataMap(this.lstTotalCommitment);
+      }
+      var colM61AdjustedCommitmentType = flexfeeamount.columns.getColumn('UnfundedCommitmentText');
+      if (colM61AdjustedCommitmentType) {
+        colM61AdjustedCommitmentType.dataMap = this._buildDataMap(this.lstTotalCommitment);
+      }
+
     }
   }
 
@@ -577,6 +578,62 @@ export class FeeConfigurationComponent {
             this.listfeeamount[i].M61AdjustedCommitmentID = Number(filteredarray[0].LookupID);
           }
         }
+      
+        if (!(Number(this.listfeeamount[i].PIKFundingText).toString() == "NaN" || Number(this.listfeeamount[i].PIKFundingText) == 0)) {
+          this.listfeeamount[i].PIKFundingID = Number(this.listfeeamount[i].PIKFundingText);
+          this.listfeeamount[i].PIKFundingText = this.lstTotalCommitment.find(x => x.LookupID == this.listfeeamount[i].PIKFundingID).Name;
+        }
+        else {
+          var filteredarray = this.lstTotalCommitment.filter(x => x.Name == this.listfeeamount[i].PIKFundingText)
+          if (filteredarray.length != 0) {
+            this.listfeeamount[i].PIKFundingID = Number(filteredarray[0].LookupID);
+          }
+        }
+
+        if (!(Number(this.listfeeamount[i].PIKPrincipalPaymentText).toString() == "NaN" || Number(this.listfeeamount[i].PIKPrincipalPaymentText) == 0)) {
+          this.listfeeamount[i].PIKPrincipalPaymentID = Number(this.listfeeamount[i].PIKPrincipalPaymentText);
+          this.listfeeamount[i].PIKPrincipalPaymentText = this.lstTotalCommitment.find(x => x.LookupID == this.listfeeamount[i].PIKPrincipalPaymentID).Name;
+        }
+        else {
+          var filteredarray = this.lstTotalCommitment.filter(x => x.Name == this.listfeeamount[i].PIKPrincipalPaymentText)
+          if (filteredarray.length != 0) {
+            this.listfeeamount[i].PIKPrincipalPaymentID = Number(filteredarray[0].LookupID);
+          }
+        }
+
+        if (!(Number(this.listfeeamount[i].CurtailmentText).toString() == "NaN" || Number(this.listfeeamount[i].CurtailmentText) == 0)) {
+          this.listfeeamount[i].CurtailmentID = Number(this.listfeeamount[i].CurtailmentText);
+          this.listfeeamount[i].CurtailmentText = this.lstTotalCommitment.find(x => x.LookupID == this.listfeeamount[i].CurtailmentID).Name;
+        }
+        else {
+          var filteredarray = this.lstTotalCommitment.filter(x => x.Name == this.listfeeamount[i].CurtailmentText)
+          if (filteredarray.length != 0) {
+            this.listfeeamount[i].CurtailmentID = Number(filteredarray[0].LookupID);
+          }
+        }
+
+        if (!(Number(this.listfeeamount[i].UnfundedCommitmentText).toString() == "NaN" || Number(this.listfeeamount[i].UnfundedCommitmentText) == 0)) {
+          this.listfeeamount[i].UnfundedCommitmentID = Number(this.listfeeamount[i].UnfundedCommitmentText);
+          this.listfeeamount[i].UnfundedCommitmentText = this.lstTotalCommitment.find(x => x.LookupID == this.listfeeamount[i].UnfundedCommitmentID).Name;
+        }
+        else {
+          var filteredarray = this.lstTotalCommitment.filter(x => x.Name == this.listfeeamount[i].UnfundedCommitmentText)
+          if (filteredarray.length != 0) {
+            this.listfeeamount[i].UnfundedCommitmentID = Number(filteredarray[0].LookupID);
+          }
+        }
+
+        if (!(Number(this.listfeeamount[i].UpsizeAmountText).toString() == "NaN" || Number(this.listfeeamount[i].UpsizeAmountText) == 0)) {
+          this.listfeeamount[i].UpsizeAmountID = Number(this.listfeeamount[i].UpsizeAmountText);
+          this.listfeeamount[i].UpsizeAmountText = this.lstTotalCommitment.find(x => x.LookupID == this.listfeeamount[i].UpsizeAmountID).Name;
+        }
+        else {
+          var filteredarray = this.lstTotalCommitment.filter(x => x.Name == this.listfeeamount[i].UpsizeAmountText)
+          if (filteredarray.length != 0) {
+            this.listfeeamount[i].UpsizeAmountID = Number(filteredarray[0].LookupID);
+          }
+        }
+
       }
 
 

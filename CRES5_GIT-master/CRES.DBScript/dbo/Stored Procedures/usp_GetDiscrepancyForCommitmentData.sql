@@ -1,5 +1,5 @@
-﻿
-Create PROCEDURE [dbo].[usp_GetDiscrepancyForCommitmentData]  
+﻿--[dbo].[usp_GetDiscrepancyForCommitmentData]  '81c55001-3f96-42fe-85f5-def1c7cad32c'
+CREATE PROCEDURE [dbo].[usp_GetDiscrepancyForCommitmentData]  --'81c55001-3f96-42fe-85f5-def1c7cad32c'
 (   
     @DealID UNIQUEIDENTIFIER = null
 )	
@@ -30,7 +30,8 @@ END
 DECLARE CursorDeal CURSOR 
 for
 (	
-	Select DealID from cre.Deal where IsDeleted <> 1 and [Status] = 323 --and  dealid = '68c693d9-dea6-49f0-a929-4341d5df5e1f'
+	Select DealID from cre.Deal where IsDeleted <> 1 and [Status] in (323,325) and  (CASE WHEN @DealID IS NULL THEN 1 WHEN dealID = @DealID  THEN 1 ELSE 0 END ) = 1 
+	AND DealName NOT LIKE '%copy%'
 )
 OPEN CursorDeal 
 FETCH NEXT FROM CursorDeal
@@ -63,19 +64,20 @@ Select distinct DealID,[Type],[Date] from @DealCommitment
 
 Select * from
 (
-	Select d.DealName as [Deal Name],count(dc.DealID) as [Actual commit count],isnull(tbldb.dc_dbCount,0) as [DB commit count], (count(dc.DealID) - ISNULL(tbldb.dc_dbCount,0)) as Delta
+	Select d.DealID as [DealID],d.DealName as [Deal Name],count(dc.DealID) as [Actual Commit Count],isnull(tbldb.dc_dbCount,0) as [DB Commit Count], (count(dc.DealID) - ISNULL(tbldb.dc_dbCount,0)) as Delta
 	from @DealCommitment_distinct dc
 	left join cre.deal d on d.dealid = dc.dealid
 	left join(
 		Select dealid,count(a.dealid) dc_dbCount
 		from(
 			Select distinct DealID,[Type],[Date] 
-			from cre.NoteAdjustedCommitmentMaster --where dealid = '8714EEA0-D6C8-45E6-A3C7-1CF13BF5FBA5'
+			from cre.NoteAdjustedCommitmentMaster 
+			where (CASE WHEN @DealID IS NULL THEN 1 WHEN dealID = @DealID  THEN 1 ELSE 0 END ) = 1 
 		)a
 		group by a.dealid
 	)tbldb on tbldb.DealID = dc.DealID
 
-	group by d.dealname,tbldb.dc_dbCount
+	group by d.dealid,d.dealname,tbldb.dc_dbCount
 )a
 where a.delta <> 0
 order by a.[Deal Name]

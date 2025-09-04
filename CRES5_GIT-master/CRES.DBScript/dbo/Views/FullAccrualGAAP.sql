@@ -32,14 +32,21 @@ outer apply (Select isholidayBi
 			 )X
 
 	Outer Apply (Select  ISNULL(Amount,0) LIBOR from TransactionEntry T
+	                Inner join core.account acc on acc.accountid = t.AccountID
+                    Inner join cre.note n on n.account_accountid = acc.accountid
+ 
 					Where P.CRENoteID  = T.NoteID and X.Date1 = T.Date
 					and AnalysisID = 'C10F3372-0FC2-4861-A9F5-148F1F80804F' 
-					and Type = 'LIBORPercentage')y
+					and Type = 'LIBORPercentage'
+					and acc.AccounttypeID = 1)y
 
 					Outer Apply (Select  ISNULL(Amount,0) Spread from TransactionEntry T
+ 					Inner join core.account acc on acc.accountid = t.AccountID
+                    Inner join cre.note n on n.account_accountid = acc.accountid
+ 
 					Where P.CRENoteID  = T.NoteID and date1 = T.Date
 					and AnalysisID = 'C10F3372-0FC2-4861-A9F5-148F1F80804F' and Type = 'SpreadPercentage'
-					)z
+					and acc.AccounttypeID = 1 )z
 
 
 

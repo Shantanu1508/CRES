@@ -1,12 +1,15 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
 using CRES.DataContract;
 using CRES.DAL.IRepository;
 using System.Data;
 using System.Data.SqlClient;
+using System.Configuration;
 using CRES.Utilities;
-#pragma warning disable CS0105 // The using directive for 'CRES.DAL.IRepository' appeared previously in this namespace
-#pragma warning restore CS0105 // The using directive for 'CRES.DAL.IRepository' appeared previously in this namespace
+using CRES.DAL.IRepository;
 using Microsoft.Extensions.Configuration;
 using System.IO;
 
@@ -26,11 +29,11 @@ namespace CRES.DAL.Repository
         }
 
         //private string connstring = ConfigurationManager.ConnectionStrings["LoggingInDB"].ToString();   
-        // SqlConnection connection = new SqlConnection();
+       // SqlConnection connection = new SqlConnection();
 
         public List<TagMasterDataContract> GetTagMaster(string UserID, Guid? AnalysisId)
         {
-
+            
             DataTable dt = new DataTable();
             List<TagMasterDataContract> taglist = new List<TagMasterDataContract>();
             Helper.Helper hp = new Helper.Helper();
@@ -39,7 +42,7 @@ namespace CRES.DAL.Repository
             SqlParameter[] sqlparam = new SqlParameter[] { p1, p2 };
             dt = hp.ExecDataTable("dbo.usp_GetTagMaster", sqlparam);
 
-            //  var _taglist = dbContext.usp_GetTagMaster(UserID, AnalysisId);
+          //  var _taglist = dbContext.usp_GetTagMaster(UserID, AnalysisId);
 
             foreach (DataRow dr in dt.Rows)
             {
@@ -48,22 +51,22 @@ namespace CRES.DAL.Repository
                 {
                     tdc.TagMasterID = new Guid(Convert.ToString(dr["TagMasterID"]));
                 }
-
-                tdc.TagName = Convert.ToString(dr["TagName"]);
-                tdc.TagDesc = Convert.ToString(dr["TagDesc"]);
-                tdc.CreatedBy = Convert.ToString(dr["CreatedBy"]);
-                tdc.CreatedDate = CommonHelper.ToDateTime(dr["CreatedDate"]);
-                tdc.UpdatedBy = Convert.ToString(dr["UpdatedBy"]);
+               
+                tdc.TagName = Convert.ToString(dr["TagName"]); 
+                tdc.TagDesc = Convert.ToString(dr["TagDesc"]); 
+                tdc.CreatedBy = Convert.ToString(dr["CreatedBy"]); 
+                tdc.CreatedDate = CommonHelper.ToDateTime(dr["CreatedDate"]); 
+                tdc.UpdatedBy = Convert.ToString(dr["UpdatedBy"]); 
                 tdc.UpdatedDate = CommonHelper.ToDateTime(dr["UpdatedDate"]);
                 tdc.FullName = Convert.ToString(dr["FullName"]);
                 if (Convert.ToString(dr["AnalysisID"]) != "")
                 {
                     tdc.AnalysisID = new Guid(Convert.ToString(dr["AnalysisID"]));
                 }
-                tdc.AnalysisName = Convert.ToString(dr["AnalysisName"]);
-                tdc.StatusText = Convert.ToString(dr["StatusText"]);
-                tdc.TagFileName = Convert.ToString(dr["TagFileName"]);
-                tdc.NewTagFileName = Convert.ToString(dr["NewTagFileName"]);
+                tdc.AnalysisName = Convert.ToString(dr["AnalysisName"]); 
+                tdc.StatusText = Convert.ToString(dr["StatusText"]); 
+                tdc.TagFileName = Convert.ToString(dr["TagFileName"]); 
+                tdc.NewTagFileName = Convert.ToString(dr["NewTagFileName"]); 
                 taglist.Add(tdc);
 
             }
@@ -78,10 +81,9 @@ namespace CRES.DAL.Repository
         {
             string result = "";
 
-#pragma warning disable CS0168 // The variable 'ex' is declared but never used
             try
             {
-
+               
                 string NewTagID;
                 Helper.Helper hp = new Helper.Helper();
                 SqlParameter p1 = new SqlParameter { ParameterName = "@TagName", Value = tmdc.TagName };
@@ -93,7 +95,7 @@ namespace CRES.DAL.Repository
                 hp.ExecNonquery("dbo.usp_InsertTagMaster", sqlparam);
                 //  ObjectParameter newtagID = new ObjectParameter("NewTagID", typeof(string));
 
-                // var res = dbContext.usp_InsertTagMaster(tmdc.TagName, tmdc.TagDesc, UserID, tmdc.AnalysisID, newtagID);
+               // var res = dbContext.usp_InsertTagMaster(tmdc.TagName, tmdc.TagDesc, UserID, tmdc.AnalysisID, newtagID);
 
                 NewTagID = Convert.ToString(p5.Value);
 
@@ -110,7 +112,6 @@ namespace CRES.DAL.Repository
             {
                 throw;
             }
-#pragma warning restore CS0168 // The variable 'ex' is declared but never used
         }
 
 
@@ -120,7 +121,6 @@ namespace CRES.DAL.Repository
             DataTable newdt = new DataTable();
 
 
-#pragma warning disable CS0168 // The variable 'ex' is declared but never used
             try
             {
                 Helper.Helper hp = new Helper.Helper();
@@ -137,7 +137,6 @@ namespace CRES.DAL.Repository
             catch (Exception ex)
             {
             }
-#pragma warning restore CS0168 // The variable 'ex' is declared but never used
 
             if (dt.Rows.Count == 1)
                 return newdt;
@@ -153,7 +152,7 @@ namespace CRES.DAL.Repository
             SqlParameter p0 = new SqlParameter { ParameterName = "@UserID", Value = UserID };
             SqlParameter p1 = new SqlParameter { ParameterName = "@AnalysisID", Value = AnalysisID };
             SqlParameter p2 = new SqlParameter { ParameterName = "@TagMasterID", Value = tagMasterID };
-            SqlParameter[] sqlparam = new SqlParameter[] { p0, p1, p2 };
+            SqlParameter[] sqlparam = new SqlParameter[] { p0,p1,p2 };
             hp.ExecNonquery("dbo.usp_DeleteTagByTagID", sqlparam);
         }
 
@@ -187,8 +186,8 @@ namespace CRES.DAL.Repository
                 }
                 tdc.AnalysisName = Convert.ToString(dr["AnalysisName"]);
                 tdc.TagFileName = Convert.ToString(dr["TagFileName"]);
-
-
+               
+                
                 taglist.Add(tdc);
             }
 
@@ -198,10 +197,10 @@ namespace CRES.DAL.Repository
 
         public void UpdateTagFileName(List<TagFileDataContract> lstTagFile)
         {
-
+           
             Helper.Helper hp = new Helper.Helper();
             SqlParameter p1 = new SqlParameter { ParameterName = "@XMLTagFile", Value = lstTagFile.ToXML() };
-            SqlParameter[] sqlparam = new SqlParameter[] { p1 };
+            SqlParameter[] sqlparam = new SqlParameter[] {  p1 };
             hp.ExecNonquery("dbo.usp_UpdateTagFileName", sqlparam);
             //var res = dbContext.usp_UpdateTagFileName(lstTagFile.ToXML());
         }
@@ -212,8 +211,8 @@ namespace CRES.DAL.Repository
             SqlParameter p1 = new SqlParameter { ParameterName = "@AnalysisID", Value = AnalysisID };
             SqlParameter p2 = new SqlParameter { ParameterName = "@TagMasterID", Value = TagMasterID.ToString() };
             SqlParameter[] sqlparam = new SqlParameter[] { p1 };
-            hp.ExecNonquery("CRE.usp_InsertTransactionEntryCloseArchive", sqlparam);
-            //  var res = dbContext.usp_InsertTransactionEntryCloseArchive(AnalysisID,TagMasterID.ToString());
+             hp.ExecNonquery("CRE.usp_InsertTransactionEntryCloseArchive", sqlparam);
+          //  var res = dbContext.usp_InsertTransactionEntryCloseArchive(AnalysisID,TagMasterID.ToString());
         }
 
     }

@@ -1,0 +1,1 @@
+﻿Update CRE.Note SET ClosingDateBK = ClosingDate

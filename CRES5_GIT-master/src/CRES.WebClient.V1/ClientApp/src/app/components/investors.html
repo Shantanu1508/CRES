@@ -1,0 +1,101 @@
+<form #f="ngForm">
+  <div class="col-sm-12">
+    <div class="head fixheaderdiv">
+      <h1 style="display: inline-block;margin-top: 10px;">Investor: UBS</h1>
+      <span >
+        <button type="button" style="width: 200px !important; margin-right: 30px !important" class="custombutton" >Cancel</button>
+      </span>
+      <span >
+        <button type="button" style="width: 200px !important;" class="custombutton" >Save</button>
+      </span>
+      <span >
+        <button type="button" style="width: 200px !important;" class="custombutton" >Calc Notes</button>
+      </span>
+    </div>
+
+    <div class="fmst fixheadercontent">
+
+      <div class="box1a">
+        <div class="form-group row pD10">
+          <!---------------Content Start---------------->
+          <div class="col-sm-3">
+            <label class="lab1">Investor Name</label>
+            <input class="ibox1" type="text">
+          </div>
+          <div class="col-sm-3">
+            <label class="lab1">Investor Type</label>
+            <!--<select class="ibox1">-->
+              <!--<option *ngFor="let investorType of investorTypes" [value]="investorType">
+                {{ investorType }}
+              </option>-->
+            <!--</select>-->
+          </div>
+          <div class="col-sm-3">
+            <label class="lab1">Status</label>
+            <select class="ibox1">
+              <option *ngFor="let status of lststatus" value=status>
+                {{status}}
+              </option>
+            </select>
+          </div>
+          <div class="col-sm-3">
+            <label class="lab1">Currency</label>
+            <!--<select class="ibox1">
+              <option *ngFor="let item of currency" value=item>
+                {{item}}
+              </option>
+            </select>-->
+          </div>
+          <div class="col-sm-3">
+            <label class="lab1">Current Commitment</label>
+            <wj-input-number [isRequired]="false" class="ibox1 rightalign" [format]="'n2'" [isReadOnly]="true"></wj-input-number>
+          </div>
+          <div class="col-sm-3">
+            <label class="lab1">Capital Call Notice Business Days</label>
+            <input class="ibox1" type="number">
+          </div>
+          <div class="col-sm-3">
+            <label class="lab1">Earliest Equity Arrival</label>
+            <wj-input-date [format]="'M/d/yyyy'" class="ibox1 rightalign" [isRequired]="false" [isReadOnly]="true" [placeholder]="'M/d/yyyy'"></wj-input-date>
+          </div>
+          <div class="col-sm-3">
+            <label class="lab1">Invested Capital</label>
+            <wj-input-number [isRequired]="false" class="ibox1 rightalign" [format]="'n2'" [isReadOnly]="true"></wj-input-number>
+          </div>
+          <div class="col-sm-3">
+            <label class="lab1">Capital Called</label>
+            <wj-input-number [isRequired]="false" class="ibox1 rightalign" [format]="'n2'" [isReadOnly]="true"></wj-input-number>
+          </div>
+          <div class="col-sm-3">
+            <label class="lab1">Unfunded Capital</label>
+            <wj-input-number [isRequired]="false" class="ibox1 rightalign" [format]="'n2'" [isReadOnly]="true"></wj-input-number>
+          </div>
+          <div class="col-sm-3">
+            <label class="lab1">Linked Short Term Borrowing Facility</label>
+            <input class="ibox1" type="text" style="color: red;">
+          </div>
+          <div class="col-sm-3">
+            <label class="lab1">Short Term Borrowing Start Date</label>
+            <wj-input-date [format]="'M/d/yyyy'" class="ibox1 rightalign" [isRequired]="false" [isReadOnly]="true" [placeholder]="'M/d/yyyy'"></wj-input-date>
+          </div>
+          <div class="col-sm-3">
+            <label class="lab1">Short Term Borrowing Capacity (%)</label>
+            <wj-input-number [isRequired]="false" class="ibox1 rightalign" [format]="'p2'" [isReadOnly]="false"></wj-input-number>
+          </div>
+          <div class="col-sm-3">
+            <label class="lab1">Short Term Borrowing Capacity Amt</label>
+            <wj-input-number [isRequired]="false" class="ibox1 rightalign" [format]="'n2'" [isReadOnly]="false"></wj-input-number>
+          </div>
+          <div class="col-sm-3">
+            <label class="lab1">Mgmt Fees Calcualation Method</label>
+            <!--<select class="ibox1">-->
+              <!--<option *ngFor="let investorType of MgmtFeesCalcualationMethod" [value]="investorType">
+                {{ investorType }}
+              </option>-->
+            <!--</select>-->
+          </div>
+        </div>
+      </div>
+    </div>
+    </div>
+</form>

@@ -32,7 +32,10 @@
     [InterestAdj]      DECIMAL (28, 15) NULL,
     SplitTransactionid UNIQUEIDENTIFIER NULL,
 
-    TranscationReconciliation_AutoID int IDENTITY(1,1)
+    TranscationReconciliation_AutoID int IDENTITY(1,1),
+    DueDateAlreadyReconciled bit DEFAULT 0,
+    [WriteOffAmount]      DECIMAL (28, 15) NULL
+    
 );
 
 go

@@ -46,18 +46,18 @@ BEGIN
 		DECLARE @BatchDetail_id int,@RowCount int
 		
 
-		--Exec [DW].[usp_ImportNotePeriodicCalcByEntity]	 
+		----Exec [DW].[usp_ImportNotePeriodicCalcByEntity]	 
 	
-		--===========================================
-		INSERT INTO [DW].BatchDetail (BatchLogId,LandingTableName,LandingStartTime,LandingEndTime,LandingRecordCount,BITableName,BIStartTime) 
-		VALUES (@id,'L_TransactionByEntityBI',GETDATE(),GETDATE(),0,'TransactionByEntityBI',GETDATE())		
+		------===========================================
+		----INSERT INTO [DW].BatchDetail (BatchLogId,LandingTableName,LandingStartTime,LandingEndTime,LandingRecordCount,BITableName,BIStartTime) 
+		----VALUES (@id,'L_TransactionByEntityBI',GETDATE(),GETDATE(),0,'TransactionByEntityBI',GETDATE())		
 
-			Exec [DW].[usp_ImportTransactionByEntity] 
+		----	Exec [DW].[usp_ImportTransactionByEntity] 
 		
-		SET @RowCount = @@ROWCOUNT
+		----SET @RowCount = @@ROWCOUNT
 		
-		UPDATE [DW].BatchDetail	SET	BIEndTime = GETDATE(),BIRecordCount = @RowCount	WHERE BatchLogId = @id and LandingTableName = 'L_TransactionByEntityBI'
-		--===========================================
+		----UPDATE [DW].BatchDetail	SET	BIEndTime = GETDATE(),BIRecordCount = @RowCount	WHERE BatchLogId = @id and LandingTableName = 'L_TransactionByEntityBI'
+		------===========================================
 		
 
 		--===========================================

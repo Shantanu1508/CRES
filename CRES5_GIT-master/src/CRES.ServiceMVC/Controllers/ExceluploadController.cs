@@ -1,25 +1,34 @@
 ﻿
-using CRES.BusinessLogic;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Net;
+using System.Net.Http;
 using CRES.DataContract;
-using CRES.Services;
-using CRES.Services.Infrastructure;
+using CRES.BusinessLogic;
+using System.Threading.Tasks;
+using System.Collections;
 using CRES.Utilities;
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.StaticFiles;
-using Microsoft.Extensions.Configuration;
+using System.Net.Http.Headers;
+using System.Web;
+using System.Drawing;
+using System.Configuration;
 using Microsoft.WindowsAzure.Storage;
 using Microsoft.WindowsAzure.Storage.Auth;
 using Microsoft.WindowsAzure.Storage.Blob;
+using CRES.Services;
+using System.IO;
+using System.Data;
+using CRES.Services.Infrastructure;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Configuration;
+using Microsoft.AspNetCore.StaticFiles;
+using ExcelDataReader;
+using Microsoft.AspNetCore.Http;
 using OfficeOpenXml;
 using OfficeOpenXml.Style;
-using System;
-using System.Collections.Generic;
-using System.Data;
-using System.IO;
-using System.Linq;
-using System.Net.Http.Headers;
-using System.Threading.Tasks;
+using Newtonsoft.Json;
+using System.Threading;
 
 namespace CRES.ServicesNew.Controllers
 {
@@ -28,13 +37,13 @@ namespace CRES.ServicesNew.Controllers
     {
         //[Services.Controllers.IsAuthenticate]
         //[Services.Controllers.DeflateCompression]
+
         [HttpGet]
         [Route("api/excelupload/getallservicer")]
         public IActionResult GetAllServicer()
         {
             GenericResult _authenticationResult = null;
             List<ServicerDataContract> lstServicer = new List<ServicerDataContract>();
-
 
             //
             var headerUserID = string.Empty;
@@ -44,7 +53,6 @@ namespace CRES.ServicesNew.Controllers
             }
 
             TranscationLogic servicerlogic = new TranscationLogic();
-
 
             UserPermissionLogic upl = new UserPermissionLogic();
             List<UserPermissionDataContract> permissionlist = upl.GetuserPermissionByUserIDAndPageName(headerUserID, "Deallist");
@@ -93,10 +101,72 @@ namespace CRES.ServicesNew.Controllers
         }
 
         [HttpGet]
+        [Route("api/excelupload/getallservicerliability")]
+        public IActionResult GetAllServicerLiability()
+        {
+            GenericResult _authenticationResult = null;
+            List<ServicerDataContract> lstServicer = new List<ServicerDataContract>();
+
+            //
+            var headerUserID = string.Empty;
+            if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
+            {
+                headerUserID = Convert.ToString(Request.Headers["TokenUId"]);
+            }
+
+            TranscationLogic servicerlogic = new TranscationLogic();
+
+            UserPermissionLogic upl = new UserPermissionLogic();
+            List<UserPermissionDataContract> permissionlist = upl.GetuserPermissionByUserIDAndPageName(headerUserID, "Deallist");
+
+            if (permissionlist.Count > 0)
+            {
+                lstServicer = servicerlogic.GetAllServicerLiability();
+            }
+
+            try
+            {
+                if (lstServicer != null)
+                {
+
+                    _authenticationResult = new GenericResult()
+                    {
+                        Succeeded = true,
+                        Message = "Authentication succeeded",
+
+                        lstServicer = lstServicer,
+                        UserPermissionList = permissionlist
+                    };
+                }
+                else
+                {
+                    _authenticationResult = new GenericResult()
+                    {
+                        Succeeded = false,
+                        Message = "Authentication failed"
+                    };
+                }
+            }
+            catch (Exception ex)
+            {
+                LoggerLogic Log = new LoggerLogic();
+                Log.WriteLogException(CRESEnums.Module.TransactionReconciliation.ToString(), "Error occurred in GetAllServicer ", "", "", ex.TargetSite.Name.ToString(), "", ex);
+
+                _authenticationResult = new GenericResult()
+                {
+                    Succeeded = false,
+                    Message = ex.Message
+                };
+            }
+            return Ok(_authenticationResult);
+
+        }
+
+        [HttpGet]
         [Services.Controllers.IsAuthenticate]
         [Services.Controllers.DeflateCompression]
         [Route("api/excelupload/GetAllTranscation")]
-        public IActionResult GetAllTranscation()
+        public IActionResult GetAllTranscation(bool ShowAllTransaction)
         {
             GenericResult _authenticationResult = null;
             DataTable dt = new DataTable();
@@ -110,6 +180,7 @@ namespace CRES.ServicesNew.Controllers
 
             TranscationLogic servicerlogic = new TranscationLogic();
             dt = servicerlogic.GetAllTranscation();
+
 
             try
             {
@@ -154,9 +225,142 @@ namespace CRES.ServicesNew.Controllers
         {
             GenericResult _authenticationResult = null;
             DataTable dt = new DataTable();
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
+            bool ShowAllTransaction = false;
+            var headerUserID = string.Empty;
+
+            if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
+            {
+                headerUserID = Convert.ToString(Request.Headers["TokenUId"]);
+            }
+
+            int? totalCount = 0;
+            TranscationLogic servicerlogic = new TranscationLogic();
+
+            if (type.Contains("ShowAllTransaction"))
+                ShowAllTransaction = true;
+            else
+                ShowAllTransaction = false;
+            try
+            {
+                if (type.Contains("RefreshM61Amount"))
+                    servicerlogic.RefreshM61Amount(Convert.ToString(headerUserID));
+
+
+
+
+                dt = servicerlogic.GetAllTranscationPaging(ShowAllTransaction, headerUserID, pageSize, pageIndex, out totalCount);
+                if (dt != null)
+                {
+                    _authenticationResult = new GenericResult()
+                    {
+                        Succeeded = true,
+                        Message = "Authentication succeeded",
+                        TotalCount = Convert.ToInt32(totalCount),
+                        dtCalcReq = dt
+                    };
+                }
+                else
+                {
+                    _authenticationResult = new GenericResult()
+                    {
+                        Succeeded = false,
+                        Message = "Authentication failed"
+                    };
+                }
+            }
+            catch (Exception ex)
+            {
+                LoggerLogic Log = new LoggerLogic();
+                Log.WriteLogException(CRESEnums.Module.TransactionReconciliation.ToString(), "Error occurred in GetAllTransc ", "", "", ex.TargetSite.Name.ToString(), "", ex);
+
+                _authenticationResult = new GenericResult()
+                {
+                    Succeeded = false,
+                    Message = ex.Message
+                };
+            }
+            return Ok(_authenticationResult);
+        }
+
+        [HttpPost]
+        [Services.Controllers.IsAuthenticate]
+        [Services.Controllers.DeflateCompression]
+        [Route("api/excelupload/getalltranscliability")]
+        public IActionResult GetAllTransLiability([FromBody] string type, int? pageIndex, int? pageSize)
+        {
+            GenericResult _authenticationResult = null;
+            DataTable dt = new DataTable();
+            IEnumerable<string> headerValues;
+            bool ShowAllTransaction = false;
+            var headerUserID = string.Empty;
+
+            if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
+            {
+                headerUserID = Convert.ToString(Request.Headers["TokenUId"]);
+            }
+
+            int? totalCount = 0;
+            TranscationLogic servicerlogic = new TranscationLogic();
+
+            if (type.Contains("ShowAllTransaction"))
+                ShowAllTransaction = true;
+            else
+                ShowAllTransaction = false;
+            try
+            {
+                //temp commented
+                //if (type.Contains("RefreshM61Amount"))
+                //    servicerlogic.RefreshM61Amount(Convert.ToString(headerUserID));
+
+
+
+
+                dt = servicerlogic.GetAllTranscationLiability(ShowAllTransaction, headerUserID, pageSize, pageIndex, out totalCount);
+                if (dt != null)
+                {
+                    _authenticationResult = new GenericResult()
+                    {
+                        Succeeded = true,
+                        Message = "Authentication succeeded",
+                        TotalCount = Convert.ToInt32(totalCount),
+                        dtCalcReq = dt
+                    };
+                }
+                else
+                {
+                    _authenticationResult = new GenericResult()
+                    {
+                        Succeeded = false,
+                        Message = "Authentication failed"
+                    };
+                }
+            }
+            catch (Exception ex)
+            {
+                LoggerLogic Log = new LoggerLogic();
+                Log.WriteLogException(CRESEnums.Module.TransactionReconciliation.ToString(), "Error occurred in GetAllTransc ", "", "", ex.TargetSite.Name.ToString(), "", ex);
+
+                _authenticationResult = new GenericResult()
+                {
+                    Succeeded = false,
+                    Message = ex.Message
+                };
+            }
+            return Ok(_authenticationResult);
+        }
+
+
+
+        [HttpPost]
+        [Services.Controllers.IsAuthenticate]
+        [Services.Controllers.DeflateCompression]
+        [Route("api/excelupload/RefreshM61Amount")]
+        public IActionResult RefreshM61Amount([FromBody] string type, int? pageIndex, int? pageSize)
+        {
+            GenericResult _authenticationResult = null;
+            DataTable dt = new DataTable();
+            IEnumerable<string> headerValues;
 
             var headerUserID = string.Empty;
 
@@ -167,16 +371,17 @@ namespace CRES.ServicesNew.Controllers
 
             int? totalCount;
             TranscationLogic servicerlogic = new TranscationLogic();
-            if (type == "RefreshM61Amount")
-                servicerlogic.RefreshM61Amount(headerUserID);
 
-
-
-            dt = servicerlogic.GetAllTranscationPaging(pageSize, pageIndex, out totalCount);
             // dt = servicerlogic.GetAllTranscation();
 
             try
             {
+                if (type == "RefreshM61Amount")
+                    servicerlogic.RefreshM61Amount(headerUserID);
+
+
+
+                dt = servicerlogic.GetAllTranscationPaging(false, headerUserID, pageSize, pageIndex, out totalCount);
                 if (dt != null)
                 {
                     _authenticationResult = new GenericResult()
@@ -218,9 +423,7 @@ namespace CRES.ServicesNew.Controllers
         {
             GenericResult _authenticationResult = null;
             DataTable dt = new DataTable();
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
 
             var headerUserID = string.Empty;
             if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
@@ -229,10 +432,11 @@ namespace CRES.ServicesNew.Controllers
             }
 
             TranscationLogic servicerlogic = new TranscationLogic();
-            dt = servicerlogic.GetHistoricalDataforTranscationRecon();
+
 
             try
             {
+                dt = servicerlogic.GetHistoricalDataforTranscationRecon();
                 if (dt != null)
                 {
                     _authenticationResult = new GenericResult()
@@ -273,6 +477,7 @@ namespace CRES.ServicesNew.Controllers
         {
             string[] _supportedMimeTypes = { "xlsx/xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "application/vnd.ms-excel", "application/vnd.openxmlformats-officedocument.wordprocessingml.document" };
             var headerUserID = String.Empty;
+            GenericResult _authenticationResult = null;
             try
             {
                 GetConfigSetting();
@@ -281,9 +486,7 @@ namespace CRES.ServicesNew.Controllers
 
                 var provider = new FileExtensionContentTypeProvider();
                 bool isMimeTypeSupported = true;
-#pragma warning disable CS0168 // The variable 'contentType' is declared but never used
                 string contentType;
-#pragma warning restore CS0168 // The variable 'contentType' is declared but never used
 
 
                 CRES.DataContract.FileDetail fDetail = new CRES.DataContract.FileDetail();
@@ -297,7 +500,7 @@ namespace CRES.ServicesNew.Controllers
                 var Servicername = String.Empty;
                 var Servicerid = String.Empty;
                 var ScenarioId = String.Empty;
-                GenericResult _authenticationResult = null;
+
                 int Filebatchid;
                 var queryString = HttpContext.Request.Query;
                 if (!string.IsNullOrEmpty(queryString["userid"]))
@@ -308,9 +511,7 @@ namespace CRES.ServicesNew.Controllers
                     ScenarioId = queryString["ScenarioId"];
                 }
 
-#pragma warning disable CS0219 // The variable 'storagetype' is assigned but its value is never used
                 var storagetype = "AzureBlob";
-#pragma warning restore CS0219 // The variable 'storagetype' is assigned but its value is never used
 
 
                 var accountName = Sectionroot.GetSection("storage:account:name").Value;
@@ -348,76 +549,156 @@ namespace CRES.ServicesNew.Controllers
                 JsonFileConfiguration fileConf = azureStorageReadFile.GetJsonFile(fDetail.NewFileName, Servicername);
                 if (fileConf.MappingColumns != null)
                 {
-                    FileBatchLogDataContract fb = new FileBatchLogDataContract();
-                    fb.ServcerMasterID = Convert.ToInt32(Servicerid);
-                    fb.OrigFileName = fDetail.FileName;
-                    fb.BlobFileName = fDetail.NewFileName;
-                    fb.CreatedBy = headerUserID;
-                    Filebatchid = _ServicerLogic.insertupdateFileBatchLog(fb, "");
 
-                    string LandingTableName = fileConf.LandingTableName;
-                    DateTime? periodCloseDate = _ServicerLogic.GetAllServicer().FirstOrDefault().CloseDate;
-                    DataTable dtExcel = azureStorageReadFile.GetFileData(fb.BlobFileName, fb.OrigFileName, fileConf);
-
-                    if (dtExcel.Rows.Count > 0)
+                    if (fileConf.ReconType == "Liability")
                     {
-                        if (dtExcel.Rows[0]["ErrorMessage"].ToString() != "")
+
+                        FileBatchLogDataContract fb = new FileBatchLogDataContract();
+                        fb.ServcerMasterID = Convert.ToInt32(Servicerid);
+                        fb.OrigFileName = fDetail.FileName;
+                        fb.BlobFileName = fDetail.NewFileName;
+                        fb.CreatedBy = headerUserID;
+                        Filebatchid = _ServicerLogic.insertupdateFileBatchLogLiability(fb, "");
+
+
+                        string LandingTableName = fileConf.LandingTableName;
+                        DateTime? periodCloseDate = _ServicerLogic.GetAllServicerLiability().FirstOrDefault().CloseDate;
+                        DataTable dtExcel = azureStorageReadFile.GetFileData(fb.BlobFileName, fb.OrigFileName, fileConf);
+
+                        if (dtExcel.Rows.Count > 0)
                         {
-                            _ServicerLogic.insertupdateFileBatchDetail(headerUserID, Convert.ToInt32(Filebatchid), "Validation failed.", dtExcel.Rows[0]["ErrorMessage"].ToString());
-                            CloudBlockBlob _blockBlob = excelContainer.GetBlockBlobReference(fb.BlobFileName);
-                            // _blockBlob.Delete();
-                            //  return Ok($"Fail==" + dtExcel.Rows[0]["ErrorMessage"]);
-
-                            _authenticationResult = new GenericResult()
+                            if (dtExcel.Rows[0]["ErrorMessage"].ToString() != "")
                             {
-                                Succeeded = false,
-                                Message = " Fail == " + Servicername + " File : " + dtExcel.Rows[0]["ErrorMessage"].ToString()
-                            };
-                        }
-                        else
-                        {
-                            dtExcel.Columns.Remove("ErrorMessage");
-                            string result = string.Empty, ignoredrows = string.Empty;
-                            // DataTable transdt = new DataTable();
-                            result = _ServicerLogic.BulkInsertbyServicer(dtExcel, fileConf, Convert.ToInt32(Filebatchid), periodCloseDate);
-                            var smessage = result.Split('#');
+                                _ServicerLogic.insertupdateFileBatchDetailLiability(headerUserID, Convert.ToInt32(Filebatchid), "Validation failed.", dtExcel.Rows[0]["ErrorMessage"].ToString());
+                                CloudBlockBlob _blockBlob = excelContainer.GetBlockBlobReference(fb.BlobFileName);
+                                // _blockBlob.Delete();
+                                //  return Ok($"Fail==" + dtExcel.Rows[0]["ErrorMessage"]);
 
-                            if (smessage[0] == "Success")
-                            {
-                                _ServicerLogic.insertupdateFileBatchDetail(headerUserID, Convert.ToInt32(Filebatchid), "Data uploaded in landing table", "");
-                                //=========Insert into Transcation Reconciliation
-
-                                ignoredrows = _ServicerLogic.insertintoTranscation(fileConf.ImportProcedureName, Filebatchid, ScenarioId);
-                                var smessageignoredrows = ignoredrows.Split('#');
-                                if (smessageignoredrows[0] == "Success")
-                                {
-
-                                    _ServicerLogic.insertupdateFileBatchDetail(headerUserID, Convert.ToInt32(Filebatchid), "Data imported in Transcation table", "");
-                                }
-
-                                _authenticationResult = new GenericResult()
-                                {
-                                    Succeeded = true,
-                                    //   Message = "Success==File: " + fileDisplayName + "  " +smessage[1],
-                                    Message = "Success==" + Servicername + " File : <br/>" + smessageignoredrows[1],
-                                    //   dtCalcReq = transdt
-                                };
-
-                                // return Ok($"Success==File:  { fileDisplayName} has successfully uploaded.");
-
-                            }
-                            else
-                            {
-                                _ServicerLogic.insertupdateFileBatchDetail(headerUserID, Convert.ToInt32(Filebatchid), "Failed to insert into landing table", result);
                                 _authenticationResult = new GenericResult()
                                 {
                                     Succeeded = false,
-                                    Message = " Fail == " + Servicername + " File : " + smessage[1]
-
+                                    Message = " Fail == " + Servicername + " File upload failed.<br/> " + dtExcel.Rows[0]["ErrorMessage"].ToString()
                                 };
+                            }
+                            else
+                            {
+                                dtExcel.Columns.Remove("ErrorMessage");
+                                string result = string.Empty, ignoredrows = string.Empty;
+                                // DataTable transdt = new DataTable();
+                                result = _ServicerLogic.BulkInsertbyServicer(dtExcel, fileConf, Convert.ToInt32(Filebatchid), periodCloseDate);
+                                var smessage = result.Split('#');
+
+                                if (smessage[0] == "Success")
+                                {
+                                    _ServicerLogic.insertupdateFileBatchDetailLiability(headerUserID, Convert.ToInt32(Filebatchid), "Data uploaded in landing table", "");
+                                    //=========Insert into Transcation Reconciliation
+
+                                    ignoredrows = _ServicerLogic.insertintoTranscation(fileConf.ImportProcedureName, Filebatchid, ScenarioId);
+                                    var smessageignoredrows = ignoredrows.Split('#');
+                                    if (smessageignoredrows[0] == "Success")
+                                    {
+
+                                        _ServicerLogic.insertupdateFileBatchDetailLiability(headerUserID, Convert.ToInt32(Filebatchid), "Data imported in Transcation table", "");
+                                    }
+
+                                    _authenticationResult = new GenericResult()
+                                    {
+                                        Succeeded = true,
+                                        Message = "Success==" + Servicername + " File : <br/>" + smessageignoredrows[1],
+
+                                    };
+
+                                    // return Ok($"Success==File:  { fileDisplayName} has successfully uploaded.");
+
+                                }
+                                else
+                                {
+                                    _ServicerLogic.insertupdateFileBatchDetailLiability(headerUserID, Convert.ToInt32(Filebatchid), "Failed to insert into landing table", result);
+                                    _authenticationResult = new GenericResult()
+                                    {
+                                        Succeeded = false,
+                                        Message = " Fail == " + Servicername + " File : " + smessage[1]
+
+                                    };
+                                }
                             }
                         }
                     }
+                    else
+                    {
+                        FileBatchLogDataContract fb = new FileBatchLogDataContract();
+                        fb.ServcerMasterID = Convert.ToInt32(Servicerid);
+                        fb.OrigFileName = fDetail.FileName;
+                        fb.BlobFileName = fDetail.NewFileName;
+                        fb.CreatedBy = headerUserID;
+                        Filebatchid = _ServicerLogic.insertupdateFileBatchLog(fb, "");
+
+
+                        string LandingTableName = fileConf.LandingTableName;
+                        DateTime? periodCloseDate = _ServicerLogic.GetAllServicer().FirstOrDefault().CloseDate;
+                        DataTable dtExcel = azureStorageReadFile.GetFileData(fb.BlobFileName, fb.OrigFileName, fileConf);
+
+                        if (dtExcel.Rows.Count > 0)
+                        {
+                            if (dtExcel.Rows[0]["ErrorMessage"].ToString() != "")
+                            {
+                                _ServicerLogic.insertupdateFileBatchDetail(headerUserID, Convert.ToInt32(Filebatchid), "Validation failed.", dtExcel.Rows[0]["ErrorMessage"].ToString());
+                                CloudBlockBlob _blockBlob = excelContainer.GetBlockBlobReference(fb.BlobFileName);
+                                // _blockBlob.Delete();
+                                //  return Ok($"Fail==" + dtExcel.Rows[0]["ErrorMessage"]);
+
+                                _authenticationResult = new GenericResult()
+                                {
+                                    Succeeded = false,
+                                    Message = " Fail == " + Servicername + " File upload failed.<br/> " + dtExcel.Rows[0]["ErrorMessage"].ToString()
+                                };
+                            }
+                            else
+                            {
+                                dtExcel.Columns.Remove("ErrorMessage");
+                                string result = string.Empty, ignoredrows = string.Empty;
+                                // DataTable transdt = new DataTable();
+                                result = _ServicerLogic.BulkInsertbyServicer(dtExcel, fileConf, Convert.ToInt32(Filebatchid), periodCloseDate);
+                                var smessage = result.Split('#');
+
+                                if (smessage[0] == "Success")
+                                {
+                                    _ServicerLogic.insertupdateFileBatchDetail(headerUserID, Convert.ToInt32(Filebatchid), "Data uploaded in landing table", "");
+                                    //=========Insert into Transcation Reconciliation
+
+                                    ignoredrows = _ServicerLogic.insertintoTranscation(fileConf.ImportProcedureName, Filebatchid, ScenarioId);
+                                    var smessageignoredrows = ignoredrows.Split('#');
+                                    if (smessageignoredrows[0] == "Success")
+                                    {
+
+                                        _ServicerLogic.insertupdateFileBatchDetail(headerUserID, Convert.ToInt32(Filebatchid), "Data imported in Transcation table", "");
+                                    }
+
+                                    _authenticationResult = new GenericResult()
+                                    {
+                                        Succeeded = true,
+                                        Message = "Success==" + Servicername + " File : <br/>" + smessageignoredrows[1],
+
+                                    };
+
+                                    // return Ok($"Success==File:  { fileDisplayName} has successfully uploaded.");
+
+                                }
+                                else
+                                {
+                                    _ServicerLogic.insertupdateFileBatchDetail(headerUserID, Convert.ToInt32(Filebatchid), "Failed to insert into landing table", result);
+                                    _authenticationResult = new GenericResult()
+                                    {
+                                        Succeeded = false,
+                                        Message = " Fail == " + Servicername + " File : " + smessage[1]
+
+                                    };
+                                }
+                            }
+                        }
+                    }
+
+                    
                 }
                 else
                 {
@@ -432,11 +713,16 @@ namespace CRES.ServicesNew.Controllers
             }
             catch (Exception ex)
             {
+                _authenticationResult = new GenericResult()
+                {
+                    Succeeded = false,
+                    Message = " Fail ==  " + "File does not have proper data."
 
+                };
                 LoggerLogic Log = new LoggerLogic();
                 Log.WriteLogException(CRESEnums.Module.TransactionReconciliation.ToString(), "Error occurred in UploadFileToAzureBlob ", "", "", ex.TargetSite.Name.ToString(), "", ex);
 
-                return Ok("Error");
+                return Ok(_authenticationResult);
             }
 
         }
@@ -451,9 +737,7 @@ namespace CRES.ServicesNew.Controllers
             GenericResult _actionResult = null;
             int res = 0;
 
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
 
             var headerUserID = string.Empty;
 
@@ -503,6 +787,65 @@ namespace CRES.ServicesNew.Controllers
 
         }
 
+        [HttpPost]
+        [Services.Controllers.IsAuthenticate]
+        [Services.Controllers.DeflateCompression]
+        [Route("api/excelupload/AddUpdateTranscationReconciliationLiability")]
+        public IActionResult AddUpdateTranscationReconciliationLiability([FromBody] DataTable dt)
+        {
+            GenericResult _actionResult = null;
+            int res = 0;
+
+            IEnumerable<string> headerValues;
+
+            var headerUserID = string.Empty;
+
+            if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
+            {
+                headerUserID = Convert.ToString(Request.Headers["TokenUId"]);
+            }
+
+            TranscationLogic _ServicerLogic = new TranscationLogic();
+            if (dt != null)
+            {
+                res = _ServicerLogic.UpdateTranscationReconLiability(dt, headerUserID);
+            }
+
+            try
+            {
+                if (res != 0)
+                {
+                    _actionResult = new GenericResult()
+                    {
+                        Succeeded = true,
+                        Message = "Transaction(s) reconciled successfully.",
+                    };
+                }
+                else
+                {
+                    _actionResult = new GenericResult()
+                    {
+                        Succeeded = false,
+                        Message = "Failed to reconcile.",
+                    };
+                }
+            }
+            catch (Exception ex)
+            {
+                LoggerLogic Log = new LoggerLogic();
+                Log.WriteLogException(CRESEnums.Module.TransactionReconciliationLiability.ToString(), "Error occurred in AddUpdateTranscationReconciliation ", "", "", ex.TargetSite.Name.ToString(), "", ex);
+
+                _actionResult = new GenericResult()
+                {
+                    Succeeded = false,
+                    Message = ex.Message
+                };
+            }
+            return Ok(_actionResult);
+
+
+        }
+
 
         [HttpPost]
         [Services.Controllers.IsAuthenticate]
@@ -528,13 +871,15 @@ namespace CRES.ServicesNew.Controllers
                 headerUserID = Convert.ToString(Request.Headers["TokenUId"]);
             }
             TranscationLogic _ServicerLogic = new TranscationLogic();
-            if (dt != null)
-            {
-                res = _ServicerLogic.SaveTranscation(dt, headerUserID);
-            }
+
 
             try
             {
+
+                if (dt != null)
+                {
+                    res = _ServicerLogic.SaveTranscation(dt, headerUserID);
+                }
                 if (res != 0)
                 {
                     _actionResult = new GenericResult()
@@ -579,9 +924,7 @@ namespace CRES.ServicesNew.Controllers
             GenericResult _actionResult = null;
             string res = "";
 
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
 
             var headerUserID = string.Empty;
 
@@ -591,13 +934,14 @@ namespace CRES.ServicesNew.Controllers
             }
 
             TranscationLogic _ServicerLogic = new TranscationLogic();
-            if (dt != null)
-            {
-                res = _ServicerLogic.UnreconcileTranscation(dt, headerUserID);
-            }
+
 
             try
             {
+                if (dt != null)
+                {
+                    res = _ServicerLogic.UnreconcileTranscation(dt, headerUserID);
+                }
                 if (res == "Unreconciled successfully.")
                 {
                     _actionResult = new GenericResult()
@@ -641,9 +985,7 @@ namespace CRES.ServicesNew.Controllers
         {
             GenericResult _actionResult = null;
 
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
             DataTable dt = new DataTable();
 
             var headerUserID = string.Empty;
@@ -655,12 +997,10 @@ namespace CRES.ServicesNew.Controllers
 
             TranscationLogic _ServicerLogic = new TranscationLogic();
 
-            dt = _ServicerLogic.FilterTranscation(filterstr);
-
-
-
             try
             {
+
+                dt = _ServicerLogic.FilterTranscation(filterstr, headerUserID);
                 if (dt.Rows.Count > 0)
                 {
                     if (dt.Rows[0]["ErrorMessage"].ToString() == "")
@@ -780,10 +1120,9 @@ namespace CRES.ServicesNew.Controllers
 
             TranscationLogic servicerlogic = new TranscationLogic();
             DataTable dt = new DataTable();
-            dt = servicerlogic.GetAllTranscationbyBatchID(batchid);
-
             try
             {
+                dt = servicerlogic.GetAllTranscationbyBatchID(batchid);
                 if (dt != null)
                 {
 
@@ -833,10 +1172,11 @@ namespace CRES.ServicesNew.Controllers
 
             TranscationLogic servicerlogic = new TranscationLogic();
 
-            int res = servicerlogic.DeleteAuditbyBatchlogId(batchid);
+
 
             try
             {
+                int res = servicerlogic.DeleteAuditbyBatchlogId(batchid);
                 if (res != 0)
                 {
 
@@ -888,11 +1228,9 @@ namespace CRES.ServicesNew.Controllers
                 headerUserID = Convert.ToString(Request.Headers["TokenUId"]);
             }
             TranscationLogic _ServicerLogic = new TranscationLogic();
-
-            dt = _ServicerLogic.GetAllTransactionsByNoteId(filterstr);
-
             try
             {
+                dt = _ServicerLogic.GetAllTransactionsByNoteId(filterstr);
                 if (dt.Rows.Count > 0)
                 {
 
@@ -945,6 +1283,7 @@ namespace CRES.ServicesNew.Controllers
             DataSet dsTemplate = null;
             var headerUserID = string.Empty;
             Stream msFile = null;
+            string CurrentDate = System.DateTime.Now.ToString("yyyyMMdd");
             try
             {
 
@@ -959,7 +1298,7 @@ namespace CRES.ServicesNew.Controllers
                 //get report file detail
                 ReportFileDataContract _reportdc = GetReportFileByGUID(reportDC.ReportFileGUID);
                 _reportdc.DefaultAttributes = reportDC.DefaultAttributes;
-                _reportdc.NewFileName = _reportdc.ReportFileName + "_" + System.DateTime.Now.ToString("yyyy-MM-dd-hh-mm-ss") + "." + _reportdc.ReportFileFormat;
+                _reportdc.NewFileName = _reportdc.ReportFileName + "_" + System.DateTime.Now.ToString("yyyy-MM-dd-hh-mm-ss") + "." + _reportdc.ReportFileFormat.Replace("pipe", "").Replace("PIPE", "");
                 //read template from source
 
                 if (_reportdc.ReportFileFormat.ToLower() == "xlsx")
@@ -1044,12 +1383,52 @@ namespace CRES.ServicesNew.Controllers
                     msFile.Flush();
                     //}
                 }
+                else if (_reportdc.ReportFileFormat.ToLower() == "csvpipe")
+                {
+
+
+                    dsTemplate = await AzureStorageReadFile.ReadAccountingReportTemplateAsDataSet(_reportdc);
+                    //get the data from the database 
+                    DataTable dtReport = new DataTable();
+                    DataTable dtCopy = new DataTable();
+                    _reportdc.lstReportFileSheet.ForEach(i => i.DefaultAttributes = reportDC.DefaultAttributes);
+                    DataSet dsReportData = new DataSet();
+                    foreach (ReportFileSheetDataContract dc in _reportdc.lstReportFileSheet)
+                    {
+                        DataSet ds = new DataSet();
+                        ds = reportLogic.GetReportDataFromSource(dc);
+                        if (ds != null && ds.Tables.Count > 0)
+                        {
+                            dtReport = ds.Tables[0];
+                        }
+                        dtReport.TableName = dc.SheetName + "_" + CurrentDate;
+                        dtCopy = dtReport.Copy();
+                        dsReportData.Tables.Add(dtCopy);
+                    }
+                    var _isIncludeHeader = _reportdc.lstReportFileSheet[0].IsIncludeHeader;
+                    //ReportFileSheetDataContract sheetDC = ReportFileDC.lstReportFileSheet.Where(s => s.SheetName == worksheet.Name).FirstOrDefault();
+                    msFile = WriteFileDataToStream(_reportdc, dsTemplate, dsReportData, _isIncludeHeader);
+                    //using (Stream msFile = WriteFileDataToStream(_reportdc, dsTemplate, dsReportData, true))
+                    //{
+
+                    //upload file to destination
+                    FileUploadParameterDataContract fileParam = new FileUploadParameterDataContract();
+                    fileParam.StorageTypeID = _reportdc.DestinationStorageTypeID;
+                    fileParam.StorageLocation = _reportdc.DestinationStorageLocation;
+                    fileParam.FileName = _reportdc.NewFileName;
+                    DocumentStorageID = await UploadFilesByStorageType(fileParam, msFile);//
+                    msFile.Flush();
+                    //}
+                }
                 //insert file log
                 ReportFileLogDataContract fileLogDC = new ReportFileLogDataContract();
                 fileLogDC.CreatedBy = headerUserID.ToString();
                 fileLogDC.UpdatedBy = headerUserID.ToString();
                 fileLogDC.FileName = _reportdc.NewFileName;
-                fileLogDC.OriginalFileName = _reportdc.ReportFileName + "." + _reportdc.ReportFileFormat;
+
+                //fileLogDC.OriginalFileName = _reportdc.ReportFileName + "_" + CurrentDate + "." + _reportdc.ReportFileFormat.Replace("pipe", "").Replace("PIPE", "");
+                fileLogDC.OriginalFileName = _reportdc.DownloadFileName + "_" + CurrentDate + "." + _reportdc.ReportFileFormat.Replace("pipe", "").Replace("PIPE", "");
+
                 fileLogDC.StorageTypeID = _reportdc.DestinationStorageTypeID;
                 fileLogDC.ObjectGUID = _reportdc.ReportFileGUID.ToString();
                 fileLogDC.ObjectID = _reportdc.ReportFileID;
@@ -1314,6 +1693,46 @@ namespace CRES.ServicesNew.Controllers
 
                     writer.Flush();
                 }
+                else if (ReportFileDC.ReportFileFormat.ToLower() == "csvpipe")
+                {
+                    IEnumerable<String> items = null;
+                    int skeplineCount = 0;
+                    //write template content
+                    foreach (DataRow row in dsTemplateData.Tables[0].Rows)
+                    {
+                        items = row.ItemArray.Select(o => (o?.ToString() ?? String.Empty));
+                        //items = row.ItemArray.Select(o => Convert.ToString(o));
+                        writer.WriteLine(QuoteValue(String.Join("|", items)));
+                    }
+
+                    ReportFileSheetDataContract sheetDC = ReportFileDC.lstReportFileSheet.FirstOrDefault();
+                    if (sheetDC.HeaderPosition > 0)
+                    {
+                        skeplineCount = sheetDC.HeaderPosition - dsTemplateData.Tables[0].Rows.Count;
+                        for (int i = 0; i < skeplineCount; i++)
+                        {
+                            writer.Write("");
+                        }
+
+                    }
+
+                    //write db content header
+                    if (includeHeaders)
+                    {
+                        IEnumerable<String> headerValues = dsReportData.Tables[0].Columns.OfType<DataColumn>().Select(column => (column.ColumnName));
+                        writer.WriteLine(String.Join("|", headerValues));
+                    }
+
+                    //write db content(actual data)
+                    foreach (DataRow row in dsReportData.Tables[0].Rows)
+                    {
+                        items = row.ItemArray.Select(o => (o?.ToString() ?? String.Empty));
+                        //items = row.ItemArray.Select(o => Convert.ToString(o).Replace(",", ""));
+                        writer.WriteLine(QuoteValue(String.Join("|", items)));
+                    }
+
+                    writer.Flush();
+                }
 
             }
             catch (Exception ex)
@@ -1379,6 +1798,15 @@ namespace CRES.ServicesNew.Controllers
         {
             return String.Concat("\"",
             value.Replace("\"", "\"\""), "\"");
+        }
+
+        private string QuoteValueWithoutBackSlash(string value)
+        {
+
+            string output = value.ToString();
+            if (output.Contains(",") || output.Contains("\""))
+                output = '"' + output.Replace("\"", "\"\"") + '"';
+            return output;
         }
         [HttpGet]//http get as it return file 
         [Route("api/excelupload/downloadobjectfile")]
@@ -1472,9 +1900,7 @@ namespace CRES.ServicesNew.Controllers
             Logger.Write(ModuleName.AccountingReport.ToString(), "Reading template file " + ReportFileDC.ReportFileTemplate, MessageLevel.Info, "", "");
             string DocumentStorageID = "";
             DataTable dt = new DataTable();
-#pragma warning disable CS0168 // The variable 'ds' is declared but never used
             DataSet ds;
-#pragma warning restore CS0168 // The variable 'ds' is declared but never used
             string fileName = "";
             Stream TemplateMemoryStream = new MemoryStream();
             List<string> lstTemplateLines = new List<string>();
@@ -1531,9 +1957,7 @@ namespace CRES.ServicesNew.Controllers
             {
                 Logger.Write(ModuleName.AccountingReport.ToString(), "Writing data to file " + ReportFileDC.NewFileName, MessageLevel.Info, "", "");
                 DataTable dt = new DataTable();
-#pragma warning disable CS0168 // The variable 'ds' is declared but never used
                 DataSet ds;
-#pragma warning restore CS0168 // The variable 'ds' is declared but never used
                 string fileName = "";
                 Stream TemplateMemoryStream = new MemoryStream();
                 List<string> lstTemplateLines = new List<string>();
@@ -1958,7 +2382,250 @@ namespace CRES.ServicesNew.Controllers
             }
             return DocumentStorageID;
         }
+        public async Task<string> WriteDataToStreamWithoutSheet(ReportFileDataContract ReportFileDC, DataSet dsReportData, Stream strm)
+        {
+            string DocumentStorageID = "";
+            DataTable dt = new DataTable();
+            Stream TemplateMemoryStream = new MemoryStream();
+            List<string> lstTemplateLines = new List<string>();
+            try
+            {
 
+                Logger.Write(ModuleName.AccountingReport.ToString(), "Writing data to file " + ReportFileDC.NewFileName, MessageLevel.Info, "", "");
+
+                //392-AzureBlob, 459-Box, 641-LocalServer, 642-FTPServer
+
+                if (ReportFileDC.ReportFileFormat.ToLower() == "xlsx")
+                {
+                    using (var package = new OfficeOpenXml.ExcelPackage(strm))
+                    {
+
+                        //Step 2 : Add a new worksheet to ExcelPackage object and give a suitable name
+
+                        int iSheetsCount = 0;
+                        try
+                        {
+                            iSheetsCount = package.Workbook.Worksheets.Count;
+                        }
+                        catch (Exception)
+                        {
+                            iSheetsCount = package.Workbook.Worksheets.Count;
+                        }
+                        if (iSheetsCount > 0)
+                        {
+                            for (int i = 0; i < iSheetsCount; i++)
+                            {
+                                // Get the sheet by index
+                                OfficeOpenXml.ExcelWorksheet worksheet;
+                                try
+                                {
+                                    worksheet = package.Workbook.Worksheets[i];
+                                }
+                                catch (Exception)
+                                {
+                                    worksheet = package.Workbook.Worksheets[i];
+                                }
+                                worksheet.Cells[1, 1].LoadFromDataTable(dsReportData.Tables[i], true);
+                            }
+
+                            Byte[] fileBytes = package.GetAsByteArray();
+                            TemplateMemoryStream = new MemoryStream(fileBytes);
+                        }
+                        FileUploadParameterDataContract fileParam = new FileUploadParameterDataContract();
+                        fileParam.StorageTypeID = ReportFileDC.DestinationStorageTypeID;
+                        fileParam.StorageLocation = ReportFileDC.DestinationStorageLocation;
+                        fileParam.FileName = ReportFileDC.NewFileName;
+                        DocumentStorageID = await UploadFilesByStorageType(fileParam, TemplateMemoryStream);//
+                        TemplateMemoryStream.Flush();
+                    }
+                }
+                else if (ReportFileDC.ReportFileFormat.ToLower() == "csv")
+                {
+                    int LineCount = new StreamReader(strm).ReadToEnd().Split(new char[] { '\n' }).Length;
+
+                    StreamWriter writer = new StreamWriter(strm);
+                    IEnumerable<String> items = null;
+                    int skeplineCount = 0;
+                    //write template content
+                    //foreach (DataRow row in dsTemplateData.Tables[0].Rows)
+                    //{
+                    //    items = row.ItemArray.Select(o => QuoteValue(o?.ToString() ?? String.Empty));
+                    //    writer.WriteLine(String.Join(",", items));
+                    //}
+
+                    if (ReportFileDC.HeaderPosition > 0)
+                    {
+                        skeplineCount = ReportFileDC.HeaderPosition - LineCount;
+                        for (int i = 0; i < skeplineCount; i++)
+                        {
+                            writer.Write("");
+                        }
+
+                    }
+
+                    //write db content header
+                    IEnumerable<String> headerValues = dsReportData.Tables[0].Columns.OfType<DataColumn>().Select(column => QuoteValue(column.ColumnName));
+                    writer.WriteLine(String.Join(",", headerValues));
+                    //write db content(actual data)
+                    foreach (DataRow row in dsReportData.Tables[0].Rows)
+                    {
+                        items = row.ItemArray.Select(o => QuoteValue(o?.ToString() ?? String.Empty));
+                        writer.WriteLine(String.Join(",", items));
+                    }
+
+                    writer.Flush();
+                }
+
+
+            }
+            catch (Exception ex)
+            {
+                LoggerLogic Log = new LoggerLogic();
+                Log.WriteLogException(CRESEnums.Module.AccountingReport.ToString(), "Error detail(method: ReadAndUploadTemplateFile) :  ", "", "", ex.TargetSite.Name.ToString(), "", ex);
+
+                throw ex;
+            }
+            return DocumentStorageID;
+        }
+        [HttpGet]
+        [Route("api/excelupload/importServicerfile")]
+        public async Task<IActionResult> ImportFileToDB()
+        {
+            GetConfigSetting();
+
+            //392-AzureBlob, 459-Box, 641-LocalServer, 642-FTPServer
+            GenericResult _actionResult = null;
+            MemoryStream memStreamDownloaded = new MemoryStream();
+            var headerUserID = "";
+            DataSet dsImport = null;
+            DataTable dtImport = null;
+            List<FileImportColumnMappingDataContract> lstColumnMapping = null;
+            List<FileImportMasterDataContract> lstFileImportMaster = new List<FileImportMasterDataContract>();
+            var connectionString = Sectionroot.GetSection("storage:servicerimportcontainer:connectionstring").Value;
+            var sourceContainerName = Sectionroot.GetSection("storage:servicerimportcontainer:name").Value;
+            try
+            {
+                //get files from the import master
+                ImportExportLogic _importExportLogic = new ImportExportLogic();
+                lstFileImportMaster = _importExportLogic.GetFileImportMaster();
+
+
+                //read the file in dataset
+                foreach (FileImportMasterDataContract filedc in lstFileImportMaster)
+                {
+                    try
+                    {
+                        //get column mapping for this file
+                        lstColumnMapping = new List<FileImportColumnMappingDataContract>();
+                        lstColumnMapping = _importExportLogic.GetFileImportColumnMappingByID(filedc.FileImportMasterID);
+
+
+                        FileUploadParameterDataContract fileParams = new FileUploadParameterDataContract();
+                        fileParams.FileName = filedc.FileName;
+                        fileParams.StorageTypeID = 459;
+                        fileParams.StorageLocation = filedc.SourceStorageLocation;
+                        fileParams.HeaderPosition = filedc.HeaderPosition;
+                        fileParams.Servicer = "BerkadiaWells";
+                        //dsImport = await AzureStorageReadFile.ReadFileAsDataSet(fileParams, connectionString, sourceContainerName);
+
+                        //650-WellsImport, 651-Berkedia
+
+                        dsImport = await AzureStorageReadFile.ReadFileAsDataSet(fileParams, connectionString, sourceContainerName);
+                        if (dsImport != null)
+                        {
+                            //650-WellsImport, 651-Berkedia
+
+                            string[] selectedColumns = lstColumnMapping.Select(x => x.FileColumnName).Distinct().ToArray();
+                            dtImport = new DataView(dsImport.Tables[0]).ToTable(false, selectedColumns);
+
+                            if (filedc.ObjectTypeID == 650)
+                            {
+                                //_importExportLogic.InsertWellsDataTap(dt, "");
+                                if (dtImport.Rows.Count > 0)
+                                {
+                                    List<string> ProcName = new List<string>();
+                                    DocumentLogic _documentLogic = new DocumentLogic();
+                                    _documentLogic.BulkInsert(dtImport, "DW.WellsDataTap", lstColumnMapping, true, false, ProcName);
+
+                                    ////commented new implementation as not going in this release
+                                    //List<string> ProcName= new List<string>();
+                                    //ProcName.Add("usp_InsertWellsDataTap ''");
+                                    //_documentLogic.BulkInsert(dtImport, "DW.WellsTrialBalanceDataTap", lstColumnMapping, true,true, ProcName);
+
+                                }
+                            }
+                            else if (filedc.ObjectTypeID == 651)
+                            {
+                                //insert datatable to db table
+                                //bulk insert
+                                // DocumentLogic _documentLogic = new DocumentLogic();
+                                //_documentLogic.BulkInsert(dsImport.Tables[0], "CRE.BerkadiaDataTap", lstColumnMapping,true);
+                                //normal insert
+                                foreach (DataColumn dcol in dtImport.Columns)
+                                {
+                                    dcol.ColumnName = lstColumnMapping.Where(i => i.FileColumnName == dcol.ColumnName).FirstOrDefault().LandingColumnName;
+
+                                }
+                                if (dtImport.Rows.Count > 0)
+                                {
+                                    _importExportLogic.InsertBerkadiaDataTap(dtImport, "");
+                                }
+                            }
+                        }
+
+                        //manish called this stored Procedure                      
+                        Thread ImportServicerBalanceThread = new Thread(() => ImportServicerBalance());
+                        ImportServicerBalanceThread.Start();
+                    }
+                    catch (Exception ex)
+                    {
+                        string msg = ex.Message;
+                        Logger.Write(ModuleName.ServicerFileImport.ToString(), "Error in importing file : " + ExceptionHelper.GetFullMessage(ex), MessageLevel.Error, headerUserID.ToString(), "");
+                    }
+                }
+
+                _actionResult = new GenericResult()
+                {
+                    Succeeded = true,
+                };
+                return Ok(_actionResult);
+            }
+            catch (Exception ex)
+            {
+                memStreamDownloaded.Dispose();
+
+                LoggerLogic Log = new LoggerLogic();
+                Log.WriteLogException(CRESEnums.Module.ServicerFileImport.ToString(), "Error in Getting  FileImportMaster detail :  ", "", "", ex.TargetSite.Name.ToString(), "", ex);
+
+                _actionResult = new GenericResult()
+                {
+                    Succeeded = false,
+                    Message = ex.Message
+                };
+                return Ok(_actionResult);
+            }
+            finally
+            {
+                memStreamDownloaded.Dispose();
+            }
+
+        }
+
+        public void ImportServicerBalance()
+        {
+            try
+            {
+                ImportExportLogic _importExportLogic = new ImportExportLogic();
+                _importExportLogic.ImportServicerBalance();
+            }
+            catch (Exception ex)
+            {
+                LoggerLogic Log = new LoggerLogic();
+                Log.WriteLogException(CRESEnums.Module.ServicerFileImport.ToString(), "Error in ImportServicerBalance :  ", "", "", ex.TargetSite.Name.ToString(), "", ex);
+
+            }
+        }
+        /*
         [HttpGet]
         [Route("api/excelupload/importServicerfile")]
         public async Task<IActionResult> ImportFileToDB()
@@ -2073,6 +2740,8 @@ namespace CRES.ServicesNew.Controllers
             }
 
         }
+        */
+
 
         IConfigurationSection Sectionroot = null;
         public void GetConfigSetting()
@@ -2123,25 +2792,25 @@ namespace CRES.ServicesNew.Controllers
         public IActionResult DownloadFileByDataTable([FromBody] DataTable dealfunding)
         {
             int cnt = 0;
-
             try
             {
-
+                //remove column
+                if (dealfunding.Columns.IndexOf("equityrowchanged") != -1)
+                {
+                    dealfunding.Columns.Remove("equityrowchanged");
+                }
                 int Notescnt = Convert.ToInt32(dealfunding.Rows[0]["NotesCount"]);
-
-
-
                 DataTable dt = new DataTable();
                 dt.Columns.Add("Date", typeof(DateTime));
-                dt.Columns.Add("Debt Amount", typeof(decimal));
+                dt.Columns.Add("Amount", typeof(decimal));
                 dt.Columns.Add("Required Equity", typeof(decimal));
                 dt.Columns.Add("Additional Equity", typeof(decimal));
                 dt.Columns.Add("Purpose", typeof(string));
                 dt.Columns.Add("Confirmed", typeof(string));
-                dt.Columns.Add("GeneratedBy", typeof(string));
+                dt.Columns.Add("Adjustment Type", typeof(string));
+                dt.Columns.Add("Generated By", typeof(string));
                 dt.Columns.Add("Status", typeof(string));
                 dt.Columns.Add("Comment", typeof(string));
-
                 dt.Columns.Add("Draw Fee Status", typeof(string));
 
                 if (dealfunding.Rows.Count > 0)
@@ -2163,6 +2832,28 @@ namespace CRES.ServicesNew.Controllers
                     {
                         dealfunding.Columns.Remove("GeneratedBy");
                     }
+                    if (dealfunding.Columns.Contains("NonCommitmentAdj"))
+                    {
+                        dealfunding.Columns.Remove("NonCommitmentAdj");
+                    }
+
+                    if (dealfunding.Columns.Contains("OrgDealFundingRowno"))
+                    {
+                        dealfunding.Columns.Remove("OrgDealFundingRowno");
+                    }
+                    if (dealfunding.Columns.Contains("Funding_delete"))
+                    {
+                        dealfunding.Columns.Remove("Funding_delete");
+                    }
+                    //if (dealfunding.Columns.Contains("AdjustmentType"))
+                    //{
+                    //    dealfunding.Columns.Remove("AdjustmentType");
+                    //}
+
+                    if (dealfunding.Columns.Contains("OrgDealFundingRowno"))
+                    {
+                        dealfunding.Columns.Remove("OrgDealFundingRowno");
+                    }
 
                     if (Notescnt > 0)
                     {
@@ -2171,27 +2862,24 @@ namespace CRES.ServicesNew.Controllers
                             dt.Columns.Add(dealfunding.Columns[j].ColumnName, typeof(decimal));
                         }
                     }
-
-
-
                     for (int i = 0; i < dealfunding.Rows.Count; i++)
-                    {
+                    {                         
                         DataRow dr = dt.NewRow();
                         if (dealfunding.Rows[i]["Date"] != null)
                         {
                             dr["Date"] = DateTime.Parse(dealfunding.Rows[i]["Date"].ToString()).Date;
                         }
-
-
-                        dr["Debt Amount"] = dealfunding.Rows[i]["Value"];
+                        dr["Amount"] = dealfunding.Rows[i]["Value"];
                         dr["Required Equity"] = dealfunding.Rows[i]["RequiredEquity"];
                         dr["Additional Equity"] = dealfunding.Rows[i]["AdditionalEquity"];
                         dr["Purpose"] = dealfunding.Rows[i]["PurposeText"];
                         dr["Confirmed"] = dealfunding.Rows[i]["Applied"].ToBoolean() == true ? "TRUE" : "FALSE";
+                        dr["Adjustment Type"] = dealfunding.Rows[i]["AdjustmentType"];
+                        //dr["Non-CommitmentAdjustment"] = dealfunding.Rows[i]["NonCommitmentAdj"].ToBoolean() == true ? "Yes" : "No";
                         dr["Status"] = dealfunding.Rows[i]["WF_CurrentStatusDisplayName"];
                         dr["Comment"] = dealfunding.Rows[i]["Comment"];
                         dr["Draw Fee Status"] = dealfunding.Rows[i]["DrawFeeStatusName"];
-                        dr["GeneratedBy"] = dealfunding.Rows[i]["GeneratedByText"];
+                        dr["Generated By"] = dealfunding.Rows[i]["GeneratedByText"];
                         if (Notescnt > 0)
                         {
                             for (int j = dealfunding.Columns.Count - Notescnt; j < dealfunding.Columns.Count; j++)
@@ -2212,12 +2900,10 @@ namespace CRES.ServicesNew.Controllers
                     workSheet.Cells["A1"].LoadFromDataTable(dt, true);
                     workSheet.DefaultRowHeight = 15;
 
-
-
                     workSheet.Column(1).Style.Numberformat.Format = "MM/dd/yyyy";
                     workSheet.Column(1).Style.HorizontalAlignment = ExcelHorizontalAlignment.Right;
 
-                    workSheet.Row(1).Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
+                    workSheet.Row(1).Style.HorizontalAlignment = ExcelHorizontalAlignment.Left;
                     workSheet.Column(1).AutoFit();
                     workSheet.Row(1).Style.Font.Bold = true;
 
@@ -2232,11 +2918,143 @@ namespace CRES.ServicesNew.Controllers
 
                     for (int col = start.Column + 1; col <= end.Column; col++)
                     {
-                        if (workSheet.Cells[1, col].Text != "Purpose" && workSheet.Cells[1, col].Text != "Confirmed" && workSheet.Cells[1, col].Text != "Status" && workSheet.Cells[1, col].Text != "Comment" && workSheet.Cells[1, col].Text != "Draw Fee Status")
+                        if (workSheet.Cells[1, col].Text != "Purpose" && workSheet.Cells[1, col].Text != "Confirmed" && workSheet.Cells[1, col].Text != "Status" && workSheet.Cells[1, col].Text != "Comment" && workSheet.Cells[1, col].Text != "Draw Fee Status" && workSheet.Cells[1, col].Text != "Adjustment Type" && workSheet.Cells[1, col].Text != "Generated By")
                         {
                             workSheet.Column(col).Style.Numberformat.Format = "#,##0.00";
                             var cell = workSheet.Cells[maxcnt, col];
                             cell.Formula = "=SUM(" + workSheet.Cells[2, col].Address + ":" + workSheet.Cells[maxcnt - 1, col].Address + ")";
+                        }
+                    }
+
+                    workSheet.Row(maxcnt).Style.HorizontalAlignment = ExcelHorizontalAlignment.Right;
+                    workSheet.Row(maxcnt).Style.Font.Bold = true;
+                    var stream = new MemoryStream(package.GetAsByteArray());
+                    return File(stream, "application/octet-stream");
+                }
+            }
+            catch (Exception ex)
+            {
+                string output = "";
+                LoggerLogic Log = new LoggerLogic();
+                Log.WriteLogException(CRESEnums.Module.ExportFutureFunding.ToString(), "Error occurred in downloadexcelfile ", "", "", ex.TargetSite.Name.ToString(), "", ex);
+                return File(output, "application/octet-stream");
+            }
+        }
+        [HttpPost]
+        [Route("api/excelupload/downloadexcelfileFundingRule")]
+        public IActionResult downloadexcelfileFundingRule([FromBody] DataTable fundingrule)
+        {
+            int cnt = 0;
+            try
+            {
+                DataTable dt = new DataTable();
+                dt.Columns.Add("Note Id", typeof(string));
+                dt.Columns.Add("Name", typeof(string));
+                dt.Columns.Add("Maturity", typeof(DateTime));
+                dt.Columns.Add("Lien Position", typeof(string));
+                dt.Columns.Add("Priority", typeof(decimal));
+                dt.Columns.Add("Financing Source", typeof(string));
+                dt.Columns.Add("Spread / Rate", typeof(decimal));
+                dt.Columns.Add("Effective Rate", typeof(decimal));
+                //dt.Columns.Add("Net Capital Invested", typeof(decimal));
+                dt.Columns.Add("Estimated current balance", typeof(decimal));
+                dt.Columns.Add("Current PIK Balance", typeof(decimal));
+                dt.Columns.Add("Total commitment", typeof(decimal));
+                dt.Columns.Add("Adjusted Commitment", typeof(decimal));
+                dt.Columns.Add("Unfunded Commitment", typeof(decimal));
+                dt.Columns.Add("Initial funding amount", typeof(decimal));
+                dt.Columns.Add("Use rule to determine note funding", typeof(string));
+                dt.Columns.Add("Funding priority", typeof(decimal));
+                dt.Columns.Add("Repayment priority", typeof(decimal));
+
+                for (var m = 1; m < 26; m++)
+                {
+                    if (fundingrule.Columns.Contains("Funding sequence " + m))
+                        dt.Columns.Add("Funding sequence " + m, typeof(decimal));
+                }
+                for (var n = 1; n < 26; n++)
+                {
+                    if (fundingrule.Columns.Contains("Repayment sequence " + n))
+                        dt.Columns.Add("Repayment sequence " + n, typeof(decimal));
+                }
+
+
+                for (int i = 0; i < fundingrule.Rows.Count; i++)
+                {
+
+                    DataRow dr = dt.NewRow();
+                    dr["Note Id"] = fundingrule.Rows[i]["CRENoteID"];
+                    dr["Name"] = fundingrule.Rows[i]["Name"];
+                    dr["Maturity"] = fundingrule.Rows[i]["Maturity"];
+                    dr["Lien Position"] = fundingrule.Rows[i]["LienPositionText"];
+                    dr["Priority"] = fundingrule.Rows[i]["Priority"];
+                    dr["Financing Source"] = fundingrule.Rows[i]["FinancingSource"];
+                    dr["Spread / Rate"] = fundingrule.Rows[i]["WeightedSpread"];
+                    dr["Effective Rate"] = fundingrule.Rows[i]["EffectiveRate"];
+                   // dr["Net Capital Invested"] = fundingrule.Rows[i]["NetCapitalInvested"];
+                    dr["Estimated current balance"] = fundingrule.Rows[i]["EstBls"];
+                    dr["Current PIK Balance"] = fundingrule.Rows[i]["CurrentPIKBalance"];
+                    dr["Total commitment"] = fundingrule.Rows[i]["TotalCommitment"];
+                    dr["Adjusted Commitment"] = fundingrule.Rows[i]["AdjustedTotalCommitment"];
+                    dr["Unfunded Commitment"] = fundingrule.Rows[i]["UnfundedCommitment"];
+                    dr["Initial funding amount"] = fundingrule.Rows[i]["InitialFundingAmount"];
+                    dr["Use rule to determine note funding"] = fundingrule.Rows[i]["UseRuletoDetermineNoteFundingText"];
+                    dr["Funding priority"] = fundingrule.Rows[i]["FundingPriority"];
+                    dr["Repayment priority"] = fundingrule.Rows[i]["RepaymentPriority"];
+
+                    for (var m = 1; m < 26; m++)
+                    {
+                        if (dt.Columns.Contains("Funding sequence " + m))
+                            dr["Funding sequence " + m] = fundingrule.Rows[i]["Funding sequence " + m];
+                    }
+                    for (var n = 1; n < 26; n++)
+                    {
+                        if (dt.Columns.Contains("Repayment sequence " + n))
+                            dr["Repayment sequence " + n] = fundingrule.Rows[i]["Repayment sequence " + n];
+                    }
+
+                    dt.Rows.Add(dr);
+
+                }
+
+
+
+                using (var package = new ExcelPackage())
+                {
+                    var workSheet = package.Workbook.Worksheets.Add("FundingRule");
+
+                    workSheet.Cells["A1"].LoadFromDataTable(dt, true);
+                    workSheet.DefaultRowHeight = 15;
+
+
+
+                    workSheet.Row(1).Style.HorizontalAlignment = ExcelHorizontalAlignment.Left;
+                    workSheet.Column(1).AutoFit();
+                    workSheet.Row(1).Style.Font.Bold = true;
+                    workSheet.Column(3).Style.Numberformat.Format = "MM/dd/yyyy";
+                    workSheet.Column(3).Style.HorizontalAlignment = ExcelHorizontalAlignment.Right;
+                    for (var k = 1; k <= workSheet.Dimension.End.Column; k++)
+                    {
+                        workSheet.Column(k).AutoFit();
+                        cnt = k;
+                    }
+                    var maxcnt = dt.Rows.Count + 2;
+                    var start = workSheet.Dimension.Start;
+                    var end = workSheet.Dimension.End;
+
+                    for (int col = start.Column + 1; col <= end.Column; col++)
+                    {
+                        if (workSheet.Cells[1, col].Text != "Note Id" && workSheet.Cells[1, col].Text != "Name" && workSheet.Cells[1, col].Text != "Maturity" && workSheet.Cells[1, col].Text != "Lien Position" && workSheet.Cells[1, col].Text != "Use rule to determine note funding" && workSheet.Cells[1, col].Text != "Priority" && workSheet.Cells[1, col].Text != "Funding priority" && workSheet.Cells[1, col].Text != "Repayment priority" && workSheet.Cells[1, col].Text != "Financing Source" && workSheet.Cells[1, col].Text != "Spread / Rate" && workSheet.Cells[1, col].Text != "Effective Rate")
+                        {
+                            workSheet.Column(col).Style.Numberformat.Format = "#,##0.00";
+                            var cell = workSheet.Cells[maxcnt, col];
+                            cell.Formula = "=SUM(" + workSheet.Cells[2, col].Address + ":" + workSheet.Cells[maxcnt - 1, col].Address + ")";
+                        }
+                        if (workSheet.Cells[1, col].Text == "Spread / Rate" || workSheet.Cells[1, col].Text == "Effective Rate")
+                        {
+                            workSheet.Column(col).Style.Numberformat.Format = "0.000000000%";
+                            var cell = workSheet.Cells[maxcnt, col];
+                            //cell.Formula = "=SUM(" + workSheet.Cells[2, col].Address + ":" + workSheet.Cells[maxcnt - 1, col].Address + ")";
                         }
                     }
 
@@ -2258,6 +3076,126 @@ namespace CRES.ServicesNew.Controllers
         }
 
 
+
+
+        [HttpPost]
+        [Route("api/excelupload/downloadexcelcommitment")]
+        public IActionResult DownloadExcelCommitment([FromBody] DataTable commitment)
+        {
+            int cnt = 0;
+
+
+            try
+            {
+
+                int Notescnt = Convert.ToInt32(commitment.Rows[0]["NotesCount"]);
+
+                commitment.Columns.Remove("NotesCount");
+
+                DataTable dt = new DataTable();
+                dt.Columns.Add("Date", typeof(DateTime));
+                dt.Columns.Add("Type", typeof(string));
+                dt.Columns.Add("Adjustment History (Deal)", typeof(decimal));
+                dt.Columns.Add("Adjusted Commitment", typeof(decimal));
+                dt.Columns.Add("M61 Total Commitment", typeof(decimal));
+                dt.Columns.Add("Total Equity at Closing", typeof(decimal));
+                dt.Columns.Add("Total Required Equity", typeof(decimal));
+                //dt.Columns.Add("Total Additional Equity", typeof(decimal));
+                dt.Columns.Add("Comments", typeof(string));
+                if (Notescnt > 0)
+                {
+                    for (int j = commitment.Columns.Count - Notescnt; j < commitment.Columns.Count; j++)
+                    {
+                        dt.Columns.Add(commitment.Columns[j].ColumnName, typeof(decimal));
+                    }
+                }
+
+
+
+                for (int i = 0; i < commitment.Rows.Count; i++)
+                {
+                    DataRow dr = dt.NewRow();
+                    if (commitment.Rows[i]["Date"] != null)
+                    {
+                        dr["Date"] = DateTime.Parse(commitment.Rows[i]["Date"].ToString()).Date;
+                    }
+                    dr["Type"] = commitment.Rows[i]["Type"];
+                    dr["Adjustment History (Deal)"] = commitment.Rows[i]["Adjustment History (Deal)"];
+                    dr["Adjusted Commitment"] = commitment.Rows[i]["Adjusted Commitment"];
+                    dr["M61 Total Commitment"] = commitment.Rows[i]["M61 Total Commitment"];
+                    dr["Total Equity at Closing"] = commitment.Rows[i]["Total Equity at Closing"];
+                    dr["Total Required Equity"] = commitment.Rows[i]["Total Required Equity"];
+                    //dr["Total Additional Equity"] = commitment.Rows[i]["Total Additional Equity"];
+                    dr["Comments"] = commitment.Rows[i]["Comments"];
+                    if (Notescnt > 0)
+                    {
+                        for (int j = commitment.Columns.Count - Notescnt; j < commitment.Columns.Count; j++)
+                        {
+                            if (!string.IsNullOrEmpty(commitment.Rows[i][commitment.Columns[j].ColumnName].ToString()))
+
+                                //   dr[commitment.Columns[j].ColumnName] = Math.Round(Convert.ToDecimal(commitment.Rows[i][commitment.Columns[j].ColumnName]), 2);
+                                dr[commitment.Columns[j].ColumnName] = Math.Round(CommonHelper.StringToDecimal(commitment.Rows[i][commitment.Columns[j].ColumnName]).GetValueOrDefault(0), 2);
+                        }
+                    }
+                    dt.Rows.Add(dr);
+
+                }
+
+
+
+
+                using (var package = new ExcelPackage())
+                {
+                    var workSheet = package.Workbook.Worksheets.Add("Commitment");
+
+                    workSheet.Cells["A1"].LoadFromDataTable(dt, true);
+                    workSheet.DefaultRowHeight = 15;
+
+
+
+                    workSheet.Column(1).Style.Numberformat.Format = "MM/dd/yyyy";
+                    workSheet.Column(1).Style.HorizontalAlignment = ExcelHorizontalAlignment.Right;
+
+                    workSheet.Row(1).Style.HorizontalAlignment = ExcelHorizontalAlignment.Left;
+                    workSheet.Column(1).AutoFit();
+                    workSheet.Row(1).Style.Font.Bold = true;
+
+                    for (var k = 1; k <= workSheet.Dimension.End.Column; k++)
+                    {
+                        workSheet.Column(k).AutoFit();
+                        cnt = k;
+                    }
+                    var maxcnt = commitment.Rows.Count + 2;
+                    var start = workSheet.Dimension.Start;
+                    var end = workSheet.Dimension.End;
+
+                    for (int col = start.Column + 1; col <= end.Column; col++)
+                    {
+                        if (workSheet.Cells[1, col].Text != "Type" && workSheet.Cells[1, col].Text != "Comments")
+                        {
+                            workSheet.Column(col).Style.Numberformat.Format = "#,##0.00";
+                            var cell = workSheet.Cells[maxcnt, col];
+                            cell.Formula = "=SUM(" + workSheet.Cells[2, col].Address + ":" + workSheet.Cells[maxcnt - 1, col].Address + ")";
+                            //workSheet.Column(col).Style.HorizontalAlignment = ExcelHorizontalAlignment.Right;
+                        }
+                    }
+
+                    workSheet.Row(maxcnt).Style.HorizontalAlignment = ExcelHorizontalAlignment.Right;
+                    workSheet.Row(maxcnt).Style.Font.Bold = true;
+                    var stream = new MemoryStream(package.GetAsByteArray());
+                    return File(stream, "application/octet-stream");
+                }
+            }
+            catch (Exception ex)
+            {
+                string output = "";
+                LoggerLogic Log = new LoggerLogic();
+                Log.WriteLogException(CRESEnums.Module.ExportFutureFunding.ToString(), "Error occurred in downloadexcelfile ", "", "", ex.TargetSite.Name.ToString(), "", ex);
+                return File(output, "application/octet-stream");
+
+            }
+
+        }
 
         [HttpPost]
         //  [Services.Controllers.IsAuthenticate]
@@ -2317,8 +3255,8 @@ namespace CRES.ServicesNew.Controllers
         }
 
 
-        [HttpPost]
 
+        [HttpPost]
         [Route("api/excelupload/reconcilesplitfeetransaction")]
         public IActionResult ReconcileSplitFeeTransaction([FromBody] DataTable dt)
         {
@@ -2430,9 +3368,700 @@ namespace CRES.ServicesNew.Controllers
             return Ok(_authenticationResult);
 
         }
+
+
+        [HttpPost]
+        [Route("api/excelupload/downloadxirrreturn")]
+        //public HttpResponseMessage GenerateAccountingReport([FromBody] string ReportFileGUID)
+        public async Task<IActionResult> DownloadXIRRReturn([FromBody] XIRRConfigDataContract xirrConfig)
+        {
+            ReportFileDataContract reportDC = new ReportFileDataContract();
+            reportDC.ReportFileName = "XIRR_Output";
+            reportDC.ReportFileFormat = "xlsx";
+            reportDC.SourceStorageLocation = "ExcelTemplate";
+            reportDC.SourceStorageTypeID = 641;
+            reportDC.ReportFileTemplate = "XIRR_Output" + "." + reportDC.ReportFileFormat;
+
+            AccountingReportLogic reportLogic = new AccountingReportLogic();
+            GenericResult _actionResult = null;
+            var headerUserID = string.Empty;
+            string CurrentDate = System.DateTime.Now.ToString("yyyyMMdd");
+            TagXIRRLogic xirrLogic = new TagXIRRLogic();
+            try
+            {
+                if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
+                {
+                    headerUserID = Convert.ToString(Request.Headers["TokenUId"]);
+                }
+
+                if (reportDC.ReportFileFormat.ToLower() == "xlsx")
+                {
+                    //read template from source
+                    using (var memStream = await AzureStorageReadFile.ReadAccountingReportInStream(reportDC))
+                    {
+
+                        DataSet dsXIRRData = new DataSet();
+                        //get the data from the database 
+                        DataTable dtXIRR = new DataTable();
+                        dtXIRR = xirrLogic.GetXIRROutputByConfigID(xirrConfig.XIRRConfigID, headerUserID);
+                        dsXIRRData.Tables.Add(dtXIRR);
+                        // write data to stream
+                        using (var package = new OfficeOpenXml.ExcelPackage(memStream))
+                        {
+
+                            //Step 2 : Add a new worksheet to ExcelPackage object and give a suitable name
+
+                            int iSheetsCount = 0;
+                            try
+                            {
+                                package.Workbook.Worksheets[0].Name = "XIRR Return";
+                                iSheetsCount = package.Workbook.Worksheets.Count;
+                            }
+                            catch (Exception)
+                            {
+                                iSheetsCount = package.Workbook.Worksheets.Count;
+                            }
+                            if (iSheetsCount > 0)
+                            {
+
+                                // Get the sheet by index
+                                OfficeOpenXml.ExcelWorksheet worksheet;
+                                try
+                                {
+                                    worksheet = package.Workbook.Worksheets[0];
+                                }
+                                catch (Exception)
+                                {
+                                    worksheet = package.Workbook.Worksheets[0];
+                                }
+
+                                worksheet.Cells[2, 1].LoadFromDataTable(dsXIRRData.Tables[0], false);
+                                var stream = new MemoryStream(package.GetAsByteArray());
+                                return File(stream, "application/octet-stream");
+                            }
+                        }
+
+
+                    }
+
+                    //
+                }
+
+            }
+
+            catch (Exception ex)
+            {
+                string output = "";
+                LoggerLogic Log = new LoggerLogic();
+                Log.WriteLogException(CRESEnums.Module.XIRRDownload.ToString(), "Error occurred in downloading XIRRReturn ", "", "", ex.TargetSite.Name.ToString(), "", ex);
+                return File(output, "application/octet-stream");
+
+            }
+
+
+            finally
+            {
+
+            }
+            return Ok(_actionResult);
+        }
+
+        [HttpPost]
+        [Route("api/excelupload/downloadxirrreturnarchive")]
+        //public HttpResponseMessage GenerateAccountingReport([FromBody] string ReportFileGUID)
+        public async Task<IActionResult> DownloadXIRRReturnArchive([FromBody] XIRRConfigDataContract xirrConfig)
+        {
+            ReportFileDataContract reportDC = new ReportFileDataContract();
+            reportDC.ReportFileName = "XIRR_Output";
+            reportDC.ReportFileFormat = "xlsx";
+            reportDC.SourceStorageLocation = "ExcelTemplate";
+            reportDC.SourceStorageTypeID = 641;
+            reportDC.ReportFileTemplate = "XIRR_Output_Archive" + "." + reportDC.ReportFileFormat;
+
+            AccountingReportLogic reportLogic = new AccountingReportLogic();
+            GenericResult _actionResult = null;
+            var headerUserID = string.Empty;
+            string CurrentDate = System.DateTime.Now.ToString("yyyyMMdd");
+            TagXIRRLogic xirrLogic = new TagXIRRLogic();
+            try
+            {
+                if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
+                {
+                    headerUserID = Convert.ToString(Request.Headers["TokenUId"]);
+                }
+
+                if (reportDC.ReportFileFormat.ToLower() == "xlsx")
+                {
+                    //read template from source
+                    using (var memStream = await AzureStorageReadFile.ReadAccountingReportInStream(reportDC))
+                    {
+
+                        DataSet dsXIRRData = new DataSet();
+                        //get the data from the database 
+                        DataTable dtXIRR = new DataTable();
+                        dtXIRR = xirrLogic.GetXIRROutputArchive(xirrConfig.XIRRConfigID, Convert.ToDateTime(xirrConfig.ArchiveDate), headerUserID);
+                        dsXIRRData.Tables.Add(dtXIRR);
+                        // write data to stream
+                        using (var package = new OfficeOpenXml.ExcelPackage(memStream))
+                        {
+
+                            //Step 2 : Add a new worksheet to ExcelPackage object and give a suitable name
+
+                            int iSheetsCount = 0;
+                            try
+                            {
+                                package.Workbook.Worksheets[0].Name = "XIRR Return";
+                                iSheetsCount = package.Workbook.Worksheets.Count;
+                            }
+                            catch (Exception)
+                            {
+                                iSheetsCount = package.Workbook.Worksheets.Count;
+                            }
+                            if (iSheetsCount > 0)
+                            {
+
+                                // Get the sheet by index
+                                OfficeOpenXml.ExcelWorksheet worksheet;
+                                try
+                                {
+                                    worksheet = package.Workbook.Worksheets[0];
+                                }
+                                catch (Exception)
+                                {
+                                    worksheet = package.Workbook.Worksheets[0];
+                                }
+
+                                worksheet.Cells[2, 1].LoadFromDataTable(dsXIRRData.Tables[0], false);
+                                var stream = new MemoryStream(package.GetAsByteArray());
+                                return File(stream, "application/octet-stream");
+                            }
+                        }
+
+
+                    }
+
+                    //
+                }
+
+            }
+
+            catch (Exception ex)
+            {
+                string output = "";
+                LoggerLogic Log = new LoggerLogic();
+                Log.WriteLogException(CRESEnums.Module.XIRRDownload.ToString(), "Error occurred in downloading XIRRReturn ", "", "", ex.TargetSite.Name.ToString(), "", ex);
+                return File(output, "application/octet-stream");
+
+            }
+
+
+            finally
+            {
+
+            }
+            return Ok(_actionResult);
+        }
+
+        [HttpGet]
+        [Route("api/excelupload/CheckAPI")]
+        public IActionResult CheckAPI(string DealID, string type)
+        {
+            v1GenericResult _authenticationResult = null;
+            try
+            {
+                ImportServicerBalance();
+
+                _authenticationResult = new v1GenericResult()
+                {
+                    Status = Microsoft.AspNetCore.Http.StatusCodes.Status200OK,
+                    Succeeded = true,
+                    Message = "Succeeded CheckAutomation for deal " + DealID,
+                    ErrorDetails = ""
+                };
+
+            }
+            catch (Exception ex)
+            {
+                _authenticationResult = new v1GenericResult()
+                {
+                    Status = Microsoft.AspNetCore.Http.StatusCodes.Status500InternalServerError,
+                    Succeeded = false,
+                    Message = "Error contact administrator",
+                    ErrorDetails = ex.Message
+                };
+
+            }
+            return Ok(_authenticationResult);
+        }
+
+        public async Task<IActionResult> UploadXIRRFiles(ReportFileDataContract reportDC, DataTable dt)
+        {
+            //ReportFileDataContract reportDC = new ReportFileDataContract();
+            //reportDC.ReportFileName = "XIRR_Output";
+            //reportDC.ReportFileFormat = "xlsx";
+            //reportDC.SourceStorageLocation = "ExcelTemplate";
+            //reportDC.SourceStorageTypeID = 641;
+            //reportDC.ReportFileTemplate = "XIRR_Output_Archive" + "." + reportDC.ReportFileFormat;
+
+            AccountingReportLogic reportLogic = new AccountingReportLogic();
+            GenericResult _actionResult = null;
+            var headerUserID = string.Empty;
+            string CurrentDate = System.DateTime.Now.ToString("yyyyMMdd");
+            TagXIRRLogic xirrLogic = new TagXIRRLogic();
+            try
+            {
+                //if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
+                //{
+                //    headerUserID = Convert.ToString(Request.Headers["TokenUId"]);
+                //}
+
+                if (reportDC.ReportFileFormat.ToLower() == "xlsx")
+                {
+                    //read template from source
+                    using (var memStream = await AzureStorageReadFile.ReadAccountingReportInStream(reportDC))
+                    {
+
+                        DataSet dsXIRRData = new DataSet();
+                        //get the data from the database 
+                        //DataTable dtXIRR = new DataTable();
+                        //dtXIRR = xirrLogic.GetXIRROutputArchive(xirrConfig.XIRRConfigID, Convert.ToDateTime(xirrConfig.ArchiveDate), headerUserID);
+                        dsXIRRData.Tables.Add(dt);
+                        // write data to stream
+                        using (var package = new OfficeOpenXml.ExcelPackage(memStream))
+                        {
+
+                            //Step 2 : Add a new worksheet to ExcelPackage object and give a suitable name
+
+                            int iSheetsCount = 0;
+                            try
+                            {
+                                package.Workbook.Worksheets[0].Name = reportDC.ReportFileName;
+                                iSheetsCount = package.Workbook.Worksheets.Count;
+                            }
+                            catch (Exception)
+                            {
+                                iSheetsCount = package.Workbook.Worksheets.Count;
+                            }
+                            if (iSheetsCount > 0)
+                            {
+
+                                // Get the sheet by index
+                                OfficeOpenXml.ExcelWorksheet worksheet;
+                                try
+                                {
+                                    worksheet = package.Workbook.Worksheets[0];
+                                }
+                                catch (Exception)
+                                {
+                                    worksheet = package.Workbook.Worksheets[0];
+                                }
+
+                                worksheet.Cells[2, 1].LoadFromDataTable(dsXIRRData.Tables[0], false);
+                                var stream = new MemoryStream(package.GetAsByteArray());
+
+                                //upload file to destination
+                                FileUploadParameterDataContract fileParam = new FileUploadParameterDataContract();
+                                fileParam.StorageTypeID = reportDC.DestinationStorageTypeID;
+                                fileParam.StorageLocation = reportDC.DestinationStorageLocation;
+                                fileParam.FileName = reportDC.NewFileName;
+                                await UploadFilesByStorageType(fileParam, stream);//
+                                stream.Flush();
+                            }
+                        }
+                    }
+
+                    //
+                }
+
+            }
+
+            catch (Exception ex)
+            {
+                string output = "";
+                LoggerLogic Log = new LoggerLogic();
+                Log.WriteLogException(CRESEnums.Module.XIRRDownload.ToString(), "Error occurred in downloading XIRRReturn ", "", "", ex.TargetSite.Name.ToString(), "", ex);
+                return File(output, "application/octet-stream");
+
+            }
+
+
+            finally
+            {
+
+            }
+            return Ok(_actionResult);
+        }
+
+        public async Task<IActionResult> UploadXIRRFiles(ReportFileDataContract reportDC, DataTable dt, bool IsPrintHeader, int HeaderPosition)
+        {
+            //ReportFileDataContract reportDC = new ReportFileDataContract();
+            //reportDC.ReportFileName = "XIRR_Output";
+            //reportDC.ReportFileFormat = "xlsx";
+            //reportDC.SourceStorageLocation = "ExcelTemplate";
+            //reportDC.SourceStorageTypeID = 641;
+            //reportDC.ReportFileTemplate = "XIRR_Output_Archive" + "." + reportDC.ReportFileFormat;
+
+            AccountingReportLogic reportLogic = new AccountingReportLogic();
+            GenericResult _actionResult = null;
+            var headerUserID = string.Empty;
+            string CurrentDate = System.DateTime.Now.ToString("yyyyMMdd");
+            TagXIRRLogic xirrLogic = new TagXIRRLogic();
+            try
+            {
+                //if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
+                //{
+                //    headerUserID = Convert.ToString(Request.Headers["TokenUId"]);
+                //}
+
+                if (reportDC.ReportFileFormat.ToLower() == "xlsx")
+                {
+                    //read template from source
+                    using (var memStream = await AzureStorageReadFile.ReadAccountingReportInStream(reportDC))
+                    {
+
+                        DataSet dsXIRRData = new DataSet();
+                        //get the data from the database 
+                        //DataTable dtXIRR = new DataTable();
+                        //dtXIRR = xirrLogic.GetXIRROutputArchive(xirrConfig.XIRRConfigID, Convert.ToDateTime(xirrConfig.ArchiveDate), headerUserID);
+                        dsXIRRData.Tables.Add(dt);
+                        // write data to stream
+                        using (var package = new OfficeOpenXml.ExcelPackage(memStream))
+                        {
+
+                            //Step 2 : Add a new worksheet to ExcelPackage object and give a suitable name
+
+                            int iSheetsCount = 0;
+                            try
+                            {
+                                //package.Workbook.Worksheets[0].Name = reportDC.ReportFileName;
+                                iSheetsCount = package.Workbook.Worksheets.Count;
+                            }
+                            catch (Exception)
+                            {
+                                iSheetsCount = package.Workbook.Worksheets.Count;
+                            }
+                            if (iSheetsCount > 0)
+                            {
+
+                                // Get the sheet by index
+                                OfficeOpenXml.ExcelWorksheet worksheet;
+                                try
+                                {
+                                    worksheet = package.Workbook.Worksheets[0];
+                                }
+                                catch (Exception)
+                                {
+                                    worksheet = package.Workbook.Worksheets[0];
+                                }
+
+                                worksheet.Cells[HeaderPosition, 1].LoadFromDataTable(dsXIRRData.Tables[0], IsPrintHeader);
+                                var stream = new MemoryStream(package.GetAsByteArray());
+
+                                //upload file to destination
+                                FileUploadParameterDataContract fileParam = new FileUploadParameterDataContract();
+                                fileParam.StorageTypeID = reportDC.DestinationStorageTypeID;
+                                fileParam.StorageLocation = reportDC.DestinationStorageLocation;
+                                fileParam.FileName = reportDC.NewFileName;
+                                await UploadFilesByStorageType(fileParam, stream);//
+                                stream.Flush();
+                            }
+                        }
+                    }
+
+                    //
+                }
+
+            }
+
+            catch (Exception ex)
+            {
+                string output = "";
+                LoggerLogic Log = new LoggerLogic();
+                Log.WriteLogException(CRESEnums.Module.XIRRDownload.ToString(), "Error occurred in downloading XIRRReturn ", "", "", ex.TargetSite.Name.ToString(), "", ex);
+                return File(output, "application/octet-stream");
+
+            }
+
+
+            finally
+            {
+
+            }
+            return Ok(_actionResult);
+        }
+
+        public async Task<IActionResult> UploadXIRRFiles(ReportFileDataContract reportDC, DataSet dsXIRRData, bool IsPrintHeader)
+        {
+            //ReportFileDataContract reportDC = new ReportFileDataContract();
+            //reportDC.ReportFileName = "XIRR_Output";
+            //reportDC.ReportFileFormat = "xlsx";
+            //reportDC.SourceStorageLocation = "ExcelTemplate";
+            //reportDC.SourceStorageTypeID = 641;
+            //reportDC.ReportFileTemplate = "XIRR_Output_Archive" + "." + reportDC.ReportFileFormat;
+            string DocumentStorageID = "";
+            AccountingReportLogic reportLogic = new AccountingReportLogic();
+            GenericResult _actionResult = null;
+            var headerUserID = string.Empty;
+            string CurrentDate = System.DateTime.Now.ToString("yyyyMMdd");
+            TagXIRRLogic xirrLogic = new TagXIRRLogic();
+            try
+            {
+                //if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
+                //{
+                //    headerUserID = Convert.ToString(Request.Headers["TokenUId"]);
+                //}
+
+                if (reportDC.ReportFileFormat.ToLower() == "xlsx")
+                {
+
+                    //read template from source
+                    using (var memStream = await AzureStorageReadFile.ReadAccountingReportInStream(reportDC))
+                    {
+                        DocumentStorageID = await WriteDataToStreamWithoutSheet(reportDC, dsXIRRData, memStream);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                string output = "";
+                LoggerLogic Log = new LoggerLogic();
+                Log.WriteLogException(CRESEnums.Module.XIRRDownload.ToString(), "Error occurred in downloading XIRRReturn ", "", "", ex.TargetSite.Name.ToString(), "", ex);
+                return File(output, "application/octet-stream");
+
+            }
+
+            finally
+            {
+
+            }
+            return Ok(_actionResult);
+        }
+
+        [HttpPost]
+        [Route("api/excelupload/downloadxirroutputfiles")]
+        //public HttpResponseMessage GenerateAccountingReport([FromBody] string ReportFileGUID)
+        public async Task<IActionResult> DownloadXIRROutputFiles([FromBody] XIRRConfigDataContract xirrConfig)
+        {
+            ReportFileDataContract reportDC = new ReportFileDataContract();
+            DataTable dt = new DataTable();
+            ExceluploadController exc = new ExceluploadController();
+            reportDC.SourceStorageLocation = "XIRRTemplates";
+            reportDC.ReportFileFormat = "xlsx";
+            reportDC.SourceStorageTypeID = 392;
+            reportDC.DestinationStorageTypeID = 392;
+            reportDC.ReportFileTemplate = "XIRR_Output_PortfolioLevel" + "." + reportDC.ReportFileFormat;
+            if (xirrConfig.Type == "Deal")
+            {
+                reportDC.ReportFileTemplate = "XIRR_Output_DealLevel" + "." + reportDC.ReportFileFormat;
+            }
+
+            AccountingReportLogic reportLogic = new AccountingReportLogic();
+            GenericResult _actionResult = null;
+            var headerUserID = string.Empty;
+            string CurrentDate = System.DateTime.Now.ToString("yyyyMMdd");
+            TagXIRRLogic xirrLogic = new TagXIRRLogic();
+            try
+            {
+                if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
+                {
+                    headerUserID = Convert.ToString(Request.Headers["TokenUId"]);
+                }
+
+                if (reportDC.ReportFileFormat.ToLower() == "xlsx")
+                {
+                    //read template from source
+                    using (var memStream = await AzureStorageReadFile.ReadAccountingReportInStream(reportDC))
+                    {
+                        DataSet dsXIRRData = new DataSet();
+
+                        if (xirrConfig.Type != "Deal")
+                        {
+                            DataTable dtportfolio = xirrLogic.GetXIRROutputPortfolioLevel(xirrConfig.XIRRConfigID, "");
+
+                            if (dtportfolio.Columns.IndexOf("XIRRConfigID") != -1)
+                            {
+                                dtportfolio.Columns.Remove("XIRRConfigID");
+                            }
+
+                            if (dtportfolio.Columns.IndexOf("G1_Hidden") != -1)
+                            {
+                                dtportfolio.Columns.Remove("G1_Hidden");
+                            }
+                            dsXIRRData.Tables.Add(dtportfolio);
+                        }
+                        DataTable dtdeal = xirrLogic.GetXIRROutputDealLevel(xirrConfig.XIRRConfigID, "");
+
+                        if (dtdeal.Columns.IndexOf("XIRRConfigID") != -1)
+                        {
+                            dtdeal.Columns.Remove("XIRRConfigID");
+                        }
+
+                        if (dtdeal.Columns.IndexOf("XIRRReturnGroupID") != -1)
+                        {
+                            dtdeal.Columns.Remove("XIRRReturnGroupID");
+                        }
+                        dsXIRRData.Tables.Add(dtdeal);
+
+                        // write data to stream
+                        using (var package = new OfficeOpenXml.ExcelPackage(memStream))
+                        {
+
+                            //Step 2 : Add a new worksheet to ExcelPackage object and give a suitable name
+
+                            int iSheetsCount = 0;
+                            try
+                            {
+                                //package.Workbook.Worksheets[0].Name = "XIRR Return";
+                                iSheetsCount = package.Workbook.Worksheets.Count;
+                            }
+                            catch (Exception)
+                            {
+                                iSheetsCount = package.Workbook.Worksheets.Count;
+                            }
+                            if (iSheetsCount > 0)
+                            {
+
+                                for (int i = 0; i < iSheetsCount; i++)
+                                {
+                                    // Get the sheet by index
+                                    OfficeOpenXml.ExcelWorksheet worksheet;
+                                    try
+                                    {
+                                        worksheet = package.Workbook.Worksheets[i];
+                                    }
+                                    catch (Exception)
+                                    {
+                                        worksheet = package.Workbook.Worksheets[i];
+                                    }
+
+                                    worksheet.Cells[1, 1].LoadFromDataTable(dsXIRRData.Tables[i], true);
+                                }
+                                var stream = new MemoryStream(package.GetAsByteArray());
+                                return File(stream, "application/octet-stream");
+                            }
+                        }
+
+
+                    }
+
+                    //
+                }
+
+            }
+
+            catch (Exception ex)
+            {
+                string output = "";
+                LoggerLogic Log = new LoggerLogic();
+                Log.WriteLogException(CRESEnums.Module.XIRRDownload.ToString(), "Error occurred in downloading XIRRReturn ", "", "", ex.TargetSite.Name.ToString(), "", ex);
+                return File(output, "application/octet-stream");
+
+            }
+
+
+            finally
+            {
+
+            }
+            return Ok(_actionResult);
+        }
+
+        [HttpPost]
+        [Route("api/excelupload/downloadexcelServicingPotentialImpairment")]
+        public IActionResult DownloadExcelServicingPotentialImpairment([FromBody] DataTable excPotentialImpairment)
+        {
+            int cnt = 0;
+
+            try
+            {
+                int Notescnt = Convert.ToInt32(excPotentialImpairment.Rows[0]["NotesCount"]);
+
+                excPotentialImpairment.Columns.Remove("NotesCount");
+
+                DataTable dt = new DataTable();
+                dt.Columns.Add("Date", typeof(DateTime));
+                dt.Columns.Add("Amount", typeof(decimal));
+                dt.Columns.Add("Adjustment Type", typeof(string));
+                dt.Columns.Add("Comment", typeof(string));
+                dt.Columns.Add("Confirmed", typeof(string));
+                if (Notescnt > 0)
+                {
+                    for (int j = excPotentialImpairment.Columns.Count - Notescnt; j < excPotentialImpairment.Columns.Count; j++)
+                    {
+                        dt.Columns.Add(excPotentialImpairment.Columns[j].ColumnName, typeof(decimal));
+                    }
+                }
+
+                for (int i = 0; i < excPotentialImpairment.Rows.Count; i++)
+                {
+                    DataRow dr = dt.NewRow();
+                    if (excPotentialImpairment.Rows[i]["Date"] != null)
+                    {
+                        dr["Date"] = DateTime.Parse(excPotentialImpairment.Rows[i]["Date"].ToString()).Date;
+                    }
+                    dr["Amount"] = excPotentialImpairment.Rows[i]["Amount"];
+                    dr["Adjustment Type"] = excPotentialImpairment.Rows[i]["Adjustment Type"];
+                    dr["Comment"] = excPotentialImpairment.Rows[i]["Comment"];
+                    dr["Confirmed"] = excPotentialImpairment.Rows[i]["Confirmed"];
+                    if (Notescnt > 0)
+                    {
+                        for (int j = excPotentialImpairment.Columns.Count - Notescnt; j < excPotentialImpairment.Columns.Count; j++)
+                        {
+                            if (!string.IsNullOrEmpty(excPotentialImpairment.Rows[i][excPotentialImpairment.Columns[j].ColumnName].ToString()))
+
+                                //   dr[excPotentialImpairment.Columns[j].ColumnName] = Math.Round(Convert.ToDecimal(excPotentialImpairment.Rows[i][excPotentialImpairment.Columns[j].ColumnName]), 2);
+                                dr[excPotentialImpairment.Columns[j].ColumnName] = Math.Round(CommonHelper.StringToDecimal(excPotentialImpairment.Rows[i][excPotentialImpairment.Columns[j].ColumnName]).GetValueOrDefault(0), 2);
+                        }
+                    }
+                    dt.Rows.Add(dr);
+                }
+
+                using (var package = new ExcelPackage())
+                {
+                    var workSheet = package.Workbook.Worksheets.Add("excPotentialImpairment");
+
+                    workSheet.Cells["A1"].LoadFromDataTable(dt, true);
+                    workSheet.DefaultRowHeight = 15;
+
+                    workSheet.Column(1).Style.Numberformat.Format = "MM/dd/yyyy";
+                    workSheet.Column(1).Style.HorizontalAlignment = ExcelHorizontalAlignment.Right;
+
+                    workSheet.Row(1).Style.HorizontalAlignment = ExcelHorizontalAlignment.Left;
+                    workSheet.Column(1).AutoFit();
+                    workSheet.Row(1).Style.Font.Bold = true;
+
+                    for (var k = 1; k <= workSheet.Dimension.End.Column; k++)
+                    {
+                        workSheet.Column(k).AutoFit();
+                        cnt = k;
+                    }
+                    var maxcnt = excPotentialImpairment.Rows.Count + 2;
+                    var start = workSheet.Dimension.Start;
+                    var end = workSheet.Dimension.End;
+
+                    for (int col = start.Column + 1; col <= end.Column; col++)
+                    {
+                        if (workSheet.Cells[1, col].Text != "Adjustment Type" && workSheet.Cells[1, col].Text != "Comment" && workSheet.Cells[1, col].Text != "Confirmed")
+                        {
+                            workSheet.Column(col).Style.Numberformat.Format = "#,##0.00";
+                            var cell = workSheet.Cells[maxcnt, col];
+                            cell.Formula = "=SUM(" + workSheet.Cells[2, col].Address + ":" + workSheet.Cells[maxcnt - 1, col].Address + ")";
+                        }
+                    }
+
+                    workSheet.Row(maxcnt).Style.HorizontalAlignment = ExcelHorizontalAlignment.Right;
+                    workSheet.Row(maxcnt).Style.Font.Bold = true;
+                    var stream = new MemoryStream(package.GetAsByteArray());
+                    return File(stream, "application/octet-stream");
+                }
+            }
+            catch (Exception ex)
+            {
+                string output = "";
+                LoggerLogic Log = new LoggerLogic();
+                Log.WriteLogException(CRESEnums.Module.ExportFutureFunding.ToString(), "Error occurred in downloadexcelfile ", "", "", ex.TargetSite.Name.ToString(), "", ex);
+                return File(output, "application/octet-stream");
+            }
+        }
     }
-
-
-
-
 }

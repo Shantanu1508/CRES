@@ -1,4 +1,7 @@
-﻿CREATE Procedure [dbo].[usp_ImportIntoTransactionEntryClose]
+﻿-- Procedure
+-- Procedure
+-- Procedure
+CREATE Procedure [dbo].[usp_ImportIntoTransactionEntryClose]
 @StartDate Date = null,
 @EndDate Date = null,
 @PeriodID UNIQUEIDENTIFIER = null,
@@ -63,7 +66,7 @@ INSERT INTO [CRE].[TransactionEntryClose]
 		   ,[Cash_NonCash]
 		   )
 	Select 
-	[NoteID]
+	n.[NoteID]
 	,[Date]
 	,[Amount]
 	,[Type]
@@ -84,8 +87,12 @@ INSERT INTO [CRE].[TransactionEntryClose]
 	,Comment
 	,PurposeType
 	,[Cash_NonCash]
-	FROM cre.TransactionEntry 
-	Where AnalysisID = @AnalysisID
+	FROM cre.TransactionEntry te
+	Inner join core.account acc on acc.accountid = te.AccountID
+    Inner join cre.note n on n.account_accountid = acc.accountid
+	Where AnalysisID = @AnalysisID and acc.AccountTypeID = 1
+	and acc.IsDeleted <> 1
+
 	
 
 END

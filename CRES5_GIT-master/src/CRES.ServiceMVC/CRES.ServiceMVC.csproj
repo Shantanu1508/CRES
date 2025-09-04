@@ -66,6 +66,7 @@
     <PackageReference Include="EPPlus" Version="4.5.3.2" />
     <PackageReference Include="ExcelDataReader" Version="3.4.0" />
     <PackageReference Include="ExcelDataReader.DataSet" Version="3.4.0" />
+    <PackageReference Include="HtmlRendererCore.PdfSharp" Version="1.0.5" />
     <PackageReference Include="Ionic.Zip" Version="1.9.1.8" />
     <PackageReference Include="iTextSharp" Version="5.5.10" />
     <PackageReference Include="itextsharp.xmlworker" Version="5.5.10" />
@@ -76,7 +77,7 @@
     <PackageReference Include="Microsoft.Extensions.Configuration" Version="2.2.0" />
     <PackageReference Include="Microsoft.Graph" Version="3.15.0" />
     <PackageReference Include="Microsoft.Graph.Auth" Version="1.0.0-preview.3" />
-    <PackageReference Include="Microsoft.Identity.Client" Version="4.22.0" />
+    <PackageReference Include="Microsoft.Identity.Client" Version="4.65.0" />
     <PackageReference Include="Microsoft.IdentityModel.Clients.ActiveDirectory" Version="3.19.8" />
     <PackageReference Include="Microsoft.PowerBI.Api" Version="3.11.1" />
     <PackageReference Include="Microsoft.PowerBI.AspNet.Mvc" Version="1.1.11" />
@@ -98,7 +99,10 @@
 
 
   <ItemGroup>
-    <Folder Include="wwwroot\JSONFile\" />
+    <Folder Include="wwwroot\ExcelTemplate\Draw_Fee_Invoices\" />
   </ItemGroup>
+
+
+  <ProjectExtensions><VisualStudio><UserProperties appsettings_1json__JsonSchema="" /></VisualStudio></ProjectExtensions>
 
 </Project>

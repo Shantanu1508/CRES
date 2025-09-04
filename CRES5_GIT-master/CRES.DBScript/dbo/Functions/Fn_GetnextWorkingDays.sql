@@ -48,7 +48,8 @@ BEGIN
 			BEGIN
 				IF EXISTS(Select * from app.HoliDays where HoliDayDate = @Date and HoliDayTypeID = @HoliDayTypeID)
 				BEGIN
-					SET @Date = DateAdd(day,1, @Date)
+					--commneted as it is returning 3 days forawrd date instead of 2 days if any holiday in between
+					--SET @Date = DateAdd(day,1, @Date)
 					SET @i = @i - 1;
 				END
 			END
@@ -84,7 +85,9 @@ BEGIN
 			BEGIN
 				IF EXISTS(Select * from app.HoliDays where HoliDayDate = @Date and HoliDayTypeID = @HoliDayTypeID)
 				BEGIN
-					SET @Date = DateAdd(day,-1, @Date)
+					--commneted as it is returning 3 days back date instead of 2 days if any holiday in between
+					--ex 06/20/2025 should return 06/17/20025 but its retruns 06/16/2025
+					--SET @Date = DateAdd(day,-1, @Date)
 					SET @i = @i - 1;
 				END
 			END

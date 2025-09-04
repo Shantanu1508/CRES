@@ -40,13 +40,26 @@ INSERT INTO CRE.PayruleDistributions
 	,@AnalysisID
 	 
  from CRE.TransactionEntry nc
- inner join CRE.PayruleSetup ps on ps.StripTransferFrom=nc.NoteID 
+  Inner join core.account acc on acc.accountid = nc.AccountID
+ Inner join cre.note n on n.account_accountid = acc.accountid
+
+ inner join CRE.PayruleSetup ps on ps.StripTransferFrom=n.NoteID 
  Inner join cre.feeschedulesconfig fsc on fsc.FeeTypeNameID = ps.RuleID
  Inner join core.lookup lFeeTypeTran on lFeeTypeTran.lookupid = fsc.FeeNameTransID
- WHERE nc.NoteID = @SourceNoteID 
+ WHERE n.NoteID = @SourceNoteID 
  and nc.analysisid = @AnalysisID
+  and acc.AccounttypeID = 1
  --and CHARINDEX(REplace(lFeeTypeTran.Name + 'Strip',' ',''), [Type]) > 0
 and CHARINDEX(REplace(lFeeTypeTran.Name + 'Strip',' ',''), (CASE WHEN [Type] = 'AddlFeesStrippingExcldfromLevelYield' THEN 'AdditionalFeeStrippingExcldfromLevelYield' ELSE [Type] END)) > 0
+
+
+
+
+Delete from core.[FeeCouponStripReceivable] where SourceNoteId = @SourceNoteID and AnalysisID =  @AnalysisID  and eventid in (
+Select eventid from core.Event WHERE  EventTypeID = 20
+and AccountID in (Select Account_AccountID from CRE.NOte where noteid in (Select StripTransferTo from [CRE].PayruleSetup where StripTransferFrom =@SourceNoteID ))
+)  
+ 
 
 
  EXEC usp_InsertUpdateFeeCouponStripReceivableForPayruleSetup @SourceNoteID,@UpdatedBy,@AnalysisID

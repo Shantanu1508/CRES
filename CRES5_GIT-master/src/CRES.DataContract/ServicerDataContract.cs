@@ -1,10 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
 
 
 namespace CRES.DataContract
 {
-    public class ServicerDataContract
+   public class ServicerDataContract
     {
         public int? ServicerMasterID { get; set; }
         public string SericerName { get; set; }
@@ -29,7 +32,8 @@ namespace CRES.DataContract
         public bool? Check2BlankRow { get; set; }
         //  public string RemoveBlankRow { get; set; }
         public List<JsonColumnsConfiguration> MappingColumns { get; set; }
-
+        public string ReconType { get; set; }
+        
     }
 
 
@@ -39,10 +43,9 @@ namespace CRES.DataContract
         public string SheetColumnDataType { get; set; }
         public string LandingColumnName { get; set; }
         public string IsMandatoryColumn { get; set; }
-        public string IsMandatoryValue { get; set; }
+        public string IsMandatoryValue { get; set; }      
 
     }
-
     public class JsonTemplate
     {
         public int? JsonTemplateID { get; set; }
@@ -57,6 +60,6 @@ namespace CRES.DataContract
         public int? JsonTemplateMasterID { get; set; }
         public string TemplateName { get; set; }
         public string NewTemplateName { get; set; }
-
+     
     }
 }

@@ -1,12 +1,23 @@
-﻿using CRES.TestAutoMation.Pages;
-using CRES.TestAutoMation.Utility;
+﻿using System;
+using System.Collections.Generic;
+using CRES.BusinessLogic;
+using CRES.DataContract;
+using System.Text;
+using System.Text.RegularExpressions;
+using System.Threading;
 using NUnit.Framework;
 using OpenQA.Selenium;
-using OpenQA.Selenium.Chrome;
-using OpenQA.Selenium.Remote;
+using OpenQA.Selenium.Firefox;
 using OpenQA.Selenium.Support.UI;
-using System;
-using System.Threading;
+
+using CRES.TestAutoMation.Pages;
+using CRES.TestAutoMation.Utility;
+
+
+using CRES.TestAutoMation.TestCases;
+using OpenQA.Selenium.Interactions;
+using OpenQA.Selenium.Remote;
+using OpenQA.Selenium.Chrome;
 
 /* Santosh Singh
   Adding Create NewdealCode
@@ -24,7 +35,7 @@ namespace CRES.TestAutoMation.TestCases
         {
             IWebDriver driver = new ChromeDriver();
         }
-        public CreateNewDeal(WebDriver driver)
+        public CreateNewDeal(RemoteWebDriver driver)
         {
             this.driver = driver;
         }
@@ -34,8 +45,8 @@ namespace CRES.TestAutoMation.TestCases
         public void TestCreateNewDeal()
         {
             //Login 
-
-            // Actions actions = new Actions(driver);
+            
+           // Actions actions = new Actions(driver);
 
             CRES_Login loginapp = new CRES_Login();
             Login login = new Login(driver);
@@ -80,8 +91,6 @@ namespace CRES.TestAutoMation.TestCases
                     System.Threading.Thread.Sleep(10000);
                     // driver.FindElement(By.XPath("//li[@id='addmenu']/a/i")).Click();
                     //driver.FindElement(By.LinkText("Deal")).Click();
-                    driver.FindElement(deal.mainTab).Click();
-                    Thread.Sleep(1000);
 
                     driver.FindElement(By.Id("CREDealID")).Click();
                     driver.FindElement(By.Id("CREDealID")).SendKeys(credealid);
@@ -135,7 +144,7 @@ namespace CRES.TestAutoMation.TestCases
             }
             catch (Exception e)
             {
-                Console.WriteLine(" Exception =" + e);
+
             }
 
         }

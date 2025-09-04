@@ -1,9 +1,13 @@
 ﻿using CRES.DAL.IRepository;
-using CRES.DataContract;
+using CRES.DAL.Helper;
 using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Data.SqlClient;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using CRES.DataContract;
 
 namespace CRES.DAL.Repository
 {
@@ -12,15 +16,15 @@ namespace CRES.DAL.Repository
         public string GetSingleEntityByIntent(string ObjectType, string ObjectNature, string ObjectValue, string Intent)
         {
             string ret_value = "";
-
+            
             Helper.Helper hp = new Helper.Helper();
-            DataTable dt = new DataTable();
-
+            DataTable dt = new DataTable();           
+            
             SqlParameter p1 = new SqlParameter { ParameterName = "@ObjectType", Value = ObjectType };
             SqlParameter p2 = new SqlParameter { ParameterName = "@ObjectNature", Value = ObjectNature };
             SqlParameter p3 = new SqlParameter { ParameterName = "@ObjectValue", Value = ObjectValue };
             SqlParameter p4 = new SqlParameter { ParameterName = "@Intent", Value = Intent };
-            SqlParameter[] sqlparam = new SqlParameter[] { p1, p2, p3, p4 };
+            SqlParameter[] sqlparam = new SqlParameter[] { p1, p2, p3,p4 }; 
 
             dt = hp.ExecDataTable("HBOT.usp_GetSingleEntityByIntent", sqlparam);
 
@@ -77,7 +81,7 @@ namespace CRES.DAL.Repository
 
                 throw;
             }
-
+            
             return dt;
         }
         public string GetSingleEntityByIntentForNoteAndDeal(string NoteNature, string NoteValue, string DealNature, string DealValue, string Intent)
@@ -111,7 +115,7 @@ namespace CRES.DAL.Repository
                 Helper.Helper hp = new Helper.Helper();
                 DataTable dt = new DataTable();
 
-
+              
                 SqlParameter p1 = new SqlParameter { ParameterName = "@NoteNature", Value = NoteNature };
                 SqlParameter p2 = new SqlParameter { ParameterName = "@NoteValue", Value = NoteValue };
                 SqlParameter p3 = new SqlParameter { ParameterName = "@DealNature", Value = DealNature };
@@ -119,7 +123,7 @@ namespace CRES.DAL.Repository
                 SqlParameter p5 = new SqlParameter { ParameterName = "@StartDate", Value = StartDate };
                 SqlParameter p6 = new SqlParameter { ParameterName = "@EndDate", Value = EndDate };
                 SqlParameter p7 = new SqlParameter { ParameterName = "@Intent", Value = Intent };
-                SqlParameter[] sqlparam = new SqlParameter[] { p1, p2, p3, p4, p5, p6, p7 };
+                SqlParameter[] sqlparam = new SqlParameter[] { p1, p2, p3, p4, p5, p6, p7};
 
                 dt = hp.ExecDataTable("HBOT.usp_GetSingleEntityByIntentForNoteAndDealByDateRange", sqlparam);
 
@@ -278,7 +282,7 @@ namespace CRES.DAL.Repository
             {
                 Helper.Helper hp = new Helper.Helper();
                 DataTable dt = new DataTable();
-
+                
                 SqlParameter p1 = new SqlParameter { ParameterName = "@NoteNature", Value = NoteNature };
                 SqlParameter p2 = new SqlParameter { ParameterName = "@NoteValue", Value = NoteValue };
                 SqlParameter p3 = new SqlParameter { ParameterName = "@DealNature", Value = DealNature };

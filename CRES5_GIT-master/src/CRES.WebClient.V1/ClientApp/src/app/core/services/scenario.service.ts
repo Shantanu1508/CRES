@@ -7,7 +7,7 @@ import { CalculationManagerList } from "../domain/calculationManagerList.model";
 export class scenarioService {
   private _getscenarioAPI: string = 'api/scenarios/getallscenario';
   private _getallLookupAPI: string = 'api/scenarios/getallLookup';
-  private _resetdefaulttoactivescenarioAPI: string = 'api/scenarios/resettodefault';
+ 
   private _getscenarioscenarioidAPI: string = 'api/scenarios/getscenarioparameterbyscenarioid';
   private _getindexbyscenarioidAPI: string = 'api/scenarios/getindexbyscenarioid';
   private _insertupdatescenarioAPI: string = 'api/scenarios/insertupdatescenario';
@@ -38,16 +38,7 @@ export class scenarioService {
   GetScenario() {
     this.accountService.set(this._getscenarioAPI);
     return this.accountService.getAll();
-  }
-
-
-
-
-  ResetDefaultToActiveScenario(_calculationManager: CalculationManagerList) {
-    this.accountService.set(this._resetdefaulttoactivescenarioAPI);
-    return this.accountService.post(JSON.stringify(_calculationManager));
-  }
-
+  } 
 
 
   AddUpdateIndexType(indtype:any) {
@@ -143,8 +134,8 @@ export class scenarioService {
 
   }
 
-  deleteScenario(Sec) {
+  deleteScenario(scenario: Scenario) {
     this.accountService.set(this._deletescenarioAPI);
-    return this.accountService.post(JSON.stringify(Sec));
+    return this.accountService.post(JSON.stringify(scenario));
   }
 }

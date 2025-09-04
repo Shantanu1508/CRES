@@ -1,29 +1,35 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
 
 namespace CRES.DataContract
 {
     public class rootData
     {
-        //public string period_start_date { get; set; }
+        public string period_start_date { get; set; }
         public string[] effective_dates { get; set; }
-        //public string period_end_date { get; set; }
-        //public string root_note_id { get; set; }
+        public string period_end_date { get; set; }
+        public string root_note_id { get; set; }
 
         public Rulesets rulesets { get; set; }
         public Accounts accounts { get; set; }
         //public List<Structure> structure { get; set; }
 
-        //public bool? calc_basis { get; set; }
+        public bool? calc_basis { get; set; }
 
         public dynamic notes { get; set; }
-        public dynamic index { get; set; }
+        public dynamic index { get; set; }       
         public dynamic structure { get; set; }
 
-        //public bool? calc_deffee_basis { get; set; }
-        //public bool? calc_disc_basis { get; set; }
-        //public bool? calc_capcosts_basis { get; set; }
-        //public bool? init_logging { get; set; }
+        public bool? calc_deffee_basis { get; set; }
+        public bool? calc_disc_basis { get; set; }
+        public bool? calc_capcosts_basis { get; set; }
+        public bool? init_logging { get; set; }
+        public dynamic lstfeefunctions { get; set; }
+        
     }
 
     public class Structure
@@ -54,11 +60,12 @@ namespace CRES.DataContract
     }
 
     public class calendars
-    {
-        public string[] US { get; set; }
-        public string[] UK { get; set; }
+    { 
+       public string[] US { get; set; }
+       public string[] UK { get; set; }
 
-        public string[] US_and_UK { get; set; }
+       public string[] US_and_UK { get; set; }
+        public string[] SIFMA_US { get; set; }
     }
 
     public class Accounts
@@ -412,4 +419,11 @@ namespace CRES.DataContract
 
 
     }
+
+    public class TransactionTypeIsClub
+    {
+        public string Type { get; set; }
+        public string IsClubTransactionOnSameDate { get; set; }
+    }
+
 }

@@ -11,11 +11,20 @@ BEGIN
 	Set @AnalysisID = (Select AnalysisID from core.Analysis where Name = 'Default')
 	BEGIN TRY
 	BEGIN TRAN
-		UPDATE core.PeriodCloseArchive SET IsDeleted=1 WHERE PeriodID in 
+		UPDATE core.[AccountingCloseTransationArchive] SET IsDeleted=1 WHERE PeriodID in 
 		(
 		  select value from dbo.fn_Split(@PeriodIDs)
 		)
 		and AnalysisID=@AnalysisID
+
+
+		UPDATE core.AccountingClosePeriodicArchive SET IsDeleted=1 WHERE PeriodID in 
+		(
+		  select value from dbo.fn_Split(@PeriodIDs)
+		)
+		and AnalysisID=@AnalysisID
+
+
 	
 		UPDATE core.Period SET IsDeleted=1 WHERE periodID in 
 		(

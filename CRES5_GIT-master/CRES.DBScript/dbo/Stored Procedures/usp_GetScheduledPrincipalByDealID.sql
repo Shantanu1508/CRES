@@ -15,7 +15,8 @@ Declare @Analysisid uniqueidentifier = (SELECT AnalysisID from CORE.Analysis WHE
 	SELECT n.NoteID,SUM(Amount) as Amount
 	FROM cre.note n 
 	inner join cre.deal d on d.dealid = n.DealID
-	left join cre.TransactionEntry t on t.NoteID = n.NoteID
+	left join cre.TransactionEntry t on t.AccountID = n.Account_AccountID
+
 	where IIF(@DealID LIKE REPLACE('00000000-0000-0000-0000-000000000000', '0', '[0-9a-fA-F]'),CAST(d.DealID as nvarchar(256)),d.CREDealID) = @DealID
 	and AnalysisID=@Analysisid 
 	and t.type='ScheduledPrincipalPaid' 

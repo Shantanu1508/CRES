@@ -12,7 +12,8 @@ export class portfolio {
   public AllowWholeDeal !: boolean;
   public AllowWholeDealText !: string;
   public FinancingSourceIDs !: string;
-
+  
+  public XIRRConfigID !: number;
   constructor(PortfolioID: string) {
     this.PortfolioID = PortfolioID;
   }

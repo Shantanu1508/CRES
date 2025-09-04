@@ -12,6 +12,7 @@
     [UpdatedDate]        DATETIME         NULL,
     [StatusID]           INT              NULL,
     [EventAutoID]        INT              IDENTITY (1, 1) NOT NULL,
+	[AdditionalAccountID]  UNIQUEIDENTIFIER  NULL,
     CONSTRAINT [PK_EventID] PRIMARY KEY CLUSTERED ([EventID] ASC),
     CONSTRAINT [FK_Event_AccountID] FOREIGN KEY ([AccountID]) REFERENCES [Core].[Account] ([AccountID])
 );
@@ -47,3 +48,6 @@ CREATE NONCLUSTERED INDEX [IX_Event_StatusID]
     ON [Core].[Event]([StatusID] ASC)
     INCLUDE([AccountID], [EventTypeID], [EffectiveStartDate]);
 
+GO
+ALTER TABLE [Core].[Event] ENABLE CHANGE_TRACKING WITH (TRACK_COLUMNS_UPDATED = ON);
+GO

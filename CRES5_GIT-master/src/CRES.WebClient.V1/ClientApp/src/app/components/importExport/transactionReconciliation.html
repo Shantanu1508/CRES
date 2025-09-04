@@ -4,6 +4,7 @@
       <h1 style="display: inline-block; margin-top: 10px;">
         Transaction Reconciliation
       </h1>
+      <input type="file" name="photo" ng2FileSelect />
       <div class="btn-group" style="float:right;margin-right:10px;">
         <button type="button" id="btnAdmin" class="custombutton dropdown-toggle" style="width:150px !important" data-toggle="dropdown">Download Template<b class="caret"></b></button>
         <ul class="dropdown-menu dropdown-menu-right">
@@ -13,416 +14,467 @@
             </a>
           </li>
           <li>
-            <a style="padding-left: 10px;" (click)="DownloadDocument($event, 'Batch upload v3.0.2.xlsx')">
+            <a style="padding-left: 10px;" (click)="DownloadDocument($event, 'BatchUploadFileandSetup.zip')">
               Batch Upload File Template
             </a>
           </li>
         </ul>
       </div>
 
-      </div>
-      <div class="cssload-container" *ngIf="isProcessComplete">
-        <div class="cssload-whirlpool"></div>
-      </div>
-      <div class="fmst fixheadercontent transrecotopdiv">
+
+
+    </div>
+    <div class="cssload-container" *ngIf="isProcessComplete">
+      <div class="cssload-whirlpool"></div>
+    </div>
+    <div class="table fixheadercontent transrecotopdiv">
+      <div>
         <div>
           <div>
-            <div>
-              <div class="form-group row ">
-                <div class="col-sm-12">
-                  <ul class="nav nav-tabs nav-tabs">
-                    <li class="list-group-item nguploadcustom" style="border:none !important;" *ngFor="let servicer of lstServicer">
-                      <ng2-file-input [id]="servicer.ServicerMasterID" [browse-text]="servicer.ServicerDisplayName" (onCouldNotRemove)="onCouldNotRemove($event)" [multiple]="false" (onRemoved)="onRemoved($event)" (onAdded)="onAdded($event)" (onAction)="onAction($event,servicer)"></ng2-file-input>
+            <div class="form-group row ">
+              <div class="col-sm-12">
+                <ul class="nav nav-tabs nav-tabs">
+                  <li class="list-group-item nguploadcustom" style="border:none !important;" *ngFor="let servicer of lstServicer">
 
-                    </li>
-                  </ul>
-                </div>
+                    <input #fileUpload type="file" (click)="fileUpload.value = null" (change)="importServicerFile($event,servicer)" style="display:none"
+                            accept=".xls,.xlsx">
+                    <button class="custombutton-special" style="display: block; width: 140px; height: 50px; line-height: 20px !important" (click)="fileUpload.click()">{{servicer.ServicerDisplayName}}  </button>
+                  </li>
+                </ul>
               </div>
+            </div>
+            <div style="padding-top:20px;">
+
+              <button type="submit" *ngIf="!_showhistory" tooltip="Reconcile " class="custombutton" (click)="Reconciliation()">Reconcile</button>
+              <button type="submit" tooltip="Save Reconcille" id="btnSave" name="btnSave" class="custombutton" (click)="SaveReconcile()" >Save</button>
 
 
-              <div>
-
-                <button type="submit" *ngIf="!_showhistory" tooltip="Reconcile " class="custombutton" (click)="Reconciliation()">Reconcile</button>
-                <button type="submit" tooltip="Save Reconcille " class="custombutton" (click)="SaveReconcile()">Save</button>
-
-
-                <button type="button" class="custombutton" data-toggle="collapse" data-target="#filter-panel">
-                  <i class="fa fa-filter" style="font-size:18px;margin-right: 5px;">
-                  </i> Filter
-                </button>
-                <button type="submit" tooltip="Clear Selection" class="custombutton" (click)="ClearSelection()">Clear Selection</button>
-                <button type="submit" tooltip="Refresh Calc Amount" style="width:150px !important" class="custombutton" (click)="RefreshM61Amount()">Refresh M61 Amount</button>
+              <button type="button" class="custombutton" data-toggle="collapse" data-target="#filter-panel">
+                <i class="fa fa-filter" style="font-size:18px;margin-right: 5px;">
+                </i> Filter
+              </button>
+              <button type="submit" tooltip="Clear Selection" class="custombutton" (click)="ClearSelection()">Clear Selection</button>
+              <button type="submit" tooltip="Refresh Calc Amount" style="width:150px !important" class="custombutton" (click)="RefreshM61Amount()">Refresh M61 Amount</button>
 
 
-                <div class="tab-pane fade active in" id="calculationManager">
+              <div class="tab-pane fade active in" id="calculationManager">
 
-                  <div class="transreconcilepadding">
-                    <div class="form-group row">
-                      <div id="filter-panel" class="collapse filter-panel">
-                        <div class="panel panel-default" style="border:none !important;margin-top:20px;">
-                          <div class="panel-body">
-                            <div class="col-sm-3">
-                              <label class="lab1">Start Date</label>
-                              <wj-input-date name="startDate" [(ngModel)]="startDate" #CloseDate="ngModel" [format]="'M/d/yyyy'" class="ibox1 rightalign" [isRequired]="false" [placeholder]="'M/d/yyyy'"></wj-input-date>
-                            </div>
-                            <div class="col-sm-3">
-                              <label class="lab1">End Date</label>
-                              <wj-input-date name="EndDate" [(ngModel)]="EndDate" #CloseDate="ngModel" [format]="'M/d/yyyy'" class="ibox1 rightalign" [isRequired]="false" [placeholder]="'M/d/yyyy'"></wj-input-date>
-                            </div>
-                            <div class="col-sm-3">
-                              <label class="lab1">Actual Delta</label>
+                <div class="transreconcilepadding">
+                  <div class="form-group row">
+                    <div id="filter-panel" class="collapse filter-panel">
+                      <div class="panel panel-default" style="border:none !important;margin-top:20px;">
+                        <div class="panel-body">
+                          <!--<div class="col-sm-2">
+    <label class="lab1">Last Periodic Close Date</label>
+    <wj-input-date name="closeDate" [(ngModel)]="closeDate" #CloseDate="ngModel" [format]="'M/d/yyyy'" [isDisabled]="true" class="ibox1 rightalign" [placeholder]="'M/d/yyyy'"></wj-input-date>
+  </div>-->
 
-                              <select [(ngModel)]="NonZeroDeltaFilter" id="NonZeroDeltaFilter" name="NonZeroDeltaFilter" placeholder="Select" class="ibox1">
-                                <option value="0" selected>
-                                  Select
-                                </option>
-                                <option *ngFor="let Delta of lstDeltaNonZero" value={{Delta.Name}}>
-                                  {{Delta.Name}}
-                                </option>
-                              </select>
+                          <div class="col-sm-2">
+                            <label class="lab1">Start Due Date</label>
+                            <wj-input-date name="startDate" [(ngModel)]="startDate" #CloseDate="ngModel" [format]="'M/d/yyyy'" class="ibox1 rightalign" [isRequired]="false" [placeholder]="'M/d/yyyy'"></wj-input-date>
+                          </div>
+                          <div class="col-sm-2">
+                            <label class="lab1">End Due Date</label>
+                            <wj-input-date name="EndDate" [(ngModel)]="EndDate" #CloseDate="ngModel" [format]="'M/d/yyyy'" class="ibox1 rightalign" [isRequired]="false" [placeholder]="'M/d/yyyy'"></wj-input-date>
+                          </div>
 
-                            </div>
+                          <div class="col-sm-2">
+                            <label class="lab1">Actual Delta</label>
 
-                            <div class="col-sm-3">
-                              <label class="lab1">Deals</label>
-                              <wj-multi-select #multiselDeals
-                                               [placeholder]="'Select Deals'"
-                                               class="ibox1 multiselect-dropdown display-table-cell"
-                                               [itemsSource]="lstdeals"
-                                               [headerFormat]="'{count} clients selected'"
-                                               [displayMemberPath]="'DealName'"
-                                               [checkedMemberPath]="'selected'"
-                                               [maxHeaderItems]="50">
-                              </wj-multi-select>
-                            </div>
-
-
-                            <div class="col-sm-3">
-                              <label class="lab1">Last Periodic Close Date</label>
-                              <wj-input-date name="closeDate" [(ngModel)]="closeDate" #CloseDate="ngModel" [format]="'M/d/yyyy'" [isDisabled]="true" class="ibox1 rightalign" [placeholder]="'M/d/yyyy'"></wj-input-date>
-                            </div>
-                            <div class="col-sm-3">
-                              <!--  <label class="lab1">Default Rec Value</label>
-
-                          <select [(ngModel)]="defaultRecontype" id="defaultRecontype" name="defaultRecontype" class="ibox1" [disabled]="_showhistory" (change)="ChangeCheckbox($event.target.value)">
-
-                              <option *ngFor="let Recontype of lstRecontype" [value]="Recontype.Name">
-                                  {{Recontype.Name}}
+                            <select [(ngModel)]="NonZeroDeltaFilter" id="NonZeroDeltaFilter" name="NonZeroDeltaFilter" placeholder="Select" class="ibox1">
+                              <option value="0" selected>
+                                Select
                               </option>
-                          </select>-->
-                            </div>
+                              <option *ngFor="let Delta of lstDeltaNonZero" value={{Delta.Name}}>
+                                {{Delta.Name}}
+                              </option>
+                            </select>
 
-                            <div class="col-sm-3">
-                              <label class="lab1"> .</label>
-                              <input type="checkbox" [checked]="IsException" (change)="getExceptions($event.target.checked)" /> Exceptions
+                          </div>
+                          <div class="col-sm-3">
+                            <label class="lab1">Deals</label>
+                            <wj-multi-select #multiselDeals
+                                             [placeholder]="'Select Deals'"
+                                             class="ibox1 multiselect-dropdown display-table-cell"
+                                             [itemsSource]="lstdeals"
+                                             [headerFormat]="'{count} clients selected'"
+                                             [displayMemberPath]="'DealName'"
+                                             [checkedMemberPath]="'selected'"
+                                             [maxHeaderItems]="50">
+                            </wj-multi-select>
+                          </div>
 
-                              <input type="checkbox" style="margin-left: 30px;" [checked]="IsReconciled" (change)="ReconciledHistory($event.target.checked)" /> Reconciled History
-
-                            </div>
 
 
-                            <div class="col-sm-3" style="margin-top: 20px;">
-                              <button type="submit" tooltip="Clear Filter" class="custombutton" (click)="ClearFilter()">Reset Filter</button>
-                              <button type="submit" tooltip="Filter data" class="custombutton" (click)="FilterData()">Apply Filter</button>
-                            </div>
+
+                          <div class="col-sm-3">
+                            <label class="lab1">Transaction Type</label>
+
+                            <wj-multi-select #multiselTransactionType
+                                             [placeholder]="'Select Transaction Type'"
+                                             class="ibox1 multiselect-dropdown display-table-cell"
+                                             [itemsSource]="lstallTransactionType"
+                                             [headerFormat]="'{count} clients selected'"
+                                             [displayMemberPath]="'TransactionType'"
+                                             [checkedMemberPath]="'selected'"
+                                             [maxHeaderItems]="50">
+                            </wj-multi-select>
+                          </div>
+
+                          <div class="col-sm-2">
+                            <label class="lab1">Start Remit Date</label>
+                            <wj-input-date name="startRemitDate" [(ngModel)]="startRemitDate" #staRemitDate="ngModel" [format]="'M/d/yyyy'" class="ibox1 rightalign" [isRequired]="false" [placeholder]="'M/d/yyyy'"></wj-input-date>
+                          </div>
+                          <div class="col-sm-2">
+                            <label class="lab1">End Remit Date</label>
+                            <wj-input-date name="EndRemitDate" [(ngModel)]="EndRemitDate" #EnRemitDate="ngModel" [format]="'M/d/yyyy'" class="ibox1 rightalign" [isRequired]="false" [placeholder]="'M/d/yyyy'"></wj-input-date>
+                          </div>
+                          <div class="col-sm-2">
+                            <label class="lab1">Financing Source</label>
+
+                            <wj-multi-select #multiselFinancingSource
+                                             [placeholder]="'Select Financing Source'"
+                                             class="ibox1 multiselect-dropdown display-table-cell"
+                                             [itemsSource]="lstfinancingsource"
+                                             [headerFormat]="'{count} Financing Source selected'"
+                                             [displayMemberPath]="'FinancingSourceName'"
+                                             [checkedMemberPath]="'selected'"
+                                             [maxHeaderItems]="50"
+                                             [showSelectAllCheckbox]="true"
+                                             [selectAllLabel]=true>
+                            </wj-multi-select>
+                          </div>
+
+                          <div class="col-sm-2">
+                            <label class="lab1"> .</label>
+                            <input #ShowAllUnrecTransaction type="checkbox" [checked]="ShowAllUnrecTrans" id="ShowAllUnrecTransaction" name="ShowAllUnrecTransaction" (change)="onChangeShowAllUnreconTransaction(ShowAllUnrecTransaction.checked)" />   Show All Unreconciled Transactions
+                          </div>
+
+                          <div class="col-sm-4">
+                            <label class="lab1"> .</label>
+                            <input type="checkbox" [checked]="IsException" (change)="getExceptions($event.target.checked)" /> Exceptions
+
+                            <input type="checkbox" style="margin-left: 20px;" [checked]="IsReconciled" (change)="ReconciledHistory($event.target.checked)" /> Reconciled History
+
+                            <br />
+                            <input #ShowAllTransaction type="checkbox" id="ShowAllTransaction" [checked]="ShowAllTrans" name="ShowAllTransaction" (change)="onChangeShowAllTransaction(ShowAllTransaction.checked)" />  Show All Transaction
+
+                            <button type="submit" tooltip="Clear Filter" class="custombutton" (click)="ClearFilter()">Reset Filter</button>
+                            <button type="submit" tooltip="Filter data" class="custombutton" (click)="FilterData()">Apply Filter</button>
+
+
+                          </div>
+
+
+
+                          <div class="col-sm-3" style="margin-top: 20px;">
+                            <!--<button type="submit" tooltip="Clear Filter" class="custombutton" (click)="ClearFilter()">Reset Filter</button>
+    <button type="submit" tooltip="Filter data" class="custombutton" (click)="FilterData()">Apply Filter</button>-->
                           </div>
                         </div>
-                      </div>
-                      <button style="margin-top:0px !important" type="submit" *ngIf="_showhistory" tooltip="UnReconciled records " class="custombutton" (click)="Unreconcile()">Unreconcile</button>
-                      <div>
-                        <div *ngIf="_ShowdivMsgWar" class="alert alert-danger fade in" style="margin-top:55px;">
-                          <strong>{{_WarmsgdashBoad}}</strong>
                         </div>
-                        <div *ngIf="_Showmessagediv" class="alert alert-success fade in" style="margin-top:55px;">
-                          <strong>{{_ShowmessagedivMsg}}</strong>
+                    </div>
+                    <button style="margin-top:0px !important" type="submit" *ngIf="_showhistory" tooltip="UnReconciled records " class="custombutton" (click)="Unreconcile()">Unreconcile</button>
+                    <div>
+                      <strong>
+                        <div *ngIf="_ShowdivMsgWar" class="alert alert-danger fade in" style="margin-top:55px; " [innerHTML]="_WarmsgdashBoad">
+
                         </div>
-                      </div>
+                      </strong>
 
-                      <div class="transreconcilepadding">
-                        <wj-flex-grid id="flextrans" #flextrans [itemsSource]="lsttranscation" [frozenColumns]="3" [frozenRows]="1" [allowAddNew]="false" [allowResizing]="'Both'" class="transrecongrid" [wjContextMenu]="ctxSplitMenu" (contextmenu)="onContextMenu(flextrans, $event)" (cellEditEnded)="celleditActualDelta(flextrans,$event)" (pasted)="pastedActualDelta(flextrans,$event)" (sortingColumn)="sortingColumn(flextrans,$event)">
-                          <wj-flex-grid-filter #filter [filterColumns]="['CREDealID','DealName','CRENoteID','NoteName','TransactionDate','DateDue','RemittanceDate','TransactionType','ServicingAmount','OverrideValue','SourceType']" (filterChanged)="filterChanged()"></wj-flex-grid-filter>
-                          <wj-flex-grid-column [header]="'View History'" [isReadOnly]="true" align="center" [width]="70">
-                            <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
-                              <div>
-                                <a (click)="clickedalltransactions(cell.item.NoteID,cell.item.DateDue,cell.item.TransactionType,cell.item.CRENoteID,cell.item.NoteName)" routerLinkActive="active">
-                                  View
-                                </a>
-                              </div>
-                            </ng-template>
-                          </wj-flex-grid-column>
-                          <wj-flex-grid-column [header]="'Deal Id'" [binding]="'CREDealID'" [isReadOnly]="true" [width]="80">
-                            <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
-                              <div>
-                                <a routerLink='/dealdetail/{{cell.item.CREDealID}}' (click)="clickeddeal()" routerLinkActive="active">{{cell.item.CREDealID}}</a>
-                              </div>
-                            </ng-template>
-                          </wj-flex-grid-column>
-                          <wj-flex-grid-column [header]="'Deal Name'" [binding]="'DealName'" [isReadOnly]="true" [width]="80">
-                            <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
-                              <div>
-                                <a routerLink='/dealdetail/{{cell.item.CREDealID}}' (click)="clickeddeal()" routerLinkActive="active">{{cell.item.DealName}}</a>
-                              </div>
-                            </ng-template>
-                          </wj-flex-grid-column>
-                          <wj-flex-grid-column [header]="'Note Id'" [binding]="'CRENoteID'" [isReadOnly]="true" align="center" [width]="80">
-                            <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
-                              <div>
-                                <a routerLink='/notedetail/{{cell.item.NoteID}}' routerLinkActive="active">{{cell.item.CRENoteID}}</a>
-                              </div>
-                            </ng-template>
-                          </wj-flex-grid-column>
-                          <wj-flex-grid-column [header]="'Note Name'" [binding]="'NoteName'" [isReadOnly]="true" align="center" [width]="80">
-                            <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
-                              <div>
-                                <a routerLink='/notedetail/{{cell.item.NoteID}}' routerLinkActive="active">{{cell.item.NoteName}}</a>
-                              </div>
-                            </ng-template>
-                          </wj-flex-grid-column>
-                          <wj-flex-grid-column [header]="'Trans Date'" align="right" [binding]="'TransactionDate'" [format]="'M/d/yyyy'" [isReadOnly]="true" [width]="105"></wj-flex-grid-column>
-                          <wj-flex-grid-column [header]="'Due Date'" align="right" [binding]="'DateDue'" [format]="'M/d/yyyy'" [isReadOnly]="true" [width]="80"> </wj-flex-grid-column>
-                          <wj-flex-grid-column [header]="'Remit Date'" align="right" [binding]="'RemittanceDate'" [format]="'M/d/yyyy'" [isReadOnly]="true" [width]="80"> </wj-flex-grid-column>
-                          <wj-flex-grid-column [header]="'Trans Type'" [binding]="'TransactionType'" [isReadOnly]="true" [width]="90"></wj-flex-grid-column>
-                          <wj-flex-grid-column [header]="'M61 Amt'" [binding]="'CalculatedAmount'" [isReadOnly]="true" [format]="'n2'" [dataType]="'Number'" [aggregate]="'Sum'" [width]="80"></wj-flex-grid-column>
-                          <wj-flex-grid-column [header]="'Serv Amt'" [binding]="'ServicingAmount'" [isReadOnly]="true" [format]="'n2'" [dataType]="'Number'" [aggregate]="'Sum'" [width]="80"></wj-flex-grid-column>
-                          <wj-flex-grid-column [header]="'Override Val'" [binding]="'OverrideValue'" [format]="'n2'" [dataType]="'Number'" [aggregate]="'Sum'" [isRequired]="false" [width]="80"></wj-flex-grid-column>
-                          <wj-flex-grid-column [name]="'OverrideReason'" [header]="'Override Reason'" [binding]="'OverrideReasonText'" [showDropDown]="true" [width]="125"></wj-flex-grid-column>
-
-                          <wj-flex-grid-column [header]="'Calculated Delta'" [binding]="'Delta'" [isReadOnly]="true" [format]="'n2'" [dataType]="'Number'" [aggregate]="'Sum'" [width]="80"></wj-flex-grid-column>
-
-                          <wj-flex-grid-column [header]="'Adjustment'" [binding]="'Adjustment'" [dataType]="'Number'" align="right" [width]="100"></wj-flex-grid-column>
-                          <wj-flex-grid-column [header]="'Actual Delta'" [binding]="'ActualDelta'" align="right" [isReadOnly]="true" [dataType]="'Number'" [aggregate]="'Sum'" [width]="100"></wj-flex-grid-column>
-
-                          <wj-flex-grid-column [header]="'Capitalized Interest'" [binding]="'AddlInterest'" [dataType]="'Number'" align="right" [isReadOnly]="true" [aggregate]="'Sum'" [width]="100"></wj-flex-grid-column>
-                          <wj-flex-grid-column [header]="'Cash Interest'" [binding]="'TotalInterest'" [dataType]="'Number'" align="right" [isReadOnly]="true" [aggregate]="'Sum'" [width]="100"></wj-flex-grid-column>
-                          <wj-flex-grid-column [header]="'Interest Adj'" [binding]="'InterestAdj'" [dataType]="'Number'" align="right" [isReadOnly]="true" [aggregate]="'Sum'" [width]="100"></wj-flex-grid-column>
+                      <strong>
+                        <div *ngIf="_Showmessagediv" class="alert alert-success fade in" style="margin-top:55px;" [innerHTML]="_ShowmessagedivMsg">
 
 
-                          <!--<wj-flex-grid-column [header]="'M61'" [binding]="'M61Value'" [dataType]="'Boolean'" [width]="40"></wj-flex-grid-column>-->
-                          <wj-flex-grid-column header="M61" binding="M61Value" [width]="70" allow-sorting="false">
-                            <ng-template wjFlexGridCellTemplate [cellType]="'ColumnHeader'" let cell="cell">
-                              <div>
-                                <input #M61chkSelectAll type="checkbox" id="M61chkSelectAll" (change)="M61SelectAll()" [disabled]="_showhistory" /> M61
-                              </div>
-                            </ng-template>
-                          </wj-flex-grid-column>
-
-                          <!--<wj-flex-grid-column [header]="'Servicer'" [binding]="'ServicerValue'"[dataType]="'Boolean'" [width]="65"></wj-flex-grid-column>-->
-                          <wj-flex-grid-column header="Servicer" binding="ServicerValue" [width]="70" allow-sorting="false">
-                            <ng-template wjFlexGridCellTemplate [cellType]="'ColumnHeader'" let cell="cell">
-                              <div>
-                                <input #ServicerchkSelectAll type="checkbox" id="ServicerchkSelectAll" (change)="ServicerSelectAll()" [disabled]="_showhistory" /> Servicer
-                              </div>
-                            </ng-template>
-                          </wj-flex-grid-column>
-                          <!--<wj-flex-grid-column [header]="'Ignore'" [binding]="'Ignore'" [dataType]="'Boolean'" [width]="50"></wj-flex-grid-column>-->
-                          <wj-flex-grid-column header="Ignore" binding="Ignore" [width]="70" allow-sorting="false" [visible]="!_showhistory">
-                            <ng-template wjFlexGridCellTemplate [cellType]="'ColumnHeader'" let cell="cell">
-                              <div>
-                                <input #IgnorechkSelectAll type="checkbox" id="IgnorechkSelectAll" (change)="IgnoreSelectAll()" [disabled]="_showhistory" /> Ignore
-                              </div>
-                            </ng-template>
-                          </wj-flex-grid-column>
-                          <wj-flex-grid-column [header]="'Exception'" [binding]="'Exception'" [width]="80"></wj-flex-grid-column>
-
-
-                          <wj-flex-grid-column [header]="'Comments'" [binding]="'comments'" [width]="80"></wj-flex-grid-column>
-
-                          <wj-flex-grid-column [header]="'Source Type'" [binding]="'SourceType'" [width]="130"></wj-flex-grid-column>
-                          <wj-flex-grid-column [header]="'Unreconcile'" [visible]="_showhistory">
-                            <ng-template wjFlexGridCellTemplate [cellType]="'ColumnHeader'" let cell="cell">
-                              <div>
-                                <input #UnreconcilechkSelectAll type="checkbox" id="UnreconcilechkSelectAll" (change)="UnreconcileSelectAll()" /> Unreconcile
-                              </div>
-                            </ng-template>
-                            <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
-                              <div>
-                                <input #isRecon [checked]="cell.item.isRecon" type="checkbox" id="isRecon" (change)="unRecCheckbox(cell.item,isRecon.checked)" />
-                              </div>
-                            </ng-template>
-                          </wj-flex-grid-column>
-                        </wj-flex-grid>
-
-
-                      </div>
+                        </div>
+                      </strong>
                     </div>
 
+                    <div>
+                      <wj-flex-grid id="flextrans" #flextrans [itemsSource]="lsttranscation" [frozenColumns]="5" [frozenRows]="1" [allowAddNew]="false" [allowResizing]="'Both'" class="transrecongrid" [wjContextMenu]="ctxSplitMenu" (contextmenu)="onContextMenu(flextrans, $event)" (cellEditEnded)="celleditActualDelta(flextrans,$event)" (pasted)="pastedActualDelta(flextrans,$event)" (sortingColumn)="sortingColumn(flextrans,$event)" keyActionTab="Cycle">
+                        <wj-flex-grid-filter #filter [filterColumns]="['CREDealID','DealName','CRENoteID','NoteName','TransactionDate','DateDue','RemittanceDate','DueDateAlreadyReconciled','TransactionType','ServicingAmount','OverrideValue','SourceType','FinancingSource']" onFilterApplied="filterChanged()" (filterChanged)="filterChanged()"></wj-flex-grid-filter>
+                        <wj-flex-grid-column [header]="'View History'" [isReadOnly]="true" align="center" [width]="70">
+                          <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
+                            <div>
+                              <a (click)="clickedalltransactions(cell.item.NoteID,cell.item.DateDue,cell.item.TransactionType,cell.item.CRENoteID,cell.item.NoteName)" routerLinkActive="active">
+                                View
+                              </a>
+                            </div>
+                          </ng-template>
+                        </wj-flex-grid-column>
+                        <wj-flex-grid-column [header]="'Deal Id'" [binding]="'CREDealID'" [isReadOnly]="true" [width]="80">
+                          <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
+                            <div>
+                              <a target="_blank" href="/#/dealdetail/{{cell.item.CREDealID}}" routerLinkActive="active">{{cell.item.CREDealID}}</a>
+                            </div>
+                          </ng-template>
+                        </wj-flex-grid-column>
+                        <wj-flex-grid-column [header]="'Deal Name'" [binding]="'DealName'" [isReadOnly]="true" [width]="80">
+                          <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
+                            <div>
+                              <a target="_blank" href="/#/dealdetail/{{cell.item.CREDealID}}" routerLinkActive="active">{{cell.item.DealName}}</a>
+                            </div>
+                          </ng-template>
+                        </wj-flex-grid-column>
+                        <wj-flex-grid-column [header]="'Note Id'" [binding]="'CRENoteID'" [isReadOnly]="true" align="center" [width]="80">
+                          <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
+                            <div>
+                              <a target="_blank" href="/#/notedetail/{{cell.item.NoteID}}">{{cell.item.CRENoteID}}</a>
+                            </div>
+                          </ng-template>
+                        </wj-flex-grid-column>
+                        <wj-flex-grid-column [header]="'Note Name'" [binding]="'NoteName'" [isReadOnly]="true" align="center" [width]="80">
+                          <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
+                            <div>
+                              <a target="_blank" href="/#/notedetail/{{cell.item.NoteID}}" routerLinkActive="active">{{cell.item.NoteName}}</a>
+                            </div>
+                          </ng-template>
+                        </wj-flex-grid-column>
+                        <wj-flex-grid-column [header]="'Financing Source'" [binding]="'FinancingSource'"  [isReadOnly]="true" [width]="140"></wj-flex-grid-column>
+                        <wj-flex-grid-column [header]="'Trans Date'" align="right" [binding]="'TransactionDate'" [format]="'M/d/yyyy'" [isReadOnly]="true" [width]="105"></wj-flex-grid-column>
+                        <wj-flex-grid-column [header]="'Due Date'" align="right" [binding]="'DateDue'" [format]="'M/d/yyyy'" [isReadOnly]="true" [width]="80"> </wj-flex-grid-column>
+                        <wj-flex-grid-column [header]="'Remit Date'" align="right" [binding]="'RemittanceDate'" [dataType]="'Date'" [format]="'M/d/yyyy'" [width]="80"> </wj-flex-grid-column>
+                        <wj-flex-grid-column [header]="'Trans Type'" [binding]="'TransactionType'" [isReadOnly]="true" [width]="90"></wj-flex-grid-column>
+                        <wj-flex-grid-column [header]="'M61 Amt'" [binding]="'CalculatedAmount'" [isReadOnly]="true" [format]="'n2'" [dataType]="'Number'" [aggregate]="'Sum'" [width]="80"></wj-flex-grid-column>
+                        <wj-flex-grid-column [header]="'Serv Amt'" [binding]="'ServicingAmount'" [isReadOnly]="true" [format]="'n2'" [dataType]="'Number'" [aggregate]="'Sum'" [width]="80"></wj-flex-grid-column>
+                        <wj-flex-grid-column [header]="'Override Val'" [binding]="'OverrideValue'" [dataType]="'Number'" [format]="'n2'" [aggregate]="'Sum'" [isRequired]="false" [width]="80"></wj-flex-grid-column>
+                        <wj-flex-grid-column [name]="'OverrideReason'" [header]="'Override Reason'" [binding]="'OverrideReasonText'" [width]="125"></wj-flex-grid-column>
+                        <wj-flex-grid-column [name]="'DD All Rec'" [header]="'Already reconciled'" align="center" [binding]="'DueDateAlreadyReconciled'" [width]="70" [isReadOnly]="true"></wj-flex-grid-column>
 
-                    <wj-menu #ctxSplitMenu
-                             [header]="'Context Menu'"
-                             style="display:none"
-                             (itemClicked)="menuSplitItemClicked(ctxSplitMenu, $event)">
-                      <wj-menu-item cmd="cmdSplit" cmd-param="1">
-                        Split
-                      </wj-menu-item>
+                        <wj-flex-grid-column [header]="'Calculated Delta'" [binding]="'Delta'" [isReadOnly]="true" [dataType]="'Number'" [aggregate]="'Sum'" [width]="80"></wj-flex-grid-column>
 
-                    </wj-menu>
+                        <wj-flex-grid-column [header]="'Adjustment'" [binding]="'Adjustment'" [dataType]="'Number'" align="right" [width]="100"></wj-flex-grid-column>
+                        <wj-flex-grid-column [header]="'WriteOff Amount'" [binding]="'WriteOffAmount'" [dataType]="'Number'" align="right" [aggregate]="'Sum'" [width]="100"></wj-flex-grid-column>
+                        <wj-flex-grid-column [header]="'Actual Delta'" [binding]="'ActualDelta'" align="right" [isReadOnly]="true" [dataType]="'Number'" [aggregate]="'Sum'" [width]="100"></wj-flex-grid-column>
+
+                        <wj-flex-grid-column [header]="'Capitalized Interest'" [binding]="'AddlInterest'" [dataType]="'Number'" align="right" [aggregate]="'Sum'" [width]="100"></wj-flex-grid-column>
+                        <wj-flex-grid-column [header]="'Cash Interest'" [binding]="'TotalInterest'" [dataType]="'Number'" align="right" [aggregate]="'Sum'" [width]="100"></wj-flex-grid-column>
+                        <wj-flex-grid-column [header]="'Interest Adj'" [binding]="'InterestAdj'" [dataType]="'Number'" align="right" [aggregate]="'Sum'" [width]="100"></wj-flex-grid-column>
 
 
 
+                        <!--<wj-flex-grid-column [header]="'M61'" [binding]="'M61Value'" [dataType]="'Boolean'" [width]="40"></wj-flex-grid-column>-->
+                        <wj-flex-grid-column header="M61" binding="M61Value" [width]="70" allow-sorting="false">
+                          <ng-template wjFlexGridCellTemplate [cellType]="'ColumnHeader'" let cell="cell">
+                            <div>
+                              <input #M61chkSelectAll type="checkbox" [checked]="_M61chkSelectAll" id="M61chkSelectAll" (change)="M61SelectAll()" [disabled]="_showhistory" /> M61
+                            </div>
+                          </ng-template>
+                        </wj-flex-grid-column>
+                        <wj-flex-grid-column header="Servicer" binding="ServicerValue" [width]="70" allow-sorting="false">
+                          <ng-template wjFlexGridCellTemplate [cellType]="'ColumnHeader'" let cell="cell">
+                            <div>
+                              <input #ServicerchkSelectAll type="checkbox" [checked]="_ServicerSelectAll" id="ServicerchkSelectAll" (change)="ServicerSelectAll()" [disabled]="_showhistory" /> Servicer
+                            </div>
+                          </ng-template>
+                        </wj-flex-grid-column>
+
+                        <wj-flex-grid-column header="Ignore" binding="Ignore" [width]="70" allow-sorting="false" [visible]="!_showhistory">
+                          <ng-template wjFlexGridCellTemplate [cellType]="'ColumnHeader'" let cell="cell">
+                            <div>
+                              <input #IgnorechkSelectAll type="checkbox" [checked]="_IgnoreSelectAll" id="IgnorechkSelectAll" (change)="IgnoreSelectAll()" [disabled]="_showhistory" /> Ignore
+                            </div>
+                          </ng-template>
+                        </wj-flex-grid-column>
+                        <wj-flex-grid-column [header]="'Exception'" [binding]="'Exception'" [width]="80" [isReadOnly]="true"></wj-flex-grid-column>
+
+                        <wj-flex-grid-column [header]="'Comments'" [binding]="'comments'" [width]="80"></wj-flex-grid-column>
+
+
+                        <wj-flex-grid-column [header]="'Source Type'" [binding]="'SourceType'" [width]="130" [isReadOnly]="true"></wj-flex-grid-column>
+                        <wj-flex-grid-column [header]="'UpdatedBy'" [binding]="'UpdatedByName'" [width]="130" [isReadOnly]="true"></wj-flex-grid-column>
+                        <wj-flex-grid-column [header]="'Unreconcile'" [visible]="_showhistory">
+                          <ng-template wjFlexGridCellTemplate [cellType]="'ColumnHeader'" let cell="cell">
+                            <div>
+                              <input #UnreconcilechkSelectAll type="checkbox" id="UnreconcilechkSelectAll" (change)="UnreconcileSelectAll()" /> Unreconcile
+                            </div>
+                          </ng-template>
+                          <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
+                            <div>
+
+                              <input #isRecon [checked]="cell.item.isRecon" type="checkbox" id="isRecon" [disabled]="cell.item.LastAccountingCloseDate>cell.item.DateDue" (change)="unRecCheckbox(cell.item,isRecon.checked)" />
+                            </div>
+                          </ng-template>
+                        </wj-flex-grid-column>
+                      </wj-flex-grid>
+                    </div>
                   </div>
-                </div>
 
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-      <div id="myModal" class="modal">
-        <div class="modal-dialog" draggable="true" id="myModal" style="min-height:300px;width:500px">
-          <!-- Modal content -->
-          <div class="modal-content" style="padding:0px;border:0px;">
-            <div class="modal-header" style="background:#2196f3 !important">
-              <span class="customheading" style="color:white !important">Transaction Reconciliation</span>
-              <span class="close" (click)="ClosePopUp()">×</span>
-            </div>
+                  <wj-menu #ctxSplitMenu id="ctxSplitMenu"
+                           [header]="'Context Menu'"
+                           style="display:none"
+                           (itemClicked)="menuSplitItemClicked(ctxSplitMenu, $event)">
+                    <wj-menu-item cmd="cmdSplit" cmd-param="1">
+                      Split
+                    </wj-menu-item>
 
-            <div class="modal-body">
-              <span class="customheading">Are you sure you want to import the file {{filename}} ?.</span>
+                  </wj-menu>
 
-            </div>
-            <div class="modal-footer" style="background-color:white !important;">
-              <button type="button" (click)="ClosePopUp()" class="custombutton" style="width:100px !important">Cancel</button>
-              <button type="button" (click)="ImportFile()" class="custombutton" style="width:100px !important">Ok</button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-
-      <div id="myModalTrans" class="modal">
-        <div class="modal-dialog" id="myModalTrans" style="width:1100px;">
-          <div class="modal-content">
-
-            <div class="modal-header" style="padding:0px !important;">
-              <span class="close" (click)="CloseTransPopUp()">×</span>
-              <b> Note Transactions : </b> {{CRENoteId}}\{{NoteName}}
-            </div>
-            <div class="modal-body">
-              <div class="form-group row pD10">
-                <div *ngIf="!norecord">
-                  <wj-flex-grid #flexallTransactions [itemsSource]="allTransactions" [allowResizing]="'Both'" class="popupGridSize" (initialized)="addFooterRow(flexallTransactions)" [isReadOnly]="true">
-                    <wj-flex-grid-filter #filter></wj-flex-grid-filter>
-                    <wj-flex-grid-column [header]="'Transaction Date'" align="right" [binding]="'TransactionDate'" [width]="'*'"></wj-flex-grid-column>
-                    <wj-flex-grid-column [header]="'Due Date'" align="right" [binding]="'DueDate'" [width]="'*'"></wj-flex-grid-column>
-                    <!--<wj-flex-grid-column [header]="'Transaction Type'" [binding]="'TransactionType'" [width]="'*'"></wj-flex-grid-column>-->
-                    <wj-flex-grid-column [header]="'M61 Amt'" [binding]="'CalculatedAmount'" [dataType]="'Number'" format="n2" [aggregate]="'Sum'" [width]="'*'"></wj-flex-grid-column>
-                    <wj-flex-grid-column [header]="'Serv Amt'" [binding]="'ServicingAmount'" [dataType]="'Number'" format="n2" [aggregate]="'Sum'" [width]="'*'"></wj-flex-grid-column>
-                    <wj-flex-grid-column [header]="'Override'" [binding]="'OverrideValue'" [dataType]="'Number'" format="n2" [aggregate]="'Sum'" [width]="'*'"></wj-flex-grid-column>
-                    <wj-flex-grid-column [header]="'Calc Delta'" [binding]="'Delta'" [dataType]="'Number'" format="n2" [aggregate]="'Sum'" [width]="'*'"></wj-flex-grid-column>
-                    <wj-flex-grid-column [header]="'Adjustment'" [binding]="'Adjustment'" [dataType]="'Number'" format="n2" [aggregate]="'Sum'" [width]="'*'"></wj-flex-grid-column>
-                    <wj-flex-grid-column [header]="'ActualDelta'" [binding]="'ActualDelta'" [dataType]="'Number'" format="n2" [aggregate]="'Sum'" [width]="'*'"></wj-flex-grid-column>
-
-                    <wj-flex-grid-column [header]="'Recon Type'" [binding]="'ReconType'" [width]="'*'"></wj-flex-grid-column>
-                  </wj-flex-grid>
-                </div>
-                <div class="alert alert-danger fade in col-sm-12 customgridpadding" *ngIf="norecord">
-                  <strong>No records found</strong>
                 </div>
               </div>
 
             </div>
-
           </div>
-        </div>
-      </div>
-
-      <div id="myModalSplitTrans" class="modal">
-        <div class="modal-dialog" id="myModalSplitTrans">
-          <div class="modal-content" style="min-height:300px">
-            <div class="modal-header" style="padding:0px !important;">
-              <span class="close" (click)="CloseSplitTransaction()">×</span>
-              <b> Split Transactions : </b>
-              <button type="submit" *ngIf="!_showhistory" tooltip="Reconcile " class="custombutton" (click)="CloseSplitTransaction()">Cancel</button>
-              <button type="submit" tooltip="Save Reconcille " class="custombutton" (click)="SplitTrasaction()">Split</button>
-            </div>
-            <div class="modal-body">
-              <div class="form-group row pD10">
-                <div>
-                  <table width="100%">
-                    <tr>
-                      <td>
-                        NoteID
-                      </td>
-
-                      <td>
-                        Note Name
-                      </td>
-                      <td>
-                        Fee Type
-                      </td>
-                      <td>
-                        Remit Date
-                      </td>
-                      <td>
-                        Remit Amount
-                      </td>
-                      <td>
-                        To be used in Calc
-                      </td>
-                      <td>
-                        Delta
-                      </td>
-                    </tr>
-                    <tr style="background-color:gainsboro">
-                      <td>
-                        {{TransactionSplitParent.CRENoteID}}
-                      </td>
-
-                      <td>
-                        {{TransactionSplitParent.NoteName}}
-                      </td>
-                      <td>
-                        {{TransactionSplitParent.TransactionType}}
-                      </td>
-                      <td>
-                        {{TransactionSplitParent.RemittanceDate}}
-                      </td>
-                      <td>
-                        {{SplitServicingAmount}}
-                      </td>
-                      <td>
-                        {{SplitFinal_ValueUsedInCalc}}
-                      </td>
-                      <td>
-                        {{SplitDelta}}
-                      </td>
-                    </tr>
-                  </table>
-
-                </div>
-
-              </div>
-              <br />
-              <br />
-              <div>
-                <wj-flex-grid #flexSplitTrans [itemsSource]="TransactionSplit" [allowResizing]="'Both'" style="height:250px" class="gridSize Calculationmanagerexceptiongrid" (cellEditEnded)="celleditSplitTrans(flexSplitTrans,$event)" (initialized)="addFooterRow(flexSplitTrans)">
-
-                  <wj-flex-grid-column [header]="'M61 Date'" align="center" [binding]="'DueDate'" [width]="'*'" [isReadOnly]="true"></wj-flex-grid-column>
-                  <wj-flex-grid-column [header]="'M61 Amount'" align="right" [binding]="'M61Amount'" [width]="'*'" [format]="'n2'" [dataType]="'Number'" [aggregate]="'Sum'" [isReadOnly]="true"></wj-flex-grid-column>
-
-                  <wj-flex-grid-column [header]="'Received'" [binding]="'Received'" [width]="'*'" align="center">
-                    <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
-                      <input #chkReceived type="checkbox" [checked]="cell.item.Received" (change)="ChangeReceived(chkReceived.checked,cell.row)" id="chkReceived" />
-                    </ng-template>
-                  </wj-flex-grid-column>
-                  <wj-flex-grid-column [header]="'Servicer Amount'" [binding]="'ServicingAmount_Distr'" [format]="'n2'" [dataType]="'Number'" [aggregate]="'Sum'" [width]="'*'"></wj-flex-grid-column>
-                  <wj-flex-grid-column [header]="'Override Amount'" [binding]="'OverrideValue'" [width]="'*'" [format]="'n2'" [dataType]="'Number'" [aggregate]="'Sum'"></wj-flex-grid-column>
-                  <wj-flex-grid-column [header]="'Comments'" [binding]="'comments'" [width]="'*'"></wj-flex-grid-column>
-                </wj-flex-grid>
-              </div>
-            </div>
-
-          </div>
-        </div>
-      </div>
-      <div id="dialogoverlay"></div>
-      <div id="dialogbox">
-        <div>
-          <div id="dialogboxhead"></div>
-          <div id="dialogboxbody"></div>
-          <div id="dialogboxfoot"><span class="btn custombutton" (click)="ok()">Ok</span></div>
         </div>
       </div>
     </div>
+    <div id="myModal" class="modal">
+      <div class="modal-dialog" draggable="true" id="myModal" style="min-height:300px;width:500px">
+        <!-- Modal content -->
+        <div class="modal-content" style="padding:0px;border:0px;">
+          <div class="modal-header" style="background:#2196f3 !important">
+            <span class="customheading" style="color:white !important">Transaction Reconciliation</span>
+            <span class="close" (click)="ClosePopUp()">×</span>
+          </div>
+
+          <div class="modal-body">
+            <span class="customheading">Are you sure you want to import the file {{filename}}?</span>
+
+          </div>
+          <div class="modal-footer" style="background-color:white !important;">
+            <button type="button" (click)="ClosePopUp()" class="custombutton" style="width:100px !important">Cancel</button>
+            <button type="button" (click)="ImportFile()" class="custombutton" style="width:100px !important">Ok</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+
+    <div id="myModalTrans" class="modal">
+      <div class="modal-dialog" id="myModalTrans" style="width:1100px;">
+        <div class="modal-content">
+
+          <div class="modal-header" style="padding:0px !important;">
+            <span class="close" (click)="CloseTransPopUp()">×</span>
+            <b> Note Transactions : </b> {{CRENoteId}}\{{NoteName}}
+          </div>
+          <div class="modal-body">
+            <div class="form-group row pD10">
+              <div *ngIf="!norecord">
+                <wj-flex-grid #flexallTransactions [itemsSource]="allTransactions" [allowResizing]="'Both'" class="popupGridSize" (initialized)="addFooterRow(flexallTransactions)" [isReadOnly]="true">
+                  <wj-flex-grid-filter #filter></wj-flex-grid-filter>
+                  <wj-flex-grid-column [header]="'Transaction Date'" align="right" [binding]="'TransactionDate'" [width]="'*'"></wj-flex-grid-column>
+                  <wj-flex-grid-column [header]="'Due Date'" align="right" [binding]="'DueDate'" [width]="'*'"></wj-flex-grid-column>
+                  <!--<wj-flex-grid-column [header]="'Transaction Type'" [binding]="'TransactionType'" [width]="'*'"></wj-flex-grid-column>-->
+                  <wj-flex-grid-column [header]="'M61 Amt'" [binding]="'CalculatedAmount'" [dataType]="'Number'" format="n2" [aggregate]="'Sum'" [width]="'*'"></wj-flex-grid-column>
+                  <wj-flex-grid-column [header]="'Serv Amt'" [binding]="'ServicingAmount'" [dataType]="'Number'" format="n2" [aggregate]="'Sum'" [width]="'*'"></wj-flex-grid-column>
+                  <wj-flex-grid-column [header]="'Override'" [binding]="'OverrideValue'" [dataType]="'Number'" format="n2" [aggregate]="'Sum'" [width]="'*'"></wj-flex-grid-column>
+                  <wj-flex-grid-column [header]="'Calc Delta'" [binding]="'Delta'" [dataType]="'Number'" format="n2" [aggregate]="'Sum'" [width]="'*'"></wj-flex-grid-column>
+                  <wj-flex-grid-column [header]="'Adjustment'" [binding]="'Adjustment'" [dataType]="'Number'" format="n2" [aggregate]="'Sum'" [width]="'*'"></wj-flex-grid-column>
+                  <wj-flex-grid-column [header]="'ActualDelta'" [binding]="'ActualDelta'" [dataType]="'Number'" format="n2" [aggregate]="'Sum'" [width]="'*'"></wj-flex-grid-column>
+
+                  <wj-flex-grid-column [header]="'Recon Type'" [binding]="'ReconType'" [width]="'*'"></wj-flex-grid-column>
+                </wj-flex-grid>
+              </div>
+              <div class="alert alert-danger fade in col-sm-12 customgridpadding" *ngIf="norecord">
+                <strong>No records found</strong>
+              </div>
+            </div>
+
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <div id="myModalSplitTrans" class="modal" style="z-index:10;">
+      <div class="modal-dialog" id="myModalSplitTrans">
+        <div class="modal-content" style="min-height:300px">
+          <div class="modal-header" style="padding:0px !important;">
+            <span class="close" style="visibility:hidden;" (click)="CloseSplitTransaction()">×</span>
+            <b> Split Transactions : </b>
+            <button type="submit" *ngIf="!_showhistory" tooltip="Reconcile " class="custombutton" (click)="CloseSplitTransaction()">Cancel</button>
+            <button type="submit" tooltip="Save Reconcille " class="custombutton" (click)="SplitTrasaction()">Split</button>
+          </div>
+          <div class="modal-body">
+            <div class="form-group row pD10">
+              <div>
+                <table width="100%">
+                  <tr>
+                    <td>
+                      NoteID
+                    </td>
+
+                    <td>
+                      Note Name
+                    </td>
+                    <td>
+                      Fee Type
+                    </td>
+                    <td>
+                      Remit Date
+                    </td>
+                    <td>
+                      Remit Amount
+                    </td>
+                    <td>
+                      To be used in Calc
+                    </td>
+                    <td>
+                      Delta
+                    </td>
+                  </tr>
+                  <tr style="background-color:gainsboro">
+                    <td>
+                      {{TransactionSplitParent.CRENoteID}}
+                    </td>
+
+                    <td>
+                      {{TransactionSplitParent.NoteName}}
+                    </td>
+                    <td>
+                      {{TransactionSplitParent.TransactionType}}
+                    </td>
+                    <td>
+                      {{TransactionSplitParent.RemittanceDate}}
+                    </td>
+                    <td>
+                      {{SplitServicingAmount}}
+                    </td>
+                    <td>
+                      {{SplitFinal_ValueUsedInCalc}}
+                    </td>
+                    <td>
+                      {{SplitDelta}}
+                    </td>
+                  </tr>
+                </table>
+
+              </div>
+
+            </div>
+            <br />
+            <br />
+            <div>
+              <wj-flex-grid #flexSplitTrans [itemsSource]="TransactionSplit" [allowResizing]="'Both'" style="height:250px" class="gridSize Calculationmanagerexceptiongrid" (cellEditEnded)="celleditSplitTrans(flexSplitTrans,$event)" (initialized)="addFooterRow(flexSplitTrans)">
+
+                <wj-flex-grid-column [header]="'M61 Date'" align="center" [binding]="'DueDate'" [width]="'*'" [isReadOnly]="true"></wj-flex-grid-column>
+                <wj-flex-grid-column [header]="'Transaction Type'" align="left" [binding]="'TransactionType'" [width]="'*'" [isReadOnly]="true"></wj-flex-grid-column>
+                <wj-flex-grid-column [header]="'M61 Amount'" align="right" [binding]="'M61Amount'" [width]="'*'" [format]="'n2'" [dataType]="'Number'" [aggregate]="'Sum'" [isReadOnly]="true"></wj-flex-grid-column>
+
+                <wj-flex-grid-column [header]="'Received'" [binding]="'Received'" [dataType]="'Boolean'" [width]="'*'" align="center">
+                  <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
+                    <input #chkReceived type="checkbox" [checked]="cell.item.Received" (change)="ChangeReceived(chkReceived.checked,cell.row)" id="chkReceived" />
+                  </ng-template>
+                </wj-flex-grid-column>
+                <wj-flex-grid-column [header]="'Servicer Amount'" [binding]="'ServicingAmount_Distr'" [format]="'n2'" [dataType]="'Number'" [isRequired]="false" [aggregate]="'Sum'" [width]="'*'"></wj-flex-grid-column>
+                <wj-flex-grid-column [header]="'Override Amount'" [binding]="'OverrideValue'" [width]="'*'" [format]="'n2'" [dataType]="'Number'" [isRequired]="false" [aggregate]="'Sum'"></wj-flex-grid-column>
+                <wj-flex-grid-column [header]="'Comments'" [binding]="'comments'" [width]="'*'"></wj-flex-grid-column>
+              </wj-flex-grid>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+    <div id="dialogoverlay"></div>
+    <div id="dialogbox">
+      <div>
+        <div id="dialogboxhead"></div>
+        <div id="dialogboxbody"></div>
+        <div id="dialogboxfoot"><span class="btn custombutton" (click)="ok()">Ok</span></div>
+      </div>
+    </div>
+  </div>
 </form>
 

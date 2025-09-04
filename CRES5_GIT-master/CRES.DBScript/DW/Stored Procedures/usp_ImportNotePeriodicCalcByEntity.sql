@@ -119,9 +119,11 @@ cf.[Month],
 (cf.ActualCashFlows  * PctAllocation)  as ActualCashFlows,
 (cf.GAAPCashFlows  * PctAllocation)  as GAAPCashFlows,
 (cf.EndingGAAPBookValue  * PctAllocation)  as EndingGAAPBookValue,
-(cf.TotalGAAPIncomeforthePeriod  * PctAllocation)  as TotalGAAPIncomeforthePeriod,
-(cf.InterestAccrualforthePeriod  * PctAllocation)  as InterestAccrualforthePeriod,
-(cf.PIKInterestAccrualforthePeriod  * PctAllocation)  as PIKInterestAccrualforthePeriod,
+
+null as TotalGAAPIncomeforthePeriod,
+null as InterestAccrualforthePeriod,
+null as PIKInterestAccrualforthePeriod,
+
 (cf.TotalAmortAccrualForPeriod  * PctAllocation)  as TotalAmortAccrualForPeriod,
 (cf.AccumulatedAmort  * PctAllocation)  as AccumulatedAmort,
 (cf.BeginningBalance  * PctAllocation)  as BeginningBalance,
@@ -188,7 +190,9 @@ cf.[Month],
 (cf.CurrentPeriodInterestAccrual  * PctAllocation)  as CurrentPeriodInterestAccrual,
 (cf.TotalGAAPInterestFortheCurrentPeriod  * PctAllocation)  as TotalGAAPInterestFortheCurrentPeriod,
 (cf.InvestmentBasis  * PctAllocation)  as InvestmentBasis,
-(cf.CurrentPeriodInterestAccrualPeriodEnddate  * PctAllocation)  as CurrentPeriodInterestAccrualPeriodEnddate,
+ 
+(cf.CurrentPeriodInterestAccrualPeriodEnddate  * PctAllocation)  as CurrentPeriodInterestAccrualPeriodEnddate,   ----(cf.CurrentPeriodInterestAccrual  * PctAllocation) 
+
 (cf.AccruedInterestBI  * PctAllocation)  as AccruedInterestBI,
 (cf.LIBORPercentage  * PctAllocation)  as LIBORPercentage,
 (cf.SpreadPercentage  * PctAllocation)  as SpreadPercentage,

@@ -40,7 +40,10 @@ INSERT INTO [DW].[NoteFundingScheduleBI]
            ,UpdatedDate
 		   ,[Projected]
 		   ,GeneratedBy
-		   ,GeneratedByBI )
+		   ,GeneratedByBI
+		   ,AdjustmentType 
+		   ,AdjustmentTypeBI
+		   ,WF_CurrentStatusDisplayName)
 Select  
 n.crenoteid as [NoteID]
 ,fs.[Date] as [TransactionDate]
@@ -57,6 +60,15 @@ n.crenoteid as [NoteID]
 ,(CASE WHEN (LPurposeID.Name = 'Paydown' and fs.GeneratedBy = 747 and fs.Applied <> 1) then 'True' ELse 'False' END) as [Projected]
 ,fs.GeneratedBy
 ,Lgb.name as GeneratedByBI
+
+,fs.AdjustmentType
+,lAdjustmentType.name as AdjustmentTypeBI
+
+,(CASE WHEN ISNULL(WF_isParticipate,0) = 0  and fs.Applied = 1 THEN 'Completed' 
+WHEN ISNULL(WF_isParticipate,0) = 0  and fs.Applied = 0 THEN 'Projected' ELSE
+(case when tblWF.WF_CurrentStatus is null then null else tblWF.WF_CurrentStatusDisplayName end) 
+END)as WF_CurrentStatusDisplayName 
+
 from [CORE].FundingSchedule fs
 INNER JOIN [CORE].[Event] e on e.EventID = fs.EventId
 INNER JOIN 
@@ -82,8 +94,35 @@ left JOIN [CORE].[Lookup] LPurposeID ON LPurposeID.LookupID = fs.PurposeID
 left JOIN [CORE].[Lookup] Lgb ON Lgb.LookupID = fs.GeneratedBy 
 INNER JOIN [CORE].[Account] acc ON acc.AccountID = e.AccountID
 INNER JOIN [CRE].[Note] n ON n.Account_AccountID = acc.AccountID
-where sEvent.StatusID = e.StatusID  and acc.IsDeleted = 0
+LEFT Join Core.Lookup lAdjustmentType on fs.AdjustmentType=lAdjustmentType.LookupID 
+Left Join(
+		Select TaskId,StatusName as WF_CurrentStatus,WF_CurrentStatusDisplayName,WF_isParticipate,OrderIndex
+		From(
+			SELECT td.TaskId
+			,sm.StatusName
+			,td.WFTaskDetailID	
+			,(Case WHEN tblNoti.taskid is not null and sm.StatusName='Completed' then 'Completed' 
+				when (lPurposeType.Value1='WF_UNDERREVIEW' or df.[Amount] = 0) then sm.WFUnderReviewDisplayName 
+				else sm.DealFundingDisplayName end) as WF_CurrentStatusDisplayName
+			,ROW_NUMBER() OVER(Partition by td.TaskId order by td.TaskId,td.WFTaskDetailID desc) rno
+			,COUNT( td.WFTaskDetailID ) OVER(Partition by td.TaskId) WF_isParticipate
+			,spm.OrderIndex
 
+			FROM [CRE].[WFTaskDetail] td       
+			INNER JOIN [CRE].[WFStatusPurposeMapping] spm ON spm.WFStatusPurposeMappingID = td.WFStatusPurposeMappingID      
+			INNER JOIN [CRE].[WFStatusMaster] sm ON sm.WFStatusMasterID = spm.WFStatusMasterID    
+			left JOin(
+				select TaskID from cre.WFNotification where WFNotificationMasterID=2 and ActionType=577
+			)tblNoti on tblNoti.taskid = td.taskid	
+			LEFT JOIN cre.dealfunding df on df.dealfundingid = td.taskid
+			LEFT JOIN core.Lookup lPurposeType on lPurposeType.LookupID = df.PurposeID and lPurposeType.ParentID = 50	
+			--WHERE td.TaskId in (Select dealfundingid from cre.dealfunding where dealid = ''+convert(varchar(MAX),@DealID)+'')	
+		)a
+		where rno = 1
+   )tblWF on tblWF.TaskId = fs.dealfundingid
+
+
+where sEvent.StatusID = e.StatusID  and acc.IsDeleted = 0
 and  n.noteid in (Select noteid from [dw].[L_NoteBI])
 
 SET @RowCount = @@ROWCOUNT

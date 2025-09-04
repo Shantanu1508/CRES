@@ -1,0 +1,1 @@
+Insert into cre.ServicerMaster(ServicerName,Staus,ServicerDisplayName)values('ManualCashFlowRecon',1,'ManualCashFlowRecon')

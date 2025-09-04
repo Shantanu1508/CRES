@@ -1,14 +1,10 @@
 ﻿CREATE TABLE [CRE].[NotePeriodicCalc] (
     [NotePeriodicCalcID]                           UNIQUEIDENTIFIER DEFAULT (newid()) NOT NULL,
-    [NoteID]                                       UNIQUEIDENTIFIER NULL,
     [PeriodEndDate]                                DATE             NULL,
     [Month]                                        INT              NULL,
     [ActualCashFlows]                              DECIMAL (28, 15) NULL,
     [GAAPCashFlows]                                DECIMAL (28, 15) NULL,
     [EndingGAAPBookValue]                          DECIMAL (28, 15) NULL,
-    [TotalGAAPIncomeforthePeriod]                  DECIMAL (28, 15) NULL,
-    [InterestAccrualforthePeriod]                  DECIMAL (28, 15) NULL,
-    [PIKInterestAccrualforthePeriod]               DECIMAL (28, 15) NULL,
     [TotalAmortAccrualForPeriod]                   DECIMAL (28, 15) NULL,
     [AccumulatedAmort]                             DECIMAL (28, 15) NULL,
     [BeginningBalance]                             DECIMAL (28, 15) NULL,
@@ -108,31 +104,61 @@
     [EndingAccumSLAmort]                           DECIMAL (28, 15) NULL,
     [EndingPreCapGAAPBasis]                        DECIMAL (28, 15) NULL,
     [PIKPrincipalPaidForThePeriod]                 DECIMAL (28, 15) NULL,
+    [RemainingUnfundedCommitment]                  DECIMAL (28, 15) NULL,
+    [CalcEngineType]                               INT              NULL,
+    [levyld]                                       DECIMAL (28, 15) NULL,
+    [cum_dailypikint]                              DECIMAL (28, 15) NULL,
+    [cum_baladdon_am]                              DECIMAL (28, 15) NULL,
+    [cum_baladdon_nonam]                           DECIMAL (28, 15) NULL,
+    [cum_dailyint]                                 DECIMAL (28, 15) NULL,
+    [cum_ddbaladdon]                               DECIMAL (28, 15) NULL,
+    [cum_ddintdelta]                               DECIMAL (28, 15) NULL,
+    [initbal]                                      DECIMAL (28, 15) NULL,
+    [cum_fee_levyld]                               DECIMAL (28, 15) NULL,
+    [period_ddintdelta_shifted]                    DECIMAL (28, 15) NULL,
+    [intdeltabal]                                  DECIMAL (28, 15) NULL,
+    [cum_exit_fee_excl_lv_yield]                   DECIMAL (28, 15) NULL,
+    [accountingclosedate]                          DATE             NULL,
+    [CurrentPeriodPIKInterestAccrual]              DECIMAL (28, 15) NULL,
+    [AccPeriodEnd]                                 DATE             NULL,
+    [AccPeriodStart]                               DATE             NULL,
+    [pmtdtnotadj]                                  DATE             NULL,
+    [pmtdt]                                        DATE             NULL,
+    [periodpikint]                                 DECIMAL (28, 15) NULL,
+    [DropDateInterestDeltaBalance]                 DECIMAL (28, 15) NULL,
+    [AverageDailyBalance]                          DECIMAL (28, 15) NULL,
+    [DeferredFeeGAAPBasis]                         DECIMAL (28, 15) NULL,
+    [CapitalizedCostLevelYield]                    DECIMAL (28, 15) NULL,
+    [CapitalizedCostGAAPBasis]                     DECIMAL (28, 15) NULL,
+    [CapitalizedCostAccumulatedAmort]              DECIMAL (28, 15) NULL,
+    [DiscountPremiumLevelYield]                    DECIMAL (28, 15) NULL,
+    [DiscountPremiumGAAPBasis]                     DECIMAL (28, 15) NULL,
+    [DiscountPremiumAccumulatedAmort]              DECIMAL (28, 15) NULL,
+    [InterestPastDue]                              DECIMAL (28, 15) NULL,
+    [AccountId]                                    UNIQUEIDENTIFIER NULL,
+    [cum_unusedfee]                                DECIMAL (28, 15) NULL,
+    [PrincipalWriteoff]                            DECIMAL (28, 15) NULL,
+    [NetPIKAmountForThePeriod]                     DECIMAL (28, 15) NULL,
+    [ParentAccountID]                              UNIQUEIDENTIFIER NULL,
+    [CashInterest]                                 DECIMAL (28, 15) NULL,
+    [CapitalizedInterest]                          DECIMAL (28, 15) NULL,
+    [CumulativeDailyPIKFromInterest]               DECIMAL (28, 15) NULL,
+    [CumulativeDailyPIKCompounding]                DECIMAL (28, 15) NULL,
+    [CumulativeDailyIntoPIK]                       DECIMAL (28, 15) NULL,
     CONSTRAINT [PK_NotePeriodicCalcAutoID] PRIMARY KEY CLUSTERED ([NotePeriodicCalcAutoID] ASC),
-    CONSTRAINT [FK_NotePeriodicCalc_NoteID] FOREIGN KEY ([NoteID]) REFERENCES [CRE].[Note] ([NoteID])
+    CONSTRAINT [FK_NOtePeriodicCalc_Account_AccountID] FOREIGN KEY ([AccountId]) REFERENCES [Core].[Account] ([AccountID])
 );
+
+
+
+
+
+
 
 
 GO
 ALTER TABLE [CRE].[NotePeriodicCalc] ENABLE CHANGE_TRACKING WITH (TRACK_COLUMNS_UPDATED = ON);
-
-
-
-
 GO
-CREATE NONCLUSTERED INDEX [nci_wi_NotePeriodicCalc_CA36AE89D965FB43B80BC3D87E3CC660]
-    ON [CRE].[NotePeriodicCalc]([AnalysisID] ASC, [NoteID] ASC)
-    INCLUDE([UpdatedDate]);
 
-
-GO
-CREATE NONCLUSTERED INDEX [nci_wi_NotePeriodicCalc_E09009C71827099A855273A4F7BB0D9B]
-    ON [CRE].[NotePeriodicCalc]([AnalysisID] ASC, [NoteID] ASC)
-    INCLUDE([UpdatedBy], [UpdatedDate]);
-
-
-GO
-CREATE NONCLUSTERED INDEX [IX_NotePeriodicCalc_NoteID]
-    ON [CRE].[NotePeriodicCalc]([NoteID] ASC)
-    INCLUDE([PeriodEndDate], [TotalCouponStrippedforthePeriod], [OriginationFeeStripping], [ExitFeeStrippingExcldfromLevelYield], [AddlFeesStrippingExcldfromLevelYield]);
-
+ 
+	

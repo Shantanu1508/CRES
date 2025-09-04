@@ -1,6 +1,6 @@
 
 
-import { Component,ViewChild } from "@angular/core";
+import { Component, ViewChild } from "@angular/core";
 import { Router } from '@angular/router';
 import * as wjcGrid from '@grapecity/wijmo.grid';
 import { NgModule } from '@angular/core';
@@ -29,6 +29,9 @@ import { Scenario } from "../core/domain/scenario.model";
 import { scenarioService } from '../core/services/scenario.service';
 import { devDashBoard } from "./../core/domain/devDashBoard.model";
 import * as wjNg2Input from '@grapecity/wijmo.angular2.input';
+import { EnvConfig } from "../core/domain/EnvConfig.model";
+
+declare var $: any;
 
 @Component({
   selector: "devdashboard",
@@ -39,7 +42,6 @@ export class DevDashBoardComponent extends Paginated {
   public _pagePath: any;
   itemsSource !: any[];
   itemsError !: any[];
-  itemsSourceCalcInfo !: any[];
   userlist !: any[];
   itemsSourcetime !: any[];
   public FirstCall: number = 0;
@@ -66,11 +68,15 @@ export class DevDashBoardComponent extends Paginated {
   movingAverageType !: string;
   public _groupWidth = '70%';
   CREnoteID: any;
+  objectID: any;
   Completed = 0;
   Running = 0;
   Processing = 0;
   firstcall = 1;
   Dependents = 0;
+  DataSavedinDB = 0;
+  SavedPendinginDB = 0;
+  CalcSubmit = 0;
   public _dtUTCHours: number;
   public _userOffset: number;
   public _centralOffset: number;
@@ -79,12 +85,10 @@ export class DevDashBoardComponent extends Paginated {
   result: any;
   CalculationRequesttime: any;
   TotalCalculationtimeinmin = 0;
-  Fastest = 0;
-  FastestNoteID: any;
+
   myList: any;
   dwdwStatus: any;
-  Slowest = 0;
-  SlowestNoteID: any;
+
   lstcalculationlist: any;
   Pending = 0;
   CalcProgress = 0;
@@ -94,6 +98,7 @@ export class DevDashBoardComponent extends Paginated {
   MinCalculatedtime: any;
   palettes = 'standard,cocoa,coral,dark,highcontrast,light,midnight,modern,organic,slate,zen,cyborg,superhero,flatly,darkly,cerulan'.split(',');
   ScenarioId: string;
+  ScenarioName: string;
   labels = 0;
   lblBorder = false;
   TotalConversionsMonth = 0;
@@ -112,13 +117,14 @@ export class DevDashBoardComponent extends Paginated {
   public _pageSizeSearch: number = 10;
   public _pageIndexSearch: number = 1;
   public _totalCountSearch: number = 0;
-
-
+  public _isLogsListFetching: boolean = false;
+  multipleCREDealID: any;
 
   @ViewChild('chartpie') chartpie !: wjcChart.FlexPie;
   @ViewChild('UserSummary') UserSummary !: wjcChart.FlexChart;
 
   @ViewChild('ErrorMatrix') ErrorMatrix !: wjcChart.FlexChart;
+  @ViewChild('DiscrepancySummary') DiscrepancySummary !: wjcChart.FlexChart;
   @ViewChild('chart') chart !: wjcChart.FlexChart;
   @ViewChild('flexcalculation') flex !: wjcGrid.FlexGrid;
   @ViewChild('rsChart') rsChart !: wjcChart.FlexChart;
@@ -127,7 +133,30 @@ export class DevDashBoardComponent extends Paginated {
   public _lstScenario: any;
   public _scenariodc: Scenario;
   public wfstatus !: boolean;
+  CalculationSummarylist: any;
+  DiscrepancySummarylist: any[] = [];
+  isLoading: boolean = false;
 
+  XirrCompleted = 0;
+  XirrRunning = 0;
+  XirrProcessing = 0;
+  XirrFailed = 0;
+  public lstimportdataStatus: any;
+
+  ValCompleted = 0;
+  ValRunning = 0;
+  ValProcessing = 0;
+  ValFailed = 0;
+  ValTotalCalculationtimeinmin = 0;
+  ValAvgtime: any;
+  ValErrorlist: any[] = [];
+  VmStatusList: any[] = [];
+  public _EnvConfig: EnvConfig;
+  public _lstEnvConfig: any;
+  envName: string;
+  public _showConfirmationDialog: boolean;
+  ValuationCalculationSummarylist: any;
+  ValuationMarkedDateSummarylist: any;
   constructor(
     public devDashBoardService: DevDashBoardService,
     public taskManagerService: TaskManagerService,
@@ -158,6 +187,10 @@ export class DevDashBoardComponent extends Paginated {
       this._centralOffset = this._dtUTCHours * 60 * 60 * 1000; // 6 for central time - use whatever you need
     }
     this.getallStatus();
+    this.GetStagingDataIntoIntegrationStatus();
+
+    this._EnvConfig = new EnvConfig();
+    this._showConfirmationDialog = false;
   }
 
   stRendered() {
@@ -184,7 +217,31 @@ export class DevDashBoardComponent extends Paginated {
     return data;
   }
 
-  selectionChanged(s:any, e:any) {
+  GetStagingDataIntoIntegrationStatus(): void {
+    try {
+      this._isFetching = true;
+      this.devDashBoardService.GetStagingDataIntoIntegrationStatus().subscribe(res => {
+        if (res.Succeeded) {
+          this.lstimportdataStatus = res.ImportDataStatus;
+          this._isFetching = false;
+        }
+        else {
+          this._isFetching = false;
+        }
+      });
+    } catch (err) {
+      this._isFetching = false;
+    }
+  }
+
+  ShowCalcDashBoardData() {
+    setTimeout(() => {
+      if (this.ErrorMatrix) {
+        this.ErrorMatrix.invalidate();
+      }
+    }, 1000);
+  }
+  selectionChanged(s: any, e: any) {
     if (s.selection) {
       this._isFetching = true;
       var value = s.selection.collectionView.currentItem.ProcessType
@@ -207,6 +264,18 @@ export class DevDashBoardComponent extends Paginated {
     stChart.legend.position = 0;
   }
 
+  stSummaryRendered() {
+    var stChart = this.DiscrepancySummary;
+    var value = "20px";
+    if (!stChart) {
+      return;
+    }
+    stChart.palette = ['rgba(139, 0, 139)'];
+    stChart.axisX.labels = true;
+    stChart.axisY.labels = true;
+    stChart.legend.position = 0;
+  }
+
   rsRendered() {
     var rsChart = this.rsChart;
 
@@ -224,7 +293,7 @@ export class DevDashBoardComponent extends Paginated {
     }
   }
 
-  getEnumNames(enumClass:any) {
+  getEnumNames(enumClass: any) {
     var names = [];
     for (var key in enumClass) {
       var val = parseInt(key);
@@ -233,7 +302,7 @@ export class DevDashBoardComponent extends Paginated {
     return names;
   }
   showDialogCustom(controlid: any): void {
-    var modalRole:any = document.getElementById(controlid);
+    var modalRole: any = document.getElementById(controlid);
     modalRole.style.display = "block";
     $.getScript("/js/jsDrag.js");
   }
@@ -241,6 +310,7 @@ export class DevDashBoardComponent extends Paginated {
   GCloseCreatePopUp(controlid: any): void {
     var modal: any = document.getElementById(controlid);
     modal.style.display = "none";
+    this._showConfirmationDialog = false;
   }
   getPieChartData() {
     // populate itemsSource
@@ -260,7 +330,7 @@ export class DevDashBoardComponent extends Paginated {
         if (res.Succeeded) {
 
           this.CalculationRequesttime = new Date().toLocaleString();
-          this.FastestNoteID = 0;
+
           this.Completed = 0;
           this.Processing = 0;
           this.Dependents = 0;
@@ -270,35 +340,29 @@ export class DevDashBoardComponent extends Paginated {
           this.Pending = 0;
           var data = [];
           this.Avgtime = 0;
+          this.Failed = 0;
+          this.CalcSubmit = 0;
+          this.CalcProgress = 0;
+          this.DataSavedinDB = 0;
+
           var result = res.CalculationStatus;
-
-          this.itemsSourceCalcInfo = result.filter((x: any) => x.IsChart == "calcerror");
-
           var resuser = res.UserRequestCount;
-          var fastslow = res.FastestandSlowest;
           for (var i = 0; i < resuser.length; i++) {
             data.push({
               name: resuser[i].Name,
               value: resuser[i].value
             });
           }
-          //get fastest
-          for (var i = 0; i < fastslow.length; i++) {
-            if (fastslow[i].Name == "Max Time") {
-              this.Fastest = fastslow[i].value;
-              this.FastestNoteID = fastslow[i].CRENoteID;
-            }
-            if (fastslow[i].Name == "Min Time") {
-              this.Slowest = fastslow[i].value;
-              this.SlowestNoteID = fastslow[i].CRENoteID;
-            }
-          }
+
           for (var i = 0; i < result.length; i++) {
             if (result[i].Name == "Failed") {
               this.Failed = result[i].value;
             }
             if (result[i].Name == "Completed") {
               this.Completed = result[i].value;
+            }
+            if (result[i].Name == "CalcSubmit") {
+              this.CalcSubmit = result[i].value;
             }
             if (result[i].Name == "Running") {
               this.Running = result[i].value;
@@ -313,10 +377,16 @@ export class DevDashBoardComponent extends Paginated {
             if (result[i].Name == "Total Calculation time in min") {
               this.TotalCalculationtimeinmin = result[i].value;
             }
+            if (result[i].Name == "SaveDBPending") {
+              this.DataSavedinDB = result[i].value;
+            }
 
           }
-          this.Remainingnotes = this.Processing + this.Dependents;
-          this.Pending = this.Processing + this.Dependents + this.Running;
+          if (this.DataSavedinDB != 0) {
+            this.SavedPendinginDB = this.DataSavedinDB;
+          }
+          this.Remainingnotes = this.Processing + this.Dependents + this.CalcSubmit;
+          this.Pending = this.Processing + this.Dependents + this.Running + this.CalcSubmit;
 
           if (this.Completed != null && this.Completed != 0 && this.TotalCalculationtimeinmin != null && this.TotalCalculationtimeinmin != 0) {
             this.Avgtime = (this.Completed / this.TotalCalculationtimeinmin);
@@ -386,7 +456,7 @@ export class DevDashBoardComponent extends Paginated {
       this.devDashBoardService.getCalcJson(this._devDashBoard).subscribe(res => {
         if (res.Succeeded) {
           var data = res.NoteData;
-          var jsonname = "Note_" + this.CREnoteID + "_Calc.json"
+          var jsonname = "Note_" + this.CREnoteID + "_Calc_" + this.ScenarioName +".json"
           this.downloadJson(data, jsonname);
           this._isFetching = false;
         }
@@ -398,12 +468,42 @@ export class DevDashBoardComponent extends Paginated {
       this._isFetching = false;
     }
   }
-  ShowCalcDashBoardData() {
-    setTimeout(() => {
-      if (this.ErrorMatrix) {
-        this.ErrorMatrix.invalidate();
+
+  GetLogsExcel(): void {
+    this._isLogsListFetching = true;
+    this.devDashBoardService.downloadLogsExcel(this.objectID).subscribe(res => {
+      setTimeout(function () {
+        this._isLogsListFetching = false;
+      }.bind(this), 5000);
+
+      var displayDate = new Date().toLocaleDateString("en-US").replace(/\//g, '_');
+      var displayTime = new Date().toLocaleTimeString("en-US").replace(/\:/g, '_');
+
+      var fileName = this.objectID + "_ErrorLogs_" + displayDate + "_" + displayTime + ".xlsx";
+
+      let b: any = new Blob([res]);
+      let dwldLink = document.createElement("a");
+      let url = URL.createObjectURL(b);
+      let isSafariBrowser = navigator.userAgent.indexOf('Safari') != -1 && navigator.userAgent.indexOf('Chrome') == -1;
+      if (isSafariBrowser) {  //if Safari open in new window to save file with random filename.
+        dwldLink.setAttribute("target", "_blank");
       }
-    }, 1000);
+      dwldLink.setAttribute("href", url);
+      dwldLink.setAttribute("download", fileName);
+      dwldLink.style.visibility = "hidden";
+      document.body.appendChild(dwldLink);
+      dwldLink.click();
+      document.body.removeChild(dwldLink);
+
+      this._isLogsListFetching = false;
+
+      error => {
+        console.error('Error downloading Excel file:', error);
+        setTimeout(function () {
+          this._isLogsListFetching = false;
+        }.bind(this), 5000);
+      }
+    });
   }
 
   CalculateMultipleNote(): void {
@@ -437,7 +537,7 @@ export class DevDashBoardComponent extends Paginated {
           this.GetCalcStatus();
           this._WaringMessage = "Notes queued for calculation";
           this.GCloseCreatePopUp("myModalCalculate");
-          setTimeout(()=> {
+          setTimeout(() => {
             this._ShowmessagedivMsgWar = false;
           }, 5000);
         }
@@ -459,6 +559,7 @@ export class DevDashBoardComponent extends Paginated {
     element.click();
     document.body.removeChild(element);
   }
+
   RefreshReport(): void {
     var d = new Date();
     var datestring = d.getFullYear() + "-" + (d.getMonth() + 1) + "-" + d.getDate() + " " +
@@ -530,6 +631,12 @@ export class DevDashBoardComponent extends Paginated {
               if (this.Logtype == "Deal" || this.Logtype == "Note") {
                 var columns = flexGrid.columns;
                 columns[1].visible = true;
+                columns[0].visible = true;
+                flexGrid.invalidate();
+              }
+              if (this.Logtype == "ExportFutureFunding" || this.Logtype == "Calculator") {
+                var columns = flexGrid.columns;
+                columns[1].visible = false;
                 columns[0].visible = true;
                 flexGrid.invalidate();
 
@@ -634,8 +741,10 @@ export class DevDashBoardComponent extends Paginated {
       this.loggingService.writeToLog("DevDashBoard", "info", "testing");
       this.GetErrorCount();
       this.GetCalcStatus();
+      //this.GetDiscrepancySummary();
       //this.getFailedNotes();
       //this.GetDWStatus();
+      this.GetValuationCalculationSummary();
     } catch (err) {
       this.loggingService.writeToLog("DevDashBoard", "error", err.stack);
     }
@@ -650,8 +759,8 @@ export class DevDashBoardComponent extends Paginated {
       if (res.Succeeded) {
         if (res.lstScenarioUserMap.length > 0) {
           this._lstScenario = res.lstScenarioUserMap;
-          this.ScenarioId = res.lstScenarioUserMap.filter((x:any) => x.ScenarioName == "Default")[0].AnalysisID;
-          //this.ScenarioName = res.lstScenarioUserMap.filter(x => x.ScenarioName == "Default")[0].ScenarioName;
+          this.ScenarioId = res.lstScenarioUserMap.filter((x: any) => x.ScenarioName == "Default")[0].AnalysisID;
+          this.ScenarioName = res.lstScenarioUserMap.filter(x => x.AnalysisID == this.ScenarioId)[0].ScenarioName;
           this._scenariodc.AnalysisID = this.ScenarioId;
           //this._calculationManager.AnalysisID = this.ScenarioId;
         }
@@ -660,6 +769,7 @@ export class DevDashBoardComponent extends Paginated {
   }
   changeScenario(value: any): void {
     this.ScenarioId = value.target.value;
+    this.ScenarioName = this._lstScenario.filter(x => x.AnalysisID == this.ScenarioId)[0].ScenarioName;
     this.GetCalcStatus();
   }
 
@@ -678,8 +788,65 @@ export class DevDashBoardComponent extends Paginated {
       var data = res.UserRequestCount;
       this.userlist = res.ResultList;
       this.itemsError = data;
+      this.CalculationSummarylist = res.CalcSummary;
     });
   }
+
+
+  downloadExcelOutput(Name: any, DataTable: any) {
+    if (DataTable.length > 0) {
+      var datatab = this.ConvertToCSV(DataTable);
+      var data = datatab;
+      var displayDate = new Date().toLocaleDateString("en-US").replace(/\//g, '-');
+      var displayTime = new Date().toLocaleTimeString("en-US").replace(/\:/g, '-');
+      var fileName = Name + ".csv";
+
+      let blob = new Blob(['\ufeff' + data], { type: 'text/csv;charset=utf-8;' });
+
+      let dwldLink = document.createElement("a");
+      let url = URL.createObjectURL(blob);
+      let isSafariBrowser = navigator.userAgent.indexOf('Safari') != -1 && navigator.userAgent.indexOf('Chrome') == -1;
+      if (isSafariBrowser) {
+        dwldLink.setAttribute("target", "_blank");
+      }
+      dwldLink.setAttribute("href", url);
+      dwldLink.setAttribute("download", fileName);
+      dwldLink.style.visibility = "hidden";
+      document.body.appendChild(dwldLink);
+      dwldLink.click();
+      document.body.removeChild(dwldLink);
+    } else {
+      alert("No data to download.");
+    }
+  }
+
+
+
+  onChartSelectionChanged(s: any, event: any): void {
+    if (s.selection) {
+      var selectedItem = s.selection.collectionView.currentItem;
+      if (selectedItem) {
+        var tableName = selectedItem.Item1;
+        var tableData = selectedItem.Item2;
+        this.downloadExcelOutput(tableName, tableData);
+      }
+    }
+  }
+
+  GetDiscrepancySummary(): void {
+    this.isLoading = true;
+
+    this.devDashBoardService.GetFirstDiscrepancySummary().subscribe(firstHalfRes => {
+      this.DiscrepancySummarylist = firstHalfRes.DataTablesList;
+      //console.log(this.DiscrepancySummarylist);
+      this.devDashBoardService.GetSecondDiscrepancySummary().subscribe(secondHalfRes => {
+        this.DiscrepancySummarylist = this.DiscrepancySummarylist.concat(secondHalfRes.DataTablesList2);
+        this.isLoading = false;
+      });
+    });
+  }
+
+
 
   //writeToLog(module: string, logtype: string, logtext: string)
   //{
@@ -688,72 +855,7 @@ export class DevDashBoardComponent extends Paginated {
 
   //AI dashBoard Section  started
 
-  GetAIDashBoard(): void {
-    try {
-      var result: any = [];
-      var lookup:any = {};
-      this.devDashBoardService.GetAIDashBoardData().subscribe(res => {
-        if (res.Succeeded) {
-          var data = res.lstAIDashboard;
-
-          var boxitems = data.filter((x:any) => x.IsChart == "Box");
-          var items = data.filter((x: any) => x.IsChart == "Chart");
-          for (var boxdata, j = 0; boxdata = boxitems[j++];) {
-            if (boxdata.Name == "Total Sent") {
-              this.TotalSentMessages = boxdata.value;
-            }
-            else if (boxdata.Name == "Total Received") {
-              this.TotalReceivedMessages = boxdata.value;
-            }
-            else if (boxdata.Name == "Today") {
-              this.TotalConversionsToday = boxdata.value;
-            }
-            else if (boxdata.Name == "Current Month") {
-              this.TotalConversionsMonth = boxdata.value;
-            }
-            else if (boxdata.Name == "Current Week") {
-              this.TotalConversionsWeek = boxdata.value;
-            } else if (boxdata.Name == "Avg Question") {
-              this.DailyAverage = boxdata.value;
-            }
-          }
-
-          for (var item, i = 0; item = items[i++];) {
-            var name = item.ChartName;
-            if (name) {
-              if (name != "") {
-                if (!(name in lookup)) {
-                  lookup[name] = 1;
-                  result.push(name);
-                }
-              }
-            }
-          }
-          if (result) {
-            for (var re = 0; re < result.length; re++) {
-              var filterdata = items.filter((z: any) => z.ChartName == result[re])
-              if (filterdata) {
-                var charttype = filterdata[0].ChartType;
-                if (charttype == "Pie") {
-                  this.addPieChart(filterdata, filterdata[0].ChartName);
-                } else {
-                  this.addChart(filterdata[0].ChartType, filterdata, filterdata[0].ChartName);
-                }
-              }
-
-            }
-          }
-
-
-        }
-        else {
-          this.loggingService.writeToLog("DevDashBoard", "error", res.Message);
-        }
-      });
-    } catch (err) {
-      this.loggingService.writeToLog("DevDashBoard", "error", err.stack);
-    }
-  }
+  
   addPieChart(itemlist: any, Chartheader: any) {
     var container: any = document.querySelector('.dynamicpie');
 
@@ -840,130 +942,235 @@ export class DevDashBoardComponent extends Paginated {
 
     });
   }
-
-  ShowDashBoardData() {
-    if (this.firsttime == 0) {
-      this.GetAIDashBoard();
-      this.firsttime = 1;
-    }
-
-  }
-  //AI DashBoard Section  ended
-  // user ai start
-  ShowUserAIDashBoard() {
-    //if (this.firsttime == 0) {
-    //    this.GetAIDashBoard();
-    //    this.firsttime = 1;
-    //}
-  }
-
-
-  checkDroppedDownChangedUserName(sender: wjNg2Input.WjAutoComplete, args:any) {
-    var ac = sender;
-    if (ac.selectedIndex == -1) {
-      if (ac.text != this.text_username) {
-        this.text_username = null;
-        this.usernameID = null;
-        this.usernameText = null;
-      }
-    }
-    else {
-      this.usernameID = ac.selectedValue;
-      this.usernameText = ac.selectedItem.Valuekey;
-      this.text_username = ac.selectedItem.Valuekey;
-    }
-  }
-
-  getAutosuggestusername = this.getAutosuggestusernameFunc.bind(this);
-  getAutosuggestusernameFunc(query: any, max: any, callback: any) {
-    this._result = null;
-    if (query != null) {
-      var self: any = this,
-        result = self._cachedeal[query];
-      if (result) {
-        callback(result);
-        return;
-      }
-      // not in cache, get from server
-      var params = { query: query, max: max };
-      this._searchObj = new Search(query);
-
-      this.taskManagerService.getAutosuggestSearchUsername(this._searchObj, this._pageIndexSearch, this._pageSizeSearch).subscribe(res => {
-        if (res.Succeeded) {
-          var data: any = res.lstSearch;
-          this._totalCountSearch = res.TotalCount;
-          this._result = data;
-          var _valueType;
-          let items = [];
-          for (var i = 0; i < this._result.length; i++) {
-            var c = this._result[i];
-            c.DisplayName = c.Valuekey;
-          }
-          callback(this._result);
-        }
-        else {
-          this.utilityService.navigateToSignIn();
-        }
-      });
-      (error:string) => console.error('Error: ' + error)
-    }
-  }
-
-  showUserAIData() {
-    this.GetAIUserData();
-  }
-
-
-  GetAIUserData(): void {
+  GetXIRRSummaryfordevdash(): void {
     try {
-      this.clearolddata();
-      var result: any = [];
-      var lookup:any = {};
-      this.devDashBoardService.GetaiUserLog(this.usernameID).subscribe(res => {
+      this.devDashBoardService.GetXIRRSummaryfordevdash().subscribe(res => {
         if (res.Succeeded) {
-          var data = res.lstAIDashboard;
 
-          var items = data.filter((x:any) => x.IsChart == "Chart");
-          for (var item, i = 0; item = items[i++];) {
-            var name = item.ChartName;
-            if (name) {
-              if (name != "") {
-                if (!(name in lookup)) {
-                  lookup[name] = 1;
-                  result.push(name);
-                }
-              }
+          this.XirrCompleted = 0;
+          this.XirrProcessing = 0;
+          this.XirrRunning = 0;
+          this.XirrFailed = 0;
+
+          var result = res.XIRRStatusSummary;
+
+          for (var i = 0; i < result.length; i++) {
+            if (result[i].Name == "Failed") {
+              this.XirrFailed = result[i].value;
             }
-          }
-          if (result) {
-            for (var re = 0; re < result.length; re++) {
-              var filterdata = items.filter((z: any) => z.ChartName == result[re])
-              if (filterdata) {
-                var charttype = filterdata[0].ChartType;
-                if (charttype == "Pie") {
-                  this.GenricAddPieChart(filterdata, filterdata[0].ChartName, '.Userdynamicpie');
-                } else {
-                  this.GenricAddChart(filterdata[0].ChartType, filterdata, filterdata[0].ChartName, '.Userdynamicchart');
-                }
-              }
-
+            if (result[i].Name == "Completed") {
+              this.XirrCompleted = result[i].value;
             }
-          }
+            if (result[i].Name == "Running") {
+              this.XirrRunning = result[i].value;
+            }
+            if (result[i].Name == "Processing") {
+              this.XirrProcessing = result[i].value;
+            }
 
+
+            //
+          }
 
         }
         else {
-          this.loggingService.writeToLog("DevDashBoard", "error", res.Message);
         }
       });
     } catch (err) {
-      this.loggingService.writeToLog("DevDashBoard", "error", err.stack);
     }
   }
-  //user ai end
+  GetCalculationStatusForValuation(): void {
+    try {
+      this.devDashBoardService.GetCalculationStatusForValuationDashBoard().subscribe(res => {
+        if (res.Succeeded) {
 
+          this.ValCompleted = 0;
+          this.ValProcessing = 0;
+          this.ValRunning = 0;
+          this.ValFailed = 0;
 
+          var result = res.CalculationStatus;
 
+          for (var i = 0; i < result.length; i++) {
+            if (result[i].Name == "Failed") {
+              this.ValFailed = result[i].value;
+            }
+            if (result[i].Name == "Completed") {
+              this.ValCompleted = result[i].value;
+            }
+            if (result[i].Name == "Running") {
+              this.ValRunning = result[i].value;
+            }
+            if (result[i].Name == "Processing") {
+              this.ValProcessing = result[i].value;
+            }
+            if (result[i].Name == "Total Calculation time in min") {
+              this.ValTotalCalculationtimeinmin = result[i].value;
+            }
+          }
+
+          var totalcount = this.ValCompleted + this.ValFailed;
+          if (this.ValTotalCalculationtimeinmin != null && this.ValTotalCalculationtimeinmin != 0) {
+            this.ValAvgtime = (totalcount / this.ValTotalCalculationtimeinmin);
+            this.ValAvgtime = parseFloat(this.ValAvgtime.toString()).toFixed(2);
+          }
+          this.ValErrorlist = result.filter(x => x.IsChart == "calcerror");
+          this.GetGetAzureVMStatus();
+        }
+        else {
+        }
+      });
+    } catch (err) {
+    }
+  }
+
+  GetGetAzureVMStatus(): void {
+    try {
+      this.devDashBoardService.GetGetAzureVMStatusAPI().subscribe(res => {
+        if (res.Succeeded) {
+          this.VmStatusList = res.dt;
+        }
+        else {
+        }
+      });
+    } catch (err) {
+    }
+  }
+
+  GetEnvConfig(): void {
+    this.devDashBoardService.GetEnvConfig().subscribe(res => {
+      if (res.Succeeded) {
+        this._EnvConfig = res.lstEnvConfig;
+        this._lstEnvConfig = res.lstEnvConfig;
+      }
+    });
+  }
+
+  changeEnvName(e: any): void {
+    this.envName = e.target.value;
+  }
+
+  RepairDeal(): void {
+    if (this.envName != null && this.envName != "") {
+      if (this._EnvConfig.DealID != null && this._EnvConfig.DealID != "") {
+        var selectedEnvConfig = this._lstEnvConfig.find(x => x.EnvName == this.envName);
+        this.devDashBoardService.CheckEnvConnection(selectedEnvConfig).subscribe(res => {
+          if (res.Succeeded) {
+            //Call deal import method from other source
+            var modalRole: any = document.getElementById('myModalConfirmRepairDeal');
+            modalRole.style.display = "block";
+            $.getScript("/js/jsDrag.js");
+            this._showConfirmationDialog = true;
+          }
+        });
+      }
+      else {
+        this._ShowmessagedivMsgWar = true;
+        this._WaringMessage = "Please enter Deal ID then press repair deal.";
+        setTimeout(function () {
+          this._ShowmessagedivMsgWar = false;
+          this._WaringMessage = "";
+        }.bind(this), 5000);
+      }
+    }
+    else {
+      this._ShowmessagedivMsgWar = true;
+      this._WaringMessage = "Please select environment then press repair deal.";
+      setTimeout(function () {
+        this._ShowmessagedivMsgWar = false;
+        this._WaringMessage = "";
+      }.bind(this), 5000);
+    }
+  }
+
+  ImportDeal(): void {
+    this._isNoteListFetching = true;
+    this.GCloseCreatePopUp('myModalConfirmRepairDeal');
+    var selectedEnvConfig = this._lstEnvConfig.find(x => x.EnvName == this.envName);
+    //Call deal import method from other source
+    selectedEnvConfig.DealID = this._lstEnvConfig.DealID;
+    selectedEnvConfig.NoteID = this._lstEnvConfig.NoteID;
+    this.devDashBoardService.ImportDealFromOtherSource(selectedEnvConfig).subscribe(res => {
+      if (res.Succeeded) {
+        this._ShowmessagedivMsgWar = true;
+        this._WaringMessage = "Deal imported successfully from the other source.";
+        setTimeout(function () {
+          this._ShowmessagedivMsgWar = false;
+          this._WaringMessage = "";
+          this._isNoteListFetching = false;
+        }.bind(this), 5000);
+      }
+    });
+    this._showConfirmationDialog = false;
+  }
+
+  GetValuationLogsExcel(): void {
+    this._isLogsListFetching = true;
+    this.devDashBoardService.downloadValuationLogsExcel(this.objectID).subscribe(res => {
+      setTimeout(function () {
+        this._isLogsListFetching = false;
+      }.bind(this), 5000);
+
+      var displayDate = new Date().toLocaleDateString("en-US").replace(/\//g, '_');
+      var displayTime = new Date().toLocaleTimeString("en-US").replace(/\:/g, '_');
+
+      var fileName = "ValuationLogs_" + displayDate + "_" + displayTime + ".xlsx";
+
+      let b: any = new Blob([res]);
+      let dwldLink = document.createElement("a");
+      let url = URL.createObjectURL(b);
+      let isSafariBrowser = navigator.userAgent.indexOf('Safari') != -1 && navigator.userAgent.indexOf('Chrome') == -1;
+      if (isSafariBrowser) {  //if Safari open in new window to save file with random filename.
+        dwldLink.setAttribute("target", "_blank");
+      }
+      dwldLink.setAttribute("href", url);
+      dwldLink.setAttribute("download", fileName);
+      dwldLink.style.visibility = "hidden";
+      document.body.appendChild(dwldLink);
+      dwldLink.click();
+      document.body.removeChild(dwldLink);
+
+      this._isLogsListFetching = false;
+
+      error => {
+        console.error('Error downloading Excel file:', error);
+        setTimeout(function () {
+          this._isLogsListFetching = false;
+        }.bind(this), 5000);
+      }
+    });
+  }
+
+  GetValuationCalculationSummary(): void {
+    this.devDashBoardService.GetValuationCalculationSummary().subscribe(res => {
+      var result = res.CalcSummary;
+
+      this.ValuationCalculationSummarylist = result.filter(x => x.GridType == "ServerName");
+      this.ValuationMarkedDateSummarylist = result.filter(x => x.GridType == "MarkedDate");
+    });
+  }
+
+  CalculateMultipleDeal(): void {
+    try {
+      this._devDashBoard.DealID = this.multipleCREDealID;
+      this._devDashBoard.ScenarioID = this.ScenarioId;
+      this.devDashBoardService.CalculateMultipleDeals(this._devDashBoard).subscribe(res => {
+        if (res.Succeeded) {
+          this.multipleCREDealID = "";
+          this._ShowmessagedivMsgWar = true;
+          this.GetCalcStatus();
+          this._WaringMessage = "Deals queued for calculation";
+          this.GCloseCreatePopUp("myModalCalculateDeal");
+          setTimeout(() => {
+            this._ShowmessagedivMsgWar = false;
+          }, 5000);
+        }
+        else {
+        }
+      });
+    } catch (err) {
+    }
+  }
 }
 const routes: Routes = [
   { path: '', component: DevDashBoardComponent }]

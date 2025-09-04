@@ -1,4 +1,8 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
 
 namespace CRES.DataContract
 {
@@ -63,6 +67,15 @@ namespace CRES.DataContract
         public bool IsCancelFinalSent { get; set; }
 
         public string AdditionalGroupEmail { get; set; }
+        public string RevisedMessage { get; set; }
+        public string AdditionalEmail { get; set; }
+        public string NotesWithFinancingSourceNone { get; set; }
+        public string AMEmailsWithoutWellsBerkadia { get; set; }
+        public string WatchlistStatus { get; set; }
 
+        public int TotalPendingInvoice { get; set; }
+        public decimal TotalPendingInvoiceAmt { get; set; }
+        public bool IsPrelimDisabled { get; set; }
+        public string CREDealIDWithREO { get; set; }
     }
 }

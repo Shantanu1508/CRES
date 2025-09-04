@@ -1,4 +1,8 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
 
 namespace CRES.DataContract
 {
@@ -37,18 +41,16 @@ namespace CRES.DataContract
         public string Status_ValueUsedInCalc { get; set; }
         public decimal? Final_ValueUsedInCalc { get; set; }
         public decimal? Adjustment { get; set; }
-        public decimal? ActualDelta { get; set; }
+        public decimal? ActualDelta { get; set; }      
         public DateTime? RemittanceDate { get; set; }
-
         public int? Calculated { get; set; }
         public int? AllowCalculationOverride { get; set; }
-
         public decimal? TransactionEntryAmount { get; set; }
-
         public decimal? InterestAdj { get; set; }
         public decimal? AddlInterest { get; set; }
         public decimal? TotalInterest { get; set; }
         public int? row_num { get; set; }
+        public decimal? WriteOffAmount { get; set; }
 
     }
 }

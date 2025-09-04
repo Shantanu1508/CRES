@@ -305,6 +305,21 @@ From(
 
 
 
+----Update State deal level
+Update cre.deal set cre.deal.statefromproperty = [State]
+From(
+	SELECT b.dealid,b.[State]
+	From(
+		Select Distinct d.dealid,d.credealid,p.city,p.PState as [State],Allocation,(city + ', ' +PState) as [M61_location],
+		ROW_NUMBER() Over(Partition by credealid order by credealid,PropertyRollUpSW desc,Allocation desc) as rno,
+		BSPropertyID,PropertyRollUpSW
+		from cre.Property p
+		inner join cre.deal d on d.dealid = p.deal_dealid
+		where p.isdeleted <> 1 and d.isdeleted <> 1 AND p.PState IS NOT NULL
+	)b where rno = 1
+)z
+where cre.deal.dealid = z.dealid
+
 
 
 END

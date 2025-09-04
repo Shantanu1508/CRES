@@ -1,4 +1,5 @@
-﻿
+﻿-- Procedure
+
 CREATE PROCEDURE [dbo].[usp_DeleteNote] --'4311'  
  @CreNoteID varchar(256)  
 as  
@@ -8,7 +9,9 @@ Begin
 Declare @LookupIdForNote int = (Select lookupid from core.Lookup where name = 'Note');  
   
 Declare @noteid UNIQUEIDENTIFIER;  
-SET @noteid = (Select Noteid from CRE.Note where CRENoteID = @CreNoteID)  
+Declare @L_AccountId UNIQUEIDENTIFIER;  
+
+Select @noteid = Noteid,@L_AccountId = Account_AccountId from CRE.Note where CRENoteID = @CreNoteID 
   
   
 IF OBJECT_ID('tempdb..#tbleventId') IS NOT NULL         
@@ -29,16 +32,16 @@ Delete from [CRE].[DependentCalcRequest] where  ParentNoteID = @noteid
 Delete from CRE.PayruleDistributions where SourceNoteID = @noteid  
   
   
-Delete from Core.CalculationRequests  where NoteID = @noteid  
-  
-Delete from CRE.FundingRepaymentSequence where NoteID = @noteid  
-  
-  
+Delete from Core.CalculationRequests  where AccountID = @L_AccountId
+
+Delete from CRE.FundingRepaymentSequence where NoteID = @noteid   
+
+
 Delete from CRE.NoteTransactionDetail where NoteID = @noteid  
 
-Delete from CRE.TransactionEntry where Noteid = @noteid
+Delete from CRE.TransactionEntry where AccountID = @L_AccountId -- Noteid = @noteid
   
-Delete from CRE.NotePeriodicCalc where   NoteID = @noteid  
+Delete from CRE.NotePeriodicCalc where   AccountID = @L_AccountId  
 Delete from CRE.OutputNPVdata where   NoteID = @noteid  
   
 Delete from CRE.Note  where NoteID = @noteid  

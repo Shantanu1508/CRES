@@ -201,6 +201,10 @@
     [TotalCommitment]                 DECIMAL (28, 15) NULL,
     [TotalCurrentAdjustedCommitment]  DECIMAL (28, 15) NULL,
     [PastFunding]                     DECIMAL (28, 15) NULL,
-    [FutureFunding]                   DECIMAL (28, 15) NULL
+    [FutureFunding]                   DECIMAL (28, 15) NULL,
+    [L_UwNoteBI_AutoID]               INT              IDENTITY (1, 1) NOT NULL,
+    CONSTRAINT [PK_L_UwNoteBI_AutoID] PRIMARY KEY CLUSTERED ([L_UwNoteBI_AutoID] ASC)
 );
+
+
 

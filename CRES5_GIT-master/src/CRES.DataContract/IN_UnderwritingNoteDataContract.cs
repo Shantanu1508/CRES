@@ -1,14 +1,18 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
 
 namespace CRES.DataContract
 {
     public class IN_UnderwritingNoteDataContract
     {
-
+        
         public Guid? IN_UnderwritingNoteID { get; set; }
         public Guid? IN_UnderwritingAccountID { get; set; }
         public Guid? IN_UnderwritingDealID { get; set; }
-
+        
         public string ClientNoteID { get; set; }
         public string ClientDealID { get; set; }
         public DateTime? ClosingDate { get; set; }
@@ -23,7 +27,7 @@ namespace CRES.DataContract
         public int? DeterminationDateReferenceDayoftheMonth { get; set; }
         public int? RoundingMethod { get; set; }
         public string RoundingMethodText { get; set; }
-
+        
         public int? IndexRoundingRule { get; set; }
         public int? StatusID { get; set; }
         public string StatusIDText { get; set; }
@@ -53,7 +57,7 @@ namespace CRES.DataContract
 
         public int? NoteExistsInDiffDeal { get; set; }
         public string NoteExistsInDiffDealName { get; set; }
-
-
+        
+            
     }
 }

@@ -10,5 +10,12 @@ BEGIN
 	isDeleted=1,
 	UpdatedBy=@Updatedby,
 	UpdatedDate=getdate()
-	 where AnalysisID=@AnalysisID
-	END
+	where AnalysisID=@AnalysisID
+
+
+	Delete from core.CalculationRequests where AnalysisID = @AnalysisID
+
+
+
+
+END

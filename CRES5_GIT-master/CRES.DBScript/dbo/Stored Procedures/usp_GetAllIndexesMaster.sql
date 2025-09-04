@@ -20,8 +20,10 @@ BEGIN
 		im.CreatedBy,
 		im.CreatedDate,
 		im.UpdatedBy,
-		im.UpdatedDate
+		im.UpdatedDate,
+		lIndex.[Name] as 'StatusText'
 		from core.IndexesMaster im		
+		left join core.Lookup lIndex on lIndex.LookupID = im.[Status]
   ORDER BY im.UpdatedDate DESC
 	OFFSET (@PgeIndex - 1)*@PageSize ROWS
 	FETCH NEXT @PageSize ROWS ONLY

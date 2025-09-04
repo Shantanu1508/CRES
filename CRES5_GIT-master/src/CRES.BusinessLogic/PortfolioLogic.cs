@@ -2,6 +2,8 @@
 using CRES.DataContract;
 using System;
 using System.Collections.Generic;
+using System.Data;
+using System.Linq;
 
 namespace CRES.BusinessLogic
 {
@@ -11,7 +13,7 @@ namespace CRES.BusinessLogic
 
         public int AddUpdateFortfolio(PortfolioDataContract portfolio)
         {
-            return _portfolioRepository.AddUpdateFortfolio(portfolio);
+         return _portfolioRepository.AddUpdateFortfolio(portfolio);
         }
 
 

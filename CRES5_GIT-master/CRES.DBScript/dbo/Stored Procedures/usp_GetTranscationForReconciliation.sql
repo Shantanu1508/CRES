@@ -31,7 +31,8 @@ BEGIN
 			tr.comments,			
 			0 as isRecon,			
 			tr.TransactionDate,
-			sm.ServicerName as 'SourceType'
+			sm.ServicerName as 'SourceType',
+			tr.WriteOffAmount
 	 from cre.TranscationReconciliation tr	
 	left join cre.note n on n.NoteID=tr.NoteID
 	left join cre.Deal d on d.DealID=n.DealID	

@@ -1,4 +1,9 @@
-﻿
+﻿-- Procedure
+
+
+-- Procedure
+
+
 -- Procedure
 
 CREATE PROCEDURE [DW].[usp_ImportNotePeriodicCalc]
@@ -27,9 +32,9 @@ PeriodEndDate,
 ActualCashFlows,
 GAAPCashFlows,
 EndingGAAPBookValue,
-TotalGAAPIncomeforthePeriod,
-InterestAccrualforthePeriod,
-PIKInterestAccrualforthePeriod,
+--TotalGAAPIncomeforthePeriod,
+--InterestAccrualforthePeriod,
+--PIKInterestAccrualforthePeriod,
 TotalAmortAccrualForPeriod,
 AccumulatedAmort,
 BeginningBalance,
@@ -139,19 +144,32 @@ SLAmortOfCapCost,
 EndingAccumSLAmort,
 EndingPreCapGAAPBasis ,
 PIKPrincipalPaidForThePeriod,
-EndingBalanceBI_RP
+EndingBalanceBI_RP,
+[RemainingUnfundedCommitment],
+CurrentPeriodPIKInterestAccrual,
+AccountID,
+AccountTypeID,
+AccountTypeBI,
+[CapitalizedCostAccumulatedAmort],
+[DiscountPremiumAccumulatedAmort],
+[PrincipalWriteoff],
+[NetPIKAmountForThePeriod],
+
+ParentAccountID	    ,
+CashInterest		,
+CapitalizedInterest	
 	)
 Select
 NotePeriodicCalcID,
-nc.NoteID,
+n.NoteID,
 PeriodEndDate,
 [Month],
 ActualCashFlows,
 GAAPCashFlows,
 EndingGAAPBookValue,
-TotalGAAPIncomeforthePeriod,
-InterestAccrualforthePeriod,
-PIKInterestAccrualforthePeriod,
+--TotalGAAPIncomeforthePeriod,
+--InterestAccrualforthePeriod,
+--PIKInterestAccrualforthePeriod,
 TotalAmortAccrualForPeriod,
 AccumulatedAmort,
 BeginningBalance,
@@ -241,8 +259,8 @@ nc.InterestSuspenseAccountActivityforthePeriod,
 nc.InterestSuspenseAccountBalance,
 nc.AllInBasisValuation,
 
-SUM(ISNULL(nc.DiscountPremiumAccrual,0)) OVER(PARTITION BY nc.AnalysisID,nc.NoteID ORDER BY nc.AnalysisID,nc.NoteID,nc.PeriodEndDate ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS AccumaltedDiscountPremiumBI,
-SUM(ISNULL(nc.CapitalizedCostAccrual,0)) OVER(PARTITION BY nc.AnalysisID,nc.NoteID ORDER BY nc.AnalysisID,nc.NoteID,nc.PeriodEndDate ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS AccumalatedCapitalizedCostBI,
+SUM(ISNULL(nc.DiscountPremiumAccrual,0)) OVER(PARTITION BY nc.AnalysisID,n.NoteID ORDER BY nc.AnalysisID,n.NoteID,nc.PeriodEndDate ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS AccumaltedDiscountPremiumBI,
+SUM(ISNULL(nc.CapitalizedCostAccrual,0)) OVER(PARTITION BY nc.AnalysisID,n.NoteID ORDER BY nc.AnalysisID,n.NoteID,nc.PeriodEndDate ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS AccumalatedCapitalizedCostBI,
 n.CRENoteID + '_'+ Convert(Varchar(10),EOMonth(PeriodEndDate,0),110)  as NoteID_EODPeriodEndDateBI,
 nc.AllInPIKRate,
 nc.CurrentPeriodPIKInterestAccrualPeriodEnddate,
@@ -266,13 +284,30 @@ nc.PIKPrincipalPaidForThePeriod,
 (CASE WHEN (n.InitialFundingAMount = 0.01 and ISNULL(nc.EndingBalance,0) <> 0) THEN ISNULL(nc.EndingBalance,0) - ISNULL(n.InitialFundingAMount,0)
  ELSE ISNULL(nc.EndingBalance,0)
  END
- )  as EndingBalanceBI_RP
+ )  as EndingBalanceBI_RP,
+nc.[RemainingUnfundedCommitment],
+nc.CurrentPeriodPIKInterestAccrual,
+
+nc.AccountID,
+acc.AccountTypeID,
+ac.name as AccountTypeBI,
+[CapitalizedCostAccumulatedAmort],
+[DiscountPremiumAccumulatedAmort],
+[PrincipalWriteoff],
+[NetPIKAmountForThePeriod],
+ParentAccountID	    ,
+CashInterest		,
+CapitalizedInterest	
 
 From cre.NotePeriodicCalc nc
+inner join core.account acc on acc.accountid = nc.AccountID
+inner join cre.Note n on n.Account_AccountID = acc.AccountID
 left join Core.Analysis an on an.AnalysisID = nc.AnalysisID
-inner join cre.note n on n.noteid = nc.noteid
 inner join cre.deal d on d.DealID = n.dealid
-where NotePeriodicCalcAutoID > (Select ISNULL(MAX(NotePeriodicCalcAutoID),0) from [DW].[NotePeriodicCalcBI])		
+Left Join core.AccountCategory ac on ac.AccountCategoryID = acc.AccounttypeID
+
+where d.isdeleted <> 1
+and NotePeriodicCalcAutoID > (Select ISNULL(MAX(NotePeriodicCalcAutoID),0) from [DW].[NotePeriodicCalcBI])		
 
 
 
@@ -287,7 +322,4 @@ UPDATE [DW].BatchDetail SET LandingEndTime = GETDATE(),LandingRecordCount = @Row
 SET TRANSACTION ISOLATION LEVEL READ COMMITTED 
 
 END
-
-
-
-
+GO

@@ -1,7 +1,7 @@
 <form #f="ngForm">
   <div class="col-sm-12">
     <div class="head fixheaderdiv">
-      <h1 style="display: inline-block;margin-top: 10px;">Fee Configuration</h1>
+      <h1 style="display: inline-block;margin-top: 10px;">Asset Fee Configuration</h1>
 
 
       <div *ngIf="_ShowSuccessmessagediv" class="alert alert-success fade in">
@@ -13,7 +13,7 @@
       <span>
         <button id="btnSaveConfig" style="margin-right:22px !important;" type="submit" tooltip="Save" class="custombutton custombutton_mar_10px" (click)="SaveFeeConfig()">Save</button>
       </span>
-    </div>
+    </div> 
 
     <div class="fmst fixheadercontent">
       <div class="cssload-container" *ngIf="_isFeeFunctionListFetching">
@@ -34,7 +34,9 @@
                 <strong>No matching records found</strong>
               </div>
               <div class="col-sm-12 customgridpadding" style="height:calc(99.8vh - 230px)">
-                <wj-flex-grid id="flexfeefunction" #flexfeefunction [itemsSource]="_feefunctionList" [allowAddNew]="true" [frozenColumns]="1" [frozenRows]="1" [allowSorting]="false" [allowDelete]="false" class="gridSize" (pasted)="Copiedfeefunction(flexfeefunction,$event)" (deletingRow)="deletefeefunction($event)" style="height:calc(99.8vh - 250px)">
+                <wj-flex-grid id="flexfeefunction" #flexfeefunction [itemsSource]="_feefunctionList" [allowAddNew]="true" [frozenColumns]="1" [frozenRows]="1" [allowSorting]="false"
+                              [allowDelete]="false" class="gridSize" (pasted)="Copiedfeefunction(flexfeefunction,$event)" (deletingRow)="deletefeefunction($event)"
+                              keyActionTab="Cycle" style="height:calc(99.8vh - 250px)" (cellEditEnded)="Copiedfeefunction(flexfeefunction,$event)">
                   <wj-flex-grid-column [header]="'Function Name'" [binding]="'FunctionNameText'" [width]="250" align="left"></wj-flex-grid-column>
                   <wj-flex-grid-column [name]="'FunctionType'" [header]="'Function Type'" [binding]="'FunctionTypeText'" [width]="175"></wj-flex-grid-column>
                   <wj-flex-grid-column [name]="'PaymentFrequency'" [header]="'Payment Frequency'" [binding]="'PaymentFrequencyText'"  [width]="175"></wj-flex-grid-column>
@@ -42,7 +44,7 @@
                   <wj-flex-grid-column [name]="'AccrualStartDate'" [header]="'Accrual Start Date'" [binding]="'AccrualStartDateText'"  [width]="175"></wj-flex-grid-column>
                   <wj-flex-grid-column [name]="'AccrualPeriod'" [header]="'Accrual Period'" [binding]="'AccrualPeriodText'"  [width]="175"></wj-flex-grid-column>
 
-                  <wj-flex-grid-column [name]="'buttons'" [header]="'Delete'" [isReadOnly]="true" align="right" [width]="80">
+                  <wj-flex-grid-column [name]="'buttons'" [header]="'Delete'" [isReadOnly]="true" align="left" [width]="80">
                     <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
                       <a style="text-decoration: underline;" (click)="showDeleteDialogFunction(cell.row.index)" *ngIf="!cell.item.IsUsedInFeeSchedule">Delete</a>
                     </ng-template>
@@ -65,24 +67,30 @@
                 <strong>No matching records found</strong>
               </div>
               <div class="col-sm-12 customgridpadding" style="height:calc(99.8vh - 230px)">
-                <wj-flex-grid id="feeamount" #flexfeeamount [itemsSource]="_feeamountList" [selectionMode]="'Row'"
+                <wj-flex-grid id="feeamount" #flexfeeamount [itemsSource]="_feeamountList" 
                               [allowAddNew]="true" [frozenColumns]="1" [frozenRows]="1" [allowSorting]="false"
-                              [allowDelete]="false" class="gridSize"
+                              [allowDelete]="false" class="gridSize" keyActionTab="Cycle"
                               style="height:calc(99.8vh - 250px)">
                   <wj-flex-grid-column [header]="'Fee Type Name'" [binding]="'FeeTypeNameText'" [width]="250" align="left"></wj-flex-grid-column>
-                  <wj-flex-grid-column [name]="'FeePaymentFrequency'" [header]="'Fee Payment Frequency'" [binding]="'FeePaymentFrequencyText'"  [width]="175"></wj-flex-grid-column>
-                  <wj-flex-grid-column [name]="'FeeCoveragePeriod'" [header]="'Fee Coverage Period'" [binding]="'FeeCoveragePeriodText'"  [width]="175"></wj-flex-grid-column>
-                  <wj-flex-grid-column [name]="'FeeFunction'" [header]="'Fee Function'" [binding]="'FeeFunctionText'"  [width]="175"></wj-flex-grid-column>
-                  <wj-flex-grid-column [name]="'TotalCommitment'" [header]="'Original Commitment'" [binding]="'TotalCommitmentText'"  [width]="175"></wj-flex-grid-column>
-                  <wj-flex-grid-column [name]="'UnscheduledPaydowns'" [header]="'Unscheduled Paydowns'" [binding]="'UnscheduledPaydownsText'"  [width]="175"></wj-flex-grid-column>
+                  <wj-flex-grid-column [name]="'FeePaymentFrequency'" [header]="'Fee Payment Frequency'" [binding]="'FeePaymentFrequencyText'" [width]="175"></wj-flex-grid-column>
+                  <wj-flex-grid-column [name]="'FeeCoveragePeriod'" [header]="'Fee Coverage Period'" [binding]="'FeeCoveragePeriodText'" [width]="175"></wj-flex-grid-column>
+                  <wj-flex-grid-column [name]="'FeeFunction'" [header]="'Fee Function'" [binding]="'FeeFunctionText'" [width]="175"></wj-flex-grid-column>
+                  <wj-flex-grid-column [name]="'TotalCommitment'" [header]="'Original Commitment'" [binding]="'TotalCommitmentText'" [width]="175"></wj-flex-grid-column>
+                  <wj-flex-grid-column [name]="'UnscheduledPaydowns'" [header]="'Unscheduled Paydowns'" [binding]="'UnscheduledPaydownsText'" [width]="175"></wj-flex-grid-column>
                   <wj-flex-grid-column [name]="'Balloon Payment'" [header]="'Balloon Payment'" [binding]="'BalloonPaymentText'" [width]="175"></wj-flex-grid-column>
                   <wj-flex-grid-column [name]="'LoanFunding'" [header]="'Loan Funding'" [binding]="'LoanFundingsText'" [width]="175"></wj-flex-grid-column>
                   <wj-flex-grid-column [name]="'ScheduledPrincipalAmortizationPayment'" [header]="'Scheduled Principal Amortization Payment'" [binding]="'ScheduledPrincipalAmortizationPaymentText'" [width]="175"></wj-flex-grid-column>
-                  <wj-flex-grid-column [name]="'CurrentLoanBalance'" [header]="'Current Loan Balance'" [binding]="'CurrentLoanBalanceText'"  [width]="175"></wj-flex-grid-column>
+                  <wj-flex-grid-column [name]="'CurrentLoanBalance'" [header]="'Current Loan Balance'" [binding]="'CurrentLoanBalanceText'" [width]="175"></wj-flex-grid-column>
                   <wj-flex-grid-column [name]="'InterestPayment'" [header]="'Interest Payment'" [binding]="'InterestPaymentText'" [width]="175"></wj-flex-grid-column>
-                  <wj-flex-grid-column [name]="'InitialFunding'" [header]="'Initial Funding'" [binding]="'InitialFundingText'"  [width]="175"></wj-flex-grid-column>
-                  <wj-flex-grid-column [name]="'AdjustedCommitment'" [header]="'Adjusted Commitment'" [binding]="'M61AdjustedCommitmentText'"  [width]="175"></wj-flex-grid-column>
-                  <wj-flex-grid-column [name]="'FeeNameTrans'" [header]="'Fee Type'" [binding]="'FeeNameTransText'"  [width]="175"></wj-flex-grid-column>
+                  <wj-flex-grid-column [name]="'InitialFunding'" [header]="'Initial Funding'" [binding]="'InitialFundingText'" [width]="175"></wj-flex-grid-column>
+                  <wj-flex-grid-column [name]="'AdjustedCommitment'" [header]="'Adjusted Commitment'" [binding]="'M61AdjustedCommitmentText'" [width]="175"></wj-flex-grid-column>
+                  <wj-flex-grid-column [name]="'FeeNameTrans'" [header]="'Fee Type'" [binding]="'FeeNameTransText'" [width]="175"></wj-flex-grid-column>
+
+                  <wj-flex-grid-column [name]="'PIKFunding'" [header]="'PIK Funding'" [binding]="'PIKFundingText'" [width]="175"></wj-flex-grid-column>
+                  <wj-flex-grid-column [name]="'PIKPrincipalPayment'" [header]="'PIKPrincipal Payment'" [binding]="'PIKPrincipalPaymentText'" [width]="175"></wj-flex-grid-column>
+                  <wj-flex-grid-column [name]="'Curtailment'" [header]="'Curtailment'" [binding]="'CurtailmentText'" [width]="175"></wj-flex-grid-column>
+                  <wj-flex-grid-column [name]="'UpsizeAmount'" [header]="'Upsize Amount'" [binding]="'UpsizeAmountText'" [width]="175"></wj-flex-grid-column>
+                  <wj-flex-grid-column [name]="'UnfundedCommitment'" [header]="'Unfunded Commitment'" [binding]="'UnfundedCommitmentText'" [width]="175"></wj-flex-grid-column>
 
                   <wj-flex-grid-column [name]="'ExcludeFromCashflowDownload'" [header]="'Exclude From Cashflow Download'" [binding]="'ExcludeFromCashflowDownload'" [width]="175"></wj-flex-grid-column>
 

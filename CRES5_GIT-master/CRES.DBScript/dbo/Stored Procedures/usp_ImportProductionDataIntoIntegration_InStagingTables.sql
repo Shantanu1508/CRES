@@ -1,3 +1,5 @@
+﻿-- Procedure
+-- Procedure
 
 
 CREATE PROCEDURE [dbo].[usp_ImportProductionDataIntoIntegration_InStagingTables]
@@ -129,9 +131,9 @@ INSERT INTO [DW].[Staging_Cashflow]
 ,[ActualCashFlows]
 ,[GAAPCashFlows]
 ,[EndingGAAPBookValue]
-,[TotalGAAPIncomeforthePeriod]
-,[InterestAccrualforthePeriod]
-,[PIKInterestAccrualforthePeriod]
+--,[TotalGAAPIncomeforthePeriod]
+--,[InterestAccrualforthePeriod]
+--,[PIKInterestAccrualforthePeriod]
 ,[TotalAmortAccrualForPeriod]
 ,[AccumulatedAmort]
 ,[BeginningBalance]
@@ -202,7 +204,7 @@ INSERT INTO [DW].[Staging_Cashflow]
 ,[CurrentPeriodInterestAccrual]
 ,[TotalGAAPInterestFortheCurrentPeriod]		   
 ,InvestmentBasis
-,CurrentPeriodInterestAccrualPeriodEnddate
+--,CurrentPeriodInterestAccrualPeriodEnddate
 ,LIBORPercentage
 ,SpreadPercentage
 ,AnalysisID
@@ -224,9 +226,9 @@ SELECT [NotePeriodicCalcID]
 ,[ActualCashFlows]
 ,[GAAPCashFlows]
 ,[EndingGAAPBookValue]
-,[TotalGAAPIncomeforthePeriod]
-,[InterestAccrualforthePeriod]
-,[PIKInterestAccrualforthePeriod]
+--,[TotalGAAPIncomeforthePeriod]
+--,[InterestAccrualforthePeriod]
+--,[PIKInterestAccrualforthePeriod]
 ,[TotalAmortAccrualForPeriod]
 ,[AccumulatedAmort]
 ,[BeginningBalance]
@@ -297,7 +299,7 @@ SELECT [NotePeriodicCalcID]
 ,[CurrentPeriodInterestAccrual]
 ,[TotalGAAPInterestFortheCurrentPeriod]
 ,InvestmentBasis
-,CurrentPeriodInterestAccrualPeriodEnddate
+--,CurrentPeriodInterestAccrualPeriodEnddate
 ,LIBORPercentage
 ,SpreadPercentage
 ,AnalysisID

@@ -1,4 +1,5 @@
-﻿
+﻿-- Procedure 
+-- [dbo].[usp_CopyDealFromOtherSource] 'b0xesubcki1.database.windows.net', 'CRES4_Integration', 'd9vWuP)[WEhu})P', 'CRES4_Integration', '19-0422' , '19-0422_test', '2 North LaSalle Test_Copy','B0E6697B-3534-4C09-BE0A-04473401AB93', '_Test', ''
 CREATE PROCEDURE [dbo].[usp_CopyDealFromOtherSource]
 @ServerName nvarchar(256),
 @Login nvarchar(256),
@@ -31,6 +32,10 @@ Declare @DB_Name_Int nvarchar(256) = @DataBaseName;
 
 IF(@SuffixForCRENoteId <> '')
 	SET @SuffixForCRENoteId = '_' + @SuffixForCRENoteId
+
+
+IF(@SuffixForCRENoteId is null)
+	SET @SuffixForCRENoteId = ''
 
 
 exec  ('
@@ -121,6 +126,18 @@ EXEC [dbo].[usp_GetTableFromSource] @CREDealID,@Env
 ---===========================================================================================
 
 
+---=====Insert into Account table=====
+DECLARE @insertedAccountID_deal uniqueidentifier;      
+      
+DECLARE @tAccount_deal TABLE (tAccountID_deal UNIQUEIDENTIFIER)      
+
+INSERT INTO [Core].[Account] ([StatusID],[Name],[AccountTypeID],[CreatedBy],[CreatedDate],[UpdatedBy],[UpdatedDate],isdeleted)      
+OUTPUT inserted.AccountID INTO @tAccount_deal(tAccountID_deal)      
+VALUES(1,@NewDealName,10,@UpdatedBy,GETDATE(),@UpdatedBy,GetDATE(),0)      
+
+SELECT @insertedAccountID_deal = tAccountID_deal FROM @tAccount_deal;      
+-------------------------------------------
+
  --Deal
  INSERT INTO [CRE].[Deal] 
  ( 
@@ -206,6 +223,8 @@ EXEC [dbo].[usp_GetTableFromSource] @CREDealID,@Env
 ,AutoPrepayEffectiveDate
 ,LatestPossibleRepaymentDate
 ,KnownFullPayoffDate
+,AccountID
+,CalcEngineType
 ) 
 
  select 
@@ -291,6 +310,9 @@ EXEC [dbo].[usp_GetTableFromSource] @CREDealID,@Env
 ,AutoPrepayEffectiveDate
 ,LatestPossibleRepaymentDate
 ,KnownFullPayoffDate
+
+,@insertedAccountID_deal
+,CalcEngineType
  FROM  ##tblDeal
 
 SET @NewDealID = (SELECT DealID FROM [CRE].[Deal] WHERE CREDealID = @NewCREDealID)
@@ -558,6 +580,97 @@ INSERT INTO  cre.dealamortizationschedule(
 	FROM  ##tblDealProjectedPayOffAccounting
 
 
+
+	---NoteAdjustedCommitmentMaster
+	INSERT INTO CRE.NoteAdjustedCommitmentMaster 
+	(
+	DealID
+	,[Date]
+	,[Type]
+	,Comments	
+	,DealAdjustmentHistory	
+	,AdjustedCommitment	
+	,TotalCommitment	
+	,AggregatedCommitment	
+	,CreatedBy	
+	,CreatedDate	
+	,UpdatedBy	
+	,UpdatedDate
+	,TotalRequiredEquity
+	,TotalAdditionalEquity
+	,Rowno	
+	,TotalEquityatClosing
+	)
+	SELECT 
+	@NewDealID
+	,[Date]
+	,[Type]
+	,Comments	
+	,DealAdjustmentHistory	
+	,AdjustedCommitment	
+	,TotalCommitment	
+	,AggregatedCommitment	
+	,@NewDealID
+	,getdate()	
+	,@NewDealID
+	,getdate()
+	,TotalRequiredEquity
+	,TotalAdditionalEquity
+	,Rowno	
+	,TotalEquityatClosing
+	FROM ##tblNoteAdjustedCommitmentMaster 
+
+
+	INSERT INTO [CRE].[WLDealPotentialImpairmentMaster](
+			DealID,
+			Date,
+			Amount,
+			AdjustmentType,
+			Comment,
+			Applied,
+			CreatedBy,
+			CreatedDate,
+			UpdatedBy,
+			UpdatedDate,
+			RowNo
+			)
+	SELECT	@NewDealID,
+			Date,
+			Amount,
+			AdjustmentType,
+			Comment,
+			Applied,
+			CreatedBy,
+			CreatedDate,
+			UpdatedBy,
+			UpdatedDate,
+			RowNo
+	FROM ##tblWLDealPotentialImpairmentMaster
+
+
+	INSERT INTO [CRE].[WLDealAccounting](
+			DealID,
+			StartDate,
+			EndDate,
+			TypeID,
+			Comment,
+			CreatedBy,
+			CreatedDate,
+			UpdatedBy,
+			UpdatedDate
+			)
+	SELECT	@NewDealID,
+			StartDate,
+			EndDate,
+			TypeID,
+			Comment,
+			CreatedBy,
+			CreatedDate,
+			UpdatedBy,
+			UpdatedDate
+	FROM ##tblWLDealAccounting
+
+
   --Note Cursor
 DECLARE copy_cursor CURSOR FOR 
 select AccountID,
@@ -587,7 +700,7 @@ WHILE @@FETCH_STATUS = 0
 	   )
 OUTPUT inserted.AccountID INTO @tAccount(tAccountID)
  SELECT
-       '182'
+       '1' ---'182'
       ,acct.[StatusID]
       --,acct.[Name] + '_'+ @NewCREDealID as [Name]
 	  ,acct.[Name] as [Name]
@@ -626,7 +739,7 @@ INSERT INTO [CRE].[Note]
 ,[PaymentDateBusinessDayLag]
 ,[IOTerm]
 ,[AmortTerm]
-,[PIKSeparateCompounding]
+--,[PIKSeparateCompounding]
 ,[MonthlyDSOverridewhenAmortizing]
 ,[AccrualPeriodPaymentDayWhenNotEOMonth]
 ,[FirstPeriodInterestPaymentOverride]
@@ -803,6 +916,7 @@ INSERT INTO [CRE].[Note]
 ,InitialRequiredEquity
 ,InitialAdditionalEquity
 ,CommitmentUsedInFFDistribution
+,FirstIndexDeterminationDateOverride
 )
 
 OUTPUT inserted.NoteID INTO @tNote(tNewNoteId)
@@ -824,7 +938,7 @@ select	 @insertedAccountID
 		,n.[PaymentDateBusinessDayLag]
 		,n.[IOTerm]
 		,[AmortTerm]
-		,[PIKSeparateCompounding]
+		--,[PIKSeparateCompounding]
 		,[MonthlyDSOverridewhenAmortizing]
 		,[AccrualPeriodPaymentDayWhenNotEOMonth]
 		,[FirstPeriodInterestPaymentOverride]
@@ -1001,6 +1115,7 @@ select	 @insertedAccountID
 		,InitialRequiredEquity
 		,InitialAdditionalEquity
 		,CommitmentUsedInFFDistribution
+		,FirstIndexDeterminationDateOverride
 		from ##tblNote n 
 		inner join ##tblAccount acc on n.Account_AccountID=acc.AccountID
 		where [Account_AccountID]=@c_accountid and acc.isdeleted=0
@@ -1088,7 +1203,9 @@ BEGIN
 		CreatedBy, 
 		CreatedDate,
 		UpdatedBy,
-		UpdatedDate)
+		UpdatedDate,
+		IndexNameID,
+		DeterminationDateHolidayList)
 
 
    SELECT 
@@ -1105,7 +1222,9 @@ BEGIN
 		   rs.CreatedBy,
 	       rs.CreatedDate,
 		   @UpdatedBy as Updatedby,
-           getdate() as UpdatedDate
+           getdate() as UpdatedDate,
+		   IndexNameID,
+		   DeterminationDateHolidayList
     FROM ##tblRateSpreadSchedule rs 
 	inner join ##tblEvent e   on e.eventid =  rs.EventId
 	inner join ##tblAccount acc  on acc.AccountID =  e.AccountID
@@ -1298,7 +1417,15 @@ BEGIN
       ,[CreatedBy]
       ,[CreatedDate]
       ,[UpdatedBy]
-      ,[UpdatedDate])
+      ,[UpdatedDate]
+	  ,[PIKReasonCodeID],
+	  [PIKComments],
+	  [PIKIntCalcMethodID],
+	  PeriodicRateCapAmount ,
+	  PeriodicRateCapPercent,
+	  PIKPercentage,
+	  PIKSetUp,
+	  PIKSeparateCompounding)
 
 	  	SELECT (SELECT TOP 1
              EventId
@@ -1321,7 +1448,15 @@ BEGIN
 		 PIK.CreatedBy,
 		 PIK.CreatedDate,
 		@UpdatedBy as Updatedby,
-          getdate() as UpdatedDate
+         getdate() as UpdatedDate,
+		 [PIKReasonCodeID],
+	     [PIKComments],
+	     [PIKIntCalcMethodID],
+	     PeriodicRateCapAmount ,
+	     PeriodicRateCapPercent,
+	     PIKPercentage,
+	     PIKSetUp,
+		 PIK.PIKSeparateCompounding
     FROM ##tblPIKSchedule PIK  with (NOLOCK)
 	inner join ##tblEvent e  with (NOLOCK) on e.eventid =  PIK.EventId
 	inner join ##tblAccount acc  with (NOLOCK) on acc.AccountID =  e.AccountID
@@ -1607,8 +1742,10 @@ select
 	  ,@UpdatedBy as Updatedby
       ,getdate() as UpdatedDate
 	 from CRE.NotePeriodicCalc nc
-	 inner join CRE.PayruleSetup ps on ps.StripTransferFrom=nc.NoteID
-	 where nc.NoteID=@c_NoteId
+		Inner join core.account acc on acc.accountid = nc.AccountID
+		Inner join cre.note n on n.account_accountid = acc.accountid       
+		inner join CRE.PayruleSetup ps on ps.StripTransferFrom=nc.AccountID
+	 where nc.AccountID=@c_NoteId and acc.AccounttypeID = 1
 
 
  update [CRE].[PayruleSetup] set striptransferfrom=@insertedNoteID where DealID=@NewDealID and striptransferfrom=@c_NoteId
@@ -1643,6 +1780,163 @@ INSERT INTO [CRE].[ServicerDropDateSetup]
 	WHERE NoteID = @c_NoteId  
 	
 
+INSERT INTO [CRE].[FundingRepaymentSequenceWriteOff](
+			DealID,
+			NoteID,
+			PriorityOverride,
+			CreatedBy,
+			CreatedDate,
+			UpdatedBy,
+			UpdatedDate
+			)
+	SELECT	@NewDealID,
+			@insertednoteID as [NoteID],
+			PriorityOverride,
+			CreatedBy,
+			getdate() as [CreatedDate],
+			UpdatedBy,
+			getdate() as [UpdatedDate]
+	FROM ##tblFundingRepaymentSequenceWriteOff where NoteID = @c_NoteId
+
+
+	INSERT INTO [CRE].[WLDealPotentialImpairmentDetail](
+	        WLDealPotentialImpairmentMasterID,
+			NoteID,
+			Value,
+			CreatedBy,
+			CreatedDate,
+			UpdatedBy,
+			UpdatedDate,
+			RowNo
+			)
+	SELECT	pm.WLDealPotentialImpairmentMasterID,
+			@insertednoteID as [NoteID],
+			Value,
+			pd.CreatedBy,
+			pd.CreatedDate,
+			pd.UpdatedBy,
+			pd.UpdatedDate,
+			pd.RowNo
+	FROM ##tblWLDealPotentialImpairmentDetail pd
+	Left JOIN ##tblWLDealPotentialImpairmentMaster pm on pm.RowNo = pd.RowNo
+	where pd.NoteID = @c_NoteId
+
+
+	 --NoteTransactionDetail
+INSERT INTO [CRE].[NoteTransactionDetail]
+([NoteID]   
+,[TransactionDate]                      
+,[TransactionType]                      
+,[Amount]   
+,[RelatedtoModeledPMTDate]              
+,[ModeledPayment]                       
+,[AmountOutstandingafterCurrentPayment] 
+,[CreatedBy]
+,[CreatedDate]                          
+,[UpdatedBy]
+,[UpdatedDate]                          
+,[ServicingAmount]                      
+,[CalculatedAmount]                     
+,[Delta]    
+,[M61Value] 
+,[ServicerValue]                        
+,[Ignore]   
+,[OverrideValue]                        
+,[comments] 
+,[PostedDate]                           
+,[ServicerMasterID]                     
+,[Deleted]  
+,[TransactionTypeText]                  
+,[TranscationReconciliationID]          
+,[RemittanceDate]                       
+,[Exception]
+,[Adjustment]                           
+,[ActualDelta]  
+,[OverrideReason]                       
+,[BerAddlint]                           
+,[TransactionEntryAmount]               
+,[Orig_ServicerMasterID]                
+,[InterestAdj]                          
+,[AddlInterest]                         
+,[TotalInterest]                        
+,[WriteOffAmount])
+
+SELECT @insertednoteID as [NoteID]   
+,[TransactionDate]                      
+,[TransactionType]                      
+,[Amount]   
+,[RelatedtoModeledPMTDate]              
+,[ModeledPayment]                       
+,[AmountOutstandingafterCurrentPayment] 
+,@UpdatedBy as Createdby
+,getdate() as CreatedDate
+,@UpdatedBy as Updatedby
+,getdate() as UpdatedDate
+,[ServicingAmount]                      
+,[CalculatedAmount]                     
+,[Delta]    
+,[M61Value] 
+,[ServicerValue]                        
+,[Ignore]   
+,[OverrideValue]                        
+,[comments] 
+,[PostedDate]                           
+,[ServicerMasterID]                     
+,[Deleted]  
+,[TransactionTypeText]                  
+,[TranscationReconciliationID]          
+,[RemittanceDate]                       
+,[Exception]
+,[Adjustment]                           
+,[ActualDelta]  
+,[OverrideReason]                       
+,[BerAddlint]                           
+,[TransactionEntryAmount]               
+,[Orig_ServicerMasterID]                
+,[InterestAdj]                          
+,[AddlInterest]                         
+,[TotalInterest]                        
+,[WriteOffAmount]
+FROM ##tblNoteTransactionDetail
+WHERE NoteID = @c_NoteId  
+
+
+
+INSERT INTO CRE.NoteAdjustedCommitmentDetail
+(
+NoteAdjustedCommitmentMasterID,
+NoteID,
+[Value],
+CreatedBy,
+CreatedDate,
+UpdatedBy,
+UpdatedDate,
+[Type],
+DealID,
+NoteTotalCommitment,
+NoteAdjustedTotalCommitment,
+NoteAggregatedTotalCommitment,
+Rowno
+)
+SELECT
+(SELECT nm.NoteAdjustedCommitmentMasterID FROM CRE.NoteAdjustedCommitmentMaster nm WHERE nm.DealId = @NewDealID and nm.Type=na.[Type] and nm.Rowno = na.Rowno),
+@insertednoteID,
+[Value],
+@UpdatedBy,
+getdate(),
+@UpdatedBy,
+getdate(),
+[Type],
+@NewDealID,
+NoteTotalCommitment,
+NoteAdjustedTotalCommitment,
+NoteAggregatedTotalCommitment,
+Rowno
+FROM ##tblNoteAdjustedCommitmentDetail na
+WHERE NoteID = @c_NoteId
+
+
+
 
 FETCH NEXT FROM copy_cursor into  @c_accountid,  @c_NoteName, @c_CRENoteID, @c_NoteId
 
@@ -1669,6 +1963,10 @@ IF OBJECT_ID('tempdb..##tblDealAmortizationSchedule') IS NOT NULL
 DROP TABLE ##tblDealAmortizationSchedule 
 IF OBJECT_ID('tempdb..##tblDealProjectedPayOffAccounting') IS NOT NULL             
 DROP TABLE ##tblDealProjectedPayOffAccounting 
+IF OBJECT_ID('tempdb..##tblWLDealPotentialImpairmentMaster') IS NOT NULL             
+DROP TABLE ##tblWLDealPotentialImpairmentMaster
+IF OBJECT_ID('tempdb..##tblWLDealAccounting') IS NOT NULL             
+DROP TABLE ##tblWLDealAccounting
 IF OBJECT_ID('tempdb..##tblNoteCursor') IS NOT NULL             
 DROP TABLE ##tblNoteCursor         
 IF OBJECT_ID('tempdb..##tblAccount') IS NOT NULL             
@@ -1711,6 +2009,10 @@ IF OBJECT_ID('tempdb..##tblPayruleDistributions') IS NOT NULL
 DROP TABLE ##tblPayruleDistributions
  IF OBJECT_ID('tempdb..##tblServicerDropDateSetup') IS NOT NULL             
 DROP TABLE ##tblServicerDropDateSetup
+IF OBJECT_ID('tempdb..##tblFundingRepaymentSequenceWriteOff') IS NOT NULL             
+DROP TABLE ##tblFundingRepaymentSequenceWriteOff
+IF OBJECT_ID('tempdb..##tblWLDealPotentialImpairmentDetail') IS NOT NULL             
+DROP TABLE ##tblWLDealPotentialImpairmentDetail
 
 
 
@@ -1774,9 +2076,15 @@ END CATCH
 
 Print('Deal imported successfully.')
 
+
+exec  ('
+	IF EXISTS(select [name] from sys.external_data_sources where name = ''RemoteReference_CopyDealOtherSrc'')
+		Drop EXTERNAL DATA SOURCE RemoteReference_CopyDealOtherSrc 
+	IF EXISTS(select [name] from sys.database_scoped_credentials where name = ''Credential_CopyDealOtherSrc'')
+		Drop DATABASE SCOPED CREDENTIAL Credential_CopyDealOtherSrc
+');
+
+
 END
+GO
 
-
-
-
- 

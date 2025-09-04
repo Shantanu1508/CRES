@@ -11,9 +11,10 @@ BEGIN
  SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
   
 
-   SELECT  CalendarName,hm.HolidayMasterID,CAST(h.HoliDayDate as Date) HoliDayDate
+   SELECT  CalendarName,hm.HolidayMasterID,CAST(h.HoliDayDate as Date) HoliDayDate, h.isSoftHoliday, l.Name as isSoftHolidayText
    from [App].[HoliDaysMaster] hm
    left join [App].[HoliDays] h on h.HolidayTypeID= hm.HolidayMasterID
+   left join core.lookup l on l.LookupID = h.isSoftHoliday  
    order by holidaydate asc
 	
 	SET TRANSACTION ISOLATION LEVEL READ COMMITTED

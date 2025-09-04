@@ -1,8 +1,11 @@
-﻿using CRES.DAL.Repository;
-using CRES.DataContract;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Data;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using CRES.DAL.Repository;
+using CRES.DataContract;
 
 namespace CRES.BusinessLogic
 {
@@ -107,9 +110,15 @@ namespace CRES.BusinessLogic
             return _importExportRepository.InsertBerkadiaDataTap(dtBerkadia, CreatedBy);
         }
 
-        public int InsertWellsDataTap(DataTable dtBerkadia, string CreatedBy)
+        public void ImportServicerBalance()
         {
-            return _importExportRepository.InsertWellsDataTap(dtBerkadia, CreatedBy);
+            _importExportRepository.ImportServicerBalance();
         }
+
+
+        //public int InsertWellsDataTap(DataTable dtBerkadia, string CreatedBy)
+        //{
+        //    return _importExportRepository.InsertWellsDataTap(dtBerkadia, CreatedBy);
+        //}
     }
 }

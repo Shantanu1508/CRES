@@ -16,6 +16,7 @@ Inner join deal d on d.dealkey = n.dealkey
 where Type = 'ScheduledPrincipalpaid' 
 and  ISNULL(HasFixedAmort,'') = 'Yes'
 And Scenario = 'Default'  
+and T.AccountTypeID = 1
 group by t.Dealname, date, status
 )x
 

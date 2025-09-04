@@ -1,8 +1,10 @@
 ﻿using System;
+using System.Text;
+using System.Threading.Tasks;
 
 namespace CRES.DataContract
 {
-    public class FinancingScheduleDataContract
+  public  class FinancingScheduleDataContract
     {
         //public int? NoteID { get; set; }
         //public int FinancingScheduleID { get; set; }

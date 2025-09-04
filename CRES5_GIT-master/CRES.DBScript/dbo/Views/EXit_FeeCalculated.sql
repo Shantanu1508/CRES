@@ -32,6 +32,7 @@ oN N.NoteID = T.NoteKey
 Outer Apply (Select SUm(T1.Amount ) Balloon_plus_SchedulePrincipal_plus_Repayment from Dbo.TransactionEntry T1  
    Where T.NoteKey =  T1.NoteKey  
    and Type in ('Balloon', 'ScheduledPrincipalPaid', 'FundingOrRepayment') and Amount > 0  
+   and T1.AccountTypeID= 1
    Group By NoteID  
    )y  
   

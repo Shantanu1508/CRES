@@ -1,87 +1,30 @@
-﻿using CRES.DAL.IRepository;
-using CRES.DataContract;
-using CRES.Utilities;
-using System;
+﻿using System;
 using System.Collections.Generic;
-using System.Data;
-using System.Data.SqlClient;
 using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+using CRES.DataContract;
+using CRES.DAL.IRepository;
+
+using System.Configuration;
+using System.Data.SqlClient;
+using System.Data;
+using CRES.Utilities;
+using Microsoft.Extensions.Options;
+using System.Net;
+using OfficeOpenXml.FormulaParsing.Excel.Functions.Math;
+using Azure;
 
 namespace CRES.DAL.Repository
 {
     public class UserRepository : IUserRepository
     {
-        //private readonly IOptions<AppSettingsModel> appSettings;
-
-        //public UserRepository(IOptions<AppSettingsModel> app)
-        //{
-        //    appSettings = app;
-
-        //}
-
-        //public UserDataContract ValidateUser(UserDataContract Userobj)
-        //{
-
-        //    //string connectionString1 = ConfigurationManager.ConnectionStrings["CRESEntities"].ConnectionString;
-        //    //string connectionString = ConfigurationManager.AppSettings["CRESEntities"];
-        //    UserDataContract _userdatacontract = new UserDataContract();
-        //    try
-        //    {
-        //        CRESEntities dbContext = new CRESEntities();// "metadata=res://*/CRESModel.csdl|res://*/CRESModel.ssdl|res://*/CRESModel.msl;provider=System.Data.SqlClient;provider connection string='data source=192.168.1.250;initial catalog=CRES4_QA;user id=admin;password=admin1*;MultipleActiveResultSets=True;App=EntityFramework'");
-        //                                                    //CRESEntities dbContext = new CRESEntities();
-
-
-
-        //        var userList = dbContext.usp_ValidateUser(Userobj.Login, Userobj.Password);
-
-        //        foreach (var item in userList)
-        //        {
-        //            _userdatacontract.UserID = item.UserID;
-        //            _userdatacontract.FirstName = item.FirstName;
-        //            _userdatacontract.LastName = item.LastName;
-        //            _userdatacontract.Email = item.Email;
-        //            _userdatacontract.Login = item.Login;
-        //            _userdatacontract.Password = item.Password;
-        //            _userdatacontract.ExpirationDate = item.ExpirationDate;
-        //            _userdatacontract.StatusID = item.StatusID;
-        //            _userdatacontract.CreatedBy = item.CreatedBy;
-        //            _userdatacontract.CreatedDate = item.CreatedDate;
-        //            _userdatacontract.UpdatedBy = item.UpdatedBy;
-        //            _userdatacontract.UpdatedDate = item.UpdatedDate;
-        //            _userdatacontract.RoleID = item.roleId;
-        //            _userdatacontract.RoleName = item.RoleName;
-        //            _userdatacontract.ContactNo1 = item.ContactNo1;
-        //            _userdatacontract.UserToken = item.UserToken;
-        //            _userdatacontract.TimeZone = item.TimeZone;
-        //        }
-
-        //        if (_userdatacontract.UserID == null)
-        //        {
-        //            _userdatacontract = null;
-        //        }
-        //        return _userdatacontract;
-        //    }
-        //    catch (Exception ex)
-        //    {
-
-        //    }
-
-        //    return _userdatacontract;
-
-        //}
-
         public UserDataContract ValidateUser(UserDataContract Userobj)
         {
-
-
-            DataTable dt = new DataTable();
-
-            //string connectionString1 = ConfigurationManager.ConnectionStrings["CRESEntities"].ConnectionString;
-            //string connectionString = ConfigurationManager.AppSettings["CRESEntities"];
+            DataTable dt = new DataTable();          
             UserDataContract _userdatacontract = new UserDataContract();
 
-
-#pragma warning disable CS0168 // The variable 'ex' is declared but never used
             try
             {
 
@@ -92,33 +35,32 @@ namespace CRES.DAL.Repository
                 dt = hp.ExecDataTable("App.usp_ValidateUser", sqlparam);
 
                 List<UserDataContract> lstuser = new List<UserDataContract>();
-                //lstuser = DataTableToObj.DataTableToList<UserDataContract>(dt);
-                //lstuser = dt.DataTableToList<UserDataContract>();
-
-
-                foreach (DataRow dr in dt.Rows)
+                if (dt.Rows.Count > 0)
                 {
-                    if (Convert.ToString(dr["UserID"]) != "")
+
+                    foreach (DataRow dr in dt.Rows)
+                    {
+                        if (Convert.ToString(dr["UserID"]) != "")
                         _userdatacontract.UserID = new Guid(Convert.ToString(dr["UserID"]));
-                    _userdatacontract.FirstName = Convert.ToString(dr["FirstName"]);
-                    _userdatacontract.LastName = Convert.ToString(dr["LastName"]);
-                    _userdatacontract.Email = Convert.ToString(dr["Email"]);
-                    _userdatacontract.Login = Convert.ToString(dr["Login"]);
-                    _userdatacontract.Password = Convert.ToString(dr["Password"]);
-                    _userdatacontract.ExpirationDate = CommonHelper.ToDateTime(dr["ExpirationDate"]);
-                    _userdatacontract.StatusID = CommonHelper.ToInt32(dr["StatusID"]);
-                    _userdatacontract.CreatedBy = Convert.ToString(dr["CreatedBy"]);
-                    _userdatacontract.CreatedDate = CommonHelper.ToDateTime(dr["CreatedDate"]);
-                    _userdatacontract.UpdatedBy = Convert.ToString(dr["UpdatedBy"]);
-                    _userdatacontract.UpdatedDate = CommonHelper.ToDateTime(dr["UpdatedDate"]);
-                    _userdatacontract.RoleID = new Guid(Convert.ToString(dr["roleId"]));
-                    _userdatacontract.RoleName = Convert.ToString(dr["RoleName"]);
-                    _userdatacontract.ContactNo1 = Convert.ToString(dr["ContactNo1"]);
-                    _userdatacontract.UserToken = Convert.ToString(dr["UserToken"]);
-                    _userdatacontract.TimeZone = Convert.ToString(dr["TimeZone"]);
+                        _userdatacontract.FirstName = Convert.ToString(dr["FirstName"]);
+                        _userdatacontract.LastName = Convert.ToString(dr["LastName"]);
+                        _userdatacontract.Email = Convert.ToString(dr["Email"]);
+                        _userdatacontract.Login = Convert.ToString(dr["Login"]);
+                        _userdatacontract.Password = Convert.ToString(dr["Password"]);
+                        _userdatacontract.ExpirationDate = CommonHelper.ToDateTime(dr["ExpirationDate"]);
+                        _userdatacontract.StatusID = CommonHelper.ToInt32(dr["StatusID"]);
+                        _userdatacontract.CreatedBy = Convert.ToString(dr["CreatedBy"]);
+                        _userdatacontract.CreatedDate = CommonHelper.ToDateTime(dr["CreatedDate"]);
+                        _userdatacontract.UpdatedBy = Convert.ToString(dr["UpdatedBy"]);
+                        _userdatacontract.UpdatedDate = CommonHelper.ToDateTime(dr["UpdatedDate"]);
+                        _userdatacontract.RoleID = new Guid(Convert.ToString(dr["roleId"]));
+                        _userdatacontract.RoleName = Convert.ToString(dr["RoleName"]);
+                        _userdatacontract.ContactNo1 = Convert.ToString(dr["ContactNo1"]);
+                        _userdatacontract.UserToken = Convert.ToString(dr["UserToken"]);
+                        _userdatacontract.TimeZone = Convert.ToString(dr["TimeZone"]);
+                    }
+
                 }
-
-
                 if (lstuser.Count() > 0)
                 {
                     _userdatacontract = lstuser.FirstOrDefault();
@@ -134,10 +76,7 @@ namespace CRES.DAL.Repository
             {
 
             }
-#pragma warning restore CS0168 // The variable 'ex' is declared but never used
-
             return _userdatacontract;
-
         }
 
         public UserDataContract GetUserCredentialByUserID(Guid UserID, Guid? DelegatedUserID)
@@ -149,9 +88,7 @@ namespace CRES.DAL.Repository
             SqlParameter[] sqlparam = new SqlParameter[] { p1, p2 };
             dt = hp.ExecDataTable("App.usp_GetUserCredentialByUserID", sqlparam);
 
-            List<UserDataContract> lstuser = new List<UserDataContract>();
-            //lstuser = DataTableToObj.DataTableToList<UserDataContract>(dt);
-            //lstuser = dt.DataTableToList<UserDataContract>();
+            List<UserDataContract> lstuser = new List<UserDataContract>();           
 
             UserDataContract _userdatacontract = new UserDataContract();
             foreach (DataRow dr in dt.Rows)
@@ -172,8 +109,6 @@ namespace CRES.DAL.Repository
                 _userdatacontract.ContactNo1 = Convert.ToString(dr["ContactNo1"]);
                 _userdatacontract.UserToken = Convert.ToString(dr["UserToken"]);
                 _userdatacontract.TimeZone = Convert.ToString(dr["Timezone"]);
-
-
             }
 
             if (_userdatacontract.UserID == null)
@@ -231,7 +166,6 @@ namespace CRES.DAL.Repository
             int count = hp.ExecNonquery("App.usp_UpdateUserCredentialByUserID", sqlparam);
             return count;
         }
-
         public UserDataContract getUserpwdfromemil(string emailid)
         {
             DataTable dt = new DataTable();
@@ -246,6 +180,7 @@ namespace CRES.DAL.Repository
             {
                 _userdatacontract.Login = Convert.ToString(dt.Rows[0]["Login"]);
                 _userdatacontract.Password = Convert.ToString(dt.Rows[0]["Password"]);
+                
             }
             return _userdatacontract;
 
@@ -300,6 +235,47 @@ namespace CRES.DAL.Repository
             DataTable dt = new DataTable();
             Helper.Helper hp = new Helper.Helper();
             dt = hp.ExecDataTable("App.usp_GetAllUsers");
+
+            List<UserDataContract> _userdatacontractlst = new List<UserDataContract>();
+
+            if (dt != null && dt.Rows.Count > 0)
+            {
+                foreach (DataRow dr in dt.Rows)
+                {
+                    UserDataContract _userdatacontract = new UserDataContract();
+                    if (Convert.ToString(dr["UserID"]) != "")
+                        _userdatacontract.UserID = new Guid(Convert.ToString(dr["UserID"]));
+                    _userdatacontract.FirstName = Convert.ToString(dr["FirstName"]);
+                    _userdatacontract.LastName = Convert.ToString(dr["LastName"]);
+                    _userdatacontract.Email = Convert.ToString(dr["Email"]);
+                    _userdatacontract.Login = Convert.ToString(dr["Login"]);
+                    _userdatacontract.Password = Convert.ToString(dr["Password"]);
+                    _userdatacontract.ExpirationDate = CommonHelper.ToDateTime(dr["ExpirationDate"]);
+                    _userdatacontract.StatusID = CommonHelper.ToInt32(dr["StatusID"]);
+                    _userdatacontract.RoleID = CommonHelper.ToGuid(dr["roleId"]);
+                    _userdatacontract.RoleName = Convert.ToString(dr["RoleName"]);
+                    _userdatacontract.CreatedBy = Convert.ToString(dr["CreatedBy"]);
+                    _userdatacontract.CreatedDate = CommonHelper.ToDateTime(dr["CreatedDate"]);
+                    _userdatacontract.UpdatedBy = Convert.ToString(dr["UpdatedBy"]);
+                    _userdatacontract.UpdatedDate = CommonHelper.ToDateTime(dr["UpdatedDate"]);
+                    _userdatacontract.Status = Convert.ToString(dr["Status"]);
+                    _userdatacontract.ContactNo1 = Convert.ToString(dr["ContactNo1"]);
+                    //_userdatacontract.UserToken = Convert.ToString(dr["UserToken"]);
+                    _userdatacontract.TimeZone = Convert.ToString(dr["TimeZone"]);
+
+                    _userdatacontractlst.Add(_userdatacontract);
+                }
+            }
+            return _userdatacontractlst;
+        }
+
+
+
+        public List<UserDataContract> GetUsersforAzureAD()
+        {
+            DataTable dt = new DataTable();
+            Helper.Helper hp = new Helper.Helper();
+            dt = hp.ExecDataTable("App.usp_GetAllUsersForAzureAD");
 
             List<UserDataContract> _userdatacontractlst = new List<UserDataContract>();
 
@@ -432,16 +408,11 @@ namespace CRES.DAL.Repository
 
             List<UserDataContract> _userdatacontractlst = new List<UserDataContract>();
             DataTable dt = new DataTable();
-
             Helper.Helper hp = new Helper.Helper();
-
             SqlParameter p1 = new SqlParameter { ParameterName = "@RoleName", Value = RoleName };
 
             SqlParameter[] sqlparam = new SqlParameter[] { p1 };
             dt = hp.ExecDataTable("App.usp_GetUsersByRoleName", sqlparam);
-
-            //  var userList = dbContext.usp_GetUsersByRoleName(RoleName);
-
             foreach (DataRow dr in dt.Rows)
             {
                 UserDataContract _userdatacontract = new UserDataContract();
@@ -460,6 +431,28 @@ namespace CRES.DAL.Repository
                 _userdatacontract.UpdatedBy = Convert.ToString(dr["UpdatedBy"]);
                 _userdatacontract.UpdatedDate = CommonHelper.ToDateTime(dr["UpdatedDate"]);
                 _userdatacontract.Status = Convert.ToString(dr["Status"]);
+                _userdatacontractlst.Add(_userdatacontract);
+            }
+
+            return _userdatacontractlst;
+        }
+
+        public List<UserDataContract> GetUsersInfoByRoleNameForDropDown(string RoleName)
+        {
+
+            List<UserDataContract> _userdatacontractlst = new List<UserDataContract>();
+            DataTable dt = new DataTable();
+            Helper.Helper hp = new Helper.Helper();
+            SqlParameter p1 = new SqlParameter { ParameterName = "@RoleName", Value = RoleName };
+
+            SqlParameter[] sqlparam = new SqlParameter[] { p1 };
+            dt = hp.ExecDataTable("App.usp_GetUsersInfoByRoleNameForDropDown", sqlparam);
+            foreach (DataRow dr in dt.Rows)
+            {
+                UserDataContract _userdatacontract = new UserDataContract();
+                _userdatacontract.UserID = new Guid(Convert.ToString(dr["UserID"]));
+                _userdatacontract.FirstName = Convert.ToString(dr["FirstName"]);
+                _userdatacontract.LastName = Convert.ToString(dr["LastName"]);
                 _userdatacontractlst.Add(_userdatacontract);
             }
 
@@ -609,6 +602,72 @@ namespace CRES.DAL.Repository
             var res = hp.ExecuteScalar("DBO.usp_CheckDuplicateIPAddress", sqlparam);
 
             return string.IsNullOrEmpty(Convert.ToString(res)) ? false : Convert.ToBoolean(res);
+        }
+
+
+        public bool AddNewUser(string? email, string? createdby)
+        {
+            try
+            {
+                Helper.Helper hp = new Helper.Helper();
+                SqlParameter p1 = new SqlParameter { ParameterName = "@email", Value = email };
+                SqlParameter p2 = new SqlParameter { ParameterName = "@CreatedBy", Value = createdby };
+
+                SqlParameter[] sqlparam = new SqlParameter[] { p1, p2 };
+                var res = hp.ExecNonquery("[App].[usp_AddViewerUser]", sqlparam);
+                return true;
+            }
+            catch (Exception)
+            {
+
+                throw;
+            }
+            
+        }
+
+
+        public bool checkIsUserActive(string UserID)
+        {
+            bool isUserActive = false;
+            Helper.Helper hp = new Helper.Helper();
+            SqlParameter p1 = new SqlParameter { ParameterName = "@UserID", Value = UserID };
+            SqlParameter[] sqlparam = new SqlParameter[] { p1};
+            var res = hp.ExecDataTable("[App].[CheckUserIsACtive]", sqlparam);
+            if (res.Rows.Count > 0)
+            {
+                if (res.Rows[0]["StatusID"].ToString() == "1")
+                    isUserActive=true;
+                else
+                    isUserActive = false;
+            }
+            return isUserActive;
+        }
+
+        public void UpdateDeviceCode(UserDataContract Userobj)
+        {
+            Helper.Helper hp = new Helper.Helper();
+            SqlParameter p1 = new SqlParameter { ParameterName = "@Login", Value = Userobj.Login };
+            SqlParameter p2 = new SqlParameter { ParameterName = "@DeviceCode", Value = Userobj.DeviceCode };
+            SqlParameter[] sqlparam = new SqlParameter[] { p1, p2 };
+            hp.ExecDataTable("App.usp_UpdateDeviceCodeByUser", sqlparam);
+        }
+
+        public string GetDeviceCode(UserDataContract Userobj)
+        {
+            string Response = "";
+            Helper.Helper hp = new Helper.Helper();
+            SqlParameter p1 = new SqlParameter { ParameterName = "@Login", Value = Userobj.Login };
+            SqlParameter p2 = new SqlParameter { ParameterName = "@DeviceCode", Value = Userobj.DeviceCode };
+            
+            SqlParameter[] sqlparam = new SqlParameter[] { p1 , p2};
+            DataTable dt = hp.ExecDataTable("App.usp_GetDeviceCodeByUser", sqlparam);
+
+            foreach (DataRow dr in dt.Rows)
+            {
+                Response = Convert.ToString(dr["Response"]);
+
+            }
+            return Response;
         }
     }
 }

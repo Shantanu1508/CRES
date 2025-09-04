@@ -1,4 +1,5 @@
-﻿Create PROCEDURE [dbo].[usp_SaveFeeInvoice]
+﻿
+Create PROCEDURE [dbo].[usp_SaveFeeInvoice]
 	(
 	@TableTypeFeeInvoice [TableTypeFeeInvoice] READONLY,
 	@UserID NVarchar(255)

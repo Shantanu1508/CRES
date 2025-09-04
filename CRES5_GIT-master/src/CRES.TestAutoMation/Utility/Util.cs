@@ -2,14 +2,16 @@
 using OpenQA.Selenium.Interactions;
 using OpenQA.Selenium.Support.UI;
 using System;
+using System.IO;
 using System.Threading;
 
 namespace CRES.TestAutoMation.Utility
 {
-    class Util
+   public class Util
     {
 
         private IWebDriver driver = null;
+        IAlert simpleAlert; 
         public Util(IWebDriver d)
         {
             driver = d;
@@ -23,7 +25,7 @@ namespace CRES.TestAutoMation.Utility
                 string screenshot = ss.AsBase64EncodedString;
                 byte[] screenshotAsByteArray = ss.AsByteArray;
                 string path = ProjectBaseConfiguration.ScreenShotFolder;
-                ss.SaveAsFile(path + imagename + "_" + GetTimestamp(DateTime.Now) + ".Png", OpenQA.Selenium.ScreenshotImageFormat.Png);
+                ss.SaveAsFile(path + imagename + "_" + GetTimestamp(DateTime.Now) + ".Png");
             }
         }
 
@@ -37,7 +39,11 @@ namespace CRES.TestAutoMation.Utility
                 string screenshot = ss.AsBase64EncodedString;
                 byte[] screenshotAsByteArray = ss.AsByteArray;
                 string path = ProjectBaseConfiguration.ScreenShotFolder;
-                ss.SaveAsFile(path + imagename + "_" + GetTimestamp(DateTime.Now) + ".Png", OpenQA.Selenium.ScreenshotImageFormat.Png);
+                if (!Directory.Exists(path))
+                {
+                    Directory.CreateDirectory(path);
+                }
+                ss.SaveAsFile(path + imagename + "_" + GetTimestamp(DateTime.Now) + ".Png");
             }
         }
 
@@ -53,7 +59,8 @@ namespace CRES.TestAutoMation.Utility
             WebDriverWait wait = new WebDriverWait(driver, System.TimeSpan.FromSeconds(30));
             IWebElement element = wait.Until(SeleniumExtras.WaitHelpers.ExpectedConditions.ElementIsVisible(locator));
             return element;
-        }
+        }       
+
         public IWebElement LongWaitForElementVisible(By locator)
         {
 
@@ -144,15 +151,14 @@ namespace CRES.TestAutoMation.Utility
 
         public void OpenUrl(string url)
         {
-                driver.Navigate().GoToUrl(url);
-            driver.Manage().Window.Maximize();
+             driver.Navigate().GoToUrl(url);
+            //driver.Manage().Window.Maximize();
         }
 
         public void OpenUrlMultiBrowser(string url, IWebDriver driver)
         {            
                 driver.Navigate().GoToUrl(url);
-                Console.WriteLine("\n OpenUrlMultiBrowser url = " + url);
-                driver.Manage().Window.Maximize();
+                Console.WriteLine(url);
                 Thread.Sleep(5000);
             }
 

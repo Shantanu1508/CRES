@@ -16,8 +16,9 @@
      [CreatedBy]             NVARCHAR (256)   NULL,
     [CreatedDate]           DATETIME         NULL,
     [UpdatedBy]             NVARCHAR (256)   NULL,
-    [UpdatedDate]           DATETIME ,
-    TransactionAuditLog_AutoID int IDENTITY(1,1)
+    [UpdatedDate]           DATETIME ,	
+    TransactionAuditLog_AutoID int IDENTITY(1,1),
+    CRENoteID 				NVARCHAR (256)   NULL,
 );
 
 go

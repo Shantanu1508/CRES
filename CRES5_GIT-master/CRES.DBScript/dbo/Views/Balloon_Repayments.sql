@@ -22,6 +22,7 @@ From [DW].[TransactionEntryBI] T
 Inner Join Dw.NoteBi n on N.Crenoteid = T.Crenoteid
 where AnalysisID = 'C10F3372-0FC2-4861-A9F5-148F1F80804F'
 and (type = 'Balloon' or( Type = 'FundingOrRepayment' and Amount>0) Or Type = 'ScheduledPrincipalPaid')
+and T.AccountTypeID = 1
 --and T.Crenoteid = 'Ritz Phtm A'
 group by T.Crenoteid,  T.NoteID
 --Select * from Dw.NoteBi

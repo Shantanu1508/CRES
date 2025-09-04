@@ -9,7 +9,7 @@ namespace CRES.DataContract
         public string StripTransferTo { get; set; }
 
         public string DealID { get; set; }
-
+         
 
         public decimal? Amount { get; set; }
         public decimal? Value { get; set; }

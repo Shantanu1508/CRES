@@ -1,4 +1,6 @@
-﻿namespace CRES.DAL
+﻿using System;
+
+namespace CRES.DAL
 {
     public class Class1
     {

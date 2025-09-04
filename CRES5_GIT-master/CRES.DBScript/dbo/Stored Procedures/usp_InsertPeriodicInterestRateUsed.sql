@@ -30,11 +30,12 @@ BEGIN
 			,AdditionalPIKinterestRatefromPIKTable
 			,AdditionalPIKSpreadfromPIKTable
 			,PIKIndexFloorfromPIKTable 
-           ,[AnalysisID]
+           ,[AnalysisID]		  
            ,[CreatedBy]
            ,[CreatedDate]
            ,[UpdatedBy]
-           ,[UpdatedDate]) 
+           ,[UpdatedDate]
+		    ,IsPaymentDate) 
 	 Select  
 		@NoteId  
 		,[Date]  
@@ -47,11 +48,12 @@ BEGIN
 		,AdditionalPIKinterestRatefromPIKTable
 		,AdditionalPIKSpreadfromPIKTable
 		,PIKIndexFloorfromPIKTable
-		,AnalysisID 
+		,AnalysisID		
 		,@CreatedBy  
 		,GETDATE()  
 		,@CreatedBy  
 		,GETDATE() 	 
+		,IsPaymentDate
 		FROM @TableTypeDailyInterest 
  
  END  

@@ -2,8 +2,10 @@
 using CRES.Utilities;
 using System;
 using System.Collections.Generic;
-using System.Data;
 using System.Linq;
+using System.Data;
+using System.Text;
+using System.Threading.Tasks;
 
 namespace CRES.NoteCalculator
 {
@@ -54,16 +56,16 @@ namespace CRES.NoteCalculator
 
 
                     Amort_EndDate = Amort_EndDate.AddMonths(-1);
-                    if (Amort_EndDate.Date != System.DateTime.MinValue)
+                    if (Amort_EndDate.Date != System.DateTime.MinValue) 
                     {
-                        if (Amort_StartDate.Date != System.DateTime.MinValue)
+                        if (Amort_StartDate.Date != System.DateTime.MinValue) 
                         {
                             Amort_EndDate = DateExtensions.CreateNewDate(Amort_EndDate.Year, Amort_EndDate.Month, Amort_StartDate.Day);
                         }
-
+                        
                     }
 
-
+                    
                     //  Amort_EndDate = Convert.ToDateTime(Amort_StartDate).AddMonths(Convert.ToInt32(max_AmortTerm));
 
                     //if (dealDC.amort.BusinessDayAdjustmentForAmortText == "Yes" || dealDC.amort.BusinessDayAdjustmentForAmort == 571)
@@ -148,7 +150,7 @@ namespace CRES.NoteCalculator
                                             if (dealDC.amort.BusinessDayAdjustmentForAmortText == "Yes" || dealDC.amort.BusinessDayAdjustmentForAmort == 571)
                                             {
                                                 DateTime dtnxtdate = DateExtensions.CreateNewDate(i.Year, i.Month, i.Day);
-                                                DateTime dt = DateExtensions.GetnextWorkingDays(dtnxtdate.AddDays(1), Convert.ToInt16(-1), "US", dealDC.ListHoliday).Date;
+                                                DateTime dt = DateExtensions.GetWorkingDayUsingOffset(dtnxtdate, Convert.ToInt16(-1), "US", dealDC.ListHoliday).Date;                                                
                                                 dr["Date"] = dt;
                                             }
                                             else
@@ -179,7 +181,8 @@ namespace CRES.NoteCalculator
                                             if (dealDC.amort.BusinessDayAdjustmentForAmortText == "Yes" || dealDC.amort.BusinessDayAdjustmentForAmort == 571)
                                             {
                                                 DateTime dtnxtdate = DateExtensions.CreateNewDate(i.Year, i.Month, i.Day);
-                                                DateTime dt = DateExtensions.GetnextWorkingDays(dtnxtdate.AddDays(1), Convert.ToInt16(-1), "US", dealDC.ListHoliday).Date;
+                                                DateTime dt = DateExtensions.GetWorkingDayUsingOffset(dtnxtdate, Convert.ToInt16(-1), "US", dealDC.ListHoliday).Date;
+
                                                 dr["Date"] = dt;
                                             }
                                             else
@@ -205,7 +208,7 @@ namespace CRES.NoteCalculator
                                         if (dealDC.amort.BusinessDayAdjustmentForAmortText == "Yes" || dealDC.amort.BusinessDayAdjustmentForAmort == 571)
                                         {
                                             DateTime dtnxtdate = DateExtensions.CreateNewDate(i.Year, i.Month, i.Day);
-                                            DateTime dt = DateExtensions.GetnextWorkingDays(dtnxtdate.AddDays(1), Convert.ToInt16(-1), "US", dealDC.ListHoliday).Date;
+                                            DateTime dt = DateExtensions.GetWorkingDayUsingOffset(dtnxtdate, Convert.ToInt16(-1), "US", dealDC.ListHoliday).Date;
                                             dr["Date"] = dt;
                                         }
                                         else
@@ -263,7 +266,7 @@ namespace CRES.NoteCalculator
                                 if (dealDC.amort.BusinessDayAdjustmentForAmortText == "Yes" || dealDC.amort.BusinessDayAdjustmentForAmort == 571)
                                 {
                                     DateTime dtnxtdate = DateExtensions.CreateNewDate(i.Year, i.Month, i.Day);
-                                    DateTime dt = DateExtensions.GetnextWorkingDays(dtnxtdate.AddDays(1), Convert.ToInt16(-1), "US", dealDC.ListHoliday).Date;
+                                    DateTime dt = DateExtensions.GetWorkingDayUsingOffset(dtnxtdate, Convert.ToInt16(-1), "US", dealDC.ListHoliday).Date;
                                     dr["Date"] = dt;
                                 }
                                 else
@@ -518,9 +521,7 @@ namespace CRES.NoteCalculator
             Decimal? sumFunding = 0, usedFunding = 0, totalFundingSequence = 0;
             minFundingSequence = 1;
 
-#pragma warning disable CS0219 // The variable 'arrFundingIndex' is assigned but its value is never used
             int arrFundingIndex = -1;
-#pragma warning restore CS0219 // The variable 'arrFundingIndex' is assigned but its value is never used
 
             if (dealDC.amort.NoteDistributionMethod == 636) //Distriution method - use payrules
             {
@@ -584,9 +585,7 @@ namespace CRES.NoteCalculator
                                 //var list = (from dw in dealDC.amort.NoteListForDealAmort orderby dw.Priority, dw.NoteAmortSchedleAmount, dw.CRENoteID, dw.Name where dw.UseRuletoDetermineAmortizationText == "Y" select dw).ToList(); //&& dw.NoteAmortSchedleAmount > 0
 
                                 usedFunding = 0;
-#pragma warning disable CS0219 // The variable '_cntLst' is assigned but its value is never used
                                 int _cntLst = 0;
-#pragma warning restore CS0219 // The variable '_cntLst' is assigned but its value is never used
                                 foreach (var lst in list)
                                 {
                                     //var _distributedAmount = Math.Round((decimal)(funding * lst.Ratio), 2);
@@ -916,9 +915,7 @@ namespace CRES.NoteCalculator
 
                 DateTime Amort_StartDate, Amort_EndDate, Amortdb_StartDate, Amortdb_EndDate;
                 DataTable datagen, StartEndDatedt;
-#pragma warning disable CS0168 // The variable 'min_InitialInterestAccrualEndDate' is declared but never used
                 DateTime? min_InitialInterestAccrualEndDate;// max_ActualPayoffDate, max_FullyExtendedMaturityDate, max_InitialMaturityDate;
-#pragma warning restore CS0168 // The variable 'min_InitialInterestAccrualEndDate' is declared but never used
 
                 int max_AmortTerm;
                 max_AmortTerm = lstnoteDC.Select(x => x.AmortTerm).Max().Value;
@@ -1380,8 +1377,8 @@ namespace CRES.NoteCalculator
                             }
 
                             //==ManageFundingAmountByCurtelment(data);
-                            //  CalculateRatio();
-                            GenerateAmort(data, lstNoteEndingBalance);
+                          //  CalculateRatio();
+                          GenerateAmort(data, lstNoteEndingBalance);
                             int row = 0;
                             //Subtract interest paid amount from distributed amount
                             foreach (DataRow dr in data.Rows)
@@ -1611,12 +1608,12 @@ namespace CRES.NoteCalculator
                     {
                         DateTime i = Convert.ToDateTime(dr["Date"]);
                         DateTime dtnxtdate = DateExtensions.CreateNewDate(i.Year, i.Month, i.Day);
-                        DateTime dat = DateExtensions.GetnextWorkingDays(dtnxtdate.AddDays(1), Convert.ToInt16(-1), "US", dealDC.ListHoliday).Date;
+                        DateTime dat = DateExtensions.GetWorkingDayUsingOffset(dtnxtdate, Convert.ToInt16(-1), "US", dealDC.ListHoliday).Date;
                         if (dat.Month == EndDate.Month && dat.Year == EndDate.Year)
                         {
                             DateTime ed = EndDate;
                             DateTime ednxtdate = DateExtensions.CreateNewDate(i.Year, i.Month, i.Day);
-                            DateTime Enddat = DateExtensions.GetnextWorkingDays(dtnxtdate.AddDays(1), Convert.ToInt16(-1), "US", dealDC.ListHoliday).Date;
+                            DateTime Enddat = DateExtensions.GetWorkingDayUsingOffset(ednxtdate, Convert.ToInt16(-1), "US", dealDC.ListHoliday).Date;
 
                             dr["Date"] = Enddat;
                         }
@@ -1628,7 +1625,7 @@ namespace CRES.NoteCalculator
                         count = 1;
                         DateTime std = Convert.ToDateTime(dr["Date"]);
                         DateTime sdnxtdate = DateExtensions.CreateNewDate(std.Year, std.Month, std.Day);
-                        DateTime stdat = DateExtensions.GetnextWorkingDays(sdnxtdate, Convert.ToInt16(1), "US", dealDC.ListHoliday).Date;
+                        DateTime stdat = DateExtensions.GetWorkingDayUsingOffset(sdnxtdate, Convert.ToInt16(-1), "US", dealDC.ListHoliday).Date;
                         dr["Date"] = stdat;
 
                     }

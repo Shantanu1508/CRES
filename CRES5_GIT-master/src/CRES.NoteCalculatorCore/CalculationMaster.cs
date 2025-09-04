@@ -1,4 +1,7 @@
 ﻿using CRES.DataContract;
+using CRES.Utilities;
+using OfficeOpenXml.FormulaParsing.Excel.Functions.DateTime;
+using OfficeOpenXml.FormulaParsing.Excel.Functions.Information;
 using System;
 using System.Collections.Generic;
 using System.Data;
@@ -15,9 +18,7 @@ namespace CRES.NoteCalculator
         #region Property
 
         private string CalculationTimeLog = "";
-#pragma warning disable CS0414 // The field 'CalculationMaster.notetype' is assigned but its value is never used
         private string notetype = "";
-#pragma warning restore CS0414 // The field 'CalculationMaster.notetype' is assigned but its value is never used
         private NoteDataContract noteDC = new NoteDataContract();
         private List<DateTime> cDailyDates = new List<DateTime>();
         public List<RateTab> ListRateTab = new List<RateTab>();
@@ -26,11 +27,13 @@ namespace CRES.NoteCalculator
         private List<UniqueDatesForCalcEngine> uniqueDateListFull = new List<UniqueDatesForCalcEngine>();
         private List<UniqueDatesForCalcEngine> uniqueDateList = new List<UniqueDatesForCalcEngine>();
         public List<BalanceTab> ListBalanceTab = new List<BalanceTab>();
+
         public List<CouponTab> ListCouponTab = new List<CouponTab>();
         public List<PIKInterestTab> ListPIKInterestTab = new List<PIKInterestTab>();
         public List<FinancingTab> ListFinancingTab = new List<FinancingTab>();
         public List<FinancingDrawsTab> ListFinancingDrawsTab = new List<FinancingDrawsTab>();
         private List<FutureFundingScheduleTab> ListFutureFundingScheduleTabLatest = new List<FutureFundingScheduleTab>();
+        private List<ServicingWatchListCalcDataContract> ListProjectedWritoffLatest = new List<ServicingWatchListCalcDataContract>();
         private List<PIKfromPIKSourceNoteTab> ListPIKfromPIKSourceNoteTabLatest = new List<PIKfromPIKSourceNoteTab>();
         private List<PIKSchedule> ListNotePIKScheduleLatest = new List<PIKSchedule>();
         private List<PrepayAndAdditionalFeeScheduleDataContract> ListNotePrepayAndAdditionalFeeScheduleLatest = new List<PrepayAndAdditionalFeeScheduleDataContract>();
@@ -38,7 +41,12 @@ namespace CRES.NoteCalculator
         public List<Transaction> ListTransaction = new List<Transaction>();
         public List<HolidayListDataContract> ListHoliday = new List<HolidayListDataContract>();
         public List<int> ListRemIoTerm = new List<int>();
-        private List<LiborScheduleTab> ListLiborScheduleTabLatest = new List<LiborScheduleTab>();
+        // Index Collections
+        //private List<LiborScheduleTab> ListLiborScheduleTabLatest = new List<LiborScheduleTab>();
+        private List<IndexScheduleDataContract> ListIndexScheduleTabLatest = new List<IndexScheduleDataContract>();
+        private List<IndexScheduleDataContract> ListLIB1MScheduleTabLatest = new List<IndexScheduleDataContract>();
+        private List<IndexScheduleDataContract> ListSOFRScheduleTabLatest = new List<IndexScheduleDataContract>();
+
         private List<InterestCalculatorDataContract> ListInterestCalculator = new List<InterestCalculatorDataContract>();
         private List<FixedAmortScheduleTab> ListFixedAmortScheduleTabLatest = new List<FixedAmortScheduleTab>();
         public List<GAAPBasisTab> ListGAAPBasisTab = new List<GAAPBasisTab>();
@@ -68,37 +76,32 @@ namespace CRES.NoteCalculator
         private List<YieldCalcInputDataContract> ListYieldCalcInput = new List<YieldCalcInputDataContract>();
 
         private List<DailyGAAPBasisComponentsDataContract> ListDailyGAAPBasisComponents = new List<DailyGAAPBasisComponentsDataContract>();
-
+        private IndexConfiguration IndexConfigurationLatest = new IndexConfiguration();
 
         private List<DateTime> AllNPVdate = new List<DateTime>();
         private List<Decimal> AllNPVvalue = new List<Decimal>();
         private List<Decimal> AllNPVnetFeeValue = new List<Decimal>();
         private List<Decimal> AllNPVactual = new List<Decimal>();
 
-        private Decimal? FinancingPeriodLeveredYield = 0;
+        private Decimal? FinancingPeriodLeveredYield = 0, BalloonRepayAmount = 0;
         private decimal stubint = 0;
-#pragma warning disable CS0414 // The field 'CalculationMaster.StubInterestAmountCalc' is assigned but its value is never used
         private decimal? StubInterestAmount = 0, StubInterestAmountCalc = 0, PurchasedStubInterest = 0, PurchasedStubInterestCalc = 0;
-#pragma warning restore CS0414 // The field 'CalculationMaster.StubInterestAmountCalc' is assigned but its value is never used
-#pragma warning disable CS0649 // Field 'CalculationMaster.LoanPurchaseAccuralStartDate' is never assigned to, and will always have its default value
-#pragma warning disable CS0169 // The field 'CalculationMaster.NonAdjustedSelectedMaturity' is never used
         private DateTime EffectveFirstCouponAccrualStartDate, LoanPurchaseAccuralStartDate, NonAdjustedSelectedMaturity;
-#pragma warning restore CS0169 // The field 'CalculationMaster.NonAdjustedSelectedMaturity' is never used
-#pragma warning restore CS0649 // Field 'CalculationMaster.LoanPurchaseAccuralStartDate' is never assigned to, and will always have its default value
         private DateTime? AccrualDate = DateTime.MinValue;
         private int FirstAccDayCount = 0, StubDayCount = 0, PurchasedAccDayCount = 0;
         private bool calulateTab = false, checkEffectiveDateCondition = false;
         private DateTime? prevAccEndDate, accEndDate, stubEndDate, firstPeriodStart;
         private decimal? CumCompPik, CumPikInt, CumPikAccrual, CumPikRelated;
         private decimal? initialFullMoInt = 0;
-#pragma warning disable CS0414 // The field 'CalculationMaster.pmtdroptag' is assigned but its value is never used
+        private decimal? EffectiverateonClosing = 0;
         private int pmtdroptag = 0;
-#pragma warning restore CS0414 // The field 'CalculationMaster.pmtdroptag' is assigned but its value is never used
+        decimal PIKInitBalance = 0;
         private int PIKIntCalcMethodOnHolidays = 0;
         string DisableBusinessDayAdjustmentText = "";
-
+        public bool GenerateOnMonthEnd = false;
         DateTime? SelectedMaturityDateLatest;
         DateTime? SelectedMaturityDateLatestNotBusDayAdjusted;
+        private List<TransactionEntry> ListCashflowTransactionEntryDeleted = new List<TransactionEntry>();
         #endregion Property
 
         public NoteDataContract StartCalculation(NoteDataContract noteobject)
@@ -115,6 +118,10 @@ namespace CRES.NoteCalculator
                     DisableBusinessDayAdjustmentText = noteDC.DefaultScenarioParameters.DisableBusinessDayAdjustmentText;
                 }
 
+                if (noteDC.PaymentDateBusinessDayLag == null)
+                {
+                    noteDC.PaymentDateBusinessDayLag = 0;
+                }
                 if (noteDC.ListHistoricalAccrual != null)
                 {
                     if (noteDC.ListHistoricalAccrual.Count > 0)
@@ -196,10 +203,22 @@ namespace CRES.NoteCalculator
             return resultNoteDC;
         }
 
+        public void GenerateDateAtMonthEnd()
+        {
+
+            if (LastDateOfMonth(noteDC.InitialInterestAccrualEndDate.Value.Date) == noteDC.InitialInterestAccrualEndDate)
+            {
+                GenerateOnMonthEnd = true;
+            }
+            else
+            {
+                GenerateOnMonthEnd = false;
+            }
+        }
         public void CashFlowEngineStart()
         {
+            GenerateDateAtMonthEnd();
             AddTimeToList("CashFlowEngineStart", "Started", DateTime.MinValue);
-
             foreach (RateSpreadSchedule rss in noteDC.RateSpreadScheduleList)
             {
                 if (rss.ValueTypeText == "Rate")
@@ -213,15 +232,22 @@ namespace CRES.NoteCalculator
             {
                 DateTime? effectDate = noteDC.MaturityScenariosList.Min(mat => mat.EffectiveDate);
                 SelectedMaturityDateLatestNotBusDayAdjusted = noteDC.MaturityScenariosList.Where(mat => mat.EffectiveDate == effectDate).ToList()[0].SelectedMaturityDate;
-                SelectedMaturityDateLatest = GetWorkingDayUsingOffset(Convert.ToDateTime(SelectedMaturityDateLatestNotBusDayAdjusted.Value.AddDays(1)), Convert.ToInt16(noteDC.PaymentDateBusinessDayLag), "");
+                SelectedMaturityDateLatest = GetWorkingDayUsingOffset(Convert.ToDateTime(SelectedMaturityDateLatestNotBusDayAdjusted.Value), Convert.ToInt16(noteDC.PaymentDateBusinessDayLag), "US");
             }
             else
-                SelectedMaturityDateLatest = GetWorkingDayUsingOffset(Convert.ToDateTime(noteDC.SelectedMaturityDate.Value.AddDays(1)), Convert.ToInt16(noteDC.PaymentDateBusinessDayLag), "");
+                SelectedMaturityDateLatest = GetWorkingDayUsingOffset(Convert.ToDateTime(noteDC.SelectedMaturityDate.Value), Convert.ToInt16(noteDC.PaymentDateBusinessDayLag), "US");
 
+            if (noteDC.RateSpreadScheduleList != null)
+            {
+                DateTime? effectDate = noteDC.RateSpreadScheduleList.Min(ff => ff.EffectiveDate);
+                ListRateSpreadScheduleLatest = noteDC.RateSpreadScheduleList.Where(ff => ff.EffectiveDate == effectDate).ToList();
+                ListLIB1MScheduleTabLatest = noteDC.ListIndices.Libor.Where(ff => ff.EffectiveDate == effectDate).ToList();
+                ListSOFRScheduleTabLatest = noteDC.ListIndices.SOFR.Where(ff => ff.EffectiveDate == effectDate).ToList();
+            }
 
-
+            SetGlobalIndexAndHolidayCalendar(noteDC.ClosingDate.Value.Date);
             PopulateLoanFeeSchedules();
-            GetUniqueDates(noteDC);
+            GetUniqueDates(noteDC); //This method invokes - CalculateDatesTab Procedure. (CalculateDatesTab is not called from RunNoteCalculation).
             CollectPIKInterestOverrides();
             //Check where any schedule equals to closing  or not for avoiding suitation of infinite loop
             if (uniqueDateList[0].UniqueDate == noteDC.ClosingDate)
@@ -237,7 +263,7 @@ namespace CRES.NoteCalculator
         {
             AddTimeToList("GetUniqueDates", "Started", DateTime.MinValue);
             CollectDates();
-            CalculateDatesTab(noteDC.ClosingDate, SelectedMaturityDateLatest);
+            CalculateDatesTab(noteDC.ClosingDate, SelectedMaturityDateLatest);  // Invokes GenerateInterestAccrualDates method to calculate Accrual End Date, Payment Date and Index Determination Dates.
             if (note.EffectiveDateList != null)
             {
                 //'Future Funding Schedule
@@ -287,6 +313,8 @@ namespace CRES.NoteCalculator
             CalculateUniqueDates(note.MaturityScenariosList, "EffectiveDate", "SelectedMaturityDate");
             //FeeCouponStripping
             CalculateUniqueDates(note.NoteStrippingList, "EffectiveDate", "FeeCouponStripping");
+            //ProjectedWritoff
+            CalculateUniqueDates(note.EffectiveDateList.Where(c => c.Type == "ProjectedWritoff"), "EffectiveDate", "ProjectedWritoff");
             //Modify list as per closing date uiqueDateList
             uniqueDateList = uniqueDateListFull.Where(checkDate => checkDate.UniqueDate >= noteDC.ClosingDate).ToList();
 
@@ -310,7 +338,9 @@ namespace CRES.NoteCalculator
             //Copy Latest date in schedules
             DateTime? effectDate = Convert.ToDateTime(uniqueDateList[0].UniqueDate);
             // DateTime? effectDate = noteDC.ListFutureFundingScheduleTab.Min(ff => ff.EffectiveDate);
-            ListLiborScheduleTabLatest = noteDC.ListLiborScheduleTab.Where(ff => ff.EffectiveDate == effectDate).ToList();
+            //ListLiborScheduleTabLatest = noteDC.ListLiborScheduleTab.Where(ff => ff.EffectiveDate == effectDate).ToList();
+
+
             if (calculationMode == "CF + GAAP Basis (Prospective)" || calculationMode == "Full Mode (Prospective)" || calculationMode == "CF + PV Basis (Prospective)")
             {
                 GetProspectiveModeSchedules(effectDate);
@@ -322,10 +352,15 @@ namespace CRES.NoteCalculator
                 ListFixedAmortScheduleTabLatest = noteDC.ListFixedAmortScheduleTab.Where(ff => ff.EffectiveDate == effectDate).ToList();
                 effectDate = noteDC.ListPIKfromPIKSourceNoteTab.Min(ff => ff.EffectiveDate);
                 ListPIKfromPIKSourceNoteTabLatest = noteDC.ListPIKfromPIKSourceNoteTab.Where(ff => ff.EffectiveDate == effectDate).ToList();
-                if (noteDC.RateSpreadScheduleList != null)
+                //if (noteDC.RateSpreadScheduleList != null)
+                //{
+                //    effectDate = noteDC.RateSpreadScheduleList.Min(ff => ff.EffectiveDate);
+                //    ListRateSpreadScheduleLatest = noteDC.RateSpreadScheduleList.Where(ff => ff.EffectiveDate == effectDate).ToList();
+                //}
+
+                if (noteDC.ListServicingWatchProjected != null)
                 {
-                    effectDate = noteDC.RateSpreadScheduleList.Min(ff => ff.EffectiveDate);
-                    ListRateSpreadScheduleLatest = noteDC.RateSpreadScheduleList.Where(ff => ff.EffectiveDate == effectDate).ToList();
+                    ListProjectedWritoffLatest = noteDC.ListServicingWatchProjected.Where(ff => ff.EffectiveDate == effectDate).ToList();
                 }
                 if (noteDC.NotePrepayAndAdditionalFeeScheduleList != null)
                 {
@@ -339,10 +374,14 @@ namespace CRES.NoteCalculator
                 }
                 if (noteDC.NotePIKScheduleList != null && noteDC.NotePIKScheduleList.Count > 0)
                 {
-                    if (noteDC.NotePIKScheduleList.Min(ff => ff.EffectiveDate) == noteDC.ClosingDate)
-                        ListNotePIKScheduleLatest = noteDC.NotePIKScheduleList.Where(ff => ff.EffectiveDate == noteDC.ClosingDate).ToList();
+                    if (noteDC.NotePIKScheduleList.Min(ff => ff.EffectiveDate) <= noteDC.ClosingDate)
+                    {
+                        DateTime? LastEffectiveDateOnOrBeforeClosingDate = noteDC.NotePIKScheduleList.Where(ff => ff.EffectiveDate <= noteDC.ClosingDate).Max(ff => ff.EffectiveDate);
+                        ListNotePIKScheduleLatest = noteDC.NotePIKScheduleList.Where(ff => ff.EffectiveDate == LastEffectiveDateOnOrBeforeClosingDate).ToList();
+                    }
                 }
             }
+
             RunNoteCalculation(Convert.ToDateTime(uniqueDateList[0].UniqueDate));
             switch (calculationMode)
             {
@@ -379,7 +418,6 @@ namespace CRES.NoteCalculator
             AddTimeToList("CaptureBalance", "Started", DateTime.MinValue);
             CaptureBalance();
             AddTimeToList("CaptureBalance", "Ended", DateTime.MinValue);
-            //CaptureInterestCalculator();
             AddTimeToList("GenerateCashflowTransaction", "Started", DateTime.MinValue);
 
             GenerateCashflowTransaction();
@@ -387,6 +425,7 @@ namespace CRES.NoteCalculator
             {
                 OverrideReconValuesInTransactions();
             }
+            GenerateRemainingUnfundedCommitment();
             AddTimeToList("GenerateCashflowTransaction", "Started", DateTime.MinValue);
 
             AddTimeToList("RunProspAcctg", "Ended", DateTime.MinValue);
@@ -396,40 +435,42 @@ namespace CRES.NoteCalculator
         }
         public void WriteTestDataToCSV()
         {
-            CreateCSVFile(ToDataSet(DailyAccrualCustomFee).Tables[0], noteDC.CRENoteID + "_DailyAccrualCustomFee");
-            CreateCSVFile(ToDataSet(ListFeeOutput).Tables[0], noteDC.CRENoteID + "_ListFeeOutput");
-            CreateCSVFile(ToDataSet(ListDatesTab).Tables[0], noteDC.CRENoteID + "_Dates");
-            CreateCSVFile(ToDataSet(ListRateTab).Tables[0], noteDC.CRENoteID + "_Rates");
-            CreateCSVFile(ToDataSet(ListFeesTab).Tables[0], noteDC.CRENoteID + "_Fees");
-            CreateCSVFile(ToDataSet(ListBalanceTab).Tables[0], noteDC.CRENoteID + "_Balance");
-            CreateCSVFile(ToDataSet(ListCouponTab).Tables[0], noteDC.CRENoteID + "_Coupon");
-            CreateCSVFile(ToDataSet(ListPIKInterestTab).Tables[0], noteDC.CRENoteID + "_PIKInterest");
-            CreateCSVFile(ToDataSet(ListGAAPBasisTab).Tables[0], noteDC.CRENoteID + "_GAAPBasisTab");
-            CreateCSVFile(ToDataSet(ListPVBasisTab).Tables[0], noteDC.CRENoteID + "_PVBasisTab");
-            CreateCSVFile(ToDataSet(ListSLBasisTab).Tables[0], noteDC.CRENoteID + "_SLBasisTab");
-            CreateCSVFile(ToDataSet(ListNotePeriodicOutputs).Tables[0], noteDC.CRENoteID + "_PeriodOutput");
-            CreateCSVFile(ToDataSet(noteDC.ListCashflowTransactionEntry).Tables[0], noteDC.CRENoteID + "_TransactionOutput");
-            CreateCSVFile(ToDataSet(ListSpreadandLibor).Tables[0], noteDC.CRENoteID + "_ListSpreadandLibor");
-            CreateCSVFile(ToDataSet(noteDC.ListCashflowTransactionEntry).Tables[0], noteDC.CRENoteID + "_ListCashflowTransactionEntry");
-            CreateCSVFile(ToDataSet(noteDC.ListFutureFundingScheduleTab).Tables[0], noteDC.CRENoteID + "_FundingSchedule");
+            //CreateCSVFile(ToDataSet(DailyAccrualCustomFee).Tables[0], noteDC.CRENoteID + "_DailyAccrualCustomFee");
+            //CreateCSVFile(ToDataSet(ListFeeOutput).Tables[0], noteDC.CRENoteID + "_ListFeeOutput");
+            //CreateCSVFile(ToDataSet(ListDatesTab).Tables[0], noteDC.CRENoteID + "_Dates");
+            //CreateCSVFile(ToDataSet(ListRateTab).Tables[0], noteDC.CRENoteID + "_Rates");
+            //CreateCSVFile(ToDataSet(ListFeesTab).Tables[0], noteDC.CRENoteID + "_Fees");
+            //CreateCSVFile(ToDataSet(ListBalanceTab).Tables[0], noteDC.CRENoteID + "_Balance");
+            //CreateCSVFile(ToDataSet(ListCouponTab).Tables[0], noteDC.CRENoteID + "_Coupon");
+            //CreateCSVFile(ToDataSet(ListPIKInterestTab).Tables[0], noteDC.CRENoteID + "_PIKInterest");
+            //CreateCSVFile(ToDataSet(ListGAAPBasisTab).Tables[0], noteDC.CRENoteID + "_GAAPBasisTab");
+            //CreateCSVFile(ToDataSet(ListNotePeriodicOutputs).Tables[0], noteDC.CRENoteID + "_PeriodOutput");
+            //CreateCSVFile(ToDataSet(noteDC.ListCashflowTransactionEntry).Tables[0], noteDC.CRENoteID + "_TransactionOutput");
+            //CreateCSVFile(ToDataSet(ListSpreadandLibor).Tables[0], noteDC.CRENoteID + "_ListSpreadandLibor");
+            //CreateCSVFile(ToDataSet(noteDC.ListFutureFundingScheduleTab).Tables[0], noteDC.CRENoteID + "_FundingSchedule");
 
+            //CreateCSVFile(ToDataSet(ListPVBasisTab).Tables[0], noteDC.CRENoteID + "_PVBasisTab");
+            //CreateCSVFile(ToDataSet(ListSLBasisTab).Tables[0], noteDC.CRENoteID + "_SLBasisTab");
+
+            //CreateCSVFile(CalculationTrace.ToDataSet(ListBalanceTab, trace.DefFeeCF).Tables[0], noteDC.CRENoteID + "_DefFeeCF");
             //CreateCSVFile(CalculationTrace.ToDataSet(ListBalanceTab, trace.BegBalanceCF).Tables[0], noteDC.CRENoteID + "_BegBalanceCF");
             //CreateCSVFile(CalculationTrace.ToDataSet(ListBalanceTab, trace.FutureAdvCF).Tables[0], noteDC.CRENoteID + "_FutureAdv");
             //CreateCSVFile(CalculationTrace.ToDataSet(ListBalanceTab, trace.CurtailmentsCF).Tables[0], noteDC.CRENoteID + "_CurtailmentsCF");
             //CreateCSVFile(CalculationTrace.ToDataSet(ListBalanceTab, trace.BalloonCF).Tables[0], noteDC.CRENoteID + "_BalloonCF");
             //CreateCSVFile(CalculationTrace.ToDataSet(ListBalanceTab, trace.BalanceCF).Tables[0], noteDC.CRENoteID + "_BalanceCF");
+            //CreateCSVFile(CalculationTrace.ToDataSet(ListBalanceTab, trace.EndBalanceCF).Tables[0], noteDC.CRENoteID + "_EndBalanceCF");
 
-            CreateCSVFile(ToDataSet(ListCalculatorTime).Tables[0], noteDC.CRENoteID + "_TimeLog");
-            CreateCSVFile(CalculationTrace.ToDataSet(ListBalanceTab, trace.FeeYieldCF).Tables[0], noteDC.CRENoteID + "_FeeYield");
-            CreateCSVFile(CalculationTrace.ToDataSet(ListBalanceTab, trace.FeeBasisCF).Tables[0], noteDC.CRENoteID + "_FeeBasis");
-            CreateCSVFile(CalculationTrace.ToDataSet(ListBalanceTab, trace.FeeAmort).Tables[0], noteDC.CRENoteID + "_FeeAmort");
-            CreateCSVFile(CalculationTrace.ToDataSet(ListBalanceTab, trace.DiscYieldCF).Tables[0], noteDC.CRENoteID + "_DiscYield");
-            CreateCSVFile(CalculationTrace.ToDataSet(ListBalanceTab, trace.DiscBasisCF).Tables[0], noteDC.CRENoteID + "_DiscBasis");
-            CreateCSVFile(CalculationTrace.ToDataSet(ListBalanceTab, trace.DiscAmort).Tables[0], noteDC.CRENoteID + "_DiscAmort");
-            CreateCSVFile(CalculationTrace.ToDataSet(ListBalanceTab, trace.LevelYieldCF).Tables[0], noteDC.CRENoteID + "_TraceLevelYieldCF");
-            CreateCSVFile(CalculationTrace.ToDataSet(ListBalanceTab, trace.LYBasisCF).Tables[0], noteDC.CRENoteID + "_TraceLYBasisCF");
-            CreateCSVFile(CalculationTrace.ToDataSet(ListBalanceTab, trace.SLTotalFeeCF).Tables[0], noteDC.CRENoteID + "_TraceSLTotalFeeCF");
-            CreateCSVFile(CalculationTrace.ToDataSet(ListBalanceTab, trace.SLBasisCF).Tables[0], noteDC.CRENoteID + "_TraceSLBasisCF");
+            //CreateCSVFile(ToDataSet(ListCalculatorTime).Tables[0], noteDC.CRENoteID + "_TimeLog");
+            //CreateCSVFile(CalculationTrace.ToDataSet(ListBalanceTab, trace.FeeYieldCF).Tables[0], noteDC.CRENoteID + "_FeeYield");
+            //CreateCSVFile(CalculationTrace.ToDataSet(ListBalanceTab, trace.FeeBasisCF).Tables[0], noteDC.CRENoteID + "_FeeBasis");
+            //CreateCSVFile(CalculationTrace.ToDataSet(ListBalanceTab, trace.FeeAmort).Tables[0], noteDC.CRENoteID + "_FeeAmort");
+            //CreateCSVFile(CalculationTrace.ToDataSet(ListBalanceTab, trace.DiscYieldCF).Tables[0], noteDC.CRENoteID + "_DiscYield");
+            //CreateCSVFile(CalculationTrace.ToDataSet(ListBalanceTab, trace.DiscBasisCF).Tables[0], noteDC.CRENoteID + "_DiscBasis");
+            //CreateCSVFile(CalculationTrace.ToDataSet(ListBalanceTab, trace.DiscAmort).Tables[0], noteDC.CRENoteID + "_DiscAmort");
+            //CreateCSVFile(CalculationTrace.ToDataSet(ListBalanceTab, trace.LevelYieldCF).Tables[0], noteDC.CRENoteID + "_TraceLevelYieldCF");
+            //CreateCSVFile(CalculationTrace.ToDataSet(ListBalanceTab, trace.LYBasisCF).Tables[0], noteDC.CRENoteID + "_TraceLYBasisCF");
+            //CreateCSVFile(CalculationTrace.ToDataSet(ListBalanceTab, trace.SLTotalFeeCF).Tables[0], noteDC.CRENoteID + "_TraceSLTotalFeeCF");
+            //CreateCSVFile(CalculationTrace.ToDataSet(ListBalanceTab, trace.SLBasisCF).Tables[0], noteDC.CRENoteID + "_TraceSLBasisCF");
         }
 
         public void RunNoteCalculation(DateTime effectiveDate) //DateTime uniqueDate
@@ -453,13 +494,13 @@ namespace CRES.NoteCalculator
                 //trace.CurtailmentsCF.Add(new ProspectiveCashflow(ListBalanceTab, effectiveDate, "Curtailments"));
                 //trace.BalloonCF.Add(new ProspectiveCashflow(ListBalanceTab, effectiveDate,"Balloon"));
                 //trace.BalanceCF.Add(new ProspectiveCashflow(ListBalanceTab, effectiveDate));
+                //trace.EndBalanceCF.Add(new ProspectiveCashflow(ListBalanceTab, effectiveDate, "EndingBalance"));
 #endif
                 AddTimeToList("CalculateBalanceTab", "Ended", effectiveDate);
 
                 AddTimeToList("CalculatFeesTab", "Started", effectiveDate);
                 CalculateFeesTab(effectiveDate);
                 AddTimeToList("CalculatFeesTab", "Ended", effectiveDate);
-
                 AddTimeToList("CalculateCouponTab", "Started", effectiveDate);
                 CalculateCouponTab(effectiveDate);
                 AddTimeToList("CalculateCouponTab", "Ended", effectiveDate);
@@ -472,12 +513,8 @@ namespace CRES.NoteCalculator
         public void CalculatePVBasis(string calculationMode)
         {
             int pvindex = 0, cfindex = 0, StartRow = 0, cpnndx = 0;
-#pragma warning disable CS0219 // The variable 'PrecapBasis' is assigned but its value is never used
-#pragma warning disable CS0219 // The variable 'AllInBasis' is assigned but its value is never used
             Decimal? PrecapYield = 0, AllInYield = 0, PrecapBasis = 0, AllInBasis = 0,
             DeferredFeeAmtLY = 0, DeferredFeeAmtAllIn = 0;
-#pragma warning restore CS0219 // The variable 'AllInBasis' is assigned but its value is never used
-#pragma warning restore CS0219 // The variable 'PrecapBasis' is assigned but its value is never used
             Decimal StubInterestCalc = 0, PurchInterestCalc = 0, DeltaBalance = 0;
 
             //Stub Interest Adjustment - 
@@ -582,7 +619,7 @@ namespace CRES.NoteCalculator
                 }
 #if (DEBUG)
                 //trace.LYBasisCF.Add(new ProspectiveCashflow(ListPVBasisTab, unique.UniqueDate, Decimal.ToDouble(PrecapYield.GetValueOrDefault()), "LevelYield"));
-                ////trace.PVAllInBasisCF.Add(new ProspectiveCashflow(ListPVBasisTab, unique.UniqueDate, Decimal.ToDouble(AllInYield.GetValueOrDefault()), "AllIn"));
+                //trace.PVAllInBasisCF.Add(new ProspectiveCashflow(ListPVBasisTab, unique.UniqueDate, Decimal.ToDouble(AllInYield.GetValueOrDefault()), "AllIn"));
                 //trace.SLTotalFeeCF.Add(new ProspectiveCashflow(ListSLBasisTab, unique.UniqueDate, 0, "FeeLY"));
                 //trace.SLBasisCF.Add(new ProspectiveCashflow(ListSLBasisTab, unique.UniqueDate, 0, "SLBasis"));
 #endif
@@ -591,14 +628,10 @@ namespace CRES.NoteCalculator
 
         public void CalculateSLBasis(DateTime? effectiveDate, string calculationMode)
         {
-#pragma warning disable CS0219 // The variable 'ndx' is assigned but its value is never used
             int ndx = 0, ndxAccumFees = 0, pvindex = 0;
-#pragma warning restore CS0219 // The variable 'ndx' is assigned but its value is never used
             Decimal? TotalFees = 0, AccumFees = 0, DateDiff = 0, FeeAmortized = 0;
             Decimal? SLAmortDiscount = 0, SLAmortCapCost = 0, SLAmortTotalFees = 0;
-#pragma warning disable CS0219 // The variable 'AccumSLAmort' is assigned but its value is never used
             decimal? AccumSLAmort = 0;
-#pragma warning restore CS0219 // The variable 'AccumSLAmort' is assigned but its value is never used
             bool includeprepaymentdate = false;
 
             includeprepaymentdate = noteDC.InterestCalculationRuleForPaydownsText == "Exclude Prepayment Date" ? false : true;
@@ -674,7 +707,24 @@ namespace CRES.NoteCalculator
                                   where chk.EffectiveDate == unique.UniqueDate
                                   select true).FirstOrDefault();
                 if (checkCondition == true)
+                {
+                    DateTime? prevSelectedMaturityDate = SelectedMaturityDateLatest;
                     ListRateSpreadScheduleLatest = noteDC.RateSpreadScheduleList.Where(ff => ff.EffectiveDate == unique.UniqueDate).ToList();
+                    ////If there is a change in Index - Update Global Index Vector and recalculate Index Determination Dates (since Holiday Calendar has changed).
+                    //if (SetGlobalIndexAndHolidayCalendar(unique.UniqueDate.Value.Date))
+                    //{
+                    //    //Index has changed a new Holiday Calendar is loaded. Set prevAccEndDate to the end date of the period of Index Change
+
+                    //    int dtndx = ListDatesTab.FindIndex(dt => (dt.InterestAccrualPeriodStartDateArray <= IndexConfigurationLatest.StartDate && dt.InterestAccrualPeriodEndDateArray >= IndexConfigurationLatest.StartDate));
+                    //    if (dtndx >= 0)
+                    //    {
+                    //        //CollectDates(prevSelectedMaturityDate.Value.Date, SelectedMaturityDateLatest.Value.Date);
+                    //        this.prevAccEndDate = ListDatesTab[dtndx].InterestAccrualPeriodEndDateArray;
+                    //        CalculateDatesTab(unique.UniqueDate, prevSelectedMaturityDate);
+                    //        PopulateTabDates(prevSelectedMaturityDate.Value.Date);
+                    //    }
+                    //}
+                }
 
                 checkCondition = (from chk in noteDC.ListFixedAmortScheduleTab
                                   where chk.EffectiveDate == unique.UniqueDate
@@ -706,6 +756,17 @@ namespace CRES.NoteCalculator
                 if (checkCondition == true)
                     ListNotePIKScheduleLatest = noteDC.NotePIKScheduleList.Where(ff => ff.EffectiveDate == unique.UniqueDate).ToList();
 
+                //ProjectedWritoffLatest
+                if (noteDC.ListServicingWatchProjected != null)
+                {
+                    checkCondition = (from chk in noteDC.ListServicingWatchProjected
+                                      where chk.EffectiveDate == unique.UniqueDate
+                                      select true).FirstOrDefault();
+                    if (checkCondition == true)
+                    {
+                        ListProjectedWritoffLatest = noteDC.ListServicingWatchProjected.Where(ff => ff.EffectiveDate == unique.UniqueDate).ToList();
+                    }
+                }
                 //Maturity Date - Use Non Holiday Adjusted date to check against NoteDC Maturity Date List.
                 checkCondition = (from chk in noteDC.MaturityScenariosList
                                   where chk.EffectiveDate == unique.UniqueDateNotAdj
@@ -714,7 +775,7 @@ namespace CRES.NoteCalculator
                 {
                     DateTime? prevSelectedMaturityDate = SelectedMaturityDateLatest;
                     SelectedMaturityDateLatestNotBusDayAdjusted = noteDC.MaturityScenariosList.Where(mat => mat.EffectiveDate == unique.UniqueDateNotAdj).ToList().FirstOrDefault().SelectedMaturityDate;
-                    SelectedMaturityDateLatest = GetWorkingDayUsingOffset(Convert.ToDateTime(SelectedMaturityDateLatestNotBusDayAdjusted.Value.AddDays(1)), Convert.ToInt16(noteDC.PaymentDateBusinessDayLag), "");
+                    SelectedMaturityDateLatest = GetWorkingDayUsingOffset(Convert.ToDateTime(SelectedMaturityDateLatestNotBusDayAdjusted.Value), Convert.ToInt16(noteDC.PaymentDateBusinessDayLag), "US");
                     if (SelectedMaturityDateLatest != prevSelectedMaturityDate)
                     {
                         CollectDates(prevSelectedMaturityDate.Value.Date, SelectedMaturityDateLatest.Value.Date);
@@ -775,6 +836,17 @@ namespace CRES.NoteCalculator
                 ListNotePIKScheduleLatest = noteDC.NotePIKScheduleList.Where(ff => ff.EffectiveDate == date).ToList();
             }
 
+            if (noteDC.ListServicingWatchProjected != null)
+            {
+                //'  Servicing Watch Projected
+                date = (from chk in noteDC.ListServicingWatchProjected
+                        select chk.EffectiveDate).Max();
+                if (date != null)
+                {
+                    ListProjectedWritoffLatest = noteDC.ListServicingWatchProjected.Where(ff => ff.EffectiveDate == date).ToList();
+                }
+            }
+
         }
         public void CalculateGapBasisTab(string calculationMode)
         {
@@ -799,7 +871,12 @@ namespace CRES.NoteCalculator
             double FeeAmortYield = 0, DiscountAmortYield = 0, ClosingCostAmortYield = 0, parYield = 0, allinyield = 0;
             DeferredFeeAmt = CalcDeferredFees(ListGAAPBasisTab[0].Date);
             OrigDeferredFeeAmt = DeferredFeeAmt;
+            if (InitialFunding == 0)
+            {
+                InitialFunding = 0.01m;
+            }
             ServicingOverride = noteDC.IncludeServicingPaymentOverrideinLevelYieldText;
+
             if (AccrualDate != null && AccrualDate != DateTime.MinValue && calculationMode != "CF + GAAP Basis (Inception)")
             {
                 ListIndex = 0;
@@ -840,8 +917,11 @@ namespace CRES.NoteCalculator
                     //  Net Principal In/Out Flow
                     if (ListIndex == 0)
                     {
-                        gaap.NetPrincipalInflowOutflow = -InitialFunding.GetValueOrDefault(0) - ListBalanceTab[ListIndex].FutureAdvancesFromFutureFundingSchedule.GetValueOrDefault(0)
-                          + ListBalanceTab[ListIndex].DiscretionaryCurtailmentsForThePeriod.GetValueOrDefault(0);
+                        gaap.NetPrincipalInflowOutflow = -InitialFunding.GetValueOrDefault(0)
+                            - ListBalanceTab[ListIndex].FutureAdvancesFromFutureFundingSchedule.GetValueOrDefault(0)
+                            - ListBalanceTab[ListIndex].DiscretionaryCurtailmentsForThePeriod.GetValueOrDefault(0)
+                            + ListBalanceTab[ListIndex].PrincipalPaid.GetValueOrDefault(0)
+                            - ListPIKInterestTab[ListIndex].PIKInterestPaidAppliedForThePeriod.GetValueOrDefault(0);
                     }
                     else
                     {
@@ -918,13 +998,17 @@ namespace CRES.NoteCalculator
 
                 FeeAmortYield = cXIRR(NGaapFee, NGaapdate, 0.005);
 #if (DEBUG)
-                trace.FeeYieldCF.Add(new ProspectiveCashflow(NGaapdate, NGaapFee, noteDC.ClosingDate, FeeAmortYield));
+                //trace.FeeYieldCF.Add(new ProspectiveCashflow(NGaapdate, NGaapFee, noteDC.ClosingDate, FeeAmortYield));
+                //trace.DefFeeCF.Add(new ProspectiveCashflow(ListBalanceTab, ListFeesTab, this.noteDC.InitialFundingAmount.GetValueOrDefault(0), noteDC.ClosingDate, FeeAmortYield));
 #endif
             }
             if (Premium != 0)
             {
                 AddToListYieldCalcInputList(NGaapDiscount, NGaapdate, "DiscountAmortYield", uniqueDateList[0].UniqueDate);
                 DiscountAmortYield = cXIRR(NGaapDiscount, NGaapdate, 0.005);
+#if (DEBUG)
+                //trace.DiscYieldCF.Add(new ProspectiveCashflow(NGaapdate, NGaapDiscount, noteDC.ClosingDate, DiscountAmortYield));
+#endif
             }
             if (CapCosts != 0)
             {
@@ -1047,6 +1131,9 @@ namespace CRES.NoteCalculator
 
                     cfcell = cfcell + 1;
                 }
+                //gaap.DeferredFeeLevelYield = Convert.ToDecimal(FeeAmortYield);
+                //gaap.DiscountPremiumLevelYield = Convert.ToDecimal(DiscountAmortYield);
+                //gaap.CapitalizedCostsLevelYield = Convert.ToDecimal(ClosingCostAmortYield);
                 gaap.DeferredFeeAccrualBasis = FeeAmortBasis;
                 gaap.DiscountPremiumAccrualBasis = DiscountAmortBasis;
                 gaap.CapitalizedCostsAccrualBasis = ClosingAmortBasis;
@@ -1057,10 +1144,10 @@ namespace CRES.NoteCalculator
             CalculateAmortLYIncome(Convert.ToDateTime(uniqueDateList[0].UniqueDate));
 
 #if (DEBUG)
-            trace.FeeBasisCF.Add(new ProspectiveCashflow(ListGAAPBasisTab, noteDC.ClosingDate, FeeAmortYield, "Fee"));
-            trace.DiscBasisCF.Add(new ProspectiveCashflow(ListGAAPBasisTab, noteDC.ClosingDate, DiscountAmortYield, "Discount"));
-            trace.FeeAmort.Add(new ProspectiveCashflow(ListGAAPBasisTab, noteDC.ClosingDate, FeeAmortYield, "FeeAmort"));
-            trace.DiscAmort.Add(new ProspectiveCashflow(ListGAAPBasisTab, noteDC.ClosingDate, DiscountAmortYield, "DiscAmort"));
+            //trace.FeeBasisCF.Add(new ProspectiveCashflow(ListGAAPBasisTab, noteDC.ClosingDate, FeeAmortYield, "Fee"));
+            //trace.DiscBasisCF.Add(new ProspectiveCashflow(ListGAAPBasisTab, noteDC.ClosingDate, DiscountAmortYield, "Discount"));
+            //trace.FeeAmort.Add(new ProspectiveCashflow(ListGAAPBasisTab, noteDC.ClosingDate, FeeAmortYield, "FeeAmort"));
+            //trace.DiscAmort.Add(new ProspectiveCashflow(ListGAAPBasisTab, noteDC.ClosingDate, DiscountAmortYield, "DiscAmort"));
 #endif
             if (calculationMode == "CF + GAAP Basis (Inception)" || calculationMode == "CF + PV Basis (Inception)" || calculationMode == "Cash Flow Only")
             {
@@ -1193,8 +1280,9 @@ namespace CRES.NoteCalculator
 
                     }
 #if (DEBUG)
-                    trace.FeeYieldCF.Add(new ProspectiveCashflow(NGaapdate, NGaapFee, unique.UniqueDate, FeeAmortYield));
-                    trace.DiscYieldCF.Add(new ProspectiveCashflow(NGaapdate, NGaapDiscount, unique.UniqueDate, DiscountAmortYield));
+                    //trace.DefFeeCF.Add(new ProspectiveCashflow(ListBalanceTab, ListFeesTab, this.noteDC.InitialFundingAmount.GetValueOrDefault(0), unique.UniqueDate, FeeAmortYield));
+                    //trace.FeeYieldCF.Add(new ProspectiveCashflow(NGaapdate, NGaapFee, unique.UniqueDate, FeeAmortYield));
+                    //trace.DiscYieldCF.Add(new ProspectiveCashflow(NGaapdate, NGaapDiscount, unique.UniqueDate, DiscountAmortYield));
 #endif
                     //Calculating Basis
                     index = 1;
@@ -1261,6 +1349,9 @@ namespace CRES.NoteCalculator
 
                                 cfcell = cfcell + 1;
                             }
+                            //gaap.DeferredFeeLevelYield = Convert.ToDecimal(FeeAmortYield);
+                            //gaap.DiscountPremiumLevelYield = Convert.ToDecimal(DiscountAmortYield);
+                            //gaap.CapitalizedCostsLevelYield = Convert.ToDecimal(ClosingCostAmortYield);
                             gaap.DeferredFeeAccrualBasis = FeeAmortBasis;
                             gaap.DiscountPremiumAccrualBasis = DiscountAmortBasis;
                             gaap.CapitalizedCostsAccrualBasis = ClosingAmortBasis;
@@ -1273,10 +1364,10 @@ namespace CRES.NoteCalculator
                     CalculateAmortLYIncome(Convert.ToDateTime(unique.UniqueDate));
 
 #if (DEBUG)
-                    trace.FeeBasisCF.Add(new ProspectiveCashflow(this.ListGAAPBasisTab, unique.UniqueDate, FeeAmortYield, "Fee"));
-                    trace.DiscBasisCF.Add(new ProspectiveCashflow(this.ListGAAPBasisTab, unique.UniqueDate, DiscountAmortYield, "Discount"));
-                    trace.FeeAmort.Add(new ProspectiveCashflow(ListGAAPBasisTab, unique.UniqueDate, FeeAmortYield, "FeeAmort"));
-                    trace.DiscAmort.Add(new ProspectiveCashflow(ListGAAPBasisTab, unique.UniqueDate, DiscountAmortYield, "DiscAmort"));
+                    //trace.FeeBasisCF.Add(new ProspectiveCashflow(this.ListGAAPBasisTab, unique.UniqueDate, FeeAmortYield, "Fee"));
+                    //trace.DiscBasisCF.Add(new ProspectiveCashflow(this.ListGAAPBasisTab, unique.UniqueDate, DiscountAmortYield, "Discount"));
+                    //trace.FeeAmort.Add(new ProspectiveCashflow(ListGAAPBasisTab, unique.UniqueDate, FeeAmortYield, "FeeAmort"));
+                    //trace.DiscAmort.Add(new ProspectiveCashflow(ListGAAPBasisTab, unique.UniqueDate, DiscountAmortYield, "DiscAmort"));
 #endif
                 }
             }
@@ -1307,15 +1398,18 @@ namespace CRES.NoteCalculator
             return feeamt;
         }
 
+        #region Dates
+        // GenerateInterestAccrualDates Method is called from CalculateDatesTab which is invoked multiple times - 
+        // a) StartCalculation b)Whenever Index Type changes c) Maturity Scenario changes
+        //
         public void GenerateInterestAccrualDates(DateTime? effectivedate, DateTime? prevMaturityDate)
         {
             int accYear, accMonth, initialDay, listIndex, accFreq, relativeMo, refday, leaddays, accDay, pmtAccYear, pmtAccMo, payFreq, bdayLag;
-            int? pmtDayMo, pmtAccDay;
-            DateTime initialDate, finalDate, refDate, firstResetDate, firstPmtDate;
+            int? pmtDayOfMonth, pmtAccDay;
+            DateTime initialDate, finalDate, refDate, firstResetDate, firstPmtDate, pmtDate;
             DateTime? PeriodStartDate;
-#pragma warning disable CS0219 // The variable 'dailyStep' is assigned but its value is never used
             decimal dailyStep = 0, indexResetFreq;
-#pragma warning restore CS0219 // The variable 'dailyStep' is assigned but its value is never used
+            Tuple<string, string> Index_Holiday;
             initialDate = Convert.ToDateTime(noteDC.InitialInterestAccrualEndDate);
             int bdaylagpmtdropdate = noteDC.BusinessdaylafrelativetoPMTDate.GetValueOrDefault(0);
             int daymopmtdropdate = noteDC.DayoftheMonth.GetValueOrDefault(0);
@@ -1333,14 +1427,17 @@ namespace CRES.NoteCalculator
             relativeMo = Convert.ToInt16(noteDC.DeterminationDateInterestAccrualPeriod);
             refday = Convert.ToInt16(noteDC.DeterminationDateReferenceDayoftheMonth);
             leaddays = Convert.ToInt16(noteDC.DeterminationDateLeadDays);
-            firstResetDate = Convert.ToDateTime(BusinessDayAdjustment(Convert.ToDateTime(noteDC.FirstRateIndexResetDate), "Index Date", 0));
+            Index_Holiday = new Tuple<string, string>(IndexConfigurationLatest.IndexName, IndexConfigurationLatest.HolidayCalendar);    //GetIndexAndHolidayTypeFromShedule(noteDC.ClosingDate.Value.Date);
+
+            firstResetDate = Convert.ToDateTime(GetWorkingDayUsingOffset(Convert.ToDateTime(noteDC.FirstIndexDeterminationDateOverride), 0, Index_Holiday.Item2));
 
             indexResetFreq = noteDC.RateIndexResetFreq.GetValueOrDefault(0);
-            pmtDayMo = noteDC.AccrualPeriodPaymentDayWhenNotEOMonth.GetValueOrDefault(0);
+            pmtDayOfMonth = noteDC.AccrualPeriodPaymentDayWhenNotEOMonth.GetValueOrDefault(0);
             payFreq = Convert.ToInt16(noteDC.PayFrequency);
-            firstPmtDate = Convert.ToDateTime(BusinessDayAdjustment(Convert.ToDateTime(noteDC.FirstPaymentDate), "PMT Date", null));
+            firstPmtDate = Convert.ToDateTime(GetWorkingDayUsingOffset(Convert.ToDateTime(noteDC.FirstPaymentDate), Convert.ToInt16(noteDC.PaymentDateBusinessDayLag), "US"));
             bdayLag = Convert.ToInt16(noteDC.PaymentDateBusinessDayLag);
             initialDay = initialDate.Day;
+            //ListRemIoTerm.Clear();
 
             if (effectivedate == noteDC.ClosingDate)
             {
@@ -1348,7 +1445,7 @@ namespace CRES.NoteCalculator
 
                 if (noteDC.StubPaidinAdvanceYNText == "Y")
                 {
-                    interestAccrualDates.InterestAccrualPeriodEndDates = CreateNewDate(initialDate.Year, initialDate.Month - accFreq, initialDate.Day);
+                    interestAccrualDates.InterestAccrualPeriodEndDates = CreateNewDate(initialDate.Year, initialDate.Month - accFreq, initialDate.Day, GenerateOnMonthEnd);
                 }
                 else
                 {
@@ -1358,7 +1455,7 @@ namespace CRES.NoteCalculator
                 interestAccrualDates.InterestAccrualPeriodStartDates = Convert.ToDateTime(noteDC.ClosingDate);
                 interestAccrualDates.NumofDaysinAccrualPeriod = (Convert.ToInt32((interestAccrualDates.InterestAccrualPeriodEndDates.Value - interestAccrualDates.InterestAccrualPeriodStartDates.Value).TotalDays) + 1);
                 interestAccrualDates.IndexReferenceDateNotAdjusted = Convert.ToDateTime(noteDC.ClosingDate);
-                interestAccrualDates.IndexReferenceDateAdjusted = Convert.ToDateTime(noteDC.ClosingDate);
+                interestAccrualDates.IndexReferenceDateAdjusted = GetWorkingDayUsingOffset(noteDC.ClosingDate.Value.Date, Convert.ToInt16(noteDC.DeterminationDateLeadDays), IndexConfigurationLatest.HolidayCalendar, true);
                 interestAccrualDates.RateIndexResetTag = 1;
                 if (noteDC.IOTerm > 0)
                 {
@@ -1370,21 +1467,34 @@ namespace CRES.NoteCalculator
                 }
                 pmtAccYear = interestAccrualDates.InterestAccrualPeriodEndDates.Value.Year;
                 pmtAccMo = interestAccrualDates.InterestAccrualPeriodEndDates.Value.Month;
-
-                if (pmtDayMo == null || pmtDayMo == 0)
-
-                    // pmtAccDay = initialDate.AddDays(1).Day;
-                    pmtAccDay = interestAccrualDates.InterestAccrualPeriodEndDates.Value.Day + 1;
-                else
-                    pmtAccDay = pmtDayMo;
+                pmtAccDay = interestAccrualDates.InterestAccrualPeriodEndDates.Value.Day + 1;
                 interestAccrualDates.PMTDateNotAdjustedBusinessDay = CreateNewDate(pmtAccYear, pmtAccMo, Convert.ToInt32(pmtAccDay));
+                //Override for Payment Day of the Month
+                if (pmtDayOfMonth != 0)
+                {
+                    pmtAccDay = pmtDayOfMonth;
+                    pmtDate = CreateNewDate(pmtAccYear, pmtAccMo, Convert.ToInt32(pmtAccDay));
+                    // Case when the Accrual End Dates are on EOM
+                    //if (pmtDate < interestAccrualDates.InterestAccrualPeriodEndDates)
+                    //{
+                    //    interestAccrualDates.PMTDateNotAdjustedBusinessDay = CreateNewDate(pmtAccYear, pmtAccMo + 1, Convert.ToInt32(pmtAccDay));
+                    //    pmtAccYear = interestAccrualDates.PMTDateNotAdjustedBusinessDay.Value.Year;
+                    //    pmtAccMo = interestAccrualDates.PMTDateNotAdjustedBusinessDay.Value.Month;
+                    //    pmtAccDay = interestAccrualDates.PMTDateNotAdjustedBusinessDay.Value.Day;
+
+                    //}
+                    //else
+                    //    interestAccrualDates.PMTDateNotAdjustedBusinessDay = CreateNewDate(pmtAccYear, pmtAccMo, Convert.ToInt32(pmtAccDay));
+                    interestAccrualDates.PMTDateNotAdjustedBusinessDay = CreateNewDate(pmtAccYear, pmtAccMo, Convert.ToInt32(pmtAccDay));
+                }
+
                 if (daymopmtdropdate != 0)
                 {
                     interestAccrualDates.ModeledPMTDropDate = CreateNewDate(pmtAccYear, pmtAccMo - 1, daymopmtdropdate);
                 }
                 else
                 {
-                    interestAccrualDates.ModeledPMTDropDate = GetnextWorkingDays(Convert.ToDateTime(interestAccrualDates.PMTDateNotAdjustedBusinessDay), daymopmtdropdate, DisableBusinessDayAdjustmentText);
+                    interestAccrualDates.ModeledPMTDropDate = GetWorkingDayUsingOffset(Convert.ToDateTime(interestAccrualDates.PMTDateNotAdjustedBusinessDay), daymopmtdropdate, "US");
                 }
 
                 if (interestAccrualDates.InterestAccrualPeriodEndDates.Value.AddDays(1) == firstPmtDate)
@@ -1402,10 +1512,9 @@ namespace CRES.NoteCalculator
                 pmtAccYear = interestAccrualDates.PMTDateNotAdjustedBusinessDay.Value.Year;
                 pmtAccMo = interestAccrualDates.PMTDateNotAdjustedBusinessDay.Value.Month + interestAccrualDates.PayAccFreqTag.Value;
                 pmtAccDay = interestAccrualDates.PMTDateNotAdjustedBusinessDay.Value.Day;
-                interestAccrualDates.PMTDateAccuralPeriodAdjusted = GetnextWorkingDays(CreateNewDate(pmtAccYear, pmtAccMo, Convert.ToInt32(pmtAccDay)).AddDays(1), bdayLag, DisableBusinessDayAdjustmentText);
-                //interestAccrualDates.PMTDateWorkingDayAdjusted = GetPrevWorkingDay(new DateTime(pmtAccYear, pmtAccMo, Convert.ToInt32(pmtAccDay)));
-                //interestAccrualDates.PMTDateWorkingDayAdjusted = BusinessDayAdjustment(interestAccrualDates.PMTDateNotAdjustedBusinessDay.Value, "PMT Date", null);
-                interestAccrualDates.PMTDateWorkingDayAdjusted = GetWorkingDayUsingOffset(Convert.ToDateTime(interestAccrualDates.PMTDateNotAdjustedBusinessDay.Value.AddDays(1)), Convert.ToInt16(bdayLag), "PMT Date");
+                interestAccrualDates.PMTDateAccuralPeriodAdjusted = GetWorkingDayUsingOffset(CreateNewDate(pmtAccYear, pmtAccMo, Convert.ToInt32(pmtAccDay)), bdayLag, "US");
+
+                interestAccrualDates.PMTDateWorkingDayAdjusted = GetWorkingDayUsingOffset(Convert.ToDateTime(interestAccrualDates.PMTDateNotAdjustedBusinessDay.Value), Convert.ToInt16(bdayLag), "US");
                 ListInterestAccrualDates.Add(interestAccrualDates);
                 listIndex = 0;
             }
@@ -1415,6 +1524,11 @@ namespace CRES.NoteCalculator
                     listIndex = Math.Max(0, ListInterestAccrualDates.FindIndex(acc => acc.InterestAccrualPeriodEndDates == prevAccEndDate) - 1);
                 else
                     listIndex = Math.Max(0, ListInterestAccrualDates.FindIndex(acc => acc.InterestAccrualPeriodEndDates == finalDate) - 2);
+                ListRemIoTerm.Clear();
+                if (noteDC.IOTerm > 0)
+                    ListRemIoTerm.AddRange(Enumerable.Range(Convert.ToInt32(noteDC.IOTerm) - listIndex + 1, listIndex + 1).Select(i => Math.Max(i, 0)).Reverse());
+                else
+                    ListRemIoTerm.AddRange(Enumerable.Range(Convert.ToInt32(noteDC.IOTerm) - listIndex + 1, listIndex + 1).Select(i => i * 0));
             }
 
             while (ListInterestAccrualDates[listIndex].InterestAccrualPeriodEndDates < finalDate)
@@ -1428,6 +1542,7 @@ namespace CRES.NoteCalculator
                 {
                     accYear = ListInterestAccrualDates[listIndex].InterestAccrualPeriodEndDates.Value.Year;
                     accMonth = ListInterestAccrualDates[listIndex].InterestAccrualPeriodEndDates.Value.Month + accFreq;
+                    //pmtDate = ListInterestAccrualDates[listIndex].PMTDateNotAdjustedBusinessDay.Value.AddMonths(accFreq);
                     pmtAccYear = ListInterestAccrualDates[listIndex].PMTDateNotAdjustedBusinessDay.Value.Year;
                     pmtAccMo = ListInterestAccrualDates[listIndex].PMTDateNotAdjustedBusinessDay.Value.Month + accFreq;
 
@@ -1450,10 +1565,10 @@ namespace CRES.NoteCalculator
                     else
                         accDay = initialDay;
 
-                    if (pmtDayMo == null || pmtDayMo == 0)
+                    if (pmtDayOfMonth == null || pmtDayOfMonth == 0)
                         pmtAccDay = ListInterestAccrualDates[listIndex].PMTDateNotAdjustedBusinessDay.Value.Day;
                     else
-                        pmtAccDay = pmtDayMo;
+                        pmtAccDay = pmtDayOfMonth;
                 }
                 else
                 {
@@ -1466,8 +1581,7 @@ namespace CRES.NoteCalculator
                 NewinterestAccrualDates.InterestAccrualPeriodStartDates = (ListInterestAccrualDates[listIndex].InterestAccrualPeriodEndDates.Value).AddDays(1);
                 NewinterestAccrualDates.NumofDaysinAccrualPeriod = Convert.ToInt32((NewinterestAccrualDates.InterestAccrualPeriodEndDates.Value - NewinterestAccrualDates.InterestAccrualPeriodStartDates.Value).TotalDays) + 1;
 
-                PeriodStartDate = BusinessDayAdjustment(Convert.ToDateTime(NewinterestAccrualDates.InterestAccrualPeriodStartDates), "PMT Date", null);
-
+                PeriodStartDate = GetWorkingDayUsingOffset(Convert.ToDateTime(NewinterestAccrualDates.InterestAccrualPeriodStartDates), Convert.ToInt16(-1), "US", true);
                 if (refday == 0)
                 {
                     refDate = CreateNewDate(PeriodStartDate.Value.Year, PeriodStartDate.Value.Month + relativeMo, PeriodStartDate.Value.Day);// + leaddays);
@@ -1476,8 +1590,8 @@ namespace CRES.NoteCalculator
                 {
                     refDate = CreateNewDate(PeriodStartDate.Value.Year, PeriodStartDate.Value.Month + relativeMo, refday);
                 }
-
-                NewinterestAccrualDates.IndexReferenceDateNotAdjusted = BusinessDayAdjustment(refDate, "Index Date", leaddays);
+                Index_Holiday = new Tuple<string, string>(IndexConfigurationLatest.IndexName, IndexConfigurationLatest.HolidayCalendar);
+                NewinterestAccrualDates.IndexReferenceDateNotAdjusted = GetWorkingDayUsingOffset(refDate, leaddays, Index_Holiday.Item2, true);
                 if (NewinterestAccrualDates.NumofDaysinAccrualPeriod > 27)
                 {
                     ListRemIoTerm.Add(Math.Max(0, ListRemIoTerm[listIndex] - 1));
@@ -1533,7 +1647,7 @@ namespace CRES.NoteCalculator
                 }
                 else
                 {
-                    NewinterestAccrualDates.ModeledPMTDropDate = GetnextWorkingDays(Convert.ToDateTime(NewinterestAccrualDates.PMTDateNotAdjustedBusinessDay), daymopmtdropdate, DisableBusinessDayAdjustmentText);
+                    NewinterestAccrualDates.ModeledPMTDropDate = GetWorkingDayUsingOffset(Convert.ToDateTime(NewinterestAccrualDates.PMTDateNotAdjustedBusinessDay), daymopmtdropdate, "US");
                 }
 
                 if (NewinterestAccrualDates.InterestAccrualPeriodEndDates.Value.AddDays(1) == firstPmtDate)
@@ -1567,13 +1681,12 @@ namespace CRES.NoteCalculator
                 pmtAccYear = NewinterestAccrualDates.PMTDateNotAdjustedBusinessDay.Value.Year;
                 pmtAccMo = NewinterestAccrualDates.PMTDateNotAdjustedBusinessDay.Value.Month + NewinterestAccrualDates.PayAccFreqTag.GetValueOrDefault(0);
                 pmtAccDay = NewinterestAccrualDates.PMTDateNotAdjustedBusinessDay.Value.Day;
-                NewinterestAccrualDates.PMTDateAccuralPeriodAdjusted = GetMinDate(SelectedMaturityDateLatest.Value, GetnextWorkingDays(CreateNewDate(pmtAccYear, pmtAccMo, Convert.ToInt32(pmtAccDay)).AddDays(1), bdayLag, DisableBusinessDayAdjustmentText));
-                NewinterestAccrualDates.PMTDateWorkingDayAdjusted = GetMinDate(SelectedMaturityDateLatest.Value, GetWorkingDayUsingOffset(Convert.ToDateTime(NewinterestAccrualDates.PMTDateNotAdjustedBusinessDay.Value.AddDays(1)), Convert.ToInt16(bdayLag), "PMT Date"));
+                NewinterestAccrualDates.PMTDateAccuralPeriodAdjusted = GetMinDate(SelectedMaturityDateLatest.Value, GetWorkingDayUsingOffset(CreateNewDate(pmtAccYear, pmtAccMo, Convert.ToInt32(pmtAccDay)), bdayLag, "US"));
+                NewinterestAccrualDates.PMTDateWorkingDayAdjusted = GetMinDate(SelectedMaturityDateLatest.Value, GetWorkingDayUsingOffset(Convert.ToDateTime(NewinterestAccrualDates.PMTDateNotAdjustedBusinessDay.Value), Convert.ToInt16(bdayLag), "US"));
                 InsertUpdateAccrualDate(NewinterestAccrualDates);
                 listIndex = listIndex + 1;
             }
         }
-
         private void InsertUpdateAccrualDate(InterestAccrualDates accrualDates)
         {
             int ndx = 0;
@@ -1598,6 +1711,17 @@ namespace CRES.NoteCalculator
             int lastDayOfMonth = DateTime.DaysInMonth(year, month);
             return new DateTime(year, month, lastDayOfMonth);
         }
+        private void InsertUpdateDates(DatesTab dates)
+        {
+            int ndx = 0;
+            ndx = ListDatesTab.FindIndex(dt => dt.InterestAccrualPeriodEndDateArray == dates.InterestAccrualPeriodEndDateArray);
+            if (ndx >= 0)
+                ListDatesTab[ndx] = dates;
+            else
+                ListDatesTab.Add(dates);
+        }
+
+        #endregion Dates
 
         public void CalculateDatesTab(DateTime? effectivedate, DateTime? prevMaturityDate)
         {
@@ -1646,56 +1770,60 @@ namespace CRES.NoteCalculator
                 {
                     datesTab.PMTDropDateUsed = ListInterestAccrualDates[listIndex].ModeledPMTDropDate;
                 }
-                datesTab.RemIoTerm = ListRemIoTerm[listIndex];
+                datesTab.RemIoTerm = listIndex > ListRemIoTerm.Count - 1 ? 0 : ListRemIoTerm[listIndex];
                 InsertUpdateDates(datesTab);
                 listIndex = listIndex + 1;
             }
+
+
         }
-        private void InsertUpdateDates(DatesTab dates)
-        {
-            int ndx = 0;
-            ndx = ListDatesTab.FindIndex(dt => dt.InterestAccrualPeriodEndDateArray == dates.InterestAccrualPeriodEndDateArray);
-            if (ndx >= 0)
-                ListDatesTab[ndx] = dates;
-            else
-                ListDatesTab.Add(dates);
-        }
+
         public void CalculateRatesTab(DateTime effectiveDate)
         {
             DateTime? RateDate, IntAccStartDate = null;
-            DateTime ClosingDate, firstResetDate, IndexLookupDate;
-            decimal? mostrecentlibor = 0;
+            DateTime ClosingDate, IndexLookupDateForClosingDate, firstResetDate, IndexLookupDate;
+            decimal? mostrecentlibor = 0, InitialIndexValueOverride = 0;
             int listIndex = 0;
             int RoundOff = 12;
             decimal? indexCap = 0, indexFloor = 0;
+            Tuple<string, string> IndexHoliday;
             ClosingDate = Convert.ToDateTime(noteDC.ClosingDate);
             indexCap = GetValueFromCouponSchedule("Index Cap", ClosingDate);
             indexFloor = GetValueFromCouponSchedule("Index Floor", ClosingDate);
-#pragma warning disable CS0219 // The variable 'RateSpreadScheduleList' is assigned but its value is never used
-            List<RateSpreadSchedule> RateSpreadScheduleList = null;
-#pragma warning restore CS0219 // The variable 'RateSpreadScheduleList' is assigned but its value is never used
-            if (indexCap == 0)
-            {
-                indexCap = 100;
-            }
-
+            IndexHoliday = GetIndexAndHolidayTypeFromShedule(ClosingDate);
+            indexCap = indexCap == 0 ? 100 : indexCap;
+            RateDate = ListRateTab.Count > 0 ? ListRateTab[0].rateDate : null;
             if (noteDC.IndexRoundingRule != null && noteDC.IndexRoundingRule != 0)
                 RoundOff = (noteDC.IndexRoundingRule).ToString().Length - 1 + 2;
-            if (ListRateTab.Count > 0)
-                RateDate = ListRateTab[0].rateDate;
-            else
-                RateDate = null;
-            firstResetDate = Convert.ToDateTime(noteDC.FirstRateIndexResetDate);
-            IndexLookupDate = firstResetDate;
-            if (ListInterestAccrualDates.Count > 1)
+            IndexLookupDateForClosingDate = GetWorkingDayUsingOffset(ClosingDate, Convert.ToInt16(noteDC.DeterminationDateLeadDays), IndexConfigurationLatest.HolidayCalendar, true);
+            InitialIndexValueOverride = noteDC.InitialIndexValueOverride == null ? IndexRoundingBasedOnRule(GetMostRecentIndexValue(IndexLookupDateForClosingDate)) : noteDC.InitialIndexValueOverride;
+            //Combining First rate index reset date with First index determination date override (First rate index reset date will be removed)
+            //firstResetDate is the Index Lookup Date for the first accrual period that resets. Use InitialIndexValue override until this period -9/13/2023
+            //IntAccStartDate = Accrual period start date for which the Index Reset Date is firstResetDate
+            //IntAccStartDate = (ListInterestAccrualDates != null && ListInterestAccrualDates.Count > 1) ? ListInterestAccrualDates[1].InterestAccrualPeriodStartDates.Value.Date : DateTime.MinValue;
+            if (ListInterestAccrualDates != null && ListInterestAccrualDates.Count > 0)
             {
-                IntAccStartDate = ListInterestAccrualDates[1].InterestAccrualPeriodStartDates.Value.Date;
+                firstResetDate = noteDC.FirstIndexDeterminationDateOverride == null ? ListInterestAccrualDates[1].IndexReferenceDateAdjusted.Value.Date : noteDC.FirstIndexDeterminationDateOverride.Value.Date;
+                int ndxdt = ListInterestAccrualDates.FindIndex(dt => dt.IndexReferenceDateAdjusted == firstResetDate);
+                if (ndxdt > 0)
+                {
+                    IntAccStartDate = ListInterestAccrualDates[ndxdt].InterestAccrualPeriodStartDates.Value.Date;
+                    IndexLookupDate = firstResetDate;
+                }
+                else//Not able to locate an accrual period with index reset date == firstResetDate, defaulting to the first accrual period.
+                {
+                    IntAccStartDate = ListInterestAccrualDates[1].InterestAccrualPeriodStartDates.Value.Date;
+                    //IndexLookupDate = ListInterestAccrualDates[1].IndexReferenceDateAdjusted.Value.Date;
+                    IndexLookupDate = firstResetDate;
+                }
             }
             else
             {
-                IntAccStartDate = DateTime.MinValue;
+                firstResetDate = noteDC.FirstIndexDeterminationDateOverride == null ? DateTime.MinValue : Convert.ToDateTime(noteDC.FirstIndexDeterminationDateOverride);
+                IndexLookupDate = DateTime.MinValue;
             }
-            //Determine LIBOR Value
+
+            // Determine LIBOR Value
             foreach (var rate in ListRateTab)
             {
                 if (Convert.ToDateTime(rate.rateDate).Date >= effectiveDate.Date)
@@ -1704,225 +1832,33 @@ namespace CRES.NoteCalculator
                     {
                         IndexLookupDate = ListInterestAccrualDates[1].IndexReferenceDateAdjusted.Value;
                     }
+                    mostrecentlibor = GetMostRecentIndexValue(rate.rateDate);
 
-                    if (rate.rateDate == IntAccStartDate)
+                    #region Set Index for Stub Period
+                    if (rate.rateDate < IntAccStartDate)
                     {
-                        decimal? LiborValue = 0;
-
-                        foreach (LiborScheduleTab lst in ListLiborScheduleTabLatest)
-                        {
-                            if (lst.Date == IndexLookupDate)
-                            {
-                                LiborValue = lst.Value;
-                            }
-                            else if (lst.Date > IndexLookupDate)
-                            {
-                                break;
-                            }
-                        }
-                        if (LiborValue == 0)
-                        {
-                            mostrecentlibor = GetMostRecentLiborValue(rate.rateDate);
-                            LiborValue = mostrecentlibor;
-                        }
-                        else
-                        {
-                            mostrecentlibor = LiborValue;
-                        }
-                        if (LiborValue != 0)
-                        {
-                            string valueType = noteDC.RoundingMethodText; //"Nearest";
-                            if (valueType == null)
-                                valueType = "";
-                            if (valueType != null && valueType != "")
-                            {
-                                if (Enum.IsDefined(typeof(EnmRoundMethodType), valueType.Replace(' ', '_')))
-                                {
-                                    EnmRoundMethodType eRateType = ((EnmRoundMethodType)Enum.Parse(typeof(EnmRoundMethodType), valueType.Replace(' ', '_')));
-                                    switch (eRateType)
-                                    {
-                                        case EnmRoundMethodType.Nearest:
-                                            rate.IndexValueusingFloatingRateIndexReferenceDate = Math.Round(LiborValue.GetValueOrDefault(0), RoundOff);
-                                            break;
-
-                                        case EnmRoundMethodType.Up:
-                                            rate.IndexValueusingFloatingRateIndexReferenceDate = Convert.ToDecimal(RoundUp(Convert.ToDouble(LiborValue.GetValueOrDefault(0)), RoundOff));  //LiborValue.GetValueOrDefault(0);
-                                            break;
-
-                                        case EnmRoundMethodType.Down:
-                                            rate.IndexValueusingFloatingRateIndexReferenceDate = Convert.ToDecimal(RoundDown(Convert.ToDouble(LiborValue.GetValueOrDefault(0)), RoundOff));
-                                            break;
-
-                                        default:
-                                            rate.IndexValueusingFloatingRateIndexReferenceDate = Math.Round(LiborValue.GetValueOrDefault(0), RoundOff);
-                                            break;
-                                    }
-                                }
-                            }
-                            else
-                            {
-                                rate.IndexValueusingFloatingRateIndexReferenceDate = Math.Round(LiborValue.GetValueOrDefault(0), RoundOff);
-                            }
-                            rate.DIndexValueusingFloatingRateIndexReferenceDate = Math.Max(indexFloor.GetValueOrDefault(0), Math.Min(indexCap.GetValueOrDefault(0), rate.IndexValueusingFloatingRateIndexReferenceDate.GetValueOrDefault(0)));
-                        }
-                    }
-                    else if (noteDC.InitialIndexValueOverride > 0 && rate.rateDate < IntAccStartDate)
-                    {
-                        rate.IndexValueusingFloatingRateIndexReferenceDate = noteDC.InitialIndexValueOverride;
+                        rate.IndexValueusingFloatingRateIndexReferenceDate = InitialIndexValueOverride;
+                        rate.IndexValueWithoutRounding = InitialIndexValueOverride;
                         rate.DIndexValueusingFloatingRateIndexReferenceDate = rate.IndexValueusingFloatingRateIndexReferenceDate;
-                    }
-                    else if (rate.rateDate <= firstResetDate && rate.rateDate <= IntAccStartDate)
-                    {
-                        decimal? LiborValue;
-                        var res = (from Libor in ListLiborScheduleTabLatest
-                                   where Libor.Date == ClosingDate
-                                   select new { checkResult = true, value = Libor.Value }).FirstOrDefault();
-
-                        #region RoundingChange
-
-                        if (res != null)
-                        {
-                            if (res.checkResult == true)
-                            {
-                                LiborValue = res.value;
-                                string valueType = noteDC.RoundingMethodText;
-                                if (valueType == null)
-                                    valueType = "";
-                                if (valueType != null && valueType != "")
-                                {
-                                    if (Enum.IsDefined(typeof(EnmRoundMethodType), valueType.Replace(' ', '_')))
-                                    {
-                                        EnmRoundMethodType eRateType = ((EnmRoundMethodType)Enum.Parse(typeof(EnmRoundMethodType), valueType.Replace(' ', '_')));
-                                        switch (eRateType)
-                                        {
-                                            case EnmRoundMethodType.Nearest:
-                                                rate.IndexValueusingFloatingRateIndexReferenceDate = Math.Round(LiborValue.GetValueOrDefault(0), RoundOff);
-                                                break;
-
-                                            case EnmRoundMethodType.Up:
-                                                rate.IndexValueusingFloatingRateIndexReferenceDate = Convert.ToDecimal(RoundUp(Convert.ToDouble(LiborValue.GetValueOrDefault(0)), RoundOff));  //LiborValue.GetValueOrDefault(0);
-                                                break;
-
-                                            case EnmRoundMethodType.Down:
-                                                rate.IndexValueusingFloatingRateIndexReferenceDate = Convert.ToDecimal(RoundDown(Convert.ToDouble(LiborValue.GetValueOrDefault(0)), RoundOff));
-                                                break;
-
-                                            default:
-                                                rate.IndexValueusingFloatingRateIndexReferenceDate = Math.Round(LiborValue.GetValueOrDefault(0), RoundOff);
-                                                break;
-                                        }
-                                    }
-                                }
-                                else
-                                {
-                                    rate.IndexValueusingFloatingRateIndexReferenceDate = Math.Round(LiborValue.GetValueOrDefault(0), RoundOff);
-                                }
-                                rate.DIndexValueusingFloatingRateIndexReferenceDate = Math.Max(indexFloor.GetValueOrDefault(0), Math.Min(indexCap.GetValueOrDefault(0), rate.IndexValueusingFloatingRateIndexReferenceDate.GetValueOrDefault(0)));
-                            }
-                            else
-                            {
-                                if (mostrecentlibor != 0)
-                                {
-                                    rate.IndexValueusingFloatingRateIndexReferenceDate = Math.Max(indexFloor.GetValueOrDefault(0), Math.Min(indexCap.GetValueOrDefault(0), Math.Round(mostrecentlibor.GetValueOrDefault(0), RoundOff)));
-                                }
-                            }
-                        }
                     }
                     else
                     {
-                        if (listIndex > 0)
+                        if (rate.rateDate == IntAccStartDate) //For the first accrual period that resets - use the index as of the override date.
+                        {
+                            rate.IndexValueusingFloatingRateIndexReferenceDate = IndexRoundingBasedOnRule(GetMostRecentIndexValue(IndexLookupDate));
+                            rate.IndexValueWithoutRounding = GetMostRecentIndexValue(IndexLookupDate);
+                            rate.DIndexValueusingFloatingRateIndexReferenceDate = Math.Max(indexFloor.GetValueOrDefault(0), Math.Min(indexCap.GetValueOrDefault(0), rate.IndexValueusingFloatingRateIndexReferenceDate.GetValueOrDefault(0)));
+
+                        }
+                        else if (listIndex > 0)
                         {
                             rate.IndexValueusingFloatingRateIndexReferenceDate = ListRateTab[listIndex - 1].IndexValueusingFloatingRateIndexReferenceDate;
+                            rate.IndexValueWithoutRounding = ListRateTab[listIndex - 1].IndexValueWithoutRounding;
                             rate.DIndexValueusingFloatingRateIndexReferenceDate = Math.Max(indexFloor.GetValueOrDefault(0), Math.Min(indexCap.GetValueOrDefault(0), rate.IndexValueusingFloatingRateIndexReferenceDate.GetValueOrDefault(0)));
                         }
                     }
 
-                    #endregion RoundingChange
-
-                    #region Update Index/Libor - on Interest Accrual Period Start Date
-                    foreach (var acc in ListInterestAccrualDates)
-                    {
-                        if (rate.rateDate > IntAccStartDate)
-                        {
-                            if (rate.rateDate == acc.InterestAccrualPeriodStartDates)
-                            {
-                                rate.InterestAccrualPeriodEndDateTag = 1;
-                                decimal? LiborValue = 0;
-
-                                var res = (from Libor in ListLiborScheduleTabLatest
-                                           where Libor.Date == acc.IndexReferenceDateAdjusted
-                                           select new { checkResult = true, value = Libor.Value }).FirstOrDefault();
-
-                                if (res == null)
-                                {
-                                    mostrecentlibor = GetMostRecentLiborValue(rate.rateDate);
-                                    LiborValue = mostrecentlibor;
-                                }
-                                else
-                                {
-                                    if (res.checkResult == true)
-                                    {
-                                        decimal? lvalue = 0;
-                                        if (res.value == null || res.value == 0)
-                                        {
-                                            lvalue = GetMostRecentLiborValue(rate.rateDate);
-                                        }
-                                        else
-                                        {
-                                            lvalue = res.value;
-                                        }
-                                        mostrecentlibor = lvalue;
-                                        LiborValue = lvalue;
-                                    }
-                                }
-                                if (LiborValue != 0)
-                                {
-                                    string valueType = noteDC.RoundingMethodText; //"Nearest";
-                                    if (valueType == null)
-                                        valueType = "";
-
-                                    if (valueType != null && valueType != "")
-                                    {
-                                        if (Enum.IsDefined(typeof(EnmRoundMethodType), valueType.Replace(' ', '_')))
-                                        {
-                                            EnmRoundMethodType eRateType = ((EnmRoundMethodType)Enum.Parse(typeof(EnmRoundMethodType), valueType.Replace(' ', '_')));
-
-                                            switch (eRateType)
-                                            {
-                                                case EnmRoundMethodType.Nearest:
-                                                    rate.IndexValueusingFloatingRateIndexReferenceDate = Math.Round(LiborValue.GetValueOrDefault(0), RoundOff);
-                                                    rate.DIndexValueusingFloatingRateIndexReferenceDate = Math.Max(indexFloor.GetValueOrDefault(0), Math.Min(indexCap.GetValueOrDefault(0), rate.IndexValueusingFloatingRateIndexReferenceDate.GetValueOrDefault(0)));
-                                                    break;
-
-                                                case EnmRoundMethodType.Up:
-                                                    rate.IndexValueusingFloatingRateIndexReferenceDate = Convert.ToDecimal(RoundUp(Convert.ToDouble(LiborValue.GetValueOrDefault(0)), RoundOff));
-                                                    rate.DIndexValueusingFloatingRateIndexReferenceDate = Math.Max(indexFloor.GetValueOrDefault(0), Math.Min(indexCap.GetValueOrDefault(0), rate.IndexValueusingFloatingRateIndexReferenceDate.GetValueOrDefault(0)));  //decimal.Round(LiborValue, RoundOff, MidpointRounding);
-                                                    break;
-
-                                                case EnmRoundMethodType.Down:
-                                                    rate.IndexValueusingFloatingRateIndexReferenceDate = Convert.ToDecimal(RoundDown(Convert.ToDouble(LiborValue.GetValueOrDefault(0)), RoundOff));
-                                                    rate.DIndexValueusingFloatingRateIndexReferenceDate = Math.Max(indexFloor.GetValueOrDefault(0), Math.Min(indexCap.GetValueOrDefault(0), rate.IndexValueusingFloatingRateIndexReferenceDate.GetValueOrDefault(0)));
-                                                    break;
-
-                                                default:
-                                                    rate.IndexValueusingFloatingRateIndexReferenceDate = Math.Round(LiborValue.GetValueOrDefault(0), RoundOff);
-                                                    rate.DIndexValueusingFloatingRateIndexReferenceDate = Math.Max(indexFloor.GetValueOrDefault(0), Math.Min(indexCap.GetValueOrDefault(0), rate.IndexValueusingFloatingRateIndexReferenceDate.GetValueOrDefault(0)));
-                                                    break;
-                                            }
-                                        }
-                                    }
-                                    else
-                                    {
-                                        rate.IndexValueusingFloatingRateIndexReferenceDate = Math.Round(LiborValue.GetValueOrDefault(0), RoundOff);
-                                        rate.DIndexValueusingFloatingRateIndexReferenceDate = Math.Max(indexFloor.GetValueOrDefault(0), Math.Min(indexCap.GetValueOrDefault(0), rate.IndexValueusingFloatingRateIndexReferenceDate.GetValueOrDefault(0)));
-                                    }
-                                }
-
-                                break;
-                            }
-                        }
-                    }
-                    #endregion Update Index/Libor
+                    #endregion Set Index for Stub Period
 
                     #region Check For Spread & Index Floor change
                     if (noteDC.RateSpreadScheduleList != null)
@@ -1998,6 +1934,18 @@ namespace CRES.NoteCalculator
                                                     rate.AmortRateFloor = rateSpread.Value;
                                                     rate.RateType = rateSpread.ValueTypeText;
                                                     break;
+
+                                                case EnmRateType.Index_Name:
+                                                    rate.IndexName = rateSpread.IndexNameText;
+                                                    rate.DeterminationDateHolidayList = rateSpread.DeterminationDateHolidayListText;
+                                                    //Override index value for within Accrual Period Index change
+                                                    if (rateSpread.Value != null && rateSpread.Value > 0)
+                                                    {
+                                                        rate.IndexValueusingFloatingRateIndexReferenceDate = rateSpread.Value;
+                                                        rate.IndexValueWithoutRounding = rateSpread.Value;
+                                                    }
+                                                    SetGlobalIndexAndHolidayCalendar(effectiveDate.Date, rate.rateDate.Value.Date);
+                                                    break;
                                             }
                                         }
                                     }
@@ -2009,7 +1957,63 @@ namespace CRES.NoteCalculator
                     }
                     #endregion Check for Spread & Index Floor change.
 
-                    #region -  Loop through Default Schedule
+                    #region Update Index/Libor - on Interest Accrual Period Start Date
+
+                    foreach (var acc in ListInterestAccrualDates)
+                    {
+                        if (rate.rateDate > IntAccStartDate)
+                        {
+                            if (rate.rateDate == acc.InterestAccrualPeriodStartDates)
+                            {
+                                rate.InterestAccrualPeriodEndDateTag = 1;
+                                decimal? LiborValue = 0;
+
+                                if (rate.IndexName == CalculationEnums.IndexNames[(int)EnmIndexName.Libor1M])
+                                    ListIndexScheduleTabLatest = this.ListLIB1MScheduleTabLatest;
+                                else
+                                    if (rate.IndexName == CalculationEnums.IndexNames[(int)EnmIndexName.Sofr1M])
+                                    ListIndexScheduleTabLatest = this.ListSOFRScheduleTabLatest;
+
+                                var res = (from Libor in ListIndexScheduleTabLatest
+                                           where Libor.Date == acc.IndexReferenceDateAdjusted
+                                           select new { checkResult = true, value = Libor.Value }).FirstOrDefault();
+
+                                if (res == null)
+                                {
+                                    mostrecentlibor = GetMostRecentIndexValue(rate.rateDate);
+                                    LiborValue = mostrecentlibor;
+                                }
+                                else
+                                {
+                                    if (res.checkResult == true)
+                                    {
+                                        decimal? lvalue = 0;
+                                        if (res.value == null || res.value == 0)
+                                        {
+                                            lvalue = GetMostRecentIndexValue(rate.rateDate);
+                                        }
+                                        else
+                                        {
+                                            lvalue = res.value;
+                                        }
+                                        mostrecentlibor = lvalue;
+                                        LiborValue = lvalue;
+                                    }
+                                }
+                                if (LiborValue != 0)
+                                {
+                                    rate.IndexValueusingFloatingRateIndexReferenceDate = IndexRoundingBasedOnRule(LiborValue);
+                                    rate.IndexValueWithoutRounding = LiborValue;
+                                    rate.DIndexValueusingFloatingRateIndexReferenceDate = Math.Max(indexFloor.GetValueOrDefault(0), Math.Min(indexCap.GetValueOrDefault(0), rate.IndexValueusingFloatingRateIndexReferenceDate.GetValueOrDefault(0)));
+                                }
+
+                                break;
+                            }
+                        }
+                    }
+                    #endregion Update Index/Libor
+
+                    #region Loop through Default Schedule
                     if (noteDC.NoteDefaultScheduleList != null)
                     {
                         foreach (var noteDefaultSchedule in noteDC.NoteDefaultScheduleList)
@@ -2052,7 +2056,7 @@ namespace CRES.NoteCalculator
                     }
                     #endregion Default Schedule
 
-                    //All-In Coupon Rate
+                    #region All-In Coupon Rate
                     if (rate.CouponDefaultRateOverride == null)
                     {
                         if (rate.CouponRate == null || rate.CouponRate == 0) //' Floating Rate Loan
@@ -2075,6 +2079,7 @@ namespace CRES.NoteCalculator
                     }
                     else
                         rate.AllInAmortRate = rate.AmortRate;
+                    #endregion
 
                     #region All In PIK Rate -  Loop through PIK Table
                     if (ListNotePIKScheduleLatest != null && ListNotePIKScheduleLatest.Count > 0)
@@ -2089,6 +2094,9 @@ namespace CRES.NoteCalculator
                             //PIK Index Floor from PIK Table
                             rate.PIKIndexFloorfromPIKTable = notePIK.IndexFloor;
 
+                            //PIKReasonCodeText
+                            rate.PIKReasonCodeText = notePIK.PIKReasonCodeIDtext;
+                            rate.PIKComments = notePIK.PIKComments;
                             if (notePIK.AdditionalIntRate == null)
                             {
                                 //rate.AllInPIKInterest = notePIK.AdditionalIntRate + notePIK.IndexFloor;
@@ -2114,12 +2122,13 @@ namespace CRES.NoteCalculator
 
                             if (listIndex == 0)
                             {
-                                ListPIKInterestTab[listIndex].BeginningPIKBalanceifnotCompoundedinsideLoanBalance = notePIK.PurBal;
+                                ListPIKInterestTab[listIndex].BeginningPIKBalanceifnotCompoundedinsideLoanBalance = 0.0M;    //notePIK.PurBal;
                             }
                         }
                     }
                     #endregion - All In PIK Rate
 
+                    #region All-in Financing COF
                     //Loop through Financing Rate Schedule
                     if (noteDC.NoteFinancingScheduleList != null)
                     {
@@ -2158,6 +2167,8 @@ namespace CRES.NoteCalculator
                     rate.AllinFinancingCOF = Math.Max(rate.FinancingRate.GetValueOrDefault(0),
                      (rate.FinancingSpread.GetValueOrDefault(0) +
                     Math.Max(rate.DIndexValueusingFloatingRateIndexReferenceDate.GetValueOrDefault(0), rate.IndexFloor.GetValueOrDefault(0))));
+
+                    #endregion
                 }
                 listIndex = listIndex + 1;
             }
@@ -2196,6 +2207,10 @@ namespace CRES.NoteCalculator
                             LiborValueRounded = Math.Round(LiborValue.GetValueOrDefault(0), RoundOff);
                             break;
                     }
+                }
+                else
+                {
+                    LiborValueRounded = Math.Round(LiborValue.GetValueOrDefault(0), RoundOff);
                 }
             }
 
@@ -2378,24 +2393,18 @@ namespace CRES.NoteCalculator
             CumPikInt = 0;
             CumPikAccrual = 0;
             CumPikRelated = 0;
-#pragma warning disable CS0219 // The variable 'periodRepay' is assigned but its value is never used
-#pragma warning disable CS0219 // The variable 'exitFeeAccrualStrip' is assigned but its value is never used
-#pragma warning disable CS0219 // The variable 'cumAmort' is assigned but its value is never used
-#pragma warning disable CS0219 // The variable 'exitFeeAccrual' is assigned but its value is never used
-            decimal? futureFundingSum = 0, ppSum = 0, pikSum = 0, discRate = 0, prinPMT = 0, intPMT = 0, cumFutureFundingSum = 0, faSum = 0, periodRepay = 0, cumRepay = 0, cumAmort = 0, exitFeeAccrual = 0, exitFeeAccrualStrip = 0;
-#pragma warning restore CS0219 // The variable 'exitFeeAccrual' is assigned but its value is never used
-#pragma warning restore CS0219 // The variable 'cumAmort' is assigned but its value is never used
-#pragma warning restore CS0219 // The variable 'exitFeeAccrualStrip' is assigned but its value is never used
-#pragma warning restore CS0219 // The variable 'periodRepay' is assigned but its value is never used
-#pragma warning disable CS0219 // The variable 'PrepayFeePmt' is assigned but its value is never used
-#pragma warning disable CS0219 // The variable 'ExtenFeePmt' is assigned but its value is never used
-#pragma warning disable CS0219 // The variable 'ExitFeePmt' is assigned but its value is never used
+            decimal? ffSum = 0, ppSum = 0, pwSum = 0, pikSum = 0, discRate = 0, prinPMT = 0, intPMT = 0, cumFutureFundingSum = 0, faSum = 0, periodRepay = 0, cumRepay = 0, cumAmort = 0, exitFeeAccrual = 0, exitFeeAccrualStrip = 0, scheduledPrincipal = 0;
             decimal? PrepayFeePmt = 0, ExitFeePmt = 0, ExtenFeePmt = 0;
-#pragma warning restore CS0219 // The variable 'ExitFeePmt' is assigned but its value is never used
-#pragma warning restore CS0219 // The variable 'ExtenFeePmt' is assigned but its value is never used
-#pragma warning restore CS0219 // The variable 'PrepayFeePmt' is assigned but its value is never used
-            decimal? PikIntAccrued = 0;
+            decimal? PrincipalBalanceChange = 0, PikIntAccrued = 0, PikIntAccrued_Notional = 0, PikIntAccrued_AccrualEndDateEOD = 0;
 
+            //PIK Initial Balance - Carry over thru Note Transfer
+            if (ListNotePIKScheduleLatest != null && ListNotePIKScheduleLatest.Count > 0 && (effectiveDate == noteDC.ClosingDate))
+            {
+                PIKInitBalance = ListNotePIKScheduleLatest.ToArray()[0].PurBal.GetValueOrDefault(0);
+                ListPIKInterestTab[0].PIKInterestPaidAppliedForThePeriod = PIKInitBalance;
+                ListPIKInterestTab[0].PurchaseBalanceCmpt = PIKInitBalance;
+
+            }
             foreach (var balance in ListBalanceTab)
             {
                 if (balance.Date >= effectiveDate)
@@ -2459,12 +2468,21 @@ namespace CRES.NoteCalculator
                             balance.RemainingAmortTermMo = 0;
                     }
                     //Beginning Balance
-                    futureFundingSum = 0;
+                    ffSum = 0;
                     ppSum = 0;
+                    pwSum = 0;
                     if (ListIndex == 0)
-                        balance.BeginningBalance = noteDC.InitialFundingAmount.GetValueOrDefault(0);
+                    {
+                        balance.BeginningBalance = noteDC.InitialFundingAmount.GetValueOrDefault(0) + PIKInitBalance;
+                        balance.NotionalBeginningBalance = balance.BeginningBalance;
+                        balance.NotionalBeginningBalancePIK = balance.BeginningBalance;
+                    }
                     else
+                    {
                         balance.BeginningBalance = ListBalanceTab[ListIndex - 1].EndingBalance.GetValueOrDefault(0);
+                        balance.NotionalBeginningBalance = ListBalanceTab[ListIndex - 1].NotionalEndingBalance.GetValueOrDefault(0);
+                        balance.NotionalBeginningBalancePIK = ListBalanceTab[ListIndex - 1].NotionalEndingBalancePIK.GetValueOrDefault(0);
+                    }
 
                     //PMT Date Tag
                     foreach (var dates in ListDatesTab)
@@ -2494,18 +2512,26 @@ namespace CRES.NoteCalculator
                     }
                     //Future Advances From Future Funding Schedule
                     decimal? amt = ListFutureFundingScheduleTabLatest.Where(x => x.Date == balance.Date && x.Date <= SelectedMaturityDateLatest && x.Value > 0).Sum(y => y.Value);
-                    futureFundingSum = futureFundingSum + amt.GetValueOrDefault(0);
+                    ffSum = ffSum + amt.GetValueOrDefault(0);
                     amt = ListFutureFundingScheduleTabLatest.Where(x => x.Date == balance.Date && x.Date <= SelectedMaturityDateLatest && x.Value <= 0).Sum(y => y.Value);
                     ppSum = ppSum + amt.GetValueOrDefault(0);
+                    amt = ListFutureFundingScheduleTabLatest.Where(x => x.Date == balance.Date && x.Date <= SelectedMaturityDateLatest && x.PurposeText == "Principal Writeoff").Sum(y => y.Value);
+                    pwSum = pwSum + amt.GetValueOrDefault(0);
 
-                    balance.FutureAdvancesFromFutureFundingSchedule = futureFundingSum;
+                    balance.FutureAdvancesFromFutureFundingSchedule = ffSum;
                     balance.DiscretionaryCurtailmentsForThePeriod = ppSum;
+                    balance.PrincipalWriteoff = pwSum;
+
+                    int ndx = -1;
+                    ndx = ListFutureFundingScheduleTabLatest.FindIndex(x => x.Date == balance.Date && x.Date <= SelectedMaturityDateLatest && x.Value != 0);
+                    if (ndx >= 0)
+                        balance.PurposeID = ListFutureFundingScheduleTabLatest[ndx].PurposeID;
 
                     if (ListIndex > 0)
                     {
                         if (ListBalanceTab[ListIndex - 1].AccrualPeriodEndDateTag == 0)
                         {
-                            balance.AccumulatedFundingForThePeriod = ListBalanceTab[ListIndex - 1].AccumulatedFundingForThePeriod + futureFundingSum;
+                            balance.AccumulatedFundingForThePeriod = ListBalanceTab[ListIndex - 1].AccumulatedFundingForThePeriod + ffSum;
                         }
                         else if (balance.PMTDateTag == 1 && ListBalanceTab[ListIndex - 1].AccrualPeriodEndDateTag == 1)
                         {
@@ -2513,19 +2539,19 @@ namespace CRES.NoteCalculator
                         }
                         else
                         {
-                            balance.AccumulatedFundingForThePeriod = futureFundingSum;
+                            balance.AccumulatedFundingForThePeriod = ffSum;
                         }
                     }
                     else
                     {
-                        balance.AccumulatedFundingForThePeriod = futureFundingSum;
+                        balance.AccumulatedFundingForThePeriod = ffSum;
                     }
                     if (ListIndex == 0 && noteDC.StubOnFFtext == "Y")
                     {
                         if (balance.AccrualPeriodEndDateTag == 0)
-                            cumFutureFundingSum = cumFutureFundingSum + futureFundingSum;
+                            cumFutureFundingSum = cumFutureFundingSum + ffSum;
                         else
-                            cumFutureFundingSum = futureFundingSum;
+                            cumFutureFundingSum = ffSum;
                     }
                     balance.CumFutureAdvancesForAccrualPeriod = cumFutureFundingSum;
 
@@ -2538,6 +2564,7 @@ namespace CRES.NoteCalculator
 
                     // Accrual for Amort Calc & PMT for Amort Calc
                     // a - check for active IO period
+
                     if (balance.RemainingIOTerm != 0 && balance.RemainingIOTerm != null)
                     {
                         balance.AccrualforAmortCalc = 0;
@@ -2673,7 +2700,7 @@ namespace CRES.NoteCalculator
                             curIOterm = LookupIOTerm(Convert.ToDateTime(balance.Date));
                             if (curIOterm == 0)
                             {
-                                if (balance.BeginningBalance > 0)
+                                if (balance.BeginningBalance >= 0)
                                 {
                                     balance.PMTforAmortCalc = noteDC.MonthlyDSOverridewhenAmortizing.GetValueOrDefault(0) * balance.PMTDateTag.GetValueOrDefault(0);
                                 }
@@ -2725,9 +2752,7 @@ namespace CRES.NoteCalculator
                     intPMT = 0;
                     prinServicingOverride = 0;
 
-                    balance.PrincipalReceivedperServicing = prinPMT;
-                    if (prinServicingOverride != 1)
-                        balance.PrincipalReceivedperServicing = balance.PrincipalPaid;
+                    balance.PrincipalReceivedperServicing = balance.PrincipalPaid;
 
                     //ListCouponTab.Where(checkDate => checkDate.Date == balance.Date).ToList().ForEach(checkValue => checkValue.InterestPaidperServicing = intPMT);
                     ListCouponTab[ListIndex].InterestPaidperServicing = intPMT;
@@ -2765,13 +2790,8 @@ namespace CRES.NoteCalculator
                             BalloonPayment = 0;
                         }
                         //' Paydown Amounts by Type:
-                        if (noteDC.FixedAmortScheduleText == "Y")
                         {
-                            AmortizationPaydownAmount = balance.PrincipalPaid.GetValueOrDefault(0);//ScheduledAmortAmtforSelectedDate(balance.Date); //+balance.PrincipalReceivedperServicing.GetValueOrDefault(0);
-                        }
-                        else
-                        {
-                            AmortizationPaydownAmount = balance.PrincipalReceivedperServicing.GetValueOrDefault(0);
+                            AmortizationPaydownAmount = balance.PrincipalPaid.GetValueOrDefault(0); //ScheduledAmortAmtforSelectedDate(balance.Date); //+balance.PrincipalReceivedperServicing.GetValueOrDefault(0);
                         }
 
                         NonAmortizationPaydownAmount = (balance.DiscretionaryCurtailmentsForThePeriod.GetValueOrDefault(0)) * -1; //+ balance.AmortizationPaydownAmount.GetValueOrDefault(0));
@@ -2782,25 +2802,35 @@ namespace CRES.NoteCalculator
                             NonAmortizationEndingBalanceAddon = AddOnAmtInterestAccrualScenario((NonAmortizationPaydownAmount + BalloonPayment), "non-Amortization", ListBalanceTab[ListIndex - 1].AccrualPeriodEndDateTag.GetValueOrDefault(0), ListBalanceTab[ListIndex - 1].NonAmortizationEndingBalanceAddon.GetValueOrDefault(0));
                         }
 
-                        decimal periodbal = Math.Max(0, ListBalanceTab[ListIndex].BeginningBalance.GetValueOrDefault(0) + ListBalanceTab[ListIndex].FutureAdvancesFromFutureFundingSchedule.GetValueOrDefault(0) + ListBalanceTab[ListIndex].DiscretionaryCurtailmentsForThePeriod.GetValueOrDefault(0)
-                                        + AmortizationEndingBalanceAddon + NonAmortizationEndingBalanceAddon
-                                        + ListBalanceTab[ListIndex].PIKInterestfromPIKSourceNote.GetValueOrDefault(0) - ListBalanceTab[ListIndex].PrincipalReceivedperServicing.GetValueOrDefault(0) - BalloonPayment
-                                        - ListBalanceTab[ListIndex].PrincipalLoss.GetValueOrDefault(0));
+                        decimal periodbal = Math.Max(0, ListBalanceTab[ListIndex].NotionalBeginningBalancePIK.GetValueOrDefault(0)
+                            + ListBalanceTab[ListIndex].FutureAdvancesFromFutureFundingSchedule.GetValueOrDefault(0)
+                            + ListBalanceTab[ListIndex].DiscretionaryCurtailmentsForThePeriod.GetValueOrDefault(0)
+                            + AmortizationEndingBalanceAddon + NonAmortizationEndingBalanceAddon
+                            + ListBalanceTab[ListIndex].PIKInterestfromPIKSourceNote.GetValueOrDefault(0)
+                            - ListBalanceTab[ListIndex].PrincipalPaid.GetValueOrDefault(0) - BalloonPayment
+                            - ListBalanceTab[ListIndex].PrincipalLoss.GetValueOrDefault(0));
+
 
                         CalculatePIKTab(ListIndex, periodbal, ListBalanceTab[ListIndex].PMTDateTagWorkingdayAdjusted, effectiveDate);
                     }
                     //PIK Principal Paid Tranaction from Servicing Log
-                    ListPIKInterestTab[ListIndex].PIKPrincipalPaidForThePeriod = ServicingTransactionOverride(CalculationEnums.TransactionTypeText[(int)TransactionType.PIKPrincipalPaid], balance.Date);
+                    ListPIKInterestTab[ListIndex].PIKPrincipalPaidForThePeriod = ServicingTransactionOverride(CalculationEnums.TransactionTypeText[(int)TransactionType.PIKPrincipalPaid], balance.Date, CalculationEnums.ListLookUpTypes[(int)ServicingLogLookUpType.PaymentDate]);
+
+                    decimal? ProjectedWritoffvalue = GetProjectedWritoff(balance.Date);
 
                     //Balloon PMT On Maturity
                     if (balance.Date == selectedMaturityDate)
                     {
-                        balance.BalloonPayment = balance.BeginningBalance + balance.FutureAdvancesFromFutureFundingSchedule.GetValueOrDefault(0) + balance.DiscretionaryCurtailmentsForThePeriod.GetValueOrDefault(0) + balance.PIKInterestfromPIKSourceNote.GetValueOrDefault(0) - balance.PrincipalPaid.GetValueOrDefault(0)
-                          + ListPIKInterestTab[ListIndex].PIKInterestonBusinessAdjInterestAccrualEndDate.GetValueOrDefault(0)
-                          - ListPIKInterestTab[ListIndex].PIKInterestPaidForThePeriod.GetValueOrDefault(0)
-                          - ListPIKInterestTab[ListIndex].PIKInterestforthePeriodBalloon.GetValueOrDefault(0)
-                          - ListPIKInterestTab[ListIndex].PIKPrincipalPaidForThePeriod.GetValueOrDefault(0)
-                          - ListPIKInterestTab[ListIndex].TotalPIKInteresttobeTransferredtoRelatedNoteforthePeriod.GetValueOrDefault(0);
+                        decimal? writeoffamt = ListFutureFundingScheduleTabLatest.Where(x => x.Date <= SelectedMaturityDateLatest && x.PurposeID == 840).Sum(y => y.Value) * -1;
+                        balance.BalloonPayment = balance.BeginningBalance + balance.FutureAdvancesFromFutureFundingSchedule.GetValueOrDefault(0) + balance.DiscretionaryCurtailmentsForThePeriod.GetValueOrDefault(0)
+                            + balance.PIKInterestfromPIKSourceNote.GetValueOrDefault(0) - balance.PrincipalPaid.GetValueOrDefault(0)
+                            + ListPIKInterestTab[ListIndex].PIKInterestonBusinessAdjInterestAccrualEndDate.GetValueOrDefault(0)
+                            - ListPIKInterestTab[ListIndex].PIKInterestPaidForThePeriod.GetValueOrDefault(0)
+                            - ListPIKInterestTab[ListIndex].PIKInterestforthePeriodBalloon.GetValueOrDefault(0)
+                            - ListPIKInterestTab[ListIndex].PIKPrincipalPaidForThePeriod.GetValueOrDefault(0)
+                            - ListPIKInterestTab[ListIndex].TotalPIKInteresttobeTransferredtoRelatedNoteforthePeriod.GetValueOrDefault(0) - ProjectedWritoffvalue;
+
+
                         cumRepay = cumRepay + balance.BalloonPayment;
                     }
                     else
@@ -2809,16 +2839,11 @@ namespace CRES.NoteCalculator
                     }
 
                     //' Paydown Amounts by Type:
-                    if (noteDC.FixedAmortScheduleText == "Y")
                     {
-                        balance.AmortizationPaydownAmount = ScheduledAmortAmtforSelectedDate(balance.Date); //+balance.PrincipalReceivedperServicing.GetValueOrDefault(0);
-                    }
-                    else
-                    {
-                        balance.AmortizationPaydownAmount = balance.PrincipalReceivedperServicing.GetValueOrDefault(0);
+                        balance.AmortizationPaydownAmount = balance.PrincipalPaid; // ScheduledAmortAmtforSelectedDate(balance.Date); //+balance.PrincipalReceivedperServicing.GetValueOrDefault(0);
                     }
 
-                    balance.NonAmortizationPaydownAmount = (balance.DiscretionaryCurtailmentsForThePeriod.GetValueOrDefault(0)) * -1; //+ balance.AmortizationPaydownAmount.GetValueOrDefault(0));
+                    balance.NonAmortizationPaydownAmount = (balance.DiscretionaryCurtailmentsForThePeriod.GetValueOrDefault(0)) * -1; //+ balance.AmortizationPaydownAmount.GetValueOrDefault(0)); 
 
                     if (ListIndex > 0)
                     {
@@ -2827,46 +2852,39 @@ namespace CRES.NoteCalculator
                             ListBalanceTab[ListIndex - 1].AccrualPeriodEndDateTag.GetValueOrDefault(0), ListBalanceTab[ListIndex - 1].NonAmortizationEndingBalanceAddon.GetValueOrDefault(0), ListBalanceTab[ListIndex - 1].Date >= SelectedMaturityDateLatest);
                     }
 
-                    //' Ending Balance
-                    if (noteDC.PIKInterestAddedToBalanceBasedOnBusinessAdjustedDateText == "Y")
-                    {
-                        PikIntAccrued = ListPIKInterestTab[ListIndex].PIKInterestonBusinessAdjInterestAccrualEndDate.GetValueOrDefault(0)
-                            - ListPIKInterestTab[ListIndex].PIKInterestPaidForThePeriod.GetValueOrDefault(0)
-                            - ListPIKInterestTab[ListIndex].PIKInterestforthePeriodBalloon.GetValueOrDefault(0)
-                            - ListPIKInterestTab[ListIndex].PIKPrincipalPaidForThePeriod.GetValueOrDefault(0);
-                        // - ListPIKInterestTab[ListIndex].TotalPIKInteresttobeTransferredtoRelatedNoteforthePeriod.GetValueOrDefault(0);
-                    }
-                    else
-                    {
-                        PikIntAccrued = ListPIKInterestTab[ListIndex].PIKInterestforthePeriod.GetValueOrDefault(0)
-                            - ListPIKInterestTab[ListIndex].PIKInterestPaidForThePeriod.GetValueOrDefault(0)
-                            - ListPIKInterestTab[ListIndex].PIKInterestforthePeriodBalloon.GetValueOrDefault(0)
-                            - ListPIKInterestTab[ListIndex].PIKPrincipalPaidForThePeriod.GetValueOrDefault(0);
+                    // Ending Balance Calculation - based on When PIK Amount for the period should be added.
 
-                        // - ListPIKInterestTab[ListIndex].TotalPIKInteresttobeTransferredtoRelatedNoteforthePeriod.GetValueOrDefault(0);
-                    }
+                    scheduledPrincipal = balance.PrincipalPaid.GetValueOrDefault(0);
+                    PrincipalBalanceChange = (
+                        balance.FutureAdvancesFromFutureFundingSchedule.GetValueOrDefault(0) + balance.DiscretionaryCurtailmentsForThePeriod.GetValueOrDefault(0) +
+                        balance.PIKInterestfromPIKSourceNote.GetValueOrDefault(0)
+                        - scheduledPrincipal
+                        - balance.BalloonPayment.GetValueOrDefault(0)
+                        - balance.PrincipalLoss.GetValueOrDefault(0));
 
-                    if (noteDC.IncludeServicingPaymentOverrideinLevelYieldText == "Y")
-                    {
-                        balance.EndingBalance = (
-                            balance.BeginningBalance.GetValueOrDefault(0) +
-                            balance.FutureAdvancesFromFutureFundingSchedule.GetValueOrDefault(0) + balance.DiscretionaryCurtailmentsForThePeriod.GetValueOrDefault(0) +
-                            balance.PIKInterestfromPIKSourceNote.GetValueOrDefault(0) -
-                            balance.PrincipalReceivedperServicing.GetValueOrDefault(0) -
-                            balance.BalloonPayment.GetValueOrDefault(0) -
-                            balance.PrincipalLoss.GetValueOrDefault(0)) + PikIntAccrued;
-                    }
-                    else
-                    {
-                        balance.EndingBalance = (balance.BeginningBalance.GetValueOrDefault(0) + balance.FutureAdvancesFromFutureFundingSchedule.GetValueOrDefault(0)
-                            + balance.DiscretionaryCurtailmentsForThePeriod.GetValueOrDefault(0) + balance.PIKInterestfromPIKSourceNote.GetValueOrDefault(0)
-                            - balance.PrincipalPaid.GetValueOrDefault(0)
-                         - balance.BalloonPayment.GetValueOrDefault(0)
-                         - balance.PrincipalLoss.GetValueOrDefault(0))
-                         + PikIntAccrued;
-                    }
+                    PikIntAccrued = ListPIKInterestTab[ListIndex].PIKInterestonBusinessAdjInterestAccrualEndDate.GetValueOrDefault(0)
+                        - ListPIKInterestTab[ListIndex].PIKInterestPaidForThePeriod.GetValueOrDefault(0)
+                        - ListPIKInterestTab[ListIndex].PIKInterestforthePeriodBalloon.GetValueOrDefault(0)
+                        - ListPIKInterestTab[ListIndex].PIKPrincipalPaidForThePeriod.GetValueOrDefault(0);
+                    // - ListPIKInterestTab[ListIndex].TotalPIKInteresttobeTransferredtoRelatedNoteforthePeriod.GetValueOrDefault(0);
+
+                    PikIntAccrued_AccrualEndDateEOD = ListPIKInterestTab[ListIndex].PIKInterestforthePeriodOnAccrualEndDate.GetValueOrDefault(0)
+                        - ListPIKInterestTab[ListIndex].PIKInterestPaidForThePeriodOnAccrualEndDateEOD.GetValueOrDefault(0)
+                        - ListPIKInterestTab[ListIndex].PIKInterestforthePeriodBalloon.GetValueOrDefault(0)
+                        - ListPIKInterestTab[ListIndex].PIKPrincipalPaidForThePeriod.GetValueOrDefault(0);
+                    // - ListPIKInterestTab[ListIndex].TotalPIKInteresttobeTransferredtoRelatedNoteforthePeriod.GetValueOrDefault(0);
+
+
+                    PikIntAccrued_Notional = noteDC.PIKInterestAddedToBalanceBasedOnBusinessAdjustedDateText == "Y" ? PikIntAccrued : PikIntAccrued_AccrualEndDateEOD;
+
+                    balance.EndingBalance = balance.BeginningBalance.GetValueOrDefault(0) + PrincipalBalanceChange + PikIntAccrued - ProjectedWritoffvalue;
+                    balance.NotionalEndingBalance = balance.NotionalBeginningBalance.GetValueOrDefault(0) + PrincipalBalanceChange + PikIntAccrued_Notional;
+                    balance.NotionalEndingBalancePIK = balance.NotionalBeginningBalancePIK.GetValueOrDefault(0) + PrincipalBalanceChange + PikIntAccrued_AccrualEndDateEOD;
+
                     SetSoftPayoffFlagForThePeriod(ListIndex);
-                    //' Ending Balance adj for PMT Drop Date:                
+                    //calculate unfunded commitment 
+
+                    //' Ending Balance adjusted for PMT Drop Date:                
                     if (ListIndex == 0)
                     {
                         balance.PeriodPMTDropTag = 0;
@@ -2890,11 +2908,11 @@ namespace CRES.NoteCalculator
                     {
                         if (balance.Date == SelectedMaturityDateLatest || balance.SoftPayOffFlag == 1)
                         {
-                            balance.EndingBalanceUsingPMTDropDate = balance.EndingBalance.GetValueOrDefault(0);
+                            balance.EndingBalanceUsingPMTDropDate = balance.NotionalEndingBalance.GetValueOrDefault(0);
                         }
                         else
                         {
-                            balance.EndingBalanceUsingPMTDropDate = ListBalanceTab[ListIndex - 1].EndingBalanceUsingPMTDropDate.GetValueOrDefault(0) + PikIntAccrued.GetValueOrDefault(0);
+                            balance.EndingBalanceUsingPMTDropDate = ListBalanceTab[ListIndex - 1].EndingBalanceUsingPMTDropDate.GetValueOrDefault(0) + PikIntAccrued_Notional.GetValueOrDefault(0);
                         }
                         if (balance.Date == SelectedMaturityDateLatest || balance.SoftPayOffFlag == 1)
                         {
@@ -2919,7 +2937,7 @@ namespace CRES.NoteCalculator
                     }
                     else
                     {
-                        balance.EndingBalanceUsingPMTDropDate = ListBalanceTab[ListIndex].EndingBalance.GetValueOrDefault(0);
+                        balance.EndingBalanceUsingPMTDropDate = ListBalanceTab[ListIndex].NotionalEndingBalance.GetValueOrDefault(0);
                         balance.DiscretionaryCurtailmentsForThePeriodAdjustedforPMTDropDate = balance.DiscretionaryCurtailmentsForThePeriod.GetValueOrDefault(0);
                         balance.AccumulatedFundingForThePeriodAdjustedforPMTDropDate = balance.AccumulatedFundingForThePeriod.GetValueOrDefault(0);
 
@@ -2932,6 +2950,19 @@ namespace CRES.NoteCalculator
                 }
                 ListIndex = ListIndex + 1;
             }
+        }
+        public decimal? GetProjectedWritoff(DateTime? date)
+        {
+            decimal? ProjectedWritoff = 0;
+            //ListProjectedWritoffLatest
+            foreach (var item in ListProjectedWritoffLatest)
+            {
+                if (item.Date.Value.Date == date.Value.Date)
+                {
+                    ProjectedWritoff = ProjectedWritoff + item.Amount.GetValueOrDefault(0);
+                }
+            }
+            return ProjectedWritoff;
         }
         private int CheckForFinalAccrualPeriod(int ListIndex)
         {
@@ -3011,16 +3042,24 @@ namespace CRES.NoteCalculator
             closingdate = noteDC.ClosingDate;
 
             PIKSchedule pikscheff = ListNotePIKScheduleLatest.ToArray()[0];
-            PikSepComp = noteDC.PIKSeparateCompoundingText;
+            PikSepComp = pikscheff.PIKSeparateCompoundingText;
             PikStartDate = pikscheff.StartDate;
 
             //Recalculate Balance if there is a PIKInterestPaid or PIKPrincipalPaid Transaction and the Payment Date is not on a Holiday.
-            //Find the DateTab Record corresponding to the payment date. There should be only one.
-            PIKInterestPaid = ServicingTransactionOverride(CalculationEnums.TransactionTypeText[(int)TransactionType.PIKInterestPaid], ListPIKInterestTab[pikindex].Date);
+            //Find the DateTab Record corresponding to the payment date. There should be only one, unless it is the Maturity Date
+            PIKInterestPaid = ServicingTransactionOverride(CalculationEnums.TransactionTypeText[(int)TransactionType.PIKInterestPaid], ListPIKInterestTab[pikindex].Date, CalculationEnums.ListLookUpTypes[(int)ServicingLogLookUpType.PaymentDate]);
             PIKPrincipalPaid = ServicingTransactionOverride(CalculationEnums.TransactionTypeText[(int)TransactionType.PIKPrincipalPaid], ListPIKInterestTab[pikindex].Date);
             int ndx1 = ListDatesTab.FindIndex(x => x.InterestAccrualPeriodStartDateArray <= ListPIKInterestTab[pikindex].Date && x.InterestAccrualPeriodEndDateArray >= ListPIKInterestTab[pikindex].Date);
+
+            //Normal/regular business case: Payment date following the day after accrual end date.
+            //Since PIK is added AFTER the call to this method, PIK Amount should be included in the notional balance to calculate the accrued PIK Interest for this day.
+            //PIKInterestPaid is deducted here and PIKInterest for the period is added in CalculatedPIKInterest method resulting in the applied portion being added to the notional amount finally.
             if (pmtdatetag == 1 && ListPIKInterestTab[pikindex].Date == ListDatesTab[ndx1].InterestAccrualPeriodStartDateArray)
                 PeriodBal = PeriodBal - PIKInterestPaid - PIKPrincipalPaid;
+
+            if (pikindex > 0 && pmtdatetag != 1 && ListPIKInterestTab[pikindex - 1].AccrualPeriodEndDateTag == 1)
+                PeriodBal = PeriodBal + ListPIKInterestTab[pikindex - 1].PIKInterestforthePeriod.GetValueOrDefault(0) - ListPIKInterestTab[pikindex - 1].PIKInterestPaidForThePeriodOnAccrualEndDate.GetValueOrDefault(0);
+
             int NumDaysInAccPeriod = ListDatesTab[ndx1].NumberofDaysintheAccrualPeriod.GetValueOrDefault(30);
             CalculatePIKInterest(pikindex, PeriodBal, pmtdatetag, effectivedate, pikscheff.PIKIntCalcMethodIDText, NumDaysInAccPeriod);
 
@@ -3071,6 +3110,7 @@ namespace CRES.NoteCalculator
             // Calculate Accum PIK Interest on Business Adj Interest Accrual End Date (Payment Date)
             if (pmtdatetag == 1)
             {
+
                 //Check to see if the PIK Interest for the current period (not day) has a User Override. This will affect PIKInterest on  Pmt Date, Accrual End date and Basis Calc.
                 ndx = ListPIKInterestOverride.FindIndex(dt => dt.DueDate == ListPIKInterestTab[pikindex].Date);
                 PIKPrinFundingOverridePmtDate = ndx < 0 ? 0 : ListPIKInterestOverride[ndx].PIKInterestOverrideAmount.GetValueOrDefault();
@@ -3080,7 +3120,7 @@ namespace CRES.NoteCalculator
                 DatesTab date = ListDatesTab[ndx2];
 
                 StartDate = date.InterestAccrualPeriodStartDateArray;
-                if (ListPIKInterestTab[pikindex].Date.Value == SelectedMaturityDateLatest)
+                if (ListPIKInterestTab[pikindex].Date.Value == SelectedMaturityDateLatest && SelectedMaturityDateLatest <= date.InterestAccrualPeriodEndDateArray)
                 {
                     EndDate = ListPIKInterestTab[pikindex].Date;
                     DaysPmtDateToIntAccEndDate = 0;
@@ -3101,15 +3141,15 @@ namespace CRES.NoteCalculator
                 else
                 {
                     ListPIKInterestTab[pikindex].PIKInterestonBusinessAdjInterestAccrualEndDate = PIKPrinFundingOverridePmtDate;
-                    ListPIKInterestTab[pikindex].UnPaidPIK = PIKPmtAmount - PIKPrinFundingOverridePmtDate;
                 }
 
                 if (date.PaymentDateAdjustedforWorkingDay < date.InterestAccrualPeriodEndDateArray)
                     ListPIKInterestTab[pikindex].PIKBusinessDateAdjcheck = 1;
 
-                //Lookup the PIK Interest Amount borrower paid against the transaction log and net against the PIK Interest Accrued for the Period / Payment Date
+                //Lookup the PIK Interest Amount borrower paid in the transaction log and net against the PIK Interest Accrued for the Period / Payment Date
                 ListPIKInterestTab[pikindex].PIKInterestPaidForThePeriod = PIKInterestPaid;
-                ListPIKInterestTab[pikindex].PIKInterestPaidAppliedForThePeriod =
+
+                ListPIKInterestTab[pikindex].PIKInterestPaidAppliedForThePeriod = pikindex == 0 ? PIKInitBalance + Math.Round(ListPIKInterestTab[pikindex].PIKInterestonBusinessAdjInterestAccrualEndDate.GetValueOrDefault(0) - ListPIKInterestTab[pikindex].PIKInterestPaidForThePeriod.GetValueOrDefault(0), 2) :
                     Math.Round(ListPIKInterestTab[pikindex].PIKInterestonBusinessAdjInterestAccrualEndDate.GetValueOrDefault(0) - ListPIKInterestTab[pikindex].PIKInterestPaidForThePeriod.GetValueOrDefault(0), 2);
             }
 
@@ -3133,13 +3173,58 @@ namespace CRES.NoteCalculator
                 CumPikAccrual = 0;
                 CumPikRelated = 0;
                 ListPIKInterestTab[pikindex].PIKBusinessDateAdjcheck = 0;
+
+                int ndx3 = ListDatesTab.FindIndex(x => x.InterestAccrualPeriodEndDateArray == ListPIKInterestTab[pikindex].Date);
+                if (ndx3 >= 0)
+                {
+                    DateTime pmtdt = ListDatesTab[ndx3].PaymentDateReferencedforInterestAccrualPeriodAdjustedforBusinessDay.GetValueOrDefault();
+                    ListPIKInterestTab[pikindex].PIKInterestPaidForThePeriodOnAccrualEndDate = ServicingTransactionOverride(CalculationEnums.TransactionTypeText[(int)TransactionType.PIKInterestPaid], pmtdt, CalculationEnums.ListLookUpTypes[(int)ServicingLogLookUpType.PaymentDate]);
+                }
             }
             else
             {
                 CumPikAccrual = CumPikAccrual + ListPIKInterestTab[pikindex].DailyAccruedPIKInterestAdjustedforPIKInterestCap.GetValueOrDefault(0);
                 CumPikRelated = CumPikRelated + ListPIKInterestTab[pikindex].DailyAccruedPIKInteresttobeTransferredtoRelatedNote.GetValueOrDefault(0);
                 ListPIKInterestTab[pikindex].PIKInterestforthePeriod = 0;
+                ListPIKInterestTab[pikindex].PIKInterestPaidForThePeriodOnAccrualEndDate = 0;
+                ListPIKInterestTab[pikindex].PIKInterestPaidForThePeriodOnAccrualEndDateEOD = 0;
                 ListPIKInterestTab[pikindex].TotalPIKInteresttobeTransferredtoRelatedNoteforthePeriod = 0;
+            }
+            if (pikindex > 0 && ListPIKInterestTab[pikindex - 1].AccrualPeriodEndDateTag == 1)
+            {
+                ListPIKInterestTab[pikindex].PIKInterestforthePeriodOnAccrualEndDate = ListPIKInterestTab[pikindex - 1].PIKInterestforthePeriod.GetValueOrDefault(0);
+                //Pick the PIKInterestPaid for the period from  the ListPIKInterest Payment date record.
+                //TO DO: Update logic for those notes, where the Payment date is not set to Accrual End Date + 1.                
+                int ndx3 = ListDatesTab.FindIndex(x => x.InterestAccrualPeriodEndDateArray == ListPIKInterestTab[pikindex - 1].Date);
+                if (ndx3 >= 0)
+                {
+                    DateTime pmtdt = ListDatesTab[ndx3].PaymentDateReferencedforInterestAccrualPeriodAdjustedforBusinessDay.GetValueOrDefault();
+                    int ndx4 = ListPIKInterestTab.FindIndex(x => x.Date == pmtdt);
+                    if (ndx4 >= 0)
+                        ListPIKInterestTab[pikindex].PIKInterestPaidForThePeriodOnAccrualEndDateEOD = ListPIKInterestTab[ndx4].PIKInterestPaidForThePeriod.GetValueOrDefault();
+                    ListPIKInterestTab[pikindex].PIKInterestPaidAppliedForThePeriodOnAccrualEndDate =
+                        Math.Round(ListPIKInterestTab[pikindex].PIKInterestforthePeriodOnAccrualEndDate.GetValueOrDefault(0) - ListPIKInterestTab[pikindex].PIKInterestPaidForThePeriodOnAccrualEndDateEOD.GetValueOrDefault(0), 2);
+                }
+            }
+            else
+            {
+                if (ListPIKInterestTab[pikindex].Date == this.SelectedMaturityDateLatest)
+                {
+                    ListPIKInterestTab[pikindex].PIKInterestforthePeriodOnAccrualEndDate = ListPIKInterestTab[pikindex].PIKInterestforthePeriod.GetValueOrDefault(0);
+                    ListPIKInterestTab[pikindex].PIKInterestPaidAppliedForThePeriodOnAccrualEndDate =
+                                            Math.Round(ListPIKInterestTab[pikindex].PIKInterestforthePeriodOnAccrualEndDate.GetValueOrDefault(0) - ListPIKInterestTab[pikindex].PIKInterestPaidForThePeriodOnAccrualEndDateEOD.GetValueOrDefault(0), 2);
+
+                }
+                else
+                {
+                    ListPIKInterestTab[pikindex].PIKInterestforthePeriodOnAccrualEndDate = 0;
+                    ListPIKInterestTab[pikindex].PIKInterestPaidAppliedForThePeriodOnAccrualEndDate = 0;
+                }
+            }
+
+            if (ListPIKInterestTab[pikindex].Date > this.SelectedMaturityDateLatest)
+            {
+                ListPIKInterestTab[pikindex].PIKInterestforthePeriodOnAccrualEndDate = 0;
             }
             // ws_pik.Range("G" & pcell).Value = cum_pik_accrual ws_pik.Range("P" & pcell).Value = cum_pik_related
             ListPIKInterestTab[pikindex].AccumPIKInterestforCurrentAccrualPeriod = CumPikAccrual;
@@ -3216,6 +3301,13 @@ namespace CRES.NoteCalculator
                     else
                         PIKIntBusAdjPmtDate = ListPIKInterestTab.Where(x => x.Date >= AccrualStartDate && x.Date <= AccrualEndDate).Sum(y => y.DailyAccruedPIKInterestAdjustedforPIKInterestCap);
                 }
+                else if (ListPIKInterestTab[pikindex].Date == SelectedMaturityDateLatest)
+                {
+                    if (PIKPrinFundingOverridePmtDate != 0)
+                    {
+                        PIKIntBusAdjPmtDate = PIKPrinFundingOverridePmtDate;
+                    }
+                }
                 else
                 {
                     //If PIKIntCalcMethodOnHolidays == Project, Backout PIKInterest for this period else use the previous days interest
@@ -3235,8 +3327,8 @@ namespace CRES.NoteCalculator
         private void CalculateDailyPIKInterest(int pikindex, decimal PeriodBal, int? pmtdatetag, DateTime effectivedate, string PIKIntCalcMethod, int NumDaysInAccPeriod)
         {
             int AddOnDays = 0;
-            decimal? Adjustment30_360vsActual_360 = InterestCalcMethod(PIKIntCalcMethod, NumDaysInAccPeriod).Item1;
-            int DayCount = InterestCalcMethod(PIKIntCalcMethod, NumDaysInAccPeriod).Item2;
+            decimal? Adjustment30_360vsActual_360 = InterestCalcMethod(ListPIKInterestTab[pikindex].Date.Value, PIKIntCalcMethod, NumDaysInAccPeriod).Item1;
+            int DayCount = InterestCalcMethod(ListPIKInterestTab[pikindex].Date.Value, PIKIntCalcMethod, NumDaysInAccPeriod).Item2;
             if (pikindex > 0)
             {
                 if (ListPIKInterestTab[pikindex - 1].PIKBusinessDateAdjcheck == 1)
@@ -3280,23 +3372,21 @@ namespace CRES.NoteCalculator
         #region Coupon
         public void CalculateCouponTab(DateTime effectiveDate)
         {
-            int CouponIndex = 0, DayCountPurchInt = 360;
+            int CouponIndex = 0, DayCountPurchInt = 360, ReconcileStatus = 0;
             Int32 DayCount, Fyear = 0, Fmo = 0, Fday = 0, pmtyear, pmtmo, pmtday, bdaylag, ffdaycount, tempCellIndex;
-#pragma warning disable CS0168 // The variable 'purchint' is declared but never used
-#pragma warning disable CS0219 // The variable 'temp1' is assigned but its value is never used
             decimal? CumInt, CumcStrip, temp1, temp2, intpmt, cspmt, purchint, stubintff, cumffint = 0, stubIntOverride, purchIntOverride, initialAmt, indexOverride, index_closingdate = 0, cpn = 0, indexFloor = 0, Pikpmt = 0;
-#pragma warning restore CS0219 // The variable 'temp1' is assigned but its value is never used
-#pragma warning restore CS0168 // The variable 'purchint' is declared but never used
-#pragma warning disable CS0168 // The variable 'time' is declared but never used
             DateTime Firstpmtdate, ClosingDate, ffdate, ffaccend, purchaseAccStartDate, time, InitialAccendDateCalculated, initialAccEndDate;
-#pragma warning restore CS0168 // The variable 'time' is declared but never used
             decimal? PeriodBegBal = 0, PeriodBegBaldd = 0;
             CumcStrip = 0;
             CumInt = 0;
             CouponIndex = 0;
             temp1 = 0;
             tempCellIndex = 0;
-            decimal? CumIntDrop = 0, CumcStripDrop = 0, IntpmtDrop = 0, cspmtDrop = 0, ServicingAmt = 0, ActualDelta = 0;
+            decimal? CumIntDrop = 0, CumcStripDrop = 0, IntpmtDrop = 0, cspmtDrop = 0, ServicingAmt = 0, ActualDelta = 0, Adjustment = 0;
+            DateTime FirstFullMonthAccrualEndDate, ClosingMonthAccrualEndDate;
+
+            ClosingMonthAccrualEndDate = CreateNewDate(noteDC.ClosingDate.Value.Year, noteDC.ClosingDate.Value.Month, noteDC.InitialInterestAccrualEndDate.Value.Day);
+            FirstFullMonthAccrualEndDate = ClosingMonthAccrualEndDate.AddMonths(1);
 
             ClosingDate = Convert.ToDateTime(noteDC.ClosingDate);
             stubIntOverride = noteDC.StubIntOverride.GetValueOrDefault(0);
@@ -3307,9 +3397,10 @@ namespace CRES.NoteCalculator
             pmtmo = Convert.ToDateTime(noteDC.FirstPaymentDate).Month;
             pmtday = Convert.ToDateTime(noteDC.FirstPaymentDate).Day;
             bdaylag = Convert.ToInt32(noteDC.PaymentDateBusinessDayLag);
-            Firstpmtdate = GetnextWorkingDays(CreateNewDate(pmtyear, pmtmo, pmtday).AddDays(-bdaylag), bdaylag, DisableBusinessDayAdjustmentText);
+            Firstpmtdate = GetWorkingDayUsingOffset(CreateNewDate(pmtyear, pmtmo, pmtday), bdaylag, "US");
             initialAccEndDate = noteDC.InitialInterestAccrualEndDate.Value.Date;
             InitialAccendDateCalculated = CreateNewDate(initialAccEndDate.Year, initialAccEndDate.Month - 1, initialAccEndDate.Day);
+            //PurchasedStubInterestCalc = 0; initialFullMoInt = 0;
 
             if (effectiveDate.Equals(ClosingDate))
             {
@@ -3330,10 +3421,11 @@ namespace CRES.NoteCalculator
                 }
 
                 // ' Loan Purchase Accural Start Date
-                DayCountPurchInt = InterestCalcMethod(GetIntCalcMethodFromCouponSchedule(ClosingDate)).Item2;
+
                 initialAmt = noteDC.InitialFundingAmount.GetValueOrDefault(0) + ListBalanceTab[0].FutureAdvancesFromFutureFundingSchedule.GetValueOrDefault(0);
                 indexOverride = noteDC.InitialIndexValueOverride.GetValueOrDefault(0);
-                index_closingdate = indexOverride > 0 ? indexOverride : IndexRoundingBasedOnRule(GetMostRecentLiborValue(noteDC.ClosingDate.Value.AddDays(noteDC.DeterminationDateLeadDays.GetValueOrDefault(0))));
+                index_closingdate = indexOverride > 0 ? indexOverride : IndexRoundingBasedOnRule(GetMostRecentIndexValue(noteDC.ClosingDate.Value.AddDays(noteDC.DeterminationDateLeadDays.GetValueOrDefault(0))));
+                DayCountPurchInt = InterestCalcMethod(ClosingDate, GetIntCalcMethodFromCouponSchedule(ClosingDate)).Item2;
                 //index_closingdate = indexOverride > 0 ? indexOverride : ListRateTab[0].DIndexValueusingFloatingRateIndexReferenceDate.GetValueOrDefault(0);
                 indexFloor = GetValueFromCouponSchedule("Index Floor", ClosingDate);
                 if (GetValueFromCouponSchedule("Rate", ClosingDate) > 0)
@@ -3342,11 +3434,34 @@ namespace CRES.NoteCalculator
                     cpn = GetValueFromCouponSchedule("Spread", ClosingDate) + Math.Max(Convert.ToDecimal(index_closingdate), Convert.ToDecimal(indexFloor));
                 if (noteDC.LoanPurchaseYNText == "Y")
                 {
-                    purchaseAccStartDate = CreateNewDate(Fyear, Fmo - 1, Convert.ToInt32(Fday));
-                    // calculating full amount of interest for the first period (stub period of the purchse date)
+                    //purchaseAccStartDate = CreateNewDate(Fyear, Fmo - 1, Convert.ToInt32(Fday));
+                    purchaseAccStartDate = initialAccEndDate.AddDays(1).AddMonths(-1);
                     double datdiff = (Convert.ToDateTime(initialAccEndDate) - purchaseAccStartDate).TotalDays + 1;
-                    initialFullMoInt = initialAmt * cpn * Convert.ToDecimal(datdiff) / DayCountPurchInt;
-                    PurchasedStubInterestCalc = initialAmt * cpn * Convert.ToDecimal((ClosingDate.Date - purchaseAccStartDate.Date).TotalDays) / DayCountPurchInt;
+
+                    if (GetIntCalcMethodFromCouponSchedule(ClosingDate) == "Actual/Actual")
+                    {
+                        // calculating full amount of interest for the first period (stub period of the purchse date)
+                        List<DateTime> date_range = new List<DateTime>(Enumerable.Range(0, 1 + initialAccEndDate.Subtract(purchaseAccStartDate).Days)
+                                        .Select(offset => initialAccEndDate.AddDays(offset)).ToArray().Cast<DateTime>());
+                        foreach (DateTime dt in date_range)
+                        {
+                            DayCountPurchInt = InterestCalcMethod(dt, GetIntCalcMethodFromCouponSchedule(ClosingDate)).Item2;
+                            initialFullMoInt += initialAmt * cpn * (1 / DayCountPurchInt);
+                        }
+                        date_range = new List<DateTime>(Enumerable.Range(0, 1 + ClosingDate.AddDays(-1).Subtract(purchaseAccStartDate).Days)
+                                        .Select(offset => purchaseAccStartDate.AddDays(offset)).ToArray().Cast<DateTime>());
+                        foreach (DateTime dt in date_range)
+                        {
+                            DayCountPurchInt = InterestCalcMethod(dt, GetIntCalcMethodFromCouponSchedule(ClosingDate)).Item2;
+                            PurchasedStubInterestCalc += initialAmt * cpn * (1 / DayCountPurchInt);
+                        }
+                    }
+                    else
+                    {
+                        initialFullMoInt = initialAmt * cpn * Convert.ToDecimal(datdiff) / DayCountPurchInt;
+                        PurchasedStubInterestCalc = initialAmt * cpn * Convert.ToDecimal((ClosingDate.Date - purchaseAccStartDate.Date).TotalDays) / DayCountPurchInt;
+                    }
+
                     if (purchIntOverride != 0)
                     {
                         PurchasedStubInterest = purchIntOverride;
@@ -3412,6 +3527,11 @@ namespace CRES.NoteCalculator
                             DayCount = 365;
                             break;
 
+                        case "Actual/Actual":
+                            coupon.InterestCalcMethodAdjustment30_360vsActual_360 = 1;
+                            DayCount = DateTime.IsLeapYear(coupon.Date.Value.Year) ? 366 : 365;
+                            break;
+
                         default:
                             coupon.InterestCalcMethodAdjustment30_360vsActual_360 = 1;
                             DayCount = 360;
@@ -3468,7 +3588,7 @@ namespace CRES.NoteCalculator
                         //' Daily Accrued Coupon Stripping
                         coupon.DailyAccruedCouponStripping = 0;
                     }
-                    //Stub Interest Amount & Purchased Stub Interest
+                    //Stub Interest Amount & Purchased Interest
                     if (effectiveDate == noteDC.ClosingDate)
                     {
                         if (coupon.Date >= ClosingDate && coupon.Date < EffectveFirstCouponAccrualStartDate && stubIntOverride != 0)
@@ -3551,6 +3671,13 @@ namespace CRES.NoteCalculator
                 CouponIndex = CouponIndex + 1;
             }
 
+            //For notes that are closed after the accrual period end date of the closing month and Stub Interest collected in Advance on closing date
+            //Interest Accrual will be negative - Sum of daily accrued interest from date to the next accrual end date * -1
+            if (noteDC.StubPaidinAdvanceYNText == "Y" && noteDC.ClosingDate > ClosingMonthAccrualEndDate)
+                foreach (CouponTab coupon in ListCouponTab.Where(cp => cp.Date <= FirstFullMonthAccrualEndDate))
+                    coupon.AccumInterestforCurrentAccrualPeriod = (from c in ListCouponTab where c.Date > coupon.Date.Value && c.Date <= FirstFullMonthAccrualEndDate select c.DailyAccruedInterest).Sum() * -1;
+
+
             CouponIndex = 0;
             //' Interest Paid on Payment Date
             foreach (CouponTab coupon in ListCouponTab)
@@ -3562,6 +3689,7 @@ namespace CRES.NoteCalculator
                     cspmt = 0;
                     cspmtDrop = 0;
                     Pikpmt = 0;
+                    ReconcileStatus = 0;
                     foreach (var liad in ListDatesTab)
                     {
                         if (liad.PaymentDateReferencedforInterestAccrualPeriodAdjustedforBusinessDay == coupon.Date)
@@ -3605,7 +3733,7 @@ namespace CRES.NoteCalculator
                         coupon.PMTDropDateInterestPaidonPaymentDate = initialFullMoInt;
                     }
                     else if ((coupon.Date == CreateNewDate(stubEndDate.Value.Year, stubEndDate.Value.Month, stubEndDate.Value.Day + 1))
-                             || (coupon.Date.Value.Date == BusinessDayAdjustment(stubEndDate.Value.Date.AddDays(1), "PMT Date", null))
+                             || (coupon.Date.Value.Date == GetWorkingDayUsingOffset(stubEndDate.Value.Date, Convert.ToInt16(-1), "US"))
                              || (coupon.Date == CreateNewDate(Firstpmtdate.Year, Firstpmtdate.Month - 1, Firstpmtdate.Day))
                              && (coupon.NumberofDaysinReferencedAccrualPeriod < 28)
                              && noteDC.StubPaidinAdvanceYNText == "Y")
@@ -3630,18 +3758,20 @@ namespace CRES.NoteCalculator
                     coupon.PMTDropDateCouponStrippedonPaymentDate = cspmtDrop;
                     ListPIKInterestTab[CouponIndex].PIKInterestOnPMTDate = Pikpmt;
                     //servicing_amt
-
-                    ServicingAmt = ServicingTransactionOverride("InterestPaid", coupon.Date);
+                    List<string> transtypes = new List<string>() { CalculationEnums.TransactionTypeText[(int)TransactionType.InterestPaid],
+                    CalculationEnums.TransactionTypeText[(int)TransactionType.PurchasedInterest]};
+                    ServicingAmt = ServicingTransactionOverride(transtypes, coupon.Date, out ReconcileStatus);
                     if (ServicingAmt != 0)
                     {
                         coupon.ServicingOverrideTag = 1;
                     }
-                    else if (CouponIndex > 2)
+                    else if (ServicingAmt == 0 && ReconcileStatus == 1)
                     {
-                        if (ListCouponTab[CouponIndex - 2].InterestAccrualPeriodEndDateTag != 1)
-                        {
-                            coupon.ServicingOverrideTag = ListCouponTab[CouponIndex - 1].ServicingOverrideTag.GetValueOrDefault(0);
-                        }
+                        coupon.ServicingOverrideTag = 1;
+                    }
+                    else
+                    {
+                        coupon.ServicingOverrideTag = 0;
                     }
 
                     if (coupon.ServicingOverrideTag != 1)
@@ -3712,26 +3842,49 @@ namespace CRES.NoteCalculator
                         coupon.InterestPaidServicingWithDropDate = ServicingAmt.GetValueOrDefault(0);
                     }
                     //' Interest Suspense Account:
-                    ActualDelta = GetServicingValue(CalculationEnums.ListInterestTransactions, coupon.Date);
+                    ServicingLogTab svcLogTab = GetServicingValue(CalculationEnums.ListInterestTransactions, coupon.Date);
+                    ActualDelta = svcLogTab == null ? 0 : svcLogTab.ActualDelta.GetValueOrDefault();    //GetServicingValue(CalculationEnums.ListInterestTransactions, coupon.Date);
+                    Adjustment = svcLogTab == null ? 0 : svcLogTab.Adjustment.GetValueOrDefault();     //GetServicingValueExt(CalculationEnums.ListCoreInterestTransactions, coupon.Date);
+
                     if (coupon.ServicingOverrideTag == 1)
                     {
-                        coupon.InterestSuspenseAccountActivityforthePeriod = coupon.InterestPaidperServicing.GetValueOrDefault(0) - coupon.InterestPaid.GetValueOrDefault(0);
+                        //coupon.InterestSuspenseAccountActivityforthePeriod = coupon.InterestPaidperServicing.GetValueOrDefault(0) - coupon.InterestPaid.GetValueOrDefault(0);
+                        coupon.InterestSuspenseAccountActivityforthePeriod = ActualDelta;
+                        coupon.InterestSuspenseAdjustment = Adjustment;
                     }
+                    else
+                    {
+                        coupon.InterestSuspenseAccountActivityforthePeriod = 0;
+                        coupon.InterestSuspenseAdjustment = 0;
+                    }
+
+                    // Cash Interest & Capitalized Interest
+                    coupon.CashInterest = svcLogTab == null ? coupon.InterestPaidServicingWithDropDate.GetValueOrDefault(0) : svcLogTab.CashInterest.GetValueOrDefault();
+                    coupon.CapitalizedInterest = svcLogTab == null ? 0 : svcLogTab.CapitalizedInterest.GetValueOrDefault();
+                    if (svcLogTab != null && svcLogTab.TransactionTypeText == CalculationEnums.TransactionTypeText[(int)TransactionType.PIKInterestPaid])
+                    {
+                        if (svcLogTab.TransactionAmount != 0 && svcLogTab.CashInterest == 0 && svcLogTab.CapitalizedInterest == 0)
+                        {
+                            coupon.CashInterest = svcLogTab.TransactionAmount.GetValueOrDefault();
+                            coupon.CapitalizedInterest = 0;
+                        }
+                    }
+
                     if (CouponIndex == 0)
                     {
                         coupon.InterestSuspenseAccountBalance = coupon.InterestSuspenseAccountActivityforthePeriod.GetValueOrDefault(0);
-                        coupon.InterestSuspenseAccountBalanceWithAdj = ActualDelta;
                     }
                     else
                     {
                         coupon.InterestSuspenseAccountBalance = ListCouponTab[CouponIndex - 1].InterestSuspenseAccountBalance.GetValueOrDefault(0) + coupon.InterestSuspenseAccountActivityforthePeriod.GetValueOrDefault(0);
-                        coupon.InterestSuspenseAccountBalanceWithAdj = ListCouponTab[CouponIndex - 1].InterestSuspenseAccountBalanceWithAdj.GetValueOrDefault(0) + ActualDelta;
                     }
+
+                    coupon.InterestPastDue = GetInterestPastDueAmount(CalculationEnums.TransactionTypeText[(int)TransactionType.InterestPaid], coupon.Date, coupon.InterestPaid);
                 }
                 CouponIndex = CouponIndex + 1;
             }
         }
-        private Tuple<decimal?, int> InterestCalcMethod(string value, int NumberofDaysinReferencedAccrualPeriod = 30)
+        private Tuple<decimal?, int> InterestCalcMethod(DateTime dt, string value, int NumberofDaysinReferencedAccrualPeriod = 30)
         {
             decimal? InterestCalcMethodAdjustment30_360vsActual_360 = 1.0M;
             int DayCount = 360;
@@ -3747,6 +3900,11 @@ namespace CRES.NoteCalculator
                     DayCount = 365;
                     break;
 
+                case "Actual/Actual":
+                    InterestCalcMethodAdjustment30_360vsActual_360 = 1;
+                    DayCount = DateTime.IsLeapYear(dt.Year) ? 366 : 365;
+                    break;
+
                 default:
                     InterestCalcMethodAdjustment30_360vsActual_360 = 1;
                     DayCount = 360;
@@ -3758,11 +3916,9 @@ namespace CRES.NoteCalculator
         {
             string InterestAccrualRule = noteDC.InterestCalculationRuleForPaydownsText;
             DateTime? MaturityDate = SelectedMaturityDateLatest;
-#pragma warning disable CS0219 // The variable 'pdid' is assigned but its value is never used
             int pdid = 0;
-#pragma warning restore CS0219 // The variable 'pdid' is assigned but its value is never used
             Decimal PikAmount = 0;
-            if (ListCouponTab[listindex].InterestAccrualPeriodEndDateTag == 1 && ReadBalnceValueAtIndex(listindex) != 1 && ReadBalnceValueAtIndex(listindex - 1) != 1 && ReadBalnceValueAtIndex(listindex - 2) != 1 && ReadBalnceValueAtIndex(listindex - 3) != 1)
+            if (ListCouponTab[listindex].InterestAccrualPeriodEndDateTag == 1 && ReadBalanceValueAtIndex(listindex) != 1 && ReadBalanceValueAtIndex(listindex - 1) != 1 && ReadBalanceValueAtIndex(listindex - 2) != 1 && ReadBalanceValueAtIndex(listindex - 3) != 1)
             {
                 PikAmount = ListPIKInterestTab[listindex].PIKInterestonBusinessAdjInterestAccrualEndDate.GetValueOrDefault(0);
             }
@@ -3795,7 +3951,7 @@ namespace CRES.NoteCalculator
                 }
 
                 //  Case "regular"
-                Decimal balanceportion = ListBalanceTab[listindex].EndingBalance.GetValueOrDefault(0) - PikAmount + ListBalanceTab[listindex].AmortizationEndingBalanceAddon.GetValueOrDefault(0) + ListBalanceTab[listindex].NonAmortizationEndingBalanceAddon.GetValueOrDefault(0);
+                Decimal balanceportion = ListBalanceTab[listindex].NotionalEndingBalance.GetValueOrDefault(0) - PikAmount + ListBalanceTab[listindex].AmortizationEndingBalanceAddon.GetValueOrDefault(0) + ListBalanceTab[listindex].NonAmortizationEndingBalanceAddon.GetValueOrDefault(0);
 
                 ListCouponTab[listindex].DailyAccruedInterestbeforeStrippingRule = balanceportion * ListCouponTab[listindex].InterestCalcMethodAdjustment30_360vsActual_360.GetValueOrDefault(0) * ListRateTab[listindex].AllInCouponRate.GetValueOrDefault(0) / daycount
                      - ListCouponTab[listindex].CouponbasedonFutureFunding.GetValueOrDefault(0);
@@ -3824,18 +3980,9 @@ namespace CRES.NoteCalculator
                 ListCouponTab[listindex].PMTDropDateDailyAccruedInterest = ListCouponTab[listindex].PMTDropDateDailyAccruedInterestbeforeStrippingRule.GetValueOrDefault(0) - ListCouponTab[listindex].PMTDropDateDailyAccruedCouponStripping.GetValueOrDefault(0);
             }
         }
-        public int? ReadBalnceValueAtIndex(int listindex)
+        public int? ReadBalanceValueAtIndex(int listindex)
         {
-            int? value = 0;
-            if (listindex < 0)
-            {
-                value = 0;
-            }
-            else
-            {
-                value = ListBalanceTab[listindex].PMTDateTag.GetValueOrDefault(0);
-            }
-            return value;
+            return listindex < 0 ? 0 : ListBalanceTab[listindex].PMTDateTag.GetValueOrDefault(0);
         }
         public void InterestForThePeriod(int listindex, DateTime InitialAccendDateCalculated, Decimal? StubInterestAmount, Decimal? stubintff)
         {
@@ -3884,6 +4031,7 @@ namespace CRES.NoteCalculator
         }
         public Tuple<decimal?, decimal?> CalculateFinalPeriodInterest(int listindex, string InterestCalculationRuleForPaydownsText)
         {
+            DatesTab finalPeriod = null;
             Tuple<Decimal?, Decimal?> finalperiodInterest;
             decimal? InterestforthePeriod = 0, PMTDropDateInterestforthePeriod = 0;
 
@@ -3894,7 +4042,10 @@ namespace CRES.NoteCalculator
                                                      orderby tb.InterestAccrualPeriodEndDateArray
                                                      select tb).First());
 
+                //List<DatesTab> lstPmtDatesOnMaturity = ListDatesTab.Where(dt => dt.PaymentDateReferencedforInterestAccrualPeriodAdjustedforBusinessDay.Value.Date == SelectedMaturityDateLatest.Value.Date).ToList();
+                //finalPeriod = lstPmtDatesOnMaturity.Where(d => d.InterestAccrualPeriodStartDateArray.Value.Date <= SelectedMaturityDateLatest.Value.Date && d.InterestAccrualPeriodEndDateArray.Value.Date >= SelectedMaturityDateLatest.Value.Date).FirstOrDefault();
                 TimeSpan datediff = (Convert.ToDateTime(ListDatesTab[matIndex].InterestAccrualPeriodEndDateArray) - Convert.ToDateTime(ListDatesTab[matIndex].PaymentDateReferencedforInterestAccrualPeriodAdjustedforBusinessDay));
+                //TimeSpan datediff = (Convert.ToDateTime(finalPeriod.InterestAccrualPeriodEndDateArray) - Convert.ToDateTime(finalPeriod.PaymentDateReferencedforInterestAccrualPeriodAdjustedforBusinessDay));
                 int days = Convert.ToInt32(datediff.TotalDays) + 1;
                 if (days != 0)
                 {
@@ -3961,11 +4112,8 @@ namespace CRES.NoteCalculator
                     PMTDropDateInterestPaidonPaymentDate = PMTDropDateInterestforthePeriod;
                 }
             }
-
-
-
-
-            else if (InterestCalculationRuleForPaydownsText == "Exclude Prepayment Date" && SelectedMaturityDateLatest > noteDC.FirstPaymentDate)
+            else if (InterestCalculationRuleForPaydownsText == "Exclude Prepayment Date")
+            {
                 if (ListCouponTab[CouponIndex - 1].InterestAccrualPeriodEndDateTag == 1)
                 {
 
@@ -3974,7 +4122,6 @@ namespace CRES.NoteCalculator
                         InterestPaidonPaymentDate = ListCouponTab[CouponIndex - 1].InterestforthePeriod;
                         PMTDropDateInterestPaidonPaymentDate = ListCouponTab[CouponIndex - 1].InterestforthePeriod;
                     }
-
                     if (SelectedMaturityDateLatest < noteDC.FirstPaymentDate)
                     {
                         InterestPaidonPaymentDate = 0;
@@ -3982,20 +4129,27 @@ namespace CRES.NoteCalculator
                     }
                 }
                 else
-
                 {
 
                     //InterestPaidonPaymentDate = Math.Max(0, Convert.ToDecimal(intpmt * (1 - ListBalanceTab[CouponIndex].DebtServiceShortfall.GetValueOrDefault(0)))) + stubintff;
                     //PMTDropDateInterestPaidonPaymentDate = Math.Max(0, Convert.ToDecimal(IntpmtDrop * (1 - ListBalanceTab[CouponIndex].DebtServiceShortfall.GetValueOrDefault(0)))) + stubintff;
 
-                    InterestPaidonPaymentDate = InterestforthePeriod;
-                    PMTDropDateInterestPaidonPaymentDate = PMTDropDateInterestforthePeriod;
+                    //Except when the Pay off happens during the Stub Period and Stub is Paid in Advance, calculate interestpaid.
+                    if (noteDC.StubPaidinAdvanceYNText == "Y" && SelectedMaturityDateLatest <= stubEndDate)
+                    {
+                        InterestPaidonPaymentDate = 0;
+                        PMTDropDateInterestPaidonPaymentDate = 0;
+                    }
+                    else
+                    {
+                        InterestPaidonPaymentDate = InterestforthePeriod;
+                        PMTDropDateInterestPaidonPaymentDate = PMTDropDateInterestforthePeriod;
+                    }
                 }
-
+            }
             else if (InterestCalculationRuleForPaydownsText == "Include Prepayment Date")
 
                 if (ListCouponTab[CouponIndex - 1].InterestAccrualPeriodEndDateTag == 1)
-
                 {
                     var pmtDateTag = (from tb in ListDatesTab
                                       where tb.PaymentDateusingAccrualFreqNotAdjustedforBusinessDay == ListCouponTab[CouponIndex].Date
@@ -4015,11 +4169,7 @@ namespace CRES.NoteCalculator
                         PMTDropDateInterestPaidonPaymentDate = InterestforthePeriod;
 
                     }
-
-
                 }
-
-
                 else
                 {
                     InterestPaidonPaymentDate = InterestforthePeriod;
@@ -4034,9 +4184,7 @@ namespace CRES.NoteCalculator
 
             int ndx = 0, effndx = 0, dtndx = 0, cpnndx = 0, accrstart = 0, accrend = 0;
             int numdays = 0;
-#pragma warning disable CS0219 // The variable 'cumcpndrop' is assigned but its value is never used
             decimal? adjamount = 0, cumcpndrop = 0;
-#pragma warning restore CS0219 // The variable 'cumcpndrop' is assigned but its value is never used
             effndx = Math.Max(effectivedate == noteDC.ClosingDate ? 1 : ListDatesTab.FindIndex(dt => effectivedate >= dt.InterestAccrualPeriodStartDateArray && effectivedate <= dt.InterestAccrualPeriodEndDateArray), 1);
             dtndx = effndx - 1;
 
@@ -4285,17 +4433,38 @@ namespace CRES.NoteCalculator
                     //Trigger: Specific transaction occurs
                     foreach (CustomFeeScheduleDataContract tbf in LatestTransactionBasedFees)
                     {
+                        DateTime enddate = DateTime.MinValue;
+                        if (tbf.ScheduleEndDate == null)
+                        {
+                            enddate = SelectedMaturityDateLatest.Value.Date;
+                        }
+                        else { enddate = tbf.ScheduleEndDate.Value; }
+
+                        //to handle datetime less then minvalue
+                        if (enddate.Year < 2000)
+                        {
+                            enddate = SelectedMaturityDateLatest.Value.Date;
+                        }
                         baseAmount = 0;
-                        if (tbf.ScheduleStartDate.Value.Date <= period.Value.Date && period.Value.Date <= tbf.ScheduleEndDate.Value.Date)
+                        if (tbf.ScheduleStartDate.Value.Date <= period.Value.Date && period.Value.Date <= enddate)
                         {
 
                             if (period.Value.Date == noteDC.ClosingDate.Value.Date)
                             {
                                 baseAmount = CalculateInitialFundingAmount("Transaction Based Fee", transindex);
                             }
-
-                            baseAmount = baseAmount.GetValueOrDefault(0) + CalculateBaseAmount("Transaction Based Fee", listindex, transindex);
-                            if (baseAmount != 0)
+                            decimal baseamtovr = 0;
+                            decimal? CalculatedBaseAmount = CalculateBaseAmount("Transaction Based Fee", listindex, transindex);
+                            if (CalculatedBaseAmount > 0)
+                            {
+                                baseamtovr = tbf.BaseAmountOverride.GetValueOrDefault(0);
+                            }
+                            else if (noteDC.InitialFundingAmount.GetValueOrDefault(0) == 0 && period.Value.Date == SelectedMaturityDateLatest.Value.Date)
+                            {
+                                baseamtovr = tbf.BaseAmountOverride.GetValueOrDefault(0);
+                            }
+                            baseAmount = baseAmount.GetValueOrDefault(0) + CalculatedBaseAmount;
+                            if ((baseAmount.GetValueOrDefault(0) + baseamtovr) != 0)
                             {
                                 //if (effectivedate != noteDC.ClosingDate)
                                 //{
@@ -4312,7 +4481,7 @@ namespace CRES.NoteCalculator
                                     {
                                         feeAmount = baseAmount * tbf.Value;
                                         decimal? cumpriorpaydown = 0;
-                                        cumpriorpaydown = CalcPriorPaydowns(noteDC.ClosingDate.GetValueOrDefault(), tbf.ScheduleEndDate);
+                                        cumpriorpaydown = CalcPriorPaydowns(noteDC.ClosingDate.GetValueOrDefault(), enddate);
                                         feeAmount = feeAmount + (tbf.BaseAmountOverride + cumpriorpaydown - ListBalanceTab[listindex].BalloonPayment.GetValueOrDefault(0)) * tbf.Value;
                                     }
                                     else
@@ -4400,7 +4569,7 @@ namespace CRES.NoteCalculator
                         - LatestPaymentDateFees[feesindex].UnscheduledPaydowns * ListBalanceTab[listindex].DiscretionaryCurtailmentsForThePeriod.GetValueOrDefault(0)
                         + LatestPaymentDateFees[feesindex].BalloonPayment * ListBalanceTab[listindex].BalloonPayment.GetValueOrDefault(0)
                         + LatestPaymentDateFees[feesindex].LoanFundings * ListBalanceTab[listindex].FutureAdvancesFromFutureFundingSchedule.GetValueOrDefault(0)
-                        + LatestPaymentDateFees[feesindex].ScheduledPrincipalAmortizationPayment * ListBalanceTab[listindex].PrincipalReceivedperServicing.GetValueOrDefault(0)
+                        + LatestPaymentDateFees[feesindex].ScheduledPrincipalAmortizationPayment * ListBalanceTab[listindex].PrincipalPaid.GetValueOrDefault(0)
                         + LatestPaymentDateFees[feesindex].CurrentLoanBalance * ListBalanceTab[listindex].EndingBalance.GetValueOrDefault(0)
                         + LatestPaymentDateFees[feesindex].InterestPayment * ListBalanceTab[listindex].PrincipalShortfall.GetValueOrDefault(0)
                         + LatestPaymentDateFees[feesindex].AdjustedCommitment * GetAdjustedCommitmentByDate(ListFeesTab[listindex].Date);
@@ -4414,7 +4583,7 @@ namespace CRES.NoteCalculator
                        - LatestDateSpecificFees[feesindex].UnscheduledPaydowns * ListBalanceTab[listindex].DiscretionaryCurtailmentsForThePeriod.GetValueOrDefault(0)
                        + LatestDateSpecificFees[feesindex].BalloonPayment * ListBalanceTab[listindex].BalloonPayment.GetValueOrDefault(0)
                        + LatestDateSpecificFees[feesindex].LoanFundings * ListBalanceTab[listindex].FutureAdvancesFromFutureFundingSchedule.GetValueOrDefault(0)
-                       + LatestDateSpecificFees[feesindex].ScheduledPrincipalAmortizationPayment * ListBalanceTab[listindex].PrincipalReceivedperServicing.GetValueOrDefault(0)
+                       + LatestDateSpecificFees[feesindex].ScheduledPrincipalAmortizationPayment * ListBalanceTab[listindex].PrincipalPaid.GetValueOrDefault(0)
                        + LatestDateSpecificFees[feesindex].CurrentLoanBalance * ListBalanceTab[listindex].EndingBalance.GetValueOrDefault(0)
                        + LatestDateSpecificFees[feesindex].InterestPayment * ListBalanceTab[listindex].PrincipalShortfall.GetValueOrDefault(0)
                        + LatestDateSpecificFees[feesindex].AdjustedCommitment * GetAdjustedCommitmentByDate(ListFeesTab[listindex].Date);
@@ -4427,7 +4596,7 @@ namespace CRES.NoteCalculator
                       - LatestTransactionBasedFees[feesindex].UnscheduledPaydowns * ListBalanceTab[listindex].DiscretionaryCurtailmentsForThePeriod.GetValueOrDefault(0)
                       + LatestTransactionBasedFees[feesindex].BalloonPayment * ListBalanceTab[listindex].BalloonPayment.GetValueOrDefault(0)
                       + LatestTransactionBasedFees[feesindex].LoanFundings * ListBalanceTab[listindex].FutureAdvancesFromFutureFundingSchedule.GetValueOrDefault(0)
-                      + LatestTransactionBasedFees[feesindex].ScheduledPrincipalAmortizationPayment * ListBalanceTab[listindex].PrincipalReceivedperServicing.GetValueOrDefault(0)
+                      + LatestTransactionBasedFees[feesindex].ScheduledPrincipalAmortizationPayment * ListBalanceTab[listindex].PrincipalPaid.GetValueOrDefault(0)
                       + LatestTransactionBasedFees[feesindex].CurrentLoanBalance * ListBalanceTab[listindex].EndingBalance.GetValueOrDefault(0)
                       + LatestTransactionBasedFees[feesindex].InterestPayment * ListBalanceTab[listindex].PrincipalShortfall.GetValueOrDefault(0)
                       + LatestTransactionBasedFees[feesindex].AdjustedCommitment * GetAdjustedCommitmentByDate(ListFeesTab[listindex].Date);
@@ -4696,15 +4865,15 @@ namespace CRES.NoteCalculator
         public void InsertUpdateFeeOutput(FeeOutputDataContract fo)
         {
             FeeOutputDataContract fd = new FeeOutputDataContract();
-            fd = ListFeeOutput.FindAll(x => x.Date == fo.Date && x.FeeName == fo.FeeName && x.FeeType == x.FeeType).FirstOrDefault();
+            fd = ListFeeOutput.FindAll(x => x.Date == fo.Date && x.FeeName == fo.FeeName && x.FeeType == fo.FeeType).FirstOrDefault();
             if (fd != null)
             {
-                foreach (var item in ListFeeOutput.Where(x => x.Date == fo.Date && x.FeeName == fo.FeeName && x.FeeType == x.FeeType))
+                foreach (var item in ListFeeOutput.Where(x => x.Date == fo.Date && x.FeeName == fo.FeeName && x.FeeType == fo.FeeType))
                 {
                     item.FeeAmountStripped = fo.FeeAmountStripped;
-                    item.FeeAmount = fo.FeeAmount;
+                    item.FeeAmount += fo.FeeAmount;
                     item.Date = fo.Date;
-                    item.FeeAmountinclinLY = fo.FeeAmountinclinLY;
+                    item.FeeAmountinclinLY += fo.FeeAmountinclinLY;
                     item.FeeName = fo.FeeName;
                     item.FeeType = fo.FeeType;
                     item.FeeNameTransText = fo.FeeNameTransText;
@@ -4714,6 +4883,38 @@ namespace CRES.NoteCalculator
             {
                 ListFeeOutput.Add(fo);
             }
+        }
+        public decimal? GetPikBalanceAsonDate(DateTime? date)
+        {
+
+            decimal? pikbalance = 0;
+            foreach (var pikitem in noteDC.ListCashflowTransactionEntry)
+            {
+                if (pikitem.Date <= date)
+                {
+                    if (pikitem.Type == "PikPrincipalPaid" || pikitem.Type == "PIKPrincipalFunding")
+                    {
+                        pikbalance = pikbalance + pikitem.Amount.GetValueOrDefault(0);
+                    }
+
+                }
+            }
+
+            if (noteDC.ListServicingLogTab != null)
+            {
+                foreach (var servicing in noteDC.ListServicingLogTab)
+                {
+                    if (servicing.TransactionDate <= date)
+                    {
+                        if (servicing.TransactionTypeText == "PIKPrincipalPaid")
+                        {
+                            pikbalance = pikbalance + servicing.TransactionAmount.GetValueOrDefault(0);
+                        }
+                    }
+                }
+            }
+
+            return pikbalance;
         }
 
         private decimal? GetAdjustedCommitmentByDate(DateTime? date, string type = "")
@@ -4843,7 +5044,8 @@ namespace CRES.NoteCalculator
             return totalamount;
         }
 
-        public decimal ServicingTransactionOverride(string type, DateTime? transactiondate)
+        #region Servicing Log
+        public decimal ServicingTransactionOverride(string type, DateTime? lookupdate, string lookuptype = "TransactionDate")
         {
             decimal ServicingAmt = 0;
             if (noteDC.ListServicingLogTab != null)
@@ -4852,15 +5054,21 @@ namespace CRES.NoteCalculator
                 {
                     if (servicing.TransactionTypeText == type)
                     {
-                        if (servicing.TransactionDate == transactiondate)
+                        switch (lookuptype)
                         {
-                            ServicingAmt = ServicingAmt + servicing.TransactionAmount.GetValueOrDefault(0);
-                        }
-                        if (servicing.RelatedtoModeledPMTDate == transactiondate)
-                        {
-#pragma warning disable CS1717 // Assignment made to same variable; did you mean to assign something else?
-                            ServicingAmt = ServicingAmt;
-#pragma warning restore CS1717 // Assignment made to same variable; did you mean to assign something else?
+                            case "TransactionDate":
+                                if (servicing.TransactionDate == lookupdate)
+                                {
+                                    ServicingAmt = ServicingAmt + servicing.TransactionAmount.GetValueOrDefault(0);
+                                }
+                                break;
+
+                            case "PaymentDate":
+                                if (servicing.RelatedtoModeledPMTDate == lookupdate)
+                                {
+                                    ServicingAmt = ServicingAmt + servicing.TransactionAmount.GetValueOrDefault(0); ;
+                                }
+                                break;
                         }
                     }
                 }
@@ -4868,7 +5076,61 @@ namespace CRES.NoteCalculator
             return ServicingAmt;
         }
 
-        public decimal GetServicingValue(List<string> ListTypes, DateTime? LookupDate)
+        public decimal ServicingTransactionOverride(List<string> types, DateTime? lookupdate, out int recon_status, string lookuptype = "TransactionDate")
+        {
+            decimal ServicingAmt = 0; recon_status = 0;
+            if (noteDC.ListServicingLogTab != null)
+            {
+                foreach (var servicing in noteDC.ListServicingLogTab)
+                {
+                    if (types.Contains(servicing.TransactionTypeText))
+                    {
+                        switch (lookuptype)
+                        {
+                            case "TransactionDate":
+                                if (servicing.TransactionDate == lookupdate)
+                                {
+                                    ServicingAmt = ServicingAmt + servicing.TransactionAmount.GetValueOrDefault(0);
+                                    recon_status = servicing.RemittanceDate.HasValue == true ? 1 : 0;
+                                }
+                                break;
+
+                            case "PaymentDate":
+                                if (servicing.RelatedtoModeledPMTDate == lookupdate)
+                                {
+                                    ServicingAmt = ServicingAmt + servicing.TransactionAmount.GetValueOrDefault(0);
+                                    recon_status = servicing.RemittanceDate.HasValue == true ? 1 : 0;
+                                }
+                                break;
+                        }
+                    }
+                }
+            }
+            return ServicingAmt;
+        }
+        public ServicingLogTab GetServicingValue(List<string> ListTypes, DateTime? LookupDate)
+        {
+            ServicingLogTab AggServicingLogTab = null;
+            List<ServicingLogTab> listSvcLogs = noteDC.ListServicingLogTab.Where(s => ListTypes.Contains(s.TransactionTypeText) && s.TransactionDate == LookupDate).ToList();
+            if (listSvcLogs.Count > 0)
+            {
+                AggServicingLogTab = new ServicingLogTab();
+                AggServicingLogTab.TransactionDate = LookupDate;
+                //AggServicingLogTab.RelatedtoModeledPMTDate = LookupDate;
+                AggServicingLogTab.TransactionTypeText = listSvcLogs[0].TransactionTypeText;
+                AggServicingLogTab.TransactionAmount = listSvcLogs.Select(s => s.TransactionAmount).Sum();
+                AggServicingLogTab.Adjustment = listSvcLogs.Select(s => s.Adjustment).Sum();
+                AggServicingLogTab.WriteOffAmount = listSvcLogs.Select(s => s.WriteOffAmount).Sum();
+                AggServicingLogTab.ActualDelta = listSvcLogs.Select(s => s.ActualDelta).Sum();
+                AggServicingLogTab.CashInterest = listSvcLogs.Select(s => s.CashInterest).Sum();
+                AggServicingLogTab.CapitalizedInterest = listSvcLogs.Select(s => s.CapitalizedInterest).Sum();
+
+            }
+
+            return AggServicingLogTab;
+        }
+
+        public decimal GetServicingValueExt(List<string> ListTypes, DateTime? LookupDate)
         {
             int ndx = -1;
             decimal ServicingAmt = 0;
@@ -4881,13 +5143,45 @@ namespace CRES.NoteCalculator
                     {
                         if (servicing.TransactionDate == LookupDate)
                         {
-                            ServicingAmt = ServicingAmt + servicing.ActualDelta.GetValueOrDefault(0);
+                            ServicingAmt = ServicingAmt + servicing.Adjustment.GetValueOrDefault(0);
                         }
                     }
                 }
             }
             return ServicingAmt;
         }
+
+        public decimal GetInterestPastDueAmount(string type, DateTime? LookupDate, Decimal? CalculatedAmount)
+        {
+            // CouponTab Account - InterestPastDue:
+            // For all days in the future set to 0
+            // If a reconciled transaction exists in Servicer Log - Use Actual Delta
+            // If no reconciled transaction is found in Servicer Log - use Model Calculated Amount
+
+            int ndx = -1;
+            decimal ServicingAmt = 0;
+
+            if (LookupDate <= DateTime.Today)
+            {
+                if (noteDC.ListServicingLogTab != null)
+                {
+                    ndx = noteDC.ListServicingLogTab.FindIndex(svc => svc.TransactionTypeText == type && svc.RelatedtoModeledPMTDate == LookupDate);
+                    if (ndx == -1)  //No Reconciled Transaction
+                    {
+                        ServicingAmt = CalculatedAmount.Value;
+                    }
+                    else
+                    {
+                        //Check for multiple transactions for the same due date
+                        ServicingAmt = (from svc in noteDC.ListServicingLogTab where svc.TransactionTypeText == type && svc.RelatedtoModeledPMTDate == LookupDate select svc.ActualDelta).Sum().Value;
+                    }
+                }
+            }
+            return ServicingAmt;
+        }
+
+        #endregion Servicing Log Access
+
 
         public decimal AddOnAmtPMTDropDate(decimal pdwn, string pdwntype, decimal prioramt)
         {
@@ -4932,18 +5226,34 @@ namespace CRES.NoteCalculator
             return totalamount;
         }
 
+        public string GetFeeNameForActuals(DateTime? trdate, string Trtype)
+        {
+            string feename = "";
+
+            foreach (var item in ListCashflowTransactionEntryDeleted)
+            {
+                if (item.Date.Value.Date == trdate.Value.Date && item.Type == Trtype)
+                {
+                    feename = item.FeeName;
+                    break;
+
+                }
+            }
+            return feename;
+        }
         public void OverrideReconValuesInTransactions()
         {
+
             if (noteDC.ListServicingLogTab != null)
             {
                 foreach (var servicing in noteDC.ListServicingLogTab)
                 {
-                    if (servicing.UsedInFeeRecon != 0)
+                    if (servicing.UsedInFeeRecon != null)
                     {
                         if (servicing.TransactionTypeText == "ExitFeeExcludedFromLevelYield" || servicing.TransactionTypeText == "ExitFeeIncludedInLevelYield" ||
     servicing.TransactionTypeText == "ExitFeeStrippingExcldfromLevelYield" || servicing.TransactionTypeText == "ExitFeeStripReceivable" || servicing.TransactionTypeText == "ExtensionFeeExcludedFromLevelYield" ||
     servicing.TransactionTypeText == "ExtensionFeeIncludedInLevelYield" || servicing.TransactionTypeText == "ExtensionFeeStrippingExcldfromLevelYield" || servicing.TransactionTypeText == "ExtensionFeeStripReceivable" ||
-    servicing.TransactionTypeText == "PrepaymentFeeExcludedFromLevelYield" || servicing.TransactionTypeText == "UnusedFeeExcludedFromLevelYield" || servicing.TransactionTypeText == "ScheduledPrincipalPaid")
+    servicing.TransactionTypeText == "PrepaymentFeeExcludedFromLevelYield" || servicing.TransactionTypeText == "UnusedFeeExcludedFromLevelYield" || servicing.TransactionTypeText == "ScheduledPrincipalPaid" || servicing.TransactionTypeText == "Balloon")
                         {
                             TransactionEntry te = new TransactionEntry();
                             //manish
@@ -4953,6 +5263,7 @@ namespace CRES.NoteCalculator
                                 foreach (var item in noteDC.ListCashflowTransactionEntry.Where(x => x.Date == servicing.TransactionDate && x.Type == servicing.TransactionTypeText))
                                 {
                                     item.isdeleted = true;
+                                    ListCashflowTransactionEntryDeleted.Add(item);
                                 }
                             }
 
@@ -4963,22 +5274,27 @@ namespace CRES.NoteCalculator
                 noteDC.ListCashflowTransactionEntry.RemoveAll(x => x.isdeleted == true);
                 foreach (var servicing in noteDC.ListServicingLogTab)
                 {
-                    if (servicing.UsedInFeeRecon != 0)
+                    if (servicing.UsedInFeeRecon != null)
                     {
                         if (servicing.TransactionTypeText == "ExitFeeExcludedFromLevelYield" || servicing.TransactionTypeText == "ExitFeeIncludedInLevelYield" ||
     servicing.TransactionTypeText == "ExitFeeStrippingExcldfromLevelYield" || servicing.TransactionTypeText == "ExitFeeStripReceivable" || servicing.TransactionTypeText == "ExtensionFeeExcludedFromLevelYield" ||
     servicing.TransactionTypeText == "ExtensionFeeIncludedInLevelYield" || servicing.TransactionTypeText == "ExtensionFeeStrippingExcldfromLevelYield" || servicing.TransactionTypeText == "ExtensionFeeStripReceivable" ||
-    servicing.TransactionTypeText == "PrepaymentFeeExcludedFromLevelYield" || servicing.TransactionTypeText == "UnusedFeeExcludedFromLevelYield" || servicing.TransactionTypeText == "ScheduledPrincipalPaid")
+    servicing.TransactionTypeText == "PrepaymentFeeExcludedFromLevelYield" || servicing.TransactionTypeText == "UnusedFeeExcludedFromLevelYield" || servicing.TransactionTypeText == "ScheduledPrincipalPaid" || servicing.TransactionTypeText == "Balloon")
                         {
                             TransactionEntry transaction = new TransactionEntry();
                             transaction.Date = servicing.TransactionDate;
                             transaction.AnalysisID = noteDC.AnalysisID;
                             transaction.Amount = servicing.UsedInFeeRecon.GetValueOrDefault(0);
                             transaction.Type = servicing.TransactionTypeText;
-                            transaction.FeeName = "";
+                            transaction.FeeName = GetFeeNameForActuals(transaction.Date, servicing.TransactionTypeText);
                             transaction.TransactionDateByRule = servicing.TransactionDateByRule;
                             transaction.TransactionDateServicingLog = servicing.TransactionDateServicingLog;
                             transaction.RemittanceDate = servicing.RemittanceDate;
+
+                            if (servicing.TransactionTypeText == "Balloon")
+                            {
+                                transaction.BalloonRepayAmount = BalloonRepayAmount;
+                            }
 
                             noteDC.ListCashflowTransactionEntry.Add(transaction);
                         }
@@ -4988,200 +5304,220 @@ namespace CRES.NoteCalculator
         }
 
 
-        #region Common
+        #region Common              
 
-        public DateTime BusinessDayAdjustment(DateTime refDate, string DateType, int? bdaylog)
+        public DateTime GetWorkingDayUsingOffset(DateTime date, int offset, string HolidayCalendarType, bool alwaysadjust = false)
         {
-            if (refDate != null)
+            DateTime nextWorkingDay = date;
+            if (noteDC.DefaultScenarioParameters.DisableBusinessDayAdjustmentText != "Y")
             {
-                //BusinessDayAdjustmentIndexType
-                if (DateType == "Index Date")
+                int loopLimitVariable = 0;
+                int adjustmentday = 0;
+                if (offset > 0)
                 {
-                    refDate = GetWorkingDayUsingOffset(refDate, Convert.ToInt16(bdaylog), "Index Date");
+                    loopLimitVariable = offset * -1;
+                    adjustmentday = 1;
+                }
+                else if (offset == 0)
+                {
+                    adjustmentday = 0;
+                    loopLimitVariable = 0;
                 }
                 else
                 {
-                    if (bdaylog == null)
+                    loopLimitVariable = offset;
+                    adjustmentday = -1;
+                }
+                nextWorkingDay = GetnextWorkingDays(date, adjustmentday, HolidayCalendarType);
+                if (nextWorkingDay.Date != date.Date)
+                {
+                    alwaysadjust = true;
+                }
+                else
+                {
+                    if (alwaysadjust == true)
                     {
-                        bdaylog = -1;
+                        if (nextWorkingDay.Date == date.Date)
+                        {
+                            if (offset > 0)
+                            {
+                                loopLimitVariable = loopLimitVariable + 1;
+
+                            }
+                            else
+                            {
+                                loopLimitVariable = loopLimitVariable - 1;
+                            }
+
+                        }
                     }
-                    bool holidayCheck;
-                    string lookupmethod;
-                    int bday;
-                    bday = Math.Abs(Convert.ToInt16(bdaylog));
-                    if (bday >= 0)
+                }
+                if (alwaysadjust == true)
+                {
+                    for (int i = 0; i < (-loopLimitVariable - 1); i++)
                     {
-                        lookupmethod = "Prior";
+                        nextWorkingDay = nextWorkingDay.AddDays(adjustmentday);
+                        nextWorkingDay = GetnextWorkingDays(nextWorkingDay, adjustmentday, HolidayCalendarType);
                     }
+                }
+            }
+            return nextWorkingDay;
+        }
+        public DateTime GetWorkingDayUsingOffset(DateTime date, int offset, string HolidayCalendarType)
+        {
+            DateTime nextWorkingDay = date;
+
+            if (noteDC.DefaultScenarioParameters.DisableBusinessDayAdjustmentText != "Y")
+            {
+                int loopLimitVariable = 0;
+                int adjustmentday = 0;
+
+                if (offset > 0)
+                {
+                    loopLimitVariable = offset * -1;
+                    adjustmentday = 1;
+                }
+                else if (offset == 0)
+                {
+                    adjustmentday = 0;
+                    loopLimitVariable = 0;
+                }
+                else
+                {
+                    loopLimitVariable = offset;
+                    adjustmentday = -1;
+                }
+
+                nextWorkingDay = GetnextWorkingDays(date, adjustmentday, HolidayCalendarType);
+                if (nextWorkingDay.Date != date.Date)
+                {
+                    for (int i = 0; i < (-loopLimitVariable - 1); i++)
+                    {
+                        nextWorkingDay = nextWorkingDay.AddDays(adjustmentday);
+                        nextWorkingDay = GetnextWorkingDays(nextWorkingDay, adjustmentday, HolidayCalendarType);
+                    }
+                }
+            }
+            return nextWorkingDay;
+        }
+
+        public bool SetGlobalIndexAndHolidayCalendar(DateTime refDate)
+        {
+            bool bIndexNameChange = false;
+            DateTime? RateSpreadScheduleStartDate = null;
+            string IndexName = "", HolidayType = "";
+            //Tuple<string, string> Index_Holiday = GetIndexAndHolidayTypeFromShedule(refDate);
+            List<RateSpreadSchedule> RSScheduleIndexList = ListRateSpreadScheduleLatest.Where(rssch => (rssch.IndexNameText != null && rssch.IndexNameText != "")).ToList();
+            if (RSScheduleIndexList != null)
+            {
+                RateSpreadScheduleStartDate = RSScheduleIndexList.Where(rs => rs.Date >= refDate).Min(rs => rs.Date);
+                if (RateSpreadScheduleStartDate != null)
+                {
+                    List<RateSpreadSchedule> RSScheduleIndexListStart = RSScheduleIndexList.Where(rs => rs.Date == RateSpreadScheduleStartDate).ToList();
+                    IndexName = RSScheduleIndexListStart[0].IndexNameText;
+                    HolidayType = RSScheduleIndexListStart[0].DeterminationDateHolidayListText;
+                }
+            }
+
+            bIndexNameChange = (IndexName != "" && IndexConfigurationLatest.IndexName != IndexName);
+            if (bIndexNameChange)
+            {
+                IndexConfigurationLatest.SetIndexConfiguration(refDate, RateSpreadScheduleStartDate.Value.Date, IndexName, HolidayType);
+                if (IndexName == CalculationEnums.IndexNames[(int)EnmIndexName.Libor1M])
+                {
+                    ListIndexScheduleTabLatest = ListLIB1MScheduleTabLatest;
+                }
+                else
+                {
+                    if (IndexName == CalculationEnums.IndexNames[(int)EnmIndexName.Sofr1M])
+                        ListIndexScheduleTabLatest = ListSOFRScheduleTabLatest;
                     else
-                    {
-                        lookupmethod = "After";
-                    }
-
-                    if (Enum.IsDefined(typeof(EnmBusinessDayLookupMethod), lookupmethod.Replace(' ', '_')))
-                    {
-                        EnmBusinessDayLookupMethod elookupmethod = ((EnmBusinessDayLookupMethod)Enum.Parse(typeof(EnmBusinessDayLookupMethod), lookupmethod.Replace(' ', '_')));
-                        switch (elookupmethod)
-                        {
-                            case EnmBusinessDayLookupMethod.Prior:
-                                refDate = refDate.AddDays(-1);
-                                break;
-
-                            case EnmBusinessDayLookupMethod.After:
-                                refDate = refDate.AddDays(1);
-                                break;
-                        }
-                    }
-                    holidayCheck = CheckForHoliday(refDate, DateType);
-                    if (holidayCheck == true)
-                    {
-                        refDate = GetnextWorkingDays(refDate, -1, DisableBusinessDayAdjustmentText);
-                    }
-
-                    refDate = DayAdjustmentCalc(refDate, lookupmethod, bday - 1);
-                    holidayCheck = CheckForHoliday(refDate, DateType);
-                    if (holidayCheck == true)
-                    {
-                        refDate = GetnextWorkingDays(refDate, -1, DisableBusinessDayAdjustmentText);
-                    }
-                    while (holidayCheck == true)
-                    {
-                        if (Enum.IsDefined(typeof(EnmBusinessDayLookupMethod), lookupmethod.Replace(' ', '_')))
-                        {
-                            EnmBusinessDayLookupMethod elookupmethod = ((EnmBusinessDayLookupMethod)Enum.Parse(typeof(EnmBusinessDayLookupMethod), lookupmethod.Replace(' ', '_')));
-                            switch (elookupmethod)
-                            {
-                                case EnmBusinessDayLookupMethod.Prior:
-                                    refDate = refDate.AddDays(-1);
-                                    break;
-
-                                case EnmBusinessDayLookupMethod.After:
-                                    refDate = refDate.AddDays(1);
-                                    break;
-                            }
-                        }
-                        refDate = DayAdjustmentCalc(refDate, lookupmethod, bday - 1);
-                        holidayCheck = CheckForHoliday(refDate, DateType);
-                    }
-
-                    if (Enum.IsDefined(typeof(EnmBusinessDayLookupMethod), lookupmethod.Replace(' ', '_')))
-                    {
-                        EnmBusinessDayLookupMethod elookupmethod = ((EnmBusinessDayLookupMethod)Enum.Parse(typeof(EnmBusinessDayLookupMethod), lookupmethod.Replace(' ', '_')));
-                        switch (elookupmethod)
-                        {
-                            case EnmBusinessDayLookupMethod.Prior:
-                                refDate = refDate.AddDays(-bday + 1);
-                                break;
-
-                            case EnmBusinessDayLookupMethod.After:
-                                refDate = refDate.AddDays(bday - 1);
-                                break;
-                        }
-                    }
-                    refDate = DayAdjustmentCalc(refDate, lookupmethod, bday);
-                    holidayCheck = CheckForHoliday(refDate, DateType);
-                    while (holidayCheck == true)
-                    {
-                        if (Enum.IsDefined(typeof(EnmBusinessDayLookupMethod), lookupmethod.Replace(' ', '_')))
-                        {
-                            EnmBusinessDayLookupMethod elookupmethod = ((EnmBusinessDayLookupMethod)Enum.Parse(typeof(EnmBusinessDayLookupMethod), lookupmethod.Replace(' ', '_')));
-                            switch (elookupmethod)
-                            {
-                                case EnmBusinessDayLookupMethod.Prior:
-                                    refDate = refDate.AddDays(-1);
-                                    break;
-
-                                case EnmBusinessDayLookupMethod.After:
-                                    refDate = refDate.AddDays(1);
-                                    break;
-                            }
-                        }
-
-                        refDate = DayAdjustmentCalc(refDate, lookupmethod, bday);
-                        holidayCheck = CheckForHoliday(refDate, DateType);
-                    }
+                        ListIndexScheduleTabLatest = ListLIB1MScheduleTabLatest;
                 }
             }
-            return refDate;
+            return bIndexNameChange;
         }
 
-        public int SetMondayAsStartofWeek(DateTime date)
+        public bool SetGlobalIndexAndHolidayCalendar(DateTime refDate, DateTime rateDate)
         {
-            int d = (int)date.DayOfWeek;
-            if (d == 0)
+            bool bIndexNameChange = false;
+            DateTime? RateSpreadScheduleStartDate = null;
+            string IndexName = "", HolidayType = "";
+            //Tuple<string, string> Index_Holiday = GetIndexAndHolidayTypeFromShedule(refDate);
+            List<RateSpreadSchedule> RSScheduleIndexList = ListRateSpreadScheduleLatest.Where(rssch => (rssch.IndexNameText != null && rssch.IndexNameText != "")).ToList();
+            if (RSScheduleIndexList != null)    //Current Rate Spread Schedule has an Index Change (This could be from a previous Eff Date Cycle or a change in this Cycle)
             {
-                d = 7;
-            }
-
-            return d;
-        }
-
-        public DateTime GetWorkingDayUsingOffset(DateTime date, int offset, string datetype)
-        {
-            DateTime workingDay = date;
-            if (noteDC.PaymentDateBusinessDayLag == 0 && offset == 0)
-            {
-                workingDay = date.AddDays(-1);
-            }
-            else
-            {
-                if (noteDC.DefaultScenarioParameters.DisableBusinessDayAdjustmentText != "Y")
+                RateSpreadScheduleStartDate = RSScheduleIndexList.Where(rs => rs.Date >= refDate).Min(rs => rs.Date);
+                if (RateSpreadScheduleStartDate != null && RateSpreadScheduleStartDate.Value.Date == rateDate)
                 {
-                    workingDay = GetnextWorkingDaysNew(workingDay, offset, datetype);
+                    List<RateSpreadSchedule> RSScheduleIndexListStart = RSScheduleIndexList.Where(rs => rs.Date == RateSpreadScheduleStartDate).ToList();
+                    IndexName = RSScheduleIndexListStart[0].IndexNameText;
+                    HolidayType = RSScheduleIndexListStart[0].DeterminationDateHolidayListText;
+                    bIndexNameChange = (IndexName != "" && IndexConfigurationLatest.IndexName != IndexName);
+                    if (bIndexNameChange)
+                    {
+                        IndexConfigurationLatest.SetIndexConfiguration(refDate, RateSpreadScheduleStartDate.Value.Date, IndexName, HolidayType);
+                        if (IndexName == CalculationEnums.IndexNames[(int)EnmIndexName.Libor1M])
+                        {
+                            ListIndexScheduleTabLatest = ListLIB1MScheduleTabLatest;
+                        }
+                        else
+                        {
+                            if (IndexName == CalculationEnums.IndexNames[(int)EnmIndexName.Sofr1M])
+                                ListIndexScheduleTabLatest = ListSOFRScheduleTabLatest;
+                            else
+                                ListIndexScheduleTabLatest = ListLIB1MScheduleTabLatest;
+                        }
+
+                        //Index has changed a new Holiday Calendar is loaded. Set prevAccEndDate to the end date of the period of Index Change
+                        DateTime? prevSelectedMaturityDate = SelectedMaturityDateLatest;
+                        int dtndx = ListDatesTab.FindIndex(dt => (dt.InterestAccrualPeriodStartDateArray <= IndexConfigurationLatest.StartDate && dt.InterestAccrualPeriodEndDateArray >= IndexConfigurationLatest.StartDate));
+                        if (dtndx >= 0)
+                        {
+                            //CollectDates(prevSelectedMaturityDate.Value.Date, SelectedMaturityDateLatest.Value.Date);
+                            this.prevAccEndDate = ListDatesTab[dtndx].InterestAccrualPeriodEndDateArray;
+                            CalculateDatesTab(refDate, prevSelectedMaturityDate);
+                            PopulateTabDates(prevSelectedMaturityDate.Value.Date);
+                        }
+                    }
                 }
+            }
+
+            return bIndexNameChange;
+        }
+        public Tuple<string, string> GetIndexAndHolidayTypeFromShedule(DateTime refDate)
+        {
+            string IndexName = "";
+            string HolidayType = "";
+            DateTime? RateSpreadScheduleStartDate;
+            if (refDate < noteDC.ClosingDate)
+                refDate = noteDC.ClosingDate.Value.Date;
+
+            List<RateSpreadSchedule> RSScheduleIndexList = ListRateSpreadScheduleLatest.Where(rssch => (rssch.IndexNameText != null && rssch.IndexNameText != "")).ToList();
+            if (RSScheduleIndexList != null)
+            {
+                if (refDate == noteDC.ClosingDate)
+                    RateSpreadScheduleStartDate = RSScheduleIndexList.Where(rs => rs.Date <= refDate).Max(rs => rs.Date);
                 else
+                    RateSpreadScheduleStartDate = RSScheduleIndexList.Where(rs => rs.Date > refDate).Min(rs => rs.Date);
+
+                if (RateSpreadScheduleStartDate != null)
                 {
-                    workingDay = date.AddDays(-1);
+                    List<RateSpreadSchedule> RSScheduleIndexListStart = RSScheduleIndexList.Where(rs => rs.Date == RateSpreadScheduleStartDate).ToList();
+                    IndexName = RSScheduleIndexListStart[0].IndexNameText;
+                    HolidayType = RSScheduleIndexListStart[0].DeterminationDateHolidayListText;
                 }
             }
 
-            return workingDay;
+            return Tuple.Create(IndexName, HolidayType);
         }
 
-
-        public DateTime DayAdjustmentCalc(DateTime refDate, string lookupMethod, int? bday)
-        {
-            if (lookupMethod == null || lookupMethod == "")
-            {
-                lookupMethod = "Prior";
-            }
-            if (bday == null)
-            {
-                bday = 2;
-            }
-            if (SetMondayAsStartofWeek(refDate) >= 5)
-            {
-                if (Enum.IsDefined(typeof(EnmBusinessDayLookupMethod), lookupMethod.Replace(' ', '_')))
-                {
-                    EnmBusinessDayLookupMethod elookupmethod = ((EnmBusinessDayLookupMethod)Enum.Parse(typeof(EnmBusinessDayLookupMethod), lookupMethod.Replace(' ', '_')));
-                    switch (elookupmethod)
-                    {
-                        case EnmBusinessDayLookupMethod.Prior:
-                            if (SetMondayAsStartofWeek(refDate) > 5 && bday != 0)
-                            {
-                                refDate = refDate.AddDays(-Math.Min(Convert.ToInt32(bday), (SetMondayAsStartofWeek(refDate) - 4)));
-                            }
-                            break;
-
-                        case EnmBusinessDayLookupMethod.After:
-                            if (SetMondayAsStartofWeek(refDate) > 5)
-                            {
-                                refDate = refDate.AddDays(8 - SetMondayAsStartofWeek(refDate));
-                            }
-
-                            break;
-                    }
-                }
-            }
-            return refDate;
-        }
-
-        public bool CheckForHoliday(DateTime refDate, string DateType)
+        public bool CheckForHoliday(DateTime refDate, string HolidayCalendarType)
         {
             bool holidayCheck = false;
             foreach (var holiday in ListHoliday)
             {
-                if (holiday.HolidayTypeText == DateType && holiday.HolidayDate == refDate)
+                if (holiday.HolidayType == HolidayCalendarType && holiday.HolidayDate == refDate)
                 {
                     holidayCheck = true;
                     break;
@@ -5312,7 +5648,7 @@ namespace CRES.NoteCalculator
                         {
                             if (PropertyName == "SelectedMaturityDate")
                             {
-                                uniqueDate.UniqueDate = GetWorkingDayUsingOffset(Convert.ToDateTime(Date.Value.AddDays(1)), Convert.ToInt16(-1), "");
+                                uniqueDate.UniqueDate = GetWorkingDayUsingOffset(Convert.ToDateTime(Date.Value), Convert.ToInt16(noteDC.PaymentDateBusinessDayLag), "US");
                             }
                             else
                                 uniqueDate.UniqueDate = Date;
@@ -5330,6 +5666,7 @@ namespace CRES.NoteCalculator
         }
 
         public void PopulateTabDates()
+
         {
             cDailyDates.OrderBy(x => x.Date).ToList().ForEach(value =>
             {
@@ -5380,23 +5717,31 @@ namespace CRES.NoteCalculator
         public double cXIRR(List<Decimal> values, List<DateTime> dates, double guess = 0.1)
         {
             double sumpv = 0, rate = 0, raten1 = 0, raten2 = 0, raten1cxnpv = 0, raten2cxnpv = 0;
-            rate = guess;
-            raten1 = guess - 0.001;
-            sumpv = cXNPV(rate, values, dates);
-            int i = 0;
-            raten1cxnpv = cXNPV(raten1, values, dates);
-            if (Math.Abs(sumpv) != 0)
+            try
             {
-                while (Math.Abs(sumpv - 0) > 0.00005)
+                rate = guess;
+                raten1 = guess - 0.001;
+                sumpv = cXNPV(rate, values, dates);
+                int i = 0;
+                raten1cxnpv = cXNPV(raten1, values, dates);
+                if (Math.Abs(sumpv) != 0)
                 {
-                    raten2 = raten1;
-                    raten1 = rate;
-                    raten2cxnpv = raten1cxnpv;
-                    raten1cxnpv = sumpv;
-                    rate = raten1 - raten1cxnpv * (raten1 - raten2) / (raten1cxnpv - raten2cxnpv);
-                    sumpv = cXNPV(rate, values, dates);
-                    i++;
-                };
+                    while (Math.Abs(sumpv - 0) > 0.00005)
+                    {
+                        raten2 = raten1;
+                        raten1 = rate;
+                        raten2cxnpv = raten1cxnpv;
+                        raten1cxnpv = sumpv;
+                        rate = raten1 - raten1cxnpv * (raten1 - raten2) / (raten1cxnpv - raten2cxnpv);
+                        sumpv = cXNPV(rate, values, dates);
+                        i++;
+                    };
+                }
+            }
+            catch (Exception ex)
+            {
+                rate = 9999.0;
+
             }
             return rate;
         }
@@ -5432,7 +5777,7 @@ namespace CRES.NoteCalculator
         {
             decimal? cfamount = 0;
             decimal? feeamount = LevelYield ? ListFeesTab[index].FeeAmountIncludedinLevelYield.GetValueOrDefault(0) : ListFeesTab[index].FeeAmountAllIn.GetValueOrDefault(0);
-            decimal? prinamount = noteDC.IncludeServicingPaymentOverrideinLevelYieldText == "Y" ? ListBalanceTab[index].PrincipalReceivedperServicing.GetValueOrDefault(0) : ListBalanceTab[index].PrincipalPaid.GetValueOrDefault(0);
+            decimal? prinamount = ListBalanceTab[index].PrincipalPaid.GetValueOrDefault(0);
             decimal? intamount = noteDC.IncludeServicingPaymentOverrideinLevelYieldText == "Y" ? ListCouponTab[index].InterestPaidServicingWithDropDate.GetValueOrDefault(0) : ListCouponTab[index].InterestPaidonPaymentDate.GetValueOrDefault(0);
 
             cfamount = prinamount + ListBalanceTab[index].BalloonPayment.GetValueOrDefault(0) - ListBalanceTab[index].FutureAdvancesFromFutureFundingSchedule.GetValueOrDefault(0)
@@ -5445,7 +5790,7 @@ namespace CRES.NoteCalculator
         public decimal? CFServicerAdjusted(int index)
         {
             decimal? cfamount = 0;
-            cfamount = ListBalanceTab[index].PrincipalReceivedperServicing.GetValueOrDefault(0) + ListBalanceTab[index].BalloonPayment.GetValueOrDefault(0) - ListBalanceTab[index].FutureAdvancesFromFutureFundingSchedule.GetValueOrDefault(0) - ListBalanceTab[index].DiscretionaryCurtailmentsForThePeriod.GetValueOrDefault(0)
+            cfamount = ListBalanceTab[index].PrincipalPaid.GetValueOrDefault(0) + ListBalanceTab[index].BalloonPayment.GetValueOrDefault(0) - ListBalanceTab[index].FutureAdvancesFromFutureFundingSchedule.GetValueOrDefault(0) - ListBalanceTab[index].DiscretionaryCurtailmentsForThePeriod.GetValueOrDefault(0)
                    + ListCouponTab[index].InterestPaidServicingWithDropDate.GetValueOrDefault(0) + ListCouponTab[index].InterestShortfallRecovery.GetValueOrDefault(0)
                    + ListPIKInterestTab[index].PIKBalanceBalloonPayment.GetValueOrDefault(0) + ListFeesTab[index].FeeAmountIncludedinLevelYield.GetValueOrDefault(0);
             return cfamount;
@@ -5453,20 +5798,21 @@ namespace CRES.NoteCalculator
 
         public decimal? CalculateNetInflowOutflow(int listindex)
         {
-            decimal? NetPrincipalInflowOutflow = 0;
-            decimal? evalcommon = ListBalanceTab[listindex].BalloonPayment.GetValueOrDefault(0)
-                    - ListBalanceTab[listindex].FutureAdvancesFromFutureFundingSchedule.GetValueOrDefault(0)
-                    - ListBalanceTab[listindex].DiscretionaryCurtailmentsForThePeriod.GetValueOrDefault(0)
+            decimal? NetPrincipalInflowOutflow = 0, PayDownAmount = 0, TotalWriteOffAmount = 0;
+
+            PayDownAmount = ListBalanceTab[listindex].PurposeID.GetValueOrDefault(0) == 840 ? 0 : ListBalanceTab[listindex].DiscretionaryCurtailmentsForThePeriod.GetValueOrDefault(0);
+            if (ListBalanceTab[listindex].Date == SelectedMaturityDateLatest)
+            {
+                TotalWriteOffAmount = ListBalanceTab.Where(bal => bal.Date <= SelectedMaturityDateLatest && bal.PurposeID == 840).Sum(bal2 => bal2.DiscretionaryCurtailmentsForThePeriod) * -1;
+            }
+
+            decimal? evalcommon = ListBalanceTab[listindex].BalloonPayment.GetValueOrDefault(0) + TotalWriteOffAmount
+                    - ListBalanceTab[listindex].FutureAdvancesFromFutureFundingSchedule.GetValueOrDefault(0) - PayDownAmount
                 + ListPIKInterestTab[listindex].PIKBalanceBalloonPayment.GetValueOrDefault(0)
                 - ListPIKInterestTab[listindex].PIKInterestPaidAppliedForThePeriod.GetValueOrDefault(0)
                 - ListPIKInterestTab[listindex].PIKInterestforthePeriodBalloon.GetValueOrDefault(0)
                 + ListPIKInterestTab[listindex].PIKPrincipalPaidForThePeriod.GetValueOrDefault(0);
 
-            if (noteDC.IncludeServicingPaymentOverrideinLevelYieldText == "Y")
-            {
-                NetPrincipalInflowOutflow = ListBalanceTab[listindex].PrincipalReceivedperServicing.GetValueOrDefault(0) + evalcommon;
-            }
-            else
             {
                 NetPrincipalInflowOutflow = ListBalanceTab[listindex].PrincipalPaid.GetValueOrDefault(0) + evalcommon;
             }
@@ -5483,82 +5829,30 @@ namespace CRES.NoteCalculator
         {
             return new DateTime(dateTime.Year, dateTime.Month, 1);
         }
-
-        public static DateTime GetnextWorkingDays(DateTime date, int days, string DisableBusinessDayAdjustment)
+        public DateTime FirstDayOfYear(DateTime dateTime, int nYears)
         {
-            if (days == 0)
-            {
-                return date.AddDays(-1);
-            }
-            else
-            {
-                if (DisableBusinessDayAdjustment != "Y")
-                {
-                    if (days == 0) return date;
-                    if (days > 0)
-                    {
-                        if (date.DayOfWeek == DayOfWeek.Saturday)
-                            date = date.AddDays(1);
-                        int i = 1;
-                        while (i <= days)
-                        {
-                            date = date.AddDays(1);
-                            if (date.DayOfWeek == DayOfWeek.Saturday)
-                                date = date.AddDays(2);
-                            if (date.DayOfWeek == DayOfWeek.Sunday)
-                                date = date.AddDays(1);
-                            i = i + 1;
-                        }
-
-                        return date;
-                    }
-                    else
-                    {
-                        if (date.DayOfWeek == DayOfWeek.Sunday)
-                            date = date.AddDays(-1);
-                        int i = 1;
-                        while (i <= -days)
-                        {
-                            date = date.AddDays(-1);
-                            if (date.DayOfWeek == DayOfWeek.Sunday)
-                                date = date.AddDays(-2);
-                            if (date.DayOfWeek == DayOfWeek.Saturday)
-                                date = date.AddDays(-1);
-                            i = i + 1;
-                        }
-                        return date;
-                    }
-                }
-                else
-                {
-                    date = date.AddDays(days);
-                    return date;
-                }
-            }
-
-
-
+            return new DateTime(dateTime.Year + nYears, 1, 1);
         }
-
-        public DateTime GetnextWorkingDaysNew(DateTime date, int days, string datetype = null)
+        public DateTime GetnextWorkingDays(DateTime date, int days, string HolidayCalendarType)
         {
             if (days == 0) return date;
             if (days > 0)
             {
                 if (date.DayOfWeek == DayOfWeek.Saturday)
+                    date = date.AddDays(2);
+                if (date.DayOfWeek == DayOfWeek.Sunday)
                     date = date.AddDays(1);
                 int i = 1;
                 while (i <= days)
                 {
-                    date = date.AddDays(1);
+
                     if (date.DayOfWeek == DayOfWeek.Saturday)
                         date = date.AddDays(2);
                     if (date.DayOfWeek == DayOfWeek.Sunday)
                         date = date.AddDays(1);
-
-                    if (datetype != null)
+                    if (HolidayCalendarType != null)
                     {
-                        if (CheckForHoliday(date, datetype))
+                        if (CheckForHoliday(date, HolidayCalendarType))
                         {
                             date = date.AddDays(1);
                             i = i - 1;
@@ -5572,18 +5866,19 @@ namespace CRES.NoteCalculator
             else
             {
                 if (date.DayOfWeek == DayOfWeek.Sunday)
+                    date = date.AddDays(-2);
+                if (date.DayOfWeek == DayOfWeek.Saturday)
                     date = date.AddDays(-1);
                 int i = 1;
                 while (i <= -days)
                 {
-                    date = date.AddDays(-1);
                     if (date.DayOfWeek == DayOfWeek.Sunday)
                         date = date.AddDays(-2);
                     if (date.DayOfWeek == DayOfWeek.Saturday)
                         date = date.AddDays(-1);
-                    if (datetype != null)
+                    if (HolidayCalendarType != null)
                     {
-                        if (CheckForHoliday(date, datetype))
+                        if (CheckForHoliday(date, HolidayCalendarType))
                         {
                             date = date.AddDays(-1);
                             i = i - 1;
@@ -5595,9 +5890,20 @@ namespace CRES.NoteCalculator
             }
         }
 
-        public static DateTime CreateNewDate(int year, int months, int days)
+        public static DateTime CreateNewDate(int year, int months, int days, bool GenerateOnMonthEnd = false)
         {
-            DateTime date = new DateTime(0001, 1, 1).AddYears(year - 1).AddMonths(months - 1).AddDays(days - 1);
+            DateTime date = new DateTime();
+            if (GenerateOnMonthEnd == true)
+            {
+                DateTime lastdate = DateExtensions.LastDateOfMonth(new DateTime(year, months, 15));
+                int day = lastdate.Day;
+                date = new DateTime(0001, 1, 1).AddYears(year - 1).AddMonths(months - 1).AddDays(day - 1);
+            }
+            else
+            {
+                date = new DateTime(0001, 1, 1).AddYears(year - 1).AddMonths(months - 1).AddDays(days - 1);
+            }
+
             return date;
         }
 
@@ -5735,7 +6041,7 @@ namespace CRES.NoteCalculator
                 {
                     sum1 = sum1 - output.Month.GetValueOrDefault(0) * output.TotalFutureAdvancesForThePeriod.GetValueOrDefault(0)
                         - output.Month.GetValueOrDefault(0) * output.TotalDiscretionaryCurtailmentsforthePeriod.GetValueOrDefault(0)
-                        + output.Month.GetValueOrDefault(0) * output.PrincipalPaid.GetValueOrDefault(0)
+                        + output.Month.GetValueOrDefault(0) * output.ScheduledPrincipal.GetValueOrDefault(0)
                         + output.Month.GetValueOrDefault(0) * output.BalloonPayment.GetValueOrDefault(0)
                         + output.Month.GetValueOrDefault(0) * output.PIKBalanceBalloonPayment.GetValueOrDefault(0);
 
@@ -5799,6 +6105,9 @@ namespace CRES.NoteCalculator
 
         public void GenerateCashflowTransaction()
         {
+            DateTime? acutalpayoffdate = noteDC.ActualPayoffDate;
+
+            List<TransactionEntry> lstBalloonTransaction = new List<TransactionEntry>();
             List<TransactionEntry> lstTransaction = new List<TransactionEntry>();
             List<DailyInterestAccrualsDataContract> listdailint = new List<DailyInterestAccrualsDataContract>();
             List<PeriodicInterestRateUsed> listrateused = new List<PeriodicInterestRateUsed>();
@@ -5806,28 +6115,118 @@ namespace CRES.NoteCalculator
             DateTime startdate = DateTime.Now.Date.AddDays(-noteDC.NumberofDaysinPast);
             DateTime enddate = DateTime.Now.Date.AddDays(noteDC.NumberofDaysinFuture);
             int PaymentDayOfMonth = GetPaymentDayOfMonth();
+            noteDC.MaturityUsedInCalc = SelectedMaturityDateLatest;
 
+            if (acutalpayoffdate == null)
+            {
+                acutalpayoffdate = DateTime.MinValue;
+            }
             //FundingOrRepayment
             DateTime Todaysdate = DateTime.Now;
             DateTime ballondate = DateTime.MinValue;
             DateTime suspensedate = DateTime.MinValue;
             bool isMaturityDate = false;
-            decimal? stripedamount = 0;
-
+            decimal? stripedamount = 0, strippedamountinclinLY = 0;
+            decimal? totalwriteoff = 0;
+            BalloonRepayAmount = 0;
             foreach (FutureFundingScheduleTab ffs in ListFutureFundingScheduleTabLatest)
             {
                 if (ffs.Value != 0 && ffs.Value != null && ffs.Date <= SelectedMaturityDateLatest)
                 {
+                    if (ffs.PurposeText == "Principal Writeoff")
+                    {
+                        TransactionEntry transaction = new TransactionEntry();
+                        transaction.AdjustmentType = ffs.AdjustmentTypeText;
+                        transaction.Date = ffs.Date;
+                        transaction.Amount = ffs.Value * -1;
+                        transaction.Type = "PrincipalWriteoff";
+                        transaction.AnalysisID = noteDC.AnalysisID;
+                        transaction.PurposeType = ffs.PurposeText;
+
+                        totalwriteoff = totalwriteoff + transaction.Amount;
+
+                        lstTransaction.Add(transaction);
+                    }
+                    else if (ffs.PurposeText == "Net Property Income/Loss")
+                    {
+                        TransactionEntry transaction = new TransactionEntry();
+                        transaction.AdjustmentType = ffs.AdjustmentTypeText;
+                        transaction.Date = ffs.Date;
+                        transaction.Amount = ffs.Value * -1;
+                        transaction.Type = "NetPropertyIncomeOrLoss";
+                        transaction.AnalysisID = noteDC.AnalysisID;
+                        transaction.PurposeType = ffs.PurposeText;
+
+                        lstTransaction.Add(transaction);
+                    }
+                    else if (ffs.PurposeText == "Equity Distribution")
+                    {
+                        TransactionEntry transaction = new TransactionEntry();
+                        transaction.AdjustmentType = ffs.AdjustmentTypeText;
+                        transaction.Date = ffs.Date;
+                        transaction.Amount = ffs.Value * -1;
+                        transaction.Type = "EquityDistribution";
+                        transaction.AnalysisID = noteDC.AnalysisID;
+                        transaction.PurposeType = ffs.PurposeText;
+                        lstTransaction.Add(transaction);
+                    }
+                    else
+                    {
+                        var addfundingrepay = true;
+                        if (ffs.Date.Value.Date == acutalpayoffdate.Value.Date || ffs.Date.Value.Date == SelectedMaturityDateLatest.Value.Date)
+                        {
+                            if (ffs.Value < 0 && ffs.PurposeText != "Note Transfer")
+                            {
+                                addfundingrepay = false;
+                            }
+                        }
+                        if (addfundingrepay == true)
+                        {
+                            TransactionEntry transaction = new TransactionEntry();
+                            transaction.AdjustmentType = ffs.AdjustmentTypeText;
+                            transaction.Date = ffs.Date;
+                            transaction.Amount = ffs.Value * -1;
+                            transaction.Type = "FundingOrRepayment";
+                            transaction.AnalysisID = noteDC.AnalysisID;
+                            transaction.PurposeType = ffs.PurposeText;
+                            lstTransaction.Add(transaction);
+                        }
+                        else
+                        {
+                            TransactionEntry transaction = new TransactionEntry();
+                            transaction.AdjustmentType = ffs.AdjustmentTypeText;
+                            transaction.Date = ffs.Date;
+                            transaction.Amount = ffs.Value * -1;
+                            transaction.Type = "Balloon";
+                            transaction.AnalysisID = noteDC.AnalysisID;
+                            transaction.PurposeType = ffs.PurposeText;
+                            lstBalloonTransaction.Add(transaction);
+
+                            BalloonRepayAmount = BalloonRepayAmount + ffs.Value * -1;
+                        }
+                    }
+                }
+
+
+            }
+
+            if (noteDC.ListServicingWatchProjected != null)
+            {
+                decimal? ProjectedWritoff = 0;
+                foreach (var item in noteDC.ListServicingWatchProjected)
+                {
+                    ProjectedWritoff = ProjectedWritoff + item.Amount.GetValueOrDefault(0);
+                }
+                if (ProjectedWritoff != 0)
+                {
                     TransactionEntry transaction = new TransactionEntry();
-                    transaction.Date = ffs.Date;
-                    transaction.Amount = ffs.Value * -1;
-                    transaction.Type = "FundingOrRepayment";
+                    transaction.Date = SelectedMaturityDateLatest;
+                    transaction.Amount = ProjectedWritoff.Value;
+                    transaction.Type = "PrincipalWriteoff";
                     transaction.AnalysisID = noteDC.AnalysisID;
-                    transaction.PurposeType = ffs.PurposeText;
                     lstTransaction.Add(transaction);
                 }
             }
-
             //InitialFunding
             if (noteDC.InitialFundingAmount != null && noteDC.InitialFundingAmount != 0 && noteDC.ClosingDate <= SelectedMaturityDateLatest)
             {
@@ -5851,21 +6250,48 @@ namespace CRES.NoteCalculator
             //StubInterest
             if (noteDC.StubIntOverride != null && noteDC.StubIntOverride != 0 && noteDC.ClosingDate <= SelectedMaturityDateLatest)
             {
+                EffectiverateonClosing = 0;
+
                 TransactionEntry transaction = new TransactionEntry();
                 DateTime txnDate = noteDC.StubPaidinAdvanceYNText == "Y" ? noteDC.ClosingDate.Value.Date : noteDC.FirstPaymentDate.Value.Date;
                 transaction.Date = noteDC.ClosingDate;
                 transaction.Amount = Convert.ToDecimal(noteDC.StubIntOverride);
                 transaction.Type = "StubInterest";
                 transaction.AnalysisID = noteDC.AnalysisID;
-                lstTransaction.Add(transaction);
+
                 var temp = GenerateLiborandSpreadTransaction(txnDate);
-                if (temp != null)
+                transaction.AllInCouponRate = EffectiverateonClosing;
+                foreach (var item in temp)
                 {
-                    if (temp.Count > 0)
+                    if (item.Type == "LIBORPercentage")
                     {
-                        lstTransaction.AddRange(temp);
+                        transaction.IndexValue = CommonHelper.ValueOrNull(item.Amount);
+                        item.Type = null;
+                        item.Amount = null;
                     }
+                    else if (item.Type == "SpreadPercentage")
+                    {
+                        transaction.SpreadValue = CommonHelper.ValueOrNull(item.Amount);
+                        item.Type = null;
+                        item.Amount = null;
+                    }
+                    else if (item.Type == "RawIndexPercentage")
+                    {
+                        transaction.OriginalIndex = CommonHelper.ValueOrNull(item.Amount);
+                        item.Type = null;
+                        item.Amount = null;
+                    }
+
                 }
+
+                lstTransaction.Add(transaction);
+                //if (temp != null)
+                //{
+                //    if (temp.Count > 0)
+                //    {
+                //        lstTransaction.AddRange(temp);
+                //    }
+                //}
             }
 
             //Purchased Interest - Calculated
@@ -5889,7 +6315,7 @@ namespace CRES.NoteCalculator
                     transaction.Amount = Convert.ToDecimal(bal.BalloonPayment);
                     transaction.Type = "Balloon";
                     transaction.AnalysisID = noteDC.AnalysisID;
-                    lstTransaction.Add(transaction);
+                    lstBalloonTransaction.Add(transaction);
                 }
                 if (bal.PrincipalPaid.GetValueOrDefault(0) != 0 && bal.Date <= SelectedMaturityDateLatest)
                 {
@@ -5903,63 +6329,82 @@ namespace CRES.NoteCalculator
             }
             int listindex = 0;
 
+            DateTime maturitymonthend = DateTime.MinValue;
+            if (SelectedMaturityDateLatest != null && SelectedMaturityDateLatest != DateTime.MinValue)
+            {
+                maturitymonthend = DateExtensions.LastDateOfMonth(SelectedMaturityDateLatest.Value.Date);
+            }
+            listdailint = CaptureDailyRates(SelectedMaturityDateLatest);
             //InterestPaid
             foreach (CouponTab coup in ListCouponTab)
             {
-                DailyGAAPBasisComponentsDataContract basis = new DailyGAAPBasisComponentsDataContract();
-                basis.NoteID = noteDC.NoteId;
-                basis.Date = ListGAAPBasisTab[listindex].Date;
-                basis.AccumAmortofDeferredFees = ListGAAPBasisTab[listindex].AccumAmortofDeferredFees;
-                basis.AccumulatedAmortofDiscountPremium = ListGAAPBasisTab[listindex].AccumulatedAmortofDiscountPremium;
-                basis.AccumulatedAmortofCapitalizedCost = ListGAAPBasisTab[listindex].AccumulatedAmortofCapitalizedCost;
-                basis.EndingBalance = ListBalanceTab[listindex].EndingBalance.GetValueOrDefault(0);
-                basis.CurrentPeriodInterestAccrualPeriodEnddate = ListCouponTab[listindex].AccumInterestforCurrentAccrualPeriod.GetValueOrDefault(0) + ListCouponTab[listindex].DeltaBalance.GetValueOrDefault(0);
-                basis.CurrentPeriodPIKInterestAccrualPeriodEnddate = ListPIKInterestTab[listindex].AccumPIKInterestforCurrentAccrualPeriod.GetValueOrDefault(0);
-                basis.InterestSuspenseAccountBalance = ListCouponTab[listindex].InterestSuspenseAccountBalanceWithAdj.GetValueOrDefault(0);
-                basis.CleanCost = ListGAAPBasisTab[listindex].CleanCost.GetValueOrDefault(0);
-                basis.GrossDeferredFees = ListGAAPBasisTab[listindex].GrossDeferredFees.GetValueOrDefault(0);
-                basis.AnalysisID = noteDC.AnalysisID;
-
-                ListDailyGAAPBasisComponents.Add(basis);
-
-                if (coup.Date <= SelectedMaturityDateLatest)
+                if (coup.Date <= maturitymonthend)
                 {
-                    DailyInterestAccrualsDataContract dia = new DailyInterestAccrualsDataContract();
-                    dia.Date = coup.Date;
-                    dia.DailyInterestAccrual = coup.DailyAccruedInterestbeforeStrippingRule.GetValueOrDefault(0);
-                    dia.EndingBalance = ListBalanceTab[listindex].EndingBalance.GetValueOrDefault(0);
-                    dia.AnalysisID = noteDC.AnalysisID;
-                    listdailint.Add(dia);
+                    DailyGAAPBasisComponentsDataContract basis = new DailyGAAPBasisComponentsDataContract();
+                    basis.NoteID = noteDC.NoteId;
+                    basis.Date = ListGAAPBasisTab[listindex].Date;
+                    basis.AccumAmortofDeferredFees = ListGAAPBasisTab[listindex].AccumAmortofDeferredFees;
+                    basis.AccumulatedAmortofDiscountPremium = ListGAAPBasisTab[listindex].AccumulatedAmortofDiscountPremium;
+                    basis.AccumulatedAmortofCapitalizedCost = ListGAAPBasisTab[listindex].AccumulatedAmortofCapitalizedCost;
+                    basis.EndingBalance = ListBalanceTab[listindex].EndingBalance.GetValueOrDefault(0);
+                    basis.CurrentPeriodInterestAccrual = ListCouponTab[listindex].AccumInterestforCurrentAccrualPeriod.GetValueOrDefault(0) + ListCouponTab[listindex].DeltaBalance.GetValueOrDefault(0);
+                    basis.CurrentPeriodPIKInterestAccrual = ListPIKInterestTab[listindex].AccumPIKInterestforCurrentAccrualPeriod.GetValueOrDefault(0);
+                    basis.InterestSuspenseAccountBalance = ListCouponTab[listindex].InterestSuspenseAccountBalance.GetValueOrDefault(0);
+                    basis.CleanCost = ListGAAPBasisTab[listindex].CleanCost.GetValueOrDefault(0);
+                    basis.GrossDeferredFees = ListGAAPBasisTab[listindex].GrossDeferredFees.GetValueOrDefault(0);
+                    basis.AnalysisID = noteDC.AnalysisID;
+
+                    ListDailyGAAPBasisComponents.Add(basis);
                 }
+
                 if (coup.Date <= SelectedMaturityDateLatest)
                 {
                     if (coup.InterestPaidServicingWithDropDate.GetValueOrDefault(0) != 0)
                     {
+
                         TransactionEntry transaction = new TransactionEntry();
                         transaction.PaymentDateNotAdjustedforWorkingDay = GetPMTDateNotAdjustedforBusinessDay(Convert.ToDateTime(coup.Date), PaymentDayOfMonth);
-                        transaction.Date = GetWorkingDayUsingOffset(Convert.ToDateTime(coup.Date.Value.AddDays(1)), Convert.ToInt32(noteDC.PaymentDateBusinessDayLag), "PMT Date");
+                        transaction.Date = GetWorkingDayUsingOffset(Convert.ToDateTime(coup.Date.Value), Convert.ToInt32(noteDC.PaymentDateBusinessDayLag), "US");
                         transaction.Amount = Convert.ToDecimal(coup.InterestPaidServicingWithDropDate);
                         transaction.Type = "InterestPaid";
+
+                        if (listindex > 0)
+                        {
+                            transaction.LiborPercentage = ListRateTab[listindex - 1].IndexValueWithoutRounding.GetValueOrDefault(0);
+                        }
+                        else
+                        {
+                            transaction.LiborPercentage = ListRateTab[listindex].IndexValueWithoutRounding.GetValueOrDefault(0);
+                        }
+
+                        TransactionEntry trrates = GetAllInCouponRateFromList(transaction.Date);
+                        transaction.AllInCouponRate = trrates.AllInCouponRate;
+                        transaction.IndexValue = trrates.IndexValue;
+                        transaction.SpreadValue = trrates.SpreadValue;
+                        transaction.OriginalIndex = trrates.OriginalIndex;
+
                         transaction.AnalysisID = noteDC.AnalysisID;
+                        transaction.IndexDeterminationDate = GetIndexDeterminationDate(transaction.Date.Value.Date);
                         lstTransaction.Add(transaction);
                     }
                     if (coup.Date >= startdate && coup.Date <= enddate)
                     {
                         PeriodicInterestRateUsed pir = new PeriodicInterestRateUsed();
-                        pir.Date = coup.Date;
+                        pir.Date = GetWorkingDayUsingOffset(Convert.ToDateTime(coup.Date.Value), Convert.ToInt32(noteDC.PaymentDateBusinessDayLag), "US"); ;
                         pir.CouponSpread = ListRateTab[listindex].CouponSpread.GetValueOrDefault(0);
                         pir.AllInCouponRate = ListRateTab[listindex].AllInCouponRate.GetValueOrDefault(0);
-                        pir.AllInPikRate = ListRateTab[listindex].AllInPIKInterestCompoundingRate.GetValueOrDefault(0);
                         pir.LiborRate = ListRateTab[listindex].DIndexValueusingFloatingRateIndexReferenceDate.GetValueOrDefault(0);
                         pir.IndexFloor = ListRateTab[listindex].IndexFloor.GetValueOrDefault(0);
                         pir.CouponRate = ListRateTab[listindex].CouponRate.GetValueOrDefault(0);
+
                         pir.AdditionalPIKinterestRatefromPIKTable = ListRateTab[listindex].AdditionalPIKinterestRatefromPIKTable.GetValueOrDefault(0);
                         pir.AdditionalPIKSpreadfromPIKTable = ListRateTab[listindex].AdditionalPIKSpreadfromPIKTable.GetValueOrDefault(0);
                         pir.PIKIndexFloorfromPIKTable = ListRateTab[listindex].PIKIndexFloorfromPIKTable.GetValueOrDefault(0);
+                        pir.AllInPikRate = ListRateTab[listindex].AllInPIKInterestCompoundingRate.GetValueOrDefault(0);
+
                         pir.AnalysisID = noteDC.AnalysisID;
                         listrateused.Add(pir);
                     }
-
                 }
                 listindex = listindex + 1;
             }
@@ -5993,15 +6438,6 @@ namespace CRES.NoteCalculator
                     transaction.AnalysisID = noteDC.AnalysisID;
                     lstTransaction.Add(transaction);
                 }
-                if (npdc.InvestmentBasis != 0)
-                {
-                    TransactionEntry transactionpv = new TransactionEntry();
-                    transactionpv.Date = npdc.PeriodEndDate;
-                    transactionpv.Amount = Convert.ToDecimal(npdc.InvestmentBasis.GetValueOrDefault(0));
-                    transactionpv.Type = "EndingPVGAAPBookValue";
-                    transactionpv.AnalysisID = noteDC.AnalysisID;
-                    lstTransaction.Add(transactionpv);
-                }
             }
 
             //CapitalizedClosingCost
@@ -6015,72 +6451,253 @@ namespace CRES.NoteCalculator
                 lstTransaction.Add(transaction);
             }
 
+            //PIK Initial Balance for New Notes created from existing Notes with PIK Balance
+            if (noteDC.NotePIKScheduleList != null && noteDC.ClosingDate <= SelectedMaturityDateLatest)
+            {
+                //PIK Balance from previous note will be under the Closing Date Effective Date
+                var ndx = noteDC.NotePIKScheduleList.FindIndex(item => item.EffectiveDate == noteDC.ClosingDate);
+                if (ndx != -1 && noteDC.NotePIKScheduleList[0].PurBal != 0)
+                {
+                    TransactionEntry transaction = new TransactionEntry();
+                    transaction.Date = noteDC.ClosingDate;
+                    transaction.Amount = Convert.ToDecimal(noteDC.NotePIKScheduleList[ndx].PurBal) * -1;
+                    transaction.Type = "PIKPrincipalFunding";
+                    //transaction.AllInCouponRate = GetAllInPikCouponRateFromList(noteDC.ClosingDate);                    
+                    TransactionEntry trrates = GetAllInPikCouponRateFromList(noteDC.ClosingDate);
+                    transaction.AllInCouponRate = trrates.AllInCouponRate;
+                    transaction.IndexValue = trrates.IndexValue;
+                    transaction.SpreadValue = trrates.SpreadValue;
+                    transaction.OriginalIndex = trrates.OriginalIndex;
 
+                    transaction.AnalysisID = noteDC.AnalysisID;
+                    lstTransaction.Add(transaction);
+                }
+            }
+
+            int Piklistindex = 0;
             foreach (PIKInterestTab pik in ListPIKInterestTab)
             {
-                if (pik.PIKInterestonBusinessAdjInterestAccrualEndDate != null && pik.PIKInterestonBusinessAdjInterestAccrualEndDate != 0)
+                DateTime? paydate = DateTime.MinValue;
+                DateTime? pmtdate = DateTime.MinValue;
+                if (pik.Date == SelectedMaturityDateLatest.Value)
                 {
-                    TransactionEntry pikprifund = new TransactionEntry();
-                    TransactionEntry pikinte = new TransactionEntry();
-                    TransactionEntry pikintpaid = new TransactionEntry();
-                    TransactionEntry pikprinpaid = new TransactionEntry();
-                    TransactionEntry pikintcalc = new TransactionEntry();
-                    DateTime? paydate = DateTime.MinValue;
-                    if (pik.Date == SelectedMaturityDateLatest.Value)
-                    {
-                        paydate = SelectedMaturityDateLatest.Value;
-                    }
-                    else
-                    {
-                        //paydate = GetPaymentdateByDateForPikTransactions(pik.Date);
-                        paydate = pik.Date;
-                    }
-                    pikprifund.Date = paydate;
-                    pikprifund.Amount = pik.PIKInterestPaidAppliedForThePeriod * -1;
-                    pikprifund.Type = "PIKPrincipalFunding";
-                    pikprifund.FeeName = pik.PIKReasonCodeText;
-                    pikprifund.Comment = pik.PIKComments;
-                    pikprifund.AnalysisID = noteDC.AnalysisID;
-                    lstTransaction.Add(pikprifund);
+                    paydate = SelectedMaturityDateLatest.Value;
+                    pmtdate = SelectedMaturityDateLatest.Value;
+                }
+                else
+                {
+                    pmtdate = GetPaymentdateByDateForPikTransactions(pik.Date);
+                    paydate = pik.Date;
+                }
 
-                    pikinte.Date = paydate;
-                    pikinte.PaymentDateNotAdjustedforWorkingDay = GetPMTDateNotAdjustedforBusinessDay(Convert.ToDateTime(paydate), PaymentDayOfMonth);
-                    pikinte.Amount = pik.PIKInterestPaidAppliedForThePeriod;
-                    pikinte.Type = "PIKInterest";
-                    pikinte.FeeName = pik.PIKReasonCodeText;
-                    pikinte.Comment = pik.PIKComments;
-                    pikinte.AnalysisID = noteDC.AnalysisID;
-                    lstTransaction.Add(pikinte);
-
-                    if (pik.PIKInterestPaidForThePeriod != null && pik.PIKInterestPaidForThePeriod != 0)
+                if (noteDC.PIKInterestAddedToBalanceBasedOnBusinessAdjustedDateText == "Y")
+                {
+                    if (pik.PIKInterestonBusinessAdjInterestAccrualEndDate != null && pik.PIKInterestonBusinessAdjInterestAccrualEndDate != 0
+                        && paydate <= SelectedMaturityDateLatest.Value)
                     {
+                        TransactionEntry pikprifund = new TransactionEntry();
+                        TransactionEntry pikinte = new TransactionEntry();
+                        TransactionEntry pikintcalc = new TransactionEntry();
+
+                        pikprifund.Date = paydate;
+                        pikprifund.Amount = pik.PIKInterestPaidAppliedForThePeriod * -1;
+                        pikprifund.Type = "PIKPrincipalFunding";
+                        //pikprifund.AllInCouponRate = GetAllInPikCouponRateFromList(paydate);
+
+                        TransactionEntry trrates = GetAllInPikCouponRateFromList(paydate);
+                        pikprifund.AllInCouponRate = trrates.AllInCouponRate;
+                        pikprifund.IndexValue = trrates.IndexValue;
+                        pikprifund.SpreadValue = trrates.SpreadValue;
+                        pikprifund.OriginalIndex = trrates.OriginalIndex;
+
+
+                        pikprifund.FeeName = ListRateTab[Piklistindex].PIKReasonCodeText;
+                        pikprifund.Comment = ListRateTab[Piklistindex].PIKComments;
+                        pikprifund.AnalysisID = noteDC.AnalysisID;
+                        lstTransaction.Add(pikprifund);
+
+                        pikinte.Date = paydate;
+                        pikinte.PaymentDateNotAdjustedforWorkingDay = GetPMTDateNotAdjustedforBusinessDay(Convert.ToDateTime(paydate), PaymentDayOfMonth);
+                        pikinte.Amount = pik.PIKInterestPaidAppliedForThePeriod;
+                        pikinte.Type = "PIKInterest";
+                        //pikinte.AllInCouponRate = GetAllInPikCouponRateFromList(paydate);
+
+                        TransactionEntry trpikrates = GetAllInPikCouponRateFromList(paydate);
+                        pikinte.AllInCouponRate = trpikrates.AllInCouponRate;
+                        pikinte.IndexValue = trpikrates.IndexValue;
+                        pikinte.SpreadValue = trpikrates.SpreadValue;
+                        pikinte.OriginalIndex = trpikrates.OriginalIndex;
+
+                        pikinte.FeeName = ListRateTab[Piklistindex].PIKReasonCodeText;
+                        pikinte.Comment = ListRateTab[Piklistindex].PIKComments;
+                        pikinte.AnalysisID = noteDC.AnalysisID;
+
+                        if (Piklistindex == 0)
+                        {
+                            pikinte.AllInCouponRate = ListRateTab[Piklistindex].AllInPIKInterest.GetValueOrDefault(0);
+                            pikinte.LiborPercentage = ListRateTab[Piklistindex].IndexValueWithoutRounding.GetValueOrDefault(0);
+                        }
+                        else
+                        {
+                            pikinte.AllInCouponRate = ListRateTab[Piklistindex - 1].AllInPIKInterest.GetValueOrDefault(0);
+                            pikinte.LiborPercentage = ListRateTab[Piklistindex - 1].IndexValueWithoutRounding.GetValueOrDefault(0);
+                        }
+
+                        lstTransaction.Add(pikinte);
+                    }
+
+                }
+                else
+                {
+                    if (pik.PIKInterestforthePeriodOnAccrualEndDate != null
+                        && pik.PIKInterestforthePeriodOnAccrualEndDate != 0
+                        && pmtdate <= SelectedMaturityDateLatest.Value)
+                    {
+                        TransactionEntry pikprifund = new TransactionEntry();
+                        TransactionEntry pikinte = new TransactionEntry();
+                        TransactionEntry pikintcalc = new TransactionEntry();
+
+                        pikprifund.Date = pmtdate;
+                        pikprifund.Amount = pik.PIKInterestPaidAppliedForThePeriodOnAccrualEndDate * -1;
+                        pikprifund.Type = "PIKPrincipalFunding";
+                        pikprifund.FeeName = ListRateTab[Piklistindex].PIKReasonCodeText;
+                        //pikprifund.AllInCouponRate = GetAllInPikCouponRateFromList(pmtdate);
+
+                        TransactionEntry trpikrates = GetAllInPikCouponRateFromList(pmtdate);
+                        pikprifund.AllInCouponRate = trpikrates.AllInCouponRate;
+                        pikprifund.IndexValue = trpikrates.IndexValue;
+                        pikprifund.SpreadValue = trpikrates.SpreadValue;
+                        pikprifund.OriginalIndex = trpikrates.OriginalIndex;
+
+                        pikprifund.Comment = ListRateTab[Piklistindex].PIKComments;
+                        pikprifund.AnalysisID = noteDC.AnalysisID;
+                        lstTransaction.Add(pikprifund);
+
+                        pikinte.Date = pmtdate;
+                        pikinte.PaymentDateNotAdjustedforWorkingDay = GetPMTDateNotAdjustedforBusinessDay(Convert.ToDateTime(pmtdate), PaymentDayOfMonth);
+                        pikinte.Amount = pik.PIKInterestPaidAppliedForThePeriodOnAccrualEndDate;
+                        pikinte.Type = "PIKInterest";
+
+                        //pikinte.AllInCouponRate = GetAllInPikCouponRateFromList(pmtdate);
+                        TransactionEntry trrates = GetAllInPikCouponRateFromList(pmtdate);
+                        pikinte.AllInCouponRate = trrates.AllInCouponRate;
+                        pikinte.IndexValue = trrates.IndexValue;
+                        pikinte.SpreadValue = trrates.SpreadValue;
+                        pikinte.OriginalIndex = trrates.OriginalIndex;
+
+                        pikinte.FeeName = ListRateTab[Piklistindex].PIKReasonCodeText;
+                        pikinte.Comment = ListRateTab[Piklistindex].PIKComments;
+                        pikinte.AnalysisID = noteDC.AnalysisID;
+                        if (Piklistindex == 0)
+                        {
+
+                            pikinte.LiborPercentage = ListRateTab[Piklistindex].IndexValueWithoutRounding.GetValueOrDefault(0);
+                        }
+                        else
+                        {
+
+                            pikinte.LiborPercentage = ListRateTab[Piklistindex - 1].IndexValueWithoutRounding.GetValueOrDefault(0);
+                        }
+                        lstTransaction.Add(pikinte);
+                    }
+                }
+                if (noteDC.PIKInterestAddedToBalanceBasedOnBusinessAdjustedDateText == "Y")
+                {
+                    if (pik.PIKInterestPaidForThePeriod != null
+                        && pik.PIKInterestPaidForThePeriod != 0 && paydate <= SelectedMaturityDateLatest.Value)
+                    {
+                        TransactionEntry pikintpaid = new TransactionEntry();
+
                         pikintpaid.Date = paydate;
                         pikintpaid.PaymentDateNotAdjustedforWorkingDay = GetPMTDateNotAdjustedforBusinessDay(Convert.ToDateTime(paydate), PaymentDayOfMonth);
                         pikintpaid.Amount = pik.PIKInterestPaidForThePeriod;
                         pikintpaid.Type = "PIKInterestPaid";
-                        pikintpaid.FeeName = pik.PIKReasonCodeText;
-                        pikintpaid.Comment = pik.PIKComments;
+                        pikintpaid.FeeName = ListRateTab[Piklistindex].PIKReasonCodeText;
+
+                        //pikintpaid.AllInCouponRate = GetAllInPikCouponRateFromList(paydate);
+
+                        TransactionEntry trrates = GetAllInPikCouponRateFromList(paydate);
+                        pikintpaid.AllInCouponRate = trrates.AllInCouponRate;
+                        pikintpaid.IndexValue = trrates.IndexValue;
+                        pikintpaid.SpreadValue = trrates.SpreadValue;
+                        pikintpaid.OriginalIndex = trrates.OriginalIndex;
+
+                        pikintpaid.Comment = ListRateTab[Piklistindex].PIKComments;
+                        if (Piklistindex == 0)
+                        {
+                            pikintpaid.LiborPercentage = ListRateTab[Piklistindex].IndexValueWithoutRounding.GetValueOrDefault(0);
+                        }
+                        else
+                        {
+                            pikintpaid.LiborPercentage = ListRateTab[Piklistindex - 1].IndexValueWithoutRounding.GetValueOrDefault(0);
+                        }
                         pikintpaid.AnalysisID = noteDC.AnalysisID;
                         lstTransaction.Add(pikintpaid);
                     }
-
-                    if (pik.PIKPrincipalPaidForThePeriod != null && pik.PIKPrincipalPaidForThePeriod != 0)
+                }
+                else
+                {
+                    if (pik.PIKInterestPaidForThePeriodOnAccrualEndDateEOD != null
+                        && pik.PIKInterestPaidForThePeriodOnAccrualEndDateEOD != 0 && pmtdate <= SelectedMaturityDateLatest.Value)
                     {
-                        pikprinpaid.Date = paydate;
-                        pikprinpaid.Amount = pik.PIKPrincipalPaidForThePeriod;
-                        pikprinpaid.PaymentDateNotAdjustedforWorkingDay = GetPMTDateNotAdjustedforBusinessDay(Convert.ToDateTime(paydate), PaymentDayOfMonth);
-                        pikprinpaid.Type = "PIKPrincipalPaid";
-                        pikprinpaid.FeeName = pik.PIKReasonCodeText;
-                        pikprinpaid.Comment = pik.PIKComments;
-                        pikprinpaid.AnalysisID = noteDC.AnalysisID;
-                        lstTransaction.Add(pikprinpaid);
+                        TransactionEntry pikintpaid = new TransactionEntry();
+
+                        pikintpaid.Date = pmtdate;
+                        pikintpaid.PaymentDateNotAdjustedforWorkingDay = GetPMTDateNotAdjustedforBusinessDay(Convert.ToDateTime(paydate), PaymentDayOfMonth);
+                        pikintpaid.Amount = pik.PIKInterestPaidForThePeriodOnAccrualEndDateEOD;
+                        pikintpaid.Type = "PIKInterestPaid";
+                        pikintpaid.FeeName = ListRateTab[Piklistindex].PIKReasonCodeText;
+                        pikintpaid.Comment = ListRateTab[Piklistindex].PIKComments;
+                        //pikintpaid.AllInCouponRate = GetAllInPikCouponRateFromList(pmtdate);
+
+                        TransactionEntry trrates = GetAllInPikCouponRateFromList(pmtdate);
+                        pikintpaid.AllInCouponRate = trrates.AllInCouponRate;
+                        pikintpaid.IndexValue = trrates.IndexValue;
+                        pikintpaid.SpreadValue = trrates.SpreadValue;
+                        pikintpaid.OriginalIndex = trrates.OriginalIndex;
+                        if (Piklistindex == 0)
+                        {
+                            pikintpaid.LiborPercentage = ListRateTab[Piklistindex].IndexValueWithoutRounding.GetValueOrDefault(0);
+                        }
+                        else
+                        {
+                            pikintpaid.LiborPercentage = ListRateTab[Piklistindex - 1].IndexValueWithoutRounding.GetValueOrDefault(0);
+                        }
+
+                        pikintpaid.AnalysisID = noteDC.AnalysisID;
+                        lstTransaction.Add(pikintpaid);
                     }
                 }
+
+                if (pik.PIKPrincipalPaidForThePeriod != null && pik.PIKPrincipalPaidForThePeriod != 0)
+                {
+                    TransactionEntry pikprinpaid = new TransactionEntry();
+
+                    pikprinpaid.Date = paydate;
+                    pikprinpaid.Amount = pik.PIKPrincipalPaidForThePeriod;
+                    pikprinpaid.PaymentDateNotAdjustedforWorkingDay = GetPMTDateNotAdjustedforBusinessDay(Convert.ToDateTime(paydate), PaymentDayOfMonth);
+                    pikprinpaid.Type = "PIKPrincipalPaid";
+                    pikprinpaid.FeeName = ListRateTab[Piklistindex].PIKReasonCodeText;
+
+                    //pikprinpaid.AllInCouponRate = GetAllInPikCouponRateFromList(paydate);
+
+                    TransactionEntry trrates = GetAllInPikCouponRateFromList(paydate);
+                    pikprinpaid.AllInCouponRate = trrates.AllInCouponRate;
+                    pikprinpaid.IndexValue = trrates.IndexValue;
+                    pikprinpaid.SpreadValue = trrates.SpreadValue;
+                    pikprinpaid.OriginalIndex = trrates.OriginalIndex;
+
+                    pikprinpaid.Comment = ListRateTab[Piklistindex].PIKComments;
+                    pikprinpaid.AnalysisID = noteDC.AnalysisID;
+                    lstTransaction.Add(pikprinpaid);
+                }
+                Piklistindex = Piklistindex + 1;
             }
 
             foreach (FeeOutputDataContract fodc in ListFeeOutput)
             {
                 stripedamount = 0;
+                strippedamountinclinLY = 0;
                 if (fodc.FeeNameTransText != "")
                 {
                     string feetype = GetFeeName(fodc.FeeNameTransText);
@@ -6124,6 +6741,7 @@ namespace CRES.NoteCalculator
                         else
                         {
                             transaction.Type = feetype + "Stripping";
+                            strippedamountinclinLY = fodc.FeeAmountStripped;
                         }
                         transaction.AnalysisID = noteDC.AnalysisID;
                         transaction.FeeTypeName = fodc.FeeType;
@@ -6131,7 +6749,7 @@ namespace CRES.NoteCalculator
                         lstTransaction.Add(transaction);
                     }
 
-                    if (fodc.FeeAmountinclinLY != 0 && fodc.FeeAmountinclinLY != null && fodc.FeeCouponReceivable == 0)
+                    if (fodc.FeeAmountinclinLY != null && fodc.FeeAmountinclinLY + strippedamountinclinLY.GetValueOrDefault(0) != 0 && fodc.FeeCouponReceivable == 0)
                     {
                         TransactionEntry transaction = new TransactionEntry();
                         transaction.Date = fodc.Date;
@@ -6142,55 +6760,6 @@ namespace CRES.NoteCalculator
                         transaction.FeeName = fodc.FeeName;
                         lstTransaction.Add(transaction);
                     }
-                }
-            }
-
-            foreach (NotePeriodicOutputsDataContract npdc in ListSpreadandLibor)
-            {
-                if (npdc.PeriodEndDate != null)
-                {
-                    if (npdc.LIBORPercentage != 0 && npdc.LIBORPercentage != null && npdc.PeriodEndDate.Value.Date == SelectedMaturityDateLatest.Value.Date)
-                    {
-                        isMaturityDate = true;
-                    }
-                }
-
-                if (npdc.LIBORPercentage != null)
-                {
-                    TransactionEntry transaction = new TransactionEntry();
-                    transaction.Date = npdc.PeriodEndDate;
-                    transaction.Amount = npdc.LIBORPercentage.GetValueOrDefault(0);
-                    transaction.Type = "LIBORPercentage";
-                    transaction.AnalysisID = noteDC.AnalysisID;
-                    lstTransaction.Add(transaction);
-                }
-
-                if (npdc.SpreadPercentage != 0 && npdc.SpreadPercentage != null)
-                {
-                    TransactionEntry transaction = new TransactionEntry();
-                    transaction.Date = npdc.PeriodEndDate;
-                    transaction.Amount = npdc.SpreadPercentage;
-                    transaction.Type = "SpreadPercentage";
-                    transaction.AnalysisID = noteDC.AnalysisID;
-                    lstTransaction.Add(transaction);
-                }
-                if (npdc.PIKInterestPercentage != 0 && npdc.PIKInterestPercentage != null)
-                {
-                    TransactionEntry transaction = new TransactionEntry();
-                    transaction.Date = npdc.PeriodEndDate;
-                    transaction.Amount = npdc.PIKInterestPercentage;
-                    transaction.Type = "PIKInterestPercentage";
-                    transaction.AnalysisID = noteDC.AnalysisID;
-                    lstTransaction.Add(transaction);
-                }
-                if (npdc.PIKLiborPercentage != 0 && npdc.PIKLiborPercentage != null)
-                {
-                    TransactionEntry transaction = new TransactionEntry();
-                    transaction.Date = npdc.PeriodEndDate;
-                    transaction.Amount = npdc.PIKLiborPercentage;
-                    transaction.Type = "PIKLiborPercentage";
-                    transaction.AnalysisID = noteDC.AnalysisID;
-                    lstTransaction.Add(transaction);
                 }
             }
 
@@ -6233,7 +6802,7 @@ namespace CRES.NoteCalculator
             {
                 if (noteDC.RateType != 139)
                 {                    // libor and spread at  Maturity Date
-                    lstTransaction.AddRange(GenerateLiborandSpreadTransaction(SelectedMaturityDateLatest.Value.Date));
+                    //lstTransaction.AddRange(GenerateLiborandSpreadTransaction(SelectedMaturityDateLatest.Value.Date));
                 }
             }
             isMaturityDate = false;
@@ -6275,7 +6844,7 @@ namespace CRES.NoteCalculator
                     if (sld.TransactionDate <= suspensedate)
                     {
                         if (sld.TransactionTypeText == "InterestPaid" || sld.TransactionTypeText == "StubInterest" || sld.TransactionTypeText == "FloatInterest"
-                            || sld.TransactionTypeText == "PIKInterestPaid" || sld.TransactionTypeText == "PurchasedInterest")
+                            || sld.TransactionTypeText == "PIKInterestPaid" || sld.TransactionTypeText == "PurchasedInterest" || sld.TransactionTypeText == "PIKInterest")
                         {
                             if (sld.ActualDelta != 0 && sld.ActualDelta != null)
                             {
@@ -6313,6 +6882,33 @@ namespace CRES.NoteCalculator
                 }
 
             }
+
+            decimal? calculateballoon = 0;
+            string purposetype = "";
+            string AdjustmentTypeText = "";
+            foreach (var item in lstBalloonTransaction)
+            {
+                calculateballoon = calculateballoon.GetValueOrDefault(0) + item.Amount.GetValueOrDefault(0);
+                if (purposetype == "")
+                {
+                    purposetype = item.PurposeType;
+                    AdjustmentTypeText = item.AdjustmentType;
+                }
+            }
+            if (calculateballoon != 0)
+            {
+                TransactionEntry tb = new TransactionEntry();
+                tb.AdjustmentType = AdjustmentTypeText;
+                tb.Date = SelectedMaturityDateLatest;
+                tb.Amount = calculateballoon;
+                tb.Type = "Balloon";
+                tb.AnalysisID = noteDC.AnalysisID;
+                tb.PurposeType = purposetype;
+                tb.BalloonRepayAmount = BalloonRepayAmount;
+                lstTransaction.Add(tb);
+            }
+
+
             lstTransaction = lstTransaction.OrderBy(x => x.Type).ToList();
             noteDC.ListCashflowTransactionEntry = lstTransaction;
             // add supense account for others
@@ -6325,6 +6921,52 @@ namespace CRES.NoteCalculator
             noteDC.ListDailyInterestAccruals = listdailint;
             noteDC.ListPeriodicInterestRateUsed = listrateused;
 
+        }
+        public TransactionEntry GetAllInCouponRateFromList(DateTime? date)
+        {
+            TransactionEntry te = new TransactionEntry();
+            decimal? allincouponrate = 0m;
+            foreach (var item in ListSpreadandLibor)
+            {
+                if (item.PeriodEndDate.Value.Date == date.Value.Date)
+                {
+
+                    allincouponrate = item.SpreadPercentage.GetValueOrDefault(0) + item.LIBORPercentage.GetValueOrDefault(0);
+                    if (allincouponrate == 0)
+                    {
+                        allincouponrate = item.AllInCouponRate;
+                    }
+                    te.AllInCouponRate = CommonHelper.ValueOrNull(allincouponrate);
+                    te.IndexValue = CommonHelper.ValueOrNull(item.LIBORPercentage);
+                    te.SpreadValue = CommonHelper.ValueOrNull(item.SpreadPercentage);
+                    te.OriginalIndex = CommonHelper.ValueOrNull(item.RawIndexPercentage);
+                    break;
+                }
+            }
+            return te;
+        }
+
+        public TransactionEntry GetAllInPikCouponRateFromList(DateTime? date)
+        {
+            TransactionEntry te = new TransactionEntry();
+            decimal? allinpikcouponrate = 0m;
+            foreach (var item in ListSpreadandLibor)
+            {
+                if (item.PeriodEndDate.Value.Date == date.Value.Date)
+                {
+                    allinpikcouponrate = item.PIKInterestPercentage.GetValueOrDefault(0) + item.PIKLiborPercentage.GetValueOrDefault(0);
+                    if (allinpikcouponrate == 0)
+                    {
+                        allinpikcouponrate = item.AllInPIKRate;
+                    }
+                    te.AllInCouponRate = CommonHelper.ValueOrNull(allinpikcouponrate);
+                    te.IndexValue = CommonHelper.ValueOrNull(item.PIKLiborPercentage);
+                    te.SpreadValue = CommonHelper.ValueOrNull(item.PIKInterestPercentage);
+                    te.OriginalIndex = CommonHelper.ValueOrNull(item.PIKRawIndex);
+                    break;
+                }
+            }
+            return te;
         }
 
         public void AddTotransactionentryList(DateTime transdt, decimal? amt, string trnstype)
@@ -6370,6 +7012,19 @@ namespace CRES.NoteCalculator
             return PaymentDayOfMonth;
         }
 
+        public DateTime GetIndexDeterminationDate(DateTime PmtDate)
+        {
+            DateTime IndexDate = noteDC.ClosingDate.Value.Date;
+            int ndx = 0;
+            if (ListDatesTab != null)
+            {
+                ndx = ListDatesTab.FindIndex(dt => dt.PaymentDateReferencedforInterestAccrualPeriodAdjustedforBusinessDay == PmtDate);
+            }
+
+            if (ndx != -1)
+                IndexDate = ListDatesTab[ndx].FloatingRateIndexReferenceDateAdjustedforResetFrequency.Value.Date;
+            return IndexDate;
+        }
         public List<TransactionEntry> GenerateLiborandSpreadTransaction(DateTime date)
         {
             List<TransactionEntry> lstTransaction = new List<TransactionEntry>();
@@ -6378,19 +7033,45 @@ namespace CRES.NoteCalculator
             {
                 if (item.PeriodEndDate.Value.Date == date)
                 {
+                    TransactionEntry te = new TransactionEntry();
+                    EffectiverateonClosing = item.SpreadPercentage.GetValueOrDefault(0) + item.LIBORPercentage.GetValueOrDefault(0);
+                    if (EffectiverateonClosing == 0)
+                    {
+                        EffectiverateonClosing = item.AllInCouponRate;
+                    }
+
+                    te.AllInCouponRate = CommonHelper.ValueOrNull(EffectiverateonClosing);
+                    TransactionEntry index = new TransactionEntry();
+                    index.Amount = CommonHelper.ValueOrNull(item.LIBORPercentage); ;
+                    index.Type = "LIBORPercentage";
+                    lstTransaction.Add(index);
+
+                    TransactionEntry SpreadValue = new TransactionEntry();
+                    SpreadValue.Amount = CommonHelper.ValueOrNull(item.SpreadPercentage);
+                    SpreadValue.Type = "SpreadPercentage";
+                    lstTransaction.Add(SpreadValue);
+
+                    TransactionEntry RawIndexPercentage = new TransactionEntry();
+                    RawIndexPercentage.Amount = CommonHelper.ValueOrNull(item.RawIndexPercentage);
+                    RawIndexPercentage.Type = "RawIndexPercentage";
+                    lstTransaction.Add(SpreadValue);
+
                     datefound = true;
                     break;
                 }
+
             }
             if (datefound == false)
             {
                 decimal spreadper = 0;
                 decimal liborper = 0;
+                decimal rawindex = 0;
 
                 var liborlist = ListRateTab.FindAll(x => x.rateDate == date.Date).First();
 
                 if (liborlist != null)
                 {
+
                     if (liborlist.RateType == "Rate")
                     {
                         if (liborlist.CouponRate.GetValueOrDefault(0) != 0)
@@ -6402,12 +7083,14 @@ namespace CRES.NoteCalculator
                         {
                             spreadper = spreadper + liborlist.CouponSpread.GetValueOrDefault(0);
                         }
-
+                        liborper = 0;
+                        rawindex = 0;
                     }
                     else
                     {
                         liborper = liborlist.DIndexValueusingFloatingRateIndexReferenceDate.GetValueOrDefault(0);
                         spreadper = liborlist.CouponSpread.GetValueOrDefault(0);
+                        rawindex = liborlist.IndexValueusingFloatingRateIndexReferenceDate.GetValueOrDefault(0);
                     }
                     TransactionEntry transactionl = new TransactionEntry();
                     transactionl.Date = date;
@@ -6423,6 +7106,15 @@ namespace CRES.NoteCalculator
                     transactions.AnalysisID = noteDC.AnalysisID;
                     lstTransaction.Add(transactions);
 
+                    TransactionEntry transaction = new TransactionEntry();
+                    transaction.Date = date;
+                    transaction.Amount = rawindex;
+                    transaction.Type = "RawIndexPercentage";
+                    transaction.AnalysisID = noteDC.AnalysisID;
+                    lstTransaction.Add(transaction);
+
+                    EffectiverateonClosing = liborper + spreadper;
+
                     if (liborlist.AllInPIKInterest != null && liborlist.AllInPIKInterest != 0)
                     {
                         TransactionEntry transactionp = new TransactionEntry();
@@ -6436,7 +7128,6 @@ namespace CRES.NoteCalculator
             }
             return lstTransaction;
         }
-
         public string GetFeeName(string feename)
         {
             string feetype = feename;
@@ -6572,7 +7263,7 @@ namespace CRES.NoteCalculator
                 //issue (ws_assumptions.Range("B108").Value) financing table
                 int financingDay = 0; //temp variable
                 fday = financingDay + 1;
-                DateTime WorkDay = GetnextWorkingDays(CreateNewDate(Convert.ToInt32(fyear), Convert.ToInt32(fmo), Convert.ToInt32(fday)), -1, DisableBusinessDayAdjustmentText);
+                DateTime WorkDay = GetWorkingDayUsingOffset(CreateNewDate(Convert.ToInt32(fyear), Convert.ToInt32(fmo), Convert.ToInt32(fday)), Convert.ToInt16(noteDC.PaymentDateBusinessDayLag), "US");
                 if (ListFinancingTab[i].Date == WorkDay)
                 {
                     ListFinancingTab[i].FinancingInterestPaymentDate = 1;
@@ -6639,9 +7330,7 @@ namespace CRES.NoteCalculator
         {
             decimal? premium = 0, capcosts = 0;
             decimal? deferredFees = 0, AccumInterest = 0;
-#pragma warning disable CS0219 // The variable 'OrigDferredFees' is assigned but its value is never used
             decimal? OrigDferredFees = 0;
-#pragma warning restore CS0219 // The variable 'OrigDferredFees' is assigned but its value is never used
             premium = noteDC.Discount.GetValueOrDefault(0);
             deferredFees = CalcDeferredFees(noteDC.ClosingDate);
             capcosts = noteDC.CapitalizedClosingCosts.GetValueOrDefault(0);
@@ -6799,9 +7488,12 @@ namespace CRES.NoteCalculator
                         }
                         else
                         {
-                            ListGAAPBasisTab[i].AccumAmortofDeferredFees = ListGAAPBasisTab[i].AmortofDeferredFees.GetValueOrDefault(0) + ListGAAPBasisTab[i - 1].AccumAmortofDeferredFees.GetValueOrDefault(0);
-                            ListGAAPBasisTab[i].AccumulatedAmortofDiscountPremium = ListGAAPBasisTab[i].DiscountPremiumAccrual.GetValueOrDefault(0) + ListGAAPBasisTab[i - 1].AccumulatedAmortofDiscountPremium.GetValueOrDefault(0);
-                            ListGAAPBasisTab[i].AccumulatedAmortofCapitalizedCost = ListGAAPBasisTab[i].CapitalizedCostAccrual.GetValueOrDefault(0) + ListGAAPBasisTab[i - 1].AccumulatedAmortofCapitalizedCost.GetValueOrDefault(0);
+                            if (ListGAAPBasisTab[i].Date.Value <= matdate)
+                            {
+                                ListGAAPBasisTab[i].AccumAmortofDeferredFees = ListGAAPBasisTab[i].AmortofDeferredFees.GetValueOrDefault(0) + ListGAAPBasisTab[i - 1].AccumAmortofDeferredFees.GetValueOrDefault(0);
+                                ListGAAPBasisTab[i].AccumulatedAmortofDiscountPremium = ListGAAPBasisTab[i].DiscountPremiumAccrual.GetValueOrDefault(0) + ListGAAPBasisTab[i - 1].AccumulatedAmortofDiscountPremium.GetValueOrDefault(0);
+                                ListGAAPBasisTab[i].AccumulatedAmortofCapitalizedCost = ListGAAPBasisTab[i].CapitalizedCostAccrual.GetValueOrDefault(0) + ListGAAPBasisTab[i - 1].AccumulatedAmortofCapitalizedCost.GetValueOrDefault(0);
+                            }
                         }
 
                         //Applying true-up on Amort
@@ -6818,7 +7510,8 @@ namespace CRES.NoteCalculator
 
                         if (ListGAAPBasisTab[i].Date.Value < matdate)
                         {
-                            ListGAAPBasisTab[i].AmortizedCost = ListGAAPBasisTab[i].CleanCost.GetValueOrDefault(0) + ListGAAPBasisTab[i].AccumAmortofDeferredFees.GetValueOrDefault(0) + ListGAAPBasisTab[i].AccumulatedAmortofDiscountPremium.GetValueOrDefault(0) + ListGAAPBasisTab[i].AccumulatedAmortofCapitalizedCost.GetValueOrDefault(0);
+                            ListGAAPBasisTab[i].AmortizedCost = ListGAAPBasisTab[i].CleanCost.GetValueOrDefault(0)
+                                + ListGAAPBasisTab[i].AccumAmortofDeferredFees.GetValueOrDefault(0) + ListGAAPBasisTab[i].AccumulatedAmortofDiscountPremium.GetValueOrDefault(0) + ListGAAPBasisTab[i].AccumulatedAmortofCapitalizedCost.GetValueOrDefault(0);
 
                             if (noteDC.IncludeServicingPaymentOverrideinLevelYieldText == "Y")
                             {
@@ -6892,7 +7585,7 @@ namespace CRES.NoteCalculator
                             + ListCouponTab[i].AccumInterestforCurrentAccrualPeriod.GetValueOrDefault(0)
                             + ListPIKInterestTab[i].AccumPIKInterestforCurrentAccrualPeriod.GetValueOrDefault()
                             + ListCouponTab[i].DeltaBalance.GetValueOrDefault(0)
-                            - ListCouponTab[i].InterestSuspenseAccountBalanceWithAdj.GetValueOrDefault(0);
+                            - ListCouponTab[i].InterestSuspenseAccountBalance.GetValueOrDefault(0);
                     }
                     else
                     {
@@ -6941,33 +7634,39 @@ namespace CRES.NoteCalculator
 
         public void GeneratePeriodOutput()
         {
-            decimal cumffamt, balloonpmt, schedprincipal, principalpaid, intaccrual, pikaccrual, amortaccrual, dpaccrual;
+            decimal cumffamt, cumprinwo, balloonpmt, principalpaid, intaccrual, pikaccrual, cumintadj;
+            decimal cashint, capint;
             decimal pikamtsource, pikamtrelated, pikint, pikballoon, piknotcomp, pikintpaid, pikprinpaid, pikapplied;
             decimal pmtint, cstripperiod, cstrippmt, intshortfall, intpmtshortfall, cumintpmtshortfall;
             decimal spshortfall, pshortfall, ploss, intloss, intrecovery, intsuspense;
             decimal finffamt, finballoon, finint, finfees;
-            decimal AddfeeAccrual, CapcostsAccrual;
-            decimal? cumamort, actualcf, gaapcf, gaapincome, cumcurt, FeeStrip;
+            decimal deffee_amort_accrual, discprem_amort_accrual, AddfeeAccrual, capcost_amort_accrual;
+            decimal? cum_deffee_amort, cum_disc_amort, cum_capcost_amort, actualcf, gaapcf, gaapincome, cumcurt, FeeStrip;
             decimal? lyincome, pvamort, gaapamort, slamort, slfee, sldisc, slcapcost;
-#pragma warning disable CS0219 // The variable 'feetotalamort' is assigned but its value is never used
             decimal? feetotalamort, feelyamort, discamort, capcostamort;
-#pragma warning restore CS0219 // The variable 'feetotalamort' is assigned but its value is never used
+            //decimal? pastdue30, pastdue60, pastdue90, pastdue90p;
 
             actualcf = 0;
             gaapcf = 0;
             gaapincome = 0;
             intaccrual = 0;
-            cumamort = 0;
-            cumffamt = 0;
-            cumcurt = 0;
-            amortaccrual = 0;
+            cumintadj = 0;
+            cum_deffee_amort = 0; cum_disc_amort = 0; cum_capcost_amort = 0;
+            cumffamt = 0; cumcurt = 0; cumprinwo = 0;
+            deffee_amort_accrual = 0;
+            //pastdue30 = 0; pastdue60 = 0; pastdue90 = 0; pastdue90p = 0;
 
-            DateTime Closingdate, Matdate, Perioddate, EOMSelectedMaturityDate;
+            DateTime Closingdate, InitialDate, Matdate, Perioddate, CurrentEOM, ClosingMonthAccrualEndDate, FirstFullMonthAccrualEndDate, PreviousYearBOM, EOMSelectedMaturityDate;
             Closingdate = Convert.ToDateTime(noteDC.ClosingDate);
+            InitialDate = Convert.ToDateTime(noteDC.InitialInterestAccrualEndDate);
+            ClosingMonthAccrualEndDate = CreateNewDate(Closingdate.Year, Closingdate.Month, InitialDate.Day);
+            FirstFullMonthAccrualEndDate = ClosingMonthAccrualEndDate.AddMonths(1);
 
             Matdate = Convert.ToDateTime(SelectedMaturityDateLatest);
             EOMSelectedMaturityDate = LastDateOfMonth(Matdate);
             Perioddate = LastDateOfMonth(Closingdate);
+            CurrentEOM = LastDateOfMonth(DateTime.Today);
+            PreviousYearBOM = FirstDayOfYear(DateTime.Today, -1);
 
             //ListNotePeriodicOutputs
             int OutputIndex = 0;
@@ -6984,18 +7683,20 @@ namespace CRES.NoteCalculator
                 gaapincome = 0;
                 cumffamt = 0;
                 cumcurt = 0;
+                cumprinwo = 0;
                 balloonpmt = 0;
                 FeeStrip = 0;
-                schedprincipal = 0;
                 principalpaid = 0;
                 pmtint = 0;
                 cstripperiod = 0;
                 cstrippmt = 0;
-                intaccrual = 0;
+                cashint = 0; capint = 0;
+                intaccrual = 0; cumintadj = 0;
                 pikaccrual = 0;
-                amortaccrual = 0;
+                deffee_amort_accrual = 0;
                 AddfeeAccrual = 0;
-                CapcostsAccrual = 0;
+                discprem_amort_accrual = 0;
+                capcost_amort_accrual = 0;
                 pikamtsource = 0;
                 pikamtrelated = 0;
                 pikint = 0;
@@ -7016,16 +7717,16 @@ namespace CRES.NoteCalculator
                 finballoon = 0;
                 finint = 0;
                 finfees = 0;
-                dpaccrual = 0;
                 intsuspense = 0;
                 lyincome = 0; pvamort = 0; gaapamort = 0;
                 slamort = 0; slfee = 0; sldisc = 0; slcapcost = 0;
                 feetotalamort = 0; feelyamort = 0; discamort = 0; capcostamort = 0;
 
+
                 foreach (BalanceTab bt in ListBalanceTab)
                 {
                     //' Beginning Balance
-                    if (bt.Date == FirstDayOfMonth(Perioddate))
+                    if (bt.Date == FirstDayOfMonth(Perioddate) && bt.Date != FirstDayOfMonth(Closingdate))
                     {
                         periodic.BeginningBalance = Convert.ToDecimal(bt.BeginningBalance.GetValueOrDefault(0));
                     }
@@ -7041,8 +7742,9 @@ namespace CRES.NoteCalculator
                         //---------------------- Data From Balance Tab ------------------------------------------
                         cumffamt = cumffamt + bt.FutureAdvancesFromFutureFundingSchedule.GetValueOrDefault(0);
                         cumcurt = cumcurt + bt.DiscretionaryCurtailmentsForThePeriod.GetValueOrDefault(0);
+                        cumprinwo = cumprinwo + bt.PrincipalWriteoff.GetValueOrDefault(0);
                         balloonpmt = balloonpmt + bt.BalloonPayment.GetValueOrDefault(0);
-                        schedprincipal = schedprincipal + bt.ScheduledPrincipal.GetValueOrDefault(0);
+                        //schedprincipal = schedprincipal + bt.ScheduledPrincipal.GetValueOrDefault(0);
                         principalpaid = principalpaid + bt.PrincipalPaid.GetValueOrDefault(0);  // bt.PrincipalPaid.GetValueOrDefault(0) issue [AC-8]
                         pikamtsource = pikamtsource + Convert.ToDecimal(bt.PIKInterestfromPIKSourceNote.GetValueOrDefault(0));
                         spshortfall = spshortfall + bt.ScheduledPrincipalShortfall.GetValueOrDefault(0);
@@ -7054,12 +7756,16 @@ namespace CRES.NoteCalculator
                         cstripperiod = cstripperiod + ListCouponTab[OutputIndexinner].CouponStrippingforthePeriod.GetValueOrDefault(0);
                         cstrippmt = cstrippmt + ListCouponTab[OutputIndexinner].CouponStrippedonPaymentDate.GetValueOrDefault(0);
                         intaccrual = intaccrual + Convert.ToDecimal(ListCouponTab[OutputIndexinner].DailyAccruedInterest);
+                        cumintadj = cumintadj + Convert.ToDecimal(ListCouponTab[OutputIndexinner].InterestSuspenseAdjustment.GetValueOrDefault(0));
                         intshortfall = intshortfall + ListCouponTab[OutputIndexinner].InterestforthePeriodShortfall.GetValueOrDefault(0);//K
                         intpmtshortfall = intpmtshortfall + ListCouponTab[OutputIndexinner].InterestPaidonPMTDateShortfall.GetValueOrDefault(0);//L
                         cumintpmtshortfall = cumintpmtshortfall + ListCouponTab[OutputIndexinner].CumulativeInterestPaidonPMTDateShortfall.GetValueOrDefault(0);//M
                         intloss = intloss + ListCouponTab[OutputIndexinner].InterestShortfallLoss.GetValueOrDefault(0);//N
                         intrecovery = intrecovery + ListCouponTab[OutputIndexinner].InterestShortfallRecovery.GetValueOrDefault(0);//O
                         intsuspense = intsuspense + ListCouponTab[OutputIndexinner].InterestSuspenseAccountActivityforthePeriod.GetValueOrDefault(0);//O
+                        cashint = cashint + ListCouponTab[OutputIndexinner].CashInterest.GetValueOrDefault(0);//O
+                        capint = capint + ListCouponTab[OutputIndexinner].CapitalizedInterest.GetValueOrDefault(0);//O
+
                         FeeStrip = FeeStrip + CalcStrippedFee(bt.Date);
                         // ' --- Data from PIK_Interest Tab ---
                         pikaccrual = pikaccrual + Convert.ToDecimal(ListPIKInterestTab[OutputIndexinner].DailyAccruedPIKInterestAdjustedforPIKInterestCap.GetValueOrDefault(0));//E
@@ -7072,9 +7778,9 @@ namespace CRES.NoteCalculator
                         piknotcomp = piknotcomp + ListPIKInterestTab[OutputIndexinner].PIKInterestforthePeriodBalloon.GetValueOrDefault(0);//L
 
                         // ' --- Data from GAAP_Basis Tab ---
-                        dpaccrual = dpaccrual + ListGAAPBasisTab[OutputIndexinner].DiscountPremiumAccrual.GetValueOrDefault(0);
-                        amortaccrual = amortaccrual + ListGAAPBasisTab[OutputIndexinner].AmortofDeferredFees.GetValueOrDefault(0);
-                        CapcostsAccrual = CapcostsAccrual + ListGAAPBasisTab[OutputIndexinner].CapitalizedCostAccrual.GetValueOrDefault(0);
+                        discprem_amort_accrual = discprem_amort_accrual + ListGAAPBasisTab[OutputIndexinner].DiscountPremiumAccrual.GetValueOrDefault(0);
+                        deffee_amort_accrual = deffee_amort_accrual + ListGAAPBasisTab[OutputIndexinner].AmortofDeferredFees.GetValueOrDefault(0);
+                        capcost_amort_accrual = capcost_amort_accrual + ListGAAPBasisTab[OutputIndexinner].CapitalizedCostAccrual.GetValueOrDefault(0);
                         //' --- Data from Financing Tab ---	;
                         finffamt = finffamt + ListFinancingTab[OutputIndexinner].FinancingDrawsCurtailmentsfromFinancingDrawsSchedule.GetValueOrDefault(0) + ListFinancingTab[OutputIndexinner].FinancingDrawsCurtailmentsassociatedwithFutureFundingSchedule.GetValueOrDefault(0);//C and D
                         finballoon = finballoon + ListFinancingTab[OutputIndexinner].FinancingBalloon.GetValueOrDefault(0);//E
@@ -7103,7 +7809,7 @@ namespace CRES.NoteCalculator
                         periodic.EndingBalance = ListBalanceTab[OutputIndexinner].EndingBalance.GetValueOrDefault(0);//U
                                                                                                                      //' Clean Cost
                         periodic.CleanCost = ListGAAPBasisTab[OutputIndexinner].CleanCost.GetValueOrDefault(0);
-                        periodic.GrossDeferredFees = ListGAAPBasisTab[OutputIndexinner].GrossDeferredFees.GetValueOrDefault(0);
+                        periodic.GrossDeferredFees = ListGAAPBasisTab[OutputIndexinner].GrossDeferredFees.GetValueOrDefault(0) * -1;
                         periodic.DeferredFeesReceivable = ListGAAPBasisTab[OutputIndexinner].DeferredFeesReceivable.GetValueOrDefault(0);
                         periodic.EndingGAAPBookValue = ListGAAPBasisTab[OutputIndexinner].EndingGAAPBookValue.GetValueOrDefault(0);
                         periodic.AmortizedCost = ListGAAPBasisTab[OutputIndexinner].AmortizedCost.GetValueOrDefault(0);
@@ -7150,9 +7856,22 @@ namespace CRES.NoteCalculator
                             periodic.InvestmentBasis = ListGAAPBasisTab[OutputIndexinner].PVBasis.GetValueOrDefault(0);
                         }
                         //Current Period Interest Accrual
-                        periodic.CurrentPeriodInterestAccrualPeriodEnddate = ListCouponTab[OutputIndexinner].AccumInterestforCurrentAccrualPeriod.GetValueOrDefault(0) + ListCouponTab[OutputIndexinner].DeltaBalance.GetValueOrDefault(0);
-                        periodic.CurrentPeriodPIKInterestAccrualPeriodEnddate = ListPIKInterestTab[OutputIndexinner].AccumPIKInterestforCurrentAccrualPeriod.GetValueOrDefault(0);
-                        periodic.InterestSuspenseAccountBalance = ListCouponTab[OutputIndexinner].InterestSuspenseAccountBalanceWithAdj.GetValueOrDefault(0);
+                        periodic.CurrentPeriodInterestAccrualPeriodEnddate = intaccrual - cumintadj;   //ListCouponTab[OutputIndexinner].AccumInterestforCurrentAccrualPeriod.GetValueOrDefault(0) + ListCouponTab[OutputIndexinner].DeltaBalance.GetValueOrDefault(0);
+                        //periodic.CurrentPeriodInterestSuspenseAdjustment = cumintadj;
+                        periodic.CurrentPeriodPIKInterestAccrualPeriodEnddate = pikaccrual;            //ListPIKInterestTab[OutputIndexinner].AccumPIKInterestforCurrentAccrualPeriod.GetValueOrDefault(0);
+
+                        if (periodic.PeriodEndDate == EOMSelectedMaturityDate)
+                            periodic.CurrentPeriodInterestAccrual = 0;
+                        else
+                        {
+                            if (noteDC.StubPaidinAdvanceYNText == "Y" && periodic.PeriodEndDate == LastDateOfMonth(Closingdate) && Closingdate > ClosingMonthAccrualEndDate)
+                                periodic.CurrentPeriodInterestAccrual = (from cpn in ListCouponTab where cpn.Date > LastDateOfMonth(Closingdate) && cpn.Date <= FirstFullMonthAccrualEndDate select cpn.DailyAccruedInterest).Sum() * -1;
+                            else
+                                periodic.CurrentPeriodInterestAccrual = ListCouponTab[OutputIndexinner].AccumInterestforCurrentAccrualPeriod.GetValueOrDefault(0) + ListCouponTab[OutputIndexinner].DeltaBalance.GetValueOrDefault(0);
+                        }
+
+                        periodic.CurrentPeriodPIKInterestAccrual = ListPIKInterestTab[OutputIndexinner].AccumPIKInterestforCurrentAccrualPeriod.GetValueOrDefault(0);
+                        periodic.InterestSuspenseAccountBalance = periodic.PeriodEndDate < EOMSelectedMaturityDate ? ListCouponTab[OutputIndexinner].InterestSuspenseAccountBalance.GetValueOrDefault(0) * -1 : 0M;
                         periodic.AllInBasisValuation = ListGAAPBasisTab[OutputIndexinner].AllInBasis.GetValueOrDefault(0);
 
                         //PV Basis and SL Basis
@@ -7162,29 +7881,50 @@ namespace CRES.NoteCalculator
                         periodic.EndingAccumAmort = ListPVBasisTab[OutputIndexinner].AccumGAAPAmort.GetValueOrDefault(0);
                         periodic.EndingSLBasis = ListSLBasisTab[OutputIndexinner].SLBasis.GetValueOrDefault(0);
                         periodic.EndingAccumSLAmort = ListSLBasisTab[OutputIndexinner].AccumSLAmort.GetValueOrDefault(0);
+                        periodic.AverageDailyBalance = CalculateAverageDailyBalance(Perioddate);
 
                     }
 
                     OutputIndexinner = OutputIndexinner + 1;
                 }
 
-                cumamort = cumamort + amortaccrual;
+                cum_deffee_amort = cum_deffee_amort + deffee_amort_accrual;
+                cum_disc_amort = cum_disc_amort + discprem_amort_accrual;
+                cum_capcost_amort = cum_capcost_amort + capcost_amort_accrual;
                 periodic.ActualCashFlows = actualcf.GetValueOrDefault(0);
                 periodic.GAAPCashFlows = gaapcf.GetValueOrDefault(0);
-                periodic.CurrentPeriodInterestAccrual = intaccrual;
 
+                if (OutputIndex == 0)
+                {  //adding InitialFundingAmount to TotalFutureAdvancesForThePeriod for first period
+                    cumffamt = cumffamt + noteDC.InitialFundingAmount.GetValueOrDefault(0);
+                }
+
+                if (OutputIndex == 0 && noteDC.StubPaidinAdvanceYNText == "Y")
+                    periodic.CashInterest = StubInterestAmount;
+                else
+                    periodic.CashInterest = cashint;
+                periodic.CapitalizedInterest = capint * -1;
+
+                if (OutputIndex == 0 && pikapplied > 0)
+                {
+                    if (ListPIKInterestTab != null)
+                    {
+                        pikapplied = pikapplied - ListPIKInterestTab[0].PurchaseBalanceCmpt.GetValueOrDefault(0);
+                    }
+                }
                 if (OutputIndex == 0 && noteDC.StubPaidinAdvanceYNText == "Y")
                 {
                     periodic.InterestReceivedinCurrentPeriod = StubInterestAmount + pikint;
                 }
                 else if (OutputIndex == 0 && noteDC.LoanPurchaseYNText == "Y")
                 {
-                    periodic.InterestReceivedinCurrentPeriod = pikint;
+                    periodic.InterestReceivedinCurrentPeriod = pikint + pmtint;
                 }
                 else
                 {
                     periodic.InterestReceivedinCurrentPeriod = pmtint + pikint;
                 }
+
                 if (OutputIndex == 0)
                 {
                     periodic.ReversalofPriorInterestAccrual = 0;
@@ -7192,32 +7932,39 @@ namespace CRES.NoteCalculator
                 else
                 {
                     periodic.ReversalofPriorInterestAccrual = -(ListNotePeriodicOutputs[OutputIndex - 1].CurrentPeriodInterestAccrual.GetValueOrDefault(0)
-                        + ListNotePeriodicOutputs[OutputIndex - 1].PIKInterestAccrualforthePeriod.GetValueOrDefault(0));
+                        + ListNotePeriodicOutputs[OutputIndex - 1].CurrentPeriodPIKInterestAccrual.GetValueOrDefault(0) - ListNotePeriodicOutputs[OutputIndex - 1].InterestSuspenseAccountBalance.GetValueOrDefault(0));
                 }
-
                 //Total GAAP Interest for the current period = "Reversal of Prior Interest Accrual" + "Interest Received in Current Period" + "Current Period Interest Accrual Monthly" + "PIK Interest accrual for the Period"
-                periodic.TotalGAAPInterestFortheCurrentPeriod = periodic.CurrentPeriodInterestAccrual.GetValueOrDefault(0) + periodic.ReversalofPriorInterestAccrual.GetValueOrDefault(0)
-                    + periodic.InterestReceivedinCurrentPeriod.GetValueOrDefault(0) + pikaccrual;
+                periodic.TotalGAAPInterestFortheCurrentPeriod = periodic.CurrentPeriodInterestAccrual.GetValueOrDefault(0)
+                    + periodic.CurrentPeriodPIKInterestAccrual.GetValueOrDefault(0)
+                    + periodic.ReversalofPriorInterestAccrual.GetValueOrDefault(0)
+                    + periodic.InterestReceivedinCurrentPeriod.GetValueOrDefault(0)
+                    + periodic.InterestSuspenseAccountBalance.GetValueOrDefault(0);
 
-                periodic.PIKInterestAccrualforthePeriod = pikaccrual;
-                periodic.TotalAmortAccrualForPeriod = amortaccrual;
-                periodic.DiscountPremiumAccrual = dpaccrual;
-                periodic.AccumulatedAmort = cumamort.GetValueOrDefault(0);
+                periodic.TotalAmortAccrualForPeriod = deffee_amort_accrual;
+                periodic.DiscountPremiumAccrual = discprem_amort_accrual;
+                periodic.CapitalizedCostAccrual = Convert.ToDecimal(capcost_amort_accrual);
+                periodic.AccumulatedAmort = Perioddate < EOMSelectedMaturityDate ? cum_deffee_amort.GetValueOrDefault(0) : 0;
+                periodic.DiscountPremiumAccumulatedAmort = Perioddate < EOMSelectedMaturityDate ? cum_disc_amort.GetValueOrDefault(0) : 0;
+                periodic.CapitalizedCostAccumulatedAmort = Perioddate < EOMSelectedMaturityDate ? cum_capcost_amort.GetValueOrDefault(0) : 0;
+
                 periodic.TotalFutureAdvancesForThePeriod = cumffamt;
-                periodic.TotalDiscretionaryCurtailmentsforthePeriod = cumcurt.GetValueOrDefault(0);
+                periodic.TotalDiscretionaryCurtailmentsforthePeriod = cumcurt.GetValueOrDefault(0) - cumprinwo;
+                periodic.PrincipalWriteoff = cumprinwo;
                 periodic.TotalCouponStrippedforthePeriod = cstripperiod;
                 periodic.CouponStrippedonPaymentDate = cstrippmt;
-                periodic.ScheduledPrincipal = schedprincipal;
-                periodic.PrincipalPaid = principalpaid;
-                periodic.BalloonPayment = balloonpmt;
+                periodic.ScheduledPrincipal = principalpaid * -1; //schedprincipal * -1;
+                periodic.PrincipalPaid = principalpaid * -1;
+                periodic.BalloonPayment = balloonpmt * -1;
                 periodic.PIKInterestFromPIKSourceNote = pikamtsource;
                 periodic.PIKInterestTransferredToRelatedNote = pikamtrelated;
                 periodic.PIKInterestForThePeriod = pikint;
                 periodic.PIKInterestPaidForThePeriod = pikintpaid;
                 periodic.PIKInterestAppliedForThePeriod = pikapplied;
-                periodic.PIKPrincipalPaidForThePeriod = pikprinpaid;
+                periodic.PIKPrincipalPaidForThePeriod = pikprinpaid * -1;
                 periodic.PIKInterestForPeriodNotInsideLoanBalance = piknotcomp;
                 periodic.PIKBalanceBalloonPayment = pikballoon;
+                periodic.NetPIKAmountForThePeriod = pikapplied + piknotcomp - pikprinpaid - pikballoon;
                 periodic.ScheduledPrincipalShortfall = Convert.ToDecimal(spshortfall);
                 periodic.PrincipalShortfall = Convert.ToDecimal(pshortfall);
                 periodic.PrincipalLoss = Convert.ToDecimal(ploss);
@@ -7232,10 +7979,20 @@ namespace CRES.NoteCalculator
                 periodic.FinancingFeesPaid = Convert.ToDecimal(finfees);
                 periodic.FeeStrippedforthePeriod = FeeStrip;
                 periodic.AdditionalFeeAccrual = Convert.ToDecimal(AddfeeAccrual);
-                periodic.CapitalizedCostAccrual = Convert.ToDecimal(CapcostsAccrual);
+
                 periodic.AnalysisID = noteDC.AnalysisID;
                 //periodic.CurrentPeriodPIKInterestAccrualPeriodEnddate = OutputIndex;
                 periodic.InterestSuspenseAccountActivityforthePeriod = intsuspense;
+                if (Perioddate == CurrentEOM)
+                    periodic.InterestPastDue = (from cpn in ListCouponTab where cpn.Date <= CurrentEOM && cpn.Date > LastDateOfMonth(CurrentEOM.AddMonths(-1)) select cpn.InterestPastDue).Sum();
+                if (Perioddate == LastDateOfMonth(CurrentEOM.AddMonths(-1)))
+                    periodic.InterestPastDue = (from cpn in ListCouponTab where cpn.Date <= LastDateOfMonth(CurrentEOM.AddMonths(-1)) && cpn.Date > LastDateOfMonth(CurrentEOM.AddMonths(-2)) select cpn.InterestPastDue).Sum();
+                if (Perioddate == LastDateOfMonth(CurrentEOM.AddMonths(-2)))
+                    periodic.InterestPastDue = (from cpn in ListCouponTab where cpn.Date <= LastDateOfMonth(CurrentEOM.AddMonths(-2)) && cpn.Date > LastDateOfMonth(CurrentEOM.AddMonths(-3)) select cpn.InterestPastDue).Sum();
+                if (Perioddate == LastDateOfMonth(CurrentEOM.AddMonths(-3)))
+                    periodic.InterestPastDue = (from cpn in ListCouponTab where cpn.Date <= LastDateOfMonth(CurrentEOM.AddMonths(-3)) && cpn.Date > LastDateOfMonth(CurrentEOM.AddMonths(-4)) select cpn.InterestPastDue).Sum();
+                if (Perioddate == LastDateOfMonth(CurrentEOM.AddMonths(-4)))
+                    periodic.InterestPastDue = (from cpn in ListCouponTab where cpn.Date >= PreviousYearBOM && cpn.Date <= LastDateOfMonth(CurrentEOM.AddMonths(-4)) select cpn.InterestPastDue).Sum();
 
                 periodic.LevelYieldIncomeForThePeriod = Convert.ToDecimal(lyincome);
                 periodic.PVAmortTotalIncomeMethod = Convert.ToDecimal(pvamort);
@@ -7254,6 +8011,22 @@ namespace CRES.NoteCalculator
             }
         }
 
+        public decimal? CalculateAverageDailyBalance(DateTime currentdate)
+        {
+            Decimal? totalbalance = 0, AverageDailyBalance = 0;
+            DateTime Startdate = FirstDayOfMonth(currentdate);
+            DateTime Enddate = LastDateOfMonth(currentdate);
+            int totaldayinmonth = DateTime.DaysInMonth(Enddate.Year, Enddate.Month);
+
+            var restemp = ListBalanceTab.FindAll(x => x.Date >= Startdate && x.Date <= Enddate).ToList();
+
+            foreach (BalanceTab bt in restemp)
+            {
+                totalbalance = bt.EndingBalance.GetValueOrDefault(0) + totalbalance;
+            }
+            AverageDailyBalance = NumericExtensions.SafeDivision(totalbalance.Value, totaldayinmonth);
+            return AverageDailyBalance;
+        }
         public int LookupIOTerm(DateTime pmtdate)
         {
             int ioterm = 0;
@@ -7262,7 +8035,7 @@ namespace CRES.NoteCalculator
             {
                 if (date.PaymentDateReferencedforInterestAccrualPeriodAdjustedforBusinessDay.Value.Date == pmtdate.Date)
                 {
-                    ioterm = ListRemIoTerm[loopindex];
+                    ioterm = loopindex > ListRemIoTerm.Count - 1 ? 0 : ListRemIoTerm[loopindex];
                 }
                 loopindex = loopindex + 1;
             }
@@ -7270,14 +8043,14 @@ namespace CRES.NoteCalculator
             return ioterm;
         }
 
-        public decimal GetMostRecentLiborValue(DateTime? date)
+        public decimal GetMostRecentIndexValue(DateTime? date)
         {
             decimal lastvalue = 0;
-            List<LiborScheduleTab> listlibor = ListLiborScheduleTabLatest.FindAll(x => x.Value != 0 && x.Date <= date && x.Value != null).ToList();
+            List<IndexScheduleDataContract> listindex = ListIndexScheduleTabLatest.FindAll(x => x.Value != 0 && x.Date <= date && x.Value != null).ToList();
 
-            if (listlibor.Count > 0)
+            if (listindex.Count > 0)
             {
-                var last = listlibor.Last();
+                var last = listindex.Last();
                 lastvalue = Convert.ToDecimal(last.Value);
             }
 
@@ -7460,32 +8233,42 @@ namespace CRES.NoteCalculator
             return pmtdate;
         }
 
+        public DateTime GetCurrentMonthPaymentDateNotAdjustedForBusinessDay(DateTime? dt)
+        {
+            DateTime startdate = DateExtensions.FirstDateOfMonth(dt.Value.Date);
+            DateTime enddate = DateExtensions.LastDateOfMonth(dt.Value.Date);
+            DateTime paydate = DateTime.MinValue;
+            foreach (var item in ListDatesTab)
+            {
+                if (item.InterestAccrualPeriodEndDateArray >= startdate && item.InterestAccrualPeriodEndDateArray <= enddate)
+                {
+                    paydate = item.PaymentDateusingAccrualFreqNotAdjustedforBusinessDay.Value.Date;
+                }
+            }
+            return paydate;
+            //PaymentDateusingAccrualFreqNotAdjustedforBusinessDay
+        }
+
         public void CaptureBalance()
         {
-            DateTime startdate = DateTime.Now.Date.AddDays(-noteDC.NumberofDaysinPast);
-            DateTime enddate = DateTime.Now.Date.AddDays(noteDC.NumberofDaysinFuture);
-            var res = ListBalanceTab.FindAll(x => x.Date >= startdate.Date && x.Date < enddate.Date).ToList();
+            //DateTime startdate = DateTime.Now.Date.AddDays(-noteDC.NumberofDaysinPast);
+            //DateTime enddate = DateTime.Now.Date.AddDays(noteDC.NumberofDaysinFuture);
+            //var res = ListBalanceTab.FindAll(x => x.Date >= startdate.Date && x.Date < enddate.Date).ToList();
             int diffdate = 0;
             int index = 0;
             DateTime? intsatrtdate = DateTime.MinValue;
             DateTime? intenddate = DateTime.MinValue;
             DateTime? lastpaymentdate = DateTime.MinValue;
             DateTime? paymentdatebasedon = DateTime.MinValue;
-            decimal liborper = 0, indexper = 0;
+            decimal liborper = 0, indexper = 0, RawIndex = 0;
             decimal Pikliborper = 0, pikindexper = 0;
             decimal spreadper = 0;
-#pragma warning disable CS0219 // The variable 'pikper' is assigned but its value is never used
+            decimal allincouponrate = 0, allInPIKCouponRate = 0;
             decimal pikper = 0;
-#pragma warning restore CS0219 // The variable 'pikper' is assigned but its value is never used
+            decimal CRawIndex = 0;
+            decimal PIKRawIndex = 0, CPIKRawIndex = 0;
 
-            foreach (var t in res)
-            {
-                NotePeriodicOutputsDataContract npdc = new NotePeriodicOutputsDataContract();
-                npdc.PeriodEndDate = t.Date;
-                npdc.EndingBalance = t.EndingBalance;
-                npdc.AnalysisID = noteDC.AnalysisID;
-                ListTrailingBalance.Add(npdc);
-            }
+
             foreach (BalanceTab balance in ListBalanceTab)
             {
                 if (balance.PMTDateTag == 1)
@@ -7546,7 +8329,6 @@ namespace CRES.NoteCalculator
                 ListInterestCalculator.Add(lcd);
 
                 //-------------------- ListInterestCalculator End--------------------------
-
                 intsatrtdate = dt.InterestAccrualPeriodStartDateArray.Value;
                 intenddate = dt.InterestAccrualPeriodEndDateArray.Value;
                 var restemp = ListRateTab.FindAll(x => x.rateDate >= intsatrtdate && x.rateDate <= intenddate).ToList();
@@ -7559,13 +8341,19 @@ namespace CRES.NoteCalculator
                         {
                             pikindexper = pikindexper + t.AdditionalPIKSpreadfromPIKTable.GetValueOrDefault(0);
                             Pikliborper = Pikliborper + Math.Max(t.PIKIndexFloorfromPIKTable.GetValueOrDefault(), t.DIndexValueusingFloatingRateIndexReferenceDate.GetValueOrDefault(0));
+                            PIKRawIndex = PIKRawIndex + t.IndexValueWithoutRounding.GetValueOrDefault(0);
 
                         }
                         else
                         {
                             pikindexper = pikindexper + t.AdditionalPIKinterestRatefromPIKTable.GetValueOrDefault(0);
                             Pikliborper = 0;
+                            PIKRawIndex = 0;
+
                         }
+                        allInPIKCouponRate = allInPIKCouponRate + t.AllInPIKInterest.GetValueOrDefault(0);
+
+
                     }
                     if (t.RateType == "Rate")
                     {
@@ -7578,50 +8366,278 @@ namespace CRES.NoteCalculator
                         {
                             spreadper = spreadper + t.CouponSpread.GetValueOrDefault(0);
                         }
-
+                        indexper = 0;
+                        CRawIndex = 0;
+                        allincouponrate = allincouponrate + t.AllInCouponRate.GetValueOrDefault(0);
                     }
                     else
                     {
-                        //liborper = liborper + t.DIndexValueusingFloatingRateIndexReferenceDate.GetValueOrDefault(0);
                         if (t.CouponSpread.GetValueOrDefault(0) > 0)
+                        {
                             indexper = Math.Max(t.IndexFloor.GetValueOrDefault(), t.DIndexValueusingFloatingRateIndexReferenceDate.GetValueOrDefault(0));
+                            CRawIndex = t.IndexValueWithoutRounding.GetValueOrDefault(0);
+                        }
                         else
+                        {
                             indexper = 0;
-
+                            CRawIndex = 0;
+                        }
                         liborper = liborper + indexper;
+                        RawIndex = RawIndex + CRawIndex;
                         spreadper = spreadper + t.CouponSpread.GetValueOrDefault(0);
+                        allincouponrate = allincouponrate + t.AllInCouponRate.GetValueOrDefault(0);
                     }
 
                 }
 
                 NotePeriodicOutputsDataContract npdc = new NotePeriodicOutputsDataContract();
-                npdc.PeriodEndDate = GetWorkingDayUsingOffset(Convert.ToDateTime(dt.PaymentDateReferencedforInterestAccrualPeriodAdjustedforBusinessDay.Value.AddDays(1)), Convert.ToInt16(noteDC.PaymentDateBusinessDayLag), "PMT Date");
+                npdc.PeriodEndDate = GetWorkingDayUsingOffset(Convert.ToDateTime(dt.PaymentDateReferencedforInterestAccrualPeriodAdjustedforBusinessDay.Value), Convert.ToInt16(noteDC.PaymentDateBusinessDayLag), "US");
                 npdc.LIBORPercentage = RoundValuesUsingRoundingRule(NumericExtensions.SafeDivision(liborper, restemp.Count()));
                 npdc.SpreadPercentage = NumericExtensions.SafeDivision(spreadper, restemp.Count());
-
+                npdc.AllInCouponRate = NumericExtensions.SafeDivision(allincouponrate, restemp.Count());
+                npdc.RawIndexPercentage = NumericExtensions.SafeDivision(RawIndex, restemp.Count());
                 npdc.PIKInterestPercentage = NumericExtensions.SafeDivision(pikindexper, restemp.Count());
+                npdc.PIKRawIndex = NumericExtensions.SafeDivision(PIKRawIndex, restemp.Count());
                 npdc.PIKLiborPercentage = NumericExtensions.SafeDivision(Pikliborper, restemp.Count());
+                npdc.AllInPIKRate = NumericExtensions.SafeDivision(allInPIKCouponRate, restemp.Count());
 
                 npdc.AnalysisID = noteDC.AnalysisID;
                 liborper = 0;
                 spreadper = 0;
                 Pikliborper = 0;
                 pikindexper = 0;
+                RawIndex = 0;
+                PIKRawIndex = 0;
                 pikper = 0;
+                allincouponrate = 0;
+                allInPIKCouponRate = 0;
                 ListSpreadandLibor.Add(npdc);
             }
             var filteredlist = ListSpreadandLibor.GroupBy(x => x.PeriodEndDate).Select(y => y.First()).ToList();
             ListSpreadandLibor.Clear();
             ListSpreadandLibor.AddRange(filteredlist);
         }
+        public List<DailyInterestAccrualsDataContract> CaptureDailyRates(DateTime? SelectedMaturityDateLatest)
+        {
+            List<DailyInterestAccrualsDataContract> listdailint = new List<DailyInterestAccrualsDataContract>();
+            decimal indexper = 0;
+            decimal Pikliborper = 0, pikSpreadOrRate = 0;
+            decimal spreadper = 0;
+            int listindex = 0;
+            foreach (RateTab t in ListRateTab)
+            {
+                DailyInterestAccrualsDataContract dia = new DailyInterestAccrualsDataContract();
+                if (t.rateDate <= SelectedMaturityDateLatest)
+                {
+                    if (t.AllInPIKInterest.GetValueOrDefault(0) != 0)
+                    {
+                        if (t.AdditionalPIKinterestRatefromPIKTable == null)
+                        {
+                            pikSpreadOrRate = t.AdditionalPIKSpreadfromPIKTable.GetValueOrDefault(0);
+                            Pikliborper = Math.Max(t.PIKIndexFloorfromPIKTable.GetValueOrDefault(), t.DIndexValueusingFloatingRateIndexReferenceDate.GetValueOrDefault(0));
+
+                        }
+                        else
+                        {
+                            pikSpreadOrRate = t.AdditionalPIKinterestRatefromPIKTable.GetValueOrDefault(0);
+                            Pikliborper = 0;
+
+                        }
+                    }
+                    if (t.RateType == "Rate")
+                    {
+                        if (t.CouponRate.GetValueOrDefault(0) != 0)
+                        {
+                            spreadper = t.CouponRate.GetValueOrDefault(0);
+
+                        }
+                        else
+                        {
+                            spreadper = t.CouponSpread.GetValueOrDefault(0);
+                        }
+                        indexper = 0;
+                    }
+                    else
+                    {
+                        if (t.CouponSpread.GetValueOrDefault(0) > 0)
+                        {
+                            indexper = Math.Max(t.IndexFloor.GetValueOrDefault(), t.DIndexValueusingFloatingRateIndexReferenceDate.GetValueOrDefault(0));
+                        }
+                        else
+                        {
+                            indexper = 0;
+
+                        }
+                        spreadper = t.CouponSpread.GetValueOrDefault(0);
+                    }
+
+                    //capture other balance
+                    dia.Date = t.rateDate;
+                    dia.DailyInterestAccrual = ListCouponTab[listindex].DailyAccruedInterestbeforeStrippingRule.GetValueOrDefault(0);
+                    dia.EndingBalance = ListBalanceTab[listindex].EndingBalance.GetValueOrDefault(0);
+                    dia.AnalysisID = noteDC.AnalysisID;
+
+                    dia.AllInCouponRate = t.AllInCouponRate.GetValueOrDefault(0);
+                    dia.SpreadOrRate = spreadper;
+                    dia.IndexRate = indexper;
+
+                    dia.AllInPikRate = t.AllInPIKInterest.GetValueOrDefault(0);
+                    dia.PikSpreadOrRate = pikSpreadOrRate;
+                    dia.PIKIndexRate = Pikliborper;
+
+                    listdailint.Add(dia);
+
+                    spreadper = 0;
+                    Pikliborper = 0;
+                    pikSpreadOrRate = 0;
+                    indexper = 0;
+
+                }
+
+                listindex = listindex + 1;
+            }
+            return listdailint;
+        }
+        public decimal? CalcRemainingUnfundedCommitmentOnDate(DateTime? currentdate, decimal? EndingBalance)
+        {
+
+            decimal? adj = 0;
+            decimal? pikval = 0;
+            decimal? RemainingUnfundedCommitment = 0;
+            decimal? sumNonCommitmentBal = 0, sumRevolverBal = 0;
+            //NoteCommitmentNoteData
+            adj = CalcuateAdjustedCommitmentByDate(currentdate);
+            sumNonCommitmentBal = CalcuateNonCommitmentBalanceByDate(currentdate);
+            sumRevolverBal = CalcuateRevolverBalanceByDate(currentdate) * -1;
+
+            if (noteDC.ImpactCommitmentCalc == 3)
+            {
+                pikval = 0;
+            }
+            else
+            {
+                pikval = GetPikBalanceAsonDate(currentdate);
+            }
+
+            RemainingUnfundedCommitment = adj - (EndingBalance.GetValueOrDefault(0) + pikval - sumNonCommitmentBal + sumRevolverBal) + sumRevolverBal;
+            RemainingUnfundedCommitment = Math.Round(RemainingUnfundedCommitment.Value, 2);
+
+            return RemainingUnfundedCommitment;
+        }
+
+        public decimal? CalcuateAdjustedCommitmentByDate(DateTime? currentdate)
+        {
+            decimal? adjcommitment = 0;
+            if (noteDC.NoteCommitmentNoteData != null)
+            {
+                foreach (var item in noteDC.NoteCommitmentNoteData)
+                {
+                    if (item.Date.Value.Date <= currentdate)
+                    {
+                        if (item.Type != "PIKPrincipalPaid")
+                        {
+                            adjcommitment = adjcommitment + item.NoteAmount.GetValueOrDefault(0);
+                        }
+
+                    }
+                }
+            }
+
+            if (noteDC.ImpactCommitmentCalc == 3)
+            {
+                if (noteDC.ListServicingLogTab != null)
+                {
+                    foreach (var servicing in noteDC.ListServicingLogTab)
+                    {
+                        if (servicing.TransactionDate <= currentdate)
+                        {
+                            if (servicing.TransactionTypeText == "PIKPrincipalPaid")
+                            {
+                                adjcommitment = adjcommitment + servicing.TransactionAmount.GetValueOrDefault(0) * -1;
+                            }
+                        }
+                    }
+                }
+            }
+
+            return adjcommitment;
+        }
+
+        public decimal? CalcuateNonCommitmentBalanceByDate(DateTime? currentdate)
+        {
+            decimal? NonCommitmentBal = 0;
+            foreach (var fund in ListFutureFundingScheduleTabLatest)
+            {
+                //834 id for Non-Commitment Adjustment
+                if (fund.Date.Value.Date <= currentdate)
+                {
+                    if (fund.AdjustmentTypeText == "Non-Commitment Adjustment" || fund.AdjustmentTypeText == "Non-Commitment Adjustment (PA)")
+                    {
+                        NonCommitmentBal = NonCommitmentBal.GetValueOrDefault(0) + fund.Value.GetValueOrDefault(0);
+                    }
+                }
+            }
+            return NonCommitmentBal;
+        }
+
+        public decimal? CalcuateRevolverBalanceByDate(DateTime? currentdate)
+        {
+            decimal? RevolverBalance = 0;
+            foreach (var fund in ListFutureFundingScheduleTabLatest)
+            {
+                //835 id for Revolver
+                if (fund.Date.Value.Date <= currentdate)
+                {
+                    if (fund.AdjustmentType == 835)
+                    {
+                        RevolverBalance = RevolverBalance.GetValueOrDefault(0) + fund.Value.GetValueOrDefault(0);
+                    }
+                }
+            }
+            return RevolverBalance;
+        }
+        public void GenerateRemainingUnfundedCommitment()
+        {
+            DateTime startdate = DateTime.Now.Date.AddDays(-noteDC.NumberofDaysinPast);
+            DateTime enddate = DateTime.Now.Date.AddDays(noteDC.NumberofDaysinFuture);
+            var res = ListBalanceTab.FindAll(x => x.Date >= startdate.Date && x.Date < enddate.Date).ToList();
+
+            foreach (var t in res)
+            {
+                if (t.Date <= SelectedMaturityDateLatest)
+                {
+                    NotePeriodicOutputsDataContract npdc = new NotePeriodicOutputsDataContract();
+                    npdc.PeriodEndDate = t.Date;
+                    npdc.EndingBalance = t.EndingBalance;
+                    npdc.AnalysisID = noteDC.AnalysisID;
+                    npdc.RemainingUnfundedCommitment = CalcRemainingUnfundedCommitmentOnDate(t.Date, t.EndingBalance.GetValueOrDefault(0));
+                    ListTrailingBalance.Add(npdc);
+                }
+            }
+            foreach (NotePeriodicOutputsDataContract periodic in ListNotePeriodicOutputs)
+            {
+                if (periodic.PeriodEndDate <= SelectedMaturityDateLatest)
+                {
+                    periodic.RemainingUnfundedCommitment = CalcRemainingUnfundedCommitmentOnDate(periodic.PeriodEndDate, periodic.EndingBalance.GetValueOrDefault(0));
+                }
+                else
+                {
+                    var res1 = ListBalanceTab.Find(x => x.Date == SelectedMaturityDateLatest.Value.Date);
+                    periodic.RemainingUnfundedCommitment = CalcRemainingUnfundedCommitmentOnDate(res1.Date, res1.EndingBalance.GetValueOrDefault(0));
+                }
+
+            }
+        }
 
         public DateTime? GetPaymentdateByDateForPikTransactions(DateTime? dt)
         {
+            //This method finds the Payment Date (Holiday Adj) for PIK Amount mapped to Accrual End Date + 1
+            //Deduct 1 Day to get to the Accrual End Date and pick the Holiday Adjusted Payment Date corresponding to that end date.
             DateTime? pmtdate = DateTime.MinValue;
-
+            DateTime? accrenddate = dt.Value.Date.AddDays(-1);
             foreach (var item in ListDatesTab)
             {
-                if (item.InterestAccrualPeriodEndDateArray == dt)
+                if (item.InterestAccrualPeriodEndDateArray == accrenddate)
                 {
                     pmtdate = item.PaymentDateReferencedforInterestAccrualPeriodAdjustedforBusinessDay.Value;
 
@@ -7698,7 +8714,12 @@ namespace CRES.NoteCalculator
                 {
                     //Find Accrual Period End Date for each Due Date in the Log
                     ndx = ListDatesTab.FindIndex(date => date.PaymentDateAdjustedforWorkingDay == svc.TransactionDate);
-                    AccEndDate = ListDatesTab[ndx].InterestAccrualPeriodEndDateArray;
+                    if (noteDC.ActualPayoffDate != null && svc.TransactionDate == noteDC.ActualPayoffDate.Value.Date)
+                    {
+                        AccEndDate = noteDC.ActualPayoffDate;
+                    }
+                    else { AccEndDate = ListDatesTab[ndx].InterestAccrualPeriodEndDateArray; }
+
                     ListPIKInterestOverride.Add(new PIKInterestOverrideDataContract(svc.TransactionDate, AccEndDate, svc.TransactionAmount));
                 }
             }
@@ -7729,6 +8750,7 @@ namespace CRES.NoteCalculator
                 pikrow.DailyAccruedPIKInterestAdjustedforPIKInterestCap = 0M;
                 pikrow.DailyAccruedPIKInterest = 0M;
                 pikrow.AccumPIKInterestforCurrentAccrualPeriod = 0M;
+                pikrow.PIKInterestonBusinessAdjInterestAccrualEndDate = 0M;
             }
             ndx = ListCouponTab.FindIndex(x => x.Date == effDate);
             foreach (CouponTab cpnrow in ListCouponTab.Skip(ndx))
@@ -7808,7 +8830,6 @@ namespace CRES.NoteCalculator
 
         static public decimal CalcPowAndCheckNaN(double x, double y)
         {
-#pragma warning disable CS0168 // The variable 'ex' is declared but never used
             try
             {
                 if (double.IsNaN(x) || double.IsNaN(y))
@@ -7825,7 +8846,6 @@ namespace CRES.NoteCalculator
 
                 return 0;
             }
-#pragma warning restore CS0168 // The variable 'ex' is declared but never used
         }
 
         static public double CalcPowAndCheckNaNDouble(double x, double y)

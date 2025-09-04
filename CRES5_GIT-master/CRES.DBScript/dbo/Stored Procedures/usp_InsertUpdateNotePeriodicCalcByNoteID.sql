@@ -1,6 +1,5 @@
-﻿
--- Procedure
- 
+﻿--- Procedure
+
 CREATE PROCEDURE [dbo].[usp_InsertUpdateNotePeriodicCalcByNoteID] 
 	@noteAdditinallist tempNotePeriodicCalc READONLY,
 	@CreatedBy nvarchar(256),
@@ -10,25 +9,28 @@ BEGIN
  
 
 Declare @NoteID UNIQUEIDENTIFIER = (select Top 1 noteid from @noteAdditinallist)
+Declare @AccountID UNIQUEIDENTIFIER = (select Account_AccountID from cre.note where noteid = @NoteID)
 Declare @AnalysisID UNIQUEIDENTIFIER = (select Top 1 AnalysisID from @noteAdditinallist)
 
 IF(@AnalysisID is not null)
 BEGIN
 
-	IF Exists(Select * from CRE.NotePeriodicCalc where NoteID = @NoteID and AnalysisID  =@AnalysisID)
+	IF Exists(Select * from CRE.NotePeriodicCalc npc where npc.AccountID = @AccountID and AnalysisID  =@AnalysisID)
+	
 	BEGIN
-		DELETE FROM CRE.NotePeriodicCalc WHERE NoteID = @NoteID  and AnalysisID  =@AnalysisID
+		DELETE FROM CRE.NotePeriodicCalc WHERE AccountID = @AccountID  and AnalysisID  =@AnalysisID
 	END
 
 
 		INSERT INTO [CRE].[NotePeriodicCalc]
-		([NoteID]
+		(--[NoteID]
+			AccountID
 		,[PeriodEndDate]
 		,[Month]
 		,[ActualCashFlows]
 		,[GAAPCashFlows]
 		,[EndingGAAPBookValue]	 
-		,[PIKInterestAccrualforthePeriod]
+		--,[PIKInterestAccrualforthePeriod]
 		,[TotalAmortAccrualForPeriod]
 		,[AccumulatedAmort]
 		,[BeginningBalance]
@@ -110,17 +112,28 @@ BEGIN
 		,EndingAccumSLAmort
 		,EndingPreCapGAAPBasis
 		,PIKPrincipalPaidForThePeriod
-		
+		,RemainingUnfundedCommitment
+		,CalcEngineType
+		,CurrentPeriodPIKInterestAccrual
+		,DropDateInterestDeltaBalance
+		,AverageDailyBalance
+		,InterestPastDue		 
+		,CapitalizedCostAccumulatedAmort 
+        ,DiscountPremiumAccumulatedAmort
+		,PrincipalWriteoff
+        ,NetPIKAmountForThePeriod
+		,CashInterest
+		,CapitalizedInterest
 		)
 
 		Select 
-				 [NoteID]
+				 @AccountID ---[NoteID]
 				,[PeriodEndDate]
 				,[Month]
 				,[ActualCashFlows]
 				,[GAAPCashFlows]
 				,[EndingGAAPBookValue]			
-				,[PIKInterestAccrualforthePeriod]
+				--,[PIKInterestAccrualforthePeriod]
 				,[TotalAmortAccrualForPeriod]
 				,[AccumulatedAmort]
 				,[BeginningBalance]
@@ -202,11 +215,23 @@ BEGIN
 				,EndingAccumSLAmort
 				,EndingPreCapGAAPBasis
 				,PIKPrincipalPaidForThePeriod
-				
+				,RemainingUnfundedCommitment
+				,797 as CalcEngineType
+				,CurrentPeriodPIKInterestAccrual
+				,DropDateInterestDeltaBalance
+					,AverageDailyBalance
+				,InterestPastDue				 
+				,CapitalizedCostAccumulatedAmort 
+                ,DiscountPremiumAccumulatedAmort
+				,PrincipalWriteoff
+                ,NetPIKAmountForThePeriod
+				,CashInterest
+		        ,CapitalizedInterest
+								
 				From  @noteAdditinallist
 
 END
 
 END
-
+GO
 

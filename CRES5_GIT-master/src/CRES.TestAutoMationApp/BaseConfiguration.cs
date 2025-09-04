@@ -1,7 +1,11 @@
-﻿using Microsoft.Extensions.Configuration;
-using System;
-using System.Globalization;
+﻿using System;
+using System.Collections.Generic;
+using System.Text;
+using Microsoft.Extensions.Configuration;
 using System.IO;
+using System.Collections.ObjectModel;
+using System.Configuration;
+using System.Globalization;
 
 namespace CRES.TestAutoMationApp
 {
@@ -79,7 +83,7 @@ namespace CRES.TestAutoMationApp
             string setting = "";
             setting = Builder["appSettings:IntUrl"];
             return setting;
-        }
+          }
 
         public static string GetIntUsername()
         {
@@ -314,7 +318,7 @@ namespace CRES.TestAutoMationApp
             string setting = "";
             setting = Builder["appSettings:SendProgressEmailDealCounter"];
             return int.Parse(setting);
-        }
+         }
 
 
         public static string DeafultLoggingFile()
@@ -491,7 +495,7 @@ namespace CRES.TestAutoMationApp
                 return setting;
 
             }
-
+            
         }
         public static string UserName
         {
@@ -502,7 +506,7 @@ namespace CRES.TestAutoMationApp
                 return setting;
 
             }
-
+            
         }
         public static string Password
         {
@@ -513,7 +517,7 @@ namespace CRES.TestAutoMationApp
                 return setting;
 
             }
-
+            
         }
 
         public static string Port
@@ -525,7 +529,7 @@ namespace CRES.TestAutoMationApp
                 return setting;
 
             }
-
+           
         }
 
 

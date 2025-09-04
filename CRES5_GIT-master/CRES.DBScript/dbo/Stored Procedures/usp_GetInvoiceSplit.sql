@@ -22,6 +22,34 @@ BEGIN
 	where dealid=@DealIDOrCREDealID --and fs.IsThirdParty=0
 	and act.IsDeleted=0 and isnull(act.statusID,1)=1
 
+	IF (@sumAdjustedTotalCommitment=0)
+	BEGIN
+	     select top 1 DealName,format(@FeeAmount,'#0.00') SplitAmount,QBAccountNo,QBItemName from 
+			(
+			select DealName,qb.QBAccountNo,qb.QBItemName
+			 from
+			(
+			select d.credealid,d.dealname,f.financingSourcename,f.FinancingSourceMasterID,f.IsThirdParty
+
+			from cre.deal d join cre.note n on d.dealid=n.dealid 
+			join core.account ac on ac.AccountID=n.Account_AccountID
+			left join cre.FinancingSourceMaster f on f.FinancingSourceMasterID=n.financingSourceID
+			where isnull(d.isdeleted,0)=0 and isnull(ac.statusID,1)=1
+			and ac.IsDeleted=0
+			group by f.financingSourcename,FinancingSourceMasterID,d.dealid,d.credealid,d.dealname,n.dealid,f.IsThirdParty
+			having d.DealID=@DealIDOrCREDealID
+			--and f.IsThirdParty=0
+			) tbl 
+
+			join cre.QBAccountFinancingSourceMapping qb on qb.FinancingSourceID = tbl.FinancingSourceMasterID
+			where IsThirdParty=0
+			and qb.InvoiceTypeID=@InvoiceTypeID
+			) tblmain group by QBAccountNo,QBItemName,DealName
+			having QBAccountNo is not null
+	END
+	ELSE
+	BEGIN
+
 select @sumPercentage =sum((AdjustedTotalCommitment/@sumAdjustedTotalCommitment)*100)
  from
 (
@@ -110,6 +138,7 @@ QBItemName from @temp
 --where IsThirdParty=0
 --and qb.InvoiceTypeID=@InvoiceTypeID
 ----
+END
     SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
-END
+END  

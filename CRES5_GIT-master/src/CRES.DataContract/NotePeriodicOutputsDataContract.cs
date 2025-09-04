@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 
 
 namespace CRES.DataContract
@@ -19,19 +20,26 @@ namespace CRES.DataContract
         public Decimal? ReversalofPriorInterestAccrual { get; set; }
         public Decimal? InterestReceivedinCurrentPeriod { get; set; }
         public Decimal? CurrentPeriodInterestAccrual { get; set; }
+        public Decimal? CurrentPeriodPIKInterestAccrual { get; set; }
         public Decimal? TotalGAAPInterestFortheCurrentPeriod { get; set; }
+        public Decimal? CurrentPeriodInterestAccrualPeriodEnddate { get; set; }
+        //public Decimal? CurrentPeriodInterestSuspenseAdjustment { get; set; }
+        public Decimal? CurrentPeriodPIKInterestAccrualPeriodEnddate { get; set; }
+        public Decimal? TotalCouponStrippedforthePeriod { get; set; }
+        public Decimal? CouponStrippedonPaymentDate { get; set; }
         public Decimal? AllInCouponRate { get; set; }
         public Decimal? AllInPIKRate { get; set; }
-        public Decimal? PIKInterestAccrualforthePeriod { get; set; }
-        public Decimal? AmortizedCost { get; set; }
-        public Decimal? DiscountPremiumAccrual { get; set; }
         public Decimal? TotalAmortAccrualForPeriod { get; set; }
         public Decimal? AccumulatedAmort { get; set; }
+        public Decimal? DiscountPremiumAccrual { get; set; }
+        public Decimal? DiscountPremiumAccumulatedAmort { get; set; }
+        public Decimal? CapitalizedCostAccrual { get; set; }
+        public Decimal? CapitalizedCostAccumulatedAmort { get; set; }
+        public Decimal? AmortizedCost { get; set; }
+        //Balance Section
         public Decimal? BeginningBalance { get; set; }
         public Decimal? TotalFutureAdvancesForThePeriod { get; set; }
         public Decimal? TotalDiscretionaryCurtailmentsforthePeriod { get; set; }
-        public Decimal? TotalCouponStrippedforthePeriod { get; set; }
-        public Decimal? CouponStrippedonPaymentDate { get; set; }
         public Decimal? ScheduledPrincipal { get; set; }
         public Decimal? PrincipalPaid { get; set; }
         public Decimal? BalloonPayment { get; set; }
@@ -69,10 +77,8 @@ namespace CRES.DataContract
         public Decimal? CleanCostPrice { get; set; }
         public Decimal? AmortizedCostPrice { get; set; }
         public Decimal? AdditionalFeeAccrual { get; set; }
-        public Decimal? CapitalizedCostAccrual { get; set; }
+        //public Decimal? CapitalizedCostAccrual { get; set; }
         public Decimal? InvestmentBasis { get; set; }
-        public Decimal? CurrentPeriodInterestAccrualPeriodEnddate { get; set; }
-        public Decimal? CurrentPeriodPIKInterestAccrualPeriodEnddate { get; set; }
         public Decimal? InterestSuspenseAccountActivityforthePeriod { get; set; }
         public Decimal? InterestSuspenseAccountBalance { get; set; }
         public decimal? AllInBasisValuation { get; set; }
@@ -100,9 +106,11 @@ namespace CRES.DataContract
         public Decimal? LIBORPercentage { get; set; }
         public Decimal? SpreadPercentage { get; set; }
         public Decimal? PIKInterestPercentage { get; set; }
+        public Decimal? PIKRawIndex { get; set; }
         public Decimal? PIKLiborPercentage { get; set; }
         public string CreatedBy { get; set; }
         public DateTime? CreatedDate { get; set; }
+        public DateTime? AccountingCloseDate { get; set; }
         public string UpdatedBy { get; set; }
         public DateTime? UpdatedDate { get; set; }
         public Decimal? OrigFeeAccrual { get; set; }
@@ -113,6 +121,15 @@ namespace CRES.DataContract
         public int BatchDetailAsyncCalcVSTOId { get; set; }
         public string SizerScenario { get; set; }
         public Decimal? PIKPrincipalPaidForThePeriod { get; set; }
+        public Decimal? RemainingUnfundedCommitment { get; set; }
+        public Decimal? RawIndexPercentage { get; set; }
+        public Decimal? DropDateInterestDeltaBalance { get; set; }
+        public Decimal? AverageDailyBalance { get; set; }
+        public Decimal? InterestPastDue { get; set; }       
+        public Decimal? PrincipalWriteoff { get; set; }
+        public Decimal? NetPIKAmountForThePeriod { get; set; }
+        public Decimal? CashInterest { get; set; }
+        public Decimal? CapitalizedInterest { get; set; }
 
     }
 
@@ -133,6 +150,11 @@ namespace CRES.DataContract
         public DateTime? RemitDate { get; set; }
         public string TransactionCategory { get; set; }
         public string Comment { get; set; }
+        public string AdjustmentType { get; set; }
+        public Decimal? AllInCouponRate { get; set; }
+        public Decimal? RawIndexPercentage { get; set; }
+        public DateTime? AccountingCloseDate { get; set; }
+        public string PurposeType { get; set; }
 
     }
 

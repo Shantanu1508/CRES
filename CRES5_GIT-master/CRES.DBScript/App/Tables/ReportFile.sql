@@ -15,6 +15,11 @@
     [DocumentStorageID]          NVARCHAR (256)   NULL,
     [DefaultAttributes]          NVARCHAR (MAX)   NULL,
 	[IsAllowInput]				 BIT			  NULL,
+    [DownloadFileName]             NVARCHAR (256)   NULL,
+    [ReportType]             NVARCHAR (256)   NULL,
+    [TenantId]             NVARCHAR (256)   NULL,
+    [GroupId]             NVARCHAR (256)   NULL,
+
     CONSTRAINT [PK_ReportFileID] PRIMARY KEY CLUSTERED ([ReportFileID] ASC)
 );
 

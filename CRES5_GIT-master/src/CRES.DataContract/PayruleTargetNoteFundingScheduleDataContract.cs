@@ -6,7 +6,7 @@ namespace CRES.DataContract
     {
         public Guid? NoteID { get; set; }
         public DateTime? Date { get; set; }
-        public Decimal? Value { get; set; }
+        public Decimal? Value { get; set; }        
         public String NoteName { get; set; }
         public string AccountId { get; set; }
         public int? PurposeID { get; set; }
@@ -26,5 +26,9 @@ namespace CRES.DataContract
         public string GeneratedByText { get; set; }
         public int? GeneratedBy { get; set; }
         public int? TempDealFundingRowno { get; set; }
+
+        public Boolean? NonCommitmentAdj { get; set; }
+
+        public int? AdjustmentType { get; set; }
     }
 }

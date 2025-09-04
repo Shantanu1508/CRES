@@ -1,12 +1,16 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
 
 namespace CRES.DataContract
 {
     public class FeeOutputDataContract
     {
 
-        public DateTime? Date { get; set; }
-
+        public DateTime? Date { get; set; }      
+        
         public Decimal? FeeAmount { get; set; }
         public Decimal? FeeAmountStripped { get; set; }
         public Decimal? FeeAmountinclinLY { get; set; }
@@ -15,6 +19,6 @@ namespace CRES.DataContract
         public string FeeNameTransText { get; set; }
         public DateTime? EffectiveDate { get; set; }
         public Decimal? FeeCouponReceivable { get; set; }
-
+        
     }
 }

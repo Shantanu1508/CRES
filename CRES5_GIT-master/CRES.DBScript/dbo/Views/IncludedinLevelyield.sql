@@ -1,5 +1,4 @@
-﻿
--- View
+﻿-- View
 CREATE View [dbo].[IncludedinLevelyield]
 As
 
@@ -15,6 +14,6 @@ Where Scenario = 'Default' and  (Type like '%IncludedInLevelYield%'  or Type = '
 --and [IncludedLevelYield] = 1
 --and [FeeType] in ('Origination Fee', 'Unused Fee', 'Extension Fee_COMM', 'Extension Fee_UPB', 'Exit Fee', 'Additional Fee') 
 --and t.NoteKey = '3c20f466-188b-4e5d-8c66-369e841e098b'
-
+and T.AccountTypeID = 1
 Group by  T.Notekey
 

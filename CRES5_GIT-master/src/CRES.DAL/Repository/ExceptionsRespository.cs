@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Data.SqlClient;
+using System.Linq;
 
 namespace CRES.DAL.Repository
 {
@@ -111,20 +112,20 @@ namespace CRES.DAL.Repository
             ;
         }
 
-        public void DeleteExceptionByobjectByFieldName(string objectid, string objecttype, string fieldname)
+        public void DeleteExceptionByobjectByFieldName(string objectid, string objecttype,string fieldname)
         {
             Guid id = new Guid(objectid);
             Helper.Helper hp = new Helper.Helper();
             SqlParameter p1 = new SqlParameter { ParameterName = "@ObjectID", Value = id };
             SqlParameter p2 = new SqlParameter { ParameterName = "@ObjectName", Value = objecttype };
-            SqlParameter p3 = new SqlParameter { ParameterName = "@FieldName", Value = fieldname };
+            SqlParameter p3 = new SqlParameter { ParameterName = "@FieldName", Value = fieldname };            
 
-            SqlParameter[] sqlparam = new SqlParameter[] { p1, p2, p3 };
+            SqlParameter[] sqlparam = new SqlParameter[] { p1, p2,p3 };
             hp.ExecNonquery("dbo.usp_DeleteExceptionByobjectIDByFieldName", sqlparam);
 
         }
 
-
+        
         public void DeleteExceptionByobject(string objectid, string objecttype)
         {
             Guid id = new Guid(objectid);

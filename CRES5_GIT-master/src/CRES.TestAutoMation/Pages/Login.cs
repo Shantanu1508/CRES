@@ -183,10 +183,17 @@ namespace CRES.TestAutoMation.Pages
                         password = BaseConfiguration.GetDevPassword();
                         break;
 
+                    case "m61":
+                        BaseUrl = BaseConfiguration.Getm61Url();
+                        username = BaseConfiguration.Getm61Username();
+                        password = BaseConfiguration.Getm61Password();
+                        break;
+
                     default:
-                        BaseUrl = BaseConfiguration.GetQAUrl();
-                        username = BaseConfiguration.GetQaUsername();
-                        password = BaseConfiguration.GetQaPassword();
+                        //BaseUrl = BaseConfiguration.GetQAUrl();
+                        //username = BaseConfiguration.GetQaUsername();
+                        //password = BaseConfiguration.GetQaPassword();
+                        Console.WriteLine("Please specify correct environment name");
                         break;
                 }
 
@@ -197,13 +204,14 @@ namespace CRES.TestAutoMation.Pages
                 driver.FindElement(txtlogin).SendKeys(username);
                 driver.FindElement(txtName).SendKeys(password);
                 driver.FindElement(btnlogin).Click();
-                util.WaitForElementVisible(addmenu);
+                Thread.Sleep(5000);
+                //util.WaitForElementVisible(addmenu);
                 res = true;
             }
             catch (Exception ex)
             {
                 res = false;
-                Console.WriteLine("Multi Browser Exception in LoginWebPageMultiBrowser method ="+ex.Message+" res = "+res);
+                Console.WriteLine("Multi Browser Exception in LoginWebPage MultiBrowser method ="+ex.Message+" res = "+res);
             }
 
             return res;

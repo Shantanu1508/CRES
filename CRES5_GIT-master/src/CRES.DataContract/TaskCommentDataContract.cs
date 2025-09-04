@@ -1,8 +1,12 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
 
 namespace CRES.DataContract
 {
-    public class TaskCommentDataContract
+   public class TaskCommentDataContract
     {
         public Guid? TaskCommentsID { get; set; }
         public Guid? TaskID { get; set; }
@@ -15,7 +19,7 @@ namespace CRES.DataContract
 
         public string AssignedToText { get; set; }
         public string CommentedByFirstLetter { get; set; }
-        public string Modified { get; set; }
+        public string Modified { get; set; }        
         public string UColor { get; set; }
         public string TaskSummary { get; set; }
         public string ActivityMessage { get; set; }

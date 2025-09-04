@@ -234,7 +234,33 @@ BEGIN
      )b  
  )c  
  END  
-  
+
+
+	IF(@Intent = 'OpenDebt')  
+	BEGIN  
+		select d.DebtGUID  as SingleResult   
+		from cre.Debt d  
+		inner join core.account acc on acc.accountid =d.accountid
+		where acc.isdeleted <> 1 and acc.Name= @ObjectValue 
+		
+	END  
+	IF(@Intent = 'OpenEquity')  
+	BEGIN  
+		select d.EquityGUID  as SingleResult   
+		from cre.Equity d  
+		inner join core.account acc on acc.accountid =d.accountid
+		where acc.isdeleted <> 1 and acc.Name= @ObjectValue 
+		
+	END  
+	IF(@Intent = 'OpenLiabilityNote')  
+	BEGIN  
+		select d.LiabilityNoteGUID  as SingleResult   
+		from cre.LiabilityNote d  
+		inner join core.account acc on acc.accountid =d.accountid
+		where acc.isdeleted <> 1 and acc.Name= @ObjectValue 
+		
+	END  
+
 --END  
   
 --INSERT INTO [HBOT].[APIAnalysisLog](StartTime,EndTime,IntentName) VALUES(@StartTime,getdate(),@Intent)  

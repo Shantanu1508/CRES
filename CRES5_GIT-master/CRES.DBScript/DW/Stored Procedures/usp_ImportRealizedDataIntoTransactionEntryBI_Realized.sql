@@ -32,7 +32,7 @@ TransactionEntryID
 
 Select 
  tr.TransactionEntryID	
-,tr.NoteID	
+,n.NoteID	
 ,tr.CRENoteID	
 ,tr.Date	
 ,tr.Amount	
@@ -53,7 +53,8 @@ Select
 ,n.clientBI
 ,n.name
 from dw.TransactionEntryBI tr
-inner join dw.notebi n on n.noteid = tr.noteid
+Inner Join core.account acc on acc.accountid = tr.accountid
+inner join dw.noteBI n on n.accountid = acc.AccountID
 inner join (
 	Select Distinct noteid from [dbo].[RealizedCashFlow_IG$]
 )IG on IG.NoteID = tr.CRENoteID

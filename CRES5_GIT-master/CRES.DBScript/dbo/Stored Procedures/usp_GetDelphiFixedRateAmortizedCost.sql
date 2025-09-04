@@ -174,15 +174,18 @@ From(
 	inner join CRE.Note n on n.dealid = d.dealid  
 	inner join core.account acc on acc.accountid = n.account_accountid  
 	left join cre.FinancingSourcemaster fs on fs.FinancingSourcemasterID = n.FinancingSourceID  
-	left join [CRE].[NotePeriodicCalc] np on np.noteid = n.noteid and PeriodEndDate = CAST(@monthEndDate as Date) and AnalysisID = 'C10F3372-0FC2-4861-A9F5-148F1F80804F'
+	left join [CRE].[NotePeriodicCalc] np 	
+	on acc.accountid = np.AccountID and PeriodEndDate = CAST(@monthEndDate as Date) and AnalysisID = 'C10F3372-0FC2-4861-A9F5-148F1F80804F'
 	Left Join( 
-		Select noteid,(SUM(Amount)*-1) as PIKPrinPaid
-		from cre.transactionEntry
-		where analysisid = 'c10f3372-0fc2-4861-a9f5-148f1f80804f'
+		Select n.noteid,(SUM(Amount)*-1) as PIKPrinPaid
+		from cre.transactionEntry tr
+		Inner join core.account acc on acc.accountid = tr.AccountID
+		Inner join cre.note n on n.account_accountid = acc.accountid
+		where analysisid = 'c10f3372-0fc2-4861-a9f5-148f1f80804f' and acc.AccountTypeID = 1
 		and [Type] in ('PIKPrincipalPaid')
 		--and date <= CAST(@currentdatetime as Date)
 		and [date]>=CAST(@monthStartDate as date) and [date]<=CAST(@monthEndDate as date)
-		group by noteid
+		group by n.noteid
 	)tblPIKPriPaid on tblPIKPriPaid.noteid = n.noteid
 	
 	where acc.IsDeleted <> 1  

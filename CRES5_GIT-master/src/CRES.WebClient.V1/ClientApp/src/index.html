@@ -31,7 +31,35 @@
   <script src="./assets/js/xlsx.js" type="text/javascript"></script>
   <script src="./assets/js/jquerysignalR-2.0.0.js" type="text/javascript"></script>
   <link href="./assets/css/layout.css" rel="stylesheet" />
+
   <script src="./assets/js/mode-python.js" type="text/javascript"></script>
+  <!-- Wijmo styles and core (required) -->
+  <!--<link href="https://cdn.grapecity.com/wijmo/5.20222.877/styles/wijmo.min.css" rel="stylesheet" />-->
+
+  <link href="./assets/css/vendor/wijmo.min.css" rel="stylesheet" />
+  <!--<link href="../assets/css/vendor/wijmo.min.css" rel="stylesheet" />-->
+
+  <script src="https://cdn.grapecity.com/wijmo/5.20222.877/controls/wijmo.min.js"></script>
+
+  <!-- Wijmo controls (optional, include the controls you need) -->
+  <!--<script src="https://cdn.grapecity.com/wijmo/5.20222.877/controls/wijmo.grid.min.js"></script>
+  <script src="https://cdn.grapecity.com/wijmo/5.20222.877/controls/wijmo.chart.min.js"></script>
+  <script src="https://cdn.grapecity.com/wijmo/5.20222.877/controls/wijmo.input.min.js"></script>
+  <script src="https://cdn.grapecity.com/wijmo/5.20222.877/controls/wijmo.gauge.min.js"></script>
+  <script src="https://cdn.grapecity.com/wijmo/5.20222.877/interop/angular/wijmo.angular.min.js"></script>
+  <script src="https://cdn.grapecity.com/wijmo/5.20222.877/controls/cultures/wijmo.culture.ja.min.js"></script>-->
+
+
+  <!--<script async src="./assets/js/scripts/vendor/wijmo.min.js" type="text/javascript"></script>
+  <script async src="./assets/js/scripts/vendor/wijmo.grid.min.js" type="text/javascript"></script>
+  <script async src="./assets/js/scripts/vendor/wijmo.input.min.js" type="text/javascript"></script>
+  <script async src="./assets/js/scripts/vendor/wijmo.grid.filter.min.js" type="text/javascript"></script>
+  <script async src="./assets/js/scripts/vendor/wijmo.xlsx.js" type="text/javascript"></script>
+  <script async src="./assets/js/scripts/vendor/wijmo.grid.xlsx.js" type="text/javascript"></script>
+  <script async src="./assets/js/scripts/vendor/jszip.min.js" type="text/javascript"></script>-->
+  <!--<script>
+    wijmo.setLicenseKey(** 'your license key goes here...' **);
+  </script>-->
   <script>
     $(document).ready(function () {
       displaynotificationMsg()
@@ -57,7 +85,7 @@
     (function ($) {
       if (!$.getVersion)
         $.getVersion = function () {
-          return "06232020";
+          return "12182023";
         };
     })(jQuery);
   </script>

@@ -1,5 +1,7 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
+using System.Text;
 
 namespace CRES.TestAutoMationApp.Utility
 {
@@ -13,7 +15,7 @@ namespace CRES.TestAutoMationApp.Utility
                 if (fileName.Trim() == "")
                 {
                     fileName = ProjectBaseConfiguration.DeafultLoggingFile;
-                }
+                }                 
 
                 if (!File.Exists(fileName))
                 {

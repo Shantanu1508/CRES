@@ -1,15 +1,29 @@
 ﻿using CRES.BusinessLogic;
 using CRES.DataContract;
 using CRES.NoteCalculator;
+using CRES.ServiceMVC.Controllers;
+using CRES.ServicesNew.Controllers;
 using CRES.Utilities;
+using iTextSharp.tool.xml.html.table;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Configuration;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using OfficeOpenXml.FormulaParsing.Excel.Functions.DateTime;
 using System;
 using System.Collections.Generic;
 using System.Data;
+using System.Drawing;
+using System.IO;
 using System.Linq;
+using System.Net;
+using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Web;
+using System.Web.WebPages;
+using System.Xml.Linq;
 
 
 namespace CRES.Services.Controllers
@@ -17,8 +31,11 @@ namespace CRES.Services.Controllers
     [Microsoft.AspNetCore.Cors.EnableCors("CRESPolicy")]
     public class VSTOController : ControllerBase
     {
-
+        private string useridforSys_Scheduler = "3D6DB33D-2B3A-4415-991D-A3DA5CEB8B50";
         private readonly IEmailNotification _iEmailNotification;
+        private IHostingEnvironment _env;
+
+
         public VSTOController(IEmailNotification iemailNotification)
         {
             _iEmailNotification = iemailNotification;
@@ -126,9 +143,7 @@ namespace CRES.Services.Controllers
             SizerGenericResult authenticationResult = null;
 
 
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
             var headerUserID = string.Empty;
             if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
             {
@@ -216,6 +231,7 @@ namespace CRES.Services.Controllers
                 List<PayruleNoteAMSequenceDataContract> _fundingrepaymentsequencelist = new List<PayruleNoteAMSequenceDataContract>();
                 List<PayruleSetupDataContract> _payrulelist = new List<PayruleSetupDataContract>();
                 NoteDataContract _notes = new NoteDataContract();
+
                 if (notesobj[i].CRENoteID == null)
                 {
                     notesobj[i].CRENoteID = Convert.ToString(notesobj[i].ClientNoteID);
@@ -344,6 +360,8 @@ namespace CRES.Services.Controllers
                 _notes.BillingNotesText = Convert.ToString(notesobj[i].BillingNotesText);
                 _notes.CapStack = CommonHelper.ToInt32(notesobj[i].CapStack);
                 _notes.CapStackText = Convert.ToString(notesobj[i].CapStackText);
+
+                //_notes.FirstIndexDeterminationDateOverride = notesobj[i].FirstIndexDeterminationDateOverride == null ? null : CommonHelper.ToDateTime(notesobj[i].FirstIndexDeterminationDateOverride);
 
                 //RateSpreadSchedule
                 if (notesobj[i]["M61.Tables.RateSpreadSchedule"] != null)
@@ -554,6 +572,7 @@ namespace CRES.Services.Controllers
                 _notes.SizerDoc = _sizerdoclist;
                 _notes.FundingRepaymentSequence = _fundingrepaymentsequencelist;
                 _notes.NotePayRuleFundingParameters = notepayulelist;
+
                 _notelist.Add(_notes);
             }
             dealobjDC.notelist = _notelist;
@@ -778,6 +797,7 @@ namespace CRES.Services.Controllers
 
                     //_noteoutput.ListNotePeriodicOutputs = outputnote.ListNotePeriodicOutputs;
                     _noteoutput.ListCashflowTransactionEntry = outputnote.ListCashflowTransactionEntry;
+                    _noteoutput.MaturityUsedInCalc = outputnote.MaturityUsedInCalc;
                     Resultjson.Add(_noteoutput);
                 }
             }
@@ -807,9 +827,7 @@ namespace CRES.Services.Controllers
 
             List<NoteDataContract> _notelist = dealdc.notelist;
             DynamicSizerLogic dynamicSizerLogic = new DynamicSizerLogic();
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
             List<NoteOutputforVSTO> noteoutput = new List<NoteOutputforVSTO>();
             var headerUserID = new Guid();
 
@@ -864,7 +882,7 @@ namespace CRES.Services.Controllers
                     {
                         NoteDataContract _note = new NoteDataContract();
                         _notelogic.InsertNotePeriodicCalc(item.ListNotePeriodicOutputs);
-                        _notelogic.InsertCashflowTransaction(item.ListCashflowTransactionEntry, newnoteid[i], headerUserID.ToString());
+                        _notelogic.InsertCashflowTransaction(item.ListCashflowTransactionEntry, newnoteid[i], headerUserID.ToString(), noteoutput[i].MaturityUsedInCalc);
                     }
                 }
 
@@ -883,7 +901,6 @@ namespace CRES.Services.Controllers
         [Route("api/VSTO/CheckPermssionAndDuplicateDeal")]
         public string CheckPermssionAndDuplicateDeal([FromBody] dynamic json)
         {
-#pragma warning disable CS0168 // The variable 'ex' is declared but never used
             try
             {
                 string result = "";
@@ -903,7 +920,6 @@ namespace CRES.Services.Controllers
 
                 throw;
             }
-#pragma warning restore CS0168 // The variable 'ex' is declared but never used
         }
 
         [HttpPost]
@@ -1033,13 +1049,9 @@ namespace CRES.Services.Controllers
             GenericVSTOResult _GenericVSTOResult = null;
             string Message = "";
             string UserName = "";
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
             var headerUserID = string.Empty;
-#pragma warning disable CS0219 // The variable 'uploaddrawfee' is assigned but its value is never used
             bool uploaddrawfee = false;
-#pragma warning restore CS0219 // The variable 'uploaddrawfee' is assigned but its value is never used
 
             DataTable apidata = new DataTable();
             DynamicSizerLogic _dynamicsizer = new DynamicSizerLogic();
@@ -1224,7 +1236,12 @@ namespace CRES.Services.Controllers
                     apidata = _dynamicsizer.GetBatchUploadSummary(batchid);
                     ingnoredrecords = apidata.Rows.Count;
 
-                    Thread FirstThread = new Thread(() => CriticalExceptionValidation(batchid, UserName, Message, apidata));
+                    //Thread FirstThread = new Thread(() => CriticalExceptionValidation(batchid, UserName, Message, apidata));
+                    //FirstThread.Start();
+                    CriticalExceptionValidation(batchid, UserName, Message, apidata);
+
+                    //Auto open/close accounting period after manual transaction upload                   
+                    Thread FirstThread = new Thread(() => _dynamicsizer.OpenClosePeriodForManualTransaction(batchid, UserName));
                     FirstThread.Start();
                 }
                 batchid = 0;
@@ -1290,122 +1307,147 @@ namespace CRES.Services.Controllers
 
         public void CriticalExceptionValidation(int? batchID, string username, string uploadsummary, DataTable apidate)
         {
-            DynamicSizerLogic _dynamicsizer = new DynamicSizerLogic();
-            DataTable dt = _dynamicsizer.GetNotesWithPikData(batchID);
-            Decimal? sumactual = 0, sumCashFlow = 0;
-            List<ExceptionDataContract> exceptionlist = new List<ExceptionDataContract>();
-            string FieldName = "PIK Balance";
-            string noteid = "";
-            List<string> noteidlist = new List<string>();
-            List<GenericVSTOResult> summarylist = new List<GenericVSTOResult>();
-            foreach (DataRow dr in dt.Rows)
+            try
             {
-                noteid = Convert.ToString(dr["noteid"]);
-                DataTable data = _dynamicsizer.GetPikPaidTransactionByCREnoteID(noteid);
-                string NoteID = "";
-                sumCashFlow = 0;
-                sumactual = 0;
-                foreach (DataRow row in data.Rows)
+                GetConfigSetting();
+                DynamicSizerLogic _dynamicsizer = new DynamicSizerLogic();
+                DataTable dt = _dynamicsizer.GetNotesWithPikData(batchID);
+                Decimal? sumactual = 0, sumCashFlow = 0;
+                List<ExceptionDataContract> exceptionlist = new List<ExceptionDataContract>();
+                string FieldName = "PIK Balance";
+                string noteid = "";
+                List<string> noteidlist = new List<string>();
+                List<GenericVSTOResult> summarylist = new List<GenericVSTOResult>();
+                foreach (DataRow dr in dt.Rows)
                 {
-                    if (Convert.ToString(row["Tabletype"]) == "Actual")
+                    noteid = Convert.ToString(dr["noteid"]);
+                    DataTable data = _dynamicsizer.GetPikPaidTransactionByCREnoteID(noteid);
+                    string NoteID = "";
+                    sumCashFlow = 0;
+                    sumactual = 0;
+                    foreach (DataRow row in data.Rows)
                     {
-                        sumactual = 0;
-                        sumactual = CommonHelper.ToDecimal(row["Amount"]);
-                    }
-                    if (Convert.ToString(row["Tabletype"]) == "CashFlow")
-                    {
-                        sumCashFlow = 0;
-                        sumCashFlow = CommonHelper.ToDecimal(row["Amount"]);
-                    }
-                    NoteID = Convert.ToString(row["NoteID"]);
+                        if (Convert.ToString(row["Tabletype"]) == "Actual")
+                        {
+                            sumactual = 0;
+                            sumactual = CommonHelper.ToDecimal(row["Amount"]);
+                        }
+                        if (Convert.ToString(row["Tabletype"]) == "CashFlow")
+                        {
+                            sumCashFlow = 0;
+                            sumCashFlow = CommonHelper.ToDecimal(row["Amount"]);
+                        }
+                        NoteID = Convert.ToString(row["NoteID"]);
 
+                    }
+                    ValidationEngine ve = new ValidationEngine();
+                    string Validationmessage = ve.ValidatePikBalance(sumactual, sumCashFlow);
+                    if (Validationmessage != "")
+                    {
+                        GenericVSTOResult gv = new GenericVSTOResult();
+                        gv.CRENoteID = noteid;
+                        gv.Comment = "Critical Exception : " + Validationmessage;
+                        summarylist.Add(gv);
+
+                        ExceptionDataContract edc = new ExceptionDataContract();
+                        edc.ObjectID = new Guid(NoteID);
+                        edc.ObjectTypeText = "Note";
+                        edc.FieldName = FieldName;
+                        edc.Summary = Validationmessage;
+                        edc.ActionLevelText = "Critical";
+                        exceptionlist.Add(edc);
+                    }
+                    else
+                    {
+                        noteidlist.Add(NoteID);
+                    }
                 }
-                ValidationEngine ve = new ValidationEngine();
-                string Validationmessage = ve.ValidatePikBalance(sumactual, sumCashFlow);
-                if (Validationmessage != "")
+                ExceptionsLogic _ExceptionsLogic = new ExceptionsLogic();
+                if (exceptionlist.Count > 0)
                 {
-                    GenericVSTOResult gv = new GenericVSTOResult();
-                    gv.CRENoteID = noteid;
-                    gv.Comment = "Critical Exception : " + Validationmessage;
-                    summarylist.Add(gv);
-
-                    ExceptionDataContract edc = new ExceptionDataContract();
-                    edc.ObjectID = new Guid(NoteID);
-                    edc.ObjectTypeText = "Note";
-                    edc.FieldName = FieldName;
-                    edc.Summary = Validationmessage;
-                    edc.ActionLevelText = "Critical";
-                    exceptionlist.Add(edc);
+                    _ExceptionsLogic.InsertExceptionsByFieldName(exceptionlist, username, FieldName);
                 }
                 else
                 {
-                    noteidlist.Add(NoteID);
+                    foreach (var id in noteidlist)
+                    {
+                        //remove old exceptions
+                        _ExceptionsLogic.DeleteExceptionByobjectByFieldName(id, "note", FieldName);
+                    }
+
                 }
-            }
-            ExceptionsLogic _ExceptionsLogic = new ExceptionsLogic();
-            if (exceptionlist.Count > 0)
-            {
-                _ExceptionsLogic.InsertExceptionsByFieldName(exceptionlist, username, FieldName);
-            }
-            else
-            {
-                foreach (var id in noteidlist)
+
+                if (apidate.Rows.Count > 0)
                 {
-                    //remove old exceptions
-                    _ExceptionsLogic.DeleteExceptionByobjectByFieldName(id, "note", FieldName);
+                    foreach (DataRow dr in apidate.Rows)
+                    {
+                        GenericVSTOResult gv = new GenericVSTOResult();
+                        gv.CRENoteID = Convert.ToString(dr["noteid"]);
+                        gv.Comment = Convert.ToString(dr["comment"]);
+                        summarylist.Add(gv);
+                    }
                 }
 
-            }
+                uploadsummary = uploadsummary.Replace("Please see Batch Upload Summary tab for ignored record", "");
+                uploadsummary = uploadsummary + "Please see below Batch Upload exception Summary.";
 
-            if (apidate.Rows.Count > 0)
-            {
-                foreach (DataRow dr in apidate.Rows)
+                //send notes for calcuation
+
+                List<CalculationManagerDataContract> nlist = new List<CalculationManagerDataContract>();
+
+                DataTable note = _dynamicsizer.GetNoteForcalcByBatchID(batchID);
+                string PriorityText = "Real Time";
+                if (note.Rows.Count > 0)
                 {
-                    GenericVSTOResult gv = new GenericVSTOResult();
-                    gv.CRENoteID = Convert.ToString(dr["noteid"]);
-                    gv.Comment = Convert.ToString(dr["comment"]);
-                    summarylist.Add(gv);
+                    if (note.Rows.Count > 20)
+                    {
+                        PriorityText = "Batch";
+                    }
+                    foreach (DataRow dr1 in note.Rows)
+                    {
+                        CalculationManagerDataContract cdc = new CalculationManagerDataContract();
+
+                        cdc.StatusText = "Processing";
+                        cdc.UserName = "B0E6697B-3534-4C09-BE0A-04473401AB93";
+                        cdc.ApplicationText = Sectionroot.GetSection("ApplicationName").Value;
+                        cdc.NoteId = Convert.ToString(dr1["noteid"]);
+                        cdc.PriorityText = PriorityText;
+
+                        cdc.AnalysisID = new Guid("c10f3372-0fc2-4861-a9f5-148f1f80804f");
+                        cdc.CalculationModeID = 507;
+                        cdc.CalcType = 775;
+
+
+                        nlist.Add(cdc);
+                    }
+                }
+                CalculationManagerLogic calculationlogic = new CalculationManagerLogic();
+                calculationlogic.QueueNotesForCalculation(nlist, "B0E6697B-3534-4C09-BE0A-04473401AB93");
+
+                //email send code
+                if (summarylist.Count > 0)
+                {
+                    _iEmailNotification.BatchUploadSummaryNotification(summarylist, uploadsummary, username);
                 }
             }
-
-            uploadsummary = uploadsummary.Replace("Please see Batch Upload Summary tab for ignored record", "");
-            uploadsummary = uploadsummary + "Please see below Batch Upload exception Summary.";
-
-            //send notes for calcuation
-
-            List<CalculationManagerDataContract> nlist = new List<CalculationManagerDataContract>();
-
-            DataTable note = _dynamicsizer.GetNoteForcalcByBatchID(batchID);
-            string PriorityText = "Real Time";
-            if (note.Rows.Count > 0)
+            catch (Exception ex)
             {
-                if (note.Rows.Count > 20)
-                {
-                    PriorityText = "Batch";
-                }
-                foreach (DataRow dr1 in note.Rows)
-                {
-                    CalculationManagerDataContract cdc = new CalculationManagerDataContract();
-
-                    cdc.StatusText = "Processing";
-                    cdc.UserName = "B0E6697B-3534-4C09-BE0A-04473401AB93";
-                    cdc.ApplicationText = "";
-                    cdc.NoteId = Convert.ToString(dr1["noteid"]);
-                    cdc.PriorityText = PriorityText;
-                    nlist.Add(cdc);
-                }
-            }
-            CalculationManagerLogic calculationlogic = new CalculationManagerLogic();
-            calculationlogic.QueueNotesForCalculation(nlist, "B0E6697B-3534-4C09-BE0A-04473401AB93");
-
-            //email send code
-            if (summarylist.Count > 0)
-            {
-                _iEmailNotification.BatchUploadSummaryNotification(summarylist, uploadsummary, username);
+                LoggerLogic Log = new LoggerLogic();
+                Log.WriteLogException(CRESEnums.Module.VSTO.ToString(), "Error occurred in vsto CriticalExceptionValidation ", "", "", ex.TargetSite.Name.ToString(), "", ex);
             }
 
         }
-
+        IConfigurationSection Sectionroot = null;
+        public void GetConfigSetting()
+        {
+            if (Sectionroot == null)
+            {
+                IConfigurationBuilder builder = new ConfigurationBuilder();
+                builder.AddJsonFile(Path.Combine(Directory.GetCurrentDirectory(), "appsettings.json"));
+                var root = builder.Build();
+                Sectionroot = root.GetSection("Application");
+            }
+        }
 
         [HttpGet]
         [Services.Controllers.DeflateCompression]
@@ -1413,7 +1455,6 @@ namespace CRES.Services.Controllers
         public string CheckAsynchronous()
         {
             string message = "";
-#pragma warning disable CS0168 // The variable 'ex' is declared but never used
             try
             {
                 Thread.Sleep(180000);
@@ -1424,7 +1465,6 @@ namespace CRES.Services.Controllers
 
 
             }
-#pragma warning restore CS0168 // The variable 'ex' is declared but never used
             return message;
         }
 
@@ -1456,9 +1496,7 @@ namespace CRES.Services.Controllers
         public GenericVSTOResult CheckCalculationStatus([FromBody] dynamic inputjson)
         {
             GenericVSTOResult result = new GenericVSTOResult();
-#pragma warning disable CS0219 // The variable 'Status' is assigned but its value is never used
             string Status = "";
-#pragma warning restore CS0219 // The variable 'Status' is assigned but its value is never used
             DynamicSizerLogic _dynamicsizer = new DynamicSizerLogic();
             try
             {
@@ -1543,6 +1581,1113 @@ namespace CRES.Services.Controllers
                 Log.WriteLogException(CRESEnums.Module.VSTO.ToString(), "Error occurred in vsto InsertUpdateDeal ", "", "", ex.TargetSite.Name.ToString(), "", ex);
             }
             return status;
+        }
+
+
+        [HttpPost]
+        [Route("api/VSTO/InsertUpdatedLenderSettlementStatement")]
+        public IActionResult InsertUpdatedLenderSettlementStatement([FromBody] dynamic dealjson)
+        {
+            LoggerLogic log = new LoggerLogic();
+            v1GenericResult _authenticationResult = null;
+            string DefaultanalysisID = "c10f3372-0fc2-4861-a9f5-148f1f80804f";
+            try
+            {
+
+                NoteLogic _noteLogic = new NoteLogic();
+                DealDataContract dealdc = ConvertSettlementStatementJsonToDealDataContract(dealjson);
+
+
+                List<HolidayListDataContract> ListHoliday = _noteLogic.GetHolidayList();
+                foreach (var matdate in dealdc.ListMaturityScenrio)
+                {
+                    matdate.MaturityDate = DateExtensions.GetWorkingDayUsingOffset(matdate.MaturityDate.Value, -1, "US", ListHoliday);
+                }
+
+                DynamicSizerLogic dynamicSizerLogic = new DynamicSizerLogic();
+                DealDataContract dealdata = dynamicSizerLogic.SaveJSONDeal(dealdc, "");
+                DataTable Maturitydata = new DataTable();
+                Maturitydata.Columns.Add("DealID", typeof(Guid));
+                Maturitydata.Columns.Add("NoteID", typeof(Guid));
+                Maturitydata.Columns.Add("EffectiveDate", typeof(DateTime));
+                Maturitydata.Columns.Add("MaturityDate", typeof(DateTime));
+                Maturitydata.Columns.Add("MaturityType", typeof(int));
+                Maturitydata.Columns.Add("Approved", typeof(int));
+                Maturitydata.Columns.Add("IsDeleted", typeof(bool));
+                Maturitydata.Columns.Add("ActualPayoffDate", typeof(DateTime));
+                Maturitydata.Columns.Add("ExpectedMaturityDate", typeof(DateTime));
+                Maturitydata.Columns.Add("OpenPrepaymentDate", typeof(DateTime));
+                Maturitydata.Columns.Add("CRENoteID", typeof(string));
+                Maturitydata.Columns.Add("MaturityMethodID", typeof(int));
+
+                foreach (var noteid in dealdata.notelist)
+                {
+                    foreach (var item in dealdc.ListMaturityScenrio)
+                    {
+                        DataRow newrow = Maturitydata.NewRow();
+
+                        newrow["DealID"] = dealdata.DealID;
+                        newrow["NoteID"] = noteid.NoteId;
+                        newrow["EffectiveDate"] = item.EffectiveDate;
+                        newrow["MaturityDate"] = item.MaturityDate;
+                        newrow["MaturityType"] = item.MaturityID;
+                        newrow["Approved"] = item.Approved;
+                        newrow["IsDeleted"] = 0;
+                        newrow["ActualPayoffDate"] = DBNull.Value;
+                        if (item.ExpectedMaturityDate != null)
+                        { newrow["ExpectedMaturityDate"] = item.ExpectedMaturityDate; }
+                        else
+                        {
+                            newrow["ExpectedMaturityDate"] = DBNull.Value;
+                        }
+
+                        newrow["CRENoteID"] = noteid.CRENoteID;
+                        newrow["MaturityMethodID"] = DBNull.Value;
+                        Maturitydata.Rows.Add(newrow);
+                    }
+                }
+
+
+                _noteLogic.SaveMaturitybydeal(Maturitydata, (new Guid("26C22D36-4B1B-48DE-889B-B445E7A74E29")));
+                DealLogic dealLogic = new DealLogic();
+
+                foreach (AutoSpreadRuleDataContract asr in dealdc.AutoSpreadRuleList)
+                {
+                    asr.CreatedBy = "3D6DB33D-2B3A-4415-991D-A3DA5CEB8B50";
+                    asr.UpdatedBy = "3D6DB33D-2B3A-4415-991D-A3DA5CEB8B50";
+                    asr.CreatedDate = System.DateTime.Now;
+                    asr.UpdatedDate = System.DateTime.Now;
+                    asr.DealID = dealdata.DealID;
+                    asr.StartDate = DateExtensions.GetWorkingDayUsingOffset(asr.StartDate.Value, -1, "US", ListHoliday);
+                    asr.EndDate = DateExtensions.GetWorkingDayUsingOffset(asr.EndDate.Value, -1, "US", ListHoliday).AddDays(-1);
+                    asr.EquityAmount = asr.EquityAmount.GetValueOrDefault(0);
+                    asr.RequiredEquity = asr.RequiredEquity.GetValueOrDefault(0);
+                    asr.AdditionalEquity = asr.AdditionalEquity.GetValueOrDefault(0);
+                }
+
+
+                dealLogic.InsertUpdateAutoSpreadRule(dealdc.AutoSpreadRuleList);
+
+                List<GenerateAutomationDataContract> list = new List<GenerateAutomationDataContract>();
+                GenerateAutomationDataContract gad = new GenerateAutomationDataContract();
+                gad.DealID = Convert.ToString(dealdata.DealID);
+                gad.StatusText = "Processing";
+                gad.AutomationType = 799;
+                gad.BatchType = "All_AutoSpread_Deals";
+                list.Add(gad);
+
+                GenerateAutomationLogic GenerateAutomationLogic = new GenerateAutomationLogic();
+                GenerateAutomationLogic.QueueDealForAutomation(list, "3D6DB33D-2B3A-4415-991D-A3DA5CEB8B50");
+
+                dealLogic.CallDealForCalculation(dealdata.DealID.ToString(), "3D6DB33D-2B3A-4415-991D-A3DA5CEB8B50", DefaultanalysisID, 775);
+
+                _authenticationResult = new v1GenericResult()
+                {
+                    Status = 1,
+                    Succeeded = true,
+                    Message = "Success",
+                    ErrorDetails = ""
+                };
+            }
+            catch (Exception ex)
+            {
+
+                _authenticationResult = new v1GenericResult()
+                {
+                    Status = 2,
+                    Succeeded = false,
+                    Message = "Error",
+                    ErrorDetails = ex.Message
+                };
+
+                log.WriteLogException(CRESEnums.Module.ValuationModule.ToString(), "Error in InsertUpdatedProjectedPayoffCalc ", "", "B0E6697B-3534-4C09-BE0A-04473401AB93", "SaveDealList", "", ex);
+            }
+
+            return Ok(_authenticationResult);
+        }
+        public DealDataContract ConvertSettlementStatementJsonToDealDataContract(dynamic data)
+        {
+            string credealid = "";
+            object jsonresult = new object();
+            DealDataContract dealobjDC = new DealDataContract();
+            List<PayruleDealFundingDataContract> _dealfundinglist = new List<PayruleDealFundingDataContract>();
+            List<SizerScenarioDataContract> Scenariolist = new List<SizerScenarioDataContract>();
+            List<NoteDataContract> _notelist = new List<NoteDataContract>();
+            List<AutoSpreadRuleDataContract> listAutoSpreadRule = new List<AutoSpreadRuleDataContract>();
+            List<MaturityScenariosDataContract> ListMaturityScenrio = new List<MaturityScenariosDataContract>();
+
+            //Deal
+
+            try
+            {
+                dealobjDC.CREDealID = Convert.ToString(data["CREDealID"]);
+                credealid = dealobjDC.CREDealID;
+                dealobjDC.ClientDealID = credealid;
+                dealobjDC.DealName = Convert.ToString(data["DealName"]);
+                dealobjDC.Statusid = CommonHelper.ToInt32(data["Statusid"]);
+                dealobjDC.DealCity = Convert.ToString(data["DealCity"]);
+                dealobjDC.DealState = Convert.ToString(data["DealState"]);
+                dealobjDC.DealPropertyType = Convert.ToString(data["DealPropertyType"]);
+                dealobjDC.TotalCommitment = CommonHelper.StringToDecimal(data["TotalCommitment"]);
+                if (data["EnableAutoSpread"] == 3)
+                {
+                    dealobjDC.EnableAutoSpread = true;
+                }
+                else
+                {
+                    dealobjDC.EnableAutoSpread = false;
+                }
+
+                // ListAutospreadFundings
+
+                var ListAutospreadFundingsobj = data["ListAutospreadFundings"];
+                if (ListAutospreadFundingsobj != null)
+                {
+                    for (var j = 0; j < ListAutospreadFundingsobj.Count; j++)
+                    {
+                        AutoSpreadRuleDataContract autospread = new AutoSpreadRuleDataContract();
+
+                        autospread.PurposeType = CommonHelper.ToInt32(ListAutospreadFundingsobj[j].PurposeType);
+                        autospread.DebtAmount = CommonHelper.StringToDecimal(ListAutospreadFundingsobj[j].DebtAmount);
+                        autospread.RequiredEquity = CommonHelper.StringToDecimal(ListAutospreadFundingsobj[j].Requiredequity);
+                        autospread.AdditionalEquity = CommonHelper.StringToDecimal(ListAutospreadFundingsobj[j].Additionalequity);
+                        autospread.StartDate = CommonHelper.ToDateTime(ListAutospreadFundingsobj[j].StartDate);
+                        autospread.EndDate = CommonHelper.ToDateTime(ListAutospreadFundingsobj[j].EndDate);
+                        autospread.DistributionMethod = CommonHelper.ToInt32(ListAutospreadFundingsobj[j].DistributionMethod);
+                        autospread.FrequencyFactor = CommonHelper.ToInt32(ListAutospreadFundingsobj[j].FrequencyFactor);
+                        autospread.Comment = Convert.ToString(ListAutospreadFundingsobj[j].Comments);
+                        listAutoSpreadRule.Add(autospread);
+
+
+                    }
+                }
+
+                //Note
+                var notesobj = data["notelist"];
+                for (var i = 0; i < notesobj.Count; i++)
+                {
+                    string CurrentCRENoteID = "";
+
+                    List<RateSpreadSchedule> _ratespreadlist = new List<RateSpreadSchedule>();
+                    List<PrepayAndAdditionalFeeScheduleDataContract> _prepayadditionalfeelist = new List<PrepayAndAdditionalFeeScheduleDataContract>();
+                    List<NoteDataContract> notepayulelist = new List<NoteDataContract>();
+                    List<PayruleNoteAMSequenceDataContract> _fundingrepaymentsequencelist = new List<PayruleNoteAMSequenceDataContract>();
+                    List<PIKSchedule> _pikschedulelist = new List<PIKSchedule>();
+                    List<FutureFundingScheduleTab> _fundingschedulelist = new List<FutureFundingScheduleTab>();
+                    List<PIKfromPIKSourceNoteTab> _pikscheduledetaillist = new List<PIKfromPIKSourceNoteTab>();
+                    List<FeeCouponStripReceivableTab> _feecouponstripreceivablelist = new List<FeeCouponStripReceivableTab>();
+                    List<FixedAmortScheduleTab> _amortschedulelist = new List<FixedAmortScheduleTab>();
+                    List<SizerDocumentsDataContract> _sizerdoclist = new List<SizerDocumentsDataContract>();
+                    List<PayruleSetupDataContract> _payrulelist = new List<PayruleSetupDataContract>();
+
+
+
+                    NoteDataContract _notes = new NoteDataContract();
+
+                    _notes.CRENoteID = (notesobj[i].CRENoteID);
+                    CurrentCRENoteID = _notes.CRENoteID;
+                    _notes.Name = (notesobj[i].NoteName);
+                    _notes.CREDealID = credealid;
+                    _notes.ClosingDate = CommonHelper.ToDateTime(notesobj[i].ClosingDate);
+                    _notes.FirstPaymentDate = CommonHelper.ToDateTime(notesobj[i].FirstPaymentDate);
+
+                    _notes.PayFrequency = CommonHelper.ToInt32(notesobj[i].Payfrequency);
+                    _notes.InitialMaturityDate = CommonHelper.ToDateTime(notesobj[i].InitialMaturityDate);
+                    _notes.FullyExtendedMaturityDate = CommonHelper.ToDateTime(notesobj[i].FullyExtendedMaturityDate);
+                    _notes.ExpectedMaturityDate = CommonHelper.ToDateTime(notesobj[i].ExpectedMaturityDate);
+
+
+                    _notes.IOTerm = CommonHelper.ToInt32(notesobj[i].IOTerm);
+                    _notes.AmortTerm = CommonHelper.ToInt32(notesobj[i].AmortTerm);
+                    _notes.RateType = CommonHelper.ToInt32(notesobj[i].RateType);
+                    _notes.IndexNameID = CommonHelper.ToInt32(notesobj[i].IndexName);
+
+                    _notes.Classification = (notesobj[i].NoteClassification);
+                    _notes.InitialFundingAmount = CommonHelper.StringToDecimal(notesobj[i].InitialFundingAmount);
+                    _notes.TotalCommitment = CommonHelper.StringToDecimal(notesobj[i].TotalLoanCommitment);
+                    _notes.StubIntOverride = CommonHelper.StringToDecimal(notesobj[i].StubIntOverride);
+                    _notes.ClientID = (notesobj[i].InvestorClient);
+                    _notes.FinancingSourceID = CommonHelper.ToInt32(notesobj[i].FinancingSource);
+                    _notes.LienPosition = CommonHelper.ToInt32(notesobj[i].Lien);
+                    _notes.Priority = CommonHelper.ToInt32(notesobj[i].NotePriority);
+
+                    _notes.InitialInterestAccrualEndDate = CommonHelper.ToDateTime(notesobj[i].Initialinterestaccrualenddate);
+                    _notes.FinalInterestAccrualEndDateOverride = CommonHelper.ToDateTime(notesobj[i].Finalinterestaccrualenddateoverride);
+
+                    _notes.Servicer = CommonHelper.ToInt32(notesobj[i].Servicer);
+
+                    _notes.ServicerNameID = CommonHelper.ToInt32(notesobj[i].ServicerName);
+                    _notes.AccrualFrequency = CommonHelper.ToInt32(notesobj[i].AccrualFrequencyOverrides);
+                    _notes.DeterminationDateLeadDays = CommonHelper.ToInt32(notesobj[i].DeterminationDateLeadDaysOverrides);
+                    _notes.DeterminationDateReferenceDayoftheMonth = CommonHelper.ToInt32(notesobj[i].DeterminationDateReferenceDayoftheMonthOverrides);
+                    _notes.DeterminationDateInterestAccrualPeriod = CommonHelper.ToInt32(notesobj[i].DeterminationDateMonthRelativeToCommencement);
+                    _notes.PaymentDateBusinessDayLag = CommonHelper.ToInt32(notesobj[i].PaymentDateBusinessDayLagOverrides);
+                    _notes.MonthlyDSOverridewhenAmortizing = CommonHelper.StringToDecimal(notesobj[i].MonthlyDSOverridewhenAmortizingOverrides);
+                    _notes.FirstPeriodInterestPaymentOverride = CommonHelper.StringToDecimal(notesobj[i].FirstPeriodInterestPaymentOverrideOverrides);
+
+                    _notes.StubPaidInArrears = CommonHelper.ToInt32(notesobj[i].StubPaidInArrearsOverrides);
+                    _notes.SettleWithAccrualFlag = CommonHelper.ToInt32(notesobj[i].SettleWithAccrualFlagOverrides);
+                    _notes.RateIndexResetFreq = CommonHelper.ToInt32(notesobj[i].RateIndexResetFreqOverrides);
+                    _notes.FirstRateIndexResetDate = CommonHelper.ToDateTime(notesobj[i].FirstRateIndexResetDateOverrides);
+                    _notes.LoanPurchase = CommonHelper.ToInt32(notesobj[i].LoanPurchaseOverrides);
+                    _notes.AmortIntCalcDayCount = CommonHelper.ToInt32(notesobj[i].AmortIntCalcDayCountOverrides);
+                    _notes.StubPaidinAdvanceYN = CommonHelper.ToInt32(notesobj[i].StubPaidinAdvanceOverrides);
+
+                    _notes.CapitalizedClosingCosts = CommonHelper.StringToDecimal(notesobj[i].CapitalizedClosingCostsOverrides);
+                    _notes.InitialIndexValueOverride = CommonHelper.StringToDecimal(notesobj[i].InitialIndexValueOverrideOverrides);
+
+                    _notes.IncludeServicingPaymentOverrideinLevelYield = CommonHelper.ToInt32(notesobj[i].IncludeServicingPaymentOverrideinLevelYieldOverrides);
+                    _notes.IndexRoundingRule = CommonHelper.ToInt32(notesobj[i].IndexRoundingRuleOverrides);
+                    _notes.RoundingMethod = CommonHelper.ToInt32(notesobj[i].RoundingMethodOverrides);
+                    _notes.StubInterestPaidonFutureAdvances = CommonHelper.ToInt32(notesobj[i].StubInterestPaidonFutureAdvancesOverrides);
+                    _notes.PurchasedIntOverride = CommonHelper.StringToDecimal(notesobj[i].PurchasedIntOverrideOverrides);
+
+                    _notes.FutureFundingBillingCutoffDay = CommonHelper.ToInt32(notesobj[i].FutureFundingBillingCutoffDayOverrides);
+                    _notes.CurtailmentBillingCutoffDay = CommonHelper.ToInt32(notesobj[i].CurtailmentBillingCutoffDayOverrides);
+
+                    _notes.InterestCalculationRuleForPaydowns = CommonHelper.ToInt32(notesobj[i].InterestRuleForPaydownsOverrides);
+                    _notes.InterestCalculationRuleForPaydownsAmort = CommonHelper.ToInt32(notesobj[i].AmortInterestRuleforPaydownsOverrides);
+                    _notes.DebtTypeID = CommonHelper.ToInt32(notesobj[i].DebtTypeOverrides);
+                    _notes.BillingNotesID = CommonHelper.ToInt32(notesobj[i].BillingNotesOverrides);
+                    _notes.CapStack = CommonHelper.ToInt32(notesobj[i].CapStackOverrides);
+
+                    _notes.DayoftheMonth = CommonHelper.ToInt32(notesobj[i].FutureFundingBillingCutoffDayOverrides);
+                    _notes.RepaymentDayoftheMonth = CommonHelper.ToInt32(notesobj[i].CurtailmentBillingCutoffDayOverrides);
+
+
+                    if (i == 0)
+                    {
+                        DateTime dt = DateTime.Now;
+                        if (_notes.InitialMaturityDate != null)
+                        {
+                            MaturityScenariosDataContract msd = new MaturityScenariosDataContract();
+                            msd.EffectiveDate = _notes.ClosingDate;
+                            msd.MaturityDate = _notes.InitialMaturityDate;
+                            msd.ExpectedMaturityDate = _notes.ExpectedMaturityDate;
+                            msd.MaturityID = 708;
+                            msd.Type = "Initial";
+                            msd.Approved = 3;
+
+                            ListMaturityScenrio.Add(msd);
+                        }
+
+
+                        if (CommonHelper.ToDateTime(notesobj[i].ExtendedMaturityScenario1) != null)
+                        {
+                            MaturityScenariosDataContract msd = new MaturityScenariosDataContract();
+                            msd.EffectiveDate = _notes.ClosingDate;
+                            msd.MaturityDate = CommonHelper.ToDateTime(notesobj[i].ExtendedMaturityScenario1);
+                            msd.ExpectedMaturityDate = _notes.ExpectedMaturityDate;
+                            msd.MaturityID = 709;
+                            msd.Type = "Extension";
+                            if (msd.MaturityDate >= dt)
+                            {
+                                msd.Approved = 4;
+                            }
+                            else
+                            {
+                                msd.Approved = 3;
+                            }
+
+                            ListMaturityScenrio.Add(msd);
+                        }
+
+                        if (CommonHelper.ToDateTime(notesobj[i].ExtendedMaturityScenario2) != null)
+                        {
+                            MaturityScenariosDataContract msd = new MaturityScenariosDataContract();
+                            msd.EffectiveDate = _notes.ClosingDate;
+                            msd.MaturityDate = CommonHelper.ToDateTime(notesobj[i].ExtendedMaturityScenario2);
+                            msd.ExpectedMaturityDate = _notes.ExpectedMaturityDate;
+                            msd.MaturityID = 709;
+                            msd.Type = "Extension";
+
+                            if (msd.MaturityDate >= dt)
+                            {
+                                msd.Approved = 4;
+                            }
+                            else
+                            {
+                                msd.Approved = 3;
+                            }
+                            ListMaturityScenrio.Add(msd);
+                        }
+                        if (CommonHelper.ToDateTime(notesobj[i].ExtendedMaturityScenario3) != null)
+                        {
+                            MaturityScenariosDataContract msd = new MaturityScenariosDataContract();
+                            msd.EffectiveDate = _notes.ClosingDate;
+                            msd.MaturityDate = CommonHelper.ToDateTime(notesobj[i].ExtendedMaturityScenario3);
+                            msd.ExpectedMaturityDate = _notes.ExpectedMaturityDate;
+                            msd.MaturityID = 709;
+                            msd.Type = "Extension";
+                            if (msd.MaturityDate >= dt)
+                            {
+                                msd.Approved = 4;
+                            }
+                            else
+                            {
+                                msd.Approved = 3;
+                            }
+                            ListMaturityScenrio.Add(msd);
+                        }
+
+                        if (CommonHelper.ToDateTime(notesobj[i].ExtendedMaturityScenario4) != null)
+                        {
+                            MaturityScenariosDataContract msd = new MaturityScenariosDataContract();
+                            msd.EffectiveDate = _notes.ClosingDate;
+                            msd.MaturityDate = CommonHelper.ToDateTime(notesobj[i].ExtendedMaturityScenario4);
+                            msd.ExpectedMaturityDate = _notes.ExpectedMaturityDate;
+                            msd.MaturityID = 709;
+                            msd.Type = "Extension";
+                            if (msd.MaturityDate >= dt)
+                            {
+                                msd.Approved = 4;
+                            }
+                            else
+                            {
+                                msd.Approved = 3;
+                            }
+                            ListMaturityScenrio.Add(msd);
+                        }
+
+                        if (CommonHelper.ToDateTime(notesobj[i].ExtendedMaturityScenario5) != null)
+                        {
+                            MaturityScenariosDataContract msd = new MaturityScenariosDataContract();
+                            msd.EffectiveDate = _notes.ClosingDate;
+                            msd.MaturityDate = CommonHelper.ToDateTime(notesobj[i].ExtendedMaturityScenario5);
+                            msd.ExpectedMaturityDate = _notes.ExpectedMaturityDate;
+                            msd.MaturityID = 709;
+                            msd.Type = "Extension";
+                            if (msd.MaturityDate >= dt)
+                            {
+                                msd.Approved = 4;
+                            }
+                            else
+                            {
+                                msd.Approved = 3;
+                            }
+                            ListMaturityScenrio.Add(msd);
+                        }
+
+                        if (CommonHelper.ToDateTime(notesobj[i].ExtendedMaturityScenario6) != null)
+                        {
+                            MaturityScenariosDataContract msd = new MaturityScenariosDataContract();
+                            msd.EffectiveDate = _notes.ClosingDate;
+                            msd.MaturityDate = CommonHelper.ToDateTime(notesobj[i].ExtendedMaturityScenario6);
+                            msd.ExpectedMaturityDate = _notes.ExpectedMaturityDate;
+                            msd.MaturityID = 709;
+                            msd.Type = "Extension";
+                            if (msd.MaturityDate >= dt)
+                            {
+                                msd.Approved = 4;
+                            }
+                            else
+                            {
+                                msd.Approved = 3;
+                            }
+                            ListMaturityScenrio.Add(msd);
+                        }
+
+
+                        if (CommonHelper.ToDateTime(notesobj[i].ExtendedMaturityScenario7) != null)
+                        {
+                            MaturityScenariosDataContract msd = new MaturityScenariosDataContract();
+                            msd.EffectiveDate = _notes.ClosingDate;
+                            msd.MaturityDate = CommonHelper.ToDateTime(notesobj[i].ExtendedMaturityScenario7);
+                            msd.ExpectedMaturityDate = _notes.ExpectedMaturityDate;
+                            msd.MaturityID = 709;
+                            msd.Type = "Extension";
+                            if (msd.MaturityDate >= dt)
+                            {
+                                msd.Approved = 4;
+                            }
+                            else
+                            {
+                                msd.Approved = 3;
+                            }
+                            ListMaturityScenrio.Add(msd);
+                        }
+
+                        if (CommonHelper.ToDateTime(notesobj[i].ExtendedMaturityScenario8) != null)
+                        {
+                            MaturityScenariosDataContract msd = new MaturityScenariosDataContract();
+                            msd.EffectiveDate = _notes.ClosingDate;
+                            msd.MaturityDate = CommonHelper.ToDateTime(notesobj[i].ExtendedMaturityScenario8);
+                            msd.ExpectedMaturityDate = _notes.ExpectedMaturityDate;
+                            msd.MaturityID = 709;
+                            msd.Type = "Extension";
+                            if (msd.MaturityDate >= dt)
+                            {
+                                msd.Approved = 4;
+                            }
+                            else
+                            {
+                                msd.Approved = 3;
+                            }
+                            ListMaturityScenrio.Add(msd);
+                        }
+
+                        if (CommonHelper.ToDateTime(notesobj[i].ExtendedMaturityScenario9) != null)
+                        {
+                            MaturityScenariosDataContract msd = new MaturityScenariosDataContract();
+                            msd.EffectiveDate = _notes.ClosingDate;
+                            msd.MaturityDate = CommonHelper.ToDateTime(notesobj[i].ExtendedMaturityScenario9);
+                            msd.ExpectedMaturityDate = _notes.ExpectedMaturityDate;
+                            msd.MaturityID = 709;
+                            msd.Type = "Extension";
+                            if (msd.MaturityDate >= dt)
+                            {
+                                msd.Approved = 4;
+                            }
+                            else
+                            {
+                                msd.Approved = 3;
+                            }
+                            ListMaturityScenrio.Add(msd);
+                        }
+
+                        if (CommonHelper.ToDateTime(notesobj[i].ExtendedMaturityScenario10) != null)
+                        {
+                            MaturityScenariosDataContract msd = new MaturityScenariosDataContract();
+                            msd.EffectiveDate = _notes.ClosingDate;
+                            msd.MaturityDate = CommonHelper.ToDateTime(notesobj[i].ExtendedMaturityScenario10);
+                            msd.ExpectedMaturityDate = _notes.ExpectedMaturityDate;
+                            msd.MaturityID = 709;
+                            msd.Type = "Extension";
+                            if (msd.MaturityDate >= dt)
+                            {
+                                msd.Approved = 4;
+                            }
+                            else
+                            {
+                                msd.Approved = 3;
+                            }
+                            ListMaturityScenrio.Add(msd);
+                        }
+
+                        if (_notes.FullyExtendedMaturityDate != null)
+                        {
+                            MaturityScenariosDataContract msd = new MaturityScenariosDataContract();
+                            msd.EffectiveDate = _notes.ClosingDate;
+                            msd.MaturityDate = _notes.FullyExtendedMaturityDate;
+                            msd.ExpectedMaturityDate = _notes.ExpectedMaturityDate;
+                            msd.MaturityID = 710;
+                            msd.Type = "Fully extended";
+                            msd.Approved = 3;
+
+                            ListMaturityScenrio.Add(msd);
+                        }
+                    }
+
+                    //RateSpreadSchedule
+                    var _ratespreadobj = data["ListRateSpread"];
+                    if (_ratespreadobj != null)
+                    {
+                        for (var j = 0; j < _ratespreadobj.Count; j++)
+                        {
+                            RateSpreadSchedule _ratespread = new RateSpreadSchedule();
+                            if (CurrentCRENoteID == Convert.ToString(_ratespreadobj[j].CRENoteID))
+                            {
+
+
+                                _ratespread.Date = CommonHelper.ToDateTime(_ratespreadobj[j].StartDate);
+                                _ratespread.ValueTypeID = CommonHelper.ToInt32(_ratespreadobj[j].ValueType);
+                                _ratespread.Value = CommonHelper.StringToDecimal(_ratespreadobj[j].Value);
+                                _ratespread.IntCalcMethodID = CommonHelper.ToInt32(_ratespreadobj[j].CalcMethod);
+                                _ratespread.RateOrSpreadToBeStripped = CommonHelper.ToInt32(_ratespreadobj[j].RateorSpreadStripinBP);
+                                _ratespread.IndexNameID = CommonHelper.ToInt32(_ratespreadobj[j].IndexName);
+                                _ratespread.DeterminationDateHolidayList = CommonHelper.ToInt32(_ratespreadobj[j].DeterminationDateHolidayList);
+
+                                _ratespreadlist.Add(_ratespread);
+                            }
+
+                        }
+                    }
+                    //PrepayAdditionalFeeSchedule
+                    //ListFeeSchedule
+                    var ListFeeScheduleobj = data["ListFeeSchedule"];
+                    if (ListFeeScheduleobj != null)
+                    {
+                        for (var k = 0; k < ListFeeScheduleobj.Count; k++)
+                        {
+
+                            PrepayAndAdditionalFeeScheduleDataContract _prepayaddfeesch = new PrepayAndAdditionalFeeScheduleDataContract();
+                            if (CurrentCRENoteID == Convert.ToString(ListFeeScheduleobj[k].CRENoteID))
+                            {
+
+                                _prepayaddfeesch.FeeName = (ListFeeScheduleobj[k].FeeName);
+                                _prepayaddfeesch.StartDate = CommonHelper.ToDateTime(ListFeeScheduleobj[k].StartDate);
+                                _prepayaddfeesch.ScheduleEndDate = CommonHelper.ToDateTime(ListFeeScheduleobj[k].EndDate);
+
+                                _prepayaddfeesch.ValueTypeID = CommonHelper.ToInt32(ListFeeScheduleobj[k].ValueType);
+
+                                _prepayaddfeesch.Value = CommonHelper.StringToDecimal(ListFeeScheduleobj[k].Value);
+                                _prepayaddfeesch.FeeAmountOverride = CommonHelper.StringToDecimal(ListFeeScheduleobj[k].FeeAmtOverride);
+                                _prepayaddfeesch.BaseAmountOverride = CommonHelper.StringToDecimal(ListFeeScheduleobj[k].BaseAmtOverride);
+
+                                _prepayaddfeesch.ApplyTrueUpFeatureID = CommonHelper.ToInt32(ListFeeScheduleobj[k].ApplyTrueUp);
+                                _prepayaddfeesch.IncludedLevelYield = CommonHelper.StringToDecimal(ListFeeScheduleobj[k].IncludedLevelYield);
+                                _prepayaddfeesch.IncludedBasis = CommonHelper.StringToDecimal(ListFeeScheduleobj[k].IncludedBasis);
+                                _prepayaddfeesch.PercentageOfFeeToBeStripped = CommonHelper.StringToDecimal(ListFeeScheduleobj[k].PercentageFeeStripped);
+
+
+                                _prepayadditionalfeelist.Add(_prepayaddfeesch);
+                            }
+                        }
+                    }
+
+                    //Funding Repayment Sequence
+                    var FundingRepaymentSequenceobj = data["ListFundingRepaymentSequence"];
+                    if (FundingRepaymentSequenceobj != null)
+                    {
+                        for (var q = 0; q < FundingRepaymentSequenceobj.Count; q++)
+                        {
+                            PayruleNoteAMSequenceDataContract _fundingrepayment = new PayruleNoteAMSequenceDataContract();
+                            if (FundingRepaymentSequenceobj[q].CRENoteID == CurrentCRENoteID)
+                            {
+                                _fundingrepayment.SequenceNo = CommonHelper.ToInt32(FundingRepaymentSequenceobj[q].SequenceNo);
+                                _fundingrepayment.SequenceType = (FundingRepaymentSequenceobj[q].SequenceType);
+                                _fundingrepayment.Value = CommonHelper.StringToDecimal(FundingRepaymentSequenceobj[q].Value);
+                                _fundingrepaymentsequencelist.Add(_fundingrepayment);
+                            }
+                        }
+                    }
+
+                    var FundingPayRulesobj = data["ListFundingPayRules"];
+                    if (FundingPayRulesobj != null)
+                    {
+                        for (var q = 0; q < FundingPayRulesobj.Count; q++)
+                        {
+                            NoteDataContract notepay = new NoteDataContract();
+                            if (FundingPayRulesobj[q].CRENoteID == CurrentCRENoteID)
+                            {
+
+                                notepay.CRENoteID = (FundingPayRulesobj[i].CRENoteID);
+                                notepay.UseRuletoDetermineNoteFunding = CommonHelper.ToInt32(FundingPayRulesobj[q].UseRuletoDetermineNoteFunding);
+                                notepay.NoteFundingRule = CommonHelper.ToInt32(FundingPayRulesobj[q].NoteFundingRule);
+                                notepay.FundingPriority = CommonHelper.ToInt32(FundingPayRulesobj[q].FundingPriority);
+                                notepay.NoteBalanceCap = CommonHelper.StringToDecimal(FundingPayRulesobj[q].NoteBalanceCap);
+                                notepay.RepaymentPriority = CommonHelper.ToInt32(FundingPayRulesobj[q].RepaymentPriority);
+                                notepayulelist.Add(notepay);
+                            }
+                        }
+                    }
+                    _notes.RateSpreadScheduleList = _ratespreadlist;
+                    _notes.NotePrepayAndAdditionalFeeScheduleList = _prepayadditionalfeelist;
+                    _notes.FundingRepaymentSequence = _fundingrepaymentsequencelist;
+                    _notes.NotePayRuleFundingParameters = notepayulelist;
+                    _notes.ListFutureFundingScheduleTab = _fundingschedulelist;
+                    _notes.NotePIKScheduleList = _pikschedulelist;
+                    _notes.ListPIKfromPIKSourceNoteTab = _pikscheduledetaillist;
+                    _notes.ListFeeCouponStripReceivable = _feecouponstripreceivablelist;
+                    _notes.ListFixedAmortScheduleTab = _amortschedulelist;
+                    _notes.SizerDoc = _sizerdoclist;
+                    _notelist.Add(_notes);
+                }
+                dealobjDC.notelist = _notelist;
+                dealobjDC.PayruleDealFundingList = _dealfundinglist;
+                dealobjDC.ScenarioList = Scenariolist;
+                dealobjDC.AutoSpreadRuleList = listAutoSpreadRule;
+                dealobjDC.ListMaturityScenrio = ListMaturityScenrio;
+            }
+            catch (Exception ex)
+            {
+
+                throw ex;
+            }
+            return dealobjDC;
+        }
+
+        [HttpPost]
+        [Route("api/VSTO/authenticateUser")]
+        public IActionResult AuthenticateUser([FromBody] dynamic inputjson)
+        {
+
+            v1GenericResult _authenticationResult = null;
+            UserDataContract _userDataContract = new UserDataContract();
+
+            _userDataContract.Login = inputjson["Login"];
+            _userDataContract.Password = inputjson["Password"];
+
+
+            string EncruptPassword = Encryptor.MD5Hash(_userDataContract.Password);
+
+            UserLogic userlogic = new UserLogic();
+            _userDataContract = userlogic.ValidateUser(_userDataContract.Login, EncruptPassword);
+
+            try
+            {
+                if (_userDataContract != null)
+                {
+                    _authenticationResult = new v1GenericResult()
+                    {
+                        Succeeded = true,
+                        Message = "Authentication succeeded"
+                    };
+                }
+                else
+                {
+                    _authenticationResult = new v1GenericResult()
+                    {
+                        Succeeded = false,
+                        Message = "Username and password don't match to our records."
+                    };
+                }
+            }
+            catch (Exception ex)
+            {
+                LoggerLogic Log = new LoggerLogic();
+                Log.WriteLogException(CRESEnums.Module.Account.ToString(), "Error occurred in Login", "", "", ex.TargetSite.Name.ToString(), "", ex);
+
+                _authenticationResult = new v1GenericResult()
+                {
+                    Succeeded = false,
+                    Message = ex.Message
+                };
+            }
+
+            return Ok(_authenticationResult); ;
+
+        }
+
+        [HttpPost]
+        [Route("api/VSTO/CheckDuplicateDealSettlement")]
+        public IActionResult CheckDuplicateDealSettlement([FromBody] dynamic inputjson)
+        {
+            string result = "";
+            string notes = "";
+            try
+            {
+                string CREDealID = inputjson["CREDealID"];
+                string DealName = inputjson["DealName"];
+                string UserName = inputjson["UserName"];
+                string sPassword = inputjson["Password"];
+
+                DynamicSizerLogic dynamicSizerLogic = new DynamicSizerLogic();
+                string EncruptPassword = Encryptor.MD5Hash(sPassword);
+                result = dynamicSizerLogic.CheckDuplicateDealSettlement(CREDealID, DealName, UserName, EncruptPassword);
+
+
+            }
+            catch (Exception ex)
+            {
+                LoggerLogic Log = new LoggerLogic();
+                Log.WriteLogException(CRESEnums.Module.VSTO.ToString(), "Error occurred in CheckDuplicateDealSettlement", "", "", ex.TargetSite.Name.ToString(), "", ex);
+                result = "500";
+            }
+            return Ok(result); ;
+
+        }
+
+        [HttpPost]
+        [Route("api/VSTO/CheckDuplicateNoteSettlement")]
+        public IActionResult CheckDuplicateNoteSettlement([FromBody] dynamic inputjson)
+        {
+            string result = "";
+            try
+            {
+                DynamicSizerLogic dynamicSizerLogic = new DynamicSizerLogic();
+                string CREDealID = inputjson["CREDealID"];
+                string DealName = inputjson["DealName"];
+                string noteids = "";
+
+                var Notedata = inputjson["notelist"];
+                if (Notedata != null)
+                {
+                    for (var q = 0; q < Notedata.Count; q++)
+                    {
+
+                        noteids = noteids + Notedata[q].CRENoteID + ",";
+
+                    }
+                }
+                if (noteids != "")
+                {
+                    noteids = noteids.Remove(noteids.Length - 1);
+                    noteids = noteids.Replace("\n", "");
+                    noteids = noteids.Replace("\t", "");
+                }
+                result = dynamicSizerLogic.CheckDuplicateNoteSettlement(CREDealID, noteids);
+
+
+            }
+            catch (Exception ex)
+            {
+                LoggerLogic Log = new LoggerLogic();
+                Log.WriteLogException(CRESEnums.Module.VSTO.ToString(), "Error occurred in CheckDuplicateDealSettlement", "", "", ex.TargetSite.Name.ToString(), "", ex);
+                result = "500";
+            }
+            return Ok(result); ;
+
+        }
+
+
+        [HttpPost]
+        [Route("api/VSTO/uploadjournalentry")]
+        public IActionResult UploadJournalEntry([FromBody] dynamic JournalData)
+        {
+            string JournalEntryMasterGUID = "";
+            GenericVSTOResult _authenticationResult = null;
+            int JournalEntryMasterID = 0;
+            DateTime JournalEntryDate = DateTime.Now.Date;
+            string Comments = "";
+            string username = "";
+            dynamic data = JObject.Parse(JournalData);
+            List<JournalLedgerDataContract> listjdc = new List<JournalLedgerDataContract>();
+            var JournalDataobj = data["M61.Tables.JournalEntry"];
+            string useridforSys_Scheduler = "3D6DB33D-2B3A-4415-991D-A3DA5CEB8B50";
+            if (JournalDataobj != null)
+            {
+                for (var j = 0; j < JournalDataobj.Count; j++)
+                {
+                    JournalLedgerDataContract jdc = new JournalLedgerDataContract();
+                    jdc.DebtEquityAccountID = new Guid(Convert.ToString(JournalDataobj[j].AccountID));
+                    jdc.TransactionTypeText = Convert.ToString(JournalDataobj[j].TransactionTypeText);
+                    jdc.TransactionDate = CommonHelper.ToDateTime(JournalDataobj[j].TransactionDate);
+                    jdc.CommentsDetail = Convert.ToString(JournalDataobj[j].Comments);
+                    jdc.TransactionAmount = CommonHelper.StringToDecimal(JournalDataobj[j].TransactionAmount);
+                    jdc.TransactionEntryID = 0;
+                    jdc.JournalEntryMasterID = 0;
+
+                    username = Convert.ToString(JournalDataobj[j].UserName);
+                    listjdc.Add(jdc);
+                }
+            }
+            JournalEntryLogic _JournalLogic = new JournalEntryLogic();
+            JournalEntryMasterGUID = _JournalLogic.InsertUpdateJournalEntry(listjdc, username, JournalEntryMasterID, JournalEntryDate, Comments);
+
+            try
+            {
+                _authenticationResult = new GenericVSTOResult()
+                {
+                    Succeeded = true,
+                    Message = "Journal Entries Uploaded Successfully."
+
+                };
+            }
+            catch (Exception ex)
+            {
+                string message = ExceptionHelper.GetFullMessage(ex);
+                Logger.Write(CRESEnums.Module.JournalEntry.ToString(), "Error in uploading JournalEntry from batch upload: " + "" + " Exception : " + message, MessageLevel.Error, username, "");
+                _authenticationResult = new GenericVSTOResult()
+                {
+                    Succeeded = true,
+                    Message = "Error in Journal Entries Upload.",
+
+
+                };
+            }
+            return Ok(_authenticationResult);
+        }
+
+        [HttpGet]
+        [Services.Controllers.DeflateCompression]
+        [Route("api/VSTO/refreshtagxirr")]
+        public List<RefreshTagXIRRDataContract> RefreshTagXIRR()
+        {
+            SizerGenericResult authenticationResult = null;
+            List<RefreshTagXIRRDataContract> _lsttagXIRR = new List<RefreshTagXIRRDataContract>();
+
+            DynamicSizerLogic dySizerLogic = new DynamicSizerLogic();
+            _lsttagXIRR = dySizerLogic.RefreshTagXIRR();
+
+            try
+            {
+                if (_lsttagXIRR != null)
+                {
+
+                    authenticationResult = new SizerGenericResult()
+                    {
+                        Succeeded = true,
+                        Message = "Authentication succeeded",
+                        TagXIRRList = _lsttagXIRR
+                    };
+                }
+                else
+                {
+                    authenticationResult = new SizerGenericResult()
+                    {
+                        Succeeded = false,
+                        Message = "Authentication failed"
+                    };
+                }
+            }
+            catch (Exception ex)
+            {
+
+                LoggerLogic Log = new LoggerLogic();
+                Log.WriteLogException(CRESEnums.Module.XIRR.ToString(), "Error occurred in vsto RefreshTagXIRR ", "", "", ex.TargetSite.Name.ToString(), "", ex);
+
+                authenticationResult = new SizerGenericResult()
+                {
+                    Succeeded = false,
+                    Message = ex.Message
+                };
+            }
+            return _lsttagXIRR;
+        }
+
+
+        [HttpPost]
+        [Route("api/VSTO/uploadtagxirr")]
+        public IActionResult UploadTagXIRR([FromBody] dynamic JsonData)
+        {
+            GenericVSTOResult _authenticationResult = null;
+            string Username = "";
+            string Message = "";
+            List<TagXIRREntityDataContract> lstTagXIRREntity = new List<TagXIRREntityDataContract>();
+            DataTable apidata = new DataTable();
+
+            try
+            {
+                dynamic data = JObject.Parse(JsonData.ToString());
+
+                foreach (var table in data.Properties())
+                {
+                    if (table.Value is JArray jsonArray)
+                    {
+                        foreach (var item in jsonArray)
+                        {
+                            TagXIRREntityDataContract tagXIRR = new TagXIRREntityDataContract();
+
+                            tagXIRR.TableName = table.Name;
+
+                            tagXIRR.ObjectID = Convert.ToString(item["CRENoteID"] ?? item["CREDealID"] ?? item["DebtName"] ?? item["EquityName"] ?? item["LiabilityNoteID"]);
+                            tagXIRR.TagID = (int)CommonHelper.ToInt32(item["TagID"]);
+                            tagXIRR.TagName = Convert.ToString(item["TagText"]);
+                            Username = Convert.ToString(item["UserName"]);
+
+                            lstTagXIRREntity.Add(tagXIRR);
+                        }
+                    }
+                    else if (table.Value is JObject jsonObject)
+                    {
+                        TagXIRREntityDataContract tagXIRR = new TagXIRREntityDataContract();
+
+                        tagXIRR.TableName = table.Name;
+
+                        tagXIRR.ObjectID = Convert.ToString(jsonObject["CRENoteID"] ?? jsonObject["CREDealID"] ?? jsonObject["DebtName"] ?? jsonObject["EquityName"] ?? jsonObject["LiabilityNoteID"]);
+                        tagXIRR.TagID = (int)CommonHelper.ToInt32(jsonObject["TagID"]);
+                        tagXIRR.TagName = Convert.ToString(jsonObject["TagText"]);
+                        Username = Convert.ToString(jsonObject["UserName"]);
+
+                        lstTagXIRREntity.Add(tagXIRR);
+                    }
+                }
+
+                DynamicSizerLogic _dynamicsizer = new DynamicSizerLogic();
+                int ingnoredrecords = 0;
+                int totalrecords = 0;
+                int? batchId = 0;
+                if (lstTagXIRREntity != null)
+                {
+                    totalrecords = lstTagXIRREntity.Count;
+                    batchId = _dynamicsizer.AddTagXIRREntity(lstTagXIRREntity, Username);
+
+                    apidata = _dynamicsizer.GetBatchUploadSummaryTagXIRR(batchId);
+                    ingnoredrecords = apidata.Rows.Count;
+                }
+
+                if (ingnoredrecords > 0)
+                {
+                    Message = "Out of " + totalrecords + " records " + ingnoredrecords + " records are not updated during upload. Please see Tag XIRR Upload Summary Tab for Ignored Records";
+
+                    _authenticationResult = new GenericVSTOResult()
+                    {
+                        Succeeded = true,
+                        Message = Message,
+                        apiResult = apidata
+
+                    };
+                }
+                else
+                {
+                    Message = "Tag XIRR Uploaded Successfully.";
+
+                    _authenticationResult = new GenericVSTOResult()
+                    {
+                        Succeeded = true,
+                        Message = Message,
+                        apiResult = null
+
+                    };
+                }
+
+            }
+            catch (Exception ex)
+            {
+                LoggerLogic Log = new LoggerLogic();
+                string message = ExceptionHelper.GetFullMessage(ex);
+                Log.WriteLogException(CRESEnums.Module.XIRR.ToString(), "Error in uploading Tag XIRR from batch upload ", "", Username, ex.TargetSite.Name.ToString(), JsonData, ex);
+
+                _authenticationResult = new GenericVSTOResult()
+                {
+                    Succeeded = false,
+                    Message = "Error in Tag XIRR Upload: " + ex.Message
+                };
+            }
+
+            return Ok(_authenticationResult);
+        }
+
+
+        [HttpPost]
+        [Route("api/VSTO/SizerAfterDealSaveProcess")]
+        public IActionResult SizerAfterDealSaveProcess([FromBody] dynamic inputjson)
+        {
+            List<string> noteids = new List<string>();
+            string result = "";
+            try
+            {
+                Thread FirstThread = new Thread(() => ProcessSizerData(inputjson));
+                FirstThread.Start();
+
+            }
+            catch (Exception ex)
+            {
+                LoggerLogic Log = new LoggerLogic();
+                Log.WriteLogException(CRESEnums.Module.VSTO.ToString(), "Error occurred in CheckDuplicateDealSettlement", "", "", ex.TargetSite.Name.ToString(), "", ex);
+                result = "500";
+            }
+            return Ok(result); ;
+
+        }
+
+        public void ProcessSizerData(dynamic inputjson)
+        {
+            List<string> noteids = new List<string>();
+            string noteidarray = "";
+            string defaultanalysisid = "c10f3372-0fc2-4861-a9f5-148f1f80804f";
+
+
+            try
+            {
+                DynamicSizerLogic dynamicSizerLogic = new DynamicSizerLogic();
+                string CREDealID = inputjson["CREDealID"];
+                string DealName = inputjson["DealName"];
+                string UserName = inputjson["UserName"];
+
+                var Notedata = inputjson["notelist"];
+                if (Notedata != null)
+                {
+                    for (var q = 0; q < Notedata.Count; q++)
+                    {
+                        var noteid = Convert.ToString(Notedata[q].CRENoteID);
+                        noteids.Add(noteid);
+
+                    }
+                }
+                //submit calc request 
+                DevDashBoardLogic devDlogic = new DevDashBoardLogic();
+                devDlogic.CalculateMultipleDeals(CREDealID, defaultanalysisid);
+
+                DataTable dt = dynamicSizerLogic.CalculateXIRRAfterDealSave_FromSizer(CREDealID, UserName);
+                if (dt.Rows.Count > 0)
+                {
+                    foreach (DataRow dr in dt.Rows)
+                    {
+                        noteidarray = noteidarray + Convert.ToString(dr["XIRRConfigID"]) + ",";
+                    }
+                    if (noteidarray != "")
+                    {
+                        noteidarray = noteidarray.Remove(noteidarray.Length - 1);
+                        noteidarray = noteidarray.Replace("\n", "");
+                        noteidarray = noteidarray.Replace("\t", "");
+                    }
+                    TagXIRRLogic tagXIRRLogic = new TagXIRRLogic();
+                    XIRRConfigParamDataContract config = new XIRRConfigParamDataContract();
+                    config.XIRRConfigIDs = noteidarray.ToString();
+                    tagXIRRLogic.InsertXIRRCalculationInput(config, useridforSys_Scheduler);
+
+                    //generate portfolio level input file
+                    XIRRController cont = new XIRRController(_iEmailNotification, _env);
+                    Thread FirstThread = new Thread(() => cont.InsertXIRR_InputCashflow(config, new Guid(useridforSys_Scheduler)));
+                    FirstThread.Start();
+                }
+
+            }
+            catch (Exception ex)
+            {
+                LoggerLogic Log = new LoggerLogic();
+                Log.WriteLogException(CRESEnums.Module.VSTO.ToString(), "Error occurred in CheckDuplicateDealSettlement", "", "", ex.TargetSite.Name.ToString(), "", ex);
+
+            }
+
+        }
+
+        [HttpPost]
+        [Route("api/vsto/updateDeviceCode")]
+        public string updateDeviceCode([FromBody] dynamic inputjson)
+        {
+            string Message = "";
+            GenericResult _authenticationResult = null;
+            UserDataContract _userdatacontract = new UserDataContract();
+            UserLogic userlogic = new UserLogic();
+            try
+            {
+                string UserName = Convert.ToString(inputjson["UserName"]);
+                string DeviceCode = Convert.ToString(inputjson["DeviceCode"]);
+
+                userlogic.UpdateDeviceCode(UserName, DeviceCode);
+                Message = "Succeeded";
+            }
+            catch (Exception ex)
+            {
+
+                LoggerLogic Log = new LoggerLogic();
+                Log.WriteLogException(CRESEnums.Module.VSTO.ToString(), "Error occurred in vsto devicecode update ", "", "", ex.TargetSite.Name.ToString(), "", ex);
+
+
+                _authenticationResult = new GenericResult()
+                {
+                    Succeeded = false,
+                    Message = ex.Message
+                };
+            }
+
+            return Message;
+
+        }
+
+        [HttpPost]
+        [Services.Controllers.DeflateCompression]
+        [Route("api/vsto/getDeviceCode")]
+        public string getDeviceCode([FromBody] dynamic inputjson)
+        {
+            string authResult = "";
+            GenericResult _authenticationResult = null;
+            UserDataContract _userdatacontract = new UserDataContract();
+            UserLogic userlogic = new UserLogic();
+            try
+            {
+                string UserName = Convert.ToString(inputjson["UserName"]);
+                string DeviceCode = Convert.ToString(inputjson["DeviceCode"]);
+
+                authResult = userlogic.GetDeviceCode(UserName, DeviceCode);
+
+                if (authResult == "Success")
+                {
+                    _authenticationResult = new GenericResult()
+                    {
+                        Succeeded = true,
+                        Message = "Authentication succeeded"
+                    };
+                }
+            }
+            catch (Exception ex)
+            {
+
+                LoggerLogic Log = new LoggerLogic();
+                Log.WriteLogException(CRESEnums.Module.VSTO.ToString(), "Error occurred in vsto get devicecode ", "", "", ex.TargetSite.Name.ToString(), "", ex);
+
+
+                _authenticationResult = new GenericResult()
+                {
+                    Succeeded = false,
+                    Message = ex.Message
+                };
+            }
+            return authResult;
+
         }
     }
 }

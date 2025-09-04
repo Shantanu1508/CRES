@@ -1,8 +1,12 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
 
 namespace CRES.DataContract
 {
-    public class AmortSequenceDataContract
+   public class AmortSequenceDataContract
     {
         public Guid? NoteID { get; set; }
         public int? SequenceNo { get; set; }

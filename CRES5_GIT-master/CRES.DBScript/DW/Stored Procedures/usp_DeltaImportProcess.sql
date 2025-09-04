@@ -30,6 +30,7 @@ BEGIN
 	DECLARE @LastBatchStartBackshopCurrentBalance datetime;
 
 	DECLARE @LastBatchStartFundingSequences datetime;
+	
 	DECLARE @LastBatchStartWorkFlow datetime;
 
 	DECLARE @LastBatchStartInterestCalculator datetime;
@@ -46,10 +47,17 @@ BEGIN
 	DECLARE @LastBatchStartInvoiceDetail datetime;
 
 	DECLARE @LastBatchStarttotalcomm datetime;
+	DECLARE @LastBatchStartNoteAttributesbyDate datetime;
+
+	DECLARE @LastBatchStartPrepayAndAdditionalFeeSchedule datetime;
 
 	DECLARE @CurrentBatchStart datetime,@LastBatchId int,@LastBatchStatus varchar(50),@LastFailedBatchId int
 	
-
+	DECLARE @LastBatchStartLiabilityNote datetime;
+	DECLARE @LastBatchStartLiabilityNoteAssetMapping datetime;
+	DECLARE @LastBatchStartGeneralSetupDetailsLiabilityNote datetime;
+	DECLARE @LastBatchStartTransactionEntryLiability datetime;
+	
 	------from backshop nightly
 	--DECLARE @LastBatchStartUwDeal datetime;
 	--DECLARE @LastBatchStartUwNote datetime;
@@ -75,18 +83,19 @@ BEGIN
 		SET @LastBatchStartNotePeriodicCalc = @LastBatchStartNote --(SELECT MAX(UpdatedDate) FROM [DW].NotePeriodicCalcBI)
 		SET @LastBatchStartExceptions = (SELECT MAX(UpdatedDate) FROM [DW].ExceptionsBI)
 
-		--SET @LastBatchNoteFunding = (SELECT MAX(AuditUpdateDate) FROM [DW].NoteFundingBI)
-		--SET @LastBatchStartBSNoteFunding = (SELECT MAX(AuditUpdateDate) FROM [DW].BSNoteFundingBI)
+		----SET @LastBatchNoteFunding = (SELECT MAX(AuditUpdateDate) FROM [DW].NoteFundingBI)
+		----SET @LastBatchStartBSNoteFunding = (SELECT MAX(AuditUpdateDate) FROM [DW].BSNoteFundingBI)
 
 		SET @LastBatchStartDealFundingSchdule = (SELECT MAX(UpdatedDate) FROM [DW].DealFundingSchduleBI)
 		SET @LastBatchStartNoteFundingSchedule = (SELECT MAX(UpdatedDate) FROM [DW].NoteFundingScheduleBI)
 
-		--SET @LastBatchStartBackshopCurrentBalance = (SELECT MAX(ImportDate) FROM [DW].BackshopCurrentBalanceBI)
+		----SET @LastBatchStartBackshopCurrentBalance = (SELECT MAX(ImportDate) FROM [DW].BackshopCurrentBalanceBI)
 
 		SET @LastBatchStartFundingSequences = (SELECT MAX(UpdatedDate) FROM [DW].FundingSequencesBI)
 		SET @LastBatchStartWorkFlow  = (SELECT MAX(UpdatedDate) FROM [DW].WorkFlowBI)
 
-		SET @LastBatchStartInterestCalculator = (SELECT MAX(UpdatedDate) FROM [DW].InterestCalculatorBI)
+		SET @LastBatchStartInterestCalculator = @LastBatchStartNote --- (SELECT MAX(UpdatedDate) FROM [DW].InterestCalculatorBI)
+
 		SET @LastBatchStartWFTaskDetail = (SELECT MAX(UpdatedDate) FROM [DW].[WFTaskDetailBI])
 		SET @LastBatchStartWFCheckListDetail = (SELECT MAX(UpdatedDate) FROM [DW].[WFCheckListDetailBI])
 
@@ -100,6 +109,16 @@ BEGIN
 		
 		set @LastBatchStarttotalcomm = (SELECT MAX(UpdatedDate) FROM [DW].[TotalCommitmentDataBI])
 
+		set @LastBatchStartNoteAttributesbyDate = (SELECT MAX(UpdatedDate) FROM [DW].[NoteAttributesbyDateBI])
+
+
+		SET @LastBatchStartPrepayAndAdditionalFeeSchedule = (SELECT MAX(UpdatedDate) FROM [DW].[PrepayAndAdditionalFeeScheduleBI])
+		
+		SET @LastBatchStartLiabilityNote = (SELECT MAX(UpdatedDate) FROM [DW].[LiabilityNoteBI])
+		SET @LastBatchStartLiabilityNoteAssetMapping = (SELECT MAX(UpdatedDate) FROM [DW].[LiabilityNoteAssetMappingBI])
+		SET @LastBatchStartGeneralSetupDetailsLiabilityNote = (SELECT MAX(UpdatedDate) FROM [DW].[GeneralSetupDetailsLiabilityNoteBI])
+		SET @LastBatchStartTransactionEntryLiability = (SELECT MAX(UpdatedDate) FROM [DW].[TransactionEntryLiabilityBI])
+		
 		------from backshop nightly
 		--SET @LastBatchStartUwDeal = (SELECT MAX(AuditUpdateDate) FROM [DW].[UwDealBI])
 		--SET @LastBatchStartUwNote = (SELECT MAX(AuditUpdateDate) FROM [DW].[UwNoteBI])
@@ -122,13 +141,13 @@ BEGIN
 		SET @LastBatchStartNotePeriodicCalc = (SELECT LastCreatedDate FROM [DW].BatchDetail WHERE BatchLogId = @LastFailedBAtchId and LandingTableName = 'L_NotePeriodicCalcBI')
 		SET @LastBatchStartExceptions = (SELECT LastCreatedDate FROM [DW].BatchDetail WHERE BatchLogId = @LastFailedBAtchId and LandingTableName = 'L_ExceptionsBI')
 
-		--SET @LastBatchNoteFunding = (SELECT LastCreatedDate FROM [DW].BatchDetail WHERE BatchLogId = @LastFailedBAtchId and LandingTableName = 'L_NoteFundingBI')
-		--SET @LastBatchStartBSNoteFunding = (SELECT LastCreatedDate FROM [DW].BatchDetail WHERE BatchLogId = @LastFailedBAtchId and LandingTableName = 'L_BSNoteFundingBI')
+		----SET @LastBatchNoteFunding = (SELECT LastCreatedDate FROM [DW].BatchDetail WHERE BatchLogId = @LastFailedBAtchId and LandingTableName = 'L_NoteFundingBI')
+		----SET @LastBatchStartBSNoteFunding = (SELECT LastCreatedDate FROM [DW].BatchDetail WHERE BatchLogId = @LastFailedBAtchId and LandingTableName = 'L_BSNoteFundingBI')
 
 		SET @LastBatchStartDealFundingSchdule = (SELECT LastCreatedDate FROM [DW].BatchDetail WHERE BatchLogId = @LastFailedBAtchId and LandingTableName = 'L_DealFundingSchduleBI')
 		SET @LastBatchStartNoteFundingSchedule = (SELECT LastCreatedDate FROM [DW].BatchDetail WHERE BatchLogId = @LastFailedBAtchId and LandingTableName = 'L_NoteFundingScheduleBI')
 		
-		--SET @LastBatchStartBackshopCurrentBalance = (SELECT LastCreatedDate FROM [DW].BatchDetail WHERE BatchLogId = @LastFailedBAtchId and LandingTableName = 'L_BackshopCurrentBalanceBI')
+		----SET @LastBatchStartBackshopCurrentBalance = (SELECT LastCreatedDate FROM [DW].BatchDetail WHERE BatchLogId = @LastFailedBAtchId and LandingTableName = 'L_BackshopCurrentBalanceBI')
 		
 		SET @LastBatchStartFundingSequences = (SELECT LastCreatedDate FROM [DW].BatchDetail WHERE BatchLogId = @LastFailedBAtchId and LandingTableName = 'L_FundingSequencesBI')
 		SET @LastBatchStartWorkFlow = (SELECT LastCreatedDate FROM [DW].BatchDetail WHERE BatchLogId = @LastFailedBAtchId and LandingTableName = 'L_WorkFlowBI')
@@ -147,7 +166,14 @@ BEGIN
 
 		SET @LastBatchStarttotalcomm = (SELECT LastCreatedDate FROM [DW].BatchDetail WHERE BatchLogId = @LastFailedBAtchId and LandingTableName = 'L_TotalCommitmentDataBI')
 
+		SET @LastBatchStartNoteAttributesbyDate = (SELECT LastCreatedDate FROM [DW].BatchDetail WHERE BatchLogId = @LastFailedBAtchId and LandingTableName = 'L_NoteAttributesbyDateBI')
 		
+		SET @LastBatchStartPrepayAndAdditionalFeeSchedule = (SELECT LastCreatedDate FROM [DW].BatchDetail WHERE BatchLogId = @LastFailedBAtchId and LandingTableName = 'L_PrepayAndAdditionalFeeScheduleBI')
+		
+		SET @LastBatchStartLiabilityNote = (SELECT LastCreatedDate FROM [DW].BatchDetail WHERE BatchLogId = @LastFailedBAtchId and LandingTableName = 'L_LiabilityNoteBI')
+		SET @LastBatchStartLiabilityNoteAssetMapping = (SELECT LastCreatedDate FROM [DW].BatchDetail WHERE BatchLogId = @LastFailedBAtchId and LandingTableName = 'L_LiabilityNoteAssetMappingBI')
+		SET @LastBatchStartGeneralSetupDetailsLiabilityNote = (SELECT LastCreatedDate FROM [DW].BatchDetail WHERE BatchLogId = @LastFailedBAtchId and LandingTableName = 'L_GeneralSetupDetailsLiabilityNoteBI')
+		SET @LastBatchStartTransactionEntryLiability = (SELECT LastCreatedDate FROM [DW].BatchDetail WHERE BatchLogId = @LastFailedBAtchId and LandingTableName = 'L_TransactionEntryLiabilityBI')
 		
 		------from backshop nightly
 		--SET @LastBatchStartUwDeal = (SELECT LastCreatedDate FROM [DW].BatchDetail WHERE BatchLogId = @LastFailedBAtchId and LandingTableName = 'L_UwDealBI')
@@ -171,23 +197,25 @@ BEGIN
 
 	EXEC [DW].usp_ImportExceptionsBI @BatchLogId,@LastBatchStartDailyCalc,@CurrentBatchStart
 
-	--EXEC [DW].usp_ImportNoteFunding @BatchLogId,@LastBatchNoteFunding,@CurrentBatchStart
-	--EXEC [DW].usp_ImportBSNoteFunding @BatchLogId,@LastBatchStartBSNoteFunding,@CurrentBatchStart
+	----EXEC [DW].usp_ImportNoteFunding @BatchLogId,@LastBatchNoteFunding,@CurrentBatchStart
+	----EXEC [DW].usp_ImportBSNoteFunding @BatchLogId,@LastBatchStartBSNoteFunding,@CurrentBatchStart
 
 	EXEC [DW].usp_ImportDealFundingSchdule @BatchLogId,@LastBatchStartDealFundingSchdule,@CurrentBatchStart
 	EXEC [DW].usp_ImportNoteFundingSchedule @BatchLogId,@LastBatchStartNoteFundingSchedule,@CurrentBatchStart
 	
-	--EXEC [DW].usp_ImportBackshopCurrentBalance @BatchLogId,@LastBatchStartBackshopCurrentBalance,@CurrentBatchStart
+	----EXEC [DW].usp_ImportBackshopCurrentBalance @BatchLogId,@LastBatchStartBackshopCurrentBalance,@CurrentBatchStart
 
 	EXEC [DW].usp_ImportFundingSequences @BatchLogId,@LastBatchStartFundingSequences,@CurrentBatchStart
 
-	EXEC [DW].usp_ImportWorkFlowData @BatchLogId,@LastBatchStartFundingSequences,@CurrentBatchStart
+	
 
 	EXEC [DW].usp_ImportInterestCalculator @BatchLogId,@LastBatchStartInterestCalculator,@CurrentBatchStart
 
 	EXEC [DW].[usp_ImportWFTaskDetail] @BatchLogId,@LastBatchStartWFTaskDetail,@CurrentBatchStart
 
 	EXEC  [DW].[usp_ImportWFCheckListDetail] @BatchLogId,@LastBatchStartWFCheckListDetail,@CurrentBatchStart
+
+	EXEC [DW].usp_ImportWorkFlowData @BatchLogId,@LastBatchStartWorkFlow,@CurrentBatchStart
 
 	EXEC  [DW].[usp_ImportDailyInterestAccruals] @BatchLogId,@LastBatchStartDailyInterestAccruals,@CurrentBatchStart
 
@@ -200,8 +228,16 @@ BEGIN
 	EXEC [DW].[usp_ImportInvoiceDetail] @BatchLogId,@LastBatchStartInvoiceDetail,@CurrentBatchStart
 	
 	EXEC [DW].[usp_ImportTotalCommitmentData] @BatchLogId,@LastBatchStarttotalcomm,@CurrentBatchStart
-	
 
+	EXEC [DW].[usp_ImportNoteAttributesbyDate] @BatchLogId,@LastBatchStartNoteAttributesbyDate,@CurrentBatchStart
+	
+	EXEC  [DW].[usp_ImportPrepayAndAdditionalFeeSchedule] @BatchLogId,@LastBatchStartPrepayAndAdditionalFeeSchedule,@CurrentBatchStart
+	
+	EXEC [DW].usp_ImportLiabilityNote @BatchLogId,@LastBatchStartLiabilityNote,@CurrentBatchStart
+	EXEC [DW].usp_ImportLiabilityNoteAssetMapping @BatchLogId,@LastBatchStartLiabilityNoteAssetMapping,@CurrentBatchStart
+	EXEC [DW].usp_ImportGeneralSetupDetailsLiabilityNote @BatchLogId,@LastBatchStartGeneralSetupDetailsLiabilityNote,@CurrentBatchStart
+	EXEC [DW].usp_ImportTransactionEntryLiability @BatchLogId,@LastBatchStartTransactionEntryLiability,@CurrentBatchStart
+	
 	------from backshop nightly
 	--EXEC [DW].usp_ImportUwDeal @BatchLogId,@LastBatchStartUwDeal,@CurrentBatchStart
 	--EXEC [DW].usp_ImportUwNote @BatchLogId,@LastBatchStartUwNote,@CurrentBatchStart
@@ -220,13 +256,13 @@ BEGIN
 	UPDATE [DW].BatchDetail SET LastCreatedDate = @LastBatchStartNotePeriodicCalc WHERE BatchLogId = @BatchLogId and LandingTableName = 'L_NotePeriodicCalcBI'
 	UPDATE [DW].BatchDetail SET LastCreatedDate = @LastBatchStartExceptions WHERE BatchLogId = @BatchLogId and LandingTableName ='L_ExceptionsBI'
 
-	--UPDATE [DW].BatchDetail SET LastCreatedDate = @LastBatchNoteFunding WHERE BatchLogId = @BatchLogId and LandingTableName ='L_NoteFundingBI'
-	--UPDATE [DW].BatchDetail SET LastCreatedDate = @LastBatchStartBSNoteFunding WHERE BatchLogId = @BatchLogId and LandingTableName ='L_BSNoteFundingBI'
+	----UPDATE [DW].BatchDetail SET LastCreatedDate = @LastBatchNoteFunding WHERE BatchLogId = @BatchLogId and LandingTableName ='L_NoteFundingBI'
+	----UPDATE [DW].BatchDetail SET LastCreatedDate = @LastBatchStartBSNoteFunding WHERE BatchLogId = @BatchLogId and LandingTableName ='L_BSNoteFundingBI'
 
 	UPDATE [DW].BatchDetail SET LastCreatedDate = @LastBatchStartDealFundingSchdule WHERE BatchLogId = @BatchLogId and LandingTableName = 'L_DealFundingSchduleBI'
 	UPDATE [DW].BatchDetail SET LastCreatedDate = @LastBatchStartNoteFundingSchedule WHERE BatchLogId = @BatchLogId and LandingTableName = 'L_NoteFundingScheduleBI'
 	
-	--UPDATE [DW].BatchDetail SET LastCreatedDate = @LastBatchStartBackshopCurrentBalance WHERE BatchLogId = @BatchLogId and LandingTableName = 'L_BackshopCurrentBalanceBI'
+	----UPDATE [DW].BatchDetail SET LastCreatedDate = @LastBatchStartBackshopCurrentBalance WHERE BatchLogId = @BatchLogId and LandingTableName = 'L_BackshopCurrentBalanceBI'
 	
 	UPDATE [DW].BatchDetail SET LastCreatedDate = @LastBatchStartFundingSequences WHERE BatchLogId = @BatchLogId and LandingTableName ='L_FundingSequencesBI'
 	UPDATE [DW].BatchDetail SET LastCreatedDate = @LastBatchStartWorkFlow WHERE BatchLogId = @BatchLogId and LandingTableName ='L_WorkFlowBI'
@@ -237,15 +273,22 @@ BEGIN
 	UPDATE [DW].BatchDetail SET LastCreatedDate = @LastBatchStartWFCheckListDetail WHERE BatchLogId = @BatchLogId and LandingTableName = 'L_WFCheckListDetailBI'
 
 	UPDATE [DW].BatchDetail SET LastCreatedDate = @LastBatchStartDailyInterestAccruals WHERE BatchLogId = @BatchLogId and LandingTableName = 'L_DailyInterestAccrualsBI'
-
-	UPDATE [DW].BatchDetail SET LastCreatedDate = @LastBatchStartNoteTransactionDetail WHERE BatchLogId = @BatchLogId and LandingTableName = 'L_NoteTransactionDetailBI'
-	
+	UPDATE [DW].BatchDetail SET LastCreatedDate = @LastBatchStartNoteTransactionDetail WHERE BatchLogId = @BatchLogId and LandingTableName = 'L_NoteTransactionDetailBI'	
 	UPDATE [DW].BatchDetail SET LastCreatedDate = @LastBatchStartProperty WHERE BatchLogId = @BatchLogId and LandingTableName = 'L_PropertyBI'
 	UPDATE [DW].BatchDetail SET LastCreatedDate = @LastBatchStartRateSpreadSchedule WHERE BatchLogId = @BatchLogId and LandingTableName = 'L_RateSpreadScheduleBI'
 	
 	UPDATE [DW].BatchDetail SET LastCreatedDate = @LastBatchStartInvoiceDetail WHERE BatchLogId = @BatchLogId and LandingTableName = 'L_InvoiceDetailBI'
 
 	UPDATE [DW].BatchDetail SET LastCreatedDate = @LastBatchStarttotalcomm WHERE BatchLogId = @BatchLogId and LandingTableName = 'L_TotalCommitmentDataBI'
+	
+	UPDATE [DW].BatchDetail SET LastCreatedDate = @LastBatchStartNoteAttributesbyDate WHERE BatchLogId = @BatchLogId and LandingTableName = 'L_NoteAttributesbyDateBI'
+
+	UPDATE [DW].BatchDetail SET LastCreatedDate = @LastBatchStartPrepayAndAdditionalFeeSchedule WHERE BatchLogId = @BatchLogId and LandingTableName = 'L_PrepayAndAdditionalFeeScheduleBI'
+	
+	UPDATE [DW].BatchDetail SET LastCreatedDate = @LastBatchStartLiabilityNote WHERE BatchLogId = @BatchLogId and LandingTableName = 'L_LiabilityNoteBI'
+	UPDATE [DW].BatchDetail SET LastCreatedDate = @LastBatchStartLiabilityNoteAssetMapping WHERE BatchLogId = @BatchLogId and LandingTableName = 'L_LiabilityNoteAssetMappingBI'
+	UPDATE [DW].BatchDetail SET LastCreatedDate = @LastBatchStartGeneralSetupDetailsLiabilityNote WHERE BatchLogId = @BatchLogId and LandingTableName = 'L_GeneralSetupDetailsLiabilityNoteBI'
+	UPDATE [DW].BatchDetail SET LastCreatedDate = @LastBatchStartTransactionEntryLiability WHERE BatchLogId = @BatchLogId and LandingTableName = 'L_TransactionEntryLiabilityBI'
 	
 	------from backshop nightly
 	--UPDATE [DW].BatchDetail SET LastCreatedDate = @LastBatchStartUwDeal WHERE BatchLogId = @BatchLogId and LandingTableName = 'L_UwDealBI'
@@ -255,5 +298,3 @@ BEGIN
 	----------------------------------
 
 END
-
-

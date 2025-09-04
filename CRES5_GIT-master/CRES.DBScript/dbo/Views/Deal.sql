@@ -1,8 +1,4 @@
-﻿
-
-
-
-
+﻿-- View
 CREATE VIEW [dbo].[Deal] AS
 SELECT 
 [DealName]
@@ -60,10 +56,25 @@ SELECT
 	  When DealName Like '%Refi' Then 'Yes'
 	  Else 'No'
 	  End
+
+,WatchlistStatus
+,LiabilitySource
+,(select [Value]+'#/dealdetail/'+CREDealID from app.appconfig where [key]='M61BaseUrl')  as DealUrl
+
+,[LinkedDealID]            
+,[EnableAutoSpread]          
+,[EnableAutoSpreadRepayments]
+,[ApplyNoteLevelPaydowns]   
+,[CalcEngineTypeBI]   as [CalcEngineType]    
+,LoanStatusBI as LoanStatus
+
 FROM [DW].[DealBI]
 
 
 
 
+
+
+GO
 
 

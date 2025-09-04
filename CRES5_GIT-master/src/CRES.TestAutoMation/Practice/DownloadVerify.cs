@@ -27,7 +27,7 @@ namespace CRES.TestAutoMation.Practice
         {
             //.................................Write code of download file......................................
             
-            CRES_Login loginapp = new CRES_Login();
+            Login_Verification loginapp = new Login_Verification();
             Login login = new Login(driver);
             Deal deal = new Deal(driver);
             
@@ -87,7 +87,7 @@ namespace CRES.TestAutoMation.Practice
                         driver.FindElement(deal.Commitment_EquityTab).Click();
                         Thread.Sleep(4000);
 
-                        driver.FindElement(deal.ExportToExcel).Click();
+                        driver.FindElement(deal.CommitmentExportToExcel).Click();
                         Thread.Sleep(3000);
 
                         driver.Manage().Timeouts().ImplicitWait = TimeSpan.FromSeconds(10);                                              //
@@ -140,7 +140,7 @@ namespace CRES.TestAutoMation.Practice
         public bool CheckFile(string name) // the name of the zip file which is obtained, is passed in this method
         {
             currentFile = @"C:\Users\ShantanuSharma\Downloads\" + name + ""; // the zip filename is stored in a variable
-            if (File.Exists(currentFile)) //helps to check if the zip file is present
+            if (System.IO.File.Exists(currentFile)) //helps to check if the zip file is present
             {
                 return true; //if the zip file exists return boolean true
             }
@@ -188,9 +188,9 @@ namespace CRES.TestAutoMation.Practice
                 Directory.Delete(@"C:\Users\ShantanuSharma\Downloads\Extract", true);//cleanup created folder which has any content inside it.
                 //true ensures that folder is deleted even if it is not empty. 
             }
-            if (File.Exists(currentFile))
+            if (System.IO.File.Exists(currentFile))
             {
-                File.Delete(currentFile); //delete the downloaded zip file
+                System.IO.File.Delete(currentFile); //delete the downloaded zip file
             }
         }
 

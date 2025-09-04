@@ -20,8 +20,10 @@ BEGIN
  union all
 
 	 select  @noteid as NoteID,sum( Amount)*-1 as Amount  ,'CashFlow'  as Tabletype 
-	 from  cre.transactionentry 
-	 where noteid  =@noteid
+	 from  cre.transactionentry tr
+	 Inner join core.Account acc on acc.AccountID = tr.AccountID 
+	 Inner Join cre.note n on n.Account_AccountID=acc.AccountID
+	 where n.noteid =@noteid
 	 and [Date] <= Cast(getdate() as date)
 	 and AnalysisID in (  select AnalysisID from core.analysis where [name] ='Default')
 	 and type ='PIKPrincipalFunding'  

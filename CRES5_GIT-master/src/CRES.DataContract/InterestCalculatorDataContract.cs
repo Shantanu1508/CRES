@@ -1,4 +1,8 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
 
 namespace CRES.DataContract
 {
@@ -8,7 +12,7 @@ namespace CRES.DataContract
         {
 
         }
-
+      
         public Guid? NoteID { get; set; }
         public DateTime? AccrualStartDate { get; set; }
         public DateTime? AccrualEndDate { get; set; }

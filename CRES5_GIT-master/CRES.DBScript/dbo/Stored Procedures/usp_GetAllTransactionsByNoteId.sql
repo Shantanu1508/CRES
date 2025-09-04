@@ -110,9 +110,11 @@ from(
 	null ActualDelta
 
 	from cre.TransactionEntry nt
-	left join cre.note n on n.NoteID=nt.NoteID
+	Inner Join core.account acc on acc.accountid = nt.accountid
+	Inner join cre.note n on n.account_accountid = acc.AccountID
+	--left join cre.note n on n.NoteID=nt.NoteID
 	
-	Where nt.NoteID = @NoteId
+	Where n.NoteID = @NoteId and acc.AccountTypeID = 1
 	and nt.AnalysisID = @ScenarioId
 	and nt.[Type] in (select trantype from @tblTranType)
 	and nt.Date not in (

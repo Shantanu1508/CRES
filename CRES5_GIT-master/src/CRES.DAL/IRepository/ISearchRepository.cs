@@ -4,7 +4,7 @@ using System.Collections.Generic;
 
 namespace CRES.DAL.IRepository
 {
-    public interface ISearchRepository
+    public interface ISearchRepository 
     {
         List<SearchDataContract> GetAutosuggestSearchData(System.Guid? userID, int? pageIndex, int? pageSize, string serchKey, out int? TotalCount);
 

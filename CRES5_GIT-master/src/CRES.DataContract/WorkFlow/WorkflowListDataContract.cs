@@ -1,4 +1,8 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
 
 namespace CRES.DataContract
 {
@@ -26,8 +30,13 @@ namespace CRES.DataContract
         public Nullable<System.DateTime> Deadline { get; set; }
         public Nullable<System.DateTime> Fundingdate { get; set; }
         public decimal? Amount { get; set; }
-        public string Username { get; set; }
+       public string Username { get; set; }
+       public string PAMUsername { get; set; }
+       public string AMOUsername { get; set; }
 
         public string FundingApprovalRequired { get; set; }
+
+        public Guid? UserID { get; set; }
+
     }
 }

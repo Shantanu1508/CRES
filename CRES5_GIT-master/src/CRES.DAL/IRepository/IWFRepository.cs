@@ -2,6 +2,10 @@
 using CRES.DataContract.WorkFlow;
 using System;
 using System.Collections.Generic;
+using System.Data;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
 
 namespace CRES.DAL.IRepository
 {
@@ -49,5 +53,19 @@ namespace CRES.DAL.IRepository
         List<DrawFeeInvoiceDataContract> GetAllInvoicedInvoice(string UserID);
         UserDataContract GetDealPrimaryAMByDealOrTaskType(string DealID, int TaskTypeID, string TaskID, string UserID);
         WFNotificationDetailDataContract GetEmailsForCancelFinalNotifiction(string ObjectID, int ObjectTypeId, string UserID);
+
+        DataTable GetParentClientMissingEmail();
+        string SaveWFDashboard(List<WFDashboardDataContract> lstWorkflow, string UserID);
+        List<DrawFeeInvoiceDataContract> GetAllInvoiceQueuedForSandbox(string UserID);
+        string UpdateDrawFeeInvoiceDetailStatusForSandbox(string UserID, DrawFeeInvoiceDataContract drawFeeDC);
+        List<DrawFeeInvoiceDataContract> GetMissingQBDCustomerInSandbox();
+        string AddUpdateQBDCustomerForSandbox(string UserID, QBDCustomerInputDataContract QbdCustomer);
+        DrawFeeInvoiceDataContract GetInvoiceDetailByInvoiceNo(string UserID, string InvoiceNo);
+        int CheckWFConcurrency(string UserID, WFDetailDataContract _wfDetailDataContract);
+        string UpdateSponsorDetailFromBackshop(string DealID, string UserID);
+        void saveInvoicesLanding(DataTable dtInvoices);
+        void updateInvoicesLanding(DataTable dtInvoices);
+        List<WorkflowListDataContract> GetAllWorkflowByFiltertype(Guid? userId, string filterType, string CREDealID, int? PageSize, int? PageIndex, out int? TotalCount);
+        void updateInvoice(string UserID, DrawFeeInvoiceDataContract drawFeeDC);
     }
 }

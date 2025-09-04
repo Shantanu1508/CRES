@@ -1,6 +1,4 @@
-﻿
-  
-   
+﻿---- Procedure
 CREATE PROCEDURE [dbo].[usp_InsertUpdateNotePeriodicCalcByNoteIDDaily]   
  @noteAdditinallist tempNotePeriodicCalc READONLY,  
  @CreatedBy nvarchar(256),  
@@ -20,10 +18,10 @@ SELECT DISTINCT EOMONTH([PeriodEndDate]) FROM @noteAdditinallist
   
 INSERT INTO [CRE].[NotePeriodicCalc]  
   (  
-  [NoteID]  
+  AccountID --[NoteID]  
   ,[PeriodEndDate]   
   ,EndingBalance  
-    
+  ,RemainingUnfundedCommitment
   ,[CreatedBy]  
   ,[CreatedDate]  
   ,[UpdatedBy]  
@@ -31,32 +29,24 @@ INSERT INTO [CRE].[NotePeriodicCalc]
   ,AnalysisID  
   )  
    Select   
-   [NoteID]  
+   --[NoteID]  
+   n.Account_AccountID
    ,[PeriodEndDate]  
    ,EndingBalance     
+   ,RemainingUnfundedCommitment
    ,@CreatedBy  
    ,GETDATE()  
    ,@UpdatedBy  
    ,GETDATE()  
    ,AnalysisID  
-   From  @noteAdditinallist where PeriodEndDate not in (Select EODDate from @tblEODDate)  
-  
-  
---Update [CRE].[NotePeriodicCalc] set EndingBalanceDaily = tblEODData.EndingBalanceDaily  
---from  
---(  
--- Select   
--- [NoteID]  
--- ,[PeriodEndDate]  
--- ,EndingBalanceDaily  
--- From  @noteAdditinallist where PeriodEndDate in (Select EODDate from @tblEODDate)  
---)tblEODData  
---where   
---[CRE].[NotePeriodicCalc].NoteID = tblEODData.NoteID  
---and [CRE].[NotePeriodicCalc].PeriodEndDate = tblEODData.PeriodEndDate  
+   From  @noteAdditinallist nt
+   Inner Join cre.note n on n.noteid = nt.NoteID
+   where PeriodEndDate not in (Select EODDate from @tblEODDate) 
+ 
   
   
   
   
-END    
-    
+END
+GO
+

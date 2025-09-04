@@ -13,7 +13,6 @@ namespace CRES.DAL.Repository
         public string InsertDelegateConfiguration(UserDelegationConfigDataContract udd)
         {
             string result = "";
-#pragma warning disable CS0168 // The variable 'ex' is declared but never used
             try
             {
                 Helper.Helper hp = new Helper.Helper();
@@ -23,7 +22,7 @@ namespace CRES.DAL.Repository
                 SqlParameter p4 = new SqlParameter { ParameterName = "@enddate", Value = udd.Enddate };
 
                 SqlParameter[] sqlparam = new SqlParameter[] { p1, p2, p3, p4 };
-                hp.ExecNonquery("dbo.usp_InsertUserDelegateConfig", sqlparam);
+               hp.ExecNonquery("dbo.usp_InsertUserDelegateConfig", sqlparam);
 
                 //var res = dbContext.usp_InsertUserDelegateConfig(
                 //    udd.UserID,
@@ -39,7 +38,6 @@ namespace CRES.DAL.Repository
             {
                 throw;
             }
-#pragma warning restore CS0168 // The variable 'ex' is declared but never used
         }
 
         public List<UserDelegationConfigDataContract> GetAllActiveDelegatedUser(Guid userid)
@@ -70,7 +68,7 @@ namespace CRES.DAL.Repository
                         tdc.UserDelegateConfigID = new Guid(Convert.ToString(dr["UserDelegateConfigID"]));
                     }
                     tdc.Startdate = CommonHelper.ToDateTime(dr["StartDate"]);
-                    tdc.Enddate = CommonHelper.ToDateTime(dr["EndDate"]);
+                    tdc.Enddate = CommonHelper.ToDateTime(dr["EndDate"]); 
                     tdc.IsActive = CommonHelper.ToBoolean(dr["IsActive"]);
                     tdc.DelegatedUserIDText = Convert.ToString(dr["DelegatedUserIDText"]);
 
@@ -95,7 +93,7 @@ namespace CRES.DAL.Repository
                 SqlParameter p1 = new SqlParameter { ParameterName = "@userID", Value = userid };
                 SqlParameter[] sqlparam = new SqlParameter[] { p1 };
                 dt = hp.ExecDataTable("dbo.usp_GetUsersToImpersonate", sqlparam);
-                // var dellist = dbContext.usp_GetUsersToImpersonate(userid);
+               // var dellist = dbContext.usp_GetUsersToImpersonate(userid);
                 foreach (DataRow dr in dt.Rows)
                 {
                     UserDelegationConfigDataContract tdc = new UserDelegationConfigDataContract();
@@ -116,9 +114,9 @@ namespace CRES.DAL.Repository
                     //tdc.Enddate = CommonHelper.ToDateTime(dr["EndDate"]);
                     tdc.IsActive = CommonHelper.ToBoolean(dr["IsActive"]);
                     tdc.DelegatedUserIDText = Convert.ToString(dr["DelegatedUserIDText"]);
-
-
-
+                   
+                    
+                   
                     _list.Add(tdc);
                 }
 
@@ -140,7 +138,7 @@ namespace CRES.DAL.Repository
                 SqlParameter p3 = new SqlParameter { ParameterName = "@entryType", Value = udc.EntryType };
                 SqlParameter p4 = new SqlParameter { ParameterName = "@requestType", Value = udc.RequestType };
                 SqlParameter[] sqlparam = new SqlParameter[] { p1, p2, p3, p4 };
-                hp.ExecNonquery("dbo.usp_InsertDelegateHistory", sqlparam);
+               hp.ExecNonquery("dbo.usp_InsertDelegateHistory", sqlparam);
 
                 //dbContext.usp_InsertDelegateHistory(
                 //      udc.DelegatedUserID,
@@ -160,21 +158,19 @@ namespace CRES.DAL.Repository
 
         public bool RevokeUserDelegateConfigByUserDelegateConfigID(Guid userDelegateConfigID)
         {
-#pragma warning disable CS0168 // The variable 'ex' is declared but never used
             try
             {
                 Helper.Helper hp = new Helper.Helper();
                 SqlParameter p1 = new SqlParameter { ParameterName = "@userDelegateConfigID", Value = userDelegateConfigID };
                 SqlParameter[] sqlparam = new SqlParameter[] { p1 };
                 hp.ExecNonquery("dbo.usp_RevokeUserDelegateConfigByUserDelegateConfigID", sqlparam);
-                // dbContext.usp_RevokeUserDelegateConfigByUserDelegateConfigID(userDelegateConfigID);
+               // dbContext.usp_RevokeUserDelegateConfigByUserDelegateConfigID(userDelegateConfigID);
                 return true;
             }
             catch (Exception ex)
             {
                 throw;
             }
-#pragma warning restore CS0168 // The variable 'ex' is declared but never used
         }
         public int ImpersonateUserCount(Guid UserID)
         {

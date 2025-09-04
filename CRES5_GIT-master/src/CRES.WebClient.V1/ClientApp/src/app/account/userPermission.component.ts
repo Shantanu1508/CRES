@@ -9,6 +9,7 @@ import { FormsModule } from '@angular/forms';
 import { RouterModule, Routes } from '@angular/router';
 import { NotificationService } from '../core/services/notification.service';
 import { PermissionService } from '../core/services/permission.service';
+import { UtilityService } from '../core/services/utility.service';
 import { ModuleTabMaster } from '../core/domain/moduleTabMaster.model';
 import { Role } from '../core/domain/role.model';
 import * as wjcGrid from '@grapecity/wijmo.grid';
@@ -74,6 +75,7 @@ export class userpermission {
   public _loginID !: string;
   public _isChecked: boolean = false;
   public _isCalcChecked: boolean = false;
+  public _isLiabBlobDownldChecked: boolean = false;
   public _iscalcboosterChecked: boolean = false;
   public _appConfig: AppConfig;
   public _MsgTextUser: string;
@@ -100,6 +102,7 @@ export class userpermission {
     public notificationService: NotificationService,
     private router: Router,
     public dataService: DataService,
+    public utilityService: UtilityService,
     public permissionService: PermissionService) {
     this.lstFrequency = []
     this.lstFrequency.push({ 'Frequency': 'Hourly' });
@@ -118,7 +121,7 @@ export class userpermission {
     this._IsShowMsg = false;
     this._MsgText = "";
     this._MsgTextUser = "";
-
+    this.utilityService.setPageTitle("M61–User Permission");
     this.role = new Role("");
     this._appConfig = new AppConfig();
     this.CheckRole();
@@ -641,7 +644,9 @@ export class userpermission {
         { "ModuleId": "606", "ModuleName": "First draw approver" },
         { "ModuleId": "552", "ModuleName": "Tier 2 approver" },
         { "ModuleId": "617", "ModuleName": "Tier 1 approver" },
-        { "ModuleId": "720", "ModuleName": " REO Reserve Group" }
+        { "ModuleId": "720", "ModuleName": "REO Reserve Group" },
+        { "ModuleId": "858", "ModuleName": "AM Oversight" }
+
       ];
       this._bindGridDropdows();
     });
@@ -837,6 +842,10 @@ export class userpermission {
           this._isAllowBackshopFFImport = false;
         else
           this._isAllowBackshopFFImport = true;
+        if (data.find((x: any) => x.Key == "AllowLiabBlobDownld").Value == "0")
+          this._isLiabBlobDownldChecked = false;
+        else
+          this._isLiabBlobDownldChecked = true;
       }
     });
 
@@ -1146,8 +1155,8 @@ export class userpermission {
         user = res.UserData;
         user.Token = res.Token;
         user.TokenUId = res.UserData.UserID;
-        localStorage.setItem('user', JSON.stringify(user));
-        localStorage.setItem('rolename', user.RoleName);
+       // localStorage.setItem('user', JSON.stringify(user));
+       // localStorage.setItem('rolename', user.RoleName);
       }
       else {
         console.log("GetAllUsers fails!");

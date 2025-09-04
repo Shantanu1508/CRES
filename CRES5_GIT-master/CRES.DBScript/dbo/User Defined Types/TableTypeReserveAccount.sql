@@ -4,6 +4,7 @@ CREATE TYPE [dbo].[TableTypeReserveAccount] AS TABLE (
 	DealID uniqueidentifier,
 	CREReserveAccountID NVARCHAR (256),
 	ReserveAccountName  NVARCHAR (256),
+	ReserveAccountMasterID INT,
 	InitialBalanceDate Date,
 	InitialFundingAmount DECIMAL (28, 15),
 	EstimatedReserveBalance DECIMAL (28, 15),

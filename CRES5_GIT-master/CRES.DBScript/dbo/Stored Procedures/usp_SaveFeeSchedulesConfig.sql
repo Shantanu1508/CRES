@@ -1,4 +1,7 @@
-﻿CREATE Procedure [dbo].[usp_SaveFeeSchedulesConfig]
+﻿
+
+-- Procedure
+CREATE Procedure [dbo].[usp_SaveFeeSchedulesConfig]
 (
 @UserID NVarchar(255),
 @FeeScheduleConfigXML XML
@@ -26,7 +29,12 @@ BEGIN
 	,[FeeNameTransID] int null
 	,ExcludeFromCashflowDownload bit null
 	,InitialFundingID int null
-	,M61AdjustedCommitmentID int null
+	,M61AdjustedCommitmentID int null,
+	[PIKFundingID]           int  null,
+	[PIKPrincipalPaymentID]  int  null,
+	[CurtailmentID]          int  null,
+	[UpsizeAmountID]         int  null,
+	[UnfundedCommitmentID]  int  null
   )
 
 
@@ -48,6 +56,11 @@ BEGIN
 		   ,nullif(Pers.value('(ExcludeFromCashflowDownload)[1]', 'bit'),0)
 		   ,nullif(Pers.value('(InitialFundingID)[1]', 'int'),0)
 		   ,nullif(Pers.value('(M61AdjustedCommitmentID)[1]', 'int'),0)
+		   ,nullif(Pers.value('(PIKFundingID)[1]', 'int'),0)
+		   ,nullif(Pers.value('(PIKPrincipalPaymentID)[1]', 'int'),0)
+		   ,nullif(Pers.value('(CurtailmentID)[1]', 'int'),0)
+		   ,nullif(Pers.value('(UpsizeAmountID)[1]', 'int'),0)
+		   ,nullif(Pers.value('(UnfundedCommitmentID)[1]', 'int'),0)
 		   
 		   FROM @FeeScheduleConfigXML.nodes('/ArrayOfFeeSchedulesConfigDataContract/FeeSchedulesConfigDataContract') as t(Pers)
      
@@ -71,7 +84,14 @@ BEGIN
            ,[UpdatedDate]
 		   ,ExcludeFromCashflowDownload
 		   ,InitialFundingID
-		   ,M61AdjustedCommitmentID)
+		   ,M61AdjustedCommitmentID
+		   ,[PIKFundingID]          ,
+			[PIKPrincipalPaymentID] ,
+			[CurtailmentID]         ,
+			[UpsizeAmountID]        ,
+			[UnfundedCommitmentID],
+			IsActive
+			)
      select
             [FeeTypeNameText]
            ,[FeePaymentFrequencyID]
@@ -92,6 +112,12 @@ BEGIN
 		   ,ExcludeFromCashflowDownload
 		   ,InitialFundingID
 		   ,M61AdjustedCommitmentID
+		   ,[PIKFundingID]          ,
+			[PIKPrincipalPaymentID] ,
+			[CurtailmentID]         ,
+			[UpsizeAmountID]        ,
+			[UnfundedCommitmentID] ,
+			1 as IsActive
 		   from @tFeeSchedulsConfig where (FeeTypeGuID is null or FeeTypeGuID ='00000000-0000-0000-0000-000000000000' or FeeTypeGuID='')
 		   and FeeTypeNameText not in 
 			(
@@ -119,6 +145,11 @@ BEGIN
 		  ,ExcludeFromCashflowDownload = ts.ExcludeFromCashflowDownload	
 		  ,InitialFundingID = ts.InitialFundingID
 		  ,M61AdjustedCommitmentID = ts.M61AdjustedCommitmentID
+		  ,[PIKFundingID]          = ts.PIKFundingID
+		  ,[PIKPrincipalPaymentID] = ts.PIKPrincipalPaymentID
+		  ,[CurtailmentID]         = ts.CurtailmentID
+		  ,[UpsizeAmountID]        = ts.UpsizeAmountID
+		  ,[UnfundedCommitmentID]= ts.UnfundedCommitmentID
 	   FROM
 		(
 				 select [FeeTypeGuID]
@@ -137,6 +168,11 @@ BEGIN
 					   ,ExcludeFromCashflowDownload
 					   ,InitialFundingID
 					   ,M61AdjustedCommitmentID
+					   ,[PIKFundingID]          ,
+						[PIKPrincipalPaymentID] ,
+						[CurtailmentID]         ,
+						[UpsizeAmountID]        ,
+						[UnfundedCommitmentID] 
 				from @tFeeSchedulsConfig where 
 				(
 				FeeTypeGuID is not null 

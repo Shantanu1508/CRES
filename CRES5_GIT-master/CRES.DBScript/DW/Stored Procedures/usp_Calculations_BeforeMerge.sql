@@ -1,4 +1,5 @@
-﻿
+﻿-- Procedure
+
 CREATE PROCEDURE [DW].[usp_Calculations_BeforeMerge]
 	@BatchLogID int
 AS
@@ -12,8 +13,8 @@ BEGIN
 	SET Status = 'PRE-CALCULATIONS'
 	WHERE BatchLogId = @BatchLogID
 
-	DECLARE @BatchCount int
-	SET @BatchCount = (SELECT count(*) from BatchLog WHERE BatchEndTime > CONVERT(DATE,GETDATE()) and BatchName = 'Delta Refresh Process' and Status = 'SUCCESS')
+	--DECLARE @BatchCount int
+	--SET @BatchCount = (SELECT count(*) from dw.BatchLog WHERE BatchEndTime > CONVERT(DATE,GETDATE()) and BatchName = 'Delta Refresh Process' and Status = 'SUCCESS')
 
 	
 END

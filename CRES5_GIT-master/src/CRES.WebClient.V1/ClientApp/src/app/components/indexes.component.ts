@@ -12,6 +12,8 @@ import { RouterModule, Routes } from '@angular/router';
 import { WjCoreModule } from '@grapecity/wijmo.angular2.core';
 import { WjGridModule } from '@grapecity/wijmo.angular2.grid';
 import { WjGridFilterModule } from '@grapecity/wijmo.angular2.grid.filter';
+import * as wjcCore from '@grapecity/wijmo';
+
 declare var $: any;
 
 @Component({
@@ -35,6 +37,8 @@ export class IndexesComponent extends Paginated {
   public _isIndexesListFetching: boolean = true;
   public _isshowIndexesAddbutton: boolean = false;
   public _dvEmptyIndexesSearchMsg: boolean = false;
+  public _chkShowAllActiveInactiveIndexes = false;
+  public data !: wjcCore.CollectionView;
 
   @ViewChild('flexindexes') flexIndexes !: wjcGrid.FlexGrid;
 
@@ -62,6 +66,8 @@ export class IndexesComponent extends Paginated {
         }
       }
     });
+    this.onChangeShowAllActiveInactiveIndexes(this._chkShowAllActiveInactiveIndexes);
+    this.data = new wjcCore.CollectionView(this.lstIndexesData);
   }
 
   GetAllIndexes(): void {
@@ -81,8 +87,8 @@ export class IndexesComponent extends Paginated {
 
       setTimeout(() =>{
         if (this.flexIndexes) {
-          this.flexIndexes.autoSizeColumns(0, this.flexIndexes.columns.length, false, 20);
-          this.flexIndexes.columns[0].width = 350; // for Note Id
+         // this.flexIndexes.autoSizeColumns(0, this.flexIndexes.columns.length, false, 20);
+         // this.flexIndexes.columns[0].width = 350; // for Note Id
         }
       }, 1);
 
@@ -132,9 +138,9 @@ export class IndexesComponent extends Paginated {
             this._isIndexesListFetching = false;
 
             setTimeout(() => {
-              this.flexIndexes.invalidate();
-              this.flexIndexes.autoSizeColumns(0, this.flexIndexes.columns.length, false, 20);
-              this.flexIndexes.columns[0].width = 150; // for Indexes name Id
+              //this.flexIndexes.invalidate();
+              //this.flexIndexes.autoSizeColumns(0, this.flexIndexes.columns.length, false, 20);
+              //this.flexIndexes.columns[0].width = 150; // for Indexes name Id
             }, 1);
 
           } else {
@@ -145,6 +151,8 @@ export class IndexesComponent extends Paginated {
         else {
           this.utilityService.navigateToSignIn();
         }
+        //this.data = this.lstIndexesData;
+        this.onChangeShowAllActiveInactiveIndexes(false);
       },
         (error:any) => {
           if (error.status == 401) {
@@ -182,6 +190,22 @@ export class IndexesComponent extends Paginated {
 
   AddNewIndexes(): void {
     this._router.navigate(['/indexesdetail', "00000000-0000-0000-0000-000000000000"]);
+  }
+
+  onChangeShowAllActiveInactiveIndexes(newvalue): void {
+    // var checked = e.target.checked;
+
+    if (newvalue == true) {
+      this.data = new wjcCore.CollectionView(this.lstIndexesData);
+      this._chkShowAllActiveInactiveIndexes = true;
+    }
+    else {
+      var lstActiveIndexes = this.lstIndexesData.filter(x => x.StatusText == "Active");
+      this.data = new wjcCore.CollectionView(lstActiveIndexes);
+      this._chkShowAllActiveInactiveIndexes = false;
+    }
+    this.data.trackChanges = true;
+
   }
 }
 

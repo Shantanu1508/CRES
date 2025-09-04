@@ -38,6 +38,8 @@ export class PermissionService {
   private _getContentByRuleTypeDetailIDAPI: string = 'api/permission/getContentByRuleTypeDetailID';
   private _getAllRulesAPI: string = 'api/permission/getallrules';
   private _updatejsontemplateAPI: string = 'api/permission/updatejsontemplate';
+
+  
   constructor(public accountService: DataService, public utilityService: UtilityService) { }
 
   GetUserPermissionByPagename(pagename) {
@@ -207,4 +209,6 @@ export class PermissionService {
     this.accountService.set(this._updatejsontemplateAPI);
     return this.accountService.post(JSON.stringify(data));
   }
+ 
+ 
 }

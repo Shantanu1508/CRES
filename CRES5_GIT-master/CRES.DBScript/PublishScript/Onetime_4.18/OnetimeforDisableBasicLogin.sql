@@ -1,0 +1,1 @@
+﻿Update app.appconfig set [Value] = 1 where [key] = 'AllowBasicLogin'

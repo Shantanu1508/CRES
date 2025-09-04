@@ -1,4 +1,5 @@
 ﻿-- Procedure
+-- Procedure
 
 -- [HBOT].[usp_GetListEntityByIntent] 'Deal','name','the post','DealFullyfunded'
 -- [HBOT].[usp_GetListEntityByIntent] 'Deal','name','Woodmere Rehabilitation','CapitalizedInterestTotalFunding'
@@ -269,10 +270,10 @@ Declare @todaydate date = cast(getdate() as date);
 			--ON sEvent.AccountID = e.AccountID and e.EffectiveStartDate = sEvent.EffectiveStartDate  and e.EventTypeID = sEvent.EventTypeID
 		Left Join(
 			Select noteid,EndingBalance from(
-			select Distinct np.noteid,PeriodEndDate,ISNULL(EndingBalance,0) EndingBalance,
-			ROW_NUMBER() Over (Partition by np.noteid Order by np.noteid,np.PeriodEndDate desc) as rno
+			select Distinct nn.noteid,PeriodEndDate,ISNULL(EndingBalance,0) EndingBalance,
+			ROW_NUMBER() Over (Partition by nn.noteid Order by nn.noteid,np.PeriodEndDate desc) as rno
 			from [CRE].[NotePeriodicCalc] np
-			Inner join cre.note nn on nn.NoteID = np.NoteID
+			Inner join cre.note nn on nn.Account_AccountID = np.AccountID
 			inner join cre.Deal dd on dd.dealid = nn.dealid
 			where dd.dealname= @ObjectValue --IIF(@ObjectNature = 'name',dd.DealName,dd.credealid) =  @ObjectValue
 			and PeriodEndDate <= CAST(getdate() as Date) and AnalysisID = 'C10F3372-0FC2-4861-A9F5-148F1F80804F'
@@ -476,7 +477,7 @@ Declare @todaydate date = cast(getdate() as date);
 							from cre.deal d 
 							left join cre.note n on n.DealID = d.DealID
 							left join cre.DealFunding df on df.DealID = d.DealID
-							left join cre.TransactionEntry te on te.NoteID = n.NoteID
+							left join cre.TransactionEntry te on te.AccountID = n.Account_AccountID
 							where d.dealname= @ObjectValue --IIF(@ObjectNature = 'name',d.DealName,d.credealid) =  @ObjectValue
 							and te.[Type]='ScheduledPrincipalPaid' and te.AnalysisID= @Analysisid
 							and df.Applied=0
@@ -529,7 +530,7 @@ Declare @todaydate date = cast(getdate() as date);
 					from cre.deal d 
 					left join cre.note n on n.DealID = d.DealID
 					left join cre.DealFunding df on df.DealID = d.DealID
-					left join cre.TransactionEntry te on te.NoteID = n.NoteID
+					left join cre.TransactionEntry te on te.AccountID = n.Account_AccountID
 					where  d.dealname= @ObjectValue --IIF(@ObjectNature = 'name',d.DealName,d.credealid) =  @ObjectValue
 					and te.[Type]='ScheduledPrincipalPaid' and te.AnalysisID='C10F3372-0FC2-4861-A9F5-148F1F80804F'
 					and df.Applied=0
@@ -551,17 +552,19 @@ Declare @todaydate date = cast(getdate() as date);
 	BEGIN
 		Select DealName,SUM(Amount) as Amount
 		FROM(
-			Select d.DealName,tr.noteid,n.crenoteid,
+			Select d.DealName,n.noteid,n.crenoteid,
 			(CASE WHEN SUM(tr.Amount) > 0 THEN SUM(tr.Amount) ELSE (SUM(tr.Amount) * -1) END) as Amount
 			from cre.transactionEntry Tr
-			inner join cre.note n on n.noteid=tr.noteid 
+			inner join core.account ac on ac.AccountID = tr.AccountID
+			inner join cre.note n on n.Account_AccountID = ac.AccountID
 			inner join cre.deal d on d.DealID = n.DealID
-			inner join core.account ac on ac.AccountID = n.Account_AccountID
+			
 			where tr.analysisID = @Analysisid and tr.[Type] in ('PikPrincipalPaid','PIKPrincipalFunding')
 			and tr.date <= CAST(getdate() as date)
 			and d.dealname= @ObjectValue --IIF(@ObjectNature = 'name',d.DealName,d.credealid) =  @ObjectValue
 			and ac.IsDeleted<>1
-			group by tr.noteid,n.crenoteid,d.DealName
+			and ac.AccountTypeID = 1
+			group by n.noteid,n.crenoteid,d.DealName
 			)a
 		group by DealName
 	END
@@ -626,7 +629,7 @@ Declare @todaydate date = cast(getdate() as date);
 				 +    
 				 ISNULL((select SUM((ISNULL(EndingBalance,0)))  
 				 from [CRE].[NotePeriodicCalc] np  
-				 where np.noteid = n.noteid and n.dealid = d.dealid and PeriodEndDate = CAST(getdate() - 1 as Date) and AnalysisID = 'C10F3372-0FC2-4861-A9F5-148F1F80804F'),0)     
+				 where np.AccountID = n.Account_AccountID and n.dealid = d.dealid and PeriodEndDate = CAST(getdate() - 1 as Date) and AnalysisID = 'C10F3372-0FC2-4861-A9F5-148F1F80804F'),0)     
 				,0) CurrentBalance
  
 				FROM CRE.Note n 
@@ -691,7 +694,7 @@ Declare @todaydate date = cast(getdate() as date);
 			and d.dealname= @ObjectValue --IIF(@ObjectNature = 'name',d.DealName,d.credealid) =  @ObjectValue
 			GROUP BY d.DealName,funddate.Date
 			)a
-		WHERE a.[Date]is not null
+		WHERE a.[Date] is not null
 	END
 
 	IF(@Intent ='DealWholeLoanSpread')
@@ -917,14 +920,19 @@ IF(@Intent ='DealFutureFullyFunded')
 		FROM(
 			SELECT a.Deal,t.Amount,Convert(varchar,t.Date,101)as Date,t.FeeName
 			FROM CRE.TransactionEntry t
-			left join	(SELECT n.NoteId,d.DealName as Deal from cre.note n 
-						inner join core.Account acc on acc.AccountID = n.Account_AccountID
-						inner join cre.deal d on d.DealID = n.DealID
-						where d.dealname= @ObjectValue --IIF(@ObjectNature = 'name',d.DealName,d.credealid) =  @ObjectValue
-						and acc.IsDeleted<>1
-						and d.IsDeleted<>1
-						)a on a.NoteID = t.NoteID
-			WHERE t.NoteID = a.NoteID
+			inner join core.Account acc on acc.AccountID = t.AccountID
+			inner join cre.note n on n.Account_AccountID = acc.AccountID
+			left join	
+			(
+				SELECT n.Account_AccountID,n.NoteId,d.DealName as Deal 
+				from cre.note n 
+				inner join core.Account acc on acc.AccountID = n.Account_AccountID
+				inner join cre.deal d on d.DealID = n.DealID
+				where d.dealname= @ObjectValue --IIF(@ObjectNature = 'name',d.DealName,d.credealid) =  @ObjectValue
+				and acc.IsDeleted<>1
+				and d.IsDeleted<>1
+			)a on a.Account_AccountID = t.AccountID
+			WHERE n.NoteID = a.NoteID
 			and t.AnalysisID = @Analysisid
 			and t.FeeName LIKE 'Exit Fee%'
 			group by t.Date,t.FeeName,a.Deal,t.Amount
@@ -978,9 +986,10 @@ IF(@Intent ='DealFutureFullyFunded')
 		FROM(
 			SELECT Deal,SUM(AllInCouponRate*EndingBalance) as allcouponendingbal, SUM(EndingBalance) as EndingBalance
 			FROM(
-				  SELECT Deal,ISNULL(AllInCouponRate,0) as AllInCouponRate ,ISNULL(EndingBalance,0) as EndingBalance,npc.PeriodEndDate,npc.NoteID
-				  ,ROW_NUMBER() Over (Partition by npc.noteid Order by npc.noteid,npc.PeriodEndDate desc) as rno
+				  SELECT Deal,ISNULL(AllInCouponRate,0) as AllInCouponRate ,ISNULL(EndingBalance,0) as EndingBalance,npc.PeriodEndDate,n.NoteID
+				  ,ROW_NUMBER() Over (Partition by n.noteid Order by n.noteid,npc.PeriodEndDate desc) as rno
 				  from cre.NotePeriodicCalc npc
+				  Inner Join cre.note n on n.Account_AccountID = npc.AccountID
 				  left join (
 							 SELECT d.DealName as Deal,NoteId from CRE.Note n 
 							 inner join core.account acc on acc.AccountID = n.Account_AccountID
@@ -988,11 +997,11 @@ IF(@Intent ='DealFutureFullyFunded')
 							 where d.IsDeleted<>1
 							 and acc.IsDeleted<>1
 							 and  d.dealname= @ObjectValue --IIF(@ObjectNature = 'name',d.DealName,d.credealid) =  @ObjectValue 
-							 )a on a.NoteID = npc.NoteID
+							 )a on a.NoteID = n.NoteID
 				  WHERE AnalysisID= @Analysisid
 				  and month(npc.PeriodEndDate) = month(DATEADD(mm, -1, GETDATE()))
 				  and npc.PeriodEndDate <= getdate()
-				  and a.NoteID = npc.NoteID
+				  and a.NoteID = n.NoteID
 				)b
 		  where b.rno=1
 		  group by b.Deal,PeriodEndDate
@@ -1351,7 +1360,8 @@ IF(@Intent ='DealFutureFullyFunded')
 		SELECT DISTINCT npc.NoteId, EndingBalance,
 		ROW_NUMBER() Over (Partition by npc.noteid Order by npc.noteid,npc.PeriodEndDate desc) as FirstCount
 		FROM cre.NotePeriodicCalc npc
-		inner join #tempSubClientTable a on a.NoteID = npc.NoteID 
+		Inner Join cre.note n on n.Account_AccountID = npc.AccountID
+		inner join #tempSubClientTable a on a.NoteID = n.NoteID 
 		where npc.AnalysisID = @Analysisid
 		and cast(PeriodEndDate as date) <= @todaydate
 		and npc.[Month] is not null
@@ -1479,7 +1489,8 @@ IF(@Intent ='DealFutureFullyFunded')
 		SELECT DISTINCT npc.NoteId, EndingBalance,
 		ROW_NUMBER() Over (Partition by npc.noteid Order by npc.noteid,npc.PeriodEndDate desc) as FirstCount
 		FROM cre.NotePeriodicCalc npc
-		inner join #tempClientTable a on a.NoteID = npc.NoteID 
+		Inner Join cre.note n on n.account_AccountID = npc.AccountID
+		inner join #tempClientTable a on a.NoteID = n.NoteID 
 		where npc.AnalysisID = @Analysisid
 		and cast(PeriodEndDate as date) <= @todaydate
 		and npc.[Month] is not null

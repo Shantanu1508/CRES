@@ -1,4 +1,6 @@
 ﻿using CRES.DataContract;
+using CRES.Utilities;
+using OfficeOpenXml.FormulaParsing.Excel.Functions.Math;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -90,9 +92,10 @@ namespace CRES.BusinessLogic
                                         EffectiveDate = removeRepay[i].Date,
                                         Value = removeRepay[i].Value,
                                         Date = removeRepay[i].Date,
-                                        PurposeID = removeRepay[i].PurposeID
-                                           ,
-                                        PurposeText = removeRepay[i].PurposeText
+                                        PurposeID = removeRepay[i].PurposeID,
+                                        PurposeText = removeRepay[i].PurposeText,
+                                        AdjustmentType = removeRepay[i].AdjustmentType,
+                                        AdjustmentTypeText = removeRepay[i].AdjustmentTypeText,
                                     });
 
 
@@ -122,9 +125,10 @@ namespace CRES.BusinessLogic
                                                     EffectiveDate = removeRepay[i].Date,
                                                     Value = mostrecentminEffdate1[q].Value,
                                                     Date = mostrecentminEffdate1[q].Date,
-                                                    PurposeID = mostrecentminEffdate1[q].PurposeID
-                                                           ,
-                                                    PurposeText = removeRepay[q].PurposeText
+                                                    PurposeID = mostrecentminEffdate1[q].PurposeID,
+                                                    PurposeText = mostrecentminEffdate1[q].PurposeText,
+                                                    AdjustmentType = mostrecentminEffdate1[q].AdjustmentType,
+                                                    AdjustmentTypeText = mostrecentminEffdate1[q].AdjustmentTypeText
                                                 });
                                     }
                                 }
@@ -145,9 +149,10 @@ namespace CRES.BusinessLogic
                                 EffectiveDate = newEffDateequalCurrentEffdate,
                                 Value = removeRepay[i].Value,
                                 Date = removeRepay[i].Date,
-                                PurposeID = removeRepay[i].PurposeID
-                                          ,
-                                PurposeText = removeRepay[i].PurposeText
+                                PurposeID = removeRepay[i].PurposeID,
+                                PurposeText = removeRepay[i].PurposeText,
+                                AdjustmentType = removeRepay[i].AdjustmentType,
+                                AdjustmentTypeText = removeRepay[i].AdjustmentTypeText
                             });
 
                         //make the values in the orignal list 0 which are greate than effective date.
@@ -302,6 +307,7 @@ namespace CRES.BusinessLogic
             {
                 scenriotext = notedc.DefaultScenarioParameters.MaturityScenarioOverrideText;
             }
+            
 
 
             DateTime todaydate = DateTime.Now.Date;
@@ -349,6 +355,9 @@ namespace CRES.BusinessLogic
                     break;
                 case "Current Maturity Date":
                     MaturityType = "Current Maturity Date";
+                    break;
+                case "Prepay Date":
+                    MaturityType = "Prepay Date";
                     break;
             }
 
@@ -421,6 +430,31 @@ namespace CRES.BusinessLogic
                     }
                 }
             }
+            else if (MaturityType == "Prepay Date")
+            {
+                if (DoesNotehasActualpayoff != "")
+                {
+                    MaturityScenariosDataContract md = new MaturityScenariosDataContract();
+                    md.EffectiveDate = actualpayoffdate;
+                    md.Type = "ActualPayoffDate";
+                    md.SelectedMaturityDate = actualpayoffdate;
+                    currentmatdate = actualpayoffdate;
+                    NoteMaturityDateList.Add(md);
+                }
+                else
+                {
+                    foreach (var effectivedate in MaturityEffectiveDateList)
+                    {
+                        MaturityScenariosDataContract md = new MaturityScenariosDataContract();
+                        md.EffectiveDate = effectivedate;
+                        md.Type = "Prepay Date";
+                        md.SelectedMaturityDate = notedc.PrepayDate;
+                        currentmatdate = notedc.PrepayDate;
+                        NoteMaturityDateList.Add(md);
+                    }
+                }
+
+            }
             else
             {
                 foreach (var effectivedate in MaturityDatesDistinct)
@@ -490,6 +524,104 @@ namespace CRES.BusinessLogic
                         if (notedc.MaturityScenariosListFromDatabase[0].ExpectedMaturityDate != null || notedc.MaturityScenariosListFromDatabase[0].ExpectedMaturityDate != DateTime.MinValue)
                         {
                             specialMaturity = notedc.MaturityScenariosListFromDatabase[0].ExpectedMaturityDate;
+
+                            DateTime last_Paydowndate = DateTime.MinValue;
+                            DateTime last_fullpayoffdate = DateTime.MinValue;
+
+                            if (notedc.ListFutureFundingScheduleTab != null)
+                            {
+                                var LatestSchedule = (from F in notedc.ListFutureFundingScheduleTab
+                                                      orderby F.EffectiveDate
+                                                      select F.EffectiveDate).LastOrDefault();
+
+                                var LastPyDn = (from pd in notedc.ListFutureFundingScheduleTab
+                                                where pd.EffectiveDate == LatestSchedule && pd.PurposeID == 631 && pd.Value != 0
+                                                orderby pd.Date
+                                                select pd.Date).LastOrDefault();
+
+                                var LastFullPyOff = (from pd in notedc.ListFutureFundingScheduleTab
+                                                     where pd.EffectiveDate == LatestSchedule && pd.PurposeID == 630 && pd.Value != 0
+                                                     orderby pd.Date
+                                                     select pd.Date).LastOrDefault();
+
+                                if (LastPyDn != null)
+                                {
+                                    last_Paydowndate = Convert.ToDateTime(LastPyDn);
+                                }
+                                if (LastFullPyOff != null)
+                                {
+                                    last_fullpayoffdate = Convert.ToDateTime(LastFullPyOff);
+                                }
+
+
+                                if (last_Paydowndate != DateTime.MinValue)
+                                {
+                                    if (Convert.ToDateTime(specialMaturity).Year == Convert.ToDateTime(last_Paydowndate).Year && Convert.ToDateTime(specialMaturity).Month == Convert.ToDateTime(last_Paydowndate).Month)
+                                    {
+                                        specialMaturity = last_Paydowndate;
+                                    }
+                                }
+
+                                if (last_fullpayoffdate != DateTime.MinValue)
+                                {
+                                    specialMaturity = last_fullpayoffdate;
+                                }
+
+
+                            }
+
+
+                            #region VB - 01072025 --COmmented
+                            /////VB - 01072025============
+                            //if (specialMaturity == DateExtensions.LastDateOfMonth(Convert.ToDateTime(specialMaturity)))
+                            //{
+                            //    int day_LastPyDn = 10;
+                            //    DateTime fullpayoffdate = DateTime.MinValue;
+
+                            //    if (notedc.ListFutureFundingScheduleTab != null)
+                            //    {
+                            //        var LatestSchedule = (from F in notedc.ListFutureFundingScheduleTab
+                            //                              orderby F.EffectiveDate
+                            //                              select F.EffectiveDate).LastOrDefault();
+
+                            //        var LastPaydownDate = (from pd in notedc.ListFutureFundingScheduleTab
+                            //                               where pd.EffectiveDate == LatestSchedule && pd.PurposeID == 631 && pd.Value != 0
+                            //                               orderby pd.Date
+                            //                               select pd.Date).LastOrDefault();
+
+                            //        if (LastPaydownDate != null)
+                            //        {
+                            //            day_LastPyDn = Convert.ToDateTime(LastPaydownDate).Day;
+                            //        }
+
+                            //    }
+
+                            //    specialMaturity = DateExtensions.CreateNewDate(Convert.ToDateTime(specialMaturity).Year, Convert.ToDateTime(specialMaturity).Month, day_LastPyDn);
+                            //    //specialMaturity = DateExtensions.GetWorkingDayUsingOffset(Convert.ToDateTime(specialMaturity), Convert.ToInt16(-1), "US", notedc.ListHoliday).Date;
+                            //}
+                            //////For Full Pay Off Date set (Expected Maturity Date = Full Pay Off Date)                            
+                            //if (notedc.ListFutureFundingScheduleTab != null)
+                            //{
+                            //    var LatestSchedule = (from F in notedc.ListFutureFundingScheduleTab
+                            //                          orderby F.EffectiveDate
+                            //                          select F.EffectiveDate).LastOrDefault();
+
+
+                            //    var FullPyDate = (from pd in notedc.ListFutureFundingScheduleTab
+                            //                      where pd.EffectiveDate == LatestSchedule && pd.PurposeID == 630 && pd.Value != 0
+                            //                      orderby pd.Date
+                            //                      select pd.Date).LastOrDefault();
+
+                            //    if (FullPyDate != null)
+                            //    {
+                            //        specialMaturity = Convert.ToDateTime(FullPyDate);
+                            //    }
+
+                            //}
+                            ////=========================
+                            #endregion
+
+
                         }
                     }
                     if (currentMaturityType == "OpenPrepaymentDate")
@@ -500,6 +632,7 @@ namespace CRES.BusinessLogic
                         }
                     }
                 }
+
                 if (specialMaturity != DateTime.MinValue)
                 {
                     MaturityScenariosDataContract md = new MaturityScenariosDataContract();
@@ -510,15 +643,39 @@ namespace CRES.BusinessLogic
                 }
             }
 
+
+            //if (currentMaturityType == "ExpectedMaturityDate")
+            //{
+            //    if (currentmatdate == DateExtensions.LastDateOfMonth(Convert.ToDateTime(currentmatdate)))
+            //    {
+            //        currentmatdate = DateExtensions.CreateNewDate(Convert.ToDateTime(currentmatdate).Year, Convert.ToDateTime(currentmatdate).Month, 10);
+            //        currentmatdate = DateExtensions.GetWorkingDayUsingOffset(Convert.ToDateTime(currentmatdate), Convert.ToInt16(-1), "US", notedc.ListHoliday).Date;
+            //    }
+            //}
+
+
             notedc.SelectedMaturityDate = currentmatdate;
+
+
             if (notedc.DefaultScenarioParameters != null)
             {
-                if (notedc.DefaultScenarioParameters.MaturityAdjustment != null && notedc.DefaultScenarioParameters.MaturityAdjustment != 0)
+                if (notedc.DefaultScenarioParameters.UseMaturityAdjustmentMonthsText == "Y")
                 {
+                    int? MaturityAdjustment = 0;
+                    if (notedc.MaturityAdjMonthsOverride == null || notedc.MaturityAdjMonthsOverride == 0)
+                    {
+                        //use from scenrio when deal level is not provided
+                        MaturityAdjustment = notedc.DefaultScenarioParameters.MaturityAdjustment;
+                    }
+                    else
+                    {
+                        MaturityAdjustment = notedc.MaturityAdjMonthsOverride;
+                    }
+
                     foreach (var items in NoteMaturityDateList)
                     {
                         DateTime tempdate = Convert.ToDateTime(items.SelectedMaturityDate);
-                        currentmatdate = tempdate.AddMonths(Convert.ToInt16(notedc.DefaultScenarioParameters.MaturityAdjustment));
+                        currentmatdate = tempdate.AddMonths(Convert.ToInt16(MaturityAdjustment));
                         items.SelectedMaturityDate = currentmatdate;
                     }
                 }
@@ -632,6 +789,85 @@ namespace CRES.BusinessLogic
             notedc.ListLiborScheduleTab = null;
             notedc.ListLiborScheduleTab = IndexList;
             return notedc;
+        }
+
+
+        public static IndexDataContract CreateIndexDataContract(List<LiborScheduleTab> ListLiborScheduleTab)
+        {
+            List<IndexScheduleDataContract> ListLibor = new List<IndexScheduleDataContract>();
+            List<IndexScheduleDataContract> ListSofr = new List<IndexScheduleDataContract>();
+            IndexDataContract index = new IndexDataContract();
+
+            foreach (var item in ListLiborScheduleTab)
+            {
+                if (item.IndexType.ToLower().Contains("sofr"))
+                {
+                    IndexScheduleDataContract sofr = new IndexScheduleDataContract();
+                    sofr.EffectiveDate = item.EffectiveDate;
+                    sofr.Date = item.Date;
+                    sofr.Value = item.Value;
+                    sofr.NoteID = item.NoteID;
+                    sofr.IndexType = item.IndexType;
+                    ListSofr.Add(sofr);
+
+
+                }
+                else
+                {
+                    IndexScheduleDataContract libor = new IndexScheduleDataContract();
+                    libor.EffectiveDate = item.EffectiveDate;
+                    libor.Date = item.Date;
+                    libor.Value = item.Value;
+                    libor.NoteID = item.NoteID;
+                    libor.IndexType = item.IndexType;
+                    ListLibor.Add(libor);
+                }
+            }
+
+            index.Libor = ListLibor;
+            index.SOFR = ListSofr;
+            return index;
+
+        }
+
+
+        public static NoteDataContract AddEndDateToPikSchedule(NoteDataContract _noteCalculatorDC)
+        {
+            var currentmat = GetCurrentMaturityBasedOnStartDate(_noteCalculatorDC);
+            foreach (var pik in _noteCalculatorDC.NotePIKScheduleList)
+            {
+                if (pik.EndDate == null || pik.EndDate == DateTime.MinValue)
+                {
+                    if (pik.StartDate != null)
+                    {
+                        pik.EndDate = currentmat.Value.AddDays(-1);
+                    }
+                }
+            }
+
+            return _noteCalculatorDC;
+        }
+
+        public static DateTime? GetCurrentMaturityBasedOnStartDate(NoteDataContract _noteCalculatorDC)
+        {
+            DateTime? currentmat = DateTime.MinValue;
+
+            foreach (var MaturityDate in _noteCalculatorDC.MaturityScenariosList)
+            {
+                if (MaturityDate.Type == "Fully extended")
+                {
+                    if (currentmat.Value.Date == DateTime.MinValue)
+                    {
+                        currentmat = MaturityDate.SelectedMaturityDate;
+                    }
+                    else if (currentmat.Value.Date < MaturityDate.SelectedMaturityDate)
+                    {
+                        currentmat = MaturityDate.SelectedMaturityDate;
+                    }
+                }
+            }
+
+            return currentmat;
         }
     }
 }

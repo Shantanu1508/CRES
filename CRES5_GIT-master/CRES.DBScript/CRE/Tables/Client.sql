@@ -7,7 +7,14 @@
     [UpdatedBy]   NVARCHAR (256) NULL,
     [UpdatedDate] DATETIME       NULL,
     [EmailId]     NVARCHAR (256) NULL,
-    [ClientAbbr] NVARCHAR(256) NULL, 
+    [ClientAbbr]  NVARCHAR (256) NULL,
+    [IsThirdParty] BIT DEFAULT ((0)) NOT NULL,
     CONSTRAINT [PK_ClientID] PRIMARY KEY CLUSTERED ([ClientID] ASC)
 );
+
+
+GO
+ALTER TABLE [CRE].[Client] ENABLE CHANGE_TRACKING WITH (TRACK_COLUMNS_UPDATED = ON);
+
+
 

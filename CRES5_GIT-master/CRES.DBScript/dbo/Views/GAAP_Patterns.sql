@@ -1,6 +1,6 @@
 ﻿-- View
 -- View
-Create View [dbo].[GAAP_Patterns]
+CREATE View [dbo].[GAAP_Patterns]
 as
 select crenoteid, 
 	substring (case when StubInterest>0 then 'StubInt,' else '' end + 
@@ -26,6 +26,7 @@ select crenoteid,
 						where tr.type  in ( 'StubInterest')  -- Unfunded Loans
 						
 						and Tr.AnalysisID = 'C10F3372-0FC2-4861-A9F5-148F1F80804F'
+						and tr.AccountTypeID = 1
 						 ---Unfunded Loans
 Union All
 Select Distinct N.CreNoteid ,2 as LoanFeature --'PurchaseInterest' 
@@ -34,7 +35,7 @@ Select Distinct N.CreNoteid ,2 as LoanFeature --'PurchaseInterest'
 						where tr.type  in ( 'PurchasedInterest')  -- Unfunded Loans
 						
 						and Tr.AnalysisID = 'C10F3372-0FC2-4861-A9F5-148F1F80804F'
-
+						and tr.AccountTypeID = 1
 
 union All
 

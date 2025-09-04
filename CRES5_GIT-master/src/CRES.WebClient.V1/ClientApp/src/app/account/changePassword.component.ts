@@ -317,7 +317,7 @@ export class changepassword {
           this._ShowSuccessmessage = res.Message;
           var user: any = localStorage.getItem('user');
           var _userData = JSON.parse(user);
-          this._user = res.UserData;
+          this._user = _userData;
           this._user.Token = res.Token;
           //this.Message = "Password changed succesfully."
           this._ShowSuccessmessage = "Password changed succesfully."
@@ -523,7 +523,7 @@ export class changepassword {
     }
   }
 
-  public revokeindex !: number;
+  public revokeindex: number;
   public _revokedelegateuser: any;
   showRevokeDialog(revokeindex: number) {
     this.revokeindex = revokeindex;
@@ -805,6 +805,7 @@ export class changepassword {
       if (res.Succeeded == true) {
         this._userinfo = res._userinfo;
         this._user.TimeZone = this._userinfo.TimeZone;
+        this._user.IpAddress = this._userinfo.IpAddress;
       }
     });
   }

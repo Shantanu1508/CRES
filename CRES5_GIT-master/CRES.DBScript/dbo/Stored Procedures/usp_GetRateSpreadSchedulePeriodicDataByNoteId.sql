@@ -54,6 +54,8 @@ n.NoteID
 ,rs.[RateOrSpreadToBeStripped]
 ,rs.IndexNameID  
 ,lindex.name as IndexNameText  
+,rs.DeterminationDateHolidayList
+,LDeterminationDateHolidayList.CalendarName as DeterminationDateHolidayListText
 
 from [CORE].RateSpreadSchedule rs
 INNER JOIN [CORE].[Event] eve ON eve.EventID = rs.EventId
@@ -63,7 +65,7 @@ LEFT JOIN [CORE].[Lookup] LValueTypeID ON LValueTypeID.LookupID = rs.ValueTypeID
 LEFT JOIN [CORE].[Lookup] LIntCalcMethodID ON LIntCalcMethodID.LookupID = rs.IntCalcMethodID
 LEFT JOIN [CORE].[Lookup] LEventTypeID ON LEventTypeID.LookupID = eve.EventTypeID
 LEFT JOIN [CORE].[Lookup] lindex ON lindex.LookupID = rs.IndexNameID  
-
+LEFT JOIN app.HoliDaysMaster LDeterminationDateHolidayList ON LDeterminationDateHolidayList.HolidayMasterID = rs.DeterminationDateHolidayList
 where n.NoteID = @NoteId and acc.IsDeleted = 0
 and eve.StatusID = (Select LookupID from Core.Lookup where name = 'Active' and parentid = 1)
 ORDER BY eve.EffectiveStartDate,rs.[Date]

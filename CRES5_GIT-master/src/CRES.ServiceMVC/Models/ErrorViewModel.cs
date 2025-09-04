@@ -1,3 +1,5 @@
+using System;
+
 namespace CRES.ServiceMVC.Models
 {
     public class ErrorViewModel

@@ -1,5 +1,5 @@
 ﻿
-Create PROCEDURE [dbo].[usp_GetNoteByCRENoteId]   --'2173' ,'245'
+CREATE PROCEDURE [dbo].[usp_GetNoteByCRENoteId] --  '2173' ,'245'
 (
     @CRENoteId nvarchar(500),
 	@ScenarioName nvarchar(500)
@@ -13,7 +13,7 @@ BEGIN
 
 	iF EXISTS (Select PeriodID from core.Period where IsDeleted <> 1)
 	BEGIN
-		SET @AcctgCloseDate = (Select MAX(EndDate) from core.[Period] where isdeleted <> 1)
+		SET @AcctgCloseDate = (Select MAX(CloseDate) from core.[Period] where isdeleted <> 1)
 	END
 	ELSE
 	BEGIN
@@ -45,7 +45,7 @@ BEGIN
 					,n.PaymentDateBusinessDayLag
 					,n.IOTerm
 					,n.AmortTerm
-					,n.PIKSeparateCompounding
+					--,n.PIKSeparateCompounding
 					,n.MonthlyDSOverridewhenAmortizing
 					,n.AccrualPeriodPaymentDayWhenNotEOMonth
 					,n.FirstPeriodInterestPaymentOverride
@@ -136,7 +136,7 @@ BEGIN
 					,n.ExitFeeAmortCheck				  
 					,lBaseCurrency.Name AS LoanCurrency
 					,lIncludeServicingPaymentOverrideinLevelYield.Name AS IncludeServicingPaymentOverrideinLevelYieldText
-					,lPIKSeparateCompounding.Name AS PIKSeparateCompoundingText
+					--,lPIKSeparateCompounding.Name AS PIKSeparateCompoundingText
 					,lStubPaidinAdvanceYN.Name AS StubPaidinAdvanceYNText
 					,lModelFinancingDrawsForFutureFundings.Name AS ModelFinancingDrawsForFutureFundingsText
 					,lExitFeeAmortCheck.Name AS ExitFeeAmortCheckText 
@@ -194,6 +194,17 @@ BEGIN
 				,n.StraightLineAmortOverride
 				,n.NoteTransferDate
 				,n.ImpactCommitmentCalc
+				,n.FirstIndexDeterminationDateOverride
+
+				,ISNULL(n.AccrualPeriodType,811) as AccrualPeriodType
+				,ISNULL(n.AccrualPeriodBusinessDayAdj,813) as AccrualPeriodBusinessDayAdj
+				,lAccrualPeriodType.name as AccrualPeriodTypetext
+				,lAccrualPeriodBusinessDayAdj.name as AccrualPeriodBusinessDayAdjText
+
+				,AccountingClose
+				,lAccountingClose.name as AccountingClosetext
+			
+				
 
 			  FROM CRE.Note n
 			  INNER JOIN core.Account ac ON ac.AccountID = n.Account_AccountID
@@ -201,7 +212,7 @@ BEGIN
 			  left join Core.Lookup lIndex ON n.IndexNameID=lIndex.LookupID
 			  left join Core.Lookup lBaseCurrency ON ac.BaseCurrencyID=lBaseCurrency.LookupID
               left join Core.Lookup lIncludeServicingPaymentOverrideinLevelYield ON n.IncludeServicingPaymentOverrideinLevelYield =lIncludeServicingPaymentOverrideinLevelYield.LookupID
-			  left join Core.Lookup lPIKSeparateCompounding ON n.PIKSeparateCompounding=lPIKSeparateCompounding.LookupID
+			  --left join Core.Lookup lPIKSeparateCompounding ON n.PIKSeparateCompounding=lPIKSeparateCompounding.LookupID
 			  left join Core.Lookup lStubPaidinAdvanceYN ON n.StubPaidinAdvanceYN=lStubPaidinAdvanceYN.LookupID 
 	          left join Core.Lookup lModelFinancingDrawsForFutureFundings ON n.ModelFinancingDrawsForFutureFundings=lModelFinancingDrawsForFutureFundings.LookupID
 		      left join Core.Lookup lExitFeeAmortCheck ON n.ExitFeeAmortCheck=lExitFeeAmortCheck.LookupID
@@ -211,7 +222,7 @@ BEGIN
 			  left join Core.Lookup lRoundingMethod ON n.RoundingMethod=lRoundingMethod.LookupID			  
 		      left join Core.Lookup lServicer ON n.Servicer=lServicer.LookupID
 			  left join Core.Lookup lFullInterestAtPPayoff  ON n.FullInterestAtPPayoff=lFullInterestAtPPayoff.LookupID
-			  left join Core.Lookup pik  ON n.PIKInterestAddedToBalanceBasedOnBusinessAdjustedDate=pik.LookupID	
+			  left join Core.Lookup pik  ON ISNULL(n.PIKInterestAddedToBalanceBasedOnBusinessAdjustedDate,4)=pik.LookupID	
 			  left join Core.Lookup paydown  ON n.InterestCalculationRuleForPaydowns=paydown.LookupID					  	  		   
 			  left join Core.Lookup StubOnFF  ON n.StubInterestPaidonFutureAdvances=StubOnFF.LookupID						   
 		      left join CRE.Deal d on d.DealID = n.DealID
@@ -219,6 +230,10 @@ BEGIN
 			  left join Core.Lookup lUseRuletoDetermineNoteFunding ON n.UseRuletoDetermineNoteFunding=lUseRuletoDetermineNoteFunding.LookupID
 			  left join Core.Lookup paydownamort  ON n.InterestCalculationRuleForPaydownsAmort=paydownamort.LookupID	
 			  left join Core.Lookup lRoundingNote  ON n.RoundingNote=lRoundingNote.LookupID	
+			  left JOin core.lookup lAccrualPeriodType on lAccrualPeriodType.lookupid = ISNULL(n.AccrualPeriodType,811)
+	left JOin core.lookup lAccrualPeriodBusinessDayAdj on lAccrualPeriodBusinessDayAdj.lookupid = ISNULL(n.AccrualPeriodBusinessDayAdj,813)
+	left JOin core.lookup lAccountingClose on lAccountingClose.lookupid = n.AccountingClose
+
 			  WHERE CRENoteID = @CRENoteId and ac.IsDeleted = 0
 
 			  

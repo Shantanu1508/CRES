@@ -18,10 +18,12 @@ Declare @Sum_EndingBalance decimal(28,15);
 SET @AnalysisID = (Select AnalysisID from core.Analysis where name = 'Default')
 
 Select @CRENoteID = n.crenoteid,@Sum_EndingBalance = SUM(nc.EndingBalance) 		     
-from cre.noteperiodicCalc nc																   
-inner join cre.note n on n.noteid = nc.noteid
-where nc.[Month] is not null and AnalysisID = @AnalysisID
-and nc.NoteID = @NoteID
+from cre.noteperiodicCalc nc
+Inner join core.account acc on acc.accountid = nc.AccountID
+Inner join cre.note n on n.account_accountid = acc.accountid and acc.AccounttypeID = 1
+--inner join cre.note n on n.noteid = nc.noteid
+where nc.[Month] is not null and AnalysisID = @AnalysisID and acc.AccounttypeID = 1
+and n.NoteID = @NoteID
 Group by n.noteid,n.crenoteid
 
 

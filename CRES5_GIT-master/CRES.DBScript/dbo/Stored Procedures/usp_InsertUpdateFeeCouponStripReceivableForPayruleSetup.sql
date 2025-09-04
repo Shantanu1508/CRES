@@ -18,7 +18,19 @@ Declare @Active as nvarchar(256)=(select LookupID from core.lookup where name ='
 Declare @FeeCouponStripReceivable  int  =20;  
 DECLARE @NoteId UNIQUEIDENTIFIER    
 DECLARE @AccountId UNIQUEIDENTIFIER  
-  
+
+
+
+Delete from core.[FeeCouponStripReceivable] where SourceNoteId = @SourceNoteID and AnalysisID =  @AnalysisID  and eventid in (
+Select eventid from core.Event WHERE  EventTypeID = @FeeCouponStripReceivable
+and AccountID in (Select Account_AccountID from CRE.NOte where noteid in (Select StripTransferTo from [CRE].PayruleSetup where StripTransferFrom =@SourceNoteID ))
+)  
+
+--Delete from core.Event WHERE EventTypeID = @FeeCouponStripReceivable and AccountID in (Select Account_AccountID from CRE.NOte where noteid in (Select StripTransferTo from [CRE].PayruleSetup where StripTransferFrom =@SourceNoteID ) ) 
+
+
+
+
 IF CURSOR_STATUS('global','CursorNoteFF')>=-1      
 BEGIN      
 DEALLOCATE CursorNoteFF      
@@ -28,10 +40,8 @@ DECLARE CursorNoteFF CURSOR
 FOR      
 (      
  select DISTINCT ReceiverNoteID as NoteID ,(SELECT TOP 1 n.Account_AccountID FROM CRE.Note n inner join Core.Account ac on n.Account_AccountID=ac.AccountID  WHERE NoteID = nf.ReceiverNoteID and ac.IsDeleted=0) AccountId   
- from [CRE].PayruleDistributions nf   
- --left join Core.CalculationRequests cr on cr.noteid=nf.ReceiverNoteID  
- where SourceNoteID= @SourceNoteID and amount <> 0   
- --and  cr.StatusID = (SELECT LookupID FROM Core.Lookup WHERE ParentId=40 AND NAME ='Dependents')   
+ from [CRE].PayruleDistributions nf 
+ where SourceNoteID= @SourceNoteID and amount <> 0  
  and nf.AnalysisID = @AnalysisID  
 )  
 OPEN CursorNoteFF       
@@ -118,7 +128,7 @@ BEGIN
  GETDATE(),  
   
  pd.SourceNoteID,  
- pd.Amount,  
+ sum(pd.Amount),  
  pd.RuleID,  
  pd.FeeName,  
  @AnalysisID  

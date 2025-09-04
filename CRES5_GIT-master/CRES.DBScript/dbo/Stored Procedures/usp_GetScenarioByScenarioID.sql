@@ -139,7 +139,7 @@ Select 	@TotalCount=cOUNT(DISTINCT ind.Date )
 			 where AnalysisID=@ScenarioID
 
 PRINT(@query)
-EXEC sp_executesql @query;
+EXEC ( @query);
 
 
 	SET TRANSACTION ISOLATION LEVEL READ COMMITTED

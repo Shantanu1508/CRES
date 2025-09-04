@@ -7,9 +7,6 @@
     [ActualCashFlows]                              DECIMAL (28, 15) NULL,
     [GAAPCashFlows]                                DECIMAL (28, 15) NULL,
     [EndingGAAPBookValue]                          DECIMAL (28, 15) NULL,
-    [TotalGAAPIncomeforthePeriod]                  DECIMAL (28, 15) NULL,
-    [InterestAccrualforthePeriod]                  DECIMAL (28, 15) NULL,
-    [PIKInterestAccrualforthePeriod]               DECIMAL (28, 15) NULL,
     [TotalAmortAccrualForPeriod]                   DECIMAL (28, 15) NULL,
     [AccumulatedAmort]                             DECIMAL (28, 15) NULL,
     [BeginningBalance]                             DECIMAL (28, 15) NULL,
@@ -121,9 +118,24 @@
     [EndingAccumSLAmort]                           DECIMAL (28, 15) NULL,
     [EndingPreCapGAAPBasis]                        DECIMAL (28, 15) NULL,
     [PIKPrincipalPaidForThePeriod]                 DECIMAL (28, 15) NULL,
-    [EndingBalanceBI_RP]                                DECIMAL (28, 15) NULL,
+    [EndingBalanceBI_RP]                           DECIMAL (28, 15) NULL,
+    [RemainingUnfundedCommitment]                  DECIMAL (28, 15) NULL,
+    [CurrentPeriodPIKInterestAccrual]              DECIMAL (28, 15) NULL,
+    [AccountID]                                    UNIQUEIDENTIFIER NULL,
+    [AccountTypeID]                                INT              NULL,
+    [AccountTypeBI]                                NVARCHAR (256)   NULL,
+    [CapitalizedCostAccumulatedAmort]              DECIMAL (28, 15) NULL,
+    [DiscountPremiumAccumulatedAmort]              DECIMAL (28, 15) NULL,
+    [PrincipalWriteoff]                            DECIMAL (28, 15) NULL,
+    [NetPIKAmountForThePeriod]                      DECIMAL (28, 15) NULL,
+    ParentAccountID	      UNIQUEIDENTIFIER,
+CashInterest		  decimal(28,15),
+CapitalizedInterest	  decimal(28,15)
+
     CONSTRAINT [PK_NotePeriodicCalcAutoID] PRIMARY KEY CLUSTERED ([NotePeriodicCalcAutoID] ASC)
 );
+
+
 
 
 GO
@@ -138,16 +150,6 @@ CREATE NONCLUSTERED INDEX [nci_wi_NotePeriodicCalcBI_2C7146774C746B0F2A7EBF74910
 
 
 GO
-CREATE NONCLUSTERED INDEX [nci_wi_NotePeriodicCalcBI_AE45FF4DA3E894C277EAA0001C711966]
-    ON [DW].[NotePeriodicCalcBI]([AnalysisName] ASC, [DealName] ASC)
-    INCLUDE([AccumalatedCapitalizedCostBI], [AccumaltedDiscountPremiumBI], [AccumulatedAmort], [CleanCost], [CREDealID], [CRENoteID], [CurrentPeriodInterestAccrualPeriodEnddate], [EndingBalance], [EndingGAAPBookValue], [NoteID], [NoteID_EODPeriodEndDateBI], [PeriodEndDate]);
-
-
-GO
-CREATE NONCLUSTERED INDEX [nci_wi_NotePeriodicCalcBI_8EDCA4CF62598A3E51CC19CC20B5CD62]
-    ON [DW].[NotePeriodicCalcBI]([AnalysisID] ASC, [EndingBalance] ASC)
-    INCLUDE([CRENoteID], [CurrentPeriodInterestAccrualPeriodEnddate], [NoteID], [PeriodEndDate]);
-
 
 GO
 CREATE NONCLUSTERED INDEX [nci_wi_NotePeriodicCalcBI_D39CA8BBD76B99A18C7A34196C18BAA8]

@@ -1,13 +1,17 @@
-﻿using CRES.DataContract;
-using CRES.Utilities;
-using System;
+﻿using System;
 using System.Collections.Generic;
-using System.Data;
-using System.Data.SqlClient;
 using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using CRES.DataContract;
+using CRES.DAL.IRepository;
+using CRES.DAL;
+using System.Data.SqlClient;
+using System.Data;
+using CRES.Utilities;
 namespace CRES.DAL.Repository
 {
-    public class LookupRepository : ILookupRepository
+   public class LookupRepository:  ILookupRepository
     {
         public List<LookupDataContract> GetAllLookup(string lookupsIDs)
         {
@@ -21,15 +25,15 @@ namespace CRES.DAL.Repository
             dt = hp.ExecDataTable("dbo.usp_GetLookupByNameAndParentID", sqlparam);
 
             List<Lookup> lstLookup = new List<Lookup>();
-
+            
             foreach (DataRow dr in dt.Rows)
             {
                 LookupDataContract _lstLookUp = new LookupDataContract();
-                _lstLookUp.LookupID = CommonHelper.ToInt16_NotNullable(dr["LookupID"]);
-                _lstLookUp.Name = Convert.ToString(dr["Name"]);
-                _lstLookUp.Value = Convert.ToString(dr["Value"]);
-                _lstLookUp.StatusID = CommonHelper.ToInt32_NotNullable(dr["StatusID"]); ;
-                _lstLookUp.ParentID = CommonHelper.ToInt32_NotNullable(dr["ParentID"]); ;
+                _lstLookUp.LookupID = CommonHelper.ToInt16_NotNullable(dr["LookupID"]); 
+                _lstLookUp.Name = Convert.ToString(dr["Name"]); 
+                _lstLookUp.Value = Convert.ToString(dr["Value"]); 
+                _lstLookUp.StatusID = CommonHelper.ToInt32_NotNullable(dr["StatusID"]); ; 
+                _lstLookUp.ParentID = CommonHelper.ToInt32_NotNullable(dr["ParentID"]); ; 
                 _lstLookUp.SortOrder = Convert.ToInt16(dr["SortOrder"]);
                 lstLookUpDC.Add(_lstLookUp);
             }

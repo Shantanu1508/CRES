@@ -36,7 +36,8 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
  Declare @AdditionalText   nvarchar(256)  
  Declare @ScheduledDateTime Datetime  
  Declare @ActionType int  
- declare @IsReoDeal int=0  
+ declare @IsReoDeal int=0,@SkipWorkflowNotification bit=0
+ declare @SkipWorkflowNotificationComment nvarchar(max) = null
   
 IF(@TaskTypeID=502)  
  BEGIN  
@@ -55,9 +56,12 @@ IF(@TaskTypeID=502)
  @DebtAmount = Amount  
  from cre.DealFunding where DealFundingID = @TaskID  
   
- SELECT  @CREDealID =(select CREDealID from CRE.Deal where dealid = @dealid)   
+ SELECT  @CREDealID =CREDealID from CRE.Deal where dealid = @dealid 
  SELECT @WorkflowType  = (Select Value1 from core.Lookup where LookupID = @purposeID)  
-   
+ IF EXISTS( SELECT 1 from @CheckListDetail where CheckListStatus=881 and  taskid = @TaskID)
+ BEGIN
+    SET @SkipWorkflowNotification=1
+ END
   
 IF(@lookupidSave = @SubmitType)  
 BEGIN  
@@ -152,6 +156,10 @@ BEGIN
 END  
 ELSE IF (@lookupidSave != @SubmitType AND @lookupidSaveAsDraft != @SubmitType)   
 BEGIN  
+  
+ 
+ 
+ 
  INSERT INTO [CRE].[WFTaskDetail]  
  ([WFStatusPurposeMappingID]  
  ,[TaskID]  
@@ -209,7 +217,43 @@ BEGIN
  DELETE FROM [CRE].[WFTaskDetail] where TaskID = @TaskID and TaskTypeID=@TaskTypeID  and   
  WFTaskDetailID <> (select max(WFTaskDetailID) FROM [CRE].[WFTaskDetail] where TaskID = @TaskID and TaskTypeID=@TaskTypeID )  
   
-  
+  --activity log for disbaled prelim and final
+  SET @WFStatusName = (select wsm.StatusName from CRE.WFStatusPurposeMapping wfsm inner join CRE.WFStatusMaster wsm on wfsm.WFStatusMasterID = wsm.WFStatusMasterID where WFStatusPurposeMappingID = @WFStatusPurposeMappingID)
+ 
+ IF (@SkipWorkflowNotification=1 and (@WFStatusName='Under Review' or @WFStatusName='Completed'))
+ BEGIN
+      
+     IF @WFStatusName='Under Review'
+            Set @SkipWorkflowNotificationComment= 'No preliminary notification was sent because it was disabled.'
+     ELSE IF @WFStatusName='Completed'
+            Set @SkipWorkflowNotificationComment= 'No final notification was sent because it was disabled.'
+     
+     INSERT INTO [CRE].[WFTaskDetail]  
+             ([WFStatusPurposeMappingID]  
+             ,[TaskID]  
+             ,[TaskTypeID]  
+             ,[Comment]  
+             ,[SubmitType]  
+             ,[CreatedBy]  
+             ,[CreatedDate]  
+             ,[UpdatedBy]  
+             ,[UpdatedDate]  
+             ,[DelegatedUserID])  
+             VALUES  
+             (  
+             @WFStatusPurposeMappingID,  
+             @TaskID,  
+             @TaskTypeID,  
+             @SkipWorkflowNotificationComment,  
+             497,  
+             @CreatedBy,  
+             getdate(),  
+             @CreatedBy,  
+             getdate(),  
+             @DelegatedUserID  
+             )
+ 
+ END
   
  ----Export WF Status to Backshop (When Status Changed)  
  --Declare @L_StatusName nvarchar(256);  
@@ -229,7 +273,7 @@ BEGIN
 END  
   
   
-  if (@Comment!='Cancelled final notification')
+  if (isnull(@Comment,'')!='Canceled final notification')
   BEGIN
 --INsert Update checklist detail  
 IF EXISTS(Select WFCheckListDetailID from [CRE].[WFCheckListDetail] where TaskId = @TaskID and TaskTypeID=@TaskTypeID )  
@@ -348,6 +392,18 @@ IF EXISTS(Select taskid from @L_tblCheckListDetail where taskid = @TaskID and Ta
 BEGIN  
  Update cre.WFCheckListDetail  set CheckListStatus=499 where taskid = @TaskID and TaskTypeID=@TaskTypeID and WFCheckListMasterID=9 and ISNULL(CheckListStatus,550) = 550  
 END  
+
+--Update ckeck list as 'No' for Checked Note Allocations in M61  
+IF EXISTS(Select taskid from @L_tblCheckListDetail where taskid = @TaskID and TaskTypeID=@TaskTypeID and WFCheckListMasterID=20  and ISNULL(CheckListStatus,550) = 550)  
+BEGIN  
+ Update cre.WFCheckListDetail  set CheckListStatus=616 where taskid = @TaskID and TaskTypeID=@TaskTypeID and WFCheckListMasterID=20 and ISNULL(CheckListStatus,550) = 550  
+END  
+
+--Update ckeck list as 'Lender' for the checklist item 'Financing Source' in M61  
+IF EXISTS(Select taskid from @L_tblCheckListDetail where taskid = @TaskID and TaskTypeID=@TaskTypeID and WFCheckListMasterID=21  and ISNULL(CheckListStatus,550) = 550)  
+BEGIN  
+ Update cre.WFCheckListDetail  set CheckListStatus=880 where taskid = @TaskID and TaskTypeID=@TaskTypeID and WFCheckListMasterID=21 and ISNULL(CheckListStatus,550) = 550  
+END  
   
 ---===========================================================  
 END  
@@ -439,6 +495,46 @@ BEGIN
    ---Commented for optimization - Vishal  
       EXEC [dbo].[usp_CopyDealFundingFromLegalToPhantom] @CREDealID  
    EXEC [dbo].[usp_UpdateWireConfirmedForPhantomDeal] @CREDealID  
+  END 
+  
+  ELSE IF (@SkipWorkflowNotification=1 and  @WorkflowType<>'WF_UNDERREVIEW')-- wireconfirm workflow without sending any notification except full pay off  
+  BEGIN  
+   UPDATE CRE.DealFunding SET Applied=1,Issaved=1,UpdatedDate=Getdate(),UpdatedBy=@CreatedBy WHERE DealFundingID=@TaskID and  ISNULL(Applied,0) = 0  
+     
+   --note level wireconfirm  
+    UPDATE [CORE].FundingSchedule SET Applied=1,IsSaved=1 WHERE FundingScheduleID in   
+    (  
+      Select  fs.FundingScheduleID  
+      from [CORE].FundingSchedule fs  
+      INNER JOIN [CORE].[Event] e on e.EventID = fs.EventId  
+      INNER JOIN (       
+      Select   
+       (Select AccountID from [CORE].[Account] ac where ac.AccountID = n.Account_AccountID) AccountID ,  
+       MAX(EffectiveStartDate) EffectiveStartDate,EventTypeID ,eve.StatusID  
+       from [CORE].[Event] eve  
+       INNER JOIN [CRE].[Note] n ON n.Account_AccountID = eve.AccountID  
+       INNER JOIN [CORE].[Account] acc ON acc.AccountID = n.Account_AccountID  
+       where EventTypeID = (Select LookupID from CORE.[Lookup] where Name = 'FundingSchedule')  
+       and n.dealid = @dealid  and acc.IsDeleted = 0  
+       and eve.StatusID = (Select LookupID from Core.Lookup where name = 'Active' and ParentID = 1)  
+       GROUP BY n.Account_AccountID,EventTypeID,eve.StatusID  
+      ) sEvent  
+      ON sEvent.AccountID = e.AccountID and e.EffectiveStartDate = sEvent.EffectiveStartDate  and e.EventTypeID = sEvent.EventTypeID  
+  
+      left JOIN [CORE].[Lookup] LEventTypeID ON LEventTypeID.LookupID = e.EventTypeID  
+      left JOIN [CORE].[Lookup] LPurposeID ON LPurposeID.LookupID = fs.PurposeID   
+      INNER JOIN [CORE].[Account] acc ON acc.AccountID = e.AccountID  
+      INNER JOIN [CRE].[Note] n ON n.Account_AccountID = acc.AccountID  
+      where sEvent.StatusID = e.StatusID  and acc.IsDeleted = 0  
+      and dealFundingId = @TaskID  
+   )  
+   --update updateddate of deal table so that it will update Applied flag of [DealFundingSchduleBI] table  
+   update cre.Deal set UpdatedDate=GETDATE() where DealID=@dealid  
+  
+   --updat phantom deal on draw wireconfirmed   
+   ---Commented for optimization - Vishal  
+      EXEC [dbo].[usp_CopyDealFundingFromLegalToPhantom] @CREDealID  
+   EXEC [dbo].[usp_UpdateWireConfirmedForPhantomDeal] @CREDealID  
   END  
     
   
@@ -464,7 +560,46 @@ BEGIN
  END  
   
  --delete final and servicer notification if any and not yet sent  
-   DELETE FROM cre.WFNotification WHERE  WFNotificationMasterID in (2,3) and ActionType<>577 and TaskID=@TaskID  
+   DELETE FROM cre.WFNotification WHERE  WFNotificationMasterID in (2,3) and ActionType<>577 and TaskID=@TaskID
+   --update special instruction and other fileds in case of reject as well
+   IF NOT EXISTS (SELECT TaskID FROM CRE.WFTaskAdditionalDetail WHERE TaskID = @TaskId and TaskTypeID=@TaskTypeID )  
+    BEGIN  
+   
+       INSERT INTO CRE.WFTaskAdditionalDetail  
+           ([TaskID]  
+           ,[TaskTypeID]  
+           ,[SpecialInstruction]  
+           ,[AdditionalComment]  
+           ,[CreatedBy]  
+           ,[CreatedDate]  
+           ,[UpdatedBy]  
+           ,[UpdatedDate])  
+        VALUES  
+        (  
+         @TaskID,  
+         @TaskTypeID,  
+         @SpecialInstructions,  
+         @AdditionalComments,  
+         @CreatedBy,  
+         getdate(),  
+         @CreatedBy,  
+         getdate()  
+       )  
+  
+  END  
+  ELSE  
+    BEGIN  
+  
+      UPDATE CRE.WFTaskAdditionalDetail  
+       SET SpecialInstruction = @SpecialInstructions,  
+         AdditionalComment = @AdditionalComments,  
+         UpdatedBy = @CreatedBy,  
+         UpdatedDate = getdate()  
+       WHERE TaskID = @TaskId and TaskTypeID=@TaskTypeID  
+  
+    END  
+   
+   --
 END  
   
 IF(@L_SubmitType != 'Reject')  
@@ -680,7 +815,7 @@ END
   
   
   
-  if (@Comment!='Cancelled reserve final notification')
+  if (@Comment!='Canceled reserve final notification')
   BEGIN
   
 --INsert Update checklist detail  
@@ -892,7 +1027,46 @@ BEGIN
  END  
   
  --delete final and servicer notification if any and not yet sent  
-   DELETE FROM cre.WFNotification WHERE  WFNotificationMasterID in (4,5) and ActionType<>577 and TaskID=@TaskID  
+   DELETE FROM cre.WFNotification WHERE  WFNotificationMasterID in (4,5) and ActionType<>577 and TaskID=@TaskID 
+    --update special instruction and other fileds in case of reject as well
+   IF NOT EXISTS (SELECT TaskID FROM CRE.WFTaskAdditionalDetail WHERE TaskID = @TaskId and TaskTypeID=@TaskTypeID )  
+    BEGIN  
+   
+       INSERT INTO CRE.WFTaskAdditionalDetail  
+           ([TaskID]  
+           ,[TaskTypeID]  
+           ,[SpecialInstruction]  
+           ,[AdditionalComment]  
+           ,[CreatedBy]  
+           ,[CreatedDate]  
+           ,[UpdatedBy]  
+           ,[UpdatedDate])  
+        VALUES  
+        (  
+         @TaskID,  
+         @TaskTypeID,  
+         @SpecialInstructions,  
+         @AdditionalComments,  
+         @CreatedBy,  
+         getdate(),  
+         @CreatedBy,  
+         getdate()  
+       )  
+  
+  END  
+  ELSE  
+    BEGIN  
+  
+      UPDATE CRE.WFTaskAdditionalDetail  
+       SET SpecialInstruction = @SpecialInstructions,  
+         AdditionalComment = @AdditionalComments,  
+         UpdatedBy = @CreatedBy,  
+         UpdatedDate = getdate()  
+       WHERE TaskID = @TaskId and TaskTypeID=@TaskTypeID  
+  
+    END  
+   
+   --
 END  
   
 IF(@L_SubmitType != 'Reject')  

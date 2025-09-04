@@ -1,4 +1,5 @@
-﻿CREATE PROCEDURE [dbo].[usp_GetNoteAdditionalRecordbyNoteId]--'aecb0361-96a7-4af3-b4b4-f24b30f4184a'  ,'E16BDD59-E99F-424E-947D-4D216286EB19'  
+﻿--[dbo].[usp_GetNoteAdditionalRecordbyNoteId] 'b8f01013-393e-4460-a5b2-3a4aefd1cf00'  ,'E16BDD59-E99F-424E-947D-4D216286EB19'
+CREATE PROCEDURE [dbo].[usp_GetNoteAdditionalRecordbyNoteId]  ---'aecb0361-96a7-4af3-b4b4-f24b30f4184a'  ,'E16BDD59-E99F-424E-947D-4D216286EB19'  
 (  
  @NoteID UNIQUEIDENTIFIER,  
  @UserID UNIQUEIDENTIFIER  
@@ -57,8 +58,18 @@ PIKComments ,
 PIKIntCalcMethodID,
 PIKIntCalcMethodIDText,
 IndexNameID,
-IndexNameText
-  
+IndexNameText,
+PeriodicRateCapAmount ,
+PeriodicRateCapPercent,
+DeterminationDateHolidayList,
+DeterminationDateHolidayListText,
+PIKSetUp,
+PIKSetUpText,
+PIKPercentage,
+PIKCurrentPayRate,
+PIKSeparateCompounding, 
+PIKSeparateCompoundingText
+
 FROM  
 (  
    
@@ -66,7 +77,7 @@ Select [MaturityID] as ScheduleID
 ,mat.[EventId]  
 ,e.EffectiveStartDate as EffectiveDate  
 ,mat.[SelectedMaturityDate] as [Date]  
-,NULL as[EndDate]  
+,NULL as [EndDate]  
 ,NULL as ValueTypeID   
 ,NULL as Value   
 ,NULL as IntCalcMethodID  
@@ -110,6 +121,17 @@ Select [MaturityID] as ScheduleID
 ,null as PIKIntCalcMethodIDText  
 ,null as IndexNameID
 ,null as IndexNameText
+,null as PeriodicRateCapAmount 
+,null as PeriodicRateCapPercent
+,null as DeterminationDateHolidayList
+,null as DeterminationDateHolidayListText
+,null as PIKSetUp
+,null as PIKSetUpText
+,null as PIKPercentage
+,null as PIKCurrentPayRate
+,null as PIKSeparateCompounding
+,null as PIKSeparateCompoundingText
+
 from [CORE].Maturity mat  
 INNER JOIN [CORE].[Event] e on e.EventID = mat.EventId  
 INNER JOIN   
@@ -133,7 +155,7 @@ UNION
   
 Select [RateSpreadScheduleID] as ScheduleID  
 ,rs.[EventId]  
-,e.EffectiveStartDate  
+,e.EffectiveStartDate as EffectiveDate
 ,rs.[Date]  
 ,NULL as[EndDate]  
 ,[ValueTypeID]  
@@ -177,12 +199,24 @@ Select [RateSpreadScheduleID] as ScheduleID
 ,null as PIKIntCalcMethodIDText    
 ,rs.IndexNameID
 ,lindex.name as IndexNameText
+,null as PeriodicRateCapAmount 
+,null as PeriodicRateCapPercent
+
+,rs.DeterminationDateHolidayList
+,LDeterminationDateHolidayList.CalendarName as DeterminationDateHolidayListText
+,null as PIKSetUp
+,null as PIKSetUpText
+,null as PIKPercentage
+,null as PIKCurrentPayRate
+,null as PIKSeparateCompounding
+,null as PIKSeparateCompoundingText
+
 from [CORE].RateSpreadSchedule rs  
 INNER JOIN [CORE].[Event] e on e.EventID = rs.EventId  
 LEFT JOIN [CORE].[Lookup] LValueTypeID ON LValueTypeID.LookupID = rs.ValueTypeID  
 LEFT JOIN [CORE].[Lookup] LIntCalcMethodID ON LIntCalcMethodID.LookupID = rs.IntCalcMethodID  
-LEFT JOIN [CORE].[Lookup] lindex ON lindex.LookupID = rs.IndexNameID  
-
+LEFT JOIN [CORE].[Lookup] lindex ON lindex.LookupID = rs.IndexNameID 
+LEFT JOIN app.HoliDaysMaster LDeterminationDateHolidayList ON LDeterminationDateHolidayList.HolidayMasterID = rs.DeterminationDateHolidayList				 
 INNER JOIN   
    (  
         
@@ -199,9 +233,15 @@ INNER JOIN
    ) sEvent  
   
 ON sEvent.AccountID = e.AccountID and e.EffectiveStartDate = sEvent.EffectiveStartDate  and e.EventTypeID = sEvent.EventTypeID  
+INNER JOIN [CORE].[Account] acc ON acc.AccountID = e.AccountID
+INNER JOIN [CRE].[Note] n ON n.Account_AccountID = acc.AccountID
 
-where e.StatusID = (Select LookupID from Core.Lookup where name = 'Active' and parentid = 1)  
+where e.StatusID = 1-- (Select LookupID from Core.Lookup where name = 'Active' and parentid = 1)  
+and n.NoteID = @NoteID  and acc.IsDeleted = 0
+---and rs.[Date] >= e.EffectiveStartDate 
   
+
+
 UNION  
   
   
@@ -239,15 +279,13 @@ Select [PrepayAndAdditionalFeeScheduleID] as ScheduleID
 ,NULL as IntCalcMethodText  
 ,NUll as [CurrencyCodeText]  
 ,NULL as IndexTypeText  
-,e.EventTypeID as ModuleId  
-  
+,e.EventTypeID as ModuleId   
 ,pafs.FeeName  
 ,pafs.FeeAmountOverride  
 ,pafs.BaseAmountOverride  
 ,pafs.ApplyTrueUpFeature  
 ,LApplyTrueUpFeature.[Name] as ApplyTrueUpFeatureText  
-,ISNULL(pafs.FeetobeStripped,0) as  FeetobeStripped 
-  
+,ISNULL(pafs.FeetobeStripped,0) as  FeetobeStripped   
 ,null as PIKReasonCodeID  
 ,null as PIKReasonCodeText  
 ,null as PIKComments  
@@ -255,6 +293,17 @@ Select [PrepayAndAdditionalFeeScheduleID] as ScheduleID
 ,null as PIKIntCalcMethodIDText  
 ,null as IndexNameID
 ,null as IndexNameText
+,null as PeriodicRateCapAmount 
+,null as PeriodicRateCapPercent
+,null as DeterminationDateHolidayList
+,null as DeterminationDateHolidayListText
+,null as PIKSetUp
+,null as PIKSetUpText
+,null as PIKPercentage
+,null as PIKCurrentPayRate
+,null as PIKSeparateCompounding
+,null as PIKSeparateCompoundingText
+
 from [CORE].PrepayAndAdditionalFeeSchedule pafs  
 INNER JOIN [CORE].[Event] e on e.EventID = pafs.EventId  
   
@@ -277,8 +326,13 @@ INNER JOIN
   
    ) sEvent  
   
-ON sEvent.AccountID = e.AccountID and e.EffectiveStartDate = sEvent.EffectiveStartDate  and e.EventTypeID = sEvent.EventTypeID  
-where e.StatusID = (Select LookupID from Core.Lookup where name = 'Active' and parentid = 1)  
+ON sEvent.AccountID = e.AccountID and e.EffectiveStartDate = sEvent.EffectiveStartDate  and e.EventTypeID = sEvent.EventTypeID 
+INNER JOIN [CORE].[Account] acc ON acc.AccountID = e.AccountID
+INNER JOIN [CRE].[Note] n ON n.Account_AccountID = acc.AccountID
+where e.StatusID = 1
+and n.NoteID = @NoteID  and acc.IsDeleted = 0  --(Select LookupID from Core.Lookup where name = 'Active' and parentid = 1)  
+--and pafs.[StartDate] >= e.EffectiveStartDate   
+
   
 UNION  
   
@@ -330,12 +384,21 @@ Select [StrippingScheduleID] as ScheduleID
  ,null as PIKIntCalcMethodIDText  
  ,null as IndexNameID
  ,null as IndexNameText
+
+,null as PeriodicRateCapAmount 
+,null as PeriodicRateCapPercent
+,null as DeterminationDateHolidayList
+,null as DeterminationDateHolidayListText
+,null as PIKSetUp
+,null as PIKSetUpText
+,null as PIKPercentage
+, null as PIKCurrentPayRate
+,null as PIKSeparateCompounding
+,null as PIKSeparateCompoundingText
+
 from [CORE].StrippingSchedule ss  
-INNER JOIN [CORE].[Event] e on e.EventID = ss.EventId  
-  
+INNER JOIN [CORE].[Event] e on e.EventID = ss.EventId   
 LEFT JOIN [CORE].[Lookup] LValueTypeID ON LValueTypeID.LookupID = ss.ValueTypeID  
-  
-  
 INNER JOIN   
    (  
         
@@ -405,6 +468,17 @@ Select [FinancingFeeScheduleID] as ScheduleID
 ,null as PIKIntCalcMethodIDText  
 ,null as IndexNameID
 ,null as IndexNameText
+,null as PeriodicRateCapAmount 
+,null as PeriodicRateCapPercent
+,null as DeterminationDateHolidayList
+,null as DeterminationDateHolidayListText
+,null as PIKSetUp
+,null as PIKSetUpText
+,null as PIKPercentage
+,null as PIKCurrentPayRate
+,null as PIKSeparateCompounding
+,null as PIKSeparateCompoundingText
+
 from [CORE].FinancingFeeSchedule ffs  
 INNER JOIN [CORE].[Event] e on e.EventID = ffs.EventId  
 LEFT JOIN [CORE].[Lookup] LValueTypeID ON LValueTypeID.LookupID = ffs.ValueTypeID  
@@ -477,6 +551,17 @@ Select [FinancingScheduleID] as ScheduleID
  ,null as PIKIntCalcMethodIDText  
  ,null as IndexNameID
  ,null as IndexNameText
+ ,null as PeriodicRateCapAmount 
+,null as PeriodicRateCapPercent
+,null as DeterminationDateHolidayList
+,null as DeterminationDateHolidayListText
+,null as PIKSetUp
+,null as PIKSetUpText
+,null as PIKPercentage
+, null as PIKCurrentPayRate
+,null as PIKSeparateCompounding
+,null as PIKSeparateCompoundingText
+
 from [CORE].FinancingSchedule fs  
 INNER JOIN [CORE].[Event] e on e.EventID = fs.EventId  
 LEFT JOIN [CORE].[Lookup] LValueTypeID ON LValueTypeID.LookupID = fs.ValueTypeID  
@@ -552,6 +637,17 @@ Select [DefaultScheduleID] as ScheduleID
 ,null as PIKIntCalcMethodIDText    
 ,null as IndexNameID
 ,null as IndexNameText
+,null as PeriodicRateCapAmount 
+,null as PeriodicRateCapPercent
+,null as DeterminationDateHolidayList
+,null as DeterminationDateHolidayListText
+,null as PIKSetUp
+,null as PIKSetUpText
+,null as PIKPercentage
+, null as PIKCurrentPayRate
+,null as PIKSeparateCompounding
+,null as PIKSeparateCompoundingText
+
 from [CORE].DefaultSchedule ds  
 INNER JOIN [CORE].[Event] e on e.EventID = ds.EventId  
 LEFT JOIN [CORE].[Lookup] LValueTypeID ON LValueTypeID.LookupID = ds.ValueTypeID  
@@ -626,6 +722,17 @@ Select
 ,null as PIKIntCalcMethodIDText   
 ,null as IndexNameID
 ,null as IndexNameText
+,null as PeriodicRateCapAmount 
+,null as PeriodicRateCapPercent
+,null as DeterminationDateHolidayList
+,null as DeterminationDateHolidayListText
+,null as PIKSetUp
+,null as PIKSetUpText
+,null as PIKPercentage
+, null as PIKCurrentPayRate
+,null as PIKSeparateCompounding
+,null as PIKSeparateCompoundingText
+
 from [CORE].ServicingFeeSchedule sfs  
 INNER JOIN [CORE].[Event] e on e.EventID = sfs.EventId  
 INNER JOIN   
@@ -699,12 +806,25 @@ Select
 ,LPIKIntCalcMethodID.name as PIKIntCalcMethodIDText
 ,null as IndexNameID
 ,null as IndexNameText
+,pik.PeriodicRateCapAmount 
+,pik.PeriodicRateCapPercent
+,null as DeterminationDateHolidayList
+,null as DeterminationDateHolidayListText
+,pik.PIKSetUp as PIKSetUp
+,LPIKSetUp.name as PIKSetUpText
+,pik.PIKPercentage as PIKPercentage
+, pik.PIKCurrentPayRate as PIKCurrentPayRate
+,ISNULL(pik.[PIKSeparateCompounding], 4) as PIKSeparateCompounding
+,lPIKSeparateCompounding.Name AS PIKSeparateCompoundingText
+
 from [CORE].PikSchedule pik  
 left JOIN [CORE].[Account] accsource ON accsource.AccountID = pik.SourceAccountID  
 left JOIN [CORE].[Account] accDest ON accDest.AccountID = pik.TargetAccountID  
 INNER JOIN [CORE].[Event] e on e.EventID = pik.EventId  
 LEFT JOIN [CORE].[Lookup] LPIKReasonCode ON LPIKReasonCode.LookupID = pik.PIKReasonCodeID  
 LEFT JOIN [CORE].[Lookup] LPIKIntCalcMethodID ON LPIKIntCalcMethodID.LookupID = pik.PIKIntCalcMethodID  
+LEFT JOIN [CORE].[Lookup] LPIKSetUp ON LPIKSetUp.LookupID = pik.PIKSetUp  
+LEFT JOIN [CORE].[Lookup] lPIKSeparateCompounding ON pik.PIKSeparateCompounding=lPIKSeparateCompounding.LookupID 
 INNER JOIN   
    (  
         
@@ -722,7 +842,7 @@ INNER JOIN
 ON sEvent.AccountID = e.AccountID and e.EffectiveStartDate = sEvent.EffectiveStartDate  and e.EventTypeID = sEvent.EventTypeID  
   
 )a  
-ORDER BY a.ModuleId,a.Date  
+ORDER BY a.ModuleId,a.EffectiveDate,a.Date
   
  SET TRANSACTION ISOLATION LEVEL READ COMMITTED  
 END

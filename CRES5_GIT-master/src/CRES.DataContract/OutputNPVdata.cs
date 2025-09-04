@@ -1,4 +1,8 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
 
 namespace CRES.DataContract
 {
@@ -14,13 +18,13 @@ namespace CRES.DataContract
         public DateTime? NPVdate { get; set; }
 
         //NPVvalue,NPVnetFeeValue,NPVactual 
-        public Decimal? CashFlowUsedForLevelYieldPrecap { get; set; }
-        public Decimal? Actualbasis { get; set; }
-
+        public Decimal?  CashFlowUsedForLevelYieldPrecap { get; set; }
+        public Decimal?  Actualbasis{ get; set; }
+      
         public Decimal? Cost { get; set; }
         public decimal? Value { get; set; }
-
-
-
+        
+    
+       
     }
 }

@@ -27,4 +27,5 @@ M61.Noteid M61Noteid
 from [dbo].TransactionEntry  M61    
 
 where Type = 'InterestPaid' and Scenario = 'Default'
+and M61.AccountTypeID =1
 )X

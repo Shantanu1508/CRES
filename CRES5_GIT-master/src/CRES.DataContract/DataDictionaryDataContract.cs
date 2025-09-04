@@ -1,6 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Data;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
 
 namespace CRES.DataContract
 {
@@ -23,7 +26,7 @@ namespace CRES.DataContract
 
     public class RefreshLookupDataContract
     {
-        public int LookupID { get; set; }
+        public string LookupID { get; set; }
         public string Name { get; set; }
         public string DisplayValues { get; set; }
         public int ParentID { get; set; }
@@ -39,6 +42,7 @@ namespace CRES.DataContract
     {
         public string CRENoteID { get; set; }
         public string NoteName { get; set; }
+        public DateTime? MaturityUsedInCalc { get; set; }
         public List<NotePeriodicOutputsDataContract> ListNotePeriodicOutputs { get; set; }
         public List<TransactionEntry> ListCashflowTransactionEntry { get; set; }
     }
@@ -50,6 +54,19 @@ namespace CRES.DataContract
         public List<PeriodicCashflowVSTO> ListNotePeriodicOutputs { get; set; }
         public List<TransactionEntryVSTO> ListTransactionEntry { get; set; }
         public DataTable XIRROutput { get; set; }
+    }
+
+    public class RefreshTagXIRRDataContract
+    {
+        public string TableName { get; set; }
+        public string TagName { get; set; }
+        public string ObjectID { get; set; }
+        public string NoteName { get; set; }
+        public string CREDealID { get; set; }
+        public string DealName { get; set; }
+        public string Location { get; set; }
+        public string PropertyType { get; set; }
+        public string FinancingSourceType { get; set; }
     }
 
 }

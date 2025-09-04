@@ -22,7 +22,7 @@ AS
 	END
 
 	select @StateID=StatesID from app.StatesMaster where StatesAbbreviation=@StateAbbr
-	select @InvoiceTypeID=lookupid from Core.Lookup where Name=@InvoiceType and (ParentID=94 or ParentID=126)
+	select @InvoiceTypeID=lookupid from Core.Lookup where [value]=@InvoiceType and ParentID=94
 	select @DealName=DealName from cre.Deal where CREDealID=@CREDealID
 	
 	IF (@DealID is not null)

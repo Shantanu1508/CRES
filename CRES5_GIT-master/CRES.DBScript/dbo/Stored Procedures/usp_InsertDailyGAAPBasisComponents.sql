@@ -27,8 +27,10 @@ BEGIN
 				,EndingBalance  
 				,GrossDeferredFees   
 				,CleanCost  
-				,CurrentPeriodInterestAccrualPeriodEnddate  
-				,CurrentPeriodPIKInterestAccrualPeriodEnddate  
+
+				,CurrentPeriodInterestAccrual  
+				,CurrentPeriodPIKInterestAccrual  
+
 				,InterestSuspenseAccountBalance   
 				,AnalysisID 
 				,CreatedBy 
@@ -45,8 +47,8 @@ BEGIN
 			,EndingBalance  
 			,GrossDeferredFees   
 			,CleanCost  
-			,CurrentPeriodInterestAccrualPeriodEnddate  
-			,CurrentPeriodPIKInterestAccrualPeriodEnddate  
+			,CurrentPeriodInterestAccrual  
+			,CurrentPeriodPIKInterestAccrual  
 			,InterestSuspenseAccountBalance   
 			,AnalysisID 
 			,@CreatedBy  

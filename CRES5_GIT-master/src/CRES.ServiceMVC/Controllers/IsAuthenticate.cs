@@ -1,11 +1,15 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Web;
+using System.Web.Http.Controllers;
+using System.Diagnostics;
 using System.Net;
 using CRES.DataContract;
+using CRES.ServicesNew.Controllers;
 using CRES.BusinessLogic;
 using CRES.Utilities;
-#pragma warning disable CS0105 // The using directive for 'CRES.BusinessLogic' appeared previously in this namespace
-#pragma warning restore CS0105 // The using directive for 'CRES.BusinessLogic' appeared previously in this namespace
+using CRES.BusinessLogic;
 using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
@@ -19,9 +23,7 @@ namespace CRES.Services.Controllers
         {
             GenericResultResponce _authenticationResult = null;
 
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
             var headerToken = string.Empty;
             var headerUserID = string.Empty;
             var delegateUserID = string.Empty;
@@ -42,13 +44,13 @@ namespace CRES.Services.Controllers
             {
                 headerUserID = Convert.ToString(context.HttpContext.Request.Headers["TokenUId"]);
             }
-
+            
             if (context.HttpContext.Request.Headers["DelegatedUser"] != DBNull.Value)
             {
                 delegateUserID = Convert.ToString(context.HttpContext.Request.Headers["DelegatedUser"]);
             }
 
-
+            
 
             if (delegateUserID == "")
             {
@@ -78,9 +80,9 @@ namespace CRES.Services.Controllers
                 }
             }
 
-
-            if (context.HttpContext.Request.Headers["Token"] != DBNull.Value)
-            {
+            
+             if (context.HttpContext.Request.Headers["Token"]!= DBNull.Value)
+              {
                 headerToken = Convert.ToString(context.HttpContext.Request.Headers["Token"]);
                 if (headerToken == DBToken)
                 {
@@ -167,7 +169,7 @@ namespace CRES.Services.Controllers
                 builder.AddJsonFile(Path.Combine(Directory.GetCurrentDirectory(), "appsettings.json"));
                 var root = builder.Build();
                 ServerName = root.GetSection("Application").GetSection("ServerName").Value;
-                _ret_token = Encryptor.MD5Hash(ServerName + _userdatacontract.UserID + _userdatacontract.Password + _userdatacontract.UserToken);
+                _ret_token = Encryptor.MD5Hash(ServerName +_userdatacontract.UserID + _userdatacontract.Password + _userdatacontract.UserToken);
             }
             return _ret_token;
         }

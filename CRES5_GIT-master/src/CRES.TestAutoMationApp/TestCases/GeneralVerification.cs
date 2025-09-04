@@ -1,24 +1,37 @@
-﻿//using jdk.nashorn.@internal.ir;
-using AventStack.ExtentReports;
-using CRES.BusinessLogic;
-using CRES.DataContract;
-using CRES.TestAutoMationApp;
+﻿using CRES.DataContract;
 using CRES.TestAutoMationApp.Pages;
 using CRES.TestAutoMationApp.Utility;
-using Newtonsoft.Json;
-//using com.sun.tools.@internal.ws.processor.model;
-using NPOI.SS.UserModel;
-using NPOI.XSSF.UserModel;
 using NUnit.Framework;
 using OpenQA.Selenium;
-using OpenQA.Selenium.Chrome;
 using OpenQA.Selenium.Interactions;
 using System;
 using System.Collections.Generic;
+using System.Security.Cryptography.X509Certificates;
+using System.Text;
+using CRES.TestAutoMationApp.ExecutionReports;
 using System.Data;
+using Newtonsoft.Json;
+using NPOI.XWPF.UserModel;
+using System.Security.Policy;
 //using java.nio.file;
 using System.IO;
+using CRES.BusinessLogic;
+//using com.sun.tools.@internal.ws.processor.model;
+using System.Net;
+using NPOI.SS.UserModel;
+using NPOI.XSSF.UserModel;
+//using jdk.nashorn.@internal.ir;
+using AventStack.ExtentReports;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
+using CRES.Utilities;
+using NPOI.SS.Formula.Functions;
+using System.Threading;
+using OpenQA.Selenium.Support.Events;
+using OpenQA.Selenium.Chrome;
+using OpenQA.Selenium.Support.UI;
+using System.Reflection;
 using System.Linq;
+using CRES.TestAutoMationApp;
 using System.Threading.Tasks;
 
 namespace CRES.TestAutoMation_Latest.TestCases
@@ -91,7 +104,7 @@ namespace CRES.TestAutoMation_Latest.TestCases
                 throw;
             }
         }
-        // [Category("UITest")]
+       // [Category("UITest")]
         [Test]
         public void MultipleBrowser()
         {
@@ -129,7 +142,6 @@ namespace CRES.TestAutoMation_Latest.TestCases
                 options.AddArguments("--disable-notifications");
                 options.AddExcludedArgument("enable-automation");
                 options.SetLoggingPreference(LogType.Browser, LogLevel.Warning);
-
                 _driver = new ChromeDriver(options);
                 ((IJavaScriptExecutor)_driver).ExecuteScript("document.body.style.zoom='90%';");
                 if (i == 0)
@@ -162,7 +174,7 @@ namespace CRES.TestAutoMation_Latest.TestCases
 
 
         List<PageLoadTest> listPageLoad = new List<PageLoadTest>();
-
+        
         public void NoteDetail(IWebDriver driver)
         {
             var chromeOptions = new ChromeOptions();
@@ -202,16 +214,14 @@ namespace CRES.TestAutoMation_Latest.TestCases
                 System.Threading.Thread.Sleep(8000);
 
                 //Closing Tab
-#pragma warning disable CS0168 // The variable 'e' is declared but never used
                 try
                 {
                     driver.FindElement(deal.closingTab).Click();
                 }
                 catch (Exception e)
                 {
-
+                   
                 }
-#pragma warning restore CS0168 // The variable 'e' is declared but never used
                 System.Threading.Thread.Sleep(2000);
                 bool actualFreqElmnt = false;
                 try
@@ -220,11 +230,11 @@ namespace CRES.TestAutoMation_Latest.TestCases
                     {
                         actualFreqElmnt = driver.FindElement(deal.actualFreqElmnt).Displayed;
                     }
-                    catch (Exception e)
+                    catch(Exception e)
                     {
-
+                        
                         addList("Note ", "Closing Tab ", e.Message, "Error");
-
+                        
                     }
                     //Console.WriteLine("Actual Freq Element   = " + actualFreqElmnt);
                     addtolist("Note ", "Closing Tab ", actualFreqElmnt);
@@ -247,7 +257,6 @@ namespace CRES.TestAutoMation_Latest.TestCases
                 System.Threading.Thread.Sleep(2000);
 
                 //AccountingTab
-#pragma warning disable CS0168 // The variable 'e' is declared but never used
                 try
                 {
                     driver.FindElement(deal.accountingTab).Click();
@@ -256,7 +265,6 @@ namespace CRES.TestAutoMation_Latest.TestCases
                 {
 
                 }
-#pragma warning restore CS0168 // The variable 'e' is declared but never used
                 System.Threading.Thread.Sleep(2000);
                 bool clientElement = false;
                 try
@@ -265,12 +273,12 @@ namespace CRES.TestAutoMation_Latest.TestCases
                     {
                         clientElement = driver.FindElement(deal.clientElement).Displayed;
                     }
-                    catch (Exception e)
+                    catch(Exception e)
                     {
                         addList("Note ", "Accounting Tab ", e.Message, "Error");
-
+                        
                     }
-                    //Console.WriteLine("Client Element    = " + clientElement);
+                   //Console.WriteLine("Client Element    = " + clientElement);
                     addtolist("Note ", "Accounting Tab ", clientElement);
                     /*var printMessage = "<p><b>Test FAILED!</b></p>";
                     if (clientElement == false)
@@ -307,7 +315,7 @@ namespace CRES.TestAutoMation_Latest.TestCases
                     {
                         financingFacElmnt = driver.FindElement(deal.financingFacElmnt).Displayed;
                     }
-                    catch (Exception e)
+                    catch(Exception e)
                     {
                         addList("Note ", "Financing Tab ", e.Message, "Error");
                     }
@@ -347,7 +355,7 @@ namespace CRES.TestAutoMation_Latest.TestCases
                     {
                         closingDateElmnt = driver.FindElement(deal.closingDateElmnt).Displayed;
                     }
-                    catch (Exception e)
+                    catch(Exception e)
                     {
                         addList("Note ", "Settelment Tab ", e.Message, "Error");
                     }
@@ -389,11 +397,11 @@ namespace CRES.TestAutoMation_Latest.TestCases
                         effectiveDteElmnt = driver.FindElement(deal.effectiveDteElmnt).Displayed;
                     }
 
-                    catch (Exception e)
+                    catch(Exception e)
                     {
                         addList("Note ", "Deafult Tab ", e.Message, "Error");
                     }
-                    // Console.WriteLine(" Effective Date Element  = " + effectiveDteElmnt);
+                   // Console.WriteLine(" Effective Date Element  = " + effectiveDteElmnt);
                     addtolist("Note ", "Deafult Tab ", effectiveDteElmnt);
                     /*var printMessage = "<p><b>Test FAILED!</b></p>";
                     if (effectiveDteElmnt == false)
@@ -430,7 +438,7 @@ namespace CRES.TestAutoMation_Latest.TestCases
                         servicingNameElmnt = driver.FindElement(deal.servicingNameElmnt).Displayed;
                     }
 
-                    catch (Exception e)
+                    catch(Exception e)
                     {
                         addList("Note ", "Deafult Tab ", e.Message, "Error");
                     }
@@ -473,11 +481,11 @@ namespace CRES.TestAutoMation_Latest.TestCases
 
                         interestElement = driver.FindElement(deal.interestElement).Displayed;
                     }
-                    catch (Exception e)
+                    catch(Exception e)
                     {
                         addList("Note ", "Actuals Tab ", e.Message, "Error");
                     }
-                    // Console.WriteLine(" Interest Element    = " + interestElement);
+                   // Console.WriteLine(" Interest Element    = " + interestElement);
                     addtolist("Note ", "Actuals Tab ", interestElement);
                     /* var printMessage = "<p><b>Test FAILED!</b></p>";
                      if (interestElement == false)
@@ -547,7 +555,7 @@ namespace CRES.TestAutoMation_Latest.TestCases
 
                     pikSourceElement = driver.FindElement(deal.pikSourceElement).Displayed;
                 }
-                catch (Exception e)
+                catch(Exception e)
                 {
                     addList("Note ", "PIK Tab ", e.Message, "Error");
                 }
@@ -588,7 +596,7 @@ namespace CRES.TestAutoMation_Latest.TestCases
                 {
                     couponElement = driver.FindElement(deal.couponElement).Displayed;
                 }
-                catch (Exception e)
+                catch(Exception e)
                 {
                     addList("Note ", "Coupon Tab ", e.Message, "Error");
                 }
@@ -612,16 +620,14 @@ namespace CRES.TestAutoMation_Latest.TestCases
                 throw ex;
             }
             //Note Funding Tab
-#pragma warning disable CS0168 // The variable 'e' is declared but never used
             try
             {
                 driver.FindElement(deal.noteFundingTab).Click();
             }
             catch (Exception e)
             {
-
+              
             }
-#pragma warning restore CS0168 // The variable 'e' is declared but never used
             System.Threading.Thread.Sleep(2000);
             bool noteFundingElemnt = false;
             try
@@ -630,7 +636,7 @@ namespace CRES.TestAutoMation_Latest.TestCases
                 {
                     noteFundingElemnt = driver.FindElement(deal.noteFundingElemnt).Displayed;
                 }
-                catch (Exception e)
+                catch(Exception e)
                 {
                     addList("Note ", "PIK Tab ", e.Message, "Error");
                 }
@@ -671,11 +677,11 @@ namespace CRES.TestAutoMation_Latest.TestCases
 
                     periodicOtpButton = driver.FindElement(deal.periodicOtpButton).Displayed;
                 }
-                catch (Exception e)
+                catch(Exception e)
                 {
                     addList("Note ", "Cashflow Tab ", e.Message, "Error");
                 }
-                // Console.WriteLine(" Cashflow Element    = " + periodicOtpButton);
+               // Console.WriteLine(" Cashflow Element    = " + periodicOtpButton);
                 addtolist("Note ", "Cashflow Tab ", periodicOtpButton);
                 /* var printMessage = "<p><b>Test FAILED!</b></p>";
                  if (periodicOtpButton == false)
@@ -696,7 +702,6 @@ namespace CRES.TestAutoMation_Latest.TestCases
                 throw ex;
             }
             //Exceptions Tab
-#pragma warning disable CS0168 // The variable 'e' is declared but never used
             try
             {
                 driver.FindElement(deal.exceptionTab).Click();
@@ -705,7 +710,6 @@ namespace CRES.TestAutoMation_Latest.TestCases
             {
 
             }
-#pragma warning restore CS0168 // The variable 'e' is declared but never used
             System.Threading.Thread.Sleep(2000);
             bool exceptionElement = false;
             try
@@ -716,11 +720,11 @@ namespace CRES.TestAutoMation_Latest.TestCases
 
                     exceptionElement = driver.FindElement(deal.exceptionElement).Displayed;
                 }
-                catch (Exception e)
+                catch(Exception e)
                 {
                     addList("Note ", "Exception Tab ", e.Message, "Error");
                 }
-                // Console.WriteLine(" Exception Element    = " + exceptionElement);
+               // Console.WriteLine(" Exception Element    = " + exceptionElement);
                 addtolist("Note ", "Exception Tab ", exceptionElement);
                 /* var printMessage = "<p><b>Test FAILED!</b></p>";
                 if (exceptionElement == false)
@@ -740,7 +744,6 @@ namespace CRES.TestAutoMation_Latest.TestCases
                 throw ex;
             }
             //Notes Document Tab
-#pragma warning disable CS0168 // The variable 'e' is declared but never used
             try
             {
                 driver.FindElement(deal.noteDocTab).Click();
@@ -749,7 +752,6 @@ namespace CRES.TestAutoMation_Latest.TestCases
             {
 
             }
-#pragma warning restore CS0168 // The variable 'e' is declared but never used
             System.Threading.Thread.Sleep(2000);
             bool noteDocTabElmnt = false;
             try
@@ -758,7 +760,7 @@ namespace CRES.TestAutoMation_Latest.TestCases
                 {
                     noteDocTabElmnt = driver.FindElement(deal.noteDocTabElmnt).Displayed;
                 }
-                catch (Exception e)
+                catch(Exception e)
                 {
                     addList("Note ", "Exception Tab ", e.Message, "Error");
                 }
@@ -783,7 +785,6 @@ namespace CRES.TestAutoMation_Latest.TestCases
                 throw ex;
             }
             //Activity Tab
-#pragma warning disable CS0168 // The variable 'e' is declared but never used
             try
             {
                 driver.FindElement(deal.noteActTab).Click();
@@ -792,7 +793,6 @@ namespace CRES.TestAutoMation_Latest.TestCases
             {
 
             }
-#pragma warning restore CS0168 // The variable 'e' is declared but never used
             System.Threading.Thread.Sleep(2000);
             bool noteActElement = false;
             try
@@ -801,7 +801,7 @@ namespace CRES.TestAutoMation_Latest.TestCases
                 {
                     noteActElement = driver.FindElement(deal.noteActElement).Displayed;
                 }
-                catch (Exception e)
+                catch(Exception e)
                 {
                     addList("Note ", "Activity Tab ", e.Message, "Error");
                 }
@@ -850,7 +850,7 @@ namespace CRES.TestAutoMation_Latest.TestCases
 
                 driver.Manage().Window.Maximize();
                 System.Threading.Thread.Sleep(10000);
-
+                
                 IWebElement username = driver.FindElement(By.Name("login"));
                 username.SendKeys("Automated");
 
@@ -870,11 +870,11 @@ namespace CRES.TestAutoMation_Latest.TestCases
                     {
                         SaveButton = driver.FindElement(deal.btnSaveDeal).Displayed;
                     }
-                    catch (Exception e)
+                    catch(Exception e)
                     {
                         addList("deal", "Save Button ", e.Message, "Error");
                     }
-                    // Console.WriteLine("Save button  check  = " + SaveButton);
+                   // Console.WriteLine("Save button  check  = " + SaveButton);
                     addtolist("deal", "Save Button ", SaveButton);
 
                 }
@@ -883,7 +883,7 @@ namespace CRES.TestAutoMation_Latest.TestCases
 
                     SaveButton = false;
                     throw ex;
-                }
+                } 
 
 
                 System.Threading.Thread.Sleep(2000);
@@ -895,11 +895,11 @@ namespace CRES.TestAutoMation_Latest.TestCases
 
                         CancelButton = driver.FindElement(deal.dealCancelButton).Displayed;
                     }
-                    catch (Exception e)
+                    catch(Exception e)
                     {
                         addList("deal", "cancel Button ", e.Message, "Error");
                     }
-                    // Console.WriteLine("Cancel button  check  = " + CancelButton);
+                   // Console.WriteLine("Cancel button  check  = " + CancelButton);
                     addtolist("deal", "cancel Button ", CancelButton);
 
 
@@ -918,7 +918,7 @@ namespace CRES.TestAutoMation_Latest.TestCases
                     {
                         CopyDealButton = driver.FindElement(deal.copyDealBtn).Displayed;
                     }
-                    catch (Exception e)
+                    catch(Exception e)
                     {
                         addList("deal", "Copy Deal  Button ", e.Message, "Error");
                     }
@@ -941,11 +941,11 @@ namespace CRES.TestAutoMation_Latest.TestCases
                     {
                         DownloadButton = driver.FindElement(deal.downloadButton).Displayed;
                     }
-                    catch (Exception e)
+                    catch(Exception e)
                     {
                         addList("deal", "Download Button ", e.Message, "Error");
                     }
-                    // Console.WriteLine("Download button  check  = " + DownloadButton);
+                   // Console.WriteLine("Download button  check  = " + DownloadButton);
                     addtolist("deal", "Download Button ", DownloadButton);
 
                 }
@@ -962,7 +962,7 @@ namespace CRES.TestAutoMation_Latest.TestCases
                     {
                         AdminButton = driver.FindElement(deal.adminButton).Displayed;
                     }
-                    catch (Exception e)
+                    catch(Exception e)
                     {
                         addList("deal", "Admin Button ", e.Message, "Error");
                     }
@@ -977,7 +977,6 @@ namespace CRES.TestAutoMation_Latest.TestCases
                 }
 
                 //FundingTab
-#pragma warning disable CS0168 // The variable 'e' is declared but never used
                 try
                 {
                     driver.FindElement(deal.fundingTab).Click();
@@ -986,9 +985,7 @@ namespace CRES.TestAutoMation_Latest.TestCases
                 {
 
                 }
-#pragma warning restore CS0168 // The variable 'e' is declared but never used
                 System.Threading.Thread.Sleep(2000);
-#pragma warning disable CS0168 // The variable 'e' is declared but never used
                 try
                 {
                     var element = driver.FindElement(deal.btnGenerateFunding);
@@ -1000,8 +997,7 @@ namespace CRES.TestAutoMation_Latest.TestCases
                 {
 
                 }
-#pragma warning restore CS0168 // The variable 'e' is declared but never used
-
+                
                 System.Threading.Thread.Sleep(2000);
                 bool EnableFundingSchedule = false;
                 try
@@ -1010,16 +1006,14 @@ namespace CRES.TestAutoMation_Latest.TestCases
                     {
                         EnableFundingSchedule = driver.FindElement(deal.enableFundingSchedule).Displayed;
                     }
-                    catch (Exception e)
+                    catch(Exception e)
                     {
                         addList("deal", "Funding", e.Message, "Error");
                     }
                     //Console.WriteLine("EnableFundingSchedule=  " + EnableFundingSchedule);
-                    addtolist("deal", "Funding", EnableFundingSchedule);
+                     addtolist("deal", "Funding", EnableFundingSchedule);
                     //Console.WriteLine("EnableFundingSchedule = " + EnableFundingSchedule);
-#pragma warning disable CS0219 // The variable 'printMessages' is assigned but its value is never used
                     var printMessages = "<p><b>Test FAILED!</b></p>";
-#pragma warning restore CS0219 // The variable 'printMessages' is assigned but its value is never used
                     /* if (EnableFundingSchedule == false)
                      {
                          printMessages += $"Message: <br>{"Funding Page Load Error"}<br>";
@@ -1037,9 +1031,8 @@ namespace CRES.TestAutoMation_Latest.TestCases
 
                 }
 
-
+                
                 //MainTab
-#pragma warning disable CS0168 // The variable 'e' is declared but never used
                 try
                 {
                     IWebElement mainTab = driver.FindElement(By.Id("aMain"));
@@ -1049,7 +1042,6 @@ namespace CRES.TestAutoMation_Latest.TestCases
                 {
 
                 }
-#pragma warning restore CS0168 // The variable 'e' is declared but never used
                 System.Threading.Thread.Sleep(2000);
                 bool DealID = false;
                 bool DealName = false;
@@ -1061,7 +1053,7 @@ namespace CRES.TestAutoMation_Latest.TestCases
 
                         DealID = driver.FindElement(deal.dealID).Displayed;
                     }
-                    catch (Exception e)
+                    catch(Exception e)
                     {
                         addList("deal", "Main", e.Message, "Error");
                     }
@@ -1071,15 +1063,13 @@ namespace CRES.TestAutoMation_Latest.TestCases
                     {
                         DealName = driver.FindElement(deal.dealName).Displayed;
                     }
-                    catch (Exception e)
+                    catch(Exception e)
                     {
                         addList("deal", "Main", e.Message, "Error");
                     }
-                    // Console.WriteLine("Deal Name= " + DealName);
+                   // Console.WriteLine("Deal Name= " + DealName);
                     addtolist("deal", "Main", DealName);
-#pragma warning disable CS0219 // The variable 'printMessages' is assigned but its value is never used
                     var printMessages = "<p><b>Test FAILED!</b></p>";
-#pragma warning restore CS0219 // The variable 'printMessages' is assigned but its value is never used
                     /*if (DealID == false || DealName == false)
                     {
                         printMessages += $"Message: <br>{"Main Page Load Error"}<br>";
@@ -1100,12 +1090,11 @@ namespace CRES.TestAutoMation_Latest.TestCases
 
                 }
 
-
+                
 
 
 
                 //TotalCommitement tab
-#pragma warning disable CS0168 // The variable 'e' is declared but never used
                 try
                 {
                     driver.FindElement(deal.totalCommitementTab).Click();
@@ -1114,7 +1103,6 @@ namespace CRES.TestAutoMation_Latest.TestCases
                 {
 
                 }
-#pragma warning restore CS0168 // The variable 'e' is declared but never used
                 System.Threading.Thread.Sleep(2000);
                 bool TotalCommitmentCheck = false;
                 try
@@ -1124,11 +1112,11 @@ namespace CRES.TestAutoMation_Latest.TestCases
                     {
                         TotalCommitmentCheck = driver.FindElement(By.ClassName("col-sm-3")).Displayed;
                     }
-                    catch (Exception e)
+                    catch(Exception e)
                     {
                         addList("deal", "Total commitment ", e.Message, "Error");
                     }
-                    // Console.WriteLine("Total commitment check  = " + TotalCommitmentCheck);
+                   // Console.WriteLine("Total commitment check  = " + TotalCommitmentCheck);
                     addtolist("deal", "Total commitment ", TotalCommitmentCheck);
                     /*var printMessage = "<p><b>Test FAILED!</b></p>";
                     if (TotalCommitmentCheck == false)
@@ -1155,7 +1143,6 @@ namespace CRES.TestAutoMation_Latest.TestCases
 
 
                 //Documents
-#pragma warning disable CS0168 // The variable 'e' is declared but never used
                 try
                 {
                     driver.FindElement(deal.documentsTab).Click();
@@ -1164,7 +1151,6 @@ namespace CRES.TestAutoMation_Latest.TestCases
                 {
 
                 }
-#pragma warning restore CS0168 // The variable 'e' is declared but never used
                 System.Threading.Thread.Sleep(2000);
                 bool DocumentsCheck = false;
                 try
@@ -1173,7 +1159,7 @@ namespace CRES.TestAutoMation_Latest.TestCases
                     {
                         DocumentsCheck = driver.FindElement(deal.documentCheckElement).Displayed;
                     }
-                    catch (Exception e)
+                    catch(Exception e)
                     {
                         addList("deal", "Documents ", e.Message, "Error");
                     }
@@ -1200,7 +1186,6 @@ namespace CRES.TestAutoMation_Latest.TestCases
 
 
                 //ActivityTab
-#pragma warning disable CS0168 // The variable 'e' is declared but never used
                 try
                 {
                     driver.FindElement(deal.activityTab).Click();
@@ -1209,7 +1194,6 @@ namespace CRES.TestAutoMation_Latest.TestCases
                 {
 
                 }
-#pragma warning restore CS0168 // The variable 'e' is declared but never used
                 System.Threading.Thread.Sleep(2000);
                 bool ActivityCheck = false;
                 try
@@ -1220,11 +1204,11 @@ namespace CRES.TestAutoMation_Latest.TestCases
 
                         ActivityCheck = driver.FindElement(deal.activityCheckElement).Displayed;
                     }
-                    catch (Exception e)
+                    catch(Exception e)
                     {
                         addList("deal", "Activity ", e.Message, "Error");
                     }
-                    // Console.WriteLine("Activity check  = " + ActivityCheck);
+                   // Console.WriteLine("Activity check  = " + ActivityCheck);
                     addtolist("deal", "Activity ", ActivityCheck);
                     /* var printMessage = "<p><b>Test FAILED!</b></p>";
                      if (ActivityCheck == false)
@@ -1291,21 +1275,21 @@ namespace CRES.TestAutoMation_Latest.TestCases
                     {
                         clearSectionBtn = driver.FindElement(deal.clearSectionBtn).Displayed;
                     }
-                    catch (Exception e)
+                    catch(Exception e)
                     {
                         addList("Transaction reconsilation ", " Transaction reconsilation ", e.Message, "Error");
                     }
-                    // Console.WriteLine(" Transaction reconsilationElement    = " + clearSectionBtn);
+                   // Console.WriteLine(" Transaction reconsilationElement    = " + clearSectionBtn);
                     addtolist("Transaction reconsilation ", " Transaction reconsilation ", clearSectionBtn);
                     try
                     {
                         downloadTemplateBtn = driver.FindElement(deal.downloadTemplateBtn).Displayed;
                     }
-                    catch (Exception e)
+                    catch(Exception e)
                     {
-                        addList("Transaction reconsilation ", " Transaction reconsilation ", e.Message, "Error");
+                        addList("Transaction reconsilation ", " Transaction reconsilation ", e.Message,"Error");
                     }
-                    // Console.WriteLine(" Transaction reconsilationElement    = " + downloadTemplateBtn);
+                   // Console.WriteLine(" Transaction reconsilationElement    = " + downloadTemplateBtn);
                     addtolist("Transaction reconsilation ", " Transaction reconsilation ", downloadTemplateBtn);
                     /*var printMessage = "<p><b>Test FAILED!</b></p>";
                    if (clearSectionBtn == false || downloadTemplateBtn == false)
@@ -1339,7 +1323,7 @@ namespace CRES.TestAutoMation_Latest.TestCases
 
                         transcAuditElmnt = driver.FindElement(deal.transcAuditElmnt).Displayed;
                     }
-                    catch (Exception e)
+                    catch(Exception e)
                     {
                         addList("Transacaction Audit  ", " Transacaction Audit ", e.Message, "Error");
                     }
@@ -1378,11 +1362,11 @@ namespace CRES.TestAutoMation_Latest.TestCases
                     {
                         calculationManagerElmnt = driver.FindElement(deal.calculationManagerElmnt).Displayed;
                     }
-                    catch (Exception e)
+                    catch(Exception e)
                     {
                         addList("calculation Manager   ", " calculation Manager  ", e.Message, "Error");
                     }
-                    // Console.WriteLine("calculation Manager Element   = " + calculationManagerElmnt);
+                   // Console.WriteLine("calculation Manager Element   = " + calculationManagerElmnt);
                     addtolist("calculation Manager   ", " calculation Manager  ", calculationManagerElmnt);
                     /*var printMessage = "<p><b>Test FAILED!</b></p>";
                    if (calculationManagerElmnt == false)
@@ -1404,7 +1388,6 @@ namespace CRES.TestAutoMation_Latest.TestCases
 
 
                 //Notes With Exception Tab
-#pragma warning disable CS0168 // The variable 'e' is declared but never used
                 try
                 {
                     driver.FindElement(deal.notesWthExcepTab).Click();
@@ -1413,7 +1396,6 @@ namespace CRES.TestAutoMation_Latest.TestCases
                 {
 
                 }
-#pragma warning restore CS0168 // The variable 'e' is declared but never used
                 System.Threading.Thread.Sleep(2000);
                 bool notesWthExcepElmnt = false;
                 try
@@ -1422,11 +1404,11 @@ namespace CRES.TestAutoMation_Latest.TestCases
                     {
                         notesWthExcepElmnt = driver.FindElement(deal.notesWthExcepElmnt).Displayed;
                     }
-                    catch (Exception e)
+                    catch(Exception e)
                     {
                         addList("calculation Manager   ", " Notes With Exception ", e.Message, "Error");
                     }
-                    // Console.WriteLine("Notes With Exception Element   = " + notesWthExcepElmnt);
+                   // Console.WriteLine("Notes With Exception Element   = " + notesWthExcepElmnt);
                     addtolist("calculation Manager   ", " Notes With Exception ", notesWthExcepElmnt);
                     /*var printMessage = "<p><b>Test FAILED!</b></p>";
                    if (notesWthExcepElmnt == false)
@@ -1447,7 +1429,6 @@ namespace CRES.TestAutoMation_Latest.TestCases
                 }
 
                 //Batch Log
-#pragma warning disable CS0168 // The variable 'e' is declared but never used
                 try
                 {
                     driver.FindElement(deal.batchLogTab).Click();
@@ -1457,7 +1438,6 @@ namespace CRES.TestAutoMation_Latest.TestCases
                 {
 
                 }
-#pragma warning restore CS0168 // The variable 'e' is declared but never used
                 bool batchLogElmnt = false;
                 try
                 {
@@ -1465,7 +1445,7 @@ namespace CRES.TestAutoMation_Latest.TestCases
                     {
                         batchLogElmnt = driver.FindElement(deal.batchLogElmnt).Displayed;
                     }
-                    catch (Exception e)
+                    catch(Exception e)
                     {
                         addList("calculation Manager   ", " Batch Log ", e.Message, "Error");
                     }
@@ -1487,7 +1467,7 @@ namespace CRES.TestAutoMation_Latest.TestCases
 
                     batchLogElmnt = false;
                     throw ex;
-
+                   
                 }
 
                 //----------------------------------------Reports----------------------------------//
@@ -1501,7 +1481,7 @@ namespace CRES.TestAutoMation_Latest.TestCases
                     {
                         refreshDataWarehouseBtn = driver.FindElement(deal.refreshDataWarehouseBtn).Displayed;
                     }
-                    catch (Exception e)
+                    catch(Exception e)
                     {
                         addList("Reports   ", " Reports ", e.Message, "Error");
                     }
@@ -1536,7 +1516,7 @@ namespace CRES.TestAutoMation_Latest.TestCases
                     {
                         reportName = driver.FindElement(deal.reportName).Displayed;
                     }
-                    catch (Exception e)
+                    catch(Exception e)
                     {
                         addList("Reports   ", " Reports History ", e.Message, "Error");
 
@@ -1559,14 +1539,14 @@ namespace CRES.TestAutoMation_Latest.TestCases
                     reportName = false;
                     throw ex;
                 }
+            
+        
+    
 
 
 
-
-
-
-
-            }
+        
+    }
 
         }
 
@@ -1574,9 +1554,7 @@ namespace CRES.TestAutoMation_Latest.TestCases
         // [Category("UITest")]
         public void OtherModules(IWebDriver driver)
         {
-#pragma warning disable CS0219 // The variable 'test' is assigned but its value is never used
             ExtentTest test = null;
-#pragma warning restore CS0219 // The variable 'test' is assigned but its value is never used
             var chromeOptions = new ChromeOptions();
             //chromeOptions.AddArgument("headless");
             Actions actions = new Actions(driver);
@@ -1587,11 +1565,11 @@ namespace CRES.TestAutoMation_Latest.TestCases
 
                 //test = extent.CreateTest("General verification ").Info("Test started");
 
-
+                
 
                 driver.Navigate().GoToUrl("https://qacres4.azurewebsites.net/#/login");
 
-
+               
                 System.Threading.Thread.Sleep(20000);
 
                 driver.Manage().Window.Maximize();
@@ -1628,7 +1606,7 @@ namespace CRES.TestAutoMation_Latest.TestCases
 
                 //System.Threading.Thread.Sleep(20000);
 
-
+                
 
 
 
@@ -1638,16 +1616,14 @@ namespace CRES.TestAutoMation_Latest.TestCases
                 driver.Navigate().GoToUrl("https://qacres4.azurewebsites.net/#/myaccount");
                 System.Threading.Thread.Sleep(8000);
                 //Accounting Tab
-#pragma warning disable CS0168 // The variable 'e' is declared but never used
                 try
                 {
                     driver.FindElement(deal.accountTab).Click();
                 }
                 catch (Exception e)
                 {
-
+                   
                 }
-#pragma warning restore CS0168 // The variable 'e' is declared but never used
                 System.Threading.Thread.Sleep(2000);
                 bool accountTabElmnt = false;
                 try
@@ -1656,7 +1632,7 @@ namespace CRES.TestAutoMation_Latest.TestCases
                     {
                         accountTabElmnt = driver.FindElement(deal.accountTabElmnt).Displayed;
                     }
-                    catch (Exception e)
+                    catch(Exception e)
                     {
                         addList("My Account ", "My Account  Tab ", e.Message, "Error");
 
@@ -1684,7 +1660,6 @@ namespace CRES.TestAutoMation_Latest.TestCases
                 }
 
                 //Preferences Tab
-#pragma warning disable CS0168 // The variable 'e' is declared but never used
                 try
                 {
                     driver.FindElement(deal.preferencesTab).Click();
@@ -1693,7 +1668,6 @@ namespace CRES.TestAutoMation_Latest.TestCases
                 {
 
                 }
-#pragma warning restore CS0168 // The variable 'e' is declared but never used
                 System.Threading.Thread.Sleep(2000);
                 bool preferenceTabElmnt = false;
                 try
@@ -1702,9 +1676,9 @@ namespace CRES.TestAutoMation_Latest.TestCases
                     {
                         preferenceTabElmnt = driver.FindElement(deal.preferenceTabElmnt).Displayed;
                     }
-                    catch (Exception e)
+                    catch(Exception e)
                     {
-                        addList("My Account ", "Preferences  Tab ", e.Message, "Error");
+                        addList("My Account ", "Preferences  Tab ",e.Message,"Error");
                     }
                     //Console.WriteLine(" Preferences Tab Element     = " + preferenceTabElmnt);
                     addtolist("My Account ", "Preferences  Tab ", preferenceTabElmnt);
@@ -1727,7 +1701,6 @@ namespace CRES.TestAutoMation_Latest.TestCases
                 }
 
                 //Profile Delegation Tab
-#pragma warning disable CS0168 // The variable 'e' is declared but never used
                 try
                 {
                     driver.FindElement(deal.profileDelegTab).Click();
@@ -1736,7 +1709,6 @@ namespace CRES.TestAutoMation_Latest.TestCases
                 {
 
                 }
-#pragma warning restore CS0168 // The variable 'e' is declared but never used
                 System.Threading.Thread.Sleep(2000);
                 bool btnCreateRole = false;
                 try
@@ -1745,9 +1717,9 @@ namespace CRES.TestAutoMation_Latest.TestCases
                     {
                         btnCreateRole = driver.FindElement(deal.btnCreateRole).Displayed;
                     }
-                    catch (Exception e)
+                    catch(Exception e)
                     {
-                        addList("My Account ", " Profile Delegation Tab ", e.Message, "Error");
+                        addList("My Account ", " Profile Delegation Tab ", e.Message,"Error");
                     }
                     //Console.WriteLine(" Profile Delegation Tab Element     = " + btnCreateRole);
                     addtolist("My Account ", " Profile Delegation Tab ", btnCreateRole);
@@ -1781,7 +1753,7 @@ namespace CRES.TestAutoMation_Latest.TestCases
                         userManagementElmnt = driver.FindElement(deal.userManagementElmnt).Displayed;
 
                     }
-                    catch (Exception e)
+                    catch(Exception e)
                     {
                         throw e;
                     }
@@ -1806,7 +1778,6 @@ namespace CRES.TestAutoMation_Latest.TestCases
                 }
                 System.Threading.Thread.Sleep(2000);
                 // Role Permission Tab
-#pragma warning disable CS0168 // The variable 'e' is declared but never used
                 try
                 {
                     driver.FindElement(deal.rolePermissionTab).Click();
@@ -1815,19 +1786,16 @@ namespace CRES.TestAutoMation_Latest.TestCases
                 {
 
                 }
-#pragma warning restore CS0168 // The variable 'e' is declared but never used
                 System.Threading.Thread.Sleep(2000);
                 bool roleElmnt = false;
-#pragma warning disable CS0219 // The variable 'addNewRoleBtn' is assigned but its value is never used
                 bool addNewRoleBtn = false;
-#pragma warning restore CS0219 // The variable 'addNewRoleBtn' is assigned but its value is never used
                 try
                 {
                     try
                     {
                         roleElmnt = driver.FindElement(deal.roleElmnt).Displayed;
                     }
-                    catch (Exception e)
+                    catch(Exception e)
                     {
                         throw e;
                     }
@@ -1855,7 +1823,6 @@ namespace CRES.TestAutoMation_Latest.TestCases
                 }
                 System.Threading.Thread.Sleep(2000);
                 //Manage App settings Tab
-#pragma warning disable CS0168 // The variable 'e' is declared but never used
                 try
                 {
                     driver.FindElement(deal.manageAppSettngsTab).Click();
@@ -1864,7 +1831,6 @@ namespace CRES.TestAutoMation_Latest.TestCases
                 {
 
                 }
-#pragma warning restore CS0168 // The variable 'e' is declared but never used
                 System.Threading.Thread.Sleep(2000);
                 bool managaeAppStngElmnt = false;
                 try
@@ -1873,9 +1839,9 @@ namespace CRES.TestAutoMation_Latest.TestCases
                     {
                         managaeAppStngElmnt = driver.FindElement(deal.managaeAppStngElmnt).Displayed;
                     }
-                    catch (Exception e)
+                    catch(Exception e)
                     {
-                        addList("User Management ", "  Manage App settings Tab ", e.Message, "Error");
+                        addList("User Management ", "  Manage App settings Tab ", e.Message,"Error");
                     }
                     //Console.WriteLine(" Manage App settings Element      = " + managaeAppStngElmnt);
                     addtolist("User Management ", " Manage App settings Tab ", managaeAppStngElmnt);
@@ -1899,7 +1865,6 @@ namespace CRES.TestAutoMation_Latest.TestCases
                 System.Threading.Thread.Sleep(2000);
 
                 //Workflow Approver Tab
-#pragma warning disable CS0168 // The variable 'e' is declared but never used
                 try
                 {
                     driver.FindElement(deal.workflowApprovTab).Click();
@@ -1908,7 +1873,6 @@ namespace CRES.TestAutoMation_Latest.TestCases
                 {
 
                 }
-#pragma warning restore CS0168 // The variable 'e' is declared but never used
                 System.Threading.Thread.Sleep(2000);
                 bool workAprvElmnt = false;
                 try
@@ -1917,16 +1881,16 @@ namespace CRES.TestAutoMation_Latest.TestCases
                     {
                         workAprvElmnt = driver.FindElement(deal.workAprvElmnt).Displayed;
                     }
-                    catch (Exception e)
+                    catch(Exception e)
                     {
+                        
+                        
 
-
-
-                        addList("User Management ", " Workflow Approver Tab ", e.Message, "Error");
-
+                        addList("User Management ", " Workflow Approver Tab ",e.Message,"Error");
+                        
                     }
-                    //  Console.WriteLine(" WorkFlow Approver Element      = " + workAprvElmnt);
-                    addtolist("User Management ", " Workflow Approver Tab ", workAprvElmnt);
+                  //  Console.WriteLine(" WorkFlow Approver Element      = " + workAprvElmnt);
+                    addtolist("User Management ", " Workflow Approver Tab ", workAprvElmnt) ;
                     /*var printMessage = "<p><b>Test FAILED!</b></p>";
                    if (workAprvElmnt == false)
                    {
@@ -1952,8 +1916,8 @@ namespace CRES.TestAutoMation_Latest.TestCases
 
 
 
-
-
+                
+                
 
 
                 String times = GeneralVerification.Timestamp();
@@ -1962,11 +1926,11 @@ namespace CRES.TestAutoMation_Latest.TestCases
                 //String time = VerifyDeal.Timestamp();
                 System.Threading.Thread.Sleep(7000);
 
-                // String FileName;
+               // String FileName;
 
                 String pathExcel = "PageLoad" + "_" + times + ".xlsx";
                 Console.WriteLine("Excel report = =  " + pathExcel);
-                // CreateExcelDataTableNew(pathExcel);
+               // CreateExcelDataTableNew(pathExcel);
                 System.Threading.Thread.Sleep(5000);
                 string pathNew = Directory.GetParent(Directory.GetCurrentDirectory()).Parent.Parent.FullName;
                 Console.WriteLine("Path of current directory " + pathNew);
@@ -2026,8 +1990,8 @@ namespace CRES.TestAutoMation_Latest.TestCases
             PageLoadTest plt = new PageLoadTest();
             plt.PageName = pagename;
             plt.TabName = tabname;
-
-
+            
+           
             if (res == true)
             {
                 plt.Status = "Loaded";
@@ -2039,14 +2003,14 @@ namespace CRES.TestAutoMation_Latest.TestCases
             }
             listPageLoad.Add(plt);
         }
-        public void addList(string pagename, string tabname, String exception, String status)
+        public void addList(string pagename, string tabname,String exception,String status)
         {
             PageLoadTest pageloadtest = new PageLoadTest();
             pageloadtest.PageName = pagename;
             pageloadtest.TabName = tabname;
             pageloadtest.Exception = exception;
             pageloadtest.Status = "Error";
-
+            
             listPageLoad.Add(pageloadtest);
         }
 
@@ -2055,11 +2019,11 @@ namespace CRES.TestAutoMation_Latest.TestCases
 
     //listPageLoad.Add(plt);
 }
+    
 
 
-
-//Note save 
-
+        //Note save 
+       
 
 
 

@@ -270,11 +270,12 @@ left join tblzCdFacilityType LFacilityTypeCd_F on LFacilityTypeCd_F.FacilityType
 left join tblzCdFacilityTypeOther LFacilityTypeOtherCd_F on LFacilityTypeOtherCd_F.FacilityTypeOtherCd = n.FacilityTypeOtherCd_F
 left join tblPropertyContainer LPropertyContainerID_F on LPropertyContainerID_F.PropertyContainerID = n.PropertyContainerID_F
 left join [acore].[vw_AcctNote] vw_AcctNote on vw_AcctNote.NoteID = n.noteid
-WHERE (n.AuditAddDate > '''+Convert(Nvarchar(max),@LastBatchStart,121)+'''
+WHERE n.noteid NOT IN ( ''7254'',''30059'')
+and ( (n.AuditAddDate > '''+Convert(Nvarchar(max),@LastBatchStart,121)+'''
 				and n.AuditAddDate <  '''+Convert(Nvarchar(max),@CurrentBatchStart,121)+'''  ) 
 				OR 
 				(n.AuditUpdateDate > '''+Convert(Nvarchar(max),@LastBatchStart,121)+'''
-				and n.AuditUpdateDate < '''+Convert(Nvarchar(max),@CurrentBatchStart,121)+''' )
+				and n.AuditUpdateDate < '''+Convert(Nvarchar(max),@CurrentBatchStart,121)+''' ) )
 '
 --================================
 Declare @BSNote as Table(

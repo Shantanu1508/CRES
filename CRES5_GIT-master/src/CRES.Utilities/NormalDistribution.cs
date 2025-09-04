@@ -1,10 +1,14 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
 
 namespace CRES.Utilities
 {
     public static class NormalDistribution
     {
-
+         
         // Evaluation of the bell or Gauss curve.
         public static double NormalDist(double x, double mean, double standard_dev)
         {

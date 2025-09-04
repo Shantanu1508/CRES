@@ -10,8 +10,8 @@ BEGIN
 	IF(@AnalysisID is not null)
 	BEGIN
 		
-		Delete from CRE.NotePeriodicCalc where AnalysisID = @AnalysisID and noteid in (
-			Select n.noteid 
+		Delete from CRE.NotePeriodicCalc where AnalysisID = @AnalysisID and AccountID in (
+			Select n.Account_AccountID --n.noteid 
 			FROM cre.note n 	
 			WHERE n.creNoteID in (Select distinct note from @tbltypeNotePeriodicCalc)
 			
@@ -19,7 +19,8 @@ BEGIN
 		
 
 		INSERT INTO [CRE].[NotePeriodicCalc]
-		([NoteID]
+		(--[NoteID]
+		AccountID
 		,[PeriodEndDate]
 		,[Month]
 		,[BeginningBalance]
@@ -33,7 +34,8 @@ BEGIN
 		,updateddate
 		)
 		Select 
-		n.noteid
+		--n.noteid
+		n.Account_AccountID
 		,[Date]	
 		,(CASE WHEN EOMONTH([Date]) = [Date] THEN MONTH([Date]) ELSE null END) as [Month]
 		,[initbal]			

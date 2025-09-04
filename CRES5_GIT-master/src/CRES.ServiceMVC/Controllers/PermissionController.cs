@@ -1,16 +1,19 @@
-﻿using CRES.BusinessLogic;
-#pragma warning disable CS0105 // The using directive for 'CRES.BusinessLogic' appeared previously in this namespace
-#pragma warning restore CS0105 // The using directive for 'CRES.BusinessLogic' appeared previously in this namespace
+﻿using Amazon.SimpleSystemsManagement;
+using CRES.BusinessLogic;
+using CRES.BusinessLogic;
 using CRES.DataContract;
 using CRES.Utilities;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
+using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Data;
 using System.IO;
 using System.Linq;
+using System.Net;
 using System.Net.Http;
+using CRES.Services;
 
 
 namespace CRES.Services.Controllers
@@ -34,9 +37,7 @@ namespace CRES.Services.Controllers
         {
             GenericResult _authenticationResult = null;
             List<LookupDataContract> lstlookupDC = new List<LookupDataContract>();
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
             var headerUserID = string.Empty;
             if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
             {
@@ -272,7 +273,7 @@ namespace CRES.Services.Controllers
         [Services.Controllers.IsAuthenticate]
         [Services.Controllers.DeflateCompression]
         [Route("api/permission/AddUpdateRole")]
-        public IActionResult AddUpdateRole([FromBody] RoleDataContract roledc)
+        public IActionResult AddUpdateRole([FromBody]RoleDataContract roledc)
         {
             GenericResult _authenticationResult = null;
 
@@ -307,7 +308,7 @@ namespace CRES.Services.Controllers
         [Services.Controllers.IsAuthenticate]
         [Services.Controllers.DeflateCompression]
         [Route("api/permission/ResetPassword")]
-        public IActionResult Resetuserpassword([FromBody] UserDataContract userdc)
+        public IActionResult Resetuserpassword([FromBody]UserDataContract userdc)
         {
             GenericResult _authenticationResult = null;
 
@@ -349,7 +350,7 @@ namespace CRES.Services.Controllers
         [Services.Controllers.IsAuthenticate]
         [Services.Controllers.DeflateCompression]
         [Route("api/permission/resetpasswordandsendactivationlink")]
-        public IActionResult ResetuserpasswordAndSendActivationLink([FromBody] UserDataContract userdc)
+        public IActionResult ResetuserpasswordAndSendActivationLink([FromBody]UserDataContract userdc)
         {
             GenericResult _authenticationResult = null;
 
@@ -388,7 +389,7 @@ namespace CRES.Services.Controllers
         [HttpPost]
         [Services.Controllers.DeflateCompression]
         [Route("api/permission/forgotpasswordandsendactivationlink")]
-        public IActionResult ForgotPasswordandsendactivationlink([FromBody] UserDataContract userdc)
+        public IActionResult ForgotPasswordandsendactivationlink([FromBody]UserDataContract userdc)
         {
             GenericResult _authenticationResult = null;
 
@@ -417,7 +418,7 @@ namespace CRES.Services.Controllers
             {
                 _authenticationResult = new GenericResult()
                 {
-                    Succeeded = true, // return true because we are not showing error message in case user not exists.
+                    Succeeded = false, // return true because we are not showing error message in case user not exists.
                     Message = ex.Message
                 };
             }
@@ -689,9 +690,7 @@ namespace CRES.Services.Controllers
         {
             GenericResult _authenticationResult = null;
             List<LookupDataContract> lstlookupDC = new List<LookupDataContract>();
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
             var headerUserID = string.Empty;
             if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
             {
@@ -730,9 +729,7 @@ namespace CRES.Services.Controllers
         {
             GenericResult _authenticationResult = null;
             List<LookupDataContract> lstlookupDC = new List<LookupDataContract>();
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
             var headerUserID = string.Empty;
             if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
             {
@@ -741,6 +738,7 @@ namespace CRES.Services.Controllers
 
             UserPermissionLogic upl = new UserPermissionLogic();
 
+            // insertholidays 
             upl.InsertHolidayDates(dtholidaysdate, new Guid(headerUserID));
 
             try
@@ -762,7 +760,6 @@ namespace CRES.Services.Controllers
             }
             return Ok(_authenticationResult);
         }
-
 
         [HttpGet]
         [Route("api/permission/getallrules")]
@@ -834,7 +831,8 @@ namespace CRES.Services.Controllers
             //get data into blob 
             AzureStorageRead azstorage = new AzureStorageRead();
             var jsontemplatedata = azstorage.GetRuleJSONFileToAzureBlob(RuleTypeDetailID);
-            //  var jsontemplatedata = Services.AzureStorageReadFile.GetRuleJSONFileToAzureBlob(RuleTypeDetailID);
+          //  var jsontemplatedata = Services.AzureStorageReadFile.GetRuleJSONFileToAzureBlob(RuleTypeDetailID);
+
 
             try
             {

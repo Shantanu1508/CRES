@@ -21,7 +21,7 @@
         <div class="col-sm-3">
           <label class="lab1">Facility name</label>
 
-          <input class="ibox1" id="Name" type="text" required [(ngModel)]="_financingWarehouse.Name" name="Name" #Name="ngModel" id="Name">
+          <input class="ibox1" id="Name" type="text" required [(ngModel)]="_financingWarehouse.Name" name="Name" #Name="ngModel">
         </div>
         <div class="col-sm-3">
           <label class="lab1">Status</label>
@@ -68,14 +68,14 @@
         <div class="col-sm-3">
           <label class="lab1">Origination fee</label>
 
-          <wj-input-number [(value)]="_financingWarehouse.OriginationFee" id="OriginationFee" [isRequired]="false" class="ibox1 rightalign" [format]="'n2'"></wj-input-number>
+          <wj-input-number [(ngModel)]="_financingWarehouse.OriginationFee" name="OriginationFee" #OriginationFee="ngModel"
+                            [isRequired]="false" class="ibox1 rightalign" [format]="'n2'"></wj-input-number>
         </div>
         <div class="col-sm-3">
           <label class="lab1">Total constraint</label>
-          <!--<wj-input-number [(value)]="_financingWarehouse.TotalConstraint" [isRequired]="false" class="ibox1 rightalign" [format]="'n2'"></wj-input-number>-->
-          <wj-input-number [(value)]="_financingWarehouse.TotalConstraint" id="TotalConstraint" [isRequired]="false" class="ibox1 rightalign" [format]="'n2'"></wj-input-number>
-
+          <wj-input-number [(value)]="_financingWarehouse.TotalConstraint" name="TotalConstraint" [isRequired]="false" class="ibox1 rightalign" [format]="'n2'"></wj-input-number>
         </div>
+        
       </div>
 
 
@@ -83,7 +83,7 @@
         <h3>Financing warehouse details </h3>
         <div class="form-group row pD10">
           <div class="col-sm-12 customgridpadding">
-            <wj-flex-grid id="flexfwh" #flexfwh [itemsSource]="_financingWarehouse.lstFinancingWarehouseDetail" [allowAddNew]="true" [allowResizing]="'Both'" class="gridSize"
+            <wj-flex-grid id="flexfwh" #flexfwh [itemsSource]="_financingWarehouse.lstFinancingWarehouseDetail" keyActionTab="Cycle" [allowAddNew]="true" [allowResizing]="'Both'" class="gridSize"
                           (selectionChanged)="financingselectionChanged()" selection-mode="Row">
               <wj-flex-grid-column [header]="'Start date'" [binding]="'StartDate'" align="right" style="border:double" [width]="'*'"></wj-flex-grid-column>
               <wj-flex-grid-column [header]="'End date'" [binding]="'EndDate'" align="right" style="border:1px solid red" [width]="'*'"></wj-flex-grid-column>

@@ -12,7 +12,7 @@ namespace CRES.DataContract
         public int? Count { get; set; }
         public int? CountNormal { get; set; }
         public string Name { get; set; }
-        public string CREID { get; set; }
+        public string CREID { get; set; }     
         public string ActionLevelText { get; set; }
         public int? ActionLevelID { get; set; }
         public string CreatedBy { get; set; }
@@ -24,9 +24,10 @@ namespace CRES.DataContract
         public string DealName { get; set; }
         public string Summary { get; set; }
         public string StackTrace { get; set; }
-        public string MethodName { get; set; }
+        public string MethodName { get; set; }        
 
     }
 }
 
 
+ 

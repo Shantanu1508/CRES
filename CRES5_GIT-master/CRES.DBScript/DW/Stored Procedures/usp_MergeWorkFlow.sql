@@ -17,8 +17,18 @@ BIStartTime = GETDATE()
 WHERE BatchLogId = @BatchLogId and LandingTableName = 'L_WorkFlowBI'
 
 
+Declare @tbltaskid as Table(TaskID UNIQUEIDENTIFIER)
 
-Truncate table [DW].[WorkFlowBI]
+INSERT INTO @tbltaskid(TaskID)
+Select TaskID from [DW].[L_WFTaskDetailBI]
+
+
+IF EXISTS(Select TaskID from @tbltaskid)
+BEGIN
+
+
+Delete from [DW].[WorkFlowBI] Where taskid in (Select TaskID from @tbltaskid)
+
 
 INSERT INTO [DW].[WorkFlowBI]
            ([dealid]
@@ -99,9 +109,10 @@ from(
 	left join core.Lookup lPurposeID on lPurposeID.LookupID = df.PurposeID and lPurposeID.ParentID = 50  
 	left join app.[user] u on u.UserID = ISNULL(NULLIF(td.UpdatedBy  ,''),'00000000-0000-0000-0000-000000000000') 
 	left JOIN [CORE].[Lookup] Lgb ON Lgb.LookupID = df.GeneratedBy 
+	Where d.isdeleted <> 1
+	and td.taskid in (Select TaskID from @tbltaskid)
+	
 
-	  --Where td.WFTaskDetailID in (Select MAX(WFTaskDetailID) from cre.WFTaskDetail group by TaskID)  
-	-- ORDER by td.TaskID DESC  
 UNION
 	Select   
 	d.dealid,
@@ -150,12 +161,14 @@ UNION
 	left join app.[user] u on u.UserID = ISNULL(NULLIF(td.UpdatedBy  ,''),'00000000-0000-0000-0000-000000000000') 
 	left JOIN [CORE].[Lookup] Lgb ON Lgb.LookupID = df.GeneratedBy 
 
-	--Where td.WFTaskDetailID in (Select MAX(WFTaskDetailID) from cre.WFTaskDetail group by TaskID) 
+	Where d.isdeleted <> 1
+	and td.taskid in (Select TaskID from @tbltaskid)
+
 )a  
 where a.wf_isAllow = 1  and a.credealid is not null
 
 
-
+END
 
 DECLARE @RowCount int
 SET @RowCount = @@ROWCOUNT

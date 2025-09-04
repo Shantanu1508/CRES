@@ -76,9 +76,12 @@ IF(@Intent = 'BalloonPayment')
   inner join cre.Deal d on d.dealid = n.dealid  
   left join  
   (  
-   Select noteid, Abs(Amount) as balloon from CRE.TransactionEntry   
-   where AnalysisID = @Analysisid  
-   and [Type] = 'Balloon'  
+    Select n.noteid, Abs(Amount) as balloon 
+    from CRE.TransactionEntry   tr
+    Inner Join core.account acc on acc.accountid = tr.accountid
+    inner join cre.note n on n.account_accountid = acc.AccountID
+    where AnalysisID = @Analysisid  
+    and [Type] = 'Balloon'  
   )Tr on Tr.noteid = n.noteid  
   where a.name = @NoteValue --IIF(@NoteNature = 'name',a.name,n.crenoteid) =  @NoteValue  
   and d.DealName =  @DealValue --IIF(@DealNature = 'name',d.dealname,d.credealid) =  @DealValue  

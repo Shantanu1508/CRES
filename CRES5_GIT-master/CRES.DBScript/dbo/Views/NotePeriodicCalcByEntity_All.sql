@@ -71,8 +71,14 @@ AllInCouponRate AS  AllInCouponRate
 
 ,FinancingSource
 ,ClientName  
+
+,PIKInterestAppliedForThePeriod
+,PIKPrincipalPaidForThePeriod
+
+,InterestReceivedinCurrentPeriod
     
 From DW.NotePeriodicCalcByEntityBI_ALL NPC   
-where AnalysisName in ('Default','Fully Extended (FWCV)')
+where AnalysisID in ('C10F3372-0FC2-4861-A9F5-148F1F80804F','45CF083B-4755-4A8C-982A-7DC6D7B8E5F2')
+---AnalysisName in ('Default','Fully Extended (FWCV)')
   
     

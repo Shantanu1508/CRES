@@ -9,72 +9,260 @@ AS
 BEGIN
 	SET NOCOUNT ON;	
 
-	Declare @PeriodID UNIQUEIDENTIFIER = (Select Top 1 PeriodID from core.[Period] where IsDeleted <> 1 order by EndDate desc)
 
-	IF EXISTS(select al.AnalysisID from Core.Analysis al
-				left join Core.AnalysisParameter ap on al.AnalysisID = ap.AnalysisID
-				LEFT Join Core.Lookup lCalculationMode on lCalculationMode.LookupID=ap.CalculationMode and lCalculationMode.ParentID = 79
-				Where lCalculationMode.Name like '%Prospective%'
-				and al.AnalysisID = @AnalysisID	)
-	BEGIN
-		Select 
-		NoteID,
-		PeriodEndDate,
-		PVBasis,
-		DeferredFeeAccrual,
-		DiscountPremiumAccrual as DiscountPremiumAccrual,
-		CapitalizedCostAccrual as CapitalizedCostAccrual,
-		AllInBasisValuation as AllInBasisValuation,
-		[CreatedBy],
-		[CreatedDate],
-		[UpdatedBy],
-		[UpdatedDate]	
-		FROM Core.PeriodCloseArchive
-		where NoteID = @NoteID 		
-		and PeriodID = @PeriodID
-		order by  PeriodEndDate 
-	END
-	ELSE
-	BEGIN
-		Select 
-		NoteID,
-		PeriodEndDate,
-		PVBasis,
-		DeferredFeeAccrual,
-		DiscountPremiumAccrual as DiscountPremiumAccrual,
-		CapitalizedCostAccrual as CapitalizedCostAccrual,
-		AllInBasisValuation as AllInBasisValuation,
-		[CreatedBy],
-		[CreatedDate],
-		[UpdatedBy],
-		[UpdatedDate]	
-		FROM Core.PeriodCloseArchive
-		where NoteID = @NoteID 
-		and AnalysisID = @AnalysisID 	
-		and PeriodID = @PeriodID
-		and 1 = 0
-		order by  PeriodEndDate 
-	END
+	Select null as [NoteID]    ,null as [PeriodEndDate]
+
+
+	--Declare @PeriodID UNIQUEIDENTIFIER = (Select Top 1 PeriodID from core.[Period] where IsDeleted <> 1 order by EndDate desc)
+
+	--IF EXISTS(select al.AnalysisID from Core.Analysis al
+	--			left join Core.AnalysisParameter ap on al.AnalysisID = ap.AnalysisID
+	--			LEFT Join Core.Lookup lCalculationMode on lCalculationMode.LookupID=ap.CalculationMode and lCalculationMode.ParentID = 79
+	--			Where lCalculationMode.Name like '%Prospective%'
+	--			and al.AnalysisID = @AnalysisID	)
+	--BEGIN
+	--	Select 
+	--	[PeriodID]           
+	--	,[NotePeriodicCalcID]
+	--	,[NoteID]    
+	--	,[PeriodEndDate]
+	--	,[Month]
+	--	,[ActualCashFlows] 
+	--	,[GAAPCashFlows]   
+	--	,[EndingGAAPBookValue]
+	--	,[TotalGAAPIncomeforthePeriod] 
+	--	,[InterestAccrualforthePeriod] 
+	--	,[PIKInterestAccrualforthePeriod]           
+	--	,[TotalAmortAccrualForPeriod]  
+	--	,[AccumulatedAmort]
+	--	,[BeginningBalance]
+	--	,[TotalFutureAdvancesForThePeriod]          
+	--	,[TotalDiscretionaryCurtailmentsforthePeriod] 
+	--	,[InterestPaidOnPaymentDate]   
+	--	,[TotalCouponStrippedforthePeriod]          
+	--	,[CouponStrippedonPaymentDate] 
+	--	,[ScheduledPrincipal] 
+	--	,[PrincipalPaid]   
+	--	,[BalloonPayment]  
+	--	,[EndingBalance]   
+	--	,[ExitFeeIncludedInLevelYield] 
+	--	,[ExitFeeExcludedFromLevelYield]            
+	--	,[AdditionalFeesIncludedInLevelYield]       
+	--	,[AdditionalFeesExcludedFromLevelYield]     
+	--	,[OriginationFeeStripping]     
+	--	,[ExitFeeStrippingIncldinLevelYield]        
+	--	,[ExitFeeStrippingExcldfromLevelYield]      
+	--	,[AddlFeesStrippingIncldinLevelYield]       
+	--	,[AddlFeesStrippingExcldfromLevelYield]     
+	--	,[EndOfPeriodWAL]  
+	--	,[PIKInterestFromPIKSourceNote]
+	--	,[PIKInterestTransferredToRelatedNote]      
+	--	,[PIKInterestForThePeriod]     
+	--	,[BeginningPIKBalanceNotInsideLoanBalance]  
+	--	,[PIKInterestForPeriodNotInsideLoanBalance] 
+	--	,[PIKBalanceBalloonPayment]    
+	--	,[EndingPIKBalanceNotInsideLoanBalance]     
+	--	,[CostBasis]       
+	--	,[PreCapBasis]     
+	--	,[BasisCap]        
+	--	,[AmortAccrualLevelYield]      
+	--	,[ScheduledPrincipalShortfall] 
+	--	,[PrincipalShortfall] 
+	--	,[PrincipalLoss]   
+	--	,[InterestForPeriodShortfall]  
+	--	,[InterestPaidOnPMTDateShortfall]           
+	--	,[CumulativeInterestPaidOnPMTDateShortfall] 
+	--	,[InterestShortfallLoss]       
+	--	,[InterestShortfallRecovery]   
+	--	,[BeginningFinancingBalance]   
+	--	,[TotalFinancingDrawsCurtailmentsForPeriod] 
+	--	,[FinancingBalloon]
+	--	,[EndingFinancingBalance]      
+	--	,[FinancingInterestPaid]       
+	--	,[FinancingFeesPaid]  
+	--	,[PeriodLeveredYield] 
+	--	,[OrigFeeAccrual]  
+	--	,[DiscountPremiumAccrual]      
+	--	,[ExitFeeAccrual]  
+	--	,[AllInCouponRate] 
+	--	,[GrossDeferredFees]  
+	--	,[DeferredFeesReceivable]      
+	--	,[CleanCostPrice]  
+	--	,[AmortizedCostPrice] 
+	--	,[AdditionalFeeAccrual]        
+	--	,[CapitalizedCostAccrual]      
+	--	,[DailySpreadInterestbeforeStrippingRule]   
+	--	,[DailyLiborInterestbeforeStrippingRule]    
+	--	,[ReversalofPriorInterestAccrual]           
+	--	,[InterestReceivedinCurrentPeriod]          
+	--	,[CurrentPeriodInterestAccrual]
+	--	,[TotalGAAPInterestFortheCurrentPeriod]     
+	--	,[CleanCost]       
+	--	,[InvestmentBasis] 
+	--	,[CurrentPeriodInterestAccrualPeriodEnddate]
+	--	,[LIBORPercentage] 
+	--	,[SpreadPercentage]
+	--	,[AnalysisID]
+	--	,[FeeStrippedforthePeriod]     
+	--	,[PIKInterestPercentage]       
+	--	,[AmortizedCost]   
+	--	,[InterestSuspenseAccountActivityforthePeriod]
+	--	,[InterestSuspenseAccountBalance]           
+	--	,[AllInBasisValuation]
+	--	,[AllInPIKRate]    
+	--	,[CurrentPeriodPIKInterestAccrualPeriodEnddate]
+	--	,[PIKInterestPaidForThePeriod] 
+	--	,[PIKInterestAppliedForThePeriod]           
+	--	,[EndingPreCapPVBasis]
+	--	,[LevelYieldIncomeForThePeriod]
+	--	,[PVAmortTotalIncomeMethod]    
+	--	,[EndingCleanCostLY]  
+	--	,[EndingAccumAmort]
+	--	,[PVAmortForThePeriod]
+	--	,[EndingSLBasis]   
+	--	,[SLAmortForThePeriod]
+	--	,[SLAmortOfTotalFeesInclInLY]  
+	--	,[SLAmortOfDiscountPremium]    
+	--	,[SLAmortOfCapCost]
+	--	,[EndingAccumSLAmort] 
+	--	,[EndingPreCapGAAPBasis]       
+	--	,[PIKPrincipalPaidForThePeriod]
+	--	,[RemainingUnfundedCommitment]
+	--	,CalcEngineType
+	--	,[IsDeleted]
+	--	,[CreatedBy]
+	--	,[CreatedDate]
+	--	,[UpdatedBy]
+	--	,[UpdatedDate]
+	--	FROM Core.AccountingClosePeriodicArchive
+	--	where NoteID = @NoteID 		
+	--	and PeriodID = @PeriodID
+	--	order by  PeriodEndDate 
+	--END
+	--ELSE
+	--BEGIN
+	--	Select 
+	--	[PeriodID]           
+	--	,[NotePeriodicCalcID]
+	--	,[NoteID]    
+	--	,[PeriodEndDate]
+	--	,[Month]
+	--	,[ActualCashFlows] 
+	--	,[GAAPCashFlows]   
+	--	,[EndingGAAPBookValue]
+	--	,[TotalGAAPIncomeforthePeriod] 
+	--	,[InterestAccrualforthePeriod] 
+	--	,[PIKInterestAccrualforthePeriod]           
+	--	,[TotalAmortAccrualForPeriod]  
+	--	,[AccumulatedAmort]
+	--	,[BeginningBalance]
+	--	,[TotalFutureAdvancesForThePeriod]          
+	--	,[TotalDiscretionaryCurtailmentsforthePeriod] 
+	--	,[InterestPaidOnPaymentDate]   
+	--	,[TotalCouponStrippedforthePeriod]          
+	--	,[CouponStrippedonPaymentDate] 
+	--	,[ScheduledPrincipal] 
+	--	,[PrincipalPaid]   
+	--	,[BalloonPayment]  
+	--	,[EndingBalance]   
+	--	,[ExitFeeIncludedInLevelYield] 
+	--	,[ExitFeeExcludedFromLevelYield]            
+	--	,[AdditionalFeesIncludedInLevelYield]       
+	--	,[AdditionalFeesExcludedFromLevelYield]     
+	--	,[OriginationFeeStripping]     
+	--	,[ExitFeeStrippingIncldinLevelYield]        
+	--	,[ExitFeeStrippingExcldfromLevelYield]      
+	--	,[AddlFeesStrippingIncldinLevelYield]       
+	--	,[AddlFeesStrippingExcldfromLevelYield]     
+	--	,[EndOfPeriodWAL]  
+	--	,[PIKInterestFromPIKSourceNote]
+	--	,[PIKInterestTransferredToRelatedNote]      
+	--	,[PIKInterestForThePeriod]     
+	--	,[BeginningPIKBalanceNotInsideLoanBalance]  
+	--	,[PIKInterestForPeriodNotInsideLoanBalance] 
+	--	,[PIKBalanceBalloonPayment]    
+	--	,[EndingPIKBalanceNotInsideLoanBalance]     
+	--	,[CostBasis]       
+	--	,[PreCapBasis]     
+	--	,[BasisCap]        
+	--	,[AmortAccrualLevelYield]      
+	--	,[ScheduledPrincipalShortfall] 
+	--	,[PrincipalShortfall] 
+	--	,[PrincipalLoss]   
+	--	,[InterestForPeriodShortfall]  
+	--	,[InterestPaidOnPMTDateShortfall]           
+	--	,[CumulativeInterestPaidOnPMTDateShortfall] 
+	--	,[InterestShortfallLoss]       
+	--	,[InterestShortfallRecovery]   
+	--	,[BeginningFinancingBalance]   
+	--	,[TotalFinancingDrawsCurtailmentsForPeriod] 
+	--	,[FinancingBalloon]
+	--	,[EndingFinancingBalance]      
+	--	,[FinancingInterestPaid]       
+	--	,[FinancingFeesPaid]  
+	--	,[PeriodLeveredYield] 
+	--	,[OrigFeeAccrual]  
+	--	,[DiscountPremiumAccrual]      
+	--	,[ExitFeeAccrual]  
+	--	,[AllInCouponRate] 
+	--	,[GrossDeferredFees]  
+	--	,[DeferredFeesReceivable]      
+	--	,[CleanCostPrice]  
+	--	,[AmortizedCostPrice] 
+	--	,[AdditionalFeeAccrual]        
+	--	,[CapitalizedCostAccrual]      
+	--	,[DailySpreadInterestbeforeStrippingRule]   
+	--	,[DailyLiborInterestbeforeStrippingRule]    
+	--	,[ReversalofPriorInterestAccrual]           
+	--	,[InterestReceivedinCurrentPeriod]          
+	--	,[CurrentPeriodInterestAccrual]
+	--	,[TotalGAAPInterestFortheCurrentPeriod]     
+	--	,[CleanCost]       
+	--	,[InvestmentBasis] 
+	--	,[CurrentPeriodInterestAccrualPeriodEnddate]
+	--	,[LIBORPercentage] 
+	--	,[SpreadPercentage]
+	--	,[AnalysisID]
+	--	,[FeeStrippedforthePeriod]     
+	--	,[PIKInterestPercentage]       
+	--	,[AmortizedCost]   
+	--	,[InterestSuspenseAccountActivityforthePeriod]
+	--	,[InterestSuspenseAccountBalance]           
+	--	,[AllInBasisValuation]
+	--	,[AllInPIKRate]    
+	--	,[CurrentPeriodPIKInterestAccrualPeriodEnddate]
+	--	,[PIKInterestPaidForThePeriod] 
+	--	,[PIKInterestAppliedForThePeriod]           
+	--	,[EndingPreCapPVBasis]
+	--	,[LevelYieldIncomeForThePeriod]
+	--	,[PVAmortTotalIncomeMethod]    
+	--	,[EndingCleanCostLY]  
+	--	,[EndingAccumAmort]
+	--	,[PVAmortForThePeriod]
+	--	,[EndingSLBasis]   
+	--	,[SLAmortForThePeriod]
+	--	,[SLAmortOfTotalFeesInclInLY]  
+	--	,[SLAmortOfDiscountPremium]    
+	--	,[SLAmortOfCapCost]
+	--	,[EndingAccumSLAmort] 
+	--	,[EndingPreCapGAAPBasis]       
+	--	,[PIKPrincipalPaidForThePeriod]
+	--	,[RemainingUnfundedCommitment]
+	--	,CalcEngineType
+	--	,[IsDeleted]
+	--	,[CreatedBy]
+	--	,[CreatedDate]
+	--	,[UpdatedBy]
+	--	,[UpdatedDate]
+	--	FROM Core.AccountingClosePeriodicArchive
+	--	where NoteID = @NoteID 
+	--	and AnalysisID = @AnalysisID 	
+	--	and PeriodID = @PeriodID
+	--	and 1 = 0
+	--	order by  PeriodEndDate 
+	--END
 	
 
---=============================================================================================
-	--Declare @ClosingDate Date = (Select ClosingDate from cre.note where noteid = @NoteID);
-
-	--Select 
-	--NoteID,
-	--CLosingDate as PeriodEndDate,
-	--CAst(0 as decimal) as PVBasis,
-	--CAst(0 as decimal) as DeferredFeeAccrual,
-	--CAst(0 as decimal) as DiscountPremiumAccrual,
-	--CAst(0 as decimal) as CapitalizedCostAccrual,
-	--[CreatedBy],
-	--[CreatedDate],
-	--[UpdatedBy],
-	--[UpdatedDate]	
-	--FROM cre.Note
-	--where NoteID = @NoteID 
-
-	--Declare @periodEndDate Date = (Select MAX(EndDate) from core.[Period] where IsDeleted <> 1); --AnalysisID = @AnalysisID and 
---=============================================================================================
+ 
 	
 END

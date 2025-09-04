@@ -54,7 +54,7 @@ Declare @prepayScheduleiD int;
  ,null as FeeType       
  ,null as UseActualFees      
  ,null as CRENoteID      
- ,'PrepayAdjustment' as tablename      
+ ,'PrepayAdjustment' as tablename 
  from [Core].[PrepayAdjustment]  Where PrepayScheduleID = @prepayScheduleiD      
       
  UNION ALL       
@@ -77,10 +77,10 @@ Declare @prepayScheduleiD int;
  ,null as FeeCreditsID       
  ,null as FeeType       
  ,null as UseActualFees      
- ,n.CRENoteID      
- ,'SpreadMaintenanceSchedule' as tablename      
+ ,n.CRENoteID 
+ ,'SpreadMaintenanceSchedule' as tablename   
  from [Core].[SpreadMaintenanceSchedule] sp      
- left join cre.note n on n.noteid = sp.noteid      
+ left join cre.note n on n.noteid = sp.noteid 
  Where PrepayScheduleID = @prepayScheduleiD and Isdeleted <> 1      
       
  UNION ALL       
@@ -104,7 +104,7 @@ Declare @prepayScheduleiD int;
  ,null as FeeType       
  ,null as UseActualFees      
  ,null as CRENoteID      
- ,'MinMultSchedule' as tablename      
+ ,'MinMultSchedule' as tablename 
  from [Core].[MinMultSchedule] Where PrepayScheduleID = @prepayScheduleiD and Isdeleted <> 1      
       
  UNION ALL      
@@ -128,7 +128,7 @@ Declare @prepayScheduleiD int;
  ,FeeType       
  ,ISNULL(UseActualFees,0) as UseActualFees     
  ,null as CRENoteID      
- ,'FeeCredits' as tablename      
+ ,'FeeCredits' as tablename   
  from [Core].[FeeCredits] Where PrepayScheduleID = @prepayScheduleiD and Isdeleted <> 1      
       
  UNION ALL      
@@ -152,7 +152,7 @@ Declare @prepayScheduleiD int;
  ,null as FeeType       
  ,null as UseActualFees      
  ,null as CRENoteID      
- ,'SpreadMaintenanceSchedule_DealLevel' as tablename      
+ ,'SpreadMaintenanceSchedule_DealLevel' as tablename   
  from [Core].[SpreadMaintenanceSchedule] sp      
  left join cre.note n on n.noteid = sp.noteid      
  Where PrepayScheduleID = @prepayScheduleiD and Isdeleted <> 1      

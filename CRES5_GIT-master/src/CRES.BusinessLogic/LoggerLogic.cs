@@ -1,14 +1,17 @@
-﻿using CRES.DAL.Repository;
+﻿using System;
+using System.Collections.Generic;
+using System.Text;
 using CRES.DataContract;
 using CRES.Utilities;
-using System;
+using CRES.DAL.Repository;
+using Microsoft.Extensions.Configuration;
 
 namespace CRES.BusinessLogic
 {
     public class LoggerLogic
     {
         LoggerRepository logrepo = new LoggerRepository();
-        public void WriteLogException(string Module, string message, string objectID, string username, string MethodName, string requestobj, Exception ex)
+        public string WriteLogException(string Module, string message, string objectID, string username, string MethodName, string requestobj, Exception ex)
         {
             LoggerDataContract ldc = new LoggerDataContract();
             string formatedstring = LoggerHelper.GetExceptionString(ex).Replace("'", "''");
@@ -23,13 +26,17 @@ namespace CRES.BusinessLogic
             ldc.ObjectID = objectID;
             ldc.CreatedBy = username;
             logrepo.InsertLog(ldc);
+            return formatedstring;
         }
 
         public void WriteLogExceptionMessage(string Module, string stackTrace, string objectID, string username, string MethodName, string message)
         {
             LoggerDataContract ldc = new LoggerDataContract();
-            string formatedstring = stackTrace.Replace("'", "''");
-
+            string formatedstring = "";
+            if (stackTrace != null)
+            {
+                  formatedstring = stackTrace.Replace("'", "''");
+            }
             if (MethodName == "UI Log")
             {
                 ldc.ExceptionSource = "UI Log";
@@ -69,7 +76,7 @@ namespace CRES.BusinessLogic
             logrepo.InsertLog(ldc);
         }
 
-        public void WriteLogInfo(string Module, string message, string objectid, string username)
+        public void WriteLogInfo(string Module, string message, string objectid, string username,string MethodName="")
         {
             LoggerDataContract ldc = new LoggerDataContract();
             ldc.ExceptionSource = "";
@@ -79,7 +86,7 @@ namespace CRES.BusinessLogic
             ldc.Module = Module;
 
             ldc.Priority = CRESEnums.Priority.Low.ToString();
-            ldc.MethodName = "";
+            ldc.MethodName = MethodName;
             ldc.RequestText = "";
             ldc.ObjectID = objectid;
             ldc.CreatedBy = username;

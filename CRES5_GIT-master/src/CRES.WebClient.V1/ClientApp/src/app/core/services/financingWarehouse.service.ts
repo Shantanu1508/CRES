@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { DataService } from './data.service';
-import { FinancingWarehouse } from '../domain/financingWarehouse.model';
+import { FinancingWarehouse, FinancingWarehouseDetail } from '../domain/financingWarehouse.model';
+import { FinancingWareDetailComponent } from '../../components/financingWarehouseDetail.component';
 
 
 @Injectable()
@@ -24,9 +25,9 @@ export class financingWarehouseService {
   }
 
 
-  SaveFinancingDetails(_fwarehouse: FinancingWarehouse) {
+  SaveFinancingDetails(_financewarehouse: FinancingWarehouseDetail) {
     this.accountService.set(this._fwarehouseaddUpdateFinancingWarehouseDetailsAPI);
-    return this.accountService.post(JSON.stringify(_fwarehouse));
+    return this.accountService.post(JSON.stringify(_financewarehouse));
   }
 
   getFinancingWhousebyId(_fwarehouse: FinancingWarehouse) {

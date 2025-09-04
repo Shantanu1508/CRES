@@ -3,7 +3,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { AzureADServiceConstants } from "./AzureADServiceConstants.model";
 import { JwtHelper } from '../JwtHelper';
-
+import appsettings from '../../../../../appsettings.json';
 
 @Injectable()
 export class AzureADAuthService {
@@ -41,9 +41,20 @@ export class AzureADAuthService {
     var now = new Date();
     if (now > expiryTime) this.logOut();
 
-    return parsedToken.email;
+    return parsedToken.unique_name;
   }
+  public getClientId(): string {
 
+    var jwtHelper = new JwtHelper();
+    var parsedToken = jwtHelper.decodeToken(this.getAccessToken());
+
+    //// alert('getusername2' + JSON.stringify(parsedToken));
+    //var expiryTime = new Date(parsedToken.exp * 1000);
+    //var now = new Date();
+    //if (now > expiryTime) this.logOut();
+
+    return parsedToken.aud;
+  }
 
   // #docregion login    
   public logIn(state = "/") {
@@ -62,8 +73,14 @@ export class AzureADAuthService {
   }
 
   public LogOutall(state = "/") {
-
-    window.location.href = "https://login.microsoftonline.com/b8267886-f0c8-4160-ab6f-6e97968fdc90/oauth2/logout?post_logout_redirect_uri=" + "" + this._serviceConstants.redirectURL + "";
+    var clientId = this.getClientId();
+    if (clientId == appsettings.AzuresettingsInternal._azureADClientID) {
+      localStorage.setItem("logoutFrom", "Internal");
+      window.location.href = "https://login.microsoftonline.com/" + appsettings.AzuresettingsInternal._azureADTenanID + "/oauth2/logout?post_logout_redirect_uri=" + "" + appsettings.AzuresettingsInternal._azureADRedirectUrl;
+    }
+    else {
+      window.location.href = "https://login.microsoftonline.com/" + appsettings.Azuresettings._azureADTenanID + "/oauth2/logout?post_logout_redirect_uri=" + "" + appsettings.Azuresettings._azureADRedirectUrl;
+    }
     window.localStorage.removeItem("id_token");
     window.localStorage.removeItem("access_token");
     // window.location.href = state;

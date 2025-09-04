@@ -16,7 +16,7 @@ CreatedBy,
 CreatedDate,
 UpdatedBy,
 UpdatedDate
-from core.IndexesMaster
+from core.IndexesMaster Where Status=1
 
 
 SET TRANSACTION ISOLATION LEVEL READ COMMITTED 

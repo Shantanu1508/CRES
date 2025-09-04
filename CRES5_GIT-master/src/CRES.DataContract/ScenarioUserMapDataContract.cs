@@ -1,4 +1,8 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
 
 namespace CRES.DataContract
 {
@@ -17,6 +21,9 @@ namespace CRES.DataContract
         public string ScenarioColor { get; set; }
         public string CalculationModeText { get; set; }
         public int? CalculationModeID { get; set; }
+        public int? CalcEngineType { get; set; }         
         public bool? AllowDebugInCalc { get; set; }
+        public int? ScenarioStatus { get; set; }
+        public string ScenarioStatusText { get; set; }
     }
 }

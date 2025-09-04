@@ -1,11 +1,9 @@
 <form #f="ngForm">
   <div class="col-sm-12">
     <div class="head fixheaderdiv">
-
       <h1 style="display: inline-block; margin-top: 10px;">
         Dynamic Portfolio Detail: {{_portfolio.PortfolioName}}
       </h1>
-
       <span>
         <button class="custombutton" (click)="Cancel()">
           Cancel
@@ -14,121 +12,210 @@
         <button class="custombutton" (click)="SavePortfolio()">
           Save
         </button>
-
       </span>
-
-
-
       <div *ngIf="_ShowmessagedivWar" class="alert alert-warning fade in">
         <strong>{{_ShowmessagedivMsgWar}}</strong>
       </div>
-
     </div>
 
-
     <div class="fmst fixheadercontent">
-      <div class="cssload-container" *ngIf="_isScenarioDetailFetching">
+      <div class="cssload-container" *ngIf="_isListFetching">
         <div class="cssload-whirlpool"></div>
       </div>
 
-      <div class="">
-        <div class="form-group row pD10">
+      <ul id="myTab" class="nav nav-tabs nav-tabs">
+        <li class="active"><a data-target="#Main" data-toggle="tab">Main</a></li>
+        <li><a data-target="#XIRR" data-toggle="tab" (click)="GetXIRROutputByObjectID()">XIRR</a></li>
+      </ul>
 
-          <div class="col-sm-12" style="height:500px;">
-            <table style="width:80%;">
-              <tr>
-                <td class="customtd"><label class="lab1">Dynamic Portfolio Name</label></td>
-                <td>
-                  <input class="ibox1" required type="text" [(ngModel)]="_portfolio.PortfolioName" name="PortfolioName" ngControl="PortfolioName" #PortfolioName="ngModel" id="PortfolioName">
-                </td>
-              </tr>
+      <div class="tab-content" id="myTabContent">
+        <div class="tab-pane fade active in" id="Main">
+          <div class="box1a">
+            <div class="form-group row pD10 Porfoliomaintab">
+              <div class="col-sm-12 ">
+                <table style="width:80%;">
+                  <tr>
+                    <td class="customtd"><label class="lab1">Dynamic Portfolio Name</label></td>
+                    <td>
+                      <input class="ibox1" required type="text" [(ngModel)]="_portfolio.PortfolioName" name="PortfolioName" ngControl="PortfolioName" #PortfolioName="ngModel" id="PortfolioName">
+                    </td>
+                  </tr>
 
-              <tr>
-                <td class="customtd"><label class="lab1">Description</label></td>
-                <td>
+                  <tr>
+                    <td class="customtd"><label class="lab1">Description</label></td>
+                    <td>
 
-                  <textarea style="font-family: inherit;font-size: inherit;" class="ibox1 input-lg" rows="5" cols="60" [(ngModel)]="_portfolio.Description" name="Description" #Description="ngModel" id="Description"></textarea>
-                </td>
-              </tr>
-              <tr>
-                <td class="customtd">
-                  <label class="lab1">Fund Filter</label>
-                </td>
-                <td>
-                  <wj-multi-select #multiselFund id="multiselFund"
-                                   [placeholder]="'Select Fund'"
-                                   class="ibox1 multiselect-dropdown display-table-cell"
-                                   [itemsSource]="lstFund"
-                                   [headerFormat]="'{count} funds selected'"
-                                   [displayMemberPath]="'FundName'"
-                                   [checkedMemberPath]="'selected'"
-                                   [maxHeaderItems]="50">
-                  </wj-multi-select>
+                      <textarea style="font-family: inherit;font-size: inherit;" class="ibox1 input-lg" rows="5" cols="60" [(ngModel)]="_portfolio.Description" name="Description" #Description="ngModel" id="Description"></textarea>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td class="customtd">
+                      <label class="lab1">Fund Filter</label>
+                    </td>
+                    <td>
+                      <wj-multi-select #multiselFund id="multiselFund"
+                                       [placeholder]="'Select Fund'"
+                                       class="ibox1 multiselect-dropdown display-table-cell"
+                                       [itemsSource]="lstFund"
+                                       [headerFormat]="'{count} funds selected'"
+                                       [displayMemberPath]="'FundName'"
+                                       [checkedMemberPath]="'selected'"
+                                       [maxHeaderItems]="50">
+                      </wj-multi-select>
 
-                </td>
-              </tr>
-              <tr>
-                <td class="customtd">
-                  <label class="lab1">Pool Filter</label>
-                </td>
-                <td>
-                  <wj-multi-select #multiselPool id="multiselPool"
-                                   [placeholder]="'Select Pool'"
-                                   class="ibox1 multiselect-dropdown display-table-cell"
-                                   [itemsSource]="lstPool"
-                                   [headerFormat]="'{count} pools selected'"
-                                   [displayMemberPath]="'Name'"
-                                   [checkedMemberPath]="'selected'"
-                                   [maxHeaderItems]="50">
-                  </wj-multi-select>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td class="customtd">
+                      <label class="lab1">Pool Filter</label>
+                    </td>
+                    <td>
+                      <wj-multi-select #multiselPool id="multiselPool"
+                                       [placeholder]="'Select Pool'"
+                                       class="ibox1 multiselect-dropdown display-table-cell"
+                                       [itemsSource]="lstPool"
+                                       [headerFormat]="'{count} pools selected'"
+                                       [displayMemberPath]="'Name'"
+                                       [checkedMemberPath]="'selected'"
+                                       [maxHeaderItems]="50">
+                      </wj-multi-select>
 
-                </td>
-              </tr>
-              <tr>
-                <td class="customtd">
-                  <label class="lab1">Client Filter</label>
-                </td>
-                <td>
-                  <wj-multi-select #multiselClient id="multiselClient"
-                                   [placeholder]="'Select Client'"
-                                   class="ibox1 multiselect-dropdown display-table-cell"
-                                   [itemsSource]="lstClient"
-                                   [headerFormat]="'{count} clients selected'"
-                                   [displayMemberPath]="'ClientName'"
-                                   [checkedMemberPath]="'selected'"
-                                   [maxHeaderItems]="50">
-                  </wj-multi-select>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td class="customtd">
+                      <label class="lab1">Client Filter</label>
+                    </td>
+                    <td>
+                      <wj-multi-select #multiselClient id="multiselClient"
+                                       [placeholder]="'Select Client'"
+                                       class="ibox1 multiselect-dropdown display-table-cell"
+                                       [itemsSource]="lstClient"
+                                       [headerFormat]="'{count} clients selected'"
+                                       [displayMemberPath]="'ClientName'"
+                                       [checkedMemberPath]="'selected'"
+                                       [maxHeaderItems]="50">
+                      </wj-multi-select>
 
-                </td>
-              </tr>
-              <tr>
-                <td class="customtd">
-                  <label class="lab1">FinancingSource Filter</label>
-                </td>
-                <td>
-                  <wj-multi-select #multiselFinancingSource id="multiselFinancingSource"
-                                   [placeholder]="'Select Financing Source'"
-                                   class="ibox1 multiselect-dropdown display-table-cell"
-                                   [itemsSource]="lstfinancingsource"
-                                   [headerFormat]="'{count} financingsources selected'"
-                                   [displayMemberPath]="'FinancingSourceName'"
-                                   [checkedMemberPath]="'selected'"
-                                   [maxHeaderItems]="50">
-                  </wj-multi-select>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td class="customtd">
+                      <label class="lab1">FinancingSource Filter</label>
+                    </td>
+                    <td>
+                      <wj-multi-select #multiselFinancingSource id="multiselFinancingSource"
+                                       [placeholder]="'Select Financing Source'"
+                                       class="ibox1 multiselect-dropdown display-table-cell"
+                                       [itemsSource]="lstfinancingsource"
+                                       [headerFormat]="'{count} financingsources selected'"
+                                       [displayMemberPath]="'FinancingSourceName'"
+                                       [checkedMemberPath]="'selected'"
+                                       [maxHeaderItems]="50">
+                      </wj-multi-select>
 
-                </td>
-              </tr>
-              <tr>
-                <td class="customtd"><label class="lab1">Show whole Deal</label></td>
-                <td>
-                  <input type="checkbox" [(ngModel)]="_portfolio.AllowWholeDeal" name="AllowWholeDeal" ngControl="AllowWholeDeal" #PortfolioName="ngModel" id="AllowWholeDeal">
-                </td>
-              </tr>
-
-            </table>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td class="customtd"><label class="lab1">Show whole Deal</label></td>
+                    <td>
+                      <input type="checkbox" [(ngModel)]="_portfolio.AllowWholeDeal" name="AllowWholeDeal" ngControl="AllowWholeDeal" #PortfolioName="ngModel" id="AllowWholeDeal">
+                    </td>
+                  </tr>
+                </table>
+              </div>
+            </div>
           </div>
+        </div>
+
+        <div class="tab-pane fade in" id="XIRR">
+          <div class="cssload-container" *ngIf="_isShowXIRR">
+            <div class="cssload-whirlpool"></div>
+          </div>
+
+          <div class="box1a" >
+            <h3>XIRR Values</h3>
+            <div class="form-group row pD10 Porfolioxirrtab">
+
+              <div class="col-sm-11" style="width:86%;">
+                <div *ngIf="!_isShowNoRecordFound" class="alert alert-info">
+                  <span>XIRR for this Portfolio is not calculated in any scenario.Please calculate using <a style="color: #2196f3 !important;" routerLink='/datamanagement/' routerLinkActive="active">XIRR Config</a></span>                  
+                </div>
+              </div>
+
+              <div class="col-sm-12" *ngIf="_isShowNoRecordFound">
+                <label class="lab1 lab1size ">
+                  <span style="font-weight:bold">XIRR Was Last Calculated on: {{lastCalcDateTime | date: 'EEEE, MMMM d, y h:mm a'}}&nbsp;{{_timezoneAbbreviation}}</span>
+                  <span style="font-weight:bold"> &nbsp;| By: &nbsp;{{ Caculatedby}}&nbsp;</span>
+                  <span *ngIf="CalculationStatus!=''" style="font-weight:bold">|&nbsp;Status:&nbsp;</span>
+                  <span *ngIf="CalculationStatus=='Processing'" class="badge badge-primary">Processing</span>
+                  <span *ngIf="CalculationStatus=='Completed'" class="badge badge-success">Completed</span>
+                  <span *ngIf="CalculationStatus=='Failed'" class="badge badge-danger" title="{{ErrorMessage}}">Failed</span>
+                  <span *ngIf="CalculationStatus=='Running'" class="badge badge-warning">Running</span>
+                  <span *ngIf="CalculationStatus=='Nevercalculated'" class="badge badge-dark">Never Calculated</span>
+
+                </label>
+              </div>
+              <div class="col-sm-12 customgridpadding" *ngIf="_isShowNoRecordFound">
+
+                <wj-flex-grid #XiRRValues [itemsSource]="lstXiRRValues"
+                              class="gridSize DealXirrValues" auto-size-mode="Headers" [allowResizing]="'Both'">
+
+                  <wj-flex-grid-filter #filter [filterColumns]="['LastCalculatedDate','ReturnName','Tags','XIRR','Scenario']"></wj-flex-grid-filter>
+
+                  <wj-flex-grid-column [header]="'Date'" [binding]="'LastCalculatedDate'" [width]="170" [align]="'right'" [isReadOnly]="true" [format]="'MM/dd/yyyy'"></wj-flex-grid-column>
+                  <wj-flex-grid-column [header]="'Return Name'" [binding]="'ReturnName'" [width]="200" [isReadOnly]="true"></wj-flex-grid-column>
+                  <!--<wj-flex-grid-column [header]="'Tags'" [binding]="'Tags'" [width]="180" [isReadOnly]="true"></wj-flex-grid-column>-->
+                  <wj-flex-grid-column [header]="'XIRR'" [binding]="'XIRR'" [width]="180" [isReadOnly]="true" [format]="'p7'"></wj-flex-grid-column>
+                  <wj-flex-grid-column [header]="'Scenario'" [binding]="'Scenario'" [width]="160" [isReadOnly]="true"></wj-flex-grid-column>
+                  <wj-flex-grid-column [header]="'Comments'" [binding]="'Comments'" [width]="200" [isReadOnly]="true"></wj-flex-grid-column>
+                  <wj-flex-grid-column [header]="'View'" [isReadOnly]="true" align="center" [width]="145">
+                    <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
+                      <div>
+                        <a style="text-decoration: underline;cursor:pointer" (click)="GetXIRRViewNotesByObjectID(cell.item.xirrconfigid)" routerLinkActive="active">
+                          View
+                        </a>
+                      </div>
+                    </ng-template>
+                  </wj-flex-grid-column>
+                </wj-flex-grid>
+              </div>
+
+            </div>
+
+          </div>
+        </div>
+
+
+      </div>
+    </div>
+
+    <div id="dialogoverlay"></div>     
+
+    <div id="myModalXIRRViewNotes" class="modal">
+      <div class="modal-dialog" id="myModalXIRRViewNotes" style="width:580px;height:600px;">
+        <div class="modal-content" style="padding:0px;border:0px;">
+
+          <div class="modal-header" style="background:#2196f3 !important">
+            <span class="close" (click)="CloseXIRRViewNotes()">×</span>
+            <span class="customheading" style="color:white !important"> XIRR Notes:</span>
+          </div>
+
+          <div class="modal-body">
+            <div class="form-group row pD10">
+              <wj-flex-grid #XiRRNotes [itemsSource]="lstXiRRNotes"
+                            class="gridSize" style="height:600px;">
+                <wj-flex-grid-filter #filter></wj-flex-grid-filter>
+                <wj-flex-grid-column [header]="'Note ID'" [binding]="'CRENoteID'" [isReadOnly]="true" align="left" [width]="150"></wj-flex-grid-column>
+                <wj-flex-grid-column [header]="'Note Name'" [binding]="'NoteName'" [isReadOnly]="true" align="left" [width]="150"></wj-flex-grid-column>
+                <wj-flex-grid-column [header]="'Financing Source Name'" [binding]="'FinancingSourceName'" [isReadOnly]="true" align="left" [width]="200"></wj-flex-grid-column>
+              </wj-flex-grid>
+            </div>
+          </div>
+
         </div>
       </div>
     </div>
+
   </div>
 </form>

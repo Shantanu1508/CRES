@@ -1,4 +1,6 @@
-﻿
+﻿-- Procedure
+-- Procedure
+
 CREATE PROCEDURE [dbo].[usp_ImportStagingDataIntoIntegration_ByNoteIds] 
   @MultipleNoteids nvarchar(max)
 AS
@@ -66,12 +68,18 @@ Values('Note','Pending'),
 --===============================
 
 
----Declare @analysiID UNIQUEIDENTIFIER = (Select analysisID from  [dbo].[Ex_Staging_Analysis] where [name] = 'Default')
+
 
 Declare @tblAnalysisID as table(AnalysisID UNIQUEIDENTIFIER)
 
 INSERT INTO @tblAnalysisID(AnalysisID)
-Select analysisID from  [dbo].[Ex_Staging_Analysis] where [name] in ( 'Default','Expected Maturity Date')
+Select analysisID from  Core.[Analysis] where AnalysisID in (
+'261CA4F1-A0AF-45C1-8CF6-053DAFAAA835',
+'BB876017-F263-40DA-926D-0B77D925C2E4',
+'C10F3372-0FC2-4861-A9F5-148F1F80804F',
+'D8F8AF6D-B9C7-4015-A610-41D34941EEB5',
+'45CF083B-4755-4A8C-982A-7DC6D7B8E5F2',
+'E50C2A12-5D4B-4540-A9C0-DB06D73F919D')
 
 
 Update DW.ImportStagDataIntoInt_Status set [Status] = 'InProcess',StartDate = getdate() where TableName = 'Note'
@@ -81,8 +89,11 @@ exec [dbo].[usp_Import_Staging_Note_ByMultipleNoteID] @MultipleNoteids
 Update DW.ImportStagDataIntoInt_Status set [Status] = 'Completed',EndDate = getdate() where TableName = 'Note'
 
 
-Delete from [DW].[Staging_Cashflow] where noteid in (Select noteid from #tblListNotes)
-Delete from [DW].[Staging_TransactionEntry]  where noteid in (Select noteid from #tblListNotes)
+Delete from [DW].[Staging_Cashflow] where noteid in (Select noteid from #tblListNotes) and AnalysisID in (Select AnalysisID from @tblAnalysisID)
+Delete from [DW].[Staging_TransactionEntry]  where noteid in (Select noteid from #tblListNotes) and AnalysisID in (Select AnalysisID from @tblAnalysisID)
+
+
+
 Delete from [DW].[Staging_NoteFunding]  where noteid in (Select noteid from #tblListNotes)
 Truncate table [DW].[Staging_DealFundingSchdule]
 
@@ -279,7 +290,13 @@ SELECT [TransactionEntryID]
 FROM cre.TransactionEntry  tr
 Inner Join cre.note n on n.noteid = tr.noteid  
 Inner Join cre.deal d on d.dealid = n.dealid
-Where tr.AnalysisID in ( ''C10F3372-0FC2-4861-A9F5-148F1F80804F'')  
+Where tr.AnalysisID in (
+''261CA4F1-A0AF-45C1-8CF6-053DAFAAA835'',
+''BB876017-F263-40DA-926D-0B77D925C2E4'',
+''C10F3372-0FC2-4861-A9F5-148F1F80804F'',
+''D8F8AF6D-B9C7-4015-A610-41D34941EEB5'',
+''45CF083B-4755-4A8C-982A-7DC6D7B8E5F2'',
+''E50C2A12-5D4B-4540-A9C0-DB06D73F919D'')  
 and n.crenoteid in ('+@NoteCommaSperated+')
 '
 
@@ -606,9 +623,9 @@ SELECT [NotePeriodicCalcID]
 ,[ActualCashFlows]
 ,[GAAPCashFlows]
 ,[EndingGAAPBookValue]
-,[TotalGAAPIncomeforthePeriod]
-,[InterestAccrualforthePeriod]
-,[PIKInterestAccrualforthePeriod]
+--,[TotalGAAPIncomeforthePeriod]
+--,[InterestAccrualforthePeriod]
+--,[PIKInterestAccrualforthePeriod]
 ,[TotalAmortAccrualForPeriod]
 ,[AccumulatedAmort]
 ,[BeginningBalance]
@@ -716,7 +733,12 @@ SELECT [NotePeriodicCalcID]
 
 FROM cre.NotePeriodicCalc cf
 Inner Join cre.note n on n.noteid = cf.noteid 
-Where cf.AnalysisID in ( ''C10F3372-0FC2-4861-A9F5-148F1F80804F'')
+Where cf.AnalysisID in ( ''261CA4F1-A0AF-45C1-8CF6-053DAFAAA835'',
+''BB876017-F263-40DA-926D-0B77D925C2E4'',
+''C10F3372-0FC2-4861-A9F5-148F1F80804F'',
+''D8F8AF6D-B9C7-4015-A610-41D34941EEB5'',
+''45CF083B-4755-4A8C-982A-7DC6D7B8E5F2'',
+''E50C2A12-5D4B-4540-A9C0-DB06D73F919D'')
 and n.crenoteid in ('+@NoteCommaSperated+')
 '
 
@@ -734,9 +756,9 @@ create table ##tblNPC(
     [ActualCashFlows]                             DECIMAL (28, 15) NULL,
     [GAAPCashFlows]                               DECIMAL (28, 15) NULL,
     [EndingGAAPBookValue]                         DECIMAL (28, 15) NULL,
-    [TotalGAAPIncomeforthePeriod]                 DECIMAL (28, 15) NULL,
-    [InterestAccrualforthePeriod]                 DECIMAL (28, 15) NULL,
-    [PIKInterestAccrualforthePeriod]              DECIMAL (28, 15) NULL,
+    --[TotalGAAPIncomeforthePeriod]                 DECIMAL (28, 15) NULL,
+    --[InterestAccrualforthePeriod]                 DECIMAL (28, 15) NULL,
+    --[PIKInterestAccrualforthePeriod]              DECIMAL (28, 15) NULL,
     [TotalAmortAccrualForPeriod]                  DECIMAL (28, 15) NULL,
     [AccumulatedAmort]                            DECIMAL (28, 15) NULL,
     [BeginningBalance]                            DECIMAL (28, 15) NULL,
@@ -807,7 +829,7 @@ create table ##tblNPC(
     [CurrentPeriodInterestAccrual]                DECIMAL (28, 15) NULL,
     [TotalGAAPInterestFortheCurrentPeriod]        DECIMAL (28, 15) NULL,
     [InvestmentBasis]                             DECIMAL (28, 15) NULL,
-    [CurrentPeriodInterestAccrualPeriodEnddate]   DECIMAL (28, 15) NULL,
+   [CurrentPeriodInterestAccrualPeriodEnddate]   DECIMAL (28, 15) NULL,
     [LIBORPercentage]                             DECIMAL (28, 15) NULL,
     [SpreadPercentage]                            DECIMAL (28, 15) NULL,
     [AnalysisID]                                  UNIQUEIDENTIFIER NULL,
@@ -853,9 +875,9 @@ INSERT INTO ##tblNPC
 ,[ActualCashFlows]
 ,[GAAPCashFlows]
 ,[EndingGAAPBookValue]
-,[TotalGAAPIncomeforthePeriod]
-,[InterestAccrualforthePeriod]
-,[PIKInterestAccrualforthePeriod]
+--,[TotalGAAPIncomeforthePeriod]
+--,[InterestAccrualforthePeriod]
+--,[PIKInterestAccrualforthePeriod]
 ,[TotalAmortAccrualForPeriod]
 ,[AccumulatedAmort]
 ,[BeginningBalance]
@@ -974,9 +996,9 @@ INSERT INTO [DW].[Staging_Cashflow]
 ,[ActualCashFlows]
 ,[GAAPCashFlows]
 ,[EndingGAAPBookValue]
-,[TotalGAAPIncomeforthePeriod]
-,[InterestAccrualforthePeriod]
-,[PIKInterestAccrualforthePeriod]
+--,[TotalGAAPIncomeforthePeriod]
+--,[InterestAccrualforthePeriod]
+--,[PIKInterestAccrualforthePeriod]
 ,[TotalAmortAccrualForPeriod]
 ,[AccumulatedAmort]
 ,[BeginningBalance]
@@ -1089,9 +1111,9 @@ SELECT [NotePeriodicCalcID]
 ,[ActualCashFlows]
 ,[GAAPCashFlows]
 ,[EndingGAAPBookValue]
-,[TotalGAAPIncomeforthePeriod]
-,[InterestAccrualforthePeriod]
-,[PIKInterestAccrualforthePeriod]
+--,[TotalGAAPIncomeforthePeriod]
+--,[InterestAccrualforthePeriod]
+--,[PIKInterestAccrualforthePeriod]
 ,[TotalAmortAccrualForPeriod]
 ,[AccumulatedAmort]
 ,[BeginningBalance]
@@ -1288,5 +1310,5 @@ SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
 
 END
-
+GO
 

@@ -23,6 +23,6 @@ BEGIN
 	select 
 	(select NoteID from CRE.Note where CRENoteID=@CRENoteID) as noteid,'Processing',@username,'Real Time','C10F3372-0FC2-4861-A9F5-148F1F80804F',775
 		
-	exec  [dbo].[usp_QueueNotesForCalculation] @TableTypeCalculationRequests,@username,@username
+	exec  [dbo].[usp_QueueNotesForCalculation] @TableTypeCalculationRequests,@username,@username, NULL, NULL, 'SingleNote'
 
 END

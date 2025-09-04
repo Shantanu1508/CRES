@@ -1,6 +1,6 @@
-﻿
+﻿--[dbo].[usp_GetTableFromSource]  '19-0422','RemoteReference_CopyDealOtherSrc'
 
-CREATE PROCEDURE [dbo].[usp_GetTableFromSource]  
+CREATE PROCEDURE [dbo].[usp_GetTableFromSource]
 @CREDealID nvarchar(256),
 @Env nvarchar(256)
 AS
@@ -93,6 +93,7 @@ d.EnableAutoSpread
 ,d.AutoPrepayEffectiveDate
 ,d.LatestPossibleRepaymentDate
 ,d.KnownFullPayoffDate
+,d.CalcEngineType
 FROM [CRE].[Deal] d
 WHERE  d.CREDealID = '''+@CREDealID+''' 
 '  
@@ -261,7 +262,39 @@ inner join [CRE].[Deal] d on d.DealId = ps.[DealID]
 WHERE  d.CREDealID = '''+@CREDealID+''' 
 ' 
 
+DECLARE @WLDealPotentialImpairmentMasterquery nvarchar(MAX) = N'
+ Select
+			pm.DealID,
+			pm.Date,
+			pm.Amount,
+			pm.AdjustmentType,
+			pm.Comment,
+			pm.Applied,
+			pm.CreatedBy,
+			pm.CreatedDate,
+			pm.UpdatedBy,
+			pm.UpdatedDate,
+			pm.RowNo
+	FROM [CRE].[WLDealPotentialImpairmentMaster] pm
+	inner join [CRE].[Deal] d on d.DealId = pm.[DealID]
+    WHERE  d.CREDealID = '''+@CREDealID+'''
+'
 
+DECLARE @WLDealAccountingquery nvarchar(MAX) = N'
+Select
+			da.DealID,
+			da.StartDate,
+			da.EndDate,
+			da.TypeID,
+			da.Comment,
+			da.CreatedBy,
+			da.CreatedDate,
+			da.UpdatedBy,
+			da.UpdatedDate
+	FROM [CRE].[WLDealAccounting] da
+	inner join [CRE].[Deal] d on d.DealId = da.[DealID]
+    WHERE  d.CREDealID = '''+@CREDealID+'''
+'
 
 --NoteCursor
 DECLARE @cursorquery nvarchar(MAX) = N'
@@ -495,6 +528,7 @@ DECLARE @notequery2 nvarchar(MAX) = N'
 	,n.InitialRequiredEquity
 	,n.InitialAdditionalEquity
 	,n.CommitmentUsedInFFDistribution
+	,n.FirstIndexDeterminationDateOverride
   FROM [CRE].[Note] n
   inner join [CRE].[Deal] d  ON  d.DealID = n.DealID 
   where d.CREDealID = '''+@CREDealID+''' 
@@ -571,6 +605,8 @@ DECLARE @ratespreadschedulequery nvarchar(MAX) = N'
       ,r.[UpdatedBy]
       ,r.[UpdatedDate]
       ,r.[RateOrSpreadToBeStripped]
+      ,r.IndexNameID
+	  ,r.DeterminationDateHolidayList
   FROM [Core].[RateSpreadSchedule] r
   inner join core.Event e  on e.eventid =  r.EventId
   inner join core.Account acc on acc.AccountID =  e.AccountID
@@ -689,7 +725,15 @@ DECLARE @financingschedulequery nvarchar(MAX) = N'
       ,ps.[CreatedBy]
       ,ps.[CreatedDate]
       ,ps.[UpdatedBy]
-      ,ps.[UpdatedDate]
+      ,ps.[UpdatedDate],
+	  ps.[PIKReasonCodeID],
+	  ps.[PIKComments],
+	  ps.[PIKIntCalcMethodID],
+	  ps.PeriodicRateCapAmount ,
+	  ps.PeriodicRateCapPercent,
+	  ps.PIKPercentage,
+	  ps.PIKSetUp,
+	  ps.PIKSeparateCompounding
   FROM [Core].[PIKSchedule] ps
   inner join core.Event e  on e.eventid =  ps.EventId
   inner join core.Account acc on acc.AccountID =  e.AccountID
@@ -897,7 +941,127 @@ DECLARE @servicerdropdatesetupquery  nvarchar(MAX) = N'
   WHERE d.CREDealID = '''+@CREDealID+''' 
  '
 
+DECLARE @FundingRepaymentSequenceWriteOffquery nvarchar(MAX) = N'
+Select
+			fr.DealID,
+			fr.NoteID,
+			fr.PriorityOverride,
+			fr.CreatedBy,
+			fr.CreatedDate,
+			fr.UpdatedBy,
+			fr.UpdatedDate
+			
+	FROM [CRE].[FundingRepaymentSequenceWriteOff] fr
+	inner join [CRE].[Note] n ON n.[NoteID] = fr.[NoteID]
+    inner join [CRE].[Deal] d on d.DealID = n.DealID
+    WHERE d.CREDealID = '''+@CREDealID+'''
+'
 
+DECLARE @WLDealPotentialImpairmentDetailquery nvarchar(MAX) = N'
+Select
+	        pd.WLDealPotentialImpairmentMasterID,
+			pd.NoteID,
+			pd.Value,
+			pd.CreatedBy,
+			pd.CreatedDate,
+			pd.UpdatedBy,
+			pd.UpdatedDate,
+			pd.RowNo
+	FROM [CRE].[WLDealPotentialImpairmentDetail] pd
+	Left JOIN [CRE].WLDealPotentialImpairmentMaster pm on pm.RowNo = pd.RowNo
+	inner join [CRE].[Note] n ON n.[NoteID] = pd.[NoteID]
+    inner join [CRE].[Deal] d on d.DealID = n.DealID
+    WHERE d.CREDealID = '''+@CREDealID+'''
+'
+
+ DECLARE @NoteTransactionDetailquery nvarchar(MAX) = N'
+Select [NoteTransactionDetailID]              
+,nt.[NoteID]   
+,nt.[TransactionDate]                      
+,nt.[TransactionType]                      
+,nt.[Amount]   
+,nt.[RelatedtoModeledPMTDate]              
+,nt.[ModeledPayment]                       
+,nt.[AmountOutstandingafterCurrentPayment] 
+,nt.[CreatedBy]
+,nt.[CreatedDate]                          
+,nt.[UpdatedBy]
+,nt.[UpdatedDate]                          
+,nt.[ServicingAmount]                      
+,nt.[CalculatedAmount]                     
+,nt.[Delta]    
+,nt.[M61Value] 
+,nt.[ServicerValue]                        
+,nt.[Ignore]   
+,nt.[OverrideValue]                        
+,nt.[comments] 
+,nt.[PostedDate]                           
+,nt.[ServicerMasterID]                     
+,nt.[Deleted]  
+,nt.[TransactionTypeText]                  
+,nt.[TranscationReconciliationID]          
+,nt.[RemittanceDate]                       
+,nt.[Exception]
+,nt.[Adjustment]                           
+,nt.[ActualDelta]  
+,nt.[OverrideReason]                       
+,nt.[BerAddlint]                           
+,nt.[TransactionEntryAmount]               
+,nt.[Orig_ServicerMasterID]                
+,nt.[InterestAdj]                          
+,nt.[AddlInterest]                         
+,nt.[TotalInterest]                        
+,nt.[WriteOffAmount]		
+From cre.NoteTransactionDetail nt
+inner join [CRE].[Note] n ON n.noteid = nt.noteid
+inner join [CRE].[Deal] d on d.DealID = n.DealID
+WHERE d.CREDealID = '''+@CREDealID+'''
+'
+
+
+ DECLARE @NoteAdjustedCommitmentMasterquery nvarchar(MAX) = N'
+Select  
+ nt.DealID
+,nt.[Date]
+,nt.[Type]
+,nt.Comments	
+,nt.DealAdjustmentHistory	
+,nt.AdjustedCommitment	
+,nt.TotalCommitment	
+,nt.AggregatedCommitment	
+,nt.CreatedBy	
+,nt.CreatedDate	
+,nt.UpdatedBy	
+,nt.UpdatedDate
+,nt.TotalRequiredEquity
+,nt.TotalAdditionalEquity
+,nt.Rowno	
+,nt.TotalEquityatClosing
+From cre.NoteAdjustedCommitmentMaster nt
+inner join [CRE].[Deal] d on d.DealID = nt.DealID
+WHERE d.CREDealID = '''+@CREDealID+'''
+'
+
+
+
+DECLARE @NoteAdjustedCommitmentDetailquery nvarchar(MAX) = N'
+Select 
+nt.NoteID,
+nt.[Value],
+nt.CreatedBy,
+nt.CreatedDate,
+nt.UpdatedBy,
+nt.UpdatedDate,
+nt.[Type],
+nt.DealID,
+nt.NoteTotalCommitment,
+nt.NoteAdjustedTotalCommitment,
+nt.NoteAggregatedTotalCommitment,
+nt.Rowno
+From cre.NoteAdjustedCommitmentDetail nt
+inner join [CRE].[Deal] d on d.DealID = nt.DealID
+WHERE d.CREDealID = '''+@CREDealID+'''
+'
 --============================================================================
 
 --Deal
@@ -989,6 +1153,7 @@ create table ##tblDeal
 	AutoPrepayEffectiveDate				DATE             NULL,			
 	LatestPossibleRepaymentDate			DATE             NULL,				
 	[KnownFullPayoffDate]				DATE             NULL,	
+	CalcEngineType                      int null,
 	ShardName nvarchar(max)  NULL 
 )
 
@@ -1168,8 +1333,41 @@ create table ##tblDealProjectedPayOffAccounting
 
 )
 
+--WLDealPotentialImpairmentMaster
+IF OBJECT_ID('tempdb..##tblWLDealPotentialImpairmentMaster') IS NOT NULL             
+DROP TABLE ##tblWLDealPotentialImpairmentMaster
 
+create table ##tblWLDealPotentialImpairmentMaster(
+			DealID           UNIQUEIDENTIFIER null,
+			Date             DATE             NULL,
+			Amount           DECIMAL (28, 15) NULL,
+			AdjustmentType   INT  NUll,
+			Comment          NVARCHAR (MAX)   NULL,
+			Applied          BIT              NULL,
+			CreatedBy        NVARCHAR (256)   NULL,
+			CreatedDate      DATETIME         NULL,
+			UpdatedBy        NVARCHAR (256)   NULL,
+			UpdatedDate      DATETIME         NULL,
+			RowNo            INT  NUll,
+			[ShardName] nvarchar(max)  NULL
+			)
 
+--WLDealAccounting
+IF OBJECT_ID('tempdb..##tblWLDealAccounting') IS NOT NULL             
+DROP TABLE ##tblWLDealAccounting
+
+create table ##tblWLDealAccounting(
+			DealID        UNIQUEIDENTIFIER null,
+			StartDate     DATE             NULL,
+			EndDate       DATE             NULL,
+			TypeID        INT              NULL,
+			Comment       NVARCHAR (MAX)   NULL,
+			CreatedBy     NVARCHAR (256)   NULL,
+			CreatedDate   DATETIME         NULL,
+			UpdatedBy     NVARCHAR (256)   NULL,
+			UpdatedDate   DATETIME         NULL,
+			[ShardName] nvarchar(max)  NULL
+			)
 
 --NoteCursor
 IF OBJECT_ID('tempdb..##tblNoteCursor') IS NOT NULL             
@@ -1406,6 +1604,7 @@ create table ##tblNote
 	[InitialRequiredEquity]                                DECIMAL (28, 15) NULL,							
 	[InitialAdditionalEquity]                              DECIMAL (28, 15) NULL,							
 	[CommitmentUsedInFFDistribution]					   DECIMAL (28, 15) NULL,	
+	FirstIndexDeterminationDateOverride	Date null,
     [ShardName] nvarchar(max)  NULL 
 )
 
@@ -1471,6 +1670,8 @@ CreatedDate      	datetime null,
 UpdatedBy      	nvarchar(256) null,
 UpdatedDate      	datetime null,
 RateOrSpreadToBeStripped decimal(28,15),
+IndexNameID int,
+DeterminationDateHolidayList int,
 [ShardName] nvarchar(max)  NULL
 )
 
@@ -1579,6 +1780,14 @@ AccCapBal decimal(28,15)   NULL,
 [CreatedDate] [datetime] NULL,
 [UpdatedBy] [nvarchar](256) NULL,
 [UpdatedDate] [datetime] NULL,
+[PIKReasonCodeID]      INT              NULL,
+[PIKComments]          NVARCHAR (MAX)   NULL,
+[PIKIntCalcMethodID]          INT              NULL,
+PeriodicRateCapAmount decimal(28,15),
+PeriodicRateCapPercent decimal(28,15),
+[PIKPercentage]    DECIMAL (28, 15) NULL,
+[PIKSetUp]         INT              NULL,
+PIKSeparateCompounding int null,
 [ShardName] nvarchar(max)  NULL
 )
 
@@ -1765,6 +1974,131 @@ UpdatedDate      	datetime NULL,
 [ShardName] nvarchar(max)  NULL
 )
 
+
+--FundingRepaymentSequenceWriteOff
+IF OBJECT_ID('tempdb..##tblFundingRepaymentSequenceWriteOff') IS NOT NULL             
+DROP TABLE ##tblFundingRepaymentSequenceWriteOff
+
+create table ##tblFundingRepaymentSequenceWriteOff(
+			DealID            uniqueidentifier  NOT NULL,
+			NoteID            uniqueidentifier  NOT NULL,
+			PriorityOverride  INT              NULL,
+			CreatedBy         nvarchar(256) NULL,
+			CreatedDate       datetime NULL,
+			UpdatedBy         nvarchar(256) NULL,
+			UpdatedDate       datetime NULL,
+			[ShardName] nvarchar(max)  NULL
+			)
+
+
+
+--WLDealPotentialImpairmentDetail
+IF OBJECT_ID('tempdb..##tblWLDealPotentialImpairmentDetail') IS NOT NULL             
+DROP TABLE ##tblWLDealPotentialImpairmentDetail
+
+create table ##tblWLDealPotentialImpairmentDetail(
+	        WLDealPotentialImpairmentMasterID  INT          NOT NULL,
+			NoteID                             uniqueidentifier  NOT NULL,
+			Value                              decimal(28,15) NULL,
+			CreatedBy                          nvarchar(256) NULL,
+			CreatedDate                        datetime NULL,
+			UpdatedBy                          nvarchar(256) NULL,
+			UpdatedDate                        datetime NULL,
+			RowNo                              INT      NULL,
+			[ShardName] nvarchar(max)  NULL
+			)
+
+ --NoteTransactionDetail
+IF OBJECT_ID('tempdb..##tblNoteTransactionDetail') IS NOT NULL             
+	DROP TABLE ##tblNoteTransactionDetail
+
+CREATE TABLE ##tblNoteTransactionDetail (
+    [NoteTransactionDetailID]              UNIQUEIDENTIFIER NOT NULL,
+    [NoteID]                               UNIQUEIDENTIFIER NOT NULL,
+    [TransactionDate]                      DATE             NULL,
+    [TransactionType]                      INT              NULL,
+    [Amount]                               DECIMAL (28, 15) NULL,
+    [RelatedtoModeledPMTDate]              DATE             NULL,
+    [ModeledPayment]                       DECIMAL (28, 15) NULL,
+    [AmountOutstandingafterCurrentPayment] DECIMAL (28, 15) NULL,
+    [CreatedBy]                            NVARCHAR (256)   NULL,
+    [CreatedDate]                          DATETIME         NULL,
+    [UpdatedBy]                            NVARCHAR (256)   NULL,
+    [UpdatedDate]                          DATETIME         NULL,
+    [ServicingAmount]                      DECIMAL (28, 15) NULL,
+    [CalculatedAmount]                     DECIMAL (28, 15) NULL,
+    [Delta]                                DECIMAL (28, 15) NULL,
+    [M61Value]                             BIT               NULL,
+    [ServicerValue]                        BIT               NULL,
+    [Ignore]                               BIT               NULL,
+    [OverrideValue]                        DECIMAL (28, 15) NULL,
+    [comments]                             NVARCHAR (MAX)   NULL,
+    [PostedDate]                           DATETIME         NULL,
+    [ServicerMasterID]                     INT              NULL,
+    [Deleted]                              BIT              NULL,
+    [TransactionTypeText]                  NVARCHAR (256)   NULL,
+    [TranscationReconciliationID]          UNIQUEIDENTIFIER NULL,
+    [RemittanceDate]                       DATETIME         NULL,
+    [Exception]                            NVARCHAR (256)   NULL,
+    [Adjustment]                           DECIMAL (28, 15) NULL,
+    [ActualDelta]                          DECIMAL (28, 15) NULL,    
+    [OverrideReason]                       INT              NULL,
+    [BerAddlint]                           DECIMAL (28, 15) NULL,
+    [TransactionEntryAmount]               DECIMAL (28, 15) NULL,
+    [Orig_ServicerMasterID]                INT              NULL,
+    [InterestAdj]                          DECIMAL (28, 15) NULL,
+    [AddlInterest]                         DECIMAL (28, 15) NULL,
+    [TotalInterest]                        DECIMAL (28, 15) NULL,
+    [WriteOffAmount]						DECIMAL (28, 15) NULL,
+	[ShardName] nvarchar(max)  NULL
+	)
+
+
+
+ --NoteAdjustedCommitmentMaster
+IF OBJECT_ID('tempdb..##tblNoteAdjustedCommitmentMaster') IS NOT NULL             
+	DROP TABLE ##tblNoteAdjustedCommitmentMaster
+
+CREATE TABLE ##tblNoteAdjustedCommitmentMaster (
+[DealID]                           UNIQUEIDENTIFIER NOT NULL,
+[Date]                             DATE             NULL,
+[Type]                             INT              NULL,
+[Comments]                         NVARCHAR (256)   NULL,
+[DealAdjustmentHistory]            DECIMAL (28, 15) NULL,
+[AdjustedCommitment]               DECIMAL (28, 15) NULL,
+[TotalCommitment]                  DECIMAL (28, 15) NULL,
+[AggregatedCommitment]             DECIMAL (28, 15) NULL,
+[CreatedBy]                        NVARCHAR (256)   NULL,
+[CreatedDate]                      DATETIME         NULL,
+[UpdatedBy]                        NVARCHAR (256)   NULL,
+[UpdatedDate]                      DATETIME         NULL,
+[TotalRequiredEquity]              DECIMAL (28, 15) NULL,
+[TotalAdditionalEquity]            DECIMAL (28, 15) NULL,   
+Rowno int null,
+[TotalEquityatClosing]             DECIMAL (28, 15) NULL,
+[ShardName] nvarchar(max)  NULL
+)
+
+
+ --NoteAdjustedCommitmentDetail
+IF OBJECT_ID('tempdb..##tblNoteAdjustedCommitmentDetail') IS NOT NULL             
+	DROP TABLE ##tblNoteAdjustedCommitmentDetail
+
+CREATE TABLE ##tblNoteAdjustedCommitmentDetail (
+[NoteID]                         UNIQUEIDENTIFIER NULL,
+[Value]                          DECIMAL (28, 15) NULL,
+[CreatedBy]                      NVARCHAR (256)   NULL,
+[CreatedDate]                    DATETIME         NULL,
+[UpdatedBy]                      NVARCHAR (256)   NULL,
+[UpdatedDate]                    DATETIME         NULL,
+[Type]                           INT              NULL,
+[DealID]                         UNIQUEIDENTIFIER NULL,
+[NoteTotalCommitment]            DECIMAL (28, 15) NULL,
+[NoteAdjustedTotalCommitment]    DECIMAL (28, 15) NULL,
+[NoteAggregatedTotalCommitment]  DECIMAL (28, 15) NULL,
+Rowno int null,
+[ShardName] nvarchar(max)  NULL
+)
 --============================================================================
  --Deal
 INSERT INTO ##tblDeal
@@ -1851,6 +2185,7 @@ INSERT INTO ##tblDeal
 ,AutoPrepayEffectiveDate
 ,LatestPossibleRepaymentDate
 ,KnownFullPayoffDate
+,CalcEngineType
 ,ShardName
  )
  EXEC sp_execute_remote @data_source_name  = @Env, @stmt = @queryDeal
@@ -2011,6 +2346,38 @@ DealProjectedPayOffAccountingID
 ,[ShardName]
 )
 EXEC sp_execute_remote @data_source_name  = @Env, @stmt = @DealProjectedPayOffAccountingquery
+
+
+INSERT INTO ##tblWLDealPotentialImpairmentMaster(
+			DealID,
+			Date,
+			Amount,
+			AdjustmentType,
+			Comment,
+			Applied,
+			CreatedBy,
+			CreatedDate,
+			UpdatedBy,
+			UpdatedDate,
+			RowNo
+			,[ShardName]
+			)
+EXEC sp_execute_remote @data_source_name  = @Env, @stmt = @WLDealPotentialImpairmentMasterquery
+
+INSERT INTO ##tblWLDealAccounting(
+			DealID,
+			StartDate,
+			EndDate,
+			TypeID,
+			Comment,
+			CreatedBy,
+			CreatedDate,
+			UpdatedBy,
+			UpdatedDate
+			,[ShardName]
+			)
+EXEC sp_execute_remote @data_source_name  = @Env, @stmt = @WLDealAccountingquery
+
 
 
 
@@ -2245,6 +2612,7 @@ INSERT INTO ##tblNote(
 ,InitialRequiredEquity
 ,InitialAdditionalEquity
 ,CommitmentUsedInFFDistribution
+,FirstIndexDeterminationDateOverride
 ,[ShardName]
 )
 EXEC sp_execute_remote @data_source_name  = @Env, @stmt = @temp
@@ -2303,6 +2671,8 @@ INSERT INTO ##tblRateSpreadSchedule(
 ,[UpdatedBy]
 ,[UpdatedDate]
 ,[RateOrSpreadToBeStripped]
+,IndexNameID
+,DeterminationDateHolidayList
 ,[ShardName]
 )
 EXEC sp_execute_remote @data_source_name  = @Env, @stmt = @ratespreadschedulequery
@@ -2396,6 +2766,14 @@ INSERT INTO ##tblPIKSchedule(
       ,[CreatedDate]
       ,[UpdatedBy]
       ,[UpdatedDate]
+	  ,[PIKReasonCodeID]
+	  ,[PIKComments]
+	  ,[PIKIntCalcMethodID]
+	  ,PeriodicRateCapAmount 
+	  ,PeriodicRateCapPercent
+	  ,PIKPercentage
+	  ,PIKSetUp
+	  ,PIKSeparateCompounding
       ,[ShardName])
 EXEC sp_execute_remote @data_source_name  = @Env, @stmt = @pikschedulequery
 
@@ -2555,4 +2933,116 @@ INSERT INTO ##tblServicerDropDateSetup(
 
 EXEC sp_execute_remote @data_source_name  = @Env, @stmt = @servicerdropdatesetupquery
 
- END
+INSERT INTO ##tblFundingRepaymentSequenceWriteOff(
+			DealID,
+			NoteID,
+			PriorityOverride,
+			CreatedBy,
+			CreatedDate,
+			UpdatedBy,
+			UpdatedDate,
+			[ShardName])
+EXEC sp_execute_remote @data_source_name  = @Env, @stmt = @FundingRepaymentSequenceWriteOffquery
+
+INSERT INTO ##tblWLDealPotentialImpairmentDetail(
+	        WLDealPotentialImpairmentMasterID,
+			NoteID,
+			Value,
+			CreatedBy,
+			CreatedDate,
+			UpdatedBy,
+			UpdatedDate,
+			RowNo
+			,[ShardName])
+EXEC sp_execute_remote @data_source_name  = @Env, @stmt = @WLDealPotentialImpairmentDetailquery
+
+
+ --NoteTransactionDetail
+INSERT INTO ##tblNoteTransactionDetail(
+[NoteTransactionDetailID]              
+,[NoteID]   
+,[TransactionDate]                      
+,[TransactionType]                      
+,[Amount]   
+,[RelatedtoModeledPMTDate]              
+,[ModeledPayment]                       
+,[AmountOutstandingafterCurrentPayment] 
+,[CreatedBy]
+,[CreatedDate]                          
+,[UpdatedBy]
+,[UpdatedDate]                          
+,[ServicingAmount]                      
+,[CalculatedAmount]                     
+,[Delta]    
+,[M61Value] 
+,[ServicerValue]                        
+,[Ignore]   
+,[OverrideValue]                        
+,[comments] 
+,[PostedDate]                           
+,[ServicerMasterID]                     
+,[Deleted]  
+,[TransactionTypeText]                  
+,[TranscationReconciliationID]          
+,[RemittanceDate]                       
+,[Exception]
+,[Adjustment]                           
+,[ActualDelta]  
+,[OverrideReason]                       
+,[BerAddlint]                           
+,[TransactionEntryAmount]               
+,[Orig_ServicerMasterID]                
+,[InterestAdj]                          
+,[AddlInterest]                         
+,[TotalInterest]                        
+,[WriteOffAmount]						
+,[ShardName])
+EXEC sp_execute_remote @data_source_name  = @Env, @stmt = @NoteTransactionDetailquery
+
+
+
+
+ --NoteAdjustedCommitmentMaster
+INSERT INTO ##tblNoteAdjustedCommitmentMaster(
+DealID
+,[Date]
+,[Type]
+,Comments	
+,DealAdjustmentHistory	
+,AdjustedCommitment	
+,TotalCommitment	
+,AggregatedCommitment	
+,CreatedBy	
+,CreatedDate	
+,UpdatedBy	
+,UpdatedDate
+,TotalRequiredEquity
+,TotalAdditionalEquity
+,Rowno	
+,TotalEquityatClosing					
+,[ShardName])
+EXEC sp_execute_remote @data_source_name  = @Env, @stmt = @NoteAdjustedCommitmentMasterquery
+
+
+ --NoteAdjustedCommitmentDetail
+INSERT INTO ##tblNoteAdjustedCommitmentDetail(
+NoteID,
+[Value],
+CreatedBy,
+CreatedDate,
+UpdatedBy,
+UpdatedDate,
+[Type],
+DealID,
+NoteTotalCommitment,
+NoteAdjustedTotalCommitment,
+NoteAggregatedTotalCommitment,
+Rowno				
+,[ShardName])
+EXEC sp_execute_remote @data_source_name  = @Env, @stmt = @NoteAdjustedCommitmentDetailquery
+
+
+
+END
+GO
+

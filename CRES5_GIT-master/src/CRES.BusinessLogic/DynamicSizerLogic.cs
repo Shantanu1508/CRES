@@ -3,6 +3,10 @@ using CRES.DataContract;
 using System;
 using System.Collections.Generic;
 using System.Data;
+using System.Linq;
+using System.Runtime.InteropServices.WindowsRuntime;
+using System.Text;
+using System.Threading.Tasks;
 
 namespace CRES.BusinessLogic
 {
@@ -17,6 +21,10 @@ namespace CRES.BusinessLogic
         public List<RefreshLookupDataContract> RefreshLookupList()
         {
             return _dySizerRepository.RefreshLookupList();
+        }
+        public List<RefreshTagXIRRDataContract> RefreshTagXIRR()
+        {
+            return _dySizerRepository.RefreshTagXIRR();
         }
         public DealDataContract SaveJSONDeal(DealDataContract _dealDC, string UserID)
         {
@@ -44,7 +52,10 @@ namespace CRES.BusinessLogic
         {
             return _dySizerRepository.AddGenericEntity(dcGenericEntity, UserID);
         }
-
+        public int? AddTagXIRREntity(List<TagXIRREntityDataContract> dcTagXIRREntity, string UserID)
+        {
+            return _dySizerRepository.AddTagXIRREntity(dcTagXIRREntity, UserID);
+        }
 
         public List<string> GetNamedRangeUsedInBatchUpload()
         {
@@ -54,6 +65,18 @@ namespace CRES.BusinessLogic
         {
             return _dySizerRepository.GetBatchUploadSummary(batchid);
         }
+        public DataTable GetBatchUploadSummaryTagXIRR(int? batchId)
+        {
+            return _dySizerRepository.GetBatchUploadSummaryTagXIRR(batchId);
+        }
+
+            public void OpenClosePeriodForManualTransaction(int? batchid,string UserID)
+        {
+            _dySizerRepository.OpenClosePeriodForManualTransaction(batchid, UserID);
+        }
+        
+
+
         public DataTable GetBatchUploadSummaryInvoices(int? batchid)
         {
             return _dySizerRepository.GetBatchUploadSummaryInvoices(batchid);
@@ -115,5 +138,21 @@ namespace CRES.BusinessLogic
         {
             return _dySizerRepository.GetXIRROutputByBatchID(batchID);
         }
+
+        public string CheckDuplicateDealSettlement(String Credealid, string DealName, string Username, string Password)
+        {
+            return _dySizerRepository.CheckDuplicateDealSettlement(Credealid, DealName, Username, Password);
+        }
+
+        public string CheckDuplicateNoteSettlement(String Credealid, string CRENoteID)
+        {
+            return _dySizerRepository.CheckDuplicateNoteSettlement(Credealid, CRENoteID);
+        }
+
+        public DataTable CalculateXIRRAfterDealSave_FromSizer(String Credealid, string username) 
+        {
+            return _dySizerRepository.CalculateXIRRAfterDealSave_FromSizer(Credealid, username);
+        }
+
     }
 }

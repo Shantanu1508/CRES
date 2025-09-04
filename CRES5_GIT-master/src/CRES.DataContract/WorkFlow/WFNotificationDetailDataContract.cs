@@ -1,5 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
 
 namespace CRES.DataContract.WorkFlow
 {
@@ -32,6 +35,14 @@ namespace CRES.DataContract.WorkFlow
         public string SpecialInstructions { get; set; }
         public List<WFCheckListDataContract> WFCheckList { get; set; }
         public string DelegatedUserID { get; set; }
+        public string DealDetail { get; set; }
+        public string AdditionalEmail { get; set; }
+
+        public decimal? ExitFee { get; set; }
+        public decimal? ExitFeePercentage { get; set; }
+        public decimal? PrepayPremium { get; set; }
+        public int? OriginalWFStatusPurposeMappingID { get; set; }
+
 
     }
 }

@@ -1,4 +1,8 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
 
 namespace CRES.DataContract
 {
@@ -13,5 +17,6 @@ namespace CRES.DataContract
         public List<PayruleDealFundingDataContract> DealFundingDC { get; set; }
         public string NoteOutputJson { get; set; }
         public List<IndexDefaultLiborRateDataContract> LiborRateList { get; set; }
+        public List<RefreshTagXIRRDataContract> TagXIRRList { get; set; }
     }
 }

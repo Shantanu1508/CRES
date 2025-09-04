@@ -1,5 +1,4 @@
-﻿
-CREATE PROCEDURE [App].[usp_AddUpdateUser] --'FB72E3DF-47FB-485D-9DDD-C833C923D9D6','Srashti','Jin','vbaapure@newconinfosystems.com','vbalapure',null,null,2,'C7CA5FF2-0203-44B7-AFB4-26552C8EBF0F','v'
+﻿CREATE PROCEDURE [App].[usp_AddUpdateUser] --'FB72E3DF-47FB-485D-9DDD-C833C923D9D6','Srashti','Jin','vbaapure@newconinfosystems.com','vbalapure',null,null,2,'C7CA5FF2-0203-44B7-AFB4-26552C8EBF0F','v'
 	@userId [uniqueidentifier],
 	@firstName nvarchar(256),
 	@lastName nvarchar(256),
@@ -14,7 +13,7 @@ CREATE PROCEDURE [App].[usp_AddUpdateUser] --'FB72E3DF-47FB-485D-9DDD-C833C923D9
 	@TimeZone nvarchar(256)  = null
 AS
 BEGIN
-
+Declare @oldemail nvarchar(256)
 
 
 IF(@TimeZone is null)
@@ -47,7 +46,7 @@ Declare @gUserID UNIQUEIDENTIFIER;
 
 			INSERT INTO App.[User] ([FirstName],[LastName],[Email],[Login],[Password],[ExpirationDate],[StatusID],[ContactNo1],[CreatedBy],[CreatedDate],[UpdatedBy],[UpdatedDate])
 			OUTPUT inserted.UserID INTO @tUser(tUserID)
-			VALUES (@firstName,@lastName,@email,@login,@password,'01/01/2030',1,@ContactNo1,@updatedBy,GETDATE(),@updatedBy,GETDATE())
+			VALUES (trim(@firstName),trim(@lastName),trim(@email),trim(@login),trim(@password),'01/01/2030',1,trim(@ContactNo1),@updatedBy,GETDATE(),@updatedBy,GETDATE())
 			SELECT @newUserID = tUserID FROM @tUser; 	
 
 			SET @gUserID = @newUserID;
@@ -60,6 +59,11 @@ Declare @gUserID UNIQUEIDENTIFIER;
 			INSERT INTO app.NotificationSubscription(NotificationID,StartDate,EndDate,UserID,Status,CreatedBy,CreatedDate,UpdatedBy,UpdatedDate)
 			Select NotificationID,getdate(),null,UserID,1,@updatedBy,GETDATE(),@updatedBy,GETDATE() from App.[Notification] noti,app.[user] u
 			where noti.StatusID = 1 and userid = @newUserID
+
+			--Copying same user name to new table UserReporting
+			INSERT INTO App.[UserReporting] ([UserID],[FirstName],[LastName],[Email],[Login],[StatusID])
+			VALUES (@newUserID,trim(@firstName),trim(@lastName),trim(@email),trim(@login),1)
+
 
 			SELECT 'User insertion - Successful'
 		END TRY
@@ -82,10 +86,17 @@ Declare @gUserID UNIQUEIDENTIFIER;
 
 			SET @gUserID = @userId;
 
+			--update emailotification
+			select @oldemail=[Email] from App.[User] where UserID=@userId
+			IF (@oldemail<>@email)
+			BEGIN
+				Update app.EmailNotification set EmailId=@email where EmailId=@oldemail and ModuleId in ('552','606','617','720')
+			END
+
 			/*Update User*/
 			Update App.[User] set
-			[FirstName] = @firstName,
-			[LastName] = @lastName,
+			[FirstName] = rtrim(ltrim(@firstName)),
+			[LastName] = rtrim(ltrim(@lastName)),
 			[Email] = @email,
 			[Login] = @login,
 			--[Password] = @password,
@@ -97,11 +108,28 @@ Declare @gUserID UNIQUEIDENTIFIER;
 			where UserId = @userId
 			
 			/*Update UserRoleMap*/
-			Update App.[UserRoleMap] set 
-			RoleId = @roleId
+			if EXISTS (SELECT * FROM App.[UserRoleMap] where UserId = @userId)
+			BEGIN
+				Update App.[UserRoleMap] set 
+				RoleId = @roleId
+				where UserId = @userId
+			END
+			ELSE
+			BEGIN
+				INSERT INTO App.[UserRoleMap]([UserId],[RoleId],[StatusID],[CreatedBy],[CreatedDate],[UpdatedBy],[UpdatedDate])
+				VALUES (@userId,@roleId,@statusId,@updatedBy,GETDATE(),@updatedBy,GETDATE())
+			END
+
+			/*Update UserReporting*/
+			Update App.[UserReporting] set
+			[FirstName] = rtrim(ltrim(@firstName)),
+			[LastName] = rtrim(ltrim(@lastName)),
+			[Email] = @email,
+			[Login] = @login,
+			[StatusID] = @statusId
 			where UserId = @userId
 
-			
+
 			SELECT 'User update - Successful'
 		END TRY
 		BEGIN CATCH
@@ -156,3 +184,5 @@ Declare @gUserID UNIQUEIDENTIFIER;
 
 
 END
+GO
+

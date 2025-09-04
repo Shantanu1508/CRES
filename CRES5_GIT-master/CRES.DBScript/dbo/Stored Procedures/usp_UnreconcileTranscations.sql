@@ -1,5 +1,5 @@
 ﻿--drop PROCEDURE [dbo].[usp_UnreconcileTranscations]
-CREATE PROCEDURE [dbo].[usp_UnreconcileTranscations]
+Create PROCEDURE [dbo].[usp_UnreconcileTranscations]
 @TmpTrans TableTypeTranscationRecon READONLY,
 @CreatedBy nvarchar(256)
 
@@ -45,7 +45,9 @@ BEGIN
 select distinct Transcationid from @TmpTrans 
 )
 
-
+update cre.TranscationReconciliation set Deleted=1 where cre.TranscationReconciliation.ServcerMasterID=8 and  cre.TranscationReconciliation.Transcationid in (
+select distinct Transcationid from @TmpTrans 
+)
 	---===========================================
 	---Only the transaction reconciled from manual transaction file should go away and the transaction from batch upload should continue to stay.
 
@@ -104,7 +106,7 @@ select distinct Transcationid from @TmpTrans
 	where NoteID in  (Select Distinct NoteID from @TmpTrans where Ignore <> 1)
 	and an.name = 'Default'
 	
-	exec [dbo].[usp_QueueNotesForCalculation] @TableTypeCalculationRequests,@CreatedBy,@CreatedBy 
+	exec [dbo].[usp_QueueNotesForCalculation] @TableTypeCalculationRequests,@CreatedBy,@CreatedBy, NULL, NULL, 'UnreconcileTranscations'
 	
 END
 GO

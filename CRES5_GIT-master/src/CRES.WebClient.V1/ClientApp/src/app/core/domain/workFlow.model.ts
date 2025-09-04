@@ -51,6 +51,15 @@ export class Workflow {
   public IsDisableFundingTeamApproval: number;
   public IsOnlyPrimaryUser: number;
   public ReserveScheduleBreakDown: string;
+  public ExitFee: number;
+  public ExitFeePercentage: number;
+  public PrepayPremium: number;
+  public PropertyManagerEmail: string;
+  public CREDealID: string;
+  public AdditionalEmail: string;
+  public IsDiscrepancyForCommitment: boolean;
+  public OriginalWFStatusPurposeMappingID: number;
+  public AmOversightMsg: string;
   constructor(WFTaskDetailId: number) {
     this.WFTaskDetailId = WFTaskDetailId;
   }
@@ -113,7 +122,19 @@ export class WFAdditionalData {
   public BaseCurrencyName: string;
   public ServicerName: string;
   public IsREODeal: boolean;
-
+  public PropertyManagerEmail: string;
+  public AccountingEmail: string;
+  public LastPrelimSentDate: Date;
+  public IsCancelFinalSent: boolean;
+  public AdditionalGroupEmail: string;
+  public RevisedMessage: string;
+  public NotesWithFinancingSourceNone: string;
+  public AMEmailsWithoutWellsBerkadia: string;
+  public WatchlistStatus: string;
+  public TotalPendingInvoice: number;
+  public TotalPendingInvoiceAmt: number;
+  public IsPrelimDisabled: boolean;
+  public CREDealIDWithREO: string;
 
   constructor(WFTaskDetailId: number) {
     this.WFTaskDetailID = WFTaskDetailId;
@@ -193,6 +214,12 @@ export class WFNotificationDetailDataContract {
   public SpecialInstructions: string;
   WFCheckList: Array<WFCheckListData>;
   public TaskTypeID: number;
+  public DealDetail: string;
+  public AdditionalEmail: string;
+  public ExitFee: number;
+  public ExitFeePercentage: number;
+  public PrepayPremium: number;
+  public OriginalWFStatusPurposeMappingID: number;
 
   constructor(WFNotificationID: number) {
     this.WFNotificationID = WFNotificationID;

@@ -4,7 +4,7 @@ export class NoteAdditionalList {
   NoteId: string;
   ModuleId: number;
   noteobj: Note;
-  // lstMaturity: Array<Maturity>;
+  lstMaturity: Array<Maturity>;
   MaturityScenariosList: Array<Maturity>;
   // lstRateSpreadSchedule: Array<RateSpreadSchedule>;
   RateSpreadScheduleList: Array<RateSpreadSchedule>;
@@ -53,6 +53,7 @@ export class RateSpreadSchedule {
   RateSpreadScheduleID: string;
   ModuleId: number;
   EventId: string;
+  AccountID: string;
   Date: Date;
   ValueTypeID: number;
   ValueTypeText: string;
@@ -61,11 +62,16 @@ export class RateSpreadSchedule {
   Value: number;
   EffectiveDate: Date;
   RateOrSpreadToBeStripped: number;
-
+  IndexNameID: number;
+  IndexNameText: string;
+  DeterminationDateHolidayList: number;
+  DeterminationDateHolidayListText: string;
+  ScheduleID: string;
 }
 
 export class NotePrepayAndAdditionalFeeSchedule {
   //   PrepayAndAdditionalFeeScheduleID: string;
+  AccountID: string;
   ModuleId: number;
   EventId: string;
   EffectiveDate: Date;
@@ -78,7 +84,6 @@ export class NotePrepayAndAdditionalFeeSchedule {
   IncludedBasis: number;
   StartDate: Date;
   Value: number;
-
   FeeName: string;
   ScheduleEndDate: Date;
   FeeAmountOverride: number;
@@ -171,6 +176,16 @@ export class PIKSchedule {
   PIKReasonCodeIDText: string
   PIKIntCalcMethodID: number
   PIKIntCalcMethodIDText: string
+
+  PeriodicRateCapAmount: number
+  PeriodicRateCapPercent: number
+
+  PIKSetUp: number
+  PIKSetUpText: string
+  PIKPercentage: number
+  PIKCurrentPayRate: number
+  PIKSeparateCompounding: number
+  PIKSeparateCompoundingText: string
 }
 
 export class FutureFunding {
@@ -187,12 +202,15 @@ export class FutureFunding {
   PurposeID: number;
   DrawFundingId: string;
   Comments: string;
-
+ // NonCommitmentAdj: boolean;
+  AdjustmentType: number;
+ // SNonCommitmentAdj: string;
   orgDate: Date;
   orgValue: number;
   orgPurposeText: string;
   OrgApplied: boolean;
   OrgPurposeID: number;
+  AdjustmentTypeText: string;
 }
 
 export class FixedAmort {
@@ -347,7 +365,9 @@ export class NotePeriodicOutputsDataContract {
   InterestAccrualEndDate: Date;
   LIBORPercentage: number;
   SpreadPercentage: number;
-
+  InitialFunding: number;
+  CapitalizedCostAccumulatedAmort: number;
+  DiscountPremiumAccumulatedAmort: number;
 }
 
 

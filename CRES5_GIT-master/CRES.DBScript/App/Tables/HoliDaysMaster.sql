@@ -7,5 +7,7 @@ CREATE TABLE [App].[HoliDaysMaster] (
     [UpdatedDate] DATETIME       NULL,
     CONSTRAINT [PK_HolidayMasterID] PRIMARY KEY CLUSTERED ([HolidayMasterID] ASC)
 );
+go
+ALTER TABLE App.HolidaysMaster ENABLE CHANGE_TRACKING WITH (TRACK_COLUMNS_UPDATED = ON)
 
 

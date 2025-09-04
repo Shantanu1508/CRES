@@ -25,15 +25,13 @@
 
           <strong>No matching records found</strong>
         </div>
-
-        <!--<svg *ngIf="_isFinancingListFetching" class="spinner" width="25px" height="25px" viewBox="0 0 66 66"><circle class="circle" fill="none" stroke-width="6" stroke-linecap="round" cx="33" cy="33" r="30"></circle></svg>-->
-        <div class="cssload-container" *ngIf="_isFinancingListFetching">
+         <div class="cssload-container" *ngIf="_isFinancingListFetching">
           <div class="cssload-whirlpool"></div>
         </div>
 
         <div class="clearfix"></div>
         <div *ngIf="!_dvEmptyFinancingSearchMsg">
-          <wj-flex-grid id="flex" #flex [itemsSource]="lstfinancingWarehouse" [allowResizing]="'Both'" auto-generate-columns="true" allow-add-new="true" allow-sorting="true">
+          <wj-flex-grid id="flex" #flex [itemsSource]="lstfinancingWarehouse" [allowResizing]="'Both'" auto-generate-columns="true" keyActionTab="Cycle" allow-add-new="true" allow-sorting="true">
             <wj-flex-grid-filter #filter></wj-flex-grid-filter>
             <wj-flex-grid-column [header]="'Name'">
               <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">

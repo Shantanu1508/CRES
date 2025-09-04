@@ -1,8 +1,8 @@
-﻿
+﻿ 
 
 CREATE PROCEDURE [Core].[usp_AddUpdatePortfolio] 
 (
-@PortfolioID uniqueidentifier,
+@PortfolioID uniqueidentifier,   
 @PortfoliName nvarchar(256),   
 @Description nvarchar(2000),   
 @PoolIDs nvarchar(1000),

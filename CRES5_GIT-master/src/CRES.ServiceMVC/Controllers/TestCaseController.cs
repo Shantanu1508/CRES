@@ -1,10 +1,14 @@
 ﻿
 using CRES.BusinessLogic;
 using CRES.DataContract;
+using CRES.Utilities;
 using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Collections.Generic;
 using System.Data;
+using System.Linq;
+using System.Net;
+using System.Net.Http;
 
 
 namespace CRES.Services.Controllers
@@ -16,16 +20,14 @@ namespace CRES.Services.Controllers
         [Services.Controllers.IsAuthenticate]
         [Services.Controllers.DeflateCompression]
         [Route("api/testcase/runtestcase")]
-        public IActionResult RunTestCases([FromBody] TestCaseDataContract testcase, int? pageIndex, int? pageSize)
+        public IActionResult RunTestCases([FromBody]  TestCaseDataContract testcase, int? pageIndex, int? pageSize)
         {
-
+            
             GenericResult _authenticationResult = null;
-            DataTable TestCasesdatatable = new DataTable();
+            DataTable TestCasesdatatable = new DataTable(); 
             TestCaseLogic testcaselogic = new TestCaseLogic();
-
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
+           
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
             var headerUserID = new Guid();
             if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
             {
@@ -35,7 +37,7 @@ namespace CRES.Services.Controllers
             TestCasesdatatable = testcaselogic.RunTestCases(testcase.isRun, headerUserID.ToString(), testcase.ModuleName, pageSize, pageIndex);
             try
             {
-                if (TestCasesdatatable.Rows.Count > 0)
+                if (TestCasesdatatable.Rows.Count>0)
                 {
                     var TotalCount = Convert.ToInt32(TestCasesdatatable.Rows[0][0]);
                     var lastexcutedtime = TestCasesdatatable.Rows[0][1].ToString();
@@ -48,9 +50,9 @@ namespace CRES.Services.Controllers
                         Trace = lastexcutedtime,
                         Succeeded = true,
                         Message = "Authentication succeeded",
+                       
 
-
-                    };
+                };
                 }
                 else
                 {

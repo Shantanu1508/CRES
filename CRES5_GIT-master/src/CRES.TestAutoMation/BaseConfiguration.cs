@@ -134,6 +134,29 @@ namespace CRES.TestAutoMation
 
         }
 
+        public static string Getm61Url()
+        {
+            string setting = "";
+            setting = Builder["appSettings:m61Url"];
+            return setting;
+        }
+
+        public static string Getm61Username()
+        {
+            string setting = "";
+            setting = Builder["appSettings:m61Username"];
+            return setting;
+
+        }
+
+        public static string Getm61Password()
+        {
+            string setting = "";
+            setting = Builder["appSettings:m61Password"];
+            return setting;
+
+        }
+
         public static string GetDevUrl()
         {
             string setting = "";
@@ -306,10 +329,11 @@ namespace CRES.TestAutoMation
 
         public static int BrowserCount()
         {
-            int browserCount = 1;
-            browserCount = Convert.ToInt16(Builder["browserSettings:BrowserCount"]);
+            int browserCount=1;
+            browserCount = Convert.ToInt16(Builder["appSettings:BrowserCount"]);
             return browserCount;
         }
+
 
         public static string Browser()
         {
@@ -344,6 +368,24 @@ namespace CRES.TestAutoMation
             {
                 return false;
             }
+
+        }
+        
+        public static string SendValidationReportEmail()
+        {
+            string setting = "";
+            setting = Builder["appSettings:SendValidationReportEmail"];
+            
+                return setting;          
+
+        }
+
+        public static string SendInitializationEmail()
+        {
+            string setting = "";
+            setting = Builder["appSettings:SendInitializationEmail"];
+
+            return setting;
 
         }
 
@@ -472,10 +514,10 @@ namespace CRES.TestAutoMation
             return setting;
         }
 
-        public static string periodicCloseUrl()
+        public static string accountingcloseUrl()
         {
             string setting = "";
-            setting = Builder["appSettings:periodicCloseUrl"];
+            setting = Builder["appSettings:accountingcloseUrl"];
             return setting;
         }
 
@@ -571,6 +613,13 @@ namespace CRES.TestAutoMation
         {
             string setting = "";
             setting = Builder["appSettings:EmailTO"];
+            return setting;
+        }
+
+        public static string GetDealType()
+        {
+            string setting = "";
+            setting = Builder["appSettings:GetDealType"];
             return setting;
         }
 

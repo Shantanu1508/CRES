@@ -8,6 +8,7 @@
 
 	ActualPayoffDate      Date ,
 	ExpectedMaturityDate  Date ,
-	OpenPrepaymentDate	  Date 
+	OpenPrepaymentDate	  Date ,
+	ExtensionType int
 );
 

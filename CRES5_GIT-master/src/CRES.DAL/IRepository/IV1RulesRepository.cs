@@ -1,5 +1,6 @@
-﻿
-using System.Data;
+﻿ 
+using System.Data; 
+using CRES.DataContract;
 
 namespace CRES.DAL.IRepository
 {

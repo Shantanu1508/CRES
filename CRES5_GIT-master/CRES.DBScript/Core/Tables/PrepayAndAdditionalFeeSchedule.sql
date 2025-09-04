@@ -23,6 +23,12 @@
 
 
 GO
+ALTER TABLE [Core].[PrepayAndAdditionalFeeSchedule] ENABLE CHANGE_TRACKING WITH (TRACK_COLUMNS_UPDATED = ON);
+
+
+
+
+GO
 CREATE NONCLUSTERED INDEX [nci_wi_PrepayAndAdditionalFeeSchedule_DF440AEC2A3AA92E3EAB37CB1B7F6811]
     ON [Core].[PrepayAndAdditionalFeeSchedule]([EventID] ASC, [StartDate] ASC)
     INCLUDE([ApplyTrueUpFeature], [BaseAmountOverride], [CreatedBy], [CreatedDate], [EndDate], [FeeAmountOverride], [FeeName], [FeetobeStripped], [IncludedBasis], [IncludedLevelYield], [UpdatedBy], [UpdatedDate], [Value], [ValueTypeID]);

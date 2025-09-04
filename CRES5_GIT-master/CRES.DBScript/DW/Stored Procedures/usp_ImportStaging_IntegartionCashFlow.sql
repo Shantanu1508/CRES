@@ -1,4 +1,5 @@
-﻿
+﻿-- Procedure
+
 CREATE PROCEDURE [DW].[usp_ImportStaging_IntegartionCashFlow]
 	
 AS
@@ -37,7 +38,7 @@ In_np.Scenario
 ,St_np.AccumaltedDiscountPremium as St_AccumaltedDiscountPremium
 ,St_np.CapitalizedCostAccrual as St_CapitalizedCostAccrual
 ,St_np.AccumalatedCapitalizedCost as St_AccumalatedCapitalizedCost
-,St_np.CurrentPeriodInterestAccrualPeriodEnddate as St_CurrentPeriodInterestAccrualPeriodEnddate
+,null as St_CurrentPeriodInterestAccrualPeriodEnddate
 
 from dbo.NotePeriodicCalc In_np
 left join dbo.Staging_Cashflow St_np on In_np.NoteID = St_np.NoteID and In_np.AnalysisID = St_np.AnalysisID and In_np.PeriodEndDate = St_np.PeriodEndDate

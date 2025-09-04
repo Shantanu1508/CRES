@@ -1,6 +1,5 @@
-﻿--[dbo].[usp_GetFutureFundingScheduleDataByNoteId] '55c58817-6fcd-4e29-a5f4-2efb4abfea5c', '80E27BC4-B933-4724-9DB2-EF3CDB8ADB6B',1,1,null
-
-creatE PROCEDURE [dbo].[usp_GetFutureFundingScheduleDataByNoteId] 
+﻿--[dbo].[usp_GetFutureFundingScheduleDataByNoteId] '7b0bfe86-fb9f-440f-9fed-53d65bb2e0ae', '80E27BC4-B933-4724-9DB2-EF3CDB8ADB6B',1,1,null
+CREATE PROCEDURE [dbo].[usp_GetFutureFundingScheduleDataByNoteId] 
 (
     @NoteId UNIQUEIDENTIFIER,
 	@UserID UNIQUEIDENTIFIER,	
@@ -77,6 +76,10 @@ CREATE TABLE #tblFinal
 	PurposeID int null,
 	PurposeText nvarchar(256),
 	Applied bit null,
+	--NonCommitmentAdj bit null,	
+	AdjustmentType int null,
+	AdjustmentTypeText nvarchar(256),
+
 	CreatedBy nvarchar(256),
 	CreatedDate datetime,
 	UpdatedBy nvarchar(256),
@@ -105,7 +108,7 @@ WHILE @@FETCH_STATUS = 0
 BEGIN
 --------------------------
 --Print (COnvert(nvarchar(256),@EffectiveDate,101))
-INSERT INTO #tblFinal(NoteID,AccountID,Date,Value,EffectiveDate,EffectiveStartDate,EffectiveEndDate,EventTypeID,EventTypeText,EventID,PurposeID,PurposeText,Applied,CreatedBy,CreatedDate,UpdatedBy,UpdatedDate)
+INSERT INTO #tblFinal(NoteID,AccountID,Date,Value,EffectiveDate,EffectiveStartDate,EffectiveEndDate,EventTypeID,EventTypeText,EventID,PurposeID,PurposeText,Applied,AdjustmentType,AdjustmentTypeText,CreatedBy,CreatedDate,UpdatedBy,UpdatedDate)
 Select   
 n.NoteID
 ,acc.AccountID
@@ -120,6 +123,9 @@ n.NoteID
 ,fs.PurposeID
 ,LPurposeID.Name PurposeText
 ,Applied
+--,ISNULL(NonCommitmentAdj,0) NonCommitmentAdj
+,fs.AdjustmentType
+,LAdjustmentType.Name AdjustmentTypeText
 ,fs.[CreatedBy]
 ,fs.[CreatedDate]
 ,fs.[UpdatedBy]
@@ -129,15 +135,17 @@ INNER JOIN [CORE].[Event] eve ON eve.EventID = fs.EventId
 INNER JOIN [CORE].[Account] acc ON acc.AccountID = eve.AccountID  
 INNER JOIN [CRE].[Note] n ON n.Account_AccountID = acc.AccountID  
 INNER JOIN [CORE].[Lookup] LEventTypeID ON LEventTypeID.LookupID = eve.EventTypeID  
-left JOIN [CORE].[Lookup] LPurposeID ON LPurposeID.LookupID = fs.PurposeID  
+left JOIN [CORE].[Lookup] LPurposeID ON LPurposeID.LookupID = fs.PurposeID
+left JOIN [CORE].[Lookup] LAdjustmentType ON LAdjustmentType.LookupID = fs.AdjustmentType
+
 where n.NoteID = @Noteid  and acc.IsDeleted = 0  
 and eve.StatusID = 1
 and eve.eventid = @EventID
 Order by eve.EffectiveStartDate,fs.[Date]  
 -----------------------------------
 
-INSERT INTO #tblFinal(NoteID,AccountID,Date,Value,EffectiveDate,EffectiveStartDate,EffectiveEndDate,EventTypeID,EventTypeText,EventID,PurposeID,PurposeText,Applied,CreatedBy,CreatedDate,UpdatedBy,UpdatedDate)
-Select NoteID,AccountID,Date,Value,EffectiveDate,EffectiveStartDate,EffectiveEndDate,EventTypeID,EventTypeText,EventID,PurposeID,PurposeText,Applied,CreatedBy,CreatedDate,UpdatedBy,UpdatedDate
+INSERT INTO #tblFinal(NoteID,AccountID,Date,Value,EffectiveDate,EffectiveStartDate,EffectiveEndDate,EventTypeID,EventTypeText,EventID,PurposeID,PurposeText,Applied,AdjustmentType,AdjustmentTypeText,CreatedBy,CreatedDate,UpdatedBy,UpdatedDate)
+Select NoteID,AccountID,Date,Value,EffectiveDate,EffectiveStartDate,EffectiveEndDate,EventTypeID,EventTypeText,EventID,PurposeID,PurposeText,Applied,AdjustmentType,AdjustmentTypeText,CreatedBy,CreatedDate,UpdatedBy,UpdatedDate
 From(
 Select   
 n.NoteID  
@@ -153,6 +161,9 @@ n.NoteID
 ,fs.PurposeID  
 ,LPurposeID.Name PurposeText  
 ,Applied  
+--,ISNULL(NonCommitmentAdj,0) NonCommitmentAdj
+,fs.AdjustmentType
+,LAdjustmentType.Name AdjustmentTypeText
 ,fs.[CreatedBy]  
 ,fs.[CreatedDate]  
 ,fs.[UpdatedBy]  
@@ -164,7 +175,9 @@ INNER JOIN [CORE].[Account] acc ON acc.AccountID = eve.AccountID
 INNER JOIN [CRE].[Note] n ON n.Account_AccountID = acc.AccountID  
 INNER JOIN [CORE].[Lookup] LEventTypeID ON LEventTypeID.LookupID = eve.EventTypeID  
 left JOIN [CORE].[Lookup] LPurposeID ON LPurposeID.LookupID = fs.PurposeID  
+left JOIN [CORE].[Lookup] LAdjustmentType ON LAdjustmentType.LookupID = fs.AdjustmentType
 where n.NoteID = @Noteid  and acc.IsDeleted = 0  
+
 and eve.StatusID = 1
 
 and fs.date in (
@@ -197,7 +210,7 @@ DEALLOCATE CursorEffDate
 
 
 
-Select NoteID,AccountID,Date,Value,EffectiveDate,EffectiveStartDate,EffectiveEndDate,EventTypeID,EventTypeText,EventID,PurposeID,PurposeText,Applied,CreatedBy,CreatedDate,UpdatedBy,UpdatedDate 
+Select NoteID,AccountID,Date,Value,EffectiveDate,EffectiveStartDate,EffectiveEndDate,EventTypeID,EventTypeText,EventID,PurposeID,PurposeText,Applied,AdjustmentType,AdjustmentTypeText,CreatedBy,CreatedDate,UpdatedBy,UpdatedDate 
 from #tblFinal 
 ORDER BY UpdatedDate DESC
 

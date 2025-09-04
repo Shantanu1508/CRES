@@ -71,8 +71,16 @@ AllInCouponRate AS  AllInCouponRate
 
 ,FinancingSource
 ,ClientName  
-    
+
+,PIKInterestAppliedForThePeriod
+,PIKPrincipalPaidForThePeriod
+,InterestReceivedinCurrentPeriod    
 From DW.NotePeriodicCalcByEntityBI_ALL NPC   
-where AnalysisName in ('Expected Maturity Date (with Prepay, FWCV)','Expected Maturity Date (with Prepay, Index Flat)')
+where AnalysisID in ('D8F8AF6D-B9C7-4015-A610-41D34941EEB5','261CA4F1-A0AF-45C1-8CF6-053DAFAAA835')
+
+
+
+
+--AnalysisName in ('Expected Maturity Date (with Prepay, FWCV)','Expected Maturity Date (with Prepay, Index Flat)')
   
     

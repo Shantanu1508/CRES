@@ -18,6 +18,7 @@ Outer apply (Select Amount LIBOR from TransactionEntry T1
 				and T.NoteID = T1.NoteID
 				and T.Date =  T1.date
 				and AnalysisID = 'C10F3372-0FC2-4861-A9F5-148F1F80804F'
+				and T1.AccountTypeID = 1
 				)
 				X
 
@@ -25,6 +26,7 @@ Outer apply (Select Amount SPREAD from TransactionEntry T1
 				Where  T.NoteID = T1.NoteID
 				and T.Date =  T1.date and
 				Type = 'SpreadPercentage' and AnalysisID = 'C10F3372-0FC2-4861-A9F5-148F1F80804F'
+				and T1.AccountTypeID = 1
 				)y
 
 

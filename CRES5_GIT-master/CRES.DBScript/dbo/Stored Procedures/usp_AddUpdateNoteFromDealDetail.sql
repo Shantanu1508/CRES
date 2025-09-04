@@ -1,4 +1,5 @@
-﻿      
+﻿-- Procedure
+      
 CREATE PROCEDURE [dbo].[usp_AddUpdateNoteFromDealDetail]      
 (      
   @UserID [uniqueidentifier],      
@@ -31,7 +32,9 @@ CREATE PROCEDURE [dbo].[usp_AddUpdateNoteFromDealDetail]
   @RoundingNote int,      
   @StraightLineAmortOverride [decimal](28,15),      
   @UseRuletoDetermineAmortization int,      
-  @OriginalTotalCommitment [decimal](28,15),      
+  @OriginalTotalCommitment [decimal](28,15),  
+  @WeightedSpread [decimal](28,15),
+  @NetCapitalInvested [decimal](28,15),
   @newnoteId varchar(256) OUTPUT      
       
 )       
@@ -74,7 +77,7 @@ VALUES
 @name,      
 @CRENoteID,      
 --@PayFrequency,      
-182,      
+1,  --182,      
 @CreatedBy,      
 GETDATE(),      
 @UpdatedBy,      
@@ -107,6 +110,8 @@ GetDATE(),0
     ,AdjustedTotalCommitment      
     ,OriginalTotalCommitment  
 	,CommitmentUsedInFFDistribution
+	--,WeightedSpread
+	,NetCapitalInvested
           
    )      
       OUTPUT inserted.NoteID INTO @tNote(tNewNoteId)      
@@ -133,9 +138,12 @@ GetDATE(),0
      @AggregatedTotal,      
   @AdjustedTotalCommitment,      
   @OriginalTotalCommitment ,
-  @OriginalTotalCommitment
-)      
-      
+  @OriginalTotalCommitment,
+  --@WeightedSpread,
+  @NetCapitalInvested
+)   
+
+ ----WeightedSpread updating fromm usp_UpdateNoteCalculatedWeightedSpread  --Readonly    
        
 --IF(@InitialMaturityDate is not null)      
 -- BEGIN      
@@ -214,7 +222,7 @@ BEGIN
   SELECT @countAll = COUNT(CRENoteID) from      
   (      
   select  CRENoteID,      
-    (select  [Name] FROM [Core].[Account]WHERE AccountID = @Account_AccountID) as Name,      
+    (select  [Name] FROM [Core].[Account] WHERE AccountID = @Account_AccountID) as Name,      
     ClientNoteID,          
     CONVERT(date, ClosingDate, 101) as ClosingDate,      
     TotalCommitment,      
@@ -227,7 +235,9 @@ BEGIN
     [Priority],      
     AdjustedTotalCommitment,      
     AggregatedTotal,      
-    OriginalTotalCommitment      
+    OriginalTotalCommitment
+	--WeightedSpread
+	,NetCapitalInvested
      FROM CRE.Note      
      WHERE NoteID = @NoteID      
   UNION      
@@ -246,7 +256,9 @@ BEGIN
     @Priority,      
     @AdjustedTotalCommitment,      
     @AggregatedTotal,      
-    @OriginalTotalCommitment      
+    @OriginalTotalCommitment,
+	--@WeightedSpread
+	@NetCapitalInvested
   )a      
       
   IF(@SourceTable <> @countAll )      
@@ -255,7 +267,7 @@ BEGIN
  END      
       
 UPDATE [Core].[Account]      
-   SET [AccountTypeID] = (Select LookupID from CORE.Lookup where name = 'Note')            
+   SET [AccountTypeID] = 1  ---(Select LookupID from CORE.Lookup where name = 'Note')            
       ,[Name] = @name      
    ,[StatusID] = ISNULL(@statusID,1)      
       ,[UpdatedBy] = @UpdatedBy      
@@ -283,7 +295,9 @@ TotalCommitment =@TotalCommitment,
 RoundingNote = @RoundingNote,      
 StraightLineAmortOverride = @StraightLineAmortOverride,      
 UseRuletoDetermineAmortization = @UseRuletoDetermineAmortization,      
-OriginalTotalCommitment = @OriginalTotalCommitment        
+OriginalTotalCommitment = @OriginalTotalCommitment,
+--WeightedSpread = @WeightedSpread
+NetCapitalInvested = @NetCapitalInvested
 
 WHERE NoteID = @NoteID      
       

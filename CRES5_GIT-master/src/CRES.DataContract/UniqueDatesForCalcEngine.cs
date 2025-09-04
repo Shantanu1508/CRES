@@ -1,4 +1,8 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
 
 namespace CRES.DataContract
 {
@@ -20,7 +24,7 @@ namespace CRES.DataContract
         public bool? PrepayAdditionalFeesSchedule { get; set; }
         public bool? SelectedMaturityDate { get; set; }
         public bool? FeeCouponStripping { get; set; }
-
+        public bool? ProjectedWritoff { get; set; }
 
     }
 }

@@ -94,7 +94,7 @@ TotalGAAPInterestFortheCurrentPeriod
 , NT.CapitalizedClosingCosts
 , NoteID_EODPeriodEndDateBI
  From [DW].[Staging_Cashflow]  N
-  Left Join Note NT on NT.Notekey = N.NoteID
+  Left Join Note NT on NT.notekey = N.NoteID
    Left Join Dw.AnalysisBI A on A.AnalysisKey = N.AnalysisID
    Where EOMONTH (FullyExtendedMaturityDate) > EOMONTH (PeriodEndDate,0)
    and EOMONTH (N.PeriodEndDate,0) = N.PeriodEndDate
@@ -124,5 +124,5 @@ and CRENoteID  in
 
 
 
-)
-			
+)  
+     

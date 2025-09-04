@@ -14,6 +14,7 @@ BEGIN
 BEGIN TRY
 --BEGIN TRAN
 --======================================================
+	Declare @Cutoffdate date = CAST((select [Value] from app.appconfig where [key] = 'CutOffDate_BackshopExport') as date)
 
 	DECLARE @query1 nvarchar(256) = N'Select COUNT(noteid) from [acore].[vw_AcctNote] where Noteid = '''+@CRENoteId+''''  
 	DECLARE @NoteCount TABLE (Cnt int,ShardName nvarchar(max))  
@@ -62,7 +63,7 @@ BEGIN TRY
 		,[Applied]  
 		,[WireConfirm]   
 		,DrawFundingId   
-		from [IO].[out_FutureFunding] where [CRENoteID] = @CRENoteId and [AuditUserName] = @userName   and [FundingDate] > '12/31/2019' 
+		from [IO].[out_FutureFunding] where [CRENoteID] = @CRENoteId and [AuditUserName] = @userName   and [FundingDate] > @Cutoffdate 
 		and ISNULL(IsProjectedPaydown,0) <> 1
   
 		--Select Distinct n.CRENoteID  
@@ -83,7 +84,8 @@ BEGIN TRY
 		-- WHEN 'Capitalized Interest' THEN 'CAPINTC'  
 		-- WHEN 'Full Payoff' THEN 'FULLPAY'  
 		-- WHEN 'Note Transfer' THEN 'NOTETRAN'   
-		-- WHEN 'Paydown' THEN 'PAYDOWN'   
+		-- WHEN 'Paydown' THEN 'PAYDOWN'  
+		-- WHEN 'Principal Writeoff' THEN 'PWRITEOFF'
 		-- END  
 		-- )as [FundingPurpose]  
 		-- ,1 as [Applied]  
@@ -119,7 +121,7 @@ BEGIN TRY
 		------------------  
 
 		DECLARE @query nvarchar(MAX) = N'Select Distinct CAST(NoteID_f as varchar(256)),FundingDate,FundingAmount,'''' as Comments,FundingPurposeCD_F,Applied,WireConfirm,FundingDrawId   
-		from [acore].[vw_AcctNoteFundings] where FundingDate > ''12/31/2019'' and FundingPurposeCD_F not in (''PIKNC'',''PIKPP'') and  NoteID_f = '''+ @CRENoteId +''' '  
+		from [acore].[vw_AcctNoteFundings] where FundingDate > '''+ CAST(@Cutoffdate as nvarchar(256)) +''' and FundingPurposeCD_F not in (''PIKNC'',''PIKPP'') and  NoteID_f = '''+ @CRENoteId +''' '  
   
 		INSERT INTO @BackshopFF (CRENoteID,FundingDate,FundingAmount,Comments,FundingPurpose,Applied,WireConfirm,DrawFundingId,ShardName)  
 		EXEC sp_execute_remote @data_source_name  = N'RemoteReferenceDataFF',   

@@ -1,0 +1,44 @@
+# Starter pipeline
+# Start with a minimal pipeline that you can customize to build and deploy your code.
+# Add steps that build, run tests, deploy, and more:
+# https://aka.ms/yaml
+
+trigger:
+  branches:
+    include:
+      - QA
+  paths:
+    include:
+      - src/CRES.NoteCalculatorServiceMVC/*
+
+pool:
+  vmImage: 'windows-2019'
+
+variables:
+  buildConfiguration: 'Release'
+
+steps:
+
+- script: echo Hello, world!
+  displayName: 'Run script for Calc API'
+
+- task: DotNetCoreCLI@2
+  inputs:
+    command: 'build'
+    projects: 'src/CRES.NoteCalculatorServiceMVC/CRES.NoteCalculatorServiceMVC.csproj'
+    workingDirectory: 'src/CRES.NoteCalculatorServiceMVC'
+
+- task: DotNetCoreCLI@2
+  inputs:
+    command: 'publish'
+    publishWebProjects: false
+    projects: 'src/CRES.NoteCalculatorServiceMVC/CRES.NoteCalculatorServiceMVC.csproj'
+    workingDirectory: 'src/CRES.NoteCalculatorServiceMVC'
+
+- task: AzureRmWebAppDeployment@4
+  inputs:
+    ConnectionType: 'AzureRM'
+    azureSubscription: 'Microsoft Partner Network 3'
+    appType: 'webApp'
+    WebAppName: 'qaCresCalculator'
+    packageForLinux: '$(System.DefaultWorkingDirectory)/**/*.zip'

@@ -36,7 +36,14 @@
     [InterestAdj]                          DECIMAL (28, 15) NULL,
     [AddlInterest]                         DECIMAL (28, 15) NULL,
     [TotalInterest]                        DECIMAL (28, 15) NULL,
+    [WriteOffAmount]      DECIMAL (28, 15) NULL
     CONSTRAINT [PK_NoteTransactionDetailID] PRIMARY KEY CLUSTERED ([NoteTransactionDetailID] ASC),
     CONSTRAINT [FK_NoteTransactionDetail_NoteID] FOREIGN KEY ([NoteID]) REFERENCES [CRE].[Note] ([NoteID])
 );
+
+
+GO
+ALTER TABLE [CRE].[NoteTransactionDetail] ENABLE CHANGE_TRACKING WITH (TRACK_COLUMNS_UPDATED = ON);
+
+
 

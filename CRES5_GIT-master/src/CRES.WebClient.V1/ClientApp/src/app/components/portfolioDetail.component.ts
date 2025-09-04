@@ -1,10 +1,11 @@
 import { Component, ViewChild } from '@angular/core';
-import { Router, ActivatedRoute, Params} from '@angular/router';
+import { Router, ActivatedRoute, Params } from '@angular/router';
 import { portfolio } from "../core/domain/portfolio.model";
 import { NotificationService } from '../core/services/notification.service'
 import { NoteService } from '../core/services/note.service'
 import { MembershipService } from '../core/services/membership.service';
 import { UtilityService } from '../core/services/utility.service';
+import * as wjcGrid from '@grapecity/wijmo.grid';
 import * as wjcCore from '@grapecity/wijmo';
 import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
@@ -16,12 +17,14 @@ import { WjGridFilterModule } from '@grapecity/wijmo.angular2.grid.filter';
 import { WjInputModule } from '@grapecity/wijmo.angular2.input';
 import { portfolioService } from '../core/services/portfolio.service'
 import * as wjNg2Input from "@grapecity/wijmo.angular2.input";
+
+import { UtilsFunctions } from './../core/common/utilsfunctions';
 declare var $: any;
 
 @Component({
   selector: "portfoliodetail",
   templateUrl: "./portfoliodetail.html",
-  providers: [NoteService, NotificationService, UtilityService, portfolioService],
+  providers: [NoteService, NotificationService, UtilityService, portfolioService, UtilsFunctions],
 })
 
 export class PortfolioDetailComponent {
@@ -41,13 +44,30 @@ export class PortfolioDetailComponent {
   @ViewChild('multiselFinancingSource') multiselFinancingSource: wjNg2Input.WjMultiSelect
   public _isScenarioDetailFetching: boolean = false;
 
+  public isShowXIRR: boolean = true;
+  public _isShowNoRecordFound: boolean = true;
+  public _isListFetching: boolean;
+
+  public _isShowXIRR: boolean = false;
+  @ViewChild('XiRRValues') grdPeriodicData: wjcGrid.FlexGrid;
+  lstXiRRValues: any;
+
+  lstXiRRNotes: any;
+  public _timezoneAbbreviation: any;
+  public lastCalcDateTime: any;
+  public CalculationStatus: any;
+  public ErrorMessage: any;
+  public Caculatedby: any;
+  public loadoutput: boolean = true;
   constructor(private activatedRoute: ActivatedRoute,
     private _router: Router,
     public noteService: NoteService,
     public utilityService: UtilityService,
     public notificationService: NotificationService,
     public membershipService: MembershipService,
-    public _portfolioService: portfolioService
+    public _portfolioService: portfolioService,
+   
+    public utils: UtilsFunctions
   ) {
 
     this.activatedRoute.params.forEach((params: Params) => {
@@ -60,6 +80,7 @@ export class PortfolioDetailComponent {
       }
       else {
         this.GetAllLookups();
+        this.GetUserTimezoneByID();
 
         this.getAllFund();
       }
@@ -69,12 +90,6 @@ export class PortfolioDetailComponent {
     this.utilityService.setPageTitle("M61 – Dynamic Portfolio");
   }
 
-  ngOnInit() {
-    // get return url from route parameters or default to '/'
-
-
-
-  }
 
   GetAllLookups(): void {
     var parentids = "74,81";
@@ -176,6 +191,7 @@ export class PortfolioDetailComponent {
             this.getAllFund();
             this.GetFinancingSource();
             this.getAllClient();
+            this.GetUserTimezoneByID();
           }
           else {
 
@@ -196,6 +212,10 @@ export class PortfolioDetailComponent {
     this._router.navigate(['portfolio']);
   }
 
+  CloseModalConfirmTag()
+  {
+
+  }
   getAllFund(): void {
     this.noteService.getAllFund().subscribe(res => {
       if (res.Succeeded) {
@@ -247,6 +267,154 @@ export class PortfolioDetailComponent {
       }
     });
   }
+
+  GetXIRROutputByObjectID() {
+    this._isListFetching = true;
+
+    if (this.loadoutput == true) {
+      this._portfolioService.GetXIRROutputByObjectID(this._portfolio.PortfolioMasterGuid).subscribe(res => {
+        if (res.Succeeded) {
+          this.lstXiRRValues = res.dt;
+          this.CalculateStatus(res.dtCalcReq);
+          if (this.lstXiRRValues) {
+            this._isShowNoRecordFound = true;
+            if (this.lstXiRRValues && this.lstXiRRValues.length > 0) {
+              for (var i = 0; i < this.lstXiRRValues.length; i++) {
+                if (this.lstXiRRValues[i].LastCalculatedDate != null) {
+                  this.lstXiRRValues[i].LastCalculatedDate = new Date(this.utils.convertDateToBindable(this.lstXiRRValues[i].LastCalculatedDate));
+                }
+              }
+            }
+          } else { this._isShowNoRecordFound = false; }
+
+          setTimeout(function () {
+            this._isListFetching = false;
+            this.showcalcstatus();
+          }.bind(this), 500);
+        }
+      });
+      this.loadoutput = false;
+    } else {
+      this._isListFetching = false;
+}
+   
+  }
+
+  GetXIRRViewNotesByObjectID(XIRRConfigID) {
+
+    this._portfolio.XIRRConfigID = XIRRConfigID;
+    this._isListFetching = true;
+    this._portfolioService.GetXIRRViewNotesByObjectID(this._portfolio).subscribe(res => {
+      if (res.Succeeded) {
+
+        this.lstXiRRNotes = res.dt;
+
+        if (this.lstXiRRNotes) {
+          var modaltrans = document.getElementById('myModalXIRRViewNotes');
+          modaltrans.style.display = "block";
+          $.getScript("/js/jsDrag.js");
+
+        } else {
+
+        }
+        setTimeout(function () {
+          this._isListFetching = false;
+         
+        }.bind(this), 500);
+      }
+    });
+  }
+
+  showcalcstatus() {
+   
+    if (this.CalculationStatus == undefined || this.CalculationStatus == "Running" || this.CalculationStatus == "Processing") {
+
+      var status = setInterval(() => {
+        this._portfolioService.GetXIRRCalculationStatusByObjectID(this._portfolio.PortfolioMasterGuid).subscribe(res => {
+          if (res.Succeeded) {
+            this.CalculateStatus(res.dtCalcReq);
+            if ((this.CalculationStatus == "Completed" || this.CalculationStatus == "Failed")) {
+              this.loadoutput = true;
+              this.GetXIRROutputByObjectID();
+              clearInterval(status);
+
+            }
+          }
+
+        });
+      }, 20000);
+    }   
+  }
+
+  CalculateStatus(calcdata) {
+    //UpdatedDate	Name	calculatedby	ErrorMessage	analysisid StatusID
+    this.ErrorMessage = "";
+    if (calcdata && calcdata.length > 0) {
+      for (var i = 0; i < calcdata.length; i++) {
+        this.lastCalcDateTime = new Date(this.utils.convertDateToBindableWithTime(calcdata[i].UpdatedDate));
+        this.Caculatedby = calcdata[i].calculatedby;
+
+        var runningcount = 0;
+        var Failedcount = 0;
+        var Completedcount = 0;
+        var Processingcount = 0;
+        var running = calcdata.filter(x => x.StatusID == 267);
+        var Failed = calcdata.filter(x => x.StatusID == 265);
+        var Completed = calcdata.filter(x => x.StatusID == 266);
+        var Processing = calcdata.filter(x => x.StatusID == 292);
+
+        if (running) {
+          if (running.length > 0) {
+            runningcount = running.length;
+          }
+        }
+        if (Failed) {
+          if (Failed.length > 0) {
+            Failedcount = Failed.length;
+          }
+        }
+        if (Completed) {
+          if (Completed.length > 0) {
+            Completedcount = Completed.length;
+          }
+        }
+        if (Processing) {
+          if (Processing.length > 0) {
+            Processingcount = Processing.length;
+          }
+        }
+        if (runningcount != 0) {
+          this.CalculationStatus = "Running";
+
+        } else if (Processing != 0) {
+          this.CalculationStatus = "Processing";
+        } else if (runningcount == 0 && Processingcount == 0) {
+          if (Completedcount != 0) {
+            this.CalculationStatus = "Completed";
+          } else if (Failedcount != 0) { this.CalculationStatus = "Failed"; }
+        }
+      }
+
+
+    } else {
+      this.CalculationStatus = "Nevercalculated";
+    }
+  }
+
+  CloseXIRRViewNotes() {
+    var modal = document.getElementById('myModalXIRRViewNotes');
+    modal.style.display = "none";
+
+  }
+  GetUserTimezoneByID() {
+    this.membershipService.GetUserTimeZonebyUserID().subscribe(res => {
+      if (res.Succeeded) {
+        var data = res.dt;
+        this._timezoneAbbreviation = data[0].Abbreviation;
+      }
+    });
+  }
+
 }
 
 

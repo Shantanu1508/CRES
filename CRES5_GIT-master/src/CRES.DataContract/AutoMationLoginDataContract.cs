@@ -1,6 +1,6 @@
 ﻿namespace CRES.DataContract
 {
-    public class AutoMationLoginDataContract
+   public  class AutoMationLoginDataContract
     {
         public string UserName { get; set; }
         public string Password { get; set; }

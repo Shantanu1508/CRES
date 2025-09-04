@@ -19,171 +19,169 @@ BEGIN
 Truncate table [DW].[L_NoteBI]
 
 INSERT INTO [DW].[L_NoteBI]
-           ([NoteID]
-           ,[AccountID]
-           ,[DealID]
-           ,[CRENoteID]
-           ,[ClientNoteID]
-           ,[Comments]
-           ,[InitialInterestAccrualEndDate]
-           ,[AccrualFrequency]
-           ,[DeterminationDateLeadDays]
-           ,[DeterminationDateReferenceDayoftheMonth]
-           ,[DeterminationDateInterestAccrualPeriod]
-           ,[DeterminationDateHolidayList]
-           ,[FirstPaymentDate]
-           ,[InitialMonthEndPMTDateBiWeekly]
-           ,[PaymentDateBusinessDayLag]
-           ,[IOTerm]
-           ,[AmortTerm]
-           ,[PIKSeparateCompounding]
-           ,[MonthlyDSOverridewhenAmortizing]
-           ,[AccrualPeriodPaymentDayWhenNotEOMonth]
-           ,[FirstPeriodInterestPaymentOverride]
-           ,[FirstPeriodPrincipalPaymentOverride]
-           ,[FinalInterestAccrualEndDateOverride]
-           ,[AmortType]
-           ,[RateType]
-           ,[ReAmortizeMonthly]
-           ,[ReAmortizeatPMTReset]
-           ,[StubPaidInArrears]
-           ,[RelativePaymentMonth]
-           ,[SettleWithAccrualFlag]
-           ,[InterestDueAtMaturity]
-           ,[RateIndexResetFreq]
-           ,[FirstRateIndexResetDate]
-           ,[LoanPurchase]
-           ,[AmortIntCalcDayCount]
-           ,[StubPaidinAdvanceYN]
-           ,[FullPeriodInterestDueatMaturity]
-           ,[ProspectiveAccountingMode]
-           ,[IsCapitalized]
-           ,[SelectedMaturityDateScenario]
-           ,[SelectedMaturityDate]
-           ,[InitialMaturityDate]
-           ,[ExpectedMaturityDate]
-           ,[OpenPrepaymentDate]
-           ,[CashflowEngineID]
-           ,[LoanType]
-           ,[Classification]
-           ,[SubClassification]
-           ,[GAAPDesignation]
-           ,[PortfolioID]
-           ,[GeographicLocation]
-           ,[PropertyType]
-           ,[RatingAgency]
-           ,[RiskRating]
-           ,[PurchasePrice]
-           ,[FutureFeesUsedforLevelYeild]
-           ,[TotalToBeAmortized]
-           ,[StubPeriodInterest]
-           ,[WDPAssetMultiple]
-           ,[WDPEquityMultiple]
-           ,[PurchaseBalance]
-           ,[DaysofAccrued]
-           ,[InterestRate]
-           ,[PurchasedInterestCalc]
-           ,[ModelFinancingDrawsForFutureFundings]
-           ,[NumberOfBusinessDaysLagForFinancingDraw]
-           ,[FinancingFacilityID]
-           ,[FinancingInitialMaturityDate]
-           ,[FinancingExtendedMaturityDate]
-           ,[FinancingPayFrequency]
-           ,[FinancingInterestPaymentDay]
-           ,[ClosingDate]
-           ,[InitialFundingAmount]
-           ,[Discount]
-           ,[OriginationFee]
-           ,[CapitalizedClosingCosts]
-           ,[PurchaseDate]
-           ,[PurchaseAccruedFromDate]
-           ,[PurchasedInterestOverride]
-           ,[DiscountRate]
-           ,[ValuationDate]
-           ,[FairValue]
-           ,[DiscountRatePlus]
-           ,[FairValuePlus]
-           ,[DiscountRateMinus]
-           ,[FairValueMinus]
-           ,[InitialIndexValueOverride]
-           ,[IncludeServicingPaymentOverrideinLevelYield]
-           ,[OngoingAnnualizedServicingFee]
-           ,[IndexRoundingRule]
-           ,[RoundingMethod]
-           ,[StubInterestPaidonFutureAdvances]
-           ,[TaxAmortCheck]
-           ,[PIKWoCompCheck]
-           ,[GAAPAmortCheck]
-           ,[StubIntOverride]
-           ,[PurchasedIntOverride]
-           ,[ExitFeeFreePrepayAmt]
-           ,[ExitFeeBaseAmountOverride]
-           ,[ExitFeeAmortCheck]
-           ,[FixedAmortScheduleCheck]
-           ,[GeneratedBy]
-           ,[UseRuletoDetermineNoteFunding]
-           ,[NoteFundingRule]
-           ,[FundingPriority]
-           ,[NoteBalanceCap]
-           ,[RepaymentPriority]
-           ,[NoofdaysrelPaymentDaterollnextpaymentcycle]
-           ,[UseIndexOverrides]
-           ,[IndexNameID]
-           ,[ServicerID]
-           ,[TotalCommitment]
-           ,[DeterminationDateHolidayListBI]
-           ,[RateTypeBI]
-           ,[ReAmortizeMonthlyBI]
-           ,[ReAmortizeatPMTResetBI]
-           ,[StubPaidInArrearsBI]
-           ,[RelativePaymentMonthBI]
-           ,[SettleWithAccrualFlagBI]
-           ,[InterestDueAtMaturityBI]
-           ,[LoanPurchaseBI]
-           ,[StubPaidinAdvanceYNBI]
-           ,[ProspectiveAccountingModeBI]
-           ,[IsCapitalizedBI]
-           ,[ClassificationBI]
-           ,[SubClassificationBI]
-           ,[GAAPDesignationBI]
-           ,[GeographicLocationBI]
-           ,[PropertyTypeBI]
-           ,[RatingAgencyBI]
-           ,[RiskRatingBI]
-           ,[ModelFinancingDrawsForFutureFundingsBI]
-           ,[NumberOfBusinessDaysLagForFinancingDrawBI]
-           ,[FinancingFacilityBI]
-           ,[FinancingPayFrequencyBI]
-           ,[IncludeServicingPaymentOverrideinLevelYieldBI]
-           ,[RoundingMethodBI]
-           ,[StubInterestPaidonFutureAdvancesBI]
-           ,[ExitFeeAmortCheckBI]
-           ,[FixedAmortScheduleCheckBI]
-           ,[IndexNameBI]
-           ,[StatusID]
-           ,[StatusBI]
-           ,[Name]
-		   ,[BaseCurrencyID]
-           ,[BaseCurrencyBI]
-           ,[PayFrequency]
-		   ,[ClientName]
-			,[Portfolio]
-			,[Tag1]
-			,[Tag2]
-			,[Tag3]
-			,[Tag4]
-           ,[CreatedBy]
-           ,[CreatedDate]
-           ,[UpdatedBy]
-           ,[UpdatedDate]
-		   ,lienposition
-		   ,lienpositionBI
-			,priority
-
-			,ExtendedMaturityScenario1	
+([NoteID]
+,[AccountID]
+,[DealID]
+,[CRENoteID]
+,[ClientNoteID]
+,[Comments]
+,[InitialInterestAccrualEndDate]
+,[AccrualFrequency]
+,[DeterminationDateLeadDays]
+,[DeterminationDateReferenceDayoftheMonth]
+,[DeterminationDateInterestAccrualPeriod]
+,[DeterminationDateHolidayList]
+,[FirstPaymentDate]
+,[InitialMonthEndPMTDateBiWeekly]
+,[PaymentDateBusinessDayLag]
+,[IOTerm]
+,[AmortTerm]
+,[PIKSeparateCompounding]
+,[MonthlyDSOverridewhenAmortizing]
+,[AccrualPeriodPaymentDayWhenNotEOMonth]
+,[FirstPeriodInterestPaymentOverride]
+,[FirstPeriodPrincipalPaymentOverride]
+,[FinalInterestAccrualEndDateOverride]
+,[AmortType]
+,[RateType]
+,[ReAmortizeMonthly]
+,[ReAmortizeatPMTReset]
+,[StubPaidInArrears]
+,[RelativePaymentMonth]
+,[SettleWithAccrualFlag]
+,[InterestDueAtMaturity]
+,[RateIndexResetFreq]
+,[FirstRateIndexResetDate]
+,[LoanPurchase]
+,[AmortIntCalcDayCount]
+,[StubPaidinAdvanceYN]
+,[FullPeriodInterestDueatMaturity]
+,[ProspectiveAccountingMode]
+,[IsCapitalized]
+,[SelectedMaturityDateScenario]
+,[SelectedMaturityDate]
+,[InitialMaturityDate]
+,[ExpectedMaturityDate]
+,[OpenPrepaymentDate]
+,[CashflowEngineID]
+,[LoanType]
+,[Classification]
+,[SubClassification]
+,[GAAPDesignation]
+,[PortfolioID]
+,[GeographicLocation]
+,[PropertyType]
+,[RatingAgency]
+,[RiskRating]
+,[PurchasePrice]
+,[FutureFeesUsedforLevelYeild]
+,[TotalToBeAmortized]
+,[StubPeriodInterest]
+,[WDPAssetMultiple]
+,[WDPEquityMultiple]
+,[PurchaseBalance]
+,[DaysofAccrued]
+,[InterestRate]
+,[PurchasedInterestCalc]
+,[ModelFinancingDrawsForFutureFundings]
+,[NumberOfBusinessDaysLagForFinancingDraw]
+,[FinancingFacilityID]
+,[FinancingInitialMaturityDate]
+,[FinancingExtendedMaturityDate]
+,[FinancingPayFrequency]
+,[FinancingInterestPaymentDay]
+,[ClosingDate]
+,[InitialFundingAmount]
+,[Discount]
+,[OriginationFee]
+,[CapitalizedClosingCosts]
+,[PurchaseDate]
+,[PurchaseAccruedFromDate]
+,[PurchasedInterestOverride]
+,[DiscountRate]
+,[ValuationDate]
+,[FairValue]
+,[DiscountRatePlus]
+,[FairValuePlus]
+,[DiscountRateMinus]
+,[FairValueMinus]
+,[InitialIndexValueOverride]
+,[IncludeServicingPaymentOverrideinLevelYield]
+,[OngoingAnnualizedServicingFee]
+,[IndexRoundingRule]
+,[RoundingMethod]
+,[StubInterestPaidonFutureAdvances]
+,[TaxAmortCheck]
+,[PIKWoCompCheck]
+,[GAAPAmortCheck]
+,[StubIntOverride]
+,[PurchasedIntOverride]
+,[ExitFeeFreePrepayAmt]
+,[ExitFeeBaseAmountOverride]
+,[ExitFeeAmortCheck]
+,[FixedAmortScheduleCheck]
+,[GeneratedBy]
+,[UseRuletoDetermineNoteFunding]
+,[NoteFundingRule]
+,[FundingPriority]
+,[NoteBalanceCap]
+,[RepaymentPriority]
+,[NoofdaysrelPaymentDaterollnextpaymentcycle]
+,[UseIndexOverrides]
+,[IndexNameID]
+,[ServicerID]
+,[TotalCommitment]
+,[DeterminationDateHolidayListBI]
+,[RateTypeBI]
+,[ReAmortizeMonthlyBI]
+,[ReAmortizeatPMTResetBI]
+,[StubPaidInArrearsBI]
+,[RelativePaymentMonthBI]
+,[SettleWithAccrualFlagBI]
+,[InterestDueAtMaturityBI]
+,[LoanPurchaseBI]
+,[StubPaidinAdvanceYNBI]
+,[ProspectiveAccountingModeBI]
+,[IsCapitalizedBI]
+,[ClassificationBI]
+,[SubClassificationBI]
+,[GAAPDesignationBI]
+,[GeographicLocationBI]
+,[PropertyTypeBI]
+,[RatingAgencyBI]
+,[RiskRatingBI]
+,[ModelFinancingDrawsForFutureFundingsBI]
+,[NumberOfBusinessDaysLagForFinancingDrawBI]
+,[FinancingFacilityBI]
+,[FinancingPayFrequencyBI]
+,[IncludeServicingPaymentOverrideinLevelYieldBI]
+,[RoundingMethodBI]
+,[StubInterestPaidonFutureAdvancesBI]
+,[ExitFeeAmortCheckBI]
+,[FixedAmortScheduleCheckBI]
+,[IndexNameBI]
+,[StatusID]
+,[StatusBI]
+,[Name]
+,[BaseCurrencyID]
+,[BaseCurrencyBI]
+,[PayFrequency]
+,[ClientName]
+,[Portfolio]
+,[Tag1]
+,[Tag2]
+,[Tag3]
+,[Tag4]
+,[CreatedBy]
+,[CreatedDate]
+,[UpdatedBy]
+,[UpdatedDate]
+,lienposition
+,lienpositionBI
+,priority
+,ExtendedMaturityScenario1	
 ,ExtendedMaturityScenario2	
 ,ExtendedMaturityScenario3	
-
 ,ActualPayoffDate	
 ,FullyExtendedMaturityDate	
 ,TotalCommitmentExtensionFeeisBasedOn
@@ -193,7 +191,6 @@ INSERT INTO [DW].[L_NoteBI]
 ,Servicer
 ,FullInterestAtPPayoff
 ,ServicerBI
-
 ,ClientID
 ,FinancingSourceID
 ,DebtTypeID
@@ -208,7 +205,6 @@ INSERT INTO [DW].[L_NoteBI]
 ,FundBI
 ,PoolID
 ,PoolBI
-
 ,ServicerNameID
 ,ServicerNameBI
 ,BusinessdaylafrelativetoPMTDate
@@ -217,20 +213,16 @@ INSERT INTO [DW].[L_NoteBI]
 ,InterestCalculationRuleForPaydownsBI
 ,PIKInterestAddedToBalanceBasedOnBusinessAdjustedDate
 ,PIKInterestAddedToBalanceBasedOnBusinessAdjustedDateBI
-
 ,FundedAndOwnedByThirdParty
 ,InterestCalculationRuleForPaydownsAmort
 ,InterestCalculationRuleForPaydownsAmortBI
-
 ,Pik_NonPIK 
 ,HasFundingRepayment 
 ,FullAccrualHasRepayment
 ,HasAmortTerm_Or_FixedAmort
-
 ,HasAmortTerm
 ,HasOnlyRepayment
 ,HasFixedAmort
-
 ,HasScheduledPrincipal
 ,HasPIkPrincipalpaid
 ,HasPIkInterestpaid
@@ -239,6 +231,15 @@ INSERT INTO [DW].[L_NoteBI]
 ,FixedPIK
 ,FloatingPIK
 ,FinancingSourceGroup
+,ImpactCommitmentCalc
+,ImpactCommitmentCalcBI
+,FirstIndexDeterminationDateOverride
+
+,NoteType
+,EnableM61Calculations
+,NoteTypeBI
+,EnableM61CalculationsBI
+,RepaymentDayoftheMonth
 )
 
 Select
@@ -419,32 +420,23 @@ n.[Tag1],
 n.[Tag2],
 n.[Tag3],
 n.[Tag4],
-
 (CASE When EXISTS (SELECT 1 WHERE n.[CreatedBy] LIKE REPLACE('00000000-0000-0000-0000-000000000000', '0', '[0-9a-fA-F]'))
   THEN (select  top 1 u.[Login]  from App.[User] u where u.UserID =  n.[CreatedBy]) 
   ELSE n.[CreatedBy] END) as [CreatedBy],
-
 n.[CreatedDate],
-
 (CASE When EXISTS (SELECT 1 WHERE n.UpdatedBy LIKE REPLACE('00000000-0000-0000-0000-000000000000', '0', '[0-9a-fA-F]'))
   THEN (select  top 1 u.[Login]  from App.[User] u where u.UserID =  n.UpdatedBy) 
   ELSE n.UpdatedBy END) as UpdatedBy,
-
-
 n.[UpdatedDate],
 n.lienposition,
 LlienpositionBI.Name as  [lienpositionBI],
 n.priority,
-
 --n.ExtendedMaturityScenario1,
 --n.ExtendedMaturityScenario2,
 --n.ExtendedMaturityScenario3,
-
 tblExtendedMat.ExtendedMaturityScenario1 as ExtendedMaturityScenario1,
 tblExtendedMat.ExtendedMaturityScenario2 as ExtendedMaturityScenario2,
 tblExtendedMat.ExtendedMaturityScenario3 as ExtendedMaturityScenario3,
-
-
 n.ActualPayoffDate,
 n.FullyExtendedMaturityDate,
 n.TotalCommitmentExtensionFeeisBasedOn,
@@ -454,7 +446,6 @@ n.UnusedFeePaymentFrequency,
 n.Servicer,
 n.FullInterestAtPPayoff,
 LServicerBI.name,
-
 n.ClientID,
 n.FinancingSourceID,
 n.DebtTypeID,
@@ -534,14 +525,22 @@ InitialFundingEquCommit= Case when n.InitialFundingAmount>0.01 and n.InitialFund
 HasDSMonthlyOverride = Case when ISNULL(MonthlyDSOverridewhenAmortizing ,0)<>0 then 'Yes' else 'No' end,
 FixedPIK=Case when tblPIK.AdditionalIntRate <>0 then 'Fixed PIK' end,
 FloatingPIK = case when tblPIK.AdditionalSpread <>0  then 'Floating PIK' end,
-LFinancingSourceID.FinancingSourceGroup
+LFinancingSourceID.FinancingSourceGroup,
+
+n.ImpactCommitmentCalc,
+LImpactCommitmentCalc.name as ImpactCommitmentCalcBI,
+n.FirstIndexDeterminationDateOverride,
+
+n.NoteType,
+n.EnableM61Calculations,
+LNoteType.name as NoteTypeBI,
+LEnableM61Calculations.name as EnableM61CalculationsBI,
+n.RepaymentDayoftheMonth
 
 From CRE.Note n
 Inner Join CORE.Account ac ON ac.AccountID = n.Account_AccountID
-
 --left join Core.Lookup  LDeterminationDateHolidayListBI ON n.[DeterminationDateHolidayList] = LDeterminationDateHolidayListBI .LookupID
 left join App.HolidaysMaster LDeterminationDateHolidayListBI on  LDeterminationDateHolidayListBI.HolidayMasterID = n.[DeterminationDateHolidayList]
-
 left join Core.Lookup  LRateTypeBI ON n.[RateType] = LRateTypeBI .LookupID
 left join Core.Lookup  LReAmortizeMonthlyBI ON n.[ReAmortizeMonthly] = LReAmortizeMonthlyBI .LookupID
 left join Core.Lookup  LReAmortizeatPMTResetBI ON n.[ReAmortizeatPMTReset] = LReAmortizeatPMTResetBI .LookupID
@@ -589,6 +588,9 @@ left join cre.Servicer lsvr ON n.ServicerNameID = lsvr.ServicerID
 left join Core.Lookup lInterestCalculationRuleForPaydowns ON n.InterestCalculationRuleForPaydowns=lInterestCalculationRuleForPaydowns.LookupID
 left join Core.Lookup lPIKInterestAddedToBalanceBasedOnBusinessAdjustedDate ON n.PIKInterestAddedToBalanceBasedOnBusinessAdjustedDate=lPIKInterestAddedToBalanceBasedOnBusinessAdjustedDate.LookupID
 left join Core.Lookup lInterestCalculationRuleForPaydownsAmort ON n.InterestCalculationRuleForPaydownsAmort=lInterestCalculationRuleForPaydownsAmort.LookupID
+left join Core.Lookup LImpactCommitmentCalc ON n.ImpactCommitmentCalc=LImpactCommitmentCalc.LookupID
+left join Core.Lookup LNoteType ON n.NoteType=LNoteType.LookupID
+left join Core.Lookup LEnableM61Calculations ON n.EnableM61Calculations=LEnableM61Calculations.LookupID
 
 Left JOin(
 	Select distinct n.noteid,mat.MaturityDate as InitialMaturityDate
@@ -688,167 +690,167 @@ BEGIN
 Truncate table [DW].[L_NoteBI]
 
 INSERT INTO [DW].[L_NoteBI]
-           ([NoteID]
-           ,[AccountID]
-           ,[DealID]
-           ,[CRENoteID]
-           ,[ClientNoteID]
-           ,[Comments]
-           ,[InitialInterestAccrualEndDate]
-           ,[AccrualFrequency]
-           ,[DeterminationDateLeadDays]
-           ,[DeterminationDateReferenceDayoftheMonth]
-           ,[DeterminationDateInterestAccrualPeriod]
-           ,[DeterminationDateHolidayList]
-           ,[FirstPaymentDate]
-           ,[InitialMonthEndPMTDateBiWeekly]
-           ,[PaymentDateBusinessDayLag]
-           ,[IOTerm]
-           ,[AmortTerm]
-           ,[PIKSeparateCompounding]
-           ,[MonthlyDSOverridewhenAmortizing]
-           ,[AccrualPeriodPaymentDayWhenNotEOMonth]
-           ,[FirstPeriodInterestPaymentOverride]
-           ,[FirstPeriodPrincipalPaymentOverride]
-           ,[FinalInterestAccrualEndDateOverride]
-           ,[AmortType]
-           ,[RateType]
-           ,[ReAmortizeMonthly]
-           ,[ReAmortizeatPMTReset]
-           ,[StubPaidInArrears]
-           ,[RelativePaymentMonth]
-           ,[SettleWithAccrualFlag]
-           ,[InterestDueAtMaturity]
-           ,[RateIndexResetFreq]
-           ,[FirstRateIndexResetDate]
-           ,[LoanPurchase]
-           ,[AmortIntCalcDayCount]
-           ,[StubPaidinAdvanceYN]
-           ,[FullPeriodInterestDueatMaturity]
-           ,[ProspectiveAccountingMode]
-           ,[IsCapitalized]
-           ,[SelectedMaturityDateScenario]
-           ,[SelectedMaturityDate]
-           ,[InitialMaturityDate]
-           ,[ExpectedMaturityDate]
-           ,[OpenPrepaymentDate]
-           ,[CashflowEngineID]
-           ,[LoanType]
-           ,[Classification]
-           ,[SubClassification]
-           ,[GAAPDesignation]
-           ,[PortfolioID]
-           ,[GeographicLocation]
-           ,[PropertyType]
-           ,[RatingAgency]
-           ,[RiskRating]
-           ,[PurchasePrice]
-           ,[FutureFeesUsedforLevelYeild]
-           ,[TotalToBeAmortized]
-           ,[StubPeriodInterest]
-           ,[WDPAssetMultiple]
-           ,[WDPEquityMultiple]
-           ,[PurchaseBalance]
-           ,[DaysofAccrued]
-           ,[InterestRate]
-           ,[PurchasedInterestCalc]
-           ,[ModelFinancingDrawsForFutureFundings]
-           ,[NumberOfBusinessDaysLagForFinancingDraw]
-           ,[FinancingFacilityID]
-           ,[FinancingInitialMaturityDate]
-           ,[FinancingExtendedMaturityDate]
-           ,[FinancingPayFrequency]
-           ,[FinancingInterestPaymentDay]
-           ,[ClosingDate]
-           ,[InitialFundingAmount]
-           ,[Discount]
-           ,[OriginationFee]
-           ,[CapitalizedClosingCosts]
-           ,[PurchaseDate]
-           ,[PurchaseAccruedFromDate]
-           ,[PurchasedInterestOverride]
-           ,[DiscountRate]
-           ,[ValuationDate]
-           ,[FairValue]
-           ,[DiscountRatePlus]
-           ,[FairValuePlus]
-           ,[DiscountRateMinus]
-           ,[FairValueMinus]
-           ,[InitialIndexValueOverride]
-           ,[IncludeServicingPaymentOverrideinLevelYield]
-           ,[OngoingAnnualizedServicingFee]
-           ,[IndexRoundingRule]
-           ,[RoundingMethod]
-           ,[StubInterestPaidonFutureAdvances]
-           ,[TaxAmortCheck]
-           ,[PIKWoCompCheck]
-           ,[GAAPAmortCheck]
-           ,[StubIntOverride]
-           ,[PurchasedIntOverride]
-           ,[ExitFeeFreePrepayAmt]
-           ,[ExitFeeBaseAmountOverride]
-           ,[ExitFeeAmortCheck]
-           ,[FixedAmortScheduleCheck]
-           ,[GeneratedBy]
-           ,[UseRuletoDetermineNoteFunding]
-           ,[NoteFundingRule]
-           ,[FundingPriority]
-           ,[NoteBalanceCap]
-           ,[RepaymentPriority]
-           ,[NoofdaysrelPaymentDaterollnextpaymentcycle]
-           ,[UseIndexOverrides]
-           ,[IndexNameID]
-           ,[ServicerID]
-           ,[TotalCommitment]
-           ,[DeterminationDateHolidayListBI]
-           ,[RateTypeBI]
-           ,[ReAmortizeMonthlyBI]
-           ,[ReAmortizeatPMTResetBI]
-           ,[StubPaidInArrearsBI]
-           ,[RelativePaymentMonthBI]
-           ,[SettleWithAccrualFlagBI]
-           ,[InterestDueAtMaturityBI]
-           ,[LoanPurchaseBI]
-           ,[StubPaidinAdvanceYNBI]
-           ,[ProspectiveAccountingModeBI]
-           ,[IsCapitalizedBI]
-           ,[ClassificationBI]
-           ,[SubClassificationBI]
-           ,[GAAPDesignationBI]
-           ,[GeographicLocationBI]
-           ,[PropertyTypeBI]
-           ,[RatingAgencyBI]
-           ,[RiskRatingBI]
-           ,[ModelFinancingDrawsForFutureFundingsBI]
-           ,[NumberOfBusinessDaysLagForFinancingDrawBI]
-           ,[FinancingFacilityBI]
-           ,[FinancingPayFrequencyBI]
-           ,[IncludeServicingPaymentOverrideinLevelYieldBI]
-           ,[RoundingMethodBI]
-           ,[StubInterestPaidonFutureAdvancesBI]
-           ,[ExitFeeAmortCheckBI]
-           ,[FixedAmortScheduleCheckBI]
-           ,[IndexNameBI]
-           ,[StatusID]
-           ,[StatusBI]
-           ,[Name]
-           ,[BaseCurrencyID]
-           ,[BaseCurrencyBI]
-           ,[PayFrequency]
-		   ,[ClientName]
-			,[Portfolio]
-			,[Tag1]
-			,[Tag2]
-			,[Tag3]
-			,[Tag4]
-           ,[CreatedBy]
-           ,[CreatedDate]
-           ,[UpdatedBy]
-           ,[UpdatedDate]
-		   ,lienposition
-		   ,lienpositionBI
-			,priority
-			--,ExtendedMaturityScenario1	
+([NoteID]
+,[AccountID]
+,[DealID]
+,[CRENoteID]
+,[ClientNoteID]
+,[Comments]
+,[InitialInterestAccrualEndDate]
+,[AccrualFrequency]
+,[DeterminationDateLeadDays]
+,[DeterminationDateReferenceDayoftheMonth]
+,[DeterminationDateInterestAccrualPeriod]
+,[DeterminationDateHolidayList]
+,[FirstPaymentDate]
+,[InitialMonthEndPMTDateBiWeekly]
+,[PaymentDateBusinessDayLag]
+,[IOTerm]
+,[AmortTerm]
+,[PIKSeparateCompounding]
+,[MonthlyDSOverridewhenAmortizing]
+,[AccrualPeriodPaymentDayWhenNotEOMonth]
+,[FirstPeriodInterestPaymentOverride]
+,[FirstPeriodPrincipalPaymentOverride]
+,[FinalInterestAccrualEndDateOverride]
+,[AmortType]
+,[RateType]
+,[ReAmortizeMonthly]
+,[ReAmortizeatPMTReset]
+,[StubPaidInArrears]
+,[RelativePaymentMonth]
+,[SettleWithAccrualFlag]
+,[InterestDueAtMaturity]
+,[RateIndexResetFreq]
+,[FirstRateIndexResetDate]
+,[LoanPurchase]
+,[AmortIntCalcDayCount]
+,[StubPaidinAdvanceYN]
+,[FullPeriodInterestDueatMaturity]
+,[ProspectiveAccountingMode]
+,[IsCapitalized]
+,[SelectedMaturityDateScenario]
+,[SelectedMaturityDate]
+,[InitialMaturityDate]
+,[ExpectedMaturityDate]
+,[OpenPrepaymentDate]
+,[CashflowEngineID]
+,[LoanType]
+,[Classification]
+,[SubClassification]
+,[GAAPDesignation]
+,[PortfolioID]
+,[GeographicLocation]
+,[PropertyType]
+,[RatingAgency]
+,[RiskRating]
+,[PurchasePrice]
+,[FutureFeesUsedforLevelYeild]
+,[TotalToBeAmortized]
+,[StubPeriodInterest]
+,[WDPAssetMultiple]
+,[WDPEquityMultiple]
+,[PurchaseBalance]
+,[DaysofAccrued]
+,[InterestRate]
+,[PurchasedInterestCalc]
+,[ModelFinancingDrawsForFutureFundings]
+,[NumberOfBusinessDaysLagForFinancingDraw]
+,[FinancingFacilityID]
+,[FinancingInitialMaturityDate]
+,[FinancingExtendedMaturityDate]
+,[FinancingPayFrequency]
+,[FinancingInterestPaymentDay]
+,[ClosingDate]
+,[InitialFundingAmount]
+,[Discount]
+,[OriginationFee]
+,[CapitalizedClosingCosts]
+,[PurchaseDate]
+,[PurchaseAccruedFromDate]
+,[PurchasedInterestOverride]
+,[DiscountRate]
+,[ValuationDate]
+,[FairValue]
+,[DiscountRatePlus]
+,[FairValuePlus]
+,[DiscountRateMinus]
+,[FairValueMinus]
+,[InitialIndexValueOverride]
+,[IncludeServicingPaymentOverrideinLevelYield]
+,[OngoingAnnualizedServicingFee]
+,[IndexRoundingRule]
+,[RoundingMethod]
+,[StubInterestPaidonFutureAdvances]
+,[TaxAmortCheck]
+,[PIKWoCompCheck]
+,[GAAPAmortCheck]
+,[StubIntOverride]
+,[PurchasedIntOverride]
+,[ExitFeeFreePrepayAmt]
+,[ExitFeeBaseAmountOverride]
+,[ExitFeeAmortCheck]
+,[FixedAmortScheduleCheck]
+,[GeneratedBy]
+,[UseRuletoDetermineNoteFunding]
+,[NoteFundingRule]
+,[FundingPriority]
+,[NoteBalanceCap]
+,[RepaymentPriority]
+,[NoofdaysrelPaymentDaterollnextpaymentcycle]
+,[UseIndexOverrides]
+,[IndexNameID]
+,[ServicerID]
+,[TotalCommitment]
+,[DeterminationDateHolidayListBI]
+,[RateTypeBI]
+,[ReAmortizeMonthlyBI]
+,[ReAmortizeatPMTResetBI]
+,[StubPaidInArrearsBI]
+,[RelativePaymentMonthBI]
+,[SettleWithAccrualFlagBI]
+,[InterestDueAtMaturityBI]
+,[LoanPurchaseBI]
+,[StubPaidinAdvanceYNBI]
+,[ProspectiveAccountingModeBI]
+,[IsCapitalizedBI]
+,[ClassificationBI]
+,[SubClassificationBI]
+,[GAAPDesignationBI]
+,[GeographicLocationBI]
+,[PropertyTypeBI]
+,[RatingAgencyBI]
+,[RiskRatingBI]
+,[ModelFinancingDrawsForFutureFundingsBI]
+,[NumberOfBusinessDaysLagForFinancingDrawBI]
+,[FinancingFacilityBI]
+,[FinancingPayFrequencyBI]
+,[IncludeServicingPaymentOverrideinLevelYieldBI]
+,[RoundingMethodBI]
+,[StubInterestPaidonFutureAdvancesBI]
+,[ExitFeeAmortCheckBI]
+,[FixedAmortScheduleCheckBI]
+,[IndexNameBI]
+,[StatusID]
+,[StatusBI]
+,[Name]
+,[BaseCurrencyID]
+,[BaseCurrencyBI]
+,[PayFrequency]
+,[ClientName]
+,[Portfolio]
+,[Tag1]
+,[Tag2]
+,[Tag3]
+,[Tag4]
+,[CreatedBy]
+,[CreatedDate]
+,[UpdatedBy]
+,[UpdatedDate]
+,lienposition
+,lienpositionBI
+,priority
+--,ExtendedMaturityScenario1	
 --,ExtendedMaturityScenario2	
 --,ExtendedMaturityScenario3	
 ,ActualPayoffDate	
@@ -874,7 +876,6 @@ INSERT INTO [DW].[L_NoteBI]
 ,FundBI
 ,PoolID
 ,PoolBI
-
 ,ServicerNameID
 ,ServicerNameBI
 ,BusinessdaylafrelativetoPMTDate
@@ -883,11 +884,9 @@ INSERT INTO [DW].[L_NoteBI]
 ,InterestCalculationRuleForPaydownsBI
 ,PIKInterestAddedToBalanceBasedOnBusinessAdjustedDate
 ,PIKInterestAddedToBalanceBasedOnBusinessAdjustedDateBI
-
 ,FundedAndOwnedByThirdParty
 ,InterestCalculationRuleForPaydownsAmort
 ,InterestCalculationRuleForPaydownsAmortBI
-
 ,Pik_NonPIK 
 ,HasFundingRepayment 
 ,FullAccrualHasRepayment 
@@ -895,7 +894,6 @@ INSERT INTO [DW].[L_NoteBI]
 ,HasAmortTerm
 ,HasOnlyRepayment
 ,HasFixedAmort
-
 ,HasScheduledPrincipal
 ,HasPIkPrincipalpaid
 ,HasPIkInterestpaid
@@ -904,6 +902,15 @@ INSERT INTO [DW].[L_NoteBI]
 ,FixedPIK
 ,FloatingPIK
 ,FinancingSourceGroup
+,ImpactCommitmentCalc
+,ImpactCommitmentCalcBI
+,FirstIndexDeterminationDateOverride
+
+,NoteType
+,EnableM61Calculations
+,NoteTypeBI
+,EnableM61CalculationsBI
+,RepaymentDayoftheMonth
 )
 
 Select
@@ -1188,7 +1195,17 @@ InitialFundingEquCommit= Case when n.InitialFundingAmount>0.01 and n.InitialFund
 HasDSMonthlyOverride = Case when ISNULL(MonthlyDSOverridewhenAmortizing ,0)<>0 then 'Yes' else 'No' end,
 FixedPIK=Case when tblPIK.AdditionalIntRate <>0 then 'Fixed PIK' end,
 FloatingPIK = case when tblPIK.AdditionalSpread <>0  then 'Floating PIK' end,
-LFinancingSourceID.FinancingSourceGroup
+LFinancingSourceID.FinancingSourceGroup,
+
+ImpactCommitmentCalc,
+LImpactCommitmentCalc.name as ImpactCommitmentCalcBI,
+n.FirstIndexDeterminationDateOverride,
+
+n.NoteType,
+n.EnableM61Calculations,
+LNoteType.name as NoteTypeBI,
+LEnableM61Calculations.name as EnableM61CalculationsBI,
+n.RepaymentDayoftheMonth
 
 From CRE.Note n
 Inner Join CORE.Account ac ON ac.AccountID = n.Account_AccountID
@@ -1240,6 +1257,9 @@ left join cre.Servicer lsvr ON n.ServicerNameID = lsvr.ServicerID
 left join Core.Lookup lInterestCalculationRuleForPaydowns ON n.InterestCalculationRuleForPaydowns=lInterestCalculationRuleForPaydowns.LookupID
 left join Core.Lookup lPIKInterestAddedToBalanceBasedOnBusinessAdjustedDate ON n.PIKInterestAddedToBalanceBasedOnBusinessAdjustedDate=lPIKInterestAddedToBalanceBasedOnBusinessAdjustedDate.LookupID
 left join Core.Lookup lInterestCalculationRuleForPaydownsAmort ON n.InterestCalculationRuleForPaydownsAmort=lInterestCalculationRuleForPaydownsAmort.LookupID
+left join Core.Lookup LImpactCommitmentCalc ON n.ImpactCommitmentCalc=LImpactCommitmentCalc.LookupID
+left join Core.Lookup LNoteType ON n.NoteType=LNoteType.LookupID
+left join Core.Lookup LEnableM61Calculations ON n.EnableM61Calculations=LEnableM61Calculations.LookupID
 
 Left JOin(
 	Select distinct  n.noteid,mat.MaturityDate as InitialMaturityDate
@@ -1287,6 +1307,8 @@ Left JOin(
 	INNER JOIN [CORE].[Account] acc ON acc.AccountID = e.AccountID
 	INNER JOIN [CRE].[Note] n ON n.Account_AccountID = acc.AccountID  
 )tblPIK on tblPIK.noteid = n.noteid
+
+where ac.isdeleted <> 1
 
 
 SET @RowCount = @@ROWCOUNT

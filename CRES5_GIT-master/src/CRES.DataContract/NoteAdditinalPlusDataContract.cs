@@ -1,9 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
 
 namespace CRES.DataContract
 {
-    public class NoteAdditinalPlusDataContract
+   public class NoteAdditinalPlusDataContract
     {
         public string NoteID { get; set; }
         //ServicingLog

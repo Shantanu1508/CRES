@@ -10,8 +10,12 @@
     [CreatedBy]                   NVARCHAR (256)   NULL,
     [CreatedDate]                 DATETIME         NULL,
     [UpdatedBy]                   NVARCHAR (256)   NULL,
-    [UpdatedDate]                 DATETIME         NULL
+    [UpdatedDate]                 DATETIME         NULL,
+    [AnalysisBI_AutoID]           INT              IDENTITY (1, 1) NOT NULL,
+    CONSTRAINT [PK_AnalysisBI_AutoID] PRIMARY KEY CLUSTERED ([AnalysisBI_AutoID] ASC)
 );
+
+
 
 
 GO

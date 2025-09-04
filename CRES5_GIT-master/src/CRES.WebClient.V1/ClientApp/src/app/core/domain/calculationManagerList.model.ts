@@ -13,6 +13,7 @@ export class CalculationManagerList {
   public StartTime!: Date|null;
   public EndTime!: Date | null;
   public PayOffDate!: Date | null;
+  public AccountingCloseDate: Date;
   
   public PriorityID!: Number;
   public PriorityText!: string;
@@ -36,6 +37,7 @@ export class CalculationManagerList {
   public EnableM61CalculationsText!: string;
   public downloadnote!: boolean;
   public IsPaidOffDeal: boolean;
+  public CalcEngineType: string;
   constructor(NoteName : string) {
     this.NoteName = NoteName;
   }

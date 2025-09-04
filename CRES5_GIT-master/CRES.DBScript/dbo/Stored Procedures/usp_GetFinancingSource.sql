@@ -1,4 +1,5 @@
-﻿
+﻿-- Procedure
+
 
 
 
@@ -20,17 +21,12 @@ BEGIN
            ,[UpdatedBy]
            ,[UpdatedDate]
     FROM [CRE].[FinancingSourceMaster] 
+    where [FinancingSourceName] not like '%wells%'
 	ORDER BY FinancingSourceName
 
 
+
 	SET TRANSACTION ISOLATION LEVEL READ COMMITTED  
-END  
-  
-  
-
-
-
-
-
-
+END
+GO
 

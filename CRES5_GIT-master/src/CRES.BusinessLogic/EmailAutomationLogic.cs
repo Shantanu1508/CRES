@@ -1,8 +1,12 @@
 ﻿using CRES.DataContract;
 using CRES.Utilities;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Hosting.Internal;
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text;
 
 namespace CRES.BusinessLogic
 {
@@ -43,7 +47,7 @@ namespace CRES.BusinessLogic
                         Message = "Please provide sender's email address";
                         return Message;
                     }
-
+                
                     using (StreamReader reader = new StreamReader(emailDC.TemplatePath + HtmlTemplateName))
                     {
                         htmlContent = reader.ReadToEnd();
@@ -67,9 +71,11 @@ namespace CRES.BusinessLogic
             }
             catch (Exception ex)
             {
+                Console.WriteLine("Email exception = "+ex);
                 Message = ex.Message;
+               
             }
-            return Message;
+            return  Message;
         }
 
 

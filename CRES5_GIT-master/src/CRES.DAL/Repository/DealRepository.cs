@@ -1,7 +1,10 @@
 ﻿
+using CRES.DAL.Helper;
 using CRES.DAL.IRepository;
 using CRES.DataContract;
 using CRES.Utilities;
+using Microsoft.Identity.Client;
+using Remotion.Linq.Parsing;
 using System;
 using System.Collections.Generic;
 using System.Data;
@@ -91,170 +94,371 @@ namespace CRES.DAL.Repository
             return lstDealDC;
         }
 
+        public List<DealDataContract> GetAllAutospreadDealUSP(Guid? userId, int? PageSize, int? PageIndex, out int? TotalCount)
+        {
+            List<DateTime> lst = new List<DateTime>();
+            DateTime dt1 = DateTime.Now;
+            lst.Add(dt1);
+
+            // ObjectParameter totalCount = new ObjectParameter("TotalCount", typeof(int));
+            
+            List<DealDataContract> lstDealDC = new List<DealDataContract>();
+            DataTable dt = new DataTable();
+            Helper.Helper hp = new Helper.Helper();
+            SqlParameter p1 = new SqlParameter { ParameterName = "@UserID", Value = userId };
+            SqlParameter p2 = new SqlParameter { ParameterName = "@PgeIndex", Value = PageIndex };
+            SqlParameter p3 = new SqlParameter { ParameterName = "@PageSize", Value = PageSize };
+            SqlParameter p4 = new SqlParameter { ParameterName = "@TotalCount", Direction = ParameterDirection.Output, Size = int.MaxValue };
+            SqlParameter[] sqlparam = new SqlParameter[] { p1, p2, p3,p4 };
+            dt = hp.ExecDataTable("[dbo].[usp_AutomationTestGetAutoSpreadEnableDeals]", sqlparam);
+
+
+            //var lstDeal = dbContext.usp_GetAllDeals(userId, PageIndex, PageSize, totalCount).ToList();
+            TotalCount = string.IsNullOrEmpty(Convert.ToString(p4.Value)) ? 0 : CommonHelper.ToInt32(p4.Value);
+
+            foreach (DataRow dr in dt.Rows)
+            {
+                DealDataContract _dealDC = new DealDataContract();
+                
+                
+                _dealDC.DealID = new Guid(Convert.ToString(dr["DealID"]));
+                _dealDC.DealName = Convert.ToString(dr["DealName"]);
+                _dealDC.DealType = CommonHelper.ToInt32(dr["DealType"]);
+                _dealDC.DealTypeText = Convert.ToString(dr["DealTypeText"]);
+                _dealDC.LoanProgram = CommonHelper.ToInt32(dr["LoanProgram"]);
+                _dealDC.LoanProgramText = Convert.ToString(dr["LoanProgramText"]);
+                _dealDC.LoanPurpose = CommonHelper.ToInt32(dr["LoanPurpose"]);
+                _dealDC.LoanPurposeText = Convert.ToString(dr["LoanPurposeText"]);
+                _dealDC.Statusid = CommonHelper.ToInt32(dr["Status"]);
+                _dealDC.StatusText = Convert.ToString(dr["StatusText"]);
+                _dealDC.AppReceived = CommonHelper.ToDateTime(dr["AppReceived"]);
+
+                if (string.IsNullOrEmpty(Convert.ToString(dr["EstClosingDate"])))
+                    _dealDC.EstClosingDate = CommonHelper.ToDateTime(dr["EstClosingDate"]);
+
+                _dealDC.BorrowerRequest = CommonHelper.ToInt32(Convert.ToString(dr["BorrowerRequest"]) == "" ? 0 : CommonHelper.ToInt32(dr["BorrowerRequest"]));
+                _dealDC.BorrowerRequestText = Convert.ToString(dr["BorrowerRequestText"]);
+                _dealDC.RecommendedLoan = CommonHelper.ToDecimal(dr["RecommendedLoan"]);
+                _dealDC.TotalFutureFunding = CommonHelper.ToDecimal(dr["TotalFutureFunding"]);
+                _dealDC.Source = CommonHelper.ToInt32(dr["Source"]);
+                _dealDC.SourceText = Convert.ToString(dr["SourceText"]);
+                _dealDC.BrokerageFirm = Convert.ToString(dr["BrokerageFirm"]);
+                _dealDC.BrokerageContact = Convert.ToString(dr["BrokerageContact"]);
+                _dealDC.Sponsor = Convert.ToString(dr["Sponsor"]);
+                _dealDC.Principal = Convert.ToString(dr["Principal"]);
+                _dealDC.NetWorth = CommonHelper.ToDecimal(dr["NetWorth"]);
+                _dealDC.Liquidity = CommonHelper.ToDecimal(dr["Liquidity"]);
+                _dealDC.ClientDealID = Convert.ToString(dr["ClientDealID"]);
+                _dealDC.LinkedDealID = Convert.ToString(dr["LinkedDealID"]);
+                _dealDC.CREDealID = Convert.ToString(dr["CREDealID"]);
+                _dealDC.TotalCommitment = CommonHelper.ToDecimal(dr["TotalCommitment"]);
+                _dealDC.AdjustedTotalCommitment = CommonHelper.ToDecimal(dr["AdjustedTotalCommitment"]);
+                _dealDC.AggregatedTotal = CommonHelper.ToDecimal(dr["AggregatedTotal"]);
+                _dealDC.AssetManagerComment = Convert.ToString(dr["AssetManagerComment"]);
+                _dealDC.AssetManager = Convert.ToString(dr["AssetManager"]);
+                _dealDC.DealCity = Convert.ToString(dr["DealCity"]);
+                _dealDC.DealState = Convert.ToString(dr["DealState"]);
+                _dealDC.DealPropertyType = Convert.ToString(dr["DealPropertyType"]);
+                _dealDC.FullyExtMaturityDate = CommonHelper.ToDateTime(dr["FullyExtMaturityDate"]);
+                _dealDC.GeoLocation = Convert.ToString(dr["GeoLocation"]);
+                _dealDC.CreatedBy = Convert.ToString(dr["CreatedBy"]);
+                _dealDC.CreatedDate = CommonHelper.ToDateTime(dr["CreatedDate"]);
+                _dealDC.UpdatedBy = Convert.ToString(dr["UpdatedBy"]);
+                _dealDC.UpdatedDate = CommonHelper.ToDateTime(dr["UpdatedDate"]);
+                _dealDC.LastUpdatedFF = CommonHelper.ToDateTime(dr["LastUpdatedFF"]);
+                _dealDC.LastUpdatedByFF = Convert.ToString(dr["LastUpdatedByFF"]);
+                _dealDC.AllowSizerUpload = CommonHelper.ToInt32(dr["AllowSizerUpload"]);
+                _dealDC.AllowSizerUploadText = Convert.ToString(dr["AllowSizerUploadText"]);
+                lstDealDC.Add(_dealDC);
+            }
+            return lstDealDC;
+        }
+
+        public List<DealDataContract> GetAllAutomationDealsUSP(Guid? userId, string getDealType, string env, int? PageSize, int? PageIndex, out int? TotalCount)
+        {
+            List<DateTime> lst = new List<DateTime>();
+            DateTime dt1 = DateTime.Now;
+            lst.Add(dt1);
+            Console.WriteLine("SQL Automation Method");
+            // ObjectParameter totalCount = new ObjectParameter("TotalCount", typeof(int));
+
+            List<DealDataContract> lstDealDC = new List<DealDataContract>();
+            DataTable dt = new DataTable();
+            Helper.Helper_env hp = new Helper.Helper_env(env);
+            SqlParameter p0 = new SqlParameter { ParameterName = "@DealType", Value = getDealType };
+            SqlParameter p1 = new SqlParameter { ParameterName = "@UserID", Value = userId };
+            SqlParameter p2 = new SqlParameter { ParameterName = "@PgeIndex", Value = PageIndex };
+            SqlParameter p3 = new SqlParameter { ParameterName = "@PageSize", Value = PageSize };
+            SqlParameter p4 = new SqlParameter { ParameterName = "@TotalCount", Direction = ParameterDirection.Output, Size = int.MaxValue };
+            SqlParameter[] sqlparam = new SqlParameter[] { p0 };
+            dt = hp.ExecDataTable("[dbo].[usp_AutomationTestGetAutoSpreadEnableDeals]", sqlparam);
+
+
+            //var lstDeal = dbContext.usp_GetAllDeals(userId, PageIndex, PageSize, totalCount).ToList();
+            TotalCount = string.IsNullOrEmpty(Convert.ToString(p4.Value)) ? 0 : CommonHelper.ToInt32(p4.Value);
+
+            foreach (DataRow dr in dt.Rows)
+            {
+                DealDataContract _dealDC = new DealDataContract();
+
+
+                //_dealDC.DealID = new Guid(Convert.ToString(dr["DealID"]));
+                _dealDC.CREDealID = Convert.ToString(dr["DealID"]);
+                _dealDC.DealName = Convert.ToString(dr["DealName"]);
+                //_dealDC.DealType = CommonHelper.ToInt32(dr["DealType"]);
+                //_dealDC.DealTypeText = Convert.ToString(dr["DealTypeText"]);
+                //_dealDC.LoanProgram = CommonHelper.ToInt32(dr["LoanProgram"]);
+                //_dealDC.LoanProgramText = Convert.ToString(dr["LoanProgramText"]);
+                //_dealDC.LoanPurpose = CommonHelper.ToInt32(dr["LoanPurpose"]);
+                //_dealDC.LoanPurposeText = Convert.ToString(dr["LoanPurposeText"]);
+                //_dealDC.Statusid = CommonHelper.ToInt32(dr["Status"]);
+                //_dealDC.StatusText = Convert.ToString(dr["StatusText"]);
+                //_dealDC.AppReceived = CommonHelper.ToDateTime(dr["AppReceived"]);
+
+               /* if (string.IsNullOrEmpty(Convert.ToString(dr["EstClosingDate"])))
+                    _dealDC.EstClosingDate = CommonHelper.ToDateTime(dr["EstClosingDate"]);
+
+                _dealDC.BorrowerRequest = CommonHelper.ToInt32(Convert.ToString(dr["BorrowerRequest"]) == "" ? 0 : CommonHelper.ToInt32(dr["BorrowerRequest"]));
+                _dealDC.BorrowerRequestText = Convert.ToString(dr["BorrowerRequestText"]);
+                _dealDC.RecommendedLoan = CommonHelper.ToDecimal(dr["RecommendedLoan"]);
+                _dealDC.TotalFutureFunding = CommonHelper.ToDecimal(dr["TotalFutureFunding"]);
+                _dealDC.Source = CommonHelper.ToInt32(dr["Source"]);
+                _dealDC.SourceText = Convert.ToString(dr["SourceText"]);
+                _dealDC.BrokerageFirm = Convert.ToString(dr["BrokerageFirm"]);
+                _dealDC.BrokerageContact = Convert.ToString(dr["BrokerageContact"]);
+                _dealDC.Sponsor = Convert.ToString(dr["Sponsor"]);
+                _dealDC.Principal = Convert.ToString(dr["Principal"]);
+                _dealDC.NetWorth = CommonHelper.ToDecimal(dr["NetWorth"]);
+                _dealDC.Liquidity = CommonHelper.ToDecimal(dr["Liquidity"]);
+                _dealDC.ClientDealID = Convert.ToString(dr["ClientDealID"]);
+                _dealDC.LinkedDealID = Convert.ToString(dr["LinkedDealID"]);
+                _dealDC.CREDealID = Convert.ToString(dr["CREDealID"]);
+                _dealDC.TotalCommitment = CommonHelper.ToDecimal(dr["TotalCommitment"]);
+                _dealDC.AdjustedTotalCommitment = CommonHelper.ToDecimal(dr["AdjustedTotalCommitment"]);
+                _dealDC.AggregatedTotal = CommonHelper.ToDecimal(dr["AggregatedTotal"]);
+                _dealDC.AssetManagerComment = Convert.ToString(dr["AssetManagerComment"]);
+                _dealDC.AssetManager = Convert.ToString(dr["AssetManager"]);
+                _dealDC.DealCity = Convert.ToString(dr["DealCity"]);
+                _dealDC.DealState = Convert.ToString(dr["DealState"]);
+                _dealDC.DealPropertyType = Convert.ToString(dr["DealPropertyType"]);
+                _dealDC.FullyExtMaturityDate = CommonHelper.ToDateTime(dr["FullyExtMaturityDate"]);
+                _dealDC.GeoLocation = Convert.ToString(dr["GeoLocation"]);
+                _dealDC.CreatedBy = Convert.ToString(dr["CreatedBy"]);
+                _dealDC.CreatedDate = CommonHelper.ToDateTime(dr["CreatedDate"]);
+                _dealDC.UpdatedBy = Convert.ToString(dr["UpdatedBy"]);
+                _dealDC.UpdatedDate = CommonHelper.ToDateTime(dr["UpdatedDate"]);
+                _dealDC.LastUpdatedFF = CommonHelper.ToDateTime(dr["LastUpdatedFF"]);
+                _dealDC.LastUpdatedByFF = Convert.ToString(dr["LastUpdatedByFF"]);
+                _dealDC.AllowSizerUpload = CommonHelper.ToInt32(dr["AllowSizerUpload"]);
+                _dealDC.AllowSizerUploadText = Convert.ToString(dr["AllowSizerUploadText"]);*/
+                lstDealDC.Add(_dealDC);
+            }
+            return lstDealDC;
+        }
+
+
         public DealDataContract GetDealByid(string DeailId, Guid? userId)
         {
             DealDataContract _dealDC = new DealDataContract();
-            _dealDC.PrepaySchedule = new PrepayDataContract();
-            DataTable dt = new DataTable();
-            //  DeailId = "790181DC-147A-4F55-82EB-0039BD0A9208";
-            if (DeailId != "00000000-0000-0000-0000-000000000000")
+            try
             {
-                Helper.Helper hp = new Helper.Helper();
-                SqlParameter p1 = new SqlParameter { ParameterName = "@Dealid", Value = DeailId };
-                SqlParameter p2 = new SqlParameter { ParameterName = "@UserID", Value = userId };
-                SqlParameter[] sqlparam = new SqlParameter[] { p1, p2 };
-                dt = hp.ExecDataTable("dbo.usp_GetDealByDealId", sqlparam);
-
-                if (dt.Rows.Count > 0)
+            
+                _dealDC.PrepaySchedule = new PrepayDataContract();
+                DataTable dt = new DataTable();
+                //  DeailId = "790181DC-147A-4F55-82EB-0039BD0A9208";
+                if (DeailId != "00000000-0000-0000-0000-000000000000")
                 {
-                    if (CommonHelper.ToInt32(dt.Rows[0]["StatusCode"]) == 404) // HTTP_404_NOT_FOUND
+                    Helper.Helper hp = new Helper.Helper();
+                    SqlParameter p1 = new SqlParameter { ParameterName = "@Dealid", Value = DeailId };
+                    SqlParameter p2 = new SqlParameter { ParameterName = "@UserID", Value = userId };
+                    SqlParameter[] sqlparam = new SqlParameter[] { p1, p2 };
+                    dt = hp.ExecDataTable("dbo.usp_GetDealByDealId", sqlparam);
+
+                    if (dt.Rows.Count > 0)
                     {
-                        _dealDC.StatusCode = 404;
+                        if (CommonHelper.ToInt32(dt.Rows[0]["StatusCode"]) == 404) // HTTP_404_NOT_FOUND
+                        {
+                            _dealDC.StatusCode = 404;
+                        }
+                        else
+                        {
+                            _dealDC.DealID = new Guid(Convert.ToString(dt.Rows[0]["DealID"]));
+                            _dealDC.DealName = Convert.ToString(dt.Rows[0]["DealName"]);
+                            _dealDC.DealType = CommonHelper.ToInt32(dt.Rows[0]["DealType"]);
+                            _dealDC.DealTypeText = Convert.ToString(dt.Rows[0]["DealTypeText"]);
+                            _dealDC.LoanProgram = CommonHelper.ToInt32(dt.Rows[0]["LoanProgram"]);
+                            _dealDC.LoanProgramText = Convert.ToString(dt.Rows[0]["LoanProgramText"]);
+                            _dealDC.LoanPurpose = CommonHelper.ToInt32(dt.Rows[0]["LoanPurpose"]);
+                            _dealDC.LoanPurposeText = Convert.ToString(dt.Rows[0]["LoanPurposeText"]);
+                            _dealDC.Statusid = CommonHelper.ToInt32(dt.Rows[0]["Status"]);
+                            _dealDC.StatusText = Convert.ToString(dt.Rows[0]["StatusText"]);
+
+                            if (Convert.ToString(dt.Rows[0]["AppReceived"]) != "")
+                                _dealDC.AppReceived = CommonHelper.ToDateTime(dt.Rows[0]["AppReceived"]);
+                            if (Convert.ToString(dt.Rows[0]["StatusCode"]) != "")
+                                _dealDC.EstClosingDate = CommonHelper.ToDateTime(dt.Rows[0]["EstClosingDate"]);
+                            // _dealDC.BorrowerRequest = CommonHelper.ToInt32(_deal.BorrowerRequest);
+                            _dealDC.BorrowerRequest = CommonHelper.ToInt32(dt.Rows[0]["BorrowerRequest"]); CommonHelper.ToInt32(Convert.ToString(dt.Rows[0]["BorrowerRequest"]) == "" ? 0 : CommonHelper.ToInt32(dt.Rows[0]["BorrowerRequest"]));
+                            _dealDC.BorrowerRequestText = Convert.ToString(dt.Rows[0]["BorrowerRequestText"]);
+                            _dealDC.RecommendedLoan = CommonHelper.ToInt32(dt.Rows[0]["RecommendedLoan"]);
+                            _dealDC.TotalFutureFunding = CommonHelper.ToInt32(dt.Rows[0]["TotalFutureFunding"]);
+                            _dealDC.Source = CommonHelper.ToInt32(dt.Rows[0]["Source"]);
+                            _dealDC.SourceText = Convert.ToString(dt.Rows[0]["SourceText"]);
+                            _dealDC.BrokerageFirm = Convert.ToString(dt.Rows[0]["BrokerageFirm"]);
+                            _dealDC.BrokerageContact = Convert.ToString(dt.Rows[0]["BrokerageContact"]);
+                            _dealDC.Sponsor = Convert.ToString(dt.Rows[0]["Sponsor"]);
+                            _dealDC.Principal = Convert.ToString(dt.Rows[0]["Principal"]);
+                            _dealDC.NetWorth = CommonHelper.ToDecimal(dt.Rows[0]["NetWorth"]);
+                            _dealDC.Liquidity = CommonHelper.ToDecimal(dt.Rows[0]["Liquidity"]);
+                            _dealDC.ClientDealID = Convert.ToString(dt.Rows[0]["ClientDealID"]);
+                            _dealDC.LinkedDealID = Convert.ToString(dt.Rows[0]["LinkedDealID"]);
+                            _dealDC.CREDealID = Convert.ToString(dt.Rows[0]["CREDealID"]);
+                            _dealDC.TotalCommitment = CommonHelper.ToDecimal(dt.Rows[0]["TotalCommitment"]);
+                            _dealDC.AdjustedTotalCommitment = CommonHelper.ToDecimal(dt.Rows[0]["AdjustedTotalCommitment"]);
+                            _dealDC.AggregatedTotal = CommonHelper.ToDecimal(dt.Rows[0]["AggregatedTotal"]);
+                            _dealDC.AssetManagerComment = Convert.ToString(dt.Rows[0]["AssetManagerComment"]);
+                            _dealDC.DealComment = Convert.ToString(dt.Rows[0]["DealComment"]);
+                            _dealDC.CreatedBy = Convert.ToString(dt.Rows[0]["CreatedBy"]);
+                            _dealDC.CreatedDate = CommonHelper.ToDateTime(dt.Rows[0]["CreatedDate"]);
+                            _dealDC.UpdatedBy = Convert.ToString(dt.Rows[0]["UpdatedBy"]);
+                            _dealDC.UpdatedDate = CommonHelper.ToDateTime(dt.Rows[0]["UpdatedDate"]);
+                            _dealDC.AssetManager = Convert.ToString(dt.Rows[0]["AssetManager"]);
+                            _dealDC.AssetManagerID = dt.Rows[0]["AMUserID"].ToGuid();
+                            _dealDC.AMTeamLeadUserID = dt.Rows[0]["AMTeamLeadUserID"].ToGuid();
+                            _dealDC.AMSecondUserID = dt.Rows[0]["AMSecondUserID"].ToGuid();
+                            _dealDC.DealCity = Convert.ToString(dt.Rows[0]["DealCity"]);
+                            _dealDC.DealState = Convert.ToString(dt.Rows[0]["DealState"]);
+                            _dealDC.DealPropertyType = Convert.ToString(dt.Rows[0]["DealPropertyType"]);
+                            _dealDC.FullyExtMaturityDate = CommonHelper.ToDateTime(dt.Rows[0]["FullyExtMaturityDate"]);
+                            _dealDC.UnderwritingStatusid = CommonHelper.ToInt32(dt.Rows[0]["UnderwritingStatus"]);
+                            _dealDC.UnderwritingStatusidText = Convert.ToString(dt.Rows[0]["UnderwritingStatusText"]);
+                            _dealDC.LastUpdatedFF = CommonHelper.ToDateTime(dt.Rows[0]["lastUpdatedFF"]);
+                            _dealDC.LastUpdatedByFF = Convert.ToString(dt.Rows[0]["LastUpdatedByFF"]);
+                            _dealDC.AllowSizerUpload = CommonHelper.ToInt32(dt.Rows[0]["AllowSizerUpload"]);
+                            _dealDC.AllowSizerUploadText = Convert.ToString(dt.Rows[0]["AllowSizerUploadText"]);
+                            _dealDC.StatusCode = 200;
+
+                            _dealDC.LastUpdatedFF_String = Convert.ToString(dt.Rows[0]["LastUpdatedFF_String"]);
+                            _dealDC.DealRule = Convert.ToString(dt.Rows[0]["DealRule"]);
+                            _dealDC.BoxDocumentLink = Convert.ToString(dt.Rows[0]["BoxDocumentLink"]);
+                            _dealDC.DealGroupID = Convert.ToString(dt.Rows[0]["DealGroupID"]);
+                            _dealDC.EnableAutoSpread = CommonHelper.ToBoolean(dt.Rows[0]["EnableAutoSpread"]);
+                            _dealDC.ServicerDropDate = CommonHelper.ToInt32(dt.Rows[0]["ServicerDropDate"]);
+                            _dealDC.ServicereDayAjustement = CommonHelper.ToInt32(dt.Rows[0]["ServicereDayAjustement"]);
+                            _dealDC.BaseCurrencyName = Convert.ToString(dt.Rows[0]["BaseCurrencyName"]);
+                            if (CommonHelper.ToDateTime(dt.Rows[0]["FirstPaymentDate"]) != null)
+                                _dealDC.FirstPaymentDate = CommonHelper.ToDateTime(dt.Rows[0]["FirstPaymentDate"]);
+
+                            _dealDC.amort = new AmortDataContract();
+                            _dealDC.amort.AmortizationMethod = CommonHelper.ToInt32(dt.Rows[0]["AmortizationMethod"]);
+                            _dealDC.amort.AmortizationMethodText = Convert.ToString(dt.Rows[0]["AmortizationMethodText"]);
+                            _dealDC.amort.ReduceAmortizationForCurtailments = CommonHelper.ToInt32(dt.Rows[0]["ReduceAmortizationForCurtailments"]);
+                            _dealDC.amort.ReduceAmortizationForCurtailmentsText = Convert.ToString(dt.Rows[0]["ReduceAmortizationForCurtailmentsText"]);
+                            _dealDC.amort.BusinessDayAdjustmentForAmort = CommonHelper.ToInt32(dt.Rows[0]["BusinessDayAdjustmentForAmort"]);
+                            _dealDC.amort.BusinessDayAdjustmentForAmortText = Convert.ToString(dt.Rows[0]["BusinessDayAdjustmentForAmortText"]);
+                            _dealDC.amort.NoteDistributionMethod = CommonHelper.ToInt32(dt.Rows[0]["NoteDistributionMethod"]);
+                            _dealDC.amort.NoteDistributionMethodText = Convert.ToString(dt.Rows[0]["NoteDistributionMethodText"]);
+                            _dealDC.amort.PeriodicStraightLineAmortOverride = CommonHelper.ToDecimal(dt.Rows[0]["PeriodicStraightLineAmortOverride"]);
+                            _dealDC.amort.FixedPeriodicPayment = CommonHelper.ToDecimal(dt.Rows[0]["FixedPeriodicPayment"]);
+                            _dealDC.EquityAmount = CommonHelper.ToDecimal(dt.Rows[0]["EquityAmount"]);
+                            _dealDC.RemainingAmount = CommonHelper.ToDecimal(dt.Rows[0]["RemainingAmount"]);
+
+                            //to check for AI API calling
+                            _dealDC.OriginalCREDealID = Convert.ToString(dt.Rows[0]["CREDealID"]);
+                            _dealDC.OriginalDealName = Convert.ToString(dt.Rows[0]["DealName"]);
+                            _dealDC.EnableAutospreadRepayments = CommonHelper.ToBoolean(dt.Rows[0]["EnableAutoSpreadRepayments"]);
+                            _dealDC.EnableAutospreadRepayments_db = CommonHelper.ToBoolean(dt.Rows[0]["EnableAutoSpreadRepayments"]);
+                            _dealDC.AutoUpdateFromUnderwriting = CommonHelper.ToBoolean(dt.Rows[0]["AutoUpdateFromUnderwriting"]);
+                            _dealDC.ExpectedFullRepaymentDate = CommonHelper.ToDateTime(dt.Rows[0]["ExpectedFullRepaymentDate"]);
+                            _dealDC.RepaymentAutoSpreadMethodID = CommonHelper.ToInt32(dt.Rows[0]["RepaymentAutoSpreadMethodID"]);
+                            _dealDC.RepaymentAutoSpreadMethodText = Convert.ToString(dt.Rows[0]["RepaymentAutoSpreadMethodText"]);
+                            _dealDC.RepaymentStartDate = CommonHelper.ToDateTime(dt.Rows[0]["RepaymentStartDate"]);
+                            _dealDC.EarliestPossibleRepaymentDate = CommonHelper.ToDateTime(dt.Rows[0]["EarliestPossibleRepaymentDate"]);
+                            _dealDC.Blockoutperiod = CommonHelper.ToInt32(dt.Rows[0]["Blockoutperiod"]);
+                            if (_dealDC.Blockoutperiod == null)
+                            {
+                                _dealDC.Blockoutperiod = 2;
+                            }
+                            _dealDC.PossibleRepaymentdayofthemonth = CommonHelper.ToInt32(dt.Rows[0]["PossibleRepaymentdayofthemonth"]);
+                            _dealDC.Repaymentallocationfrequency = CommonHelper.ToInt32(dt.Rows[0]["Repaymentallocationfrequency"]);
+                            _dealDC.AutoPrepayEffectiveDate = CommonHelper.ToDateTime(dt.Rows[0]["AutoPrepayEffectiveDate"]);
+                            _dealDC.LatestPossibleRepaymentDate = CommonHelper.ToDateTime(dt.Rows[0]["LatestPossibleRepaymentDate"]);
+                            _dealDC.MinAccrualFrequency = CommonHelper.ToInt32(dt.Rows[0]["MinAccrualFrequency"]);
+                            _dealDC.AllowFundingDevDataFlag = CommonHelper.ToBoolean(dt.Rows[0]["AllowFundingFlag"]);
+                            _dealDC.AllowFFSaveJsonIntoBlob = CommonHelper.ToBoolean(dt.Rows[0]["AllowFFSaveJsonIntoBlob"]);
+                            _dealDC.DealLevelMaturity = CommonHelper.ToBoolean(dt.Rows[0]["DealLevelMaturity"]);
+                            _dealDC.ApplyNoteLevelPaydowns = CommonHelper.ToBoolean(dt.Rows[0]["ApplyNoteLevelPaydowns"]);
+                            _dealDC.IsREODeal = CommonHelper.ToBoolean(dt.Rows[0]["IsREODeal"]);
+                            _dealDC.max_ExtensionMat = CommonHelper.ToDateTime(dt.Rows[0]["max_ExtensionMat"]);
+                            _dealDC.BalanceAware = CommonHelper.ToBoolean(dt.Rows[0]["BalanceAware"]);
+                            _dealDC.LastWireConfirmDate_db = CommonHelper.ToDateTime(dt.Rows[0]["LastWireConfirmDate_db"]);
+                            _dealDC.PrePayDate = CommonHelper.ToDateTime(dt.Rows[0]["PrepayDate"]);
+                            _dealDC.PrepaySchedule.EffectiveDate = CommonHelper.ToDateTime(dt.Rows[0]["EffectiveDate_Prepay"]);
+                            _dealDC.PrepaySchedule.CalcThru = CommonHelper.ToDateTime(dt.Rows[0]["CalcThru"]);
+                            _dealDC.PrepaySchedule.PrepaymentMethod = CommonHelper.ToInt32(dt.Rows[0]["PrepaymentMethod"]);
+                            _dealDC.PrepaySchedule.PrepaymentMethodText = Convert.ToString(dt.Rows[0]["PrepaymentMethodText"]);
+                            _dealDC.PrepaySchedule.BaseAmountType = CommonHelper.ToInt32(dt.Rows[0]["BaseAmountType"]);
+                            _dealDC.PrepaySchedule.BaseAmountTypeText = Convert.ToString(dt.Rows[0]["BaseAmountTypeText"]);
+                            _dealDC.PrepaySchedule.SpreadCalcMethod = CommonHelper.ToInt32(dt.Rows[0]["SpreadCalcMethod"]);
+                            _dealDC.PrepaySchedule.SpreadCalcMethodText = Convert.ToString(dt.Rows[0]["SpreadCalcMethodtext"]);
+                            _dealDC.PrepaySchedule.GreaterOfSMOrBaseAmtTimeSpread = CommonHelper.ToBoolean(dt.Rows[0]["GreaterOfSMOrBaseAmtTimeSpread"]);
+                            _dealDC.PrepaySchedule.HasNoteLevelSMSchedule = CommonHelper.ToBoolean(dt.Rows[0]["HasNoteLevelSMSchedule"]);
+                            _dealDC.PrepaySchedule.Includefeesincredits = CommonHelper.ToBoolean(dt.Rows[0]["Includefeesincredits"]);
+                            _dealDC.PrepaySchedule.MinimumMultipleDue = CommonHelper.ToDecimal(dt.Rows[0]["MinimumMultipleDue"]);
+                            _dealDC.PrepaySchedule.OpenPaymentDate = CommonHelper.ToDateTime(dt.Rows[0]["OpenPaymentDate"]);
+                            _dealDC.PropertyTypeID = CommonHelper.ToInt32(dt.Rows[0]["PropertyTypeMajorID"]);
+                            _dealDC.LoanStatusID = CommonHelper.ToInt32(dt.Rows[0]["LoanStatusID"]);
+                            _dealDC.ICMFullyFundedEquity = CommonHelper.ToDecimal(dt.Rows[0]["ICMFullyFundedEquity"]);
+                            _dealDC.EquityatClosing = CommonHelper.ToDecimal(dt.Rows[0]["EquityatClosing"]);
+                            _dealDC.CalcEngineType = CommonHelper.ToInt32(dt.Rows[0]["CalcEngineType"]);
+                            _dealDC.CalcEngineTypeText = Convert.ToString(dt.Rows[0]["CalcEngineTypeText"]);
+                            _dealDC.AllowGaapComponentInCashflowDownload = CommonHelper.ToInt32(dt.Rows[0]["AllowGaapComponentInCashflowDownload"]);
+                            _dealDC.AllowGaapComponentInCashflowDownloadText = Convert.ToString(dt.Rows[0]["AllowGaapComponentInCashflowDownloadText"]);
+                            _dealDC.WatchlistStatus = Convert.ToString(dt.Rows[0]["WatchlistStatus"]);
+                            if (dt.Rows[0]["DealAccountID"] != null)
+                            {
+                                _dealDC.DealAccountID = Convert.ToString(dt.Rows[0]["DealAccountID"]);
+                            }
+                            _dealDC.XIRRValue = CommonHelper.ToDecimal(dt.Rows[0]["XIRRValue"]);
+                            _dealDC.EnableAutoDistributePrincipalWriteoff = CommonHelper.ToBoolean(dt.Rows[0]["EnableAutoDistributePrincipalWriteoff"]);
+                            _dealDC.PrepaymentGroupSize = CommonHelper.ToInt32(dt.Rows[0]["PrepaymentGroupSize"]);
+                            _dealDC.PrepaymentAllocationMethod = CommonHelper.ToInt32(dt.Rows[0]["PrepaymentAllocationMethod"]);
+                            _dealDC.Bookmark = Convert.ToString(dt.Rows[0]["Bookmark"]);
+                            _dealDC.MaturityAdjMonthsOverride = CommonHelper.ToInt32(dt.Rows[0]["MaturityAdjMonthsOverride"]);
+                            _dealDC.ExcludeDealFromLiability = CommonHelper.ToBoolean(dt.Rows[0]["ExcludeDealFromLiability"]);
+                            _dealDC.LiabilitySourceText = Convert.ToString(dt.Rows[0]["LiabilitySourceText"]);
+                            _dealDC.LiabilitySource = CommonHelper.ToInt32(dt.Rows[0]["LiabilitySource"]);
+
+                            _dealDC.InternalRefiText = Convert.ToString(dt.Rows[0]["InternalRefiText"]);
+                            _dealDC.InternalRefi = CommonHelper.ToInt32(dt.Rows[0]["InternalRefi"]);
+                            _dealDC.PortfolioLoanText = Convert.ToString(dt.Rows[0]["PortfolioLoanText"]);
+                            _dealDC.PortfolioLoan = CommonHelper.ToInt32(dt.Rows[0]["PortfolioLoan"]);
+                            _dealDC.AssigningLoanToTakeoutLenderText = Convert.ToString(dt.Rows[0]["AssigningLoanToTakeoutLenderText"]);
+                            _dealDC.AssigningLoanToTakeoutLender = CommonHelper.ToInt32(dt.Rows[0]["AssigningLoanToTakeoutLender"]);
+                            _dealDC.NettingofReservesEscrowsText = Convert.ToString(dt.Rows[0]["NettingofReservesEscrowsText"]);
+                            _dealDC.NettingofReservesEscrows = CommonHelper.ToInt32(dt.Rows[0]["NettingofReservesEscrows"]);
+                            _dealDC.isPipeline = Convert.ToString(dt.Rows[0]["isPipeline"]);
+                        }
                     }
                     else
                     {
-                        _dealDC.DealID = new Guid(Convert.ToString(dt.Rows[0]["DealID"]));
-                        _dealDC.DealName = Convert.ToString(dt.Rows[0]["DealName"]);
-                        _dealDC.DealType = CommonHelper.ToInt32(dt.Rows[0]["DealType"]);
-                        _dealDC.DealTypeText = Convert.ToString(dt.Rows[0]["DealTypeText"]);
-                        _dealDC.LoanProgram = CommonHelper.ToInt32(dt.Rows[0]["LoanProgram"]);
-                        _dealDC.LoanProgramText = Convert.ToString(dt.Rows[0]["LoanProgramText"]);
-                        _dealDC.LoanPurpose = CommonHelper.ToInt32(dt.Rows[0]["LoanPurpose"]);
-                        _dealDC.LoanPurposeText = Convert.ToString(dt.Rows[0]["LoanPurposeText"]);
-                        _dealDC.Statusid = CommonHelper.ToInt32(dt.Rows[0]["Status"]);
-                        _dealDC.StatusText = Convert.ToString(dt.Rows[0]["StatusText"]);
-
-                        if (Convert.ToString(dt.Rows[0]["AppReceived"]) != "")
-                            _dealDC.AppReceived = CommonHelper.ToDateTime(dt.Rows[0]["AppReceived"]);
-                        if (Convert.ToString(dt.Rows[0]["StatusCode"]) != "")
-                            _dealDC.EstClosingDate = CommonHelper.ToDateTime(dt.Rows[0]["EstClosingDate"]);
-                        // _dealDC.BorrowerRequest = CommonHelper.ToInt32(_deal.BorrowerRequest);
-                        _dealDC.BorrowerRequest = CommonHelper.ToInt32(dt.Rows[0]["BorrowerRequest"]); CommonHelper.ToInt32(Convert.ToString(dt.Rows[0]["BorrowerRequest"]) == "" ? 0 : CommonHelper.ToInt32(dt.Rows[0]["BorrowerRequest"]));
-                        _dealDC.BorrowerRequestText = Convert.ToString(dt.Rows[0]["BorrowerRequestText"]);
-                        _dealDC.RecommendedLoan = CommonHelper.ToInt32(dt.Rows[0]["RecommendedLoan"]);
-                        _dealDC.TotalFutureFunding = CommonHelper.ToInt32(dt.Rows[0]["TotalFutureFunding"]);
-                        _dealDC.Source = CommonHelper.ToInt32(dt.Rows[0]["Source"]);
-                        _dealDC.SourceText = Convert.ToString(dt.Rows[0]["SourceText"]);
-                        _dealDC.BrokerageFirm = Convert.ToString(dt.Rows[0]["BrokerageFirm"]);
-                        _dealDC.BrokerageContact = Convert.ToString(dt.Rows[0]["BrokerageContact"]);
-                        _dealDC.Sponsor = Convert.ToString(dt.Rows[0]["Sponsor"]);
-                        _dealDC.Principal = Convert.ToString(dt.Rows[0]["Principal"]);
-                        _dealDC.NetWorth = CommonHelper.ToDecimal(dt.Rows[0]["NetWorth"]);
-                        _dealDC.Liquidity = CommonHelper.ToDecimal(dt.Rows[0]["Liquidity"]);
-                        _dealDC.ClientDealID = Convert.ToString(dt.Rows[0]["ClientDealID"]);
-                        _dealDC.LinkedDealID = Convert.ToString(dt.Rows[0]["LinkedDealID"]);
-
-                        _dealDC.CREDealID = Convert.ToString(dt.Rows[0]["CREDealID"]);
-                        _dealDC.TotalCommitment = CommonHelper.ToDecimal(dt.Rows[0]["TotalCommitment"]);
-                        _dealDC.AdjustedTotalCommitment = CommonHelper.ToDecimal(dt.Rows[0]["AdjustedTotalCommitment"]);
-                        _dealDC.AggregatedTotal = CommonHelper.ToDecimal(dt.Rows[0]["AggregatedTotal"]);
-                        _dealDC.AssetManagerComment = Convert.ToString(dt.Rows[0]["AssetManagerComment"]);
-                        _dealDC.DealComment = Convert.ToString(dt.Rows[0]["DealComment"]);
-
-                        _dealDC.CreatedBy = Convert.ToString(dt.Rows[0]["CreatedBy"]);
-                        _dealDC.CreatedDate = CommonHelper.ToDateTime(dt.Rows[0]["CreatedDate"]);
-                        _dealDC.UpdatedBy = Convert.ToString(dt.Rows[0]["UpdatedBy"]);
-                        _dealDC.UpdatedDate = CommonHelper.ToDateTime(dt.Rows[0]["UpdatedDate"]);
-                        _dealDC.AssetManager = Convert.ToString(dt.Rows[0]["AssetManager"]);
-                        _dealDC.AssetManagerID = dt.Rows[0]["AMUserID"].ToGuid();
-                        _dealDC.AMTeamLeadUserID = dt.Rows[0]["AMTeamLeadUserID"].ToGuid();
-                        _dealDC.AMSecondUserID = dt.Rows[0]["AMSecondUserID"].ToGuid();
-                        _dealDC.DealCity = Convert.ToString(dt.Rows[0]["DealCity"]);
-                        _dealDC.DealState = Convert.ToString(dt.Rows[0]["DealState"]);
-                        _dealDC.DealPropertyType = Convert.ToString(dt.Rows[0]["DealPropertyType"]);
-                        _dealDC.FullyExtMaturityDate = CommonHelper.ToDateTime(dt.Rows[0]["FullyExtMaturityDate"]);
-                        _dealDC.UnderwritingStatusid = CommonHelper.ToInt32(dt.Rows[0]["UnderwritingStatus"]);
-                        _dealDC.UnderwritingStatusidText = Convert.ToString(dt.Rows[0]["UnderwritingStatusText"]);
-                        _dealDC.LastUpdatedFF = CommonHelper.ToDateTime(dt.Rows[0]["lastUpdatedFF"]);
-                        _dealDC.LastUpdatedByFF = Convert.ToString(dt.Rows[0]["LastUpdatedByFF"]);
-                        _dealDC.AllowSizerUpload = CommonHelper.ToInt32(dt.Rows[0]["AllowSizerUpload"]);
-                        _dealDC.AllowSizerUploadText = Convert.ToString(dt.Rows[0]["AllowSizerUploadText"]);
-
-                        _dealDC.StatusCode = 200;
-
-                        _dealDC.LastUpdatedFF_String = Convert.ToString(dt.Rows[0]["LastUpdatedFF_String"]);
-                        _dealDC.DealRule = Convert.ToString(dt.Rows[0]["DealRule"]);
-                        _dealDC.BoxDocumentLink = Convert.ToString(dt.Rows[0]["BoxDocumentLink"]);
-                        _dealDC.DealGroupID = Convert.ToString(dt.Rows[0]["DealGroupID"]);
-                        _dealDC.EnableAutoSpread = CommonHelper.ToBoolean(dt.Rows[0]["EnableAutoSpread"]);
-                        _dealDC.ServicerDropDate = CommonHelper.ToInt32(dt.Rows[0]["ServicerDropDate"]);
-                        _dealDC.ServicereDayAjustement = CommonHelper.ToInt32(dt.Rows[0]["ServicereDayAjustement"]);
-                        _dealDC.BaseCurrencyName = Convert.ToString(dt.Rows[0]["BaseCurrencyName"]);
-                        if (CommonHelper.ToDateTime(dt.Rows[0]["FirstPaymentDate"]) != null)
-                            _dealDC.FirstPaymentDate = CommonHelper.ToDateTime(dt.Rows[0]["FirstPaymentDate"]);
-
-                        _dealDC.amort = new AmortDataContract();
-                        _dealDC.amort.AmortizationMethod = CommonHelper.ToInt32(dt.Rows[0]["AmortizationMethod"]);
-                        _dealDC.amort.AmortizationMethodText = Convert.ToString(dt.Rows[0]["AmortizationMethodText"]);
-                        _dealDC.amort.ReduceAmortizationForCurtailments = CommonHelper.ToInt32(dt.Rows[0]["ReduceAmortizationForCurtailments"]);
-                        _dealDC.amort.ReduceAmortizationForCurtailmentsText = Convert.ToString(dt.Rows[0]["ReduceAmortizationForCurtailmentsText"]);
-                        _dealDC.amort.BusinessDayAdjustmentForAmort = CommonHelper.ToInt32(dt.Rows[0]["BusinessDayAdjustmentForAmort"]);
-                        _dealDC.amort.BusinessDayAdjustmentForAmortText = Convert.ToString(dt.Rows[0]["BusinessDayAdjustmentForAmortText"]);
-                        _dealDC.amort.NoteDistributionMethod = CommonHelper.ToInt32(dt.Rows[0]["NoteDistributionMethod"]);
-                        _dealDC.amort.NoteDistributionMethodText = Convert.ToString(dt.Rows[0]["NoteDistributionMethodText"]);
-                        _dealDC.amort.PeriodicStraightLineAmortOverride = CommonHelper.ToDecimal(dt.Rows[0]["PeriodicStraightLineAmortOverride"]);
-                        _dealDC.amort.FixedPeriodicPayment = CommonHelper.ToDecimal(dt.Rows[0]["FixedPeriodicPayment"]);
-                        _dealDC.EquityAmount = CommonHelper.ToDecimal(dt.Rows[0]["EquityAmount"]);
-                        _dealDC.RemainingAmount = CommonHelper.ToDecimal(dt.Rows[0]["RemainingAmount"]);
-
-                        //to check for AI API calling
-                        _dealDC.OriginalCREDealID = Convert.ToString(dt.Rows[0]["CREDealID"]);
-                        _dealDC.OriginalDealName = Convert.ToString(dt.Rows[0]["DealName"]);
-                        _dealDC.EnableAutospreadRepayments = CommonHelper.ToBoolean(dt.Rows[0]["EnableAutoSpreadRepayments"]);
-                        _dealDC.EnableAutospreadRepayments_db = CommonHelper.ToBoolean(dt.Rows[0]["EnableAutoSpreadRepayments"]);
-                        _dealDC.AutoUpdateFromUnderwriting = CommonHelper.ToBoolean(dt.Rows[0]["AutoUpdateFromUnderwriting"]);
-                        _dealDC.ExpectedFullRepaymentDate = CommonHelper.ToDateTime(dt.Rows[0]["ExpectedFullRepaymentDate"]);
-                        _dealDC.RepaymentAutoSpreadMethodID = CommonHelper.ToInt32(dt.Rows[0]["RepaymentAutoSpreadMethodID"]);
-                        _dealDC.RepaymentAutoSpreadMethodText = Convert.ToString(dt.Rows[0]["RepaymentAutoSpreadMethodText"]);
-                        _dealDC.RepaymentStartDate = CommonHelper.ToDateTime(dt.Rows[0]["RepaymentStartDate"]);
-                        _dealDC.EarliestPossibleRepaymentDate = CommonHelper.ToDateTime(dt.Rows[0]["EarliestPossibleRepaymentDate"]);
-                        _dealDC.Blockoutperiod = CommonHelper.ToInt32(dt.Rows[0]["Blockoutperiod"]);
-                        _dealDC.PossibleRepaymentdayofthemonth = CommonHelper.ToInt32(dt.Rows[0]["PossibleRepaymentdayofthemonth"]);
-                        _dealDC.Repaymentallocationfrequency = CommonHelper.ToInt32(dt.Rows[0]["Repaymentallocationfrequency"]);
-                        _dealDC.AutoPrepayEffectiveDate = CommonHelper.ToDateTime(dt.Rows[0]["AutoPrepayEffectiveDate"]);
-                        _dealDC.LatestPossibleRepaymentDate = CommonHelper.ToDateTime(dt.Rows[0]["LatestPossibleRepaymentDate"]);
-                        _dealDC.MinAccrualFrequency = CommonHelper.ToInt32(dt.Rows[0]["MinAccrualFrequency"]);
-                        _dealDC.AllowFundingDevDataFlag = CommonHelper.ToBoolean(dt.Rows[0]["AllowFundingFlag"]);
-                        _dealDC.AllowFFSaveJsonIntoBlob = CommonHelper.ToBoolean(dt.Rows[0]["AllowFFSaveJsonIntoBlob"]);
-                        _dealDC.DealLevelMaturity = CommonHelper.ToBoolean(dt.Rows[0]["DealLevelMaturity"]);
-                        _dealDC.ApplyNoteLevelPaydowns = CommonHelper.ToBoolean(dt.Rows[0]["ApplyNoteLevelPaydowns"]);
-                        _dealDC.IsREODeal = CommonHelper.ToBoolean(dt.Rows[0]["IsREODeal"]);
-                        _dealDC.max_ExtensionMat = CommonHelper.ToDateTime(dt.Rows[0]["max_ExtensionMat"]);
-                        _dealDC.BalanceAware = CommonHelper.ToBoolean(dt.Rows[0]["BalanceAware"]);
-                        _dealDC.LastWireConfirmDate_db = CommonHelper.ToDateTime(dt.Rows[0]["LastWireConfirmDate_db"]);
-                        _dealDC.PrePayDate = CommonHelper.ToDateTime(dt.Rows[0]["PrepayDate"]);
-                        _dealDC.PrepaySchedule.EffectiveDate = CommonHelper.ToDateTime(dt.Rows[0]["EffectiveDate_Prepay"]);
-
-                        _dealDC.PrepaySchedule.CalcThru = CommonHelper.ToDateTime(dt.Rows[0]["CalcThru"]);
-                        _dealDC.PrepaySchedule.PrepaymentMethod = CommonHelper.ToInt32(dt.Rows[0]["PrepaymentMethod"]);
-                        _dealDC.PrepaySchedule.PrepaymentMethodText = Convert.ToString(dt.Rows[0]["PrepaymentMethodText"]);
-                        _dealDC.PrepaySchedule.BaseAmountType = CommonHelper.ToInt32(dt.Rows[0]["BaseAmountType"]);
-                        _dealDC.PrepaySchedule.BaseAmountTypeText = Convert.ToString(dt.Rows[0]["BaseAmountTypeText"]);
-                        _dealDC.PrepaySchedule.SpreadCalcMethod = CommonHelper.ToInt32(dt.Rows[0]["SpreadCalcMethod"]);
-                        _dealDC.PrepaySchedule.SpreadCalcMethodText = Convert.ToString(dt.Rows[0]["SpreadCalcMethodtext"]);
-                        _dealDC.PrepaySchedule.GreaterOfSMOrBaseAmtTimeSpread = CommonHelper.ToBoolean(dt.Rows[0]["GreaterOfSMOrBaseAmtTimeSpread"]);
-                        _dealDC.PrepaySchedule.HasNoteLevelSMSchedule = CommonHelper.ToBoolean(dt.Rows[0]["HasNoteLevelSMSchedule"]);
-                        _dealDC.PrepaySchedule.Includefeesincredits = CommonHelper.ToBoolean(dt.Rows[0]["Includefeesincredits"]);
-
-                        _dealDC.PropertyTypeID = CommonHelper.ToInt32(dt.Rows[0]["PropertyTypeMajorID"]);
-                        _dealDC.LoanStatusID = CommonHelper.ToInt32(dt.Rows[0]["LoanStatusID"]);
-                        _dealDC.ICMFullyFundedEquity = CommonHelper.ToDecimal(dt.Rows[0]["ICMFullyFundedEquity"]);
-                        _dealDC.EquityatClosing = CommonHelper.ToDecimal(dt.Rows[0]["EquityatClosing"]);
-
+                        _dealDC.StatusCode = 404;
                     }
+
                 }
                 else
                 {
-                    _dealDC.StatusCode = 404;
-                }
-
+                    _dealDC.StatusCode = 200;
+                    _dealDC.amort = new AmortDataContract();
+                    _dealDC.amort.AmortizationMethodText = "";
+                    _dealDC.BaseCurrencyName = "USD";
+                }              
             }
-            else
+            catch (Exception ex)
             {
-                _dealDC.StatusCode = 200;
-                _dealDC.amort = new AmortDataContract();
-                _dealDC.amort.AmortizationMethodText = "";
-                _dealDC.BaseCurrencyName = "USD";
+                _dealDC.StatusCode = 500;
+                _dealDC.DealStackTrace =  ex.StackTrace.ToString();
+                _dealDC.DealErrorMessage = "usp_GetDealByDealId :" + ex.Message.ToString();
             }
             return _dealDC;
         }
@@ -338,12 +542,28 @@ namespace CRES.DAL.Repository
             SqlParameter p70 = new SqlParameter { ParameterName = "@PrepayDate", Value = _dealDC.PrePayDate };
             SqlParameter p71 = new SqlParameter { ParameterName = "@ICMFullyFundedEquity", Value = _dealDC.ICMFullyFundedEquity };
             SqlParameter p72 = new SqlParameter { ParameterName = "@EquityatClosing", Value = _dealDC.EquityatClosing };
+            SqlParameter p73 = new SqlParameter { ParameterName = "@CalcEngineType", Value = _dealDC.CalcEngineType };
+            SqlParameter p74 = new SqlParameter { ParameterName = "@AllowGaapComponentInCashflowDownload", Value = _dealDC.AllowGaapComponentInCashflowDownload };
+            SqlParameter p75 = new SqlParameter { ParameterName = "@WatchlistStatus", Value = _dealDC.WatchlistStatus };
+            SqlParameter p76 = new SqlParameter { ParameterName = "@EnableAutoDistributePrincipalWriteoff", Value = _dealDC.EnableAutoDistributePrincipalWriteoff };
+            SqlParameter p77 = new SqlParameter { ParameterName = "@PrepaymentGroupSize", Value = _dealDC.PrepaymentGroupSize };
+            SqlParameter p78 = new SqlParameter { ParameterName = "@PrepaymentAllocationMethod", Value = _dealDC.PrepaymentAllocationMethod };
+            SqlParameter p79 = new SqlParameter { ParameterName = "@MaturityAdjMonthsOverride", Value = _dealDC.MaturityAdjMonthsOverride };
+            SqlParameter p80 = new SqlParameter { ParameterName = "@ExcludeDealFromLiability", Value = _dealDC.ExcludeDealFromLiability };
+            SqlParameter p81 = new SqlParameter { ParameterName = "@LiabilitySource", Value = _dealDC.LiabilitySource };
+
+            SqlParameter p82 = new SqlParameter { ParameterName = "@InternalRefi", Value = _dealDC.InternalRefi };
+            SqlParameter p83 = new SqlParameter { ParameterName = "@PortfolioLoan", Value = _dealDC.PortfolioLoan };
+            SqlParameter p84 = new SqlParameter { ParameterName = "@AssigningLoanToTakeoutLender", Value = _dealDC.AssigningLoanToTakeoutLender };
+            SqlParameter p85 = new SqlParameter { ParameterName = "@NettingofReservesEscrows", Value = _dealDC.NettingofReservesEscrows };
+
 
             SqlParameter[] sqlparam = new SqlParameter[] { p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15, p16, p17,
                                                           p18, p19, p20, p21, p22, p23, p24, p25, p26, p27, p28, p29, p30, p31, p32,p33, p34, p35, p36, p37, p38, p39, p40,
-                p41, p42, p43, p44, p45,p46,p47,p48,p49,p50,p51, p52,p53,p54,p55,p56,p57,p58,p59,p60,p61,p62,p63,p64,p65,p66,p67,p68,p69,p70,p71,p72
+                p41, p42, p43, p44, p45,p46,p47,p48,p49,p50,p51, p52,p53,p54,p55,p56,p57,p58,p59,p60,p61,p62,p63,p64,p65,p66,p67,p68,p69,p70,p71,p72,p73,p74,p75,p76,p77,p78,p79,p80,p81,p82,p83,p84,p85
             };
             hp.ExecNonquery("cre.usp_SaveDeal", sqlparam);
+
 
             NewDeadID = Convert.ToString(p44.Value);
             //Save in App.Object table            
@@ -366,45 +586,32 @@ namespace CRES.DAL.Repository
 
         }
 
-        public List<FutureFundingScheduleDataContract> GetFundingSchedulePayruleDataByDealID(Guid? dealID, Guid? userId, int? PageSize, int? PageIndex, out int? TotalCount)
-        {
-            DataTable dt = new DataTable();
-            List<DateTime> lst = new List<DateTime>();
-            DateTime dt1 = DateTime.Now;
-            lst.Add(dt1);
-            //   ObjectParameter totalCount = new ObjectParameter("TotalCount", typeof(int));
-            List<FutureFundingScheduleDataContract> lstDealDC = new List<FutureFundingScheduleDataContract>();
+        //public List<FutureFundingScheduleDataContract> GetFundingSchedulePayruleDataByDealID(Guid? dealID, Guid? userId, int? PageSize, int? PageIndex, out int? TotalCount)
+        //{
+        //    DataTable dt = new DataTable();
+        //    List<DateTime> lst = new List<DateTime>();
+        //    DateTime dt1 = DateTime.Now;
+        //    lst.Add(dt1);
+        //    //   ObjectParameter totalCount = new ObjectParameter("TotalCount", typeof(int));
+        //    List<FutureFundingScheduleDataContract> lstDealDC = new List<FutureFundingScheduleDataContract>();
 
-            Helper.Helper hp = new Helper.Helper();
-            SqlParameter p1 = new SqlParameter { ParameterName = "@DealID", Value = dealID };
-            SqlParameter[] sqlparam = new SqlParameter[] { p1 };
-            dt = hp.ExecDataTable("dbo.usp_GetFundingSchedulePayruleDataByDealID", sqlparam);
-            TotalCount = 50; //Convert.ToInt32(totalCount.Value);
-            foreach (DataRow dr in dt.Rows)
-            {
-                FutureFundingScheduleDataContract _fundingDC = new FutureFundingScheduleDataContract();
-                _fundingDC.NoteID = new Guid(Convert.ToString(dr["NoteID"]));
-                _fundingDC.Date = CommonHelper.ToDateTime(dr["Date"]);
-                _fundingDC.Value = CommonHelper.ToDecimal(dr["Value"]);
-                _fundingDC.PurposeID = Convert.ToInt32(dr["PurposeID"]);
-                _fundingDC.PurposeText = Convert.ToString(dr["PurposeText"]);
-                lstDealDC.Add(_fundingDC);
-            }
-
-            //    var lstFunding = dbContext.usp_GetFundingSchedulePayruleDataByDealID(dealID).ToList();
-            //TotalCount = CommonHelper.ToInt32(totalCount.Value);
-            //foreach (usp_GetFundingSchedulePayruleDataByDealID_Result _funding in lstFunding)
-            //{
-            //    FutureFundingScheduleDataContract _fundingDC = new FutureFundingScheduleDataContract();
-            //    _fundingDC.NoteID = _fundingDC.NoteID;
-            //    _fundingDC.Date = _fundingDC.Date;
-            //    _fundingDC.Value = _fundingDC.Value;
-            //    _fundingDC.PurposeID = _fundingDC.PurposeID;
-            //    _fundingDC.PurposeText = _fundingDC.PurposeText;
-            //    lstDealDC.Add(_fundingDC);
-            //}
-            return lstDealDC;
-        }
+        //    Helper.Helper hp = new Helper.Helper();
+        //    SqlParameter p1 = new SqlParameter { ParameterName = "@DealID", Value = dealID };
+        //    SqlParameter[] sqlparam = new SqlParameter[] { p1 };
+        //    dt = hp.ExecDataTable("dbo.usp_GetFundingSchedulePayruleDataByDealID", sqlparam);
+        //    TotalCount = 50; //Convert.ToInt32(totalCount.Value);
+        //    foreach (DataRow dr in dt.Rows)
+        //    {
+        //        FutureFundingScheduleDataContract _fundingDC = new FutureFundingScheduleDataContract();
+        //        _fundingDC.NoteID = new Guid(Convert.ToString(dr["NoteID"]));
+        //        _fundingDC.Date = CommonHelper.ToDateTime(dr["Date"]);
+        //        _fundingDC.Value = CommonHelper.ToDecimal(dr["Value"]);
+        //        _fundingDC.PurposeID = Convert.ToInt32(dr["PurposeID"]);
+        //        _fundingDC.PurposeText = Convert.ToString(dr["PurposeText"]);
+        //        lstDealDC.Add(_fundingDC);
+        //    }             
+        //    return lstDealDC;
+        //}
 
         public void InsertUpdateDealFunding(List<PayruleDealFundingDataContract> dealfunding, string delegateduserid)
         {
@@ -485,6 +692,39 @@ namespace CRES.DAL.Repository
             //  pfdc.UpdatedDate
 
             // );
+
+        }
+
+
+        public void InsertUpdateDealArchieveFunding_Automation(List<PayruleDealFundingDataContract> dealfunding, string username)
+        {
+
+            Helper.Helper hp = new Helper.Helper();
+            DataTable dt = new DataTable();
+
+            List<DealArchieveDataContract> lstDealArchieve = new List<DealArchieveDataContract>();
+            foreach (PayruleDealFundingDataContract pfdc in dealfunding)
+            {
+                if (pfdc.DealFundingID != null)
+                {
+                    DealArchieveDataContract dealarch = new DealArchieveDataContract();
+                    dealarch.DealFundingID = pfdc.DealFundingID;
+                    dealarch.DealID = pfdc.DealID;
+                    dealarch.Date = pfdc.Date;
+                    dealarch.Value = pfdc.Value;
+                    dealarch.Comment = pfdc.Comment;
+                    dealarch.PurposeID = pfdc.PurposeID;
+                    dealarch.CreatedBy = username;
+                    dealarch.CreatedDate = System.DateTime.Now;
+                    dealarch.UpdatedBy = username;
+                    dealarch.UpdatedDate = pfdc.UpdatedDate;
+                    lstDealArchieve.Add(dealarch);
+                }
+            }
+            dt = hp.ToDataTable(lstDealArchieve);
+            SqlParameter p1 = new SqlParameter { ParameterName = "TmpDealArch", Value = dt };
+            SqlParameter[] sqlparam = new SqlParameter[] { p1 };
+            hp.ExecDataTablewithparams("dbo.usp_InsertUpdateDealArchieveList_Automation", sqlparam);
 
         }
 
@@ -579,6 +819,10 @@ namespace CRES.DAL.Repository
                     _dealDC.AllowFundingDevDataFlag = CommonHelper.ToBoolean(dt.Rows[0]["AllowFundingFlag"]);
                     _dealDC.AllowFFSaveJsonIntoBlob = CommonHelper.ToBoolean(dt.Rows[0]["AllowFFSaveJsonIntoBlob"]);
                     _dealDC.DealLevelMaturity = CommonHelper.ToBoolean(dt.Rows[0]["DealLevelMaturity"]);
+                    _dealDC.EnableAutoDistributePrincipalWriteoff = CommonHelper.ToBoolean(dt.Rows[0]["EnableAutoDistributePrincipalWriteoff"]);
+                    _dealDC.PrepaymentGroupSize = CommonHelper.ToInt32(dt.Rows[0]["PrepaymentGroupSize"]);
+                    _dealDC.PrepaymentAllocationMethod = CommonHelper.ToInt32(dt.Rows[0]["PrepaymentAllocationMethod"]);
+                    _dealDC.Bookmark = Convert.ToString(dt.Rows[0]["Bookmark"]);
                 }
                 else
                 {
@@ -615,8 +859,16 @@ namespace CRES.DAL.Repository
                 _fundingDC.Purpose = Convert.ToString(dr["PurposeText"]);
                 _fundingDC.Comments = Convert.ToString(dr["Comments"]);
                 _fundingDC.DealFundingRowno = CommonHelper.ToInt32(dr["DealFundingRowno"]);
+                _fundingDC.OrgDealFundingRowno = CommonHelper.ToInt32(dr["DealFundingRowno"]);
                 _fundingDC.Applied = CommonHelper.ToBoolean(dr["Applied"]);
+                // _fundingDC.NonCommitmentAdj = CommonHelper.ToBoolean(dr["NonCommitmentAdj"]);
                 _fundingDC.DealFundingID = new Guid(Convert.ToString(dr["DealFundingID"]));
+
+                _fundingDC.GeneratedBy = CommonHelper.ToInt32(dr["GeneratedBy"]);
+                _fundingDC.GeneratedByText = Convert.ToString(dr["GeneratedByText"]);
+                _fundingDC.WF_CurrentStatus = Convert.ToString(dr["WF_CurrentStatus"]);
+                _fundingDC.AdjustmentType = CommonHelper.ToInt32(dr["AdjustmentType"]);
+
                 lstDealDC.Add(_fundingDC);
             }
             return lstDealDC;
@@ -628,7 +880,6 @@ namespace CRES.DAL.Repository
 
             DataTable dt = new DataTable();
 
-#pragma warning disable CS0168 // The variable 'ex' is declared but never used
             try
             {
                 Helper.Helper hp = new Helper.Helper();
@@ -639,10 +890,47 @@ namespace CRES.DAL.Repository
             catch (Exception ex)
             {
             }
-#pragma warning restore CS0168 // The variable 'ex' is declared but never used
 
             return dt;
         }
+
+        public DataTable GetCalculatedWeightedSpreadByDealID(Guid? dealID)
+        {
+
+            DataTable dt = new DataTable();
+
+            try
+            {
+                Helper.Helper hp = new Helper.Helper();
+                SqlParameter p1 = new SqlParameter { ParameterName = "@DealID", Value = dealID };
+                SqlParameter[] sqlparam = new SqlParameter[] { p1 };
+                dt = hp.ExecDataTable("dbo.usp_GetCalculatedWeightedSpreadByDealID", sqlparam);
+            }
+            catch (Exception ex)
+            {
+            }
+
+            return dt;
+        }
+        public DataTable GetFundingNetCapitalInvestedbyDealID(Guid? dealID)
+        {
+
+            DataTable dt = new DataTable();
+
+            try
+            {
+                Helper.Helper hp = new Helper.Helper();
+                SqlParameter p1 = new SqlParameter { ParameterName = "@DealID", Value = dealID };
+                SqlParameter[] sqlparam = new SqlParameter[] { p1 };
+                dt = hp.ExecDataTable("dbo.usp_GetFundingNetCapitalInvestedbyDealID", sqlparam);
+            }
+            catch (Exception ex)
+            {
+            }
+
+            return dt;
+        }
+
 
         public List<PayruleNoteAMSequenceDataContract> GetFundingRepaymentSequenceByDealID(Guid? dealID)
         {
@@ -660,7 +948,7 @@ namespace CRES.DAL.Repository
                 _fundingDC.SequenceNo = CommonHelper.ToInt32(dr["SequenceNo"]);
                 _fundingDC.SequenceType = CommonHelper.ToInt32(dr["SequenceType"]);
                 _fundingDC.SequenceTypeText = Convert.ToString(dr["SequenceTypeText"]);
-                _fundingDC.Value = CommonHelper.ToDecimal(dr["Value"]);
+                _fundingDC.Value = CommonHelper.ToDecimal(dr["Value"]);      
                 lstDealDC.Add(_fundingDC);
             }
             return lstDealDC;
@@ -723,7 +1011,6 @@ namespace CRES.DAL.Repository
         {
             DataTable dt = new DataTable();
 
-#pragma warning disable CS0168 // The variable 'ex' is declared but never used
             try
             {
                 Helper.Helper hp = new Helper.Helper();
@@ -734,17 +1021,17 @@ namespace CRES.DAL.Repository
                 SqlParameter[] sqlparam = new SqlParameter[] { p0, p1, p2 };
                 dt = hp.ExecDataTable("dbo.usp_GetNoteDealFundingScheduleDealID", sqlparam);
 
-                //  RemoveEmptyColumns
-                if (ShowUseRuleN == false)
-                {
-                    for (int i = dt.Columns.Count - 1; i >= 32; i--)
-                    {
-                        DataColumn col = dt.Columns[i];
-                        if (dt.AsEnumerable().All(r => r.IsNull(col) || string.IsNullOrWhiteSpace(r[col].ToString())))
-                            dt.Columns.RemoveAt(i);
-                    }
+                //  RemoveEmptyColumns for Use Rule Y
+                //if (ShowUseRuleN == false)
+                //{
+                //    for (int i = dt.Columns.Count - 1; i >= 35; i--)
+                //    {
+                //        DataColumn col = dt.Columns[i];
+                //        if (dt.AsEnumerable().All(r => r.IsNull(col) || string.IsNullOrWhiteSpace(r[col].ToString())))
+                //            dt.Columns.RemoveAt(i);
+                //    }
 
-                }
+                //}
 
 
             }
@@ -753,7 +1040,6 @@ namespace CRES.DAL.Repository
             {
                 throw;
             }
-#pragma warning restore CS0168 // The variable 'ex' is declared but never used
 
             return dt;
         }
@@ -762,7 +1048,6 @@ namespace CRES.DAL.Repository
         {
             DataTable dt = new DataTable();
 
-#pragma warning disable CS0168 // The variable 'ex' is declared but never used
             try
             {
                 Helper.Helper hp = new Helper.Helper();
@@ -771,12 +1056,6 @@ namespace CRES.DAL.Repository
                 SqlParameter p1 = new SqlParameter { ParameterName = "@DealFundingID", Value = DealFundingID };
                 SqlParameter[] sqlparam = new SqlParameter[] { p0, p1 };
                 dt = hp.ExecDataTable("dbo.usp_GetWFNoteFunding", sqlparam);
-                //for (int i = dt.Columns.Count - 1; i >= 26; i--)
-                //{
-                //    DataColumn col = dt.Columns[i];
-                //    if (dt.AsEnumerable().All(r => r.IsNull(col) || string.IsNullOrWhiteSpace(r[col].ToString())))
-                //        dt.Columns.RemoveAt(i);
-                //}
 
                 foreach (var column in dt.Columns.Cast<DataColumn>().ToArray())
                 {
@@ -789,7 +1068,6 @@ namespace CRES.DAL.Repository
             catch (Exception ex)
             {
             }
-#pragma warning restore CS0168 // The variable 'ex' is declared but never used
 
             return dt;
         }
@@ -818,14 +1096,28 @@ namespace CRES.DAL.Repository
                 _fundingDC.PurposeID = CommonHelper.ToInt32(dr["PurposeID"]);
                 _fundingDC.PurposeText = Convert.ToString(dr["PurposeText"]);
                 _fundingDC.UpdatedDate = CommonHelper.ToDateTime(dr["UpdatedDate"]);
-                _fundingDC.Applied = CommonHelper.ToBoolean(dr["Applied"]); //_funding.Applied==true?"Y":"N";                
+                _fundingDC.Applied = CommonHelper.ToBoolean(dr["Applied"]);
+                _fundingDC.AdjustmentType = CommonHelper.ToInt32(dr["AdjustmentType"]);
                 //_fundingDC.DrawFundingId = _funding.DrawFundingId;
                 _fundingDC.DealFundingRowno = CommonHelper.ToInt32(dr["DealFundingRowno"]);
+                _fundingDC.OrgDealFundingRowno = CommonHelper.ToInt32(dr["DealFundingRowno"]);
                 _fundingDC.orgDate = CommonHelper.ToDateTime(dr["Date"]);
                 _fundingDC.orgValue = CommonHelper.ToDecimal(dr["Amount"]);
-                _fundingDC.OrgApplied = CommonHelper.ToBoolean(dr["Applied"]); //_funding.Applied==true?"Y":"N";
+                _fundingDC.OrgApplied = CommonHelper.ToBoolean(dr["Applied"]);
                 _fundingDC.orgPurposeID = CommonHelper.ToInt32(dr["PurposeID"]);
                 _fundingDC.OrgPurposeText = Convert.ToString(dr["PurposeText"]);
+
+                _fundingDC.EquityAmount = CommonHelper.ToInt32(dr["EquityAmount"]);
+                _fundingDC.RemainingFFCommitment = CommonHelper.ToDecimal(dr["RemainingFFCommitment"]);
+                _fundingDC.RemainingEquityCommitment = CommonHelper.ToDecimal(dr["RemainingEquityCommitment"]);
+                _fundingDC.SubPurposeType = Convert.ToString(dr["SubPurposeType"]);
+
+                _fundingDC.RequiredEquity = CommonHelper.ToDecimal(dr["RequiredEquity"]);
+                _fundingDC.AdditionalEquity = CommonHelper.ToDecimal(dr["AdditionalEquity"]);
+                _fundingDC.GeneratedBy = CommonHelper.ToInt32(dr["GeneratedBy"]);
+                _fundingDC.GeneratedByUserID = Convert.ToString(dr["GeneratedByUserID"]);
+                _fundingDC.WF_CurrentStatus = Convert.ToString(dr["WF_CurrentStatus"]);
+
                 lstDealDC.Add(_fundingDC);
             }
             return lstDealDC;
@@ -952,7 +1244,6 @@ namespace CRES.DAL.Repository
             dtNote.Columns.Add("DealID");
 
 
-
             if (dealDC.notelist.Count != 0)
             {
 
@@ -982,12 +1273,7 @@ namespace CRES.DAL.Repository
 
                 return false;
             }
-
-
-
         }
-
-
         public List<DealDataContract> SearchDealByCREDealIdOrDealName(DealDataContract dealDC)
         {
             Helper.Helper hp = new Helper.Helper();
@@ -1022,7 +1308,6 @@ namespace CRES.DAL.Repository
             }
             return lstDealDC;
         }
-
         public void DeleteModuleByID(DeleteModuleDataContract ModuleDC)
         {
 
@@ -1042,7 +1327,6 @@ namespace CRES.DAL.Repository
                 throw ex;
             }
 
-
         }
 
         public int CallDealForCalculation(string Dealdid, string Updatedby, string AnalysisID, int CalcTyep)
@@ -1060,18 +1344,31 @@ namespace CRES.DAL.Repository
             return iscal;
         }
 
-        public int CallDealForPrePayCalculation(string Dealdid, string Updatedby, string AnalysisID, int CalcTyep)
+        public int QueueDealForCalculationMultipleDeals(string DealdIDPipSeprated, string Updatedby, string AnalysisID, int CalcTyep)
+        {
+            Helper.Helper hp = new Helper.Helper();
+            SqlParameter p1 = new SqlParameter { ParameterName = "@DealIDs", Value = DealdIDPipSeprated };
+            SqlParameter p2 = new SqlParameter { ParameterName = "@UpdatedBy", Value = Updatedby };
+            SqlParameter p3 = new SqlParameter { ParameterName = "@AnalysisID", Value = AnalysisID };
+            SqlParameter p4 = new SqlParameter { ParameterName = "@CalcType", Value = CalcTyep };
+
+            SqlParameter[] sqlparam = new SqlParameter[] { p1, p2, p3, p4 };
+            var iscal = hp.ExecNonquery("dbo.usp_QueueDealForCalculationMultipleDeals", sqlparam);
+            return iscal;
+        }
+
+        public int CallDealForPrePayCalculation(string Dealdid, string Updatedby, string AnalysisID, int CalcTyep,string RequestFrom,int? IsEmailSent)
         {
             Helper.Helper hp = new Helper.Helper();
             SqlParameter p1 = new SqlParameter { ParameterName = "@DealID", Value = Dealdid };
             SqlParameter p2 = new SqlParameter { ParameterName = "@UpdatedBy", Value = Updatedby };
             SqlParameter p3 = new SqlParameter { ParameterName = "@AnalysisID", Value = AnalysisID };
             SqlParameter p4 = new SqlParameter { ParameterName = "@CalcType", Value = CalcTyep };
+            SqlParameter p5 = new SqlParameter { ParameterName = "@RequestFrom", Value = RequestFrom };
+            SqlParameter p6 = new SqlParameter { ParameterName = "@IsEmailSent", Value = IsEmailSent };
 
-            SqlParameter[] sqlparam = new SqlParameter[] { p1, p2, p3, p4 };
-            var iscal = hp.ExecNonquery("dbo.usp_QueueDealForCalculation_Prepayment", sqlparam);
-
-            // var iscal = dbContext.usp_QueueDealForCalculation(Dealdid, Updatedby, AnalysisID);
+            SqlParameter[] sqlparam = new SqlParameter[] { p1, p2, p3, p4,p5,p6 };
+            var iscal = hp.ExecNonquery("dbo.usp_QueueDealForCalculation_Prepayment", sqlparam); 
             return iscal;
         }
 
@@ -1288,7 +1585,6 @@ namespace CRES.DAL.Repository
 
             DataTable dt = new DataTable();
 
-#pragma warning disable CS0168 // The variable 'ex' is declared but never used
             try
             {
                 Helper.Helper hp = new Helper.Helper();
@@ -1299,7 +1595,6 @@ namespace CRES.DAL.Repository
             catch (Exception ex)
             {
             }
-#pragma warning restore CS0168 // The variable 'ex' is declared but never used
         }
 
         public List<DealAmortScheduleDataContract> GetDealAmortizationByDealID(Guid? dealID)
@@ -1332,7 +1627,6 @@ namespace CRES.DAL.Repository
         }
         public void SaveDealAmortization(List<DealAmortScheduleDataContract> dealAM, int? AmortizationMethod)
         {
-#pragma warning disable CS0168 // The variable 'ex' is declared but never used
             try
             {
                 Helper.Helper hp = new Helper.Helper();
@@ -1344,13 +1638,11 @@ namespace CRES.DAL.Repository
             catch (Exception ex)
             {
             }
-#pragma warning restore CS0168 // The variable 'ex' is declared but never used
 
         }
         public int SaveNoteAmortization(List<NoteAmortScheduleDataContract> NoteAM, string createdby)
         {
             int res = 0;
-#pragma warning disable CS0168 // The variable 'ex' is declared but never used
             try
             {
                 if (NoteAM.Count > 0)
@@ -1390,7 +1682,6 @@ namespace CRES.DAL.Repository
             {
 
             }
-#pragma warning restore CS0168 // The variable 'ex' is declared but never used
             return res;
 
         }
@@ -1446,7 +1737,6 @@ namespace CRES.DAL.Repository
 
             DataTable dt = new DataTable();
 
-#pragma warning disable CS0168 // The variable 'ex' is declared but never used
             try
             {
                 Helper.Helper hp = new Helper.Helper();
@@ -1459,7 +1749,6 @@ namespace CRES.DAL.Repository
             catch (Exception ex)
             {
             }
-#pragma warning restore CS0168 // The variable 'ex' is declared but never used
 
             return dt;
         }
@@ -1467,7 +1756,6 @@ namespace CRES.DAL.Repository
         {
 
             DataTable dt = new DataTable();
-#pragma warning disable CS0168 // The variable 'ex' is declared but never used
             try
             {
                 Helper.Helper hp = new Helper.Helper();
@@ -1482,7 +1770,6 @@ namespace CRES.DAL.Repository
             catch (Exception ex)
             {
             }
-#pragma warning restore CS0168 // The variable 'ex' is declared but never used
 
             return dt;
         }
@@ -1506,7 +1793,6 @@ namespace CRES.DAL.Repository
         {
 
             DataTable dt = new DataTable();
-#pragma warning disable CS0168 // The variable 'ex' is declared but never used
             try
             {
                 Helper.Helper hp = new Helper.Helper();
@@ -1521,14 +1807,12 @@ namespace CRES.DAL.Repository
             catch (Exception ex)
             {
             }
-#pragma warning restore CS0168 // The variable 'ex' is declared but never used
 
             return dt;
         }
         public DataSet GetNoteAllocationPercentage(Guid? DealFundingID, string userID)
         {
             DataSet ds = new DataSet();
-#pragma warning disable CS0168 // The variable 'ex' is declared but never used
             try
             {
                 Helper.Helper hp = new Helper.Helper();
@@ -1540,7 +1824,6 @@ namespace CRES.DAL.Repository
             catch (Exception ex)
             {
             }
-#pragma warning restore CS0168 // The variable 'ex' is declared but never used
             return ds;
         }
 
@@ -1606,7 +1889,7 @@ namespace CRES.DAL.Repository
             dtnotecommitment.Columns.Add("NoteTotalCommitment");
             dtnotecommitment.Columns.Add("TotalRequiredEquity");
             dtnotecommitment.Columns.Add("TotalAdditionalEquity");
-            dtnotecommitment.Columns.Add("ExcludeFromCommitmentCalculation");
+            // dtnotecommitment.Columns.Add("ExcludeFromCommitmentCalculation");
             dtnotecommitment.Columns.Add("TotalEquityatClosing");
             if (_adjustedtotalcommitmentDC.Count != 0)
             {
@@ -1660,7 +1943,6 @@ namespace CRES.DAL.Repository
             PayloadDC.prepay_types = new string[] { };
             //PayloadDC.prepay_types.Add("yield_maintenance");          
             PayloadDC.DealID = DealID.ToString();
-#pragma warning disable CS0168 // The variable 'ex' is declared but never used
             try
             {
                 Helper.Helper hp = new Helper.Helper();
@@ -1748,7 +2030,6 @@ namespace CRES.DAL.Repository
             catch (Exception ex)
             {
             }
-#pragma warning restore CS0168 // The variable 'ex' is declared but never used
 
 
 
@@ -1777,7 +2058,7 @@ namespace CRES.DAL.Repository
             dtnotecommitment.Columns.Add("NoteTotalCommitment");
             dtnotecommitment.Columns.Add("TotalRequiredEquity");
             dtnotecommitment.Columns.Add("TotalAdditionalEquity");
-            dtnotecommitment.Columns.Add("ExcludeFromCommitmentCalculation");
+            //   dtnotecommitment.Columns.Add("ExcludeFromCommitmentCalculation");
             dtnotecommitment.Columns.Add("TotalEquityatClosing");
             if (_deleteadjustedcommitment.Count != 0)
             {
@@ -1982,6 +2263,7 @@ namespace CRES.DAL.Repository
                         _projectedPayOffDC.AuditUpdateDate = CommonHelper.ToDateTime(dr["AuditUpdateDate"]);
                         _projectedPayOffDC.ProjectedPayoffAsofDate = CommonHelper.ToDateTime(dr["AsOfDate"]);
                         _projectedPayOffDC.CumulativeProbability = CommonHelper.ToDecimal(dr["CumulativeProbability"]);
+                        _projectedPayOffDC.DealID = DealID;
                         _projectedPayOffDC.ErrorMsg = "Success";
                         _projectedPayOffDC.Status = "Success";
                         _projectedPayOffDC.ExceptionMsg = "No Exception";
@@ -2405,7 +2687,6 @@ namespace CRES.DAL.Repository
         public DataSet GetWFPayOffNoteFunding(Guid? DealFundingID, string userID)
         {
             DataSet ds = new DataSet();
-#pragma warning disable CS0168 // The variable 'ex' is declared but never used
             try
             {
                 Helper.Helper hp = new Helper.Helper();
@@ -2417,7 +2698,6 @@ namespace CRES.DAL.Repository
             catch (Exception ex)
             {
             }
-#pragma warning restore CS0168 // The variable 'ex' is declared but never used
             return ds;
         }
 
@@ -2463,6 +2743,7 @@ namespace CRES.DAL.Repository
             dtPrepayAdjustment.Columns.Add("Date");
             dtPrepayAdjustment.Columns.Add("PrepayAdjAmt");
             dtPrepayAdjustment.Columns.Add("Comment");
+            dtPrepayAdjustment.Columns.Add("Isdeleted");
             if (listPrepayAdjustment != null)
             {
                 DataTable dt = new DataTable();
@@ -2519,6 +2800,7 @@ namespace CRES.DAL.Repository
             dtMiniFee.Columns.Add("FeeTypeNameText");
             dtMiniFee.Columns.Add("FeeCreditOverride");
             dtMiniFee.Columns.Add("UseActualFees");
+            dtMiniFee.Columns.Add("Isdeleted");
             if (listMiniFee != null)
             {
                 DataTable dt = new DataTable();
@@ -2548,10 +2830,11 @@ namespace CRES.DAL.Repository
             SqlParameter p13 = new SqlParameter { ParameterName = "@tblMinMultSchedule", Value = dtMiniSpreadInterest };
             SqlParameter p14 = new SqlParameter { ParameterName = "@tblFeeCredits", Value = dtMiniFee };
             SqlParameter p15 = new SqlParameter { ParameterName = "@PrepayDate", Value = prepayDC.PrepayDate };
-            // SqlParameter p17 = new SqlParameter { ParameterName = "@OpenPaymentDate", Value = prepayDC.OpenPaymentDate };
+            SqlParameter p16 = new SqlParameter { ParameterName = "@OpenPaymentDate", Value = prepayDC.OpenPaymentDate };
+            SqlParameter p17 = new SqlParameter { ParameterName = "@MinimumMultipleDue", Value = prepayDC.MinimumMultipleDue };
             // SqlParameter p18 = new SqlParameter { ParameterName = "@NewPrepayID", Direction = ParameterDirection.Output, Size = int.MaxValue };
 
-            SqlParameter[] sqlparam = new SqlParameter[] { p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15, };
+            SqlParameter[] sqlparam = new SqlParameter[] { p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15, p16, p17};
             hp.ExecNonquery("dbo.usp_InsertUpdatePrepayPremium", sqlparam);
 
             // NewDeadID = Convert.ToString(p44.Value);
@@ -2590,6 +2873,9 @@ namespace CRES.DAL.Repository
                     _prepayproDC.TotalPayoff = CommonHelper.ToDecimal(dr["TotalPayoff"]);
                     _prepayproDC.prepaylastUpdatedFF = CommonHelper.ToDateTime(dr["prepaylastUpdatedFF"]);
                     _prepayproDC.prepaylastUpdatedByFF = Convert.ToString(dr["prepaylastUpdatedByFF"]);
+                    _prepayproDC.PrepaymentMethodID = Convert.ToInt32(dr["PrepaymentMethod"]);
+                    _prepayproDC.PrepaymentMethodText = Convert.ToString(dr["PrepaymentMethodText"]);
+                    _prepayproDC.UpdatedDate = CommonHelper.ToDateTime(dr["UpdatedDate"]);
                     lstprepayDC.Add(_prepayproDC);
 
 
@@ -2606,7 +2892,6 @@ namespace CRES.DAL.Repository
 
         public PrepayDataContract GetPrepayPremiumDetailDataByDealId(string DeailId, Guid? userId)
         {
-
 
             List<PrepayDataContract> lstprepayDC = new List<PrepayDataContract>();
             PrepayDataContract _prepayDC = new PrepayDataContract();
@@ -2884,6 +3169,41 @@ namespace CRES.DAL.Repository
             }
             return dt;
         }
+
+
+        public DataTable GetDiscrepancyAutoSpreadDealWithNoUnderwriting()
+        {
+            DataTable dt = new DataTable();
+            try
+            {
+                Helper.Helper hp = new Helper.Helper();
+                dt = hp.ExecDataTable("dbo.usp_GetDiscrepancyAutoSpreadDealWithNoUnderwriting");
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+            return dt;
+        }
+
+
+        public DataTable GetDiscrepancyAmortSchedule()
+        {
+            DataTable dt = new DataTable();
+            try
+            {
+                Helper.Helper hp = new Helper.Helper();
+                dt = hp.ExecDataTable("dbo.usp_GetDiscrepancyAmortSchedule");
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+            return dt;
+        }
+
+
+
         public DataTable GetDiscrepancyForExportPaydown()
         {
             DataTable dt = new DataTable();
@@ -2898,6 +3218,23 @@ namespace CRES.DAL.Repository
             }
             return dt;
         }
+
+        public DataTable GetDiscrepancyForNetIOTransaction()
+        {
+            DataTable dt = new DataTable();
+            try
+            {
+                Helper.Helper hp = new Helper.Helper();
+                dt = hp.ExecDataTable("dbo.usp_GetDiscrepancyForNetIOTransaction");
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+            return dt;
+        }
+
+
 
         public PrepayCalcStatusDataContract GetPrepayCalculationStatus(string DealID)
         {
@@ -2932,36 +3269,36 @@ namespace CRES.DAL.Repository
             return pc;
         }
 
-        public PrepayCalcStatusDataContract GetPrepayCalcStatusMessage(string DealID)
-        {
-            PrepayCalcStatusDataContract pc = new PrepayCalcStatusDataContract();
-            DataTable dt = new DataTable();
-            try
-            {
-                Helper.Helper hp = new Helper.Helper();
-                {
-                    SqlParameter p1 = new SqlParameter { ParameterName = "@DealID", Value = DealID };
-                    SqlParameter[] sqlparam = new SqlParameter[] { p1 };
-                    dt = hp.ExecDataTable("usp_GetPrepayCalcFailedStatusMessage", sqlparam);
-                    if (dt.Rows.Count > 0)
-                    {
-                        foreach (DataRow dr in dt.Rows)
-                        {
-                            pc.Message = Convert.ToString(dr["Message"]);
-                            pc.Message_StackTrace = Convert.ToString(dr["Message_StackTrace"]);
-                            pc.RequestID = Convert.ToString(dr["RequestID"]);
-                        }
-                    }
+        //public PrepayCalcStatusDataContract GetPrepayCalcStatusMessage(string DealID)
+        //{
+        //    PrepayCalcStatusDataContract pc = new PrepayCalcStatusDataContract();
+        //    DataTable dt = new DataTable();
+        //    try
+        //    {
+        //        Helper.Helper hp = new Helper.Helper();
+        //        {
+        //            SqlParameter p1 = new SqlParameter { ParameterName = "@DealID", Value = DealID };
+        //            SqlParameter[] sqlparam = new SqlParameter[] { p1 };
+        //            dt = hp.ExecDataTable("usp_GetPrepayCalcFailedStatusMessage", sqlparam);
+        //            if (dt.Rows.Count > 0)
+        //            {
+        //                foreach (DataRow dr in dt.Rows)
+        //                {
+        //                    pc.Message = Convert.ToString(dr["Message"]);
+        //                    pc.Message_StackTrace = Convert.ToString(dr["Message_StackTrace"]);
+        //                    pc.RequestID = Convert.ToString(dr["RequestID"]);
+        //                }
+        //            }
 
 
-                }
-            }
-            catch (Exception ex)
-            {
-                var exception = ex.Message;
-            }
-            return pc;
-        }
+        //        }
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        var exception = ex.Message;
+        //    }
+        //    return pc;
+        //}
 
         public List<EquitySummaryDataContract> GetEquitySummaryByDealID(string DealID)
         {
@@ -2988,6 +3325,691 @@ namespace CRES.DAL.Repository
             }
 
             return equitylist;
+        }
+
+
+        public void UpdateAutoSpreadColumnByDealID(String DealID, DateTime? EarliestPossibleRepaymentDate, DateTime? LatestPossibleRepaymentDate, DateTime? ExpectedFullRepaymentDate, DateTime? AutoPrepayEffectiveDate, string UserID)
+        {
+            DataTable dt = new DataTable();
+            try
+            {
+                Helper.Helper hp = new Helper.Helper();
+
+
+                SqlParameter p1 = new SqlParameter { ParameterName = "@DealID ", Value = DealID };
+                SqlParameter p2 = new SqlParameter { ParameterName = "@EarliestPossibleRepaymentDate  ", Value = EarliestPossibleRepaymentDate };
+                SqlParameter p3 = new SqlParameter { ParameterName = "@LatestPossibleRepaymentDate  ", Value = LatestPossibleRepaymentDate };
+                SqlParameter p4 = new SqlParameter { ParameterName = "@ExpectedFullRepaymentDate  ", Value = ExpectedFullRepaymentDate };
+                SqlParameter p5 = new SqlParameter { ParameterName = "@AutoPrepayEffectiveDate  ", Value = AutoPrepayEffectiveDate };
+                SqlParameter p6 = new SqlParameter { ParameterName = "@Userid ", Value = UserID };
+
+                SqlParameter[] sqlparam = new SqlParameter[] { p1, p2, p3, p4, p5, p6 };
+                dt = hp.ExecDataTable("dbo.usp_UpdateAutoSpreadColumnByDealID", sqlparam);
+            }
+            catch (Exception ex)
+            {
+                var exception = ex.Message;
+            }
+
+        }
+
+        public DataTable GetDiscrepancyForCommitmentDataByDealID(string DealID)
+        {
+            DataTable dt = new DataTable();
+            try
+            {
+                Helper.Helper hp = new Helper.Helper();
+                SqlParameter p1 = new SqlParameter { ParameterName = "@DealID", Value = DealID };
+                SqlParameter[] sqlparam = new SqlParameter[] { p1 };
+                dt = hp.ExecDataTable("dbo.usp_GetDiscrepancyForCommitmentData", sqlparam);
+                return dt;
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
+
+        public DataTable GetDiscrepancyForFinancingSource()
+        {
+            DataTable dt = new DataTable();
+            try
+            {
+                Helper.Helper hp = new Helper.Helper();
+                dt = hp.ExecDataTable("dbo.usp_GetDiscrepancyForFinancingSource");
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+            return dt;
+        }
+
+
+
+        public DataTable GetInvoiceDiscrepancy()
+        {
+            DataTable dt = new DataTable();
+            try
+            {
+                Helper.Helper hp = new Helper.Helper();
+                dt = hp.ExecDataTable("dbo.usp_GetInvoiceDiscrepancy");
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+            return dt;
+        }
+
+
+        public DataTable GetDiscrepancyForWireConfirmed()
+        {
+            DataTable dt = new DataTable();
+            try
+            {
+                Helper.Helper hp = new Helper.Helper();
+                dt = hp.ExecDataTable("dbo.usp_GetDiscrepancyForWireConfirmed");
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+            return dt;
+        }
+
+
+        public DataTable GetDiscrepancyForBalanceM61VsBackshop()
+        {
+            DataTable dt = new DataTable();
+            try
+            {
+                Helper.Helper hp = new Helper.Helper();
+                dt = hp.ExecDataTable("dbo.usp_GetDiscrepancyForBalanceM61VsBackshop");
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+            return dt;
+        }
+
+
+        public DataTable GetDiscrepancyForAdjCommitmentM61VsBackshop()
+        {
+            DataTable dt = new DataTable();
+            try
+            {
+                Helper.Helper hp = new Helper.Helper();
+                dt = hp.ExecDataTable("dbo.usp_GetDiscrepancyForAdjCommitmentM61VsBackshop");
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+            return dt;
+        }
+
+
+        public DataTable GetDiscrepancyForTotalFFVsUnfundedCommitment()
+        {
+            DataTable dt = new DataTable();
+            try
+            {
+                Helper.Helper hp = new Helper.Helper();
+                dt = hp.ExecDataTable("dbo.usp_GetDiscrepancyForTotalFFVsUnfundedCommitment");
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+            return dt;
+        }
+
+        public DataTable GetDiscrepancyForDuplicatePIK_InBackshop()
+        {
+            DataTable dt = new DataTable();
+            try
+            {
+                Helper.Helper hp = new Helper.Helper();
+                dt = hp.ExecDataTable("dbo.usp_GetDiscrepancyForDuplicatePIK_InBackshop");
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+            return dt;
+        }
+
+        public DataTable GetDiscrepancyForNotesFailedInCalculation()
+        {
+            DataTable dt = new DataTable();
+            try
+            {
+                Helper.Helper hp = new Helper.Helper();
+                dt = hp.ExecDataTable("dbo.usp_GetDiscrepancyForNotesFailedInCalculation");
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+            return dt;
+        }
+
+
+        public DataTable GetDealFundingWLDealPotentialImpairmentByDealID(Guid? dealID, string userID)
+        {
+            DataTable dt = new DataTable();
+
+            try
+            {
+                Helper.Helper hp = new Helper.Helper();
+
+                SqlParameter p0 = new SqlParameter { ParameterName = "@UserID", Value = new Guid(userID) };
+                SqlParameter p1 = new SqlParameter { ParameterName = "@DealID", Value = dealID };
+                SqlParameter[] sqlparam = new SqlParameter[] { p0, p1 };
+                dt = hp.ExecDataTable("dbo.usp_GetDealFundingWLDealPotentialImpairmentByDealID", sqlparam);
+            }
+            //Creating New copy column of auto generated funding columns
+            catch (Exception ex)
+            {
+                throw;
+            }
+
+            return dt;
+        }
+
+
+        public DataTable GetAllDataForBlobFileDelete()
+        {
+
+            DataTable dt = new DataTable();
+            try
+            {
+                Helper.Helper hp = new Helper.Helper();
+                dt = hp.ExecDataTable("App.usp_GetAllBlobFileForDelete");
+            }
+            catch (Exception ex)
+            {
+                throw;
+            }
+            return dt;
+        }
+
+        public List<AutoDistributeWriteoffDataContract> GetAutoDistributeWriteoffByDealID(Guid? dealID)
+        {
+            DataTable dt = new DataTable();
+            Helper.Helper hp = new Helper.Helper();
+            List<AutoDistributeWriteoffDataContract> lstautoDistributeWriteoff = new List<AutoDistributeWriteoffDataContract>();
+            SqlParameter p1 = new SqlParameter { ParameterName = "@DealID", Value = dealID };
+            SqlParameter[] sqlparam11 = new SqlParameter[] { p1 };
+            dt = hp.ExecDataTable("dbo.usp_GetFundingRepaymentSequenceWriteOffByDealID", sqlparam11);
+
+            //  var autoDistributeWriteoff = dbContext.usp_GetAutoDistributeWriteoffByDealID(UserId, dealID);
+            foreach (DataRow dr in dt.Rows)
+            {
+                AutoDistributeWriteoffDataContract _autodistributewriteoffDC = new AutoDistributeWriteoffDataContract();
+
+                _autodistributewriteoffDC.DealID = new Guid(Convert.ToString(dr["DealID"]));
+                _autodistributewriteoffDC.NoteID = new Guid(Convert.ToString(dr["NoteID"]));
+                _autodistributewriteoffDC.CRENoteID = Convert.ToString(dr["CRENoteID"]);
+                _autodistributewriteoffDC.NoteName = Convert.ToString(dr["NoteName"]);
+                _autodistributewriteoffDC.LienPosition = Convert.ToString(dr["LienPosition"]);
+                _autodistributewriteoffDC.Priority = CommonHelper.ToInt32(dr["Priority"]);
+                _autodistributewriteoffDC.PriorityOverride = CommonHelper.ToInt32(dr["PriorityOverride"]);
+                _autodistributewriteoffDC.EstBls = CommonHelper.ToDecimal(dr["EstBls"]);
+
+                lstautoDistributeWriteoff.Add(_autodistributewriteoffDC);
+            }
+            return lstautoDistributeWriteoff;
+
+        }
+
+        public void InsertUpdateAutoDistributeWriteoff(List<AutoDistributeWriteoffDataContract> _autodistributewriteoffDCList, string username)
+        {
+            Helper.Helper hp = new Helper.Helper();
+            DataTable dAutoDistributeWriteoff = new DataTable();
+
+            dAutoDistributeWriteoff.Columns.Add("DealID");
+            dAutoDistributeWriteoff.Columns.Add("NoteID");
+            dAutoDistributeWriteoff.Columns.Add("PriorityOverride");
+
+            if (_autodistributewriteoffDCList != null)
+            {
+                DataTable dt = new DataTable();
+                dt = ObjToDataTable.ToDataTable(_autodistributewriteoffDCList);
+
+                foreach (DataRow dr in dt.Rows)
+                {
+                    dAutoDistributeWriteoff.ImportRow(dr);
+                }
+            }
+
+            if (dAutoDistributeWriteoff.Rows.Count > 0)
+            {
+                hp.BatchUpdateOrInsert("[dbo].usp_InsertUpdateFundingRepaymentSequenceWriteOff", dAutoDistributeWriteoff, username, "AutoDistributeWriteOff");
+            }
+        }
+
+        public void InsertUpdateXIRROverride(DataTable _xirrOverride, string username)
+        {
+            Helper.Helper hp = new Helper.Helper();
+            DataTable dxirrOverride = new DataTable();
+
+            dxirrOverride.Columns.Add("XIRRConfigID");
+            dxirrOverride.Columns.Add("DealAccountID");
+            dxirrOverride.Columns.Add("XIRR");
+            dxirrOverride.Columns.Add("IsOverride");
+
+            if (_xirrOverride != null)
+            {
+                DataTable dt = new DataTable();
+                dt = _xirrOverride;
+
+                foreach (DataRow dr in dt.Rows)
+                {
+                    dxirrOverride.ImportRow(dr);
+                }
+            }
+
+            if (dxirrOverride.Rows.Count > 0)
+            {
+                hp.BatchUpdateOrInsert("[dbo].usp_InsertUpdateXIRROverride", dxirrOverride, username, "XIRROverride");
+            }
+        }
+
+        public List<DealRelationshipDataContract> GetDealRelationshipByDealID(Guid? dealID)
+        {
+            DataTable dt = new DataTable();
+            Helper.Helper hp = new Helper.Helper();
+            List<DealRelationshipDataContract> lstDealRelationship = new List<DealRelationshipDataContract>();
+            SqlParameter p1 = new SqlParameter { ParameterName = "@DealID", Value = dealID };
+            SqlParameter[] sqlparam11 = new SqlParameter[] { p1 };
+            dt = hp.ExecDataTable("dbo.usp_GetDealRelationshipByDealID", sqlparam11);
+
+            foreach (DataRow dr in dt.Rows)
+            {
+                DealRelationshipDataContract _dealRelationship = new DealRelationshipDataContract();
+
+                _dealRelationship.DealID = new Guid(Convert.ToString(dr["DealID"]));
+                _dealRelationship.LinkedDealID = Convert.ToString(dr["LinkedDealID"]);
+                _dealRelationship.RelationshipText = Convert.ToString(dr["RelationshipText"]);
+                _dealRelationship.RelationshipID = CommonHelper.ToInt32(dr["RelationshipID"]);
+
+                lstDealRelationship.Add(_dealRelationship);
+            }
+            return lstDealRelationship;
+
+        }
+
+        public void SaveDealRelationship(List<DealRelationshipDataContract> _dealRelationship, string username)
+        {
+            Helper.Helper hp = new Helper.Helper();
+            DataTable dDealRelationship = new DataTable();
+
+            dDealRelationship.Columns.Add("DealID");
+            dDealRelationship.Columns.Add("RelationshipID");
+            dDealRelationship.Columns.Add("LinkedDealID");
+
+            if (_dealRelationship != null)
+            {
+                DataTable dt = new DataTable();
+                dt = ObjToDataTable.ToDataTable(_dealRelationship);
+
+                foreach (DataRow dr in dt.Rows)
+                {
+                    dDealRelationship.ImportRow(dr);
+                }
+            }
+
+            if (dDealRelationship.Rows.Count > 0)
+            {
+                hp.BatchUpdateOrInsert("[dbo].usp_SaveDealRelationship", dDealRelationship, username, "Tbl_DealRelationship");
+            }
+        }
+
+
+        public DataTable GetPrepaymentNoteSetupByDealID(Guid? dealID)
+        {
+            DataTable dt = new DataTable();
+            Helper.Helper hp = new Helper.Helper();
+
+            SqlParameter p1 = new SqlParameter { ParameterName = "@DealID", Value = dealID };
+            SqlParameter[] sqlparam11 = new SqlParameter[] { p1 };
+            dt = hp.ExecDataTable("dbo.usp_GetPrepaymentNoteSetup", sqlparam11);
+            return dt;
+
+        }
+
+        public DataTable GetPrepaymentGroupByDealID(Guid? dealID)
+        {
+            DataTable dt = new DataTable();
+            Helper.Helper hp = new Helper.Helper();
+
+            SqlParameter p1 = new SqlParameter { ParameterName = "@DealID", Value = dealID };
+            SqlParameter[] sqlparam11 = new SqlParameter[] { p1 };
+            dt = hp.ExecDataTable("dbo.usp_GetPrepaymentGroupSetup", sqlparam11);
+            return dt;
+
+        }
+
+        public DataTable GetPrepaymentNoteAllocationSetup(Guid? dealID)
+        {
+            DataTable dt = new DataTable();
+            Helper.Helper hp = new Helper.Helper();
+
+            SqlParameter p1 = new SqlParameter { ParameterName = "@DealID", Value = dealID };
+            SqlParameter[] sqlparam11 = new SqlParameter[] { p1 };
+            dt = hp.ExecDataTable("dbo.usp_GetPrepaymentNoteAllocationSetup", sqlparam11);
+            return dt;
+
+        }
+
+        public void UpdateDealForPayoffStatementConfiguration(DealDataContract dealdc)
+        {
+            DataTable dt = new DataTable();
+            Helper.Helper hp = new Helper.Helper();
+
+            SqlParameter p1 = new SqlParameter { ParameterName = "@DealID", Value = dealdc.DealID };
+            SqlParameter p2 = new SqlParameter { ParameterName = "@PrepayDate", Value = dealdc.PrePayDate };
+            SqlParameter p3 = new SqlParameter { ParameterName = "@InternalRefi", Value = dealdc.InternalRefi };
+            SqlParameter p4 = new SqlParameter { ParameterName = "@PortfolioLoan", Value = dealdc.PortfolioLoan };
+            SqlParameter p5 = new SqlParameter { ParameterName = "@AssigningLoanToTakeoutLender", Value = dealdc.AssigningLoanToTakeoutLender };
+            SqlParameter p6 = new SqlParameter { ParameterName = "@NettingofReservesEscrows", Value = dealdc.NettingofReservesEscrows };
+
+            SqlParameter[] sqlparam = new SqlParameter[] { p1,p2,p3,p4,p5,p6 };
+             hp.ExecNonquery("dbo.usp_UpdateDealForPayoffStatementConfiguration", sqlparam);
+         
+
+        }
+
+
+        public int InsertUpdatePrepaymentGroup(DataTable dtPrepaymentGroup, string UserID)
+        {
+            Helper.Helper hp = new Helper.Helper();
+
+            DataTable dataTablePrepaymentGroup = new DataTable();
+
+            dataTablePrepaymentGroup.Columns.Add("PrepaymentGroupSetupID");
+            dataTablePrepaymentGroup.Columns.Add("DealID");
+            dataTablePrepaymentGroup.Columns.Add("GroupId");
+            dataTablePrepaymentGroup.Columns.Add("AttributeName");
+            dataTablePrepaymentGroup.Columns.Add("AttributeValue");
+            dataTablePrepaymentGroup.Columns.Add("IsDeleted");
+
+            if (dtPrepaymentGroup != null)
+            {
+                DataTable dt = new DataTable();
+                dt = dtPrepaymentGroup;
+
+                foreach (DataRow dr in dt.Rows)
+                {
+                    dataTablePrepaymentGroup.ImportRow(dr);
+                }
+            }
+
+            SqlParameter p1 = new SqlParameter { ParameterName = "tbltypePreGroupSetup", Value = dataTablePrepaymentGroup };
+            SqlParameter p2 = new SqlParameter { ParameterName = "UserID", Value = UserID };
+            SqlParameter[] sqlparam = new SqlParameter[] { p1, p2 };
+            return hp.ExecDataTablewithparams("dbo.usp_InsertUpdatePrepaymentGroupSetup", sqlparam);
+        }
+
+        public int InsertUpdatePrepaymentNote(DataTable dtPrepNote, string UserID)
+        {
+            Helper.Helper hp = new Helper.Helper();
+
+            DataTable dataTablePrepNote = new DataTable();
+
+            dataTablePrepNote.Columns.Add("PrepaymentNoteSetupID");
+            dataTablePrepNote.Columns.Add("DealID");
+            dataTablePrepNote.Columns.Add("NoteID");
+            dataTablePrepNote.Columns.Add("AttributeName");
+            dataTablePrepNote.Columns.Add("AttributeValue");
+            dataTablePrepNote.Columns.Add("IsDeleted");
+
+            if (dtPrepNote != null)
+            {
+                DataTable dt = new DataTable();
+                dt = dtPrepNote;
+
+                foreach (DataRow dr in dt.Rows)
+                {
+                    dataTablePrepNote.ImportRow(dr);
+                }
+            }
+
+            SqlParameter p1 = new SqlParameter { ParameterName = "tbltypePreNoteSetup", Value = dataTablePrepNote };
+            SqlParameter p2 = new SqlParameter { ParameterName = "UserID", Value = UserID };
+            SqlParameter[] sqlparam = new SqlParameter[] { p1, p2 };
+            return hp.ExecDataTablewithparams("dbo.usp_InsertUpdatePrepaymentNoteSetup", sqlparam);
+        }
+
+        public int InsertUpdatePrepaymentNoteAllocationSetup(DataTable dtPreNoteAlloc, string UserID)
+        {
+            Helper.Helper hp = new Helper.Helper();
+
+            DataTable dataTablePreNoteAlloc = new DataTable();
+
+            dataTablePreNoteAlloc.Columns.Add("PrepaymentNoteAllocationSetupID");
+            dataTablePreNoteAlloc.Columns.Add("DealID");
+            dataTablePreNoteAlloc.Columns.Add("NoteID");
+            dataTablePreNoteAlloc.Columns.Add("GroupID");
+            dataTablePreNoteAlloc.Columns.Add("GroupPriority");
+            dataTablePreNoteAlloc.Columns.Add("Exclude");
+
+            if (dtPreNoteAlloc != null)
+            {
+                DataTable dt = new DataTable();
+                dt = dtPreNoteAlloc;
+
+                foreach (DataRow dr in dt.Rows)
+                {
+                    dataTablePreNoteAlloc.ImportRow(dr);
+                }
+            }
+
+
+            SqlParameter p1 = new SqlParameter { ParameterName = "tbltypePreNoteAllocSetup", Value = dataTablePreNoteAlloc };
+            SqlParameter p2 = new SqlParameter { ParameterName = "UserID", Value = UserID };
+            SqlParameter[] sqlparam = new SqlParameter[] { p1, p2 };
+            return hp.ExecDataTablewithparams("dbo.usp_InsertUpdatePrepaymentNoteAllocationSetup", sqlparam);
+        }
+
+        public DataTable GetCurrentSpreadfromRateSpreadSchByDealID(string dealID)
+        {
+            DataTable dt = new DataTable();
+            Helper.Helper hp = new Helper.Helper();
+
+            SqlParameter p1 = new SqlParameter { ParameterName = "@DealID", Value = dealID };
+            SqlParameter[] sqlparam11 = new SqlParameter[] { p1 };
+            dt = hp.ExecDataTable("dbo.usp_GetCurrentSpreadfromRateSpreadSchByDealID", sqlparam11);
+            return dt;
+
+        }
+
+        public List<ReserveAccountMasterDataContract> GetAllReserveAccountMaster(Guid? userid)
+        {
+            Helper.Helper hp = new Helper.Helper();
+            List<ReserveAccountMasterDataContract> list = new List<ReserveAccountMasterDataContract>();
+
+            DataTable dt = new DataTable();
+            SqlParameter p1 = new SqlParameter { ParameterName = "@UserID", Value = userid };
+            SqlParameter[] sqlparam = new SqlParameter[] { p1 };
+            dt = hp.ExecDataTable("dbo.usp_GetAllReserveAccountMaster", sqlparam);
+
+            foreach (DataRow dr in dt.Rows)
+            {
+                ReserveAccountMasterDataContract ls = new ReserveAccountMasterDataContract();
+                ls.ReserveAccountMasterID = Convert.ToInt32(dr["ReserveAccountMasterID"]);
+                ls.ReserveAccountName = Convert.ToString(dr["ReserveAccountName"]);
+                list.Add(ls);
+            }
+
+            return list;
+        }
+
+        public void UpdateReserveAccountFromBackshop(ReserveAccountSyncDataContract DealDC, string UserID)
+        {
+            DataTable dt = new DataTable();
+            try
+            {
+                Helper.Helper hp = new Helper.Helper();
+                SqlParameter p1 = new SqlParameter { ParameterName = "@DealIDOrCREDealID ", Value = DealDC.DealID };
+                SqlParameter p2 = new SqlParameter { ParameterName = "@Userid ", Value = UserID };
+
+                SqlParameter[] sqlparam = new SqlParameter[] { p1, p2 };
+                dt = hp.ExecDataTable("dbo.usp_UpdateReserveAccountFromBackshop", sqlparam);
+            }
+            catch (Exception ex)
+            {
+                var exception = ex.Message;
+            }
+        }
+
+
+        public DataTable GetAccountingBasisByDealID(Guid? dealID)
+        {
+            DataTable dt = new DataTable();
+            Helper.Helper hp = new Helper.Helper();
+
+            SqlParameter p1 = new SqlParameter { ParameterName = "@DealID", Value = dealID };
+            SqlParameter[] sqlparam11 = new SqlParameter[] { p1 };
+            dt = hp.ExecDataTable("dbo.usp_GetREOTrackingByDealID", sqlparam11);
+            return dt;
+
+        }
+
+        public DealDashDataContract GetDealDashBoardByid(Guid? DeailId)
+        {
+            DealDashDataContract _dashDC = new DealDashDataContract();
+            DataTable dt = new DataTable();
+            Helper.Helper hp = new Helper.Helper();
+            SqlParameter p1 = new SqlParameter { ParameterName = "@Dealid", Value = DeailId };
+            SqlParameter[] sqlparam = new SqlParameter[] { p1 };
+            dt = hp.ExecDataTable("dbo.usp_GetDashBoardData", sqlparam);
+
+            if (dt.Rows.Count > 0)
+            {
+
+                _dashDC.DealID = new Guid(Convert.ToString(dt.Rows[0]["DealID"]));
+                _dashDC.DealName = Convert.ToString(dt.Rows[0]["DealName"]);
+                _dashDC.CREDealID = Convert.ToString(dt.Rows[0]["CREDealID"]);
+                _dashDC.AssetManager = Convert.ToString(dt.Rows[0]["AssetManager"]);
+                _dashDC.TotalCommitment = CommonHelper.ToDecimal(dt.Rows[0]["TotalCommitment"]);
+                _dashDC.AdjustedTotalCommitment = CommonHelper.ToDecimal(dt.Rows[0]["AdjustedTotalCommitment"]);
+                _dashDC.XIRRValue = CommonHelper.ToDecimal(dt.Rows[0]["XIRRValue"]);
+                _dashDC.FileName = Convert.ToString(dt.Rows[0]["FileName"]);
+                _dashDC.FullyFundedEquity = CommonHelper.ToDecimal(dt.Rows[0]["FullyFundedEquity"]);
+                _dashDC.EquityContributedToDate = CommonHelper.ToDecimal(dt.Rows[0]["EquityContributedToDate"]);
+                _dashDC.BorrowerEquity = CommonHelper.ToDecimal(dt.Rows[0]["BorrowerEquity"]);
+                _dashDC.NextFundingDate = CommonHelper.ToDateTime(dt.Rows[0]["NextFundingDate"]);
+                _dashDC.NextPaydownDate = CommonHelper.ToDateTime(dt.Rows[0]["NextPaydownDate"]);
+                _dashDC.UseRules = Convert.ToString(dt.Rows[0]["UseRules"]);
+                _dashDC.Banker = Convert.ToString(dt.Rows[0]["Banker"]);
+                _dashDC.UpdatedDate = CommonHelper.ToDateTime(dt.Rows[0]["UpdatedDate"]);
+                _dashDC.FundedPercentage = CommonHelper.ToDecimal(dt.Rows[0]["FundedPercentage"]);
+            }
+
+            return _dashDC;
+        }
+
+        public DataTable GetLastUpdatedforDealTabs(Guid? dealID, Guid? userID)
+        {
+            DataTable dt = new DataTable();
+            Helper.Helper hp = new Helper.Helper();
+
+            SqlParameter p1 = new SqlParameter { ParameterName = "@DealID", Value = dealID };
+            SqlParameter p2 = new SqlParameter { ParameterName = "@UserID", Value = userID };
+            SqlParameter[] sqlparam11 = new SqlParameter[] { p1, p2 };
+            dt = hp.ExecDataTable("dbo.usp_GetLastUpdatedforDealTabs", sqlparam11);
+            return dt;
+
+        }
+
+        public DataTable GetDiscrepancyForDuplicateTransactions()
+        {
+            DataTable dt = new DataTable();
+            try
+            {
+                Helper.Helper hp = new Helper.Helper();
+                dt = hp.ExecDataTable("dbo.usp_GetDiscrepancyForDuplicateTransactions");
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+            return dt;
+        }
+
+        public int InsertUpdatePayoffStatementFees(DataTable dtPayoffStatementFees, string UserID)
+        {
+            Helper.Helper hp = new Helper.Helper();
+
+            DataTable dataTablePayoffStatementFees = new DataTable();
+
+            dataTablePayoffStatementFees.Columns.Add("PayoffStatementFeesID");
+            dataTablePayoffStatementFees.Columns.Add("DealID");
+            dataTablePayoffStatementFees.Columns.Add("FeeName");
+            dataTablePayoffStatementFees.Columns.Add("FeeType");
+            dataTablePayoffStatementFees.Columns.Add("Value");
+            dataTablePayoffStatementFees.Columns.Add("Comment");
+
+
+            if (dtPayoffStatementFees != null)
+            {
+                DataTable dt = new DataTable();
+                dt = dtPayoffStatementFees;
+
+                foreach (DataRow dr in dt.Rows)
+                {
+                    dataTablePayoffStatementFees.ImportRow(dr);
+                }
+            }
+
+            SqlParameter p1 = new SqlParameter { ParameterName = "tblPayoffStatementFees", Value = dataTablePayoffStatementFees };
+            SqlParameter p2 = new SqlParameter { ParameterName = "UserID", Value = UserID };
+            SqlParameter[] sqlparam = new SqlParameter[] { p1, p2 };
+            return hp.ExecDataTablewithparams("dbo.usp_InsertUpdatePayoffStatementFees", sqlparam);
+        }
+
+        public DataTable GetPayoffStatementFeesDetailsByDealID(Guid? dealID)
+        {
+            DataTable dt = new DataTable();
+            Helper.Helper hp = new Helper.Helper();
+
+            SqlParameter p1 = new SqlParameter { ParameterName = "@DealID", Value = dealID };
+            SqlParameter[] sqlparam1 = new SqlParameter[] { p1 };
+            dt = hp.ExecDataTable("dbo.usp_GetPayoffStatementFeesDetailsByDealID", sqlparam1);
+            return dt;
+
+        }
+
+        public DataTable ImportDealFromBackshopByCREDealId(string creDealID, string userID)
+        {
+            Helper.Helper hp = new Helper.Helper();
+            DataTable dt = new DataTable();
+            
+            SqlParameter p1 = new SqlParameter { ParameterName = "@DealId", Value = creDealID };
+            SqlParameter p2 = new SqlParameter { ParameterName = "@CreatedBy", Value = userID };
+            SqlParameter p3 = new SqlParameter { ParameterName = "@allowImport", Direction = ParameterDirection.Output, Size = int.MaxValue };
+            SqlParameter p4 = new SqlParameter { ParameterName = "@ValidationMessage", Direction = ParameterDirection.Output, Size = 10};
+            SqlParameter[] sqlparam = new SqlParameter[] { p1, p2, p3, p4 };
+            DataSet ds = hp.ExecDataSet("dbo.usp_ImportDealFromBackshop", sqlparam);
+            if (ds.Tables.Count > 0)
+                dt = ds.Tables[ds.Tables.Count - 1];
+            return dt;
+        }
+
+        public DataTable GetFinancingCommitmentByDealID(string DealID)
+        {
+            Helper.Helper hp = new Helper.Helper();
+
+            DataTable dt = new DataTable();
+            SqlParameter p1 = new SqlParameter { ParameterName = "@DealID", Value = DealID };
+            SqlParameter[] sqlparam = new SqlParameter[] { p1 };
+            dt = hp.ExecDataTable("dbo.usp_GetFinancingSourceCommitmentByDealID", sqlparam);
+
+            return dt;
         }
 
     }

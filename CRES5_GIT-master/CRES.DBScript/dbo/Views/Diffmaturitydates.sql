@@ -17,8 +17,9 @@ else Actualpayoffdate end
  from TransactionEntry T
 Inner Join Note N on N.Noteid = T.Noteid
 Inner join deal d on d.dealkey = n.dealkey
-where Type = 'ScheduledPrincipalPaid' 
+where [Type] = 'ScheduledPrincipalPaid' 
 and Scenario = 'Default'
+and T.AccountTypeID = 1
 
 group by 
 t.Dealname

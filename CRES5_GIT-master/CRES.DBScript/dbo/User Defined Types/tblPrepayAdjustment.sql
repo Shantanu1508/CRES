@@ -2,5 +2,6 @@
 PrepayAdjustmentId	int null,
 Date	date null,
 PrepayAdjAmt	decimal(28,15) null,
-Comment	nvarchar(max)
+Comment	nvarchar(max),
+Isdeleted int
 );

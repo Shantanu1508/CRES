@@ -323,6 +323,7 @@ DECLARE @notequery2 nvarchar(MAX) = N'
       ,n.[PIKInterestAddedToBalanceBasedOnBusinessAdjustedDate]
       ,n.[FundedAndOwnedByThirdParty]
       ,n.[InterestCalculationRuleForPaydownsAmort]
+	  ,n.FirstIndexDeterminationDateOverride
   FROM [CRE].[Note] n
   inner join [CRE].[Deal] d  ON  d.DealID = n.DealID 
   where d.CREDealID = '''+@CREDealID+''' 
@@ -716,6 +717,7 @@ create table ##tblNote
 	[PIKInterestAddedToBalanceBasedOnBusinessAdjustedDate] [int] NULL,
 	[FundedAndOwnedByThirdParty] [bit] NULL,
 	[InterestCalculationRuleForPaydownsAmort] [int] NULL,
+	FirstIndexDeterminationDateOverride Date null,
     [ShardName] nvarchar(max)  NULL 
 )
 
@@ -1083,6 +1085,7 @@ INSERT INTO ##tblNote(
 ,[PIKInterestAddedToBalanceBasedOnBusinessAdjustedDate]
 ,[FundedAndOwnedByThirdParty]
 ,[InterestCalculationRuleForPaydownsAmort]
+,FirstIndexDeterminationDateOverride
 ,[ShardName]
 )
 EXEC sp_execute_remote @data_source_name  = @Env, @stmt = @temp

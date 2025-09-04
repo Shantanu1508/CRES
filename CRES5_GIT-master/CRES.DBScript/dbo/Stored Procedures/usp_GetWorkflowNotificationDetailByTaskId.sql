@@ -241,6 +241,14 @@ BEGIN
 						SELECT AMTeamLeadUserID UserID,df.DealFundingID FROM [CRE].[Deal] d
 						JOIN  CRE.DealFunding df ON df.DealID = d.DealID
 						WHERE df.DealFundingID = @TaskID
+						UNION
+						SELECT AlternateAssetManager2ID UserID,df.DealFundingID FROM [CRE].[Deal] d
+						JOIN  CRE.DealFunding df ON df.DealID = d.DealID
+						WHERE df.DealFundingID = @TaskID
+						UNION
+						SELECT AlternateAssetManager3ID UserID,df.DealFundingID FROM [CRE].[Deal] d
+						JOIN  CRE.DealFunding df ON df.DealID = d.DealID
+						WHERE df.DealFundingID = @TaskID
 						--UNION
 						--select us.UserID,@TaskID DealFundingID from App.EmailNotification e join App.[User] us on us.Email =e.Emailid where ModuleId=552
 						) tbluser on tbluser.DealFundingID =df.DealFundingID
@@ -268,6 +276,9 @@ BEGIN
 						union
 						select '00000000-0000-0000-0000-000000000000' as UserID ,EmailId,'' as UserName ,@tDealID,@tDealName,@tNextStatusName,@TaskID,@tFundingDate,
 						@tFundingAmount,@tDealLine,0 as WorkflowUserTypeID from App.EmailNotification where ModuleId=614
+						union
+						select UserID ,us.Email,us.FirstName +'  '+ us.LastName as UserName ,@tDealID,@tDealName,@tNextStatusName,@TaskID,@tFundingDate,
+						@tFundingAmount,@tDealLine,0 as WorkflowUserTypeID from App.[User] us where [UserID]=@UserID
 
 						 
 				   END
@@ -288,6 +299,14 @@ BEGIN
 						WHERE df.DealFundingID = @TaskID
 						UNION
 						SELECT AMTeamLeadUserID UserID,df.DealFundingID FROM [CRE].[Deal] d
+						JOIN  CRE.DealFunding df ON df.DealID = d.DealID
+						WHERE df.DealFundingID = @TaskID
+						UNION
+						SELECT AlternateAssetManager2ID UserID,df.DealFundingID FROM [CRE].[Deal] d
+						JOIN  CRE.DealFunding df ON df.DealID = d.DealID
+						WHERE df.DealFundingID = @TaskID
+						UNION
+						SELECT AlternateAssetManager3ID UserID,df.DealFundingID FROM [CRE].[Deal] d
 						JOIN  CRE.DealFunding df ON df.DealID = d.DealID
 						WHERE df.DealFundingID = @TaskID
 						--UNION
@@ -317,7 +336,9 @@ BEGIN
 						union
 						select '00000000-0000-0000-0000-000000000000' as UserID ,EmailId,'' as UserName ,@tDealID,@tDealName,@tNextStatusName,@TaskID,@tFundingDate,
 						@tFundingAmount,@tDealLine,0 as WorkflowUserTypeID from App.EmailNotification where ModuleId=614
-
+						union
+						select UserID ,us.Email,us.FirstName +'  '+ us.LastName as UserName ,@tDealID,@tDealName,@tNextStatusName,@TaskID,@tFundingDate,
+						@tFundingAmount,@tDealLine,0 as WorkflowUserTypeID from App.[User] us where [UserID]=@UserID
 
 
 				   END
@@ -443,6 +464,14 @@ BEGIN
 						SELECT AMTeamLeadUserID UserID,df.DealReserveScheduleGUID FROM [CRE].[Deal] d
 						JOIN  CRE.DealReserveSchedule df ON df.DealID = d.DealID
 						WHERE df.DealReserveScheduleGUID = @TaskID
+						UNION
+						SELECT AlternateAssetManager2ID UserID,df.DealReserveScheduleGUID FROM [CRE].[Deal] d
+						JOIN  CRE.DealReserveSchedule df ON df.DealID = d.DealID
+						WHERE df.DealReserveScheduleGUID = @TaskID
+						UNION
+						SELECT AlternateAssetManager3ID UserID,df.DealReserveScheduleGUID FROM [CRE].[Deal] d
+						JOIN  CRE.DealReserveSchedule df ON df.DealID = d.DealID
+						WHERE df.DealReserveScheduleGUID = @TaskID
 						--UNION
 						--select us.UserID,@TaskID DealFundingID from App.EmailNotification e join App.[User] us on us.Email =e.Emailid where ModuleId=552
 						) tbluser on tbluser.DealReserveScheduleGUID =df.DealReserveScheduleGUID
@@ -473,7 +502,9 @@ BEGIN
 						union
 						select '00000000-0000-0000-0000-000000000000' as UserID ,EmailId,'' as UserName ,@tDealID,@tDealName,@tNextStatusName,@TaskID,@tFundingDate,
 						@tFundingAmount,@tDealLine,0 as WorkflowUserTypeID from App.EmailNotification where ModuleId=720 and [Status]=1 and @IsREODeal=1
-
+						union
+						select UserID ,us.Email,us.FirstName +'  '+ us.LastName as UserName ,@tDealID,@tDealName,@tNextStatusName,@TaskID,@tFundingDate,
+						@tFundingAmount,@tDealLine,0 as WorkflowUserTypeID from App.[User] us where [UserID]=@UserID
 						 
 				   END
 				 ELSE IF(@WF_CurrentStatus ='2nd Approval')
@@ -493,6 +524,14 @@ BEGIN
 						WHERE df.DealReserveScheduleGUID = @TaskID
 						UNION
 						SELECT AMTeamLeadUserID UserID,df.DealReserveScheduleGUID FROM [CRE].[Deal] d
+						JOIN  CRE.DealReserveSchedule df ON df.DealID = d.DealID
+						WHERE df.DealReserveScheduleGUID = @TaskID
+						UNION
+						SELECT AlternateAssetManager2ID UserID,df.DealReserveScheduleGUID FROM [CRE].[Deal] d
+						JOIN  CRE.DealReserveSchedule df ON df.DealID = d.DealID
+						WHERE df.DealReserveScheduleGUID = @TaskID
+						UNION
+						SELECT AlternateAssetManager3ID UserID,df.DealReserveScheduleGUID FROM [CRE].[Deal] d
 						JOIN  CRE.DealReserveSchedule df ON df.DealID = d.DealID
 						WHERE df.DealReserveScheduleGUID = @TaskID
 						--UNION
@@ -525,7 +564,9 @@ BEGIN
 						union
 						select '00000000-0000-0000-0000-000000000000' as UserID ,EmailId,'' as UserName ,@tDealID,@tDealName,@tNextStatusName,@TaskID,@tFundingDate,
 						@tFundingAmount,@tDealLine,0 as WorkflowUserTypeID from App.EmailNotification where ModuleId=720 and [Status]=1 and @IsREODeal=1
-
+						union
+						select UserID ,us.Email,us.FirstName +'  '+ us.LastName as UserName ,@tDealID,@tDealName,@tNextStatusName,@TaskID,@tFundingDate,
+						@tFundingAmount,@tDealLine,0 as WorkflowUserTypeID from App.[User] us where [UserID]=@UserID
 
 
 				   END

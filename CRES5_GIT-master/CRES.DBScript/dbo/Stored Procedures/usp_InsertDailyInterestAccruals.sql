@@ -19,25 +19,38 @@ BEGIN
 	DELETE FROM [CRE].[DailyInterestAccruals] WHERE [NoteID]=@NoteId  and AnalysisID = @AnalysisID  
 	INSERT INTO [CRE].[DailyInterestAccruals]
            (
-		   [NoteID]
-           ,[Date]
-           ,DailyInterestAccrual
-		   ,EndingBalance
-           ,[AnalysisID]
+			[NoteID]
+			,[Date]
+			,DailyInterestAccrual
+			,EndingBalance
+			,[AnalysisID]
+			,SpreadOrRate
+			,IndexRate
+			,AllInCouponRate
+			,AllInPikRate
+			,PikSpreadOrRate
+			,PIKIndexRate          
            ,[CreatedBy]
            ,[CreatedDate]
            ,[UpdatedBy]
-           ,[UpdatedDate]) 
+           ,[UpdatedDate]
+		   ) 
 	 Select  
-	  @NoteId  
-	 ,[Date]  
-	 ,DailyInterestAccrual  	 
-	 ,EndingBalance
-	 ,AnalysisID 
-	 ,@CreatedBy  
-	 ,GETDATE()  
-	 ,@CreatedBy  
-	 ,GETDATE() 	 
+		@NoteId  
+		,[Date]  
+		,DailyInterestAccrual  	 
+		,EndingBalance
+		,AnalysisID 
+		,SpreadOrRate
+		,IndexRate
+		,AllInCouponRate
+		,AllInPikRate
+		,PikSpreadOrRate
+		,PIKIndexRate          
+		,@CreatedBy  
+		,GETDATE()  
+		,@CreatedBy  
+		,GETDATE() 	 
 	 FROM @TableTypeDailyInterest 
  
  END  

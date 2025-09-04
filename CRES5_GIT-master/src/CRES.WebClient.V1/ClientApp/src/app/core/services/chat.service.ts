@@ -24,7 +24,7 @@ export class ChatService {
 
 
   // Sends and receives messages via DialogFlow
-  converse(msg: string, _isShowchatpopup:boolean) {
+  converse(msg: string, _isShowchatpopup: boolean) {
     var usertokenUI = localStorage.getItem('AITokenUId');
     var usertoken = localStorage.getItem('AIToken');
     var loginsession = localStorage.getItem('AISession');
@@ -42,7 +42,7 @@ export class ChatService {
     this.intentName = '';
     this.formValue = "";
     var headers = new HttpHeaders();
-    headers = headers.append("auth_key", _API_Key); 
+    headers = headers.append("auth_key", _API_Key);
     var JSONdata = {
       "user_utterance": msg,
       "client_api_auth_token": usertokenUI + '|' + usertoken,
@@ -54,39 +54,39 @@ export class ChatService {
       this.accountService.postforAIchat(_dialogflowbaseurl, JSONdata, headers)
         .subscribe(val => {
           let speech: any;
-        if (val) {
-          speech = val;
-        } else {
-          speech = { speech: speech, type: 'text' };
-        }
-        const botMessage = new Message(
-          new MsgSpeech(speech.output, speech.type, speech.status, speech.intent_name),
-          'bot',
-          this.create_UUID(),
-          false
-        );
-        this.botstatus = speech.status;
-        this.intentName = speech.intent_name;
-        this.update(botMessage, _isShowchatpopup);
-      });
+          if (val) {
+            speech = val;
+          } else {
+            speech = { speech: speech, type: 'text' };
+          }
+          const botMessage = new Message(
+            new MsgSpeech(speech.output, speech.type, speech.status, speech.intent_name),
+            'bot',
+            this.create_UUID(),
+            false
+          );
+          this.botstatus = speech.status;
+          this.intentName = speech.intent_name;
+          this.update(botMessage, _isShowchatpopup);
+        });
     } catch (err) {
-         console.log("AI_Assistant ", "info", " Question :" + this.QuesAnsasked + " : No response from dialog Flow API");
+      console.log("AI_Assistant ", "info", " Question :" + this.QuesAnsasked + " : No response from dialog Flow API");
     }
 
   }
 
   create_UUID() {
-  var dt = new Date().getTime();
-  var uuid = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
-    var r = (dt + Math.random() * 16) % 16 | 0;
-    dt = Math.floor(dt / 16);
-    return (c == 'x' ? r : (r & 0x3 | 0x8)).toString(16);
-  });
-  return uuid;
-  } 
+    var dt = new Date().getTime();
+    var uuid = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+      var r = (dt + Math.random() * 16) % 16 | 0;
+      dt = Math.floor(dt / 16);
+      return (c == 'x' ? r : (r & 0x3 | 0x8)).toString(16);
+    });
+    return uuid;
+  }
 
   // Adds message to source
-  update(msg: Message, _isShowchatpopup:boolean) {
+  update(msg: Message, _isShowchatpopup: boolean) {
     let content: any = msg.content;
     var openurl: any = "";
     if (msg.sentBy == 'bot') {
@@ -111,6 +111,11 @@ export class ChatService {
           this._isnewpageRender = true;
           var dealindex = openurl.indexOf("dealdetail/");
           var noteindex = openurl.indexOf("notedetail/");
+
+          var debtindex = openurl.indexOf("debt/");
+          var equityindex = openurl.indexOf("equity/");
+          var liabilityNoteindex = openurl.indexOf("liabilityNote/");
+
           if (dealindex > 0) {
             var _url = openurl.split("dealdetail/");
             var dealid = _url[1];
@@ -131,6 +136,38 @@ export class ChatService {
               this._pagePath = ['notedetail/a', noteid];
             }
           }
+          if (equityindex > 0) {
+            var _url = openurl.split("equity/");
+            var dealid = _url[1];
+            if (window.location.href.indexOf("equity/n") > -1) {
+              this._pagePath = ['equity/u', dealid];
+            }
+            else {
+              this._pagePath = ['equity/n', dealid];
+            }
+          }
+
+          if (debtindex > 0) {
+            var _url = openurl.split("debt/");
+            var dealid = _url[1];
+            if (window.location.href.indexOf("debt/n") > -1) {
+              this._pagePath = ['debt/u', dealid];
+            }
+            else {
+              this._pagePath = ['debt/n', dealid];
+            }
+          }
+          if (liabilityNoteindex > 0) {
+            var _url = openurl.split("liabilityNote/");
+            var dealid = _url[1];
+            if (window.location.href.indexOf("liabilityNote/n") > -1) {
+              this._pagePath = ['liabilityNote/u', dealid];
+            }
+            else {
+              this._pagePath = ['liabilityNote/n', dealid];
+            }
+          }
+
           this._router.navigate(this._pagePath);
           break;
         case 'text':
@@ -169,7 +206,7 @@ export class ChatService {
   }
 
   DownloadFile(msg: Message, downloadurl: string) {
-    var usertokenUI:any = localStorage.getItem('AITokenUId');
+    var usertokenUI: any = localStorage.getItem('AITokenUId');
     var TokenUId = usertokenUI;
     this.httpClient.get(downloadurl, { headers: TokenUId })
       .pipe(map((res: any) => (res)))
@@ -204,11 +241,11 @@ export class ChatService {
         window.URL.revokeObjectURL(url);
         msg.enableLoading = false;
       },
-      (error) => {
-        msg.enableLoading = false;
-        console.log(error);
-      }
-    );
+        (error) => {
+          msg.enableLoading = false;
+          console.log(error);
+        }
+      );
   }
 
   ConvertToCSV(objArray) {
@@ -230,7 +267,7 @@ export class ChatService {
   }
 
   sendMessage(message: string) {
-    this.subject.next({ text: message});
+    this.subject.next({ text: message });
   }
 
   clearMessages() {

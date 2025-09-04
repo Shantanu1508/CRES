@@ -17,6 +17,6 @@
 
 GO
 CREATE NONCLUSTERED INDEX [IX_WFTaskDetail_WFStatusPurposeMappingID]
-    ON [CRE].[WFTaskDetail]([WFStatusPurposeMappingID] ASC)
+    ON [CRE].[WFTaskDetail]([WFStatusPurposeMappingID] ASC,TaskTypeID)
     INCLUDE([TaskID]);
 

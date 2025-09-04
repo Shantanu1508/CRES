@@ -1,0 +1,476 @@
+<form #f="ngForm">
+  <div class="col-sm-12">
+    <div class="head fixheaderdiv">
+
+      <div id="sucessmessagediv" *ngIf="_Showmessagediv" class="alert alert-success fade in">
+        <strong>{{_ShowmessagedivMsg }}</strong>
+      </div>
+      <h1 style="display: inline-block;margin-top: 5px;">
+        Liability Note Details: <a style="color: #2196f3 !important; cursor: pointer;" routerLink='/dealdetail/{{DealID}}' routerLinkActive="active">{{DealName}}</a>\{{_note.LiabilityNoteID}}
+      </h1>
+
+      <span *ngIf="_isShowCancel">
+        <button type="button" style="width: 140px !important; margin-right: 30px !important" class="custombutton" (click)="DiscardChanges()">Cancel</button>
+      </span>
+      <!--<span *ngIf="_isShowCalcNotes">
+        <button type="button" style="width: 140px !important;" class="custombutton" (click)="calcNotes()">Calc Notes</button>
+      </span>-->
+      <span *ngIf="_isShowSave">
+        <button type="button" style="width: 140px !important;" class="custombutton" (click)="CheckDuplicateDebtAndSave()">Save</button>
+      </span>
+    </div>
+
+    <div class="fmst fixheadercontent">
+      <div class="cssload-container" *ngIf="_isListFetching">
+        <div class="cssload-whirlpool"></div>
+      </div>
+      <div class="box1a">
+        <div class="form-group row pD10">
+          <div class="col-sm-4">
+            <label class="lbl1" style="margin-top:10px !important;"><b>{{lbladvnacerate}} </b> {{txtCurrentAdvanceRate}}</label>
+          </div>
+          <div class="col-sm-4">
+            <label class="lbl1" style="margin-top:10px !important;"><b>Current Balance:</b> {{txtCurrentBalanceValue}}</label>
+          </div>
+
+          <div class="col-sm-4">
+            <label class="lbl1" style="margin-top:10px !important;"><b>{{lblUndrawn}}</b> {{txtUndrawnCapacity}}</label>
+          </div>
+
+        </div>
+        <div class="form-group row pD10" style="margin-top:10px;">
+
+          <div class="col-sm-3">
+            <label class="lab1">Liability Note ID</label>
+            <input class="ibox1" id="txtLiabilityID" type="text" [(ngModel)]="_note.LiabilityNoteID" name="LiabilityNoteID" #LiabilityNoteID="ngModel">
+          </div>
+          <div class="col-sm-3">
+            <label class="lab1">Liability Type</label>
+            <select [(ngModel)]="_note.DebtEquityTypeID" id="DebtEquityTypeID" name="DebtEquityTypeID" #DebtEquityTypeID="ngModel" class="ibox1" (ngModelChange)="onLiabilityTypeChange($event)">
+              <option *ngFor="let item of lstTypesofdebtequity" [value]="item.LookupID">
+                {{ item.Name }}
+              </option>
+            </select>
+          </div>
+
+          <div class="col-sm-3">
+            <label class="lab1">
+              Facility
+              <a style="cursor: pointer;">
+                <img src="../assets/images/re-link-square-02.png" alt="View" title="Open Facility" class="action-button-image" (click)="OpenPage()">
+              </a>
+            </label>
+            <select [(ngModel)]="_note.LiabilityTypeID" id="LiabilityTypeID" name="LiabilityTypeID" #LiabilityTypeID="ngModel" class="ibox1" (change)="FacilityChange($event.target.value)">
+              <option *ngFor="let item of filteredFacilities" [value]="item.LookupIDGuID">
+                {{ item.Name }}
+              </option>
+            </select>
+          </div>
+
+          <div class="col-sm-3">
+            <label class="lab1">Asset ID(Deal Name or Note ID)</label>
+            <select [(ngModel)]="_note.AssetAccountID" id="ddlAssetID" name="AssetAccountID" #AssetAccountID="ngModel" class="ibox1" (change)="AssetIDChange($event.target.value)">
+              <option *ngFor="let Asset of lAssetList" value={{Asset.LookupIDGuID}}>
+                {{Asset.Name}}
+              </option>
+            </select>
+          </div>
+          <div class="clearfix"></div>
+
+          <div class="col-sm-3">
+            <label class="lab1">Asset Notes</label>
+            <wj-multi-select #theMultiSelect
+                             class="ibox1 multiselect-dropdown display-table-cell"
+                             [showSelectAllCheckbox]="showSelectAllCheckbox"
+                             [itemsSource]="filteredAssetList"
+                             [displayMemberPath]="'AssetIdName'"
+                             [(checkedItems)]="selectedAssetNotes"
+                             [checkedMemberPath]="'active'"
+                             [isRequired]="false"
+                             [isEditable]="selectedAccountTypeId !== 1"
+                             [ngStyle]="{backgroundColor: selectedAccountTypeId  == 1 ? '#E0E0E0' : ''}"
+                             [isReadOnly]="selectedAccountTypeId  == 1 ? true : false">
+            </wj-multi-select>
+          </div>
+          <div class="col-sm-3">
+            <label class="lab1">Status</label>
+            <select [(ngModel)]="_note.Status" id="ddlStatus" name="Status" #Status="ngModel" class="ibox1" (change)="StatusChange($event.target.value)">
+              <option value=1>Active</option>
+              <option value=2>Inactive</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+
+      <div class="box1a">
+        <h3>Effective Date Based Setup</h3>
+        <div class="form-group row pD10">
+
+          <div class="col-sm-12">
+
+            <button id="btnVHGeneralSetupDetails" *ngIf="ShowHideFlagGeneralSetupDetails" type="button" class="custombutton viewScheduleButton" (click)="showDialog('GeneralSetupDetailsLiabilityNote')" style="margin-right: 10px !important"> View History {{EffectiveDateCountGeneralSetupDetailsLiabilityNote }}</button>
+          </div>
+
+          <div class="col-sm-3">
+            <label class="lab1">Effective Date</label>
+            <wj-input-date id="EffectiveDate" name="EffectiveDate" [(ngModel)]="_note.EffectiveDate" #EffectiveDate="ngModel" [format]="'M/d/yyyy'" class="ibox1 rightalign" [isRequired]="false" [placeholder]="'M/d/yyyy'"></wj-input-date>
+          </div>
+
+
+          <div class="col-sm-3">
+            <label class="lab1">{{lblPaydown}}</label>
+            <wj-input-number name="PaydownAdvanceRate" [isRequired]="false" [(ngModel)]="_note.PaydownAdvanceRate" #PaydownAdvanceRate="ngModel" class="ibox1 rightalign" [format]="'p2'"></wj-input-number>
+          </div>
+          <div class="col-sm-3">
+            <label class="lab1">  {{lblFunding}}</label>
+            <wj-input-number name="FundingAdvanceRate" [isRequired]="false" [(ngModel)]="_note.FundingAdvanceRate" #FundingAdvanceRate="ngModel" class="ibox1 rightalign" [format]="'p2'"></wj-input-number>
+          </div>
+
+          <div class="col-sm-3">
+            <label class="lab1"> {{lblTarget}}</label>
+            <wj-input-number name="TargetAdvanceRate" [isRequired]="false" [(ngModel)]="_note.TargetAdvanceRate" #TargetAdvanceRate="ngModel" class="ibox1 rightalign" [format]="'p2'"></wj-input-number>
+          </div>
+
+          <div class="col-sm-3">
+            <label class="lab1">Maturity Date</label>
+            <wj-input-date name="MaturityDate" [(ngModel)]="_note.MaturityDate" #MaturityDate="ngModel" [format]="'M/d/yyyy'" class="ibox1 rightalign" [isRequired]="false" [placeholder]="'M/d/yyyy'"></wj-input-date>
+          </div>
+
+          <div class="col-sm-3">
+            <label class="lab1">3rd Party Ownership</label>
+            <wj-input-number name="ThirdPartyOwnership" [isRequired]="false" [(ngModel)]="_note.ThirdPartyOwnership" ThirdPartyOwnership="ngModel" class="ibox1 rightalign" [format]="'p2'"></wj-input-number>
+          </div>
+          <div class="col-sm-3">
+            <label class="lab1">Pledge Date</label>
+            <wj-input-date name="PledgeDate" [(ngModel)]="_note.PledgeDate" #PledgeDate="ngModel" [format]="'M/d/yyyy'" class="ibox1 rightalign" [isRequired]="false" [placeholder]="'M/d/yyyy'"></wj-input-date>
+          </div>
+
+          <div class="col-sm-3">
+            <label class="lab1">Liability Source</label>
+            <select [(ngModel)]="_note.LiabilitySource" id="LiabilitySource" name="LiabilitySource" #LiabilitySource="ngModel" (change)="LiabilitySourceChange($event.target.value)" class="ibox1">
+              <option *ngFor="let LiabilitySource of lstLiabilitySource" value={{LiabilitySource.LookupID}}>
+                {{LiabilitySource.Name}}
+              </option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div class="box1a">
+        <h3>Liability Note Assumptions</h3>
+        <div>
+          <span class="customheading mt-15 ml">
+            Use Note Level Override
+            <input type="checkbox" [(ngModel)]="_note.UseNoteLevelOverride" id="UseNoteLevelOverride"
+                   name="UseNoteLevelOverride" #UseNoteLevelOverride="ngModel" [checked]="UseNoteLevelOverride.checked" />
+          </span>
+
+          <div class="ml">
+            <div class="form-group row pD10" style="margin-left:5px">
+              <div class="col-sm-3">
+                <label class="lab1">Accrual Frequency</label>
+                <wj-input-number [isRequired]="false" [(ngModel)]="_note.AccrualFrequency" #AccrualFrequency="ngModel" name="AccrualFrequency" id="AccrualFrequency" class="ibox1 rightalign" [format]="'n0'"></wj-input-number>
+              </div>
+              <div class="col-sm-3">
+                <label class="lab1">Accrual End Date Business Day Lag</label>
+                <wj-input-number [isRequired]="false" [(ngModel)]="_note.AccrualEndDateBusinessDayLag" #AccrualEndDateBusinessDayLag="ngModel" name="AccrualEndDateBusinessDayLag" id="AccrualEndDateBusinessDayLag" class="ibox1 rightalign" [format]="'n0'"></wj-input-number>
+              </div>
+              <div class="col-sm-3">
+                <label class="lab1">Pay Frequency</label>
+                <wj-input-number [isRequired]="false" [(ngModel)]="_note.PayFrequency" #PayFrequency="ngModel" name="PayFrequency" id="PayFrequency" class="ibox1 rightalign" [format]="'n0'"></wj-input-number>
+              </div>
+              <div class="col-sm-3">
+                <label class="lab1">Rounding Method</label>
+                <select [(ngModel)]="_note.RoundingMethod" #RoundingMethod="ngModel" id="RoundingMethod" name="RoundingMethod" class="ibox1" (change)="RoundingMethodChange($event.target.value)">
+                  <option value=250>Nearest</option>
+                  <option value=251>Up</option>
+                  <option value=252>Down</option>
+                </select>
+              </div>
+              <div class="clearfix"></div>
+              <div class="col-sm-3">
+                <label class="lab1">Index Rounding Rule</label>
+                <wj-input-number name="IndexRoundingRule" id="IndexRoundingRule" [(ngModel)]="_note.IndexRoundingRule" #IndexRoundingRule="ngModel" [isRequired]="false" class="ibox1 rightalign" [format]="'n0'"></wj-input-number>
+              </div>
+
+
+              <div class="col-sm-3">
+                <label class="lab1">Reset Index Daily</label>
+                <select [(ngModel)]="_note.ResetIndexDaily" id="ResetIndexDaily" name="ResetIndexDaily" class="ibox1" (change)="ResetIndexDailyChange($event.target.value)">
+                  <option value=3>Y</option>
+                  <option value=4>N</option>
+                </select>
+              </div>
+
+
+              <div class="col-sm-3">
+                <label class="lab1">Payment Date Accrual Period</label>
+                <select [(ngModel)]="_note.pmtdtaccper" id="pmtdtaccper" name="pmtdtaccper" class="ibox1" (change)="pmtdtaccperChange($event.target.value)">
+                  <option value=905>Current</option>
+                  <option value=906>Preceding</option>
+                </select>
+              </div>
+
+            </div>
+          </div>
+
+          <div class="re-separator">
+          </div>
+
+          <div class="mt-30 ml">
+            <span class="customheading">Interest Expense Setup</span>
+            <div class="col-sm-12">
+              <button id="btnVHInterestExpense" type="button" class="custombutton viewScheduleButton" (click)="showDialog('InterestExpenseSchedule')" style="margin-right: 10px !important"> View History {{EffectiveDateCountInterestExpenseSchedule}}</button>
+              <button id="btnDeleteInterestExpense" type="button" class="custombutton viewScheduleButton" (click)="DeleteInterestExpenseSchedule()" style="margin-right: 10px !important"> Delete </button>
+            </div>
+
+            <div class="form-group row pD10" style="margin-left:5px">
+              <div class="col-sm-3">
+                <label class="lab1">Effective date</label>
+                <wj-input-date name="EffectiveDateInterestExpense" [(ngModel)]=" _note.SelectedEffectiveDate" #EffectiveDateInterestExpense="ngModel" [format]="'M/d/yyyy'" class="ibox1 rightalign" [isRequired]="false" [placeholder]="'M/d/yyyy'"></wj-input-date>
+              </div>
+              <div class="col-sm-3">
+                <label class="lab1">Initial Interest Accrual End Date</label>
+                <wj-input-date id="InitialInterestAccrualEnddate" name="InitialInterestAccrualEnddate" [(ngModel)]="_note.SelectedInitialInterestAccrualEnddate" #InitialInterestAccrualEnddate="ngModel" [format]="'M/d/yyyy'" class="ibox1 rightalign" [isRequired]="false" [placeholder]="'M/d/yyyy'"></wj-input-date>
+              </div>
+              <div class="col-sm-3">
+                <label class="lab1">Payment Day of Month</label>
+                <wj-input-number [isRequired]="false" [(ngModel)]="_note.SelectedPaymentDayMonth" #PaymentDayMonth="ngModel" name="PaymentDayMonth" id="PaymentDayMonth" class="ibox1 rightalign" [format]="'n0'"></wj-input-number>
+              </div>
+              <div class="col-sm-3">
+                <label class="lab1">Payment Date Business Day Lag</label>
+                <wj-input-number [isRequired]="false" [(ngModel)]="_note.SelectedPaymentDateBusinessDayLag" #PaymentDateBusinessDayLag="ngModel" name="PaymentDateBusinessDayLag" id="PaymentDateBusinessDayLag" class="ibox1 rightalign" [format]="'n0'"></wj-input-number>
+              </div>
+              <div class="col-sm-3">
+                <label class="lab1">Determination Date Lead Days</label>
+                <wj-input-number [isRequired]="false" [(ngModel)]="_note.SelectedDeterminationdateleaddays" #Determinationdateleaddays="ngModel" name="Determinationdateleaddays" id="Determinationdateleaddays" class="ibox1 rightalign" [format]="'n0'"></wj-input-number>
+              </div>
+              <div class="col-sm-3">
+                <label class="lab1">Determination Date Reference Day of the Month</label>
+                <wj-input-number [isRequired]="false" [(ngModel)]="_note.SelectedDeterminationDateRefDayMonth" #DeterminationDateRefDayMonth="ngModel" name="DeterminationDateRefDayMonth" id="DeterminationDateRefDayMonth" class="ibox1 rightalign" [format]="'n0'"></wj-input-number>
+              </div>
+              <div class="col-sm-3">
+                <label class="lab1">First Rate Index Reset Date</label>
+                <wj-input-date id="FirstRateIndexResetDate" name="FirstRateIndexResetDate" [(ngModel)]="_note.SelectedFirstRateIndexResetDate" [format]="'M/d/yyyy'" class="ibox1 rightalign" [isRequired]="false" [placeholder]="'M/d/yyyy'"></wj-input-date>
+              </div>
+              <div class="col-sm-3">
+                <label class="lab1">Initial Index Value Override</label>
+                <wj-input-number [isRequired]="false" [(ngModel)]="_note.SelectedInitialIndexValueOverride" name="InitialIndexValueOverride" id="InitialIndexValueOverride" class="ibox1 rightalign" [format]="'p7'"></wj-input-number>
+              </div>
+
+              <div class="col-sm-3">
+                <label class="lab1">Recourse</label>
+                <wj-input-number [isRequired]="false" [(ngModel)]="_note.SelectedRecourse" name="Recourse" id="Recourse" class="ibox1 rightalign" [format]="'p7'"></wj-input-number>
+              </div>
+            </div>
+          </div>
+
+          <div class="re-separator">
+          </div>
+          <div class="mt-30 ml">
+            <span class="customheading">Rate Spread Schedule</span>
+            <div class="form-group row pD10">
+
+              <div class="col-sm-1" style="width:110px">
+                <label class="lab1"><b>Effective date</b></label>
+              </div>
+              <div class="col-sm-3">
+                <wj-input-date name="LatestEffectiveDaterateSchedule" [(ngModel)]=" _note.LatestEffectiveDaterateSchedule" #LatestEffectiveDaterateSchedule="ngModel" [format]="'M/d/yyyy'" class="ibox1 rightalign" [isRequired]="false" [placeholder]="'M/d/yyyy'"></wj-input-date>
+              </div>
+              <div>
+                <button id="btnVHRateSpreadSchedule" *ngIf="ShowHideFlagRateSpreadSchedule" type="button" class="custombutton viewScheduleButton" (click)="showDialog('RateSpreadScheduleLiability')" style="margin-right: 10px !important"> View History {{EffectiveDateCountRateSpreadSchedule }}</button>
+              </div>
+            </div>
+            <div class="form-group row pD10">
+              <div class="col-sm-12 customgridpadding">
+                <wj-flex-grid id="flexrss" #flexrss [itemsSource]="cvRatespreadschedule" [allowAddNew]="true"
+                              [allowResizing]="'Both'" class="gridSize" keyActionTab="Cycle"
+                              selection-mode="Row">
+                  <wj-flex-grid-filter #filter [filterColumns]="['Date','ValueTypeText','Value','IntCalcMethodText','RateOrSpreadToBeStripped','IndexNameText','DeterminationDateHolidayListText']"></wj-flex-grid-filter>
+                  <wj-flex-grid-column [header]="'Date'" [binding]="'Date'" align="right" style="border:1px solid red" [width]="'*'" [format]="'MM/dd/yyyy'" [dataType]="'Date'"> </wj-flex-grid-column>
+                  <wj-flex-grid-column [name]="'ValueType'" [header]="'Value Type'" [binding]="'ValueTypeText'" style="border:1px solid red" [width]="'*'"></wj-flex-grid-column>
+                  <wj-flex-grid-column [header]="'Value'" [binding]="'Value'" align="right" style="border:1px solid red" format="p2" [dataType]="'Number'" [width]="'*'"> </wj-flex-grid-column>
+                  <wj-flex-grid-column [name]="'Calc Method'" [header]="'Calc Method'" [binding]="'IntCalcMethodText'" style="border:1px solid red" [width]="'*'"></wj-flex-grid-column>
+                  <wj-flex-grid-column [header]="'Rate Or Spread To Be Stripped'" [binding]="'RateOrSpreadToBeStripped'" align="right" style="border:1px solid red" format="p2" [dataType]="'Number'" [width]="200"> </wj-flex-grid-column>
+                  <wj-flex-grid-column [name]="'Index Name'" [header]="'Index Name'" [binding]="'IndexNameText'" style="border:1px solid red" [width]="'*'"></wj-flex-grid-column>
+                  <wj-flex-grid-column [name]="'Determination Date Holiday List'" [header]="'Determination Date Holiday List'" [binding]="'DeterminationDateHolidayListText'" style="border:1px solid red" [width]="230"></wj-flex-grid-column>
+
+                  <wj-flex-grid-column [name]="'buttons'" [header]="'Delete'" [isReadOnly]="true" align="left" [width]="80">
+                    <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
+                      <a style="text-decoration: underline;" (click)="showDeleteDialog(cell.row.index,'Rate Spread Schedule')">Delete</a>
+                    </ng-template>
+                  </wj-flex-grid-column>
+                </wj-flex-grid>
+              </div>
+            </div>
+          </div>
+
+          <div class="re-separator">
+          </div>
+          <div class="mt-30 ml">
+            <span class="customheading">Fee Schedule</span>
+            <div class="form-group row pD10">
+              <div class="col-sm-1" style="width:110px">
+                <label class="lab1"><b>Effective date</b></label>
+              </div>
+              <div class="col-sm-3">
+                <wj-input-date name="EffectiveDateFeeSchedule" [(ngModel)]="_note.EffectiveDateFeeSchedule" #EffectiveDateFeeSchedule="ngModel" [format]="'M/d/yyyy'" class="ibox1 rightalign" [isRequired]="false" [placeholder]="'M/d/yyyy'"></wj-input-date>
+              </div>
+              <div>
+                <button id="btnVHFeeSchedule" *ngIf="ShowHideFlagFeeSchedule" type="button" class="custombutton viewScheduleButton" (click)="showDialog('PrepayAndAdditionalFeeScheduleLiability')" style="margin-right: 10px !important"> View History {{EffectiveDateCountFeeSchedule }}</button>
+              </div>
+            </div>
+            <div class="form-group row pD10">
+              <wj-flex-grid #flexFeeSchedule [itemsSource]="cvFeeSchedule" class="gridSize" auto-size-mode="Headers" [allowResizing]="'Both'" [allowAddNew]="true" keyActionTab="Cycle">
+                <wj-flex-grid-filter #filter [filterColumns]="['FeeName','StartDate','EndDate','FeeTypeText','Fee','FeeAmountOverride','BaseAmountOverride','ApplyTrueUpFeatureText','IncludedLevelYield','PercentageOfFeeToBeStripped']"></wj-flex-grid-filter>
+                <wj-flex-grid-column [header]="'Fee Name'" [binding]="'FeeName'" [width]="180"></wj-flex-grid-column>
+                <wj-flex-grid-column [header]="'Start Date'" [binding]="'StartDate'" [align]="'right'" [width]="140" [format]="'MM/dd/yyyy'" [dataType]="'Date'"></wj-flex-grid-column>
+                <wj-flex-grid-column [header]="'End Date'" [binding]="'EndDate'" [align]="'right'" [width]="140" [format]="'MM/dd/yyyy'" [dataType]="'Date'"></wj-flex-grid-column>
+                <wj-flex-grid-column [header]="'Fee Type'" [binding]="'FeeTypeText'" [width]="200"></wj-flex-grid-column>
+                <wj-flex-grid-column [header]="'Fee(%)'" [binding]="'Fee'" [align]="'right'" [width]="150" format="p2" [dataType]="'Number'"></wj-flex-grid-column>
+                <wj-flex-grid-column [header]="'Fee Amount Override'" [binding]="'FeeAmountOverride'" [align]="'right'" [width]="160" format="n2" [dataType]="'Number'"></wj-flex-grid-column>
+                <wj-flex-grid-column [header]="'Base Amount Override'" [binding]="'BaseAmountOverride'" [align]="'right'" [width]="170" format="n2" [dataType]="'Number'"></wj-flex-grid-column>
+                <wj-flex-grid-column [header]="'Apply True Up'" [binding]="'ApplyTrueUpFeatureText'" [width]="140"></wj-flex-grid-column>
+                <wj-flex-grid-column [header]="'In Lv Yield Calc'" [binding]="'IncludedLevelYield'" [align]="'right'" [width]="160" format="p2" [dataType]="'Number'"></wj-flex-grid-column>
+                <wj-flex-grid-column [header]="'Fee To Be Stripped'" [binding]="'PercentageOfFeeToBeStripped'" [align]="'right'" [width]="160" format="p2" [dataType]="'Number'"></wj-flex-grid-column>
+                <wj-flex-grid-column [name]="'Addbuttons'" [header]="'Add'" [isReadOnly]="true" align="left" [width]="60">
+                  <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
+                    <a style="text-decoration: underline;" (click)="AddPrepayAndAdditionalFeeScheduleLiabilityDetail(cell.item)">Add</a>
+                  </ng-template>
+                </wj-flex-grid-column>
+                <wj-flex-grid-column [name]="'buttons'" [header]="'Delete'" [isReadOnly]="true" align="left" [width]="80">
+                  <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
+                    <a style="text-decoration: underline;" (click)="showDeleteDialog(cell.row.index,'Fee Schedule')">Delete</a>
+                  </ng-template>
+                </wj-flex-grid-column>
+              </wj-flex-grid>
+            </div>
+          </div>
+        </div>
+
+
+      </div>
+
+
+
+      <div id="myModalDelete" class="modal">
+        <div class="modal-dialog" draggable="true" id="myModal-Delete" style="min-height:300px;width:500px">
+          <!-- Modal content -->
+          <div class="modal-content" style="padding:0px;border:0px;">
+            <div class="modal-header" style="background:#2196f3 !important">
+              <span class="customheading" style="color:white !important">Delete : {{modulename}}</span>
+              <span class="close" (click)="CloseDeletePopUp()">×</span>
+            </div>
+
+            <div class="modal-body">
+              <span class="customheading">Are you sure you want to delete it?</span>
+            </div>
+            <div class="modal-footer" style="background-color:white !important;">
+              <button type="button" (click)="CloseDeletePopUp()" class="custombutton" style="width:100px !important">Cancel</button>
+              <button type="button" (click)="deleteRow()" class="custombutton" style="width:100px !important">Ok</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal fade" id="myModalDelete" role="dialog">
+        <div class="modal-dialog">
+
+          <!-- Modal content-->
+          <div class="modal-content">
+            <div class="modal-header">
+              <button type="button" class="close" data-dismiss="modal">&times;</button>
+              <h4 class="modal-title">Modal Header</h4>
+            </div>
+            <div class="modal-body">
+              <p>Some text in the modal.</p>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="myModal" class="modal">
+        <div class="modal-dialog" draggable="true" id="modal-dialog" style="min-height:300px;width:1100px">
+          <!-- Modal content -->
+          <div class="modal-content" style="padding:0px;border:0px;">
+            <div class="modal-header" style="background:#2196f3 !important;color:white !important;">
+              {{modulename}}
+
+              <span class="close closeWhite" (click)="ClosePopUp()">×</span>
+            </div>
+
+            <div class="modal-body">
+
+              <span *ngIf="_dvEmptyPeriodicDataMsg"><b> {{calcExceptionMsg}}</b></span>
+
+              <div class="cssload-container" *ngIf="_isPeriodicDataFetching">
+                <div class="cssload-whirlpool"></div>
+              </div>
+
+
+              <div *ngIf="_isPeriodicDataFetched">
+
+                <wj-flex-grid id="grdPeriodicData" #grdPeriodicData [itemsSource]="lstPeriodicDataList"
+                              [allowResizing]="'Both'"
+                              [isReadOnly]="true" class="popupGridSize" [frozenColumns]="1"
+                              (copied)="CopyGridDataWithHeader(grdPeriodicData,$event)" keyActionTab="Cycle">
+                  <wj-flex-grid-filter #filter></wj-flex-grid-filter>
+                  <wj-flex-grid-column *ngFor="let col of columns"
+                                       [header]="col.header"
+                                       [binding]="col.binding"
+                                       [format]="col.format">
+                  </wj-flex-grid-column>
+                </wj-flex-grid>
+              </div>
+
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="dialogoverlay"></div>
+      <div id="dialogbox">
+
+        <div>
+          <div class="modal-header" style="background:#2196f3 !important">
+            <span class="customheading" style="color:white !important">CRES - Validation Error</span>
+            <span class="close" (click)="ok()">×</span>
+          </div>
+          <div id="dialogboxbody"></div>
+          <div id="dialogboxfoot"><span class="btn custombutton" (click)="ok()">Ok</span></div>
+        </div>
+      </div>
+
+
+      <div id="myModalPrepayAndAdditionalFeeScheduleLiabilityDetail" class="modal">
+        <div class="modal-dialog" draggable="true" id="modal-dialog" style="min-height:300px;width:1100px">
+          <!-- Modal content -->
+          <div class="modal-content" style="padding:0px;border:0px;">
+            <div class="modal-header" style="background:#2196f3 !important;color:white !important;">
+              <span class="customheading" style="color:white !important">Fee Schedule Detail - {{this.modelheaderFeeName}} : {{this.modelheaderDate}}</span>
+              <span class="close closeWhite" (click)="ClosePopUpPrepayAndAdditionalFeeScheduleLiabilityDetail()">×</span>
+            </div>
+
+            <div class="modal-body">
+              <wj-flex-grid id="grdPrepayAndAdditionalFeeScheduleLiabilityDetail" #grdPrepayAndAdditionalFeeScheduleLiabilityDetail [itemsSource]="lstSpecificPrepayAndAdditionalFeeScheduleLiabilityDetail"
+                            [allowResizing]="'Both'" class="popupGridSize" [allowAddNew]="true"
+                            (copied)="CopyGridDataWithHeader(grdLiabilityNoteTrans,$event)" keyActionTab="Cycle">
+                <wj-flex-grid-filter #filter></wj-flex-grid-filter>
+                <wj-flex-grid-column [header]="'From'" [binding]="'From'" [width]="'*'" [align]="'right'"></wj-flex-grid-column>
+                <wj-flex-grid-column [header]="'To'" [binding]="'To'" [width]="'*'" [align]="'right'"></wj-flex-grid-column>
+                <wj-flex-grid-column [header]="'Value'" [binding]="'Value'" [width]="'*'" [align]="'right'"></wj-flex-grid-column>
+              </wj-flex-grid>
+              <button type="button" style="width: 100px !important;" class="custombutton" (click)="UpdatePrepayAndAdditionalFeeScheduleLiabilityDetail()">Ok</button>
+              <div class="clearfix"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</form>

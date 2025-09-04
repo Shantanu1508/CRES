@@ -13,7 +13,7 @@ SET FMTONLY OFF;
 Select * from (
 select top 1 'Max Time' as [type],n.crenoteid, MAx(datediff(SECOND,StartTime,EndTime)) as [time] 
 from Core.CalculationRequests cr
-left join cre.note n on n.noteid = cr.noteid
+left join cre.note n on n.Account_AccountID = cr.AccountId
 where StartTime is not null and EndTime is not null and cr.AnalysisID=@AnalysisID
 and CalcType = 775
 group by n.crenoteid
@@ -25,7 +25,7 @@ UNION
 Select * from (
 select top 1 'Min Time' as [type],n.crenoteid, MIN(datediff(SECOND,StartTime,EndTime)) as [time] 
 from Core.CalculationRequests cr
-left join cre.note n on n.noteid = cr.noteid
+left join cre.note n on n.Account_AccountID = cr.AccountId
 where StartTime is not null and EndTime is not null and cr.AnalysisID=@AnalysisID
 and CalcType = 775
 group by n.crenoteid

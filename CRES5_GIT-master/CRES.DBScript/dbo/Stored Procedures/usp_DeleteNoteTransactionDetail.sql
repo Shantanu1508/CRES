@@ -31,7 +31,7 @@ and NoteID= @NoteID
 	where NoteID =@NoteID
 	and an.name = 'Default'
 	
-	exec [dbo].[usp_QueueNotesForCalculation] @TableTypeCalculationRequests,@UpdatedBy,@UpdatedBy 
+	exec [dbo].[usp_QueueNotesForCalculation] @TableTypeCalculationRequests,@UpdatedBy,@UpdatedBy, NULL, NULL, 'DeleteNoteTransaction'
 
 
 

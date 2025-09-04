@@ -18,6 +18,7 @@ namespace CRES.DataContract
         public bool IsDownloadRequire { get; set; }
         public string DefaultAttributes { get; set; }
         public bool IsAllowInput { get; set; }
+        public string TenantId { get; set; }
     }
     public class ReportFileDataContract
     {
@@ -49,8 +50,13 @@ namespace CRES.DataContract
         public List<ReportFileSheetDataContract> lstReportFileSheet { get; set; }
         public bool IsAllowInput { get; set; }
         public string Status2 { get; set; }
-        public DateTime? BatchEndTime { get; set; }
+        public DateTime?  BatchEndTime { get; set; }
         public string BatchName { get; set; }
+        public string DownloadFileName { get; set; }
+        public string ReportType { get; set; }
+        public string TenantId { get; set; }
+        public string GroupId { get; set; }
+
     }
 
     public class ReportFileSheetDataContract
@@ -78,5 +84,5 @@ namespace CRES.DataContract
         public string Message { get; set; }
 
     }
-
+    
 }

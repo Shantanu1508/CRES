@@ -11,14 +11,15 @@ import { map, catchError } from 'rxjs/operators';
 //import { AzureADAuthService } from './../../ngauth/authenticators/AzureADAuthService';
 import { Subscriber } from 'rxjs';
 import appsettings from '../../../../../appsettings.json';
+//import { AppSettings } from './../common/appsettings';
 //import { _apiPath, _environmentNamae, _environmentCSS, _isAIEnable  } from '../../../../../appsettings.json';
 //import { HeaderInterceptor } from '../common/headerInterceptor';
 
 @Injectable()
 export class DataService {
   public _baseUri !: string;
-  public _pageSize : number | undefined;
-  public _pageIndex : number | undefined;
+  public _pageSize: number | undefined;
+  public _pageIndex: number | undefined;
   public _id !: string;
 
   //Setting
@@ -75,7 +76,7 @@ export class DataService {
     else {
       DelegatedUserID = DelegatedUser.UserID;
     }
-    var user :any = localStorage.getItem('user');
+    var user: any = localStorage.getItem('user');
     var _userData = JSON.parse(user);
 
     if (_userData == null) {
@@ -207,7 +208,7 @@ export class DataService {
     headers = headers.append('dataType', 'jsonp');
 
     headers = this.createAuthorizationHeader(headers);
-    
+
     var uri;
     var pagesize: any = this._pageSize;
     if (this._pageIndex) {
@@ -251,7 +252,7 @@ export class DataService {
       return this.http.patch(uri, data, {
         headers: headers
       }).pipe(map(response => response)
-        ,catchError(error => this.errorResponse(error)));
+        , catchError(error => this.errorResponse(error)));
 
     }
     else {
@@ -261,7 +262,7 @@ export class DataService {
     }
   }
 
-  PostWithParam(parameters :any) {
+  PostWithParam(parameters: any) {
     let headers = new HttpHeaders();
     let params = new HttpParams();
     const options = {
@@ -290,28 +291,15 @@ export class DataService {
     else {
       uri = this._baseUri;
     }
-
-    //if (mapJson)
+ 
     {
 
-      return this.http.post<Blob>(uri,data,
+      return this.http.post<Blob>(uri, data,
         { headers: headers, responseType: 'blob' as 'json' }).pipe(map(response => response)
-          , catchError(error => this.errorResponse(error)));
-
-      //let options = new HeaderInterceptor() 
-
-      //let options = new RequestOptions({ responseType: ResponseContentType.Blob });
-      //return this.http.post(uri, data, options)
-      //  .map((response: Response) => <Blob>response.blob())
-      //  .catch(error => this.errorResponse(error));
+          , catchError(error => this.errorResponse(error)));       
 
     }
-    //else {
-    //  let options = new RequestOptions({ responseType: ResponseContentType.Blob });
-    //  return this.http.post(uri, data, options)
-    //    .map((response: Response) => <Blob>response.blob())
-    //    .catch(error => this.errorResponse(error));
-    //}
+    
   }
 
 
@@ -321,7 +309,7 @@ export class DataService {
 
     return this.http.delete(this._baseUri + '/' + id.toString())
       .pipe(map(response => response)
-        ,catchError(error => this.errorResponse(error)));
+        , catchError(error => this.errorResponse(error)));
   }
 
   deleteResource(resource: string) {
@@ -333,10 +321,10 @@ export class DataService {
         , catchError(error => this.errorResponse(error)));
   }
 
-  upload(files:any, parameters:any) {
+  upload(files: any, parameters: any) {
     let headers = new HttpHeaders();
     //options.params = parameters;
-    return this.http.post(this._baseUri, files, { params : parameters })
+    return this.http.post(this._baseUri, files, { params: parameters })
       .pipe(map(response => response)
         , catchError(error => this.errorResponse(error)));
   }
@@ -352,7 +340,7 @@ export class DataService {
     //let options = new RequestOptions({ responseType: ResponseContentType.Blob });
     return this.http.get<Blob>(uri, { responseType: 'blob' as 'json' })
       .pipe(map((response) => <Blob>response)
-      ,catchError(error => this.errorResponse(error)));
+        , catchError(error => this.errorResponse(error)));
   }
 
   getByIDAndStorageTypeWithBlob(ID: string, StorageType: string): Observable<any> {
@@ -360,7 +348,7 @@ export class DataService {
     //let options = new RequestOptions({ responseType: ResponseContentType.Blob });
     return this.http.get<Blob>(uri, { responseType: 'blob' as 'json' })
       .pipe(map((response) => <Blob>response)
-      ,catchError(error => this.errorResponse(error)));
+        , catchError(error => this.errorResponse(error)));
   }
 
   getByIDStorageTypeAndLocationWithBlob(ID: string, StorageTypeID: string, StorageLocation: string): Observable<any> {
@@ -370,18 +358,40 @@ export class DataService {
     //  .map((response: Response) => <Blob>response.blob())
     //  .catch(error => this.errorResponse(error));
 
-    return this.http.post<Blob>(uri,{ responseType: 'blob' as 'json' }).pipe(map(response => response)
-        ,catchError(error => this.errorResponse(error)));
+    return this.http.post<Blob>(uri, { responseType: 'blob' as 'json' }).pipe(map(response => response)
+      , catchError(error => this.errorResponse(error)));
+
+  }
+
+  getByIDStorageTypeAndLocationWithBlobGET(ID: string, StorageTypeID: string, StorageLocation: string): Observable<any> {
+    var uri = this._baseUri + '?ID=' + ID + '&StorageTypeID=' + StorageTypeID + '&Location=' + StorageLocation;
+    //let options = new RequestOptions({ responseType: ResponseContentType.Blob });
+    //return this.http.get(uri, options)
+    //  .map((response: Response) => <Blob>response.blob())
+    //  .catch(error => this.errorResponse(error));
+
+    return this.http.get<Blob>(uri, { responseType: 'blob' as 'json' })
+      .pipe(map((response) => <Blob>response)
+        , catchError(error => this.errorResponse(error)));
 
   }
 
   PostByDataTable(dealfunding: any): Observable<any> {
-   // let options = new RequestOptions({ responseType: ResponseContentType.Blob });
+    // let options = new RequestOptions({ responseType: ResponseContentType.Blob });
     return this.http.post<Blob>(this._baseUri, dealfunding, { responseType: 'blob' as 'json' })
       .pipe(map((response) => <Blob>response)
-      ,catchError(
-        error => this.errorResponse(error)
-      ));
+        , catchError(
+          error => this.errorResponse(error)
+        ));
+  }
+
+  DownloadBylist(lst: any): Observable<any> {
+    // let options = new RequestOptions({ responseType: ResponseContentType.Blob });
+    return this.http.post<Blob>(this._baseUri, lst, { responseType: 'blob' as 'json' })
+      .pipe(map((response) => <Blob>response)
+        , catchError(
+          error => this.errorResponse(error)
+        ));
   }
 
 
@@ -390,14 +400,23 @@ export class DataService {
     //let options = new RequestOptions({ responseType: ResponseContentType.Blob });
     return this.http.get<Blob>(uri, { responseType: 'blob' as 'json' })
       .pipe(map((response) => <Blob>response)
-      ,catchError(error => this.errorResponse(error)));
+        , catchError(error => this.errorResponse(error)));
   }
+
+  getByIDAndID1andID2WithBlob(ID: string, ID1: string, ID2: string): Observable<any> {
+    var uri = this._baseUri + '?ID=' + ID + '&ID1=' + ID1 + '&ID2=' + ID2;
+    //let options = new RequestOptions({ responseType: ResponseContentType.Blob });
+    return this.http.get<Blob>(uri, { responseType: 'blob' as 'json' })
+      .pipe(map((response) => <Blob>response)
+        , catchError(error => this.errorResponse(error)));
+  }
+
 
   downloadByURLWithBlob(URL: string): Observable<any> {
     //let options = new RequestOptions({ responseType: ResponseContentType.Blob });
     return this.http.get<Blob>(URL, { responseType: 'blob' as 'json' })
       .pipe(map((response) => <Blob>response)
-      ,catchError(error => this.errorResponse(error)));
+        , catchError(error => this.errorResponse(error)));
   }
 
   errorResponse(error: any): Observable<any> {
@@ -409,7 +428,7 @@ export class DataService {
 
 
   logout(state = "/"): void {
-    var useremil:any = window.localStorage.getItem("useremail");
+    var useremil: any = window.localStorage.getItem("useremail");
 
     /* TODO: Azure logout on data service*/
     if (useremil.toString() !== "undefined") {
@@ -503,11 +522,11 @@ export class DataService {
   }
 
   //calling for AI dialogflow api 
-  postforAIchat(url?: string, data?: any, newheader?:any) {
+  postforAIchat(url?: string, data?: any, newheader?: any) {
     return this.http.post(url, data, {
       headers: newheader
     }).pipe(map(response => response)
-      ,catchError(error => this.errorResponse(error)));
+      , catchError(error => this.errorResponse(error)));
   }
 
   public getIPAddress() {

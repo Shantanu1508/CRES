@@ -1,5 +1,4 @@
-﻿
-CREATE View [dbo].[View_NoteInterest]
+﻿CREATE View [dbo].[View_NoteInterest]
 AS
 SELECT T.DealName
 ,T.CreDealID AS DealID
@@ -15,6 +14,7 @@ Left join dw.dealBI d on d.dealid = n.noteid
 Where T.[Type] in ( 'InterestPaid','PIKInterest','PIKInterestPaid')
 
 and AnalysisName = 'Default'
+and AccountTypeID = 1
 
 
 	

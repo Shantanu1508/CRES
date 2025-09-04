@@ -1,7 +1,5 @@
 ﻿
-
-
-CREATE PROCEDURE [dbo].[usp_GetPIKSchedulePeriodicDataByNoteId]-- 'd472b1cd-b8ca-4cfb-8ec4-aab2014e1a07', '80E27BC4-B933-4724-9DB2-EF3CDB8ADB6B',1,1,null
+CREATE PROCEDURE [dbo].[usp_GetPIKSchedulePeriodicDataByNoteId] --'d472b1cd-b8ca-4cfb-8ec4-aab2014e1a07', '80E27BC4-B933-4724-9DB2-EF3CDB8ADB6B',1,1,null
 (
     @NoteId UNIQUEIDENTIFIER,
 	@UserID UNIQUEIDENTIFIER,
@@ -62,6 +60,14 @@ n.NoteID
 ,pik.PIKComments
 ,pik.PIKIntCalcMethodID
 ,LPIKIntCalcMethodID.name as PIKIntCalcMethodIDText
+,pik.PeriodicRateCapAmount 
+,pik.PeriodicRateCapPercent
+,pik.PIKSetUp as PIKSetUp
+,LPIKSetUp.name as PIKSetUpText
+,pik.PIKPercentage as PIKPercentage
+,pik.PIKCurrentPayRate as PIKCurrentPayRate
+,pik.PIKSeparateCompounding
+,lPIKSeparateCompounding.name as PIKSeparateCompoundingText
 
 from [CORE].[PIKSchedule] pik
 INNER JOIN [CORE].[Event] eve ON eve.EventID = pik.EventId
@@ -73,6 +79,10 @@ left JOIN [CRE].[Note] TargateNote ON TargateNote.Account_AccountID = pik.Target
 LEFT JOIN [CORE].[Lookup] LEventTypeID ON LEventTypeID.LookupID = eve.EventTypeID
 LEFT JOIN [CORE].[Lookup] LPIKReasonCode ON LPIKReasonCode.LookupID = pik.PIKReasonCodeID
 LEFT JOIN [CORE].[Lookup] LPIKIntCalcMethodID ON LPIKIntCalcMethodID.LookupID = pik.PIKIntCalcMethodID 
+LEFT JOIN [CORE].[Lookup] LPIKSetUp ON LPIKSetUp.LookupID = pik.PIKSetUp 
+LEFT JOIN [CORE].[Lookup] LPIKSeparateCompounding ON LPIKSeparateCompounding.LookupID = pik.PIKSeparateCompounding 
+
+
 where n.NoteID = @NoteId  and acc.IsDeleted = 0
 
 ORDER BY pik.UpdatedDate DESC

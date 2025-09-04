@@ -8,7 +8,7 @@
 	[CreatedDate]        DATETIME         NULL,
 	[UpdatedBy]          NVARCHAR (256)   NULL,
 	[UpdatedDate]        DATETIME         NULL,   
-   
+   GroupName Nvarchar(255) NULL
     CONSTRAINT [PK_RuleTypeMasterID] PRIMARY KEY CLUSTERED ([RuleTypeMasterID] ASC)
 );
 

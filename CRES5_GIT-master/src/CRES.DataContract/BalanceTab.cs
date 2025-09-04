@@ -1,4 +1,8 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
 
 namespace CRES.DataContract
 {
@@ -11,7 +15,10 @@ namespace CRES.DataContract
         public int? RemainingIOTerm { get; set; }
         public int? RemainingAmortTermMo { get; set; }
         public Decimal? BeginningBalance { get; set; }
+        public Decimal? NotionalBeginningBalance { get; set; }
+        public Decimal? NotionalBeginningBalancePIK { get; set; }
         public Decimal? FutureAdvancesFromFutureFundingSchedule { get; set; }
+        public Decimal? DiscretionaryCurtailmentsForThePeriod { get; set; }
         public Decimal? PIKInterestfromPIKSourceNote { get; set; }
         public int? PMTDateTag { get; set; }
         public int? PMTDateTagWorkingdayAdjusted { get; set; }
@@ -27,9 +34,11 @@ namespace CRES.DataContract
         public Decimal? PrincipalShortfall { get; set; }
         public Decimal? PrincipalLoss { get; set; }
         public Decimal? EndingBalance { get; set; }
+        //Notional Balance for Cash interest calculation.
+        public Decimal? NotionalEndingBalance { get; set; }
+        public Decimal? NotionalEndingBalancePIK { get; set; }
         public Decimal? AccumulatedFundingForThePeriod { get; set; }
         public Decimal? CumFutureAdvancesForAccrualPeriod { get; set; }
-        public Decimal? DiscretionaryCurtailmentsForThePeriod { get; set; }
         public int PeriodPMTDropTag { get; set; }
         public Decimal? PMTDropDateTag { get; set; }
         public Decimal? EndingBalanceUsingPMTDropDate { get; set; }
@@ -41,8 +50,10 @@ namespace CRES.DataContract
         public Decimal? NonAmortizationEndingBalanceAddon { get; set; }
         public Decimal? AmortizationEndingBalanceAddonPMTDropDate { get; set; }
         public Decimal? NonAmortizationEndingBalanceAddonPMTDropDate { get; set; }
+        public Decimal? RemainingUnfundedCommitment { get; set; }
         public int SoftPayOffFlag { get; set; }
-
+        public Decimal? PurposeID { get; set; }
+        public Decimal? PrincipalWriteoff { get; set; }       
 
 
     }

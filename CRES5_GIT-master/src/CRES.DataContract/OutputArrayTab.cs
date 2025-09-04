@@ -1,4 +1,8 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
 
 namespace CRES.DataContract
 {
@@ -14,7 +18,7 @@ namespace CRES.DataContract
         public Decimal? PrincipalPaid { get; set; }
         public Decimal? DailyAccruedPIKInterest { get; set; }
         public Decimal? DailyAccruedCompoundedPIKInterest { get; set; }
-
+      
     }
 
 

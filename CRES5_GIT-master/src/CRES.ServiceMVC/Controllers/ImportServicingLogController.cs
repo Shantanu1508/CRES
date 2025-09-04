@@ -1,7 +1,15 @@
-﻿using CRES.DataContract;
-using Microsoft.AspNetCore.Mvc;
-using System;
+﻿using System;
 using System.Collections.Generic;
+using System.Configuration;
+using System.Data;
+using System.Data.SqlClient;
+using System.Linq;
+using System.Net;
+using System.Net.Http;
+using CRES.DataContract;
+using CRES.BusinessLogic;
+using System.Net.Http.Headers;
+using Microsoft.AspNetCore.Mvc;
 
 namespace CRES.Services.Controllers
 {
@@ -16,9 +24,7 @@ namespace CRES.Services.Controllers
         {
             GenericResult _actionResult = null;
             var result = 0;
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
             var headerUserID = string.Empty;
             var createdBy = string.Empty;
             var UpdatedBy = string.Empty;

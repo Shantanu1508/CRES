@@ -10,6 +10,7 @@ import * as wjcCore from '@grapecity/wijmo';
 import { WjGridModule } from '@grapecity/wijmo.angular2.grid';
 import { PushNotificationService } from '../core/services/pushNotification.service';
 import { NotificationSubs } from "../core/domain/notificationSubscription.model";
+import { UtilityService } from '../core/services/utility.service';
 
 @Component({
   selector: 'notificationsubscription',
@@ -34,13 +35,12 @@ export class NotificationSubscription {
   public Message: any = '';
 
   constructor(public membershipService: MembershipService,
-    public pushNotificationService: PushNotificationService
+    public pushNotificationService: PushNotificationService,
+    public utilityService: UtilityService
 
   ) {
-
-
-
     this.GetNotificationSubscription();
+    this.utilityService.setPageTitle("M61–Notification Subscription");
   }
 
 

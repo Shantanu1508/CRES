@@ -15,7 +15,24 @@
     [UpdatedDate]   DATETIME         NULL,
     [Projected] NVARCHAR(100) NULL,
      GeneratedBy int null,
-    GeneratedByBI NVARCHAR(100) NULL
+    GeneratedByBI NVARCHAR(100) NULL,
+
+    Issaved							BIT              NULL,
+    DealFundingRowno				INT              NULL,
+    DeadLineDate					DATE             NULL,
+    LegalDeal_DealFundingID			UNIQUEIDENTIFIER NULL,
+    EquityAmount					DECIMAL (28, 15) NULL,
+    RemainingFFCommitment			DECIMAL (28, 15) NULL,
+    RemainingEquityCommitment		DECIMAL (28, 15) NULL,
+    SubPurposeType					NVARCHAR (256)   NULL,
+    DealFundingAutoID				INT              NULL,
+    RequiredEquity					DECIMAL (28, 15) NULL,
+    AdditionalEquity				DECIMAL (28, 15) NULL,
+
+    AdjustmentType int,
+    AdjustmentTypeBI nvarchar(256),
+    WF_CurrentStatusDisplayName nvarchar(256),
+    WatchlistStatus                      NVARCHAR (256)   NULL,
     CONSTRAINT [PK_DealFundingID] PRIMARY KEY CLUSTERED ([DealFundingID] ASC)
 );
 

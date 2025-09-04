@@ -1,8 +1,12 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
 
 namespace CRES.DataContract
 {
-    public class NoteServicingFeeScheduleDataContract
+  public  class NoteServicingFeeScheduleDataContract
     {
         //public int NoteServicingFeeScheduleID { get; set; }
         //public int? NoteID { get; set; }
@@ -20,7 +24,7 @@ namespace CRES.DataContract
         public Guid? NoteID { get; set; }
         public Guid? AccountID { get; set; }
         public DateTime? Event_Date { get; set; }
-        public DateTime? EffectiveDate { get; set; }
+        public DateTime? EffectiveDate{ get; set; }
         public DateTime? EffectiveEndDate { get; set; }
         public int? EventTypeID { get; set; }
         public string EventTypeText { get; set; }
@@ -28,7 +32,7 @@ namespace CRES.DataContract
         public Guid? EventId { get; set; }
         public DateTime? Date { get; set; }
         public int? IsCapitalized { get; set; }
-        public string IsCapitalizedText { get; set; }
+    public string IsCapitalizedText { get; set; }
         public decimal? Value { get; set; }
         public int? ValueTypeID { get; set; }
         public string ValueTypeText { get; set; }

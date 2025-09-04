@@ -13,34 +13,62 @@ using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Globalization;
+using Azure.Storage.Queues;
+using System.Text.Json;
+using Azure.Core;
+using Microsoft.VisualBasic;
+using static System.Net.Mime.MediaTypeNames;
+using System.Reflection;
+using System.Xml.Linq;
+using Org.BouncyCastle.Asn1.Cmp;
+
 namespace CRES.NoteCalculatorServiceMVC.Controllers
 {
     [Microsoft.AspNetCore.Cors.EnableCors("CRESPolicy")]
     public class V1CalcController : ControllerBase
     {
+        private readonly IConfiguration _configuration;
+        public V1CalcController(IConfiguration configuration)
+        {
+            _configuration = configuration;
+        }
+
+        private string useridforSys_Scheduler = "3D6DB33D-2B3A-4415-991D-A3DA5CEB8B50";
         [HttpGet]
         [NoteCalculatorServiceMVC.Controllers.DeflateCompression]
         [Route("api/v1calc/getdealcalcrequest")]
-#pragma warning disable CS8632 // The annotation for nullable reference types should only be used in code within a '#nullable' annotations context.
         public IActionResult GetDealCalcRequest(string objectID, int objectTypeId, int calctype, string? analysisID)
-#pragma warning restore CS8632 // The annotation for nullable reference types should only be used in code within a '#nullable' annotations context.
         {
             V1CalcLogic v1logic = new V1CalcLogic();
-            //string analysisID = "C10F3372-0FC2-4861-A9F5-148F1F80804F";
+            //string analysisID = "C10F3372-0FC2-4861-A9F5-148F1F80804F"1;
             if (analysisID == null)
             {
                 analysisID = "C10F3372-0FC2-4861-A9F5-148F1F80804F";
             }
-            dynamic objJsonResult = v1logic.GetDealCalcRequestData(objectID, objectTypeId, analysisID, calctype, false, true);
-
-            var returnType = objJsonResult.GetType();
-            if (returnType.Name == "Int32")
+            if (calctype == 776)// 776-PrepayCalculator
             {
-
+                PrepayPremiumLogic prepay = new PrepayPremiumLogic();
+                dynamic objJsonResult = prepay.GetDealCalcRequestDataForPrepayment(objectID, objectTypeId, analysisID, calctype, false, true);
+                var returnType = objJsonResult.GetType();
+                return Ok(objJsonResult);
             }
-            return Ok(objJsonResult);
+            else
+            {
+                dynamic objJsonResult = v1logic.GetDealCalcRequestData(objectID, objectTypeId, analysisID, calctype, false, true);
+                var returnType = objJsonResult.GetType();
+                if (returnType.Name == "Int32")
+                {
+
+
+                }
+                return Ok(objJsonResult);
+            }
+
+
         }
 
         [HttpGet]
@@ -50,12 +78,13 @@ namespace CRES.NoteCalculatorServiceMVC.Controllers
         {
             V1CalcLogic v1logic = new V1CalcLogic();
             string analysisID = "C10F3372-0FC2-4861-A9F5-148F1F80804F";
-            v1logic.SubmitCalcRequest(CreDealID, 182, analysisID, 775, false);
+            v1logic.SubmitCalcRequest(CreDealID, 182, analysisID, 775, false, "");
             return Ok();
         }
 
-        public void GetFileOutput(string requestid)
+        public void GetFileOutput(string requestid, int? TransactionOutput, int? NotePeriodicOutput, int? StrippingOutput, int? Prepaypremium_Output, int? Prepayallocations_Output, int? DailyInterestAccOutput)
         {
+
             string SavingFailedFor = "";
             string result = "";
             string SourceNoteID = "";
@@ -103,120 +132,101 @@ namespace CRES.NoteCalculatorServiceMVC.Controllers
                 Log.WriteLogInfo("CalcDataSaving", "inside GetFileOutput 2 " + " Requestid :" + "CalcType " + CalcType + requestid, requestid, "");
                 if (CalcType == 775)
                 {
-                    Thread FirstThread2 = new Thread(() => CheckAndSavePeriodicOutput(requestid, headerkey, headerValue, strAPI, crenoteid, AnalysisID, username));
-                    FirstThread2.Start();
-
-                    Thread FirstThread3 = new Thread(() => CheckAndSaveTransactionsOutput(requestid, headerkey, headerValue, strAPI, crenoteid, AnalysisID, username, noteid));
-                    FirstThread3.Start();
-
-                    Thread FirstThread4 = new Thread(() => CheckAndSaveStripingOutput(requestid, headerkey, headerValue, strAPI, crenoteid, AnalysisID, username));
-                    FirstThread4.Start();
-                }
-
-                if (CalcType == 775)
-                {
-                    //daily outputs
-                    // transactions saving
-
-                    /*
-                    SavingFailedFor = "Daily_Data";
-                    var dailyDataAPI = strAPI + "/" + requestid + "/outputs/daily_data.csv";
-                    HttpClient DailyData = new HttpClient();
-                    DailyData.DefaultRequestHeaders.Add(headerkey, headerValue);
-                    var dailyDataresult = DailyData.GetAsync(dailyDataAPI).Result;
-                    if (dailyDataresult.IsSuccessStatusCode == true)
+                    string Periodicstatus = "";
+                    string trnstatus = "";
+                    string stripstatus = "";
+                    if (NotePeriodicOutput == 292)
                     {
-                        NoteLogic nl = new NoteLogic();
-                        List<DailyInterestAccrualsDataContract> ListDailyInterest = new List<DailyInterestAccrualsDataContract>();
-                        List<PeriodicInterestRateUsed> ListPeriodicInterestRateUsed = new List<PeriodicInterestRateUsed>();
+                        _V1CalcLogic.InsertUpdateCalculationQueueRequest(requestid, null, 267, null, null, null, null, 1, username);
+                        Periodicstatus = CheckAndSavePeriodicOutput(requestid, headerkey, headerValue, strAPI, crenoteid, AnalysisID, username);
 
-                        var response = dailyDataresult.Content.ReadAsStringAsync().Result;
-                        var output = JsonConvert.DeserializeObject<Jsonperiodicresponse>(response);
-                        DataTable dtoutput = convertStringToDataTable(output.data);
-
-                        List<string> collist = new List<string>();
-                        foreach (DataColumn column in dtoutput.Columns)
-                        {
-                            collist.Add(column.ColumnName);
-                        }
-
-                        foreach (DataRow row in dtoutput.Rows)
-                        {
-                            DailyInterestAccrualsDataContract dia = new DailyInterestAccrualsDataContract();
-
-                            DateTime? cdate = CommonHelper.ToDateTime(row["Date"]);
-                            row["Date"] = CommonHelper.ToDateTime(row["Date"]);
-                            dia.Date = cdate;
-                            dia.NoteID = noteid;
-                            dia.AnalysisID = AnalysisIDGuid;
-                            dia.EndingBalance = CommonHelper.StringToDecimal(row["endbal"]).GetValueOrDefault(0);
-                            dia.DailyInterestAccrual = CommonHelper.StringToDecimal(row["dailyint"]).GetValueOrDefault(0);
-                            ListDailyInterest.Add(dia);
-
-                            PeriodicInterestRateUsed pir = new PeriodicInterestRateUsed();
-                            pir.NoteID = noteid;
-                            pir.Date = cdate;
-                            pir.CouponSpread = CommonHelper.ToDecimal(row["spread_val"]).GetValueOrDefault(0);
-                            pir.AllInCouponRate = CommonHelper.ToDecimal(row["allincouponrate"]).GetValueOrDefault(0);
-                            pir.AllInPikRate = CommonHelper.ToDecimal(row["allinpikrate"]).GetValueOrDefault(0);
-                            pir.LiborRate = CommonHelper.ToDecimal(row["indexrate"]).GetValueOrDefault(0);
-                            pir.IndexFloor = CommonHelper.ToDecimal(row["index_floor_val"]).GetValueOrDefault(0);
-                            pir.CouponRate = CommonHelper.ToDecimal(row["coupon_floor_val"]).GetValueOrDefault(0);
-                            pir.AdditionalPIKinterestRatefromPIKTable = CommonHelper.ToDecimal(row["pikrate_rate"]).GetValueOrDefault(0);
-                            pir.AdditionalPIKSpreadfromPIKTable = CommonHelper.ToDecimal(row["pikrate_spread"]).GetValueOrDefault(0);
-                            pir.PIKIndexFloorfromPIKTable = CommonHelper.ToDecimal(row["pikrate_index_floor"]).GetValueOrDefault(0);
-                            pir.AnalysisID = AnalysisIDGuid;
-
-                            ListPeriodicInterestRateUsed.Add(pir);
-
-                        }
-                        if (ListDailyInterest.Count > 0)
-                        {
-                            nl.InsertDailyInterestAccural(ListDailyInterest, noteid, username);
-                        }
-                        if (ListPeriodicInterestRateUsed.Count > 0)
-                        {
-                            nl.InsertPeriodicInterestRateUsed(ListPeriodicInterestRateUsed, noteid, username);
-                        }
                     }
-                    */
+                    else
+                    {
+                        Periodicstatus = "Saved";
+                    }
+
+                    if (TransactionOutput == 292)
+                    {
+                        _V1CalcLogic.InsertUpdateCalculationQueueRequest(requestid, 267, null, null, null, null, null, 1, username);
+                        trnstatus = CheckAndSaveTransactionsOutput(requestid, headerkey, headerValue, strAPI, crenoteid, AnalysisID, username, noteid);
+                    }
+                    else
+                    {
+                        trnstatus = "Saved";
+                    }
+
+                    if (StrippingOutput == 292)
+                    {
+                        _V1CalcLogic.InsertUpdateCalculationQueueRequest(requestid, null, null, 267, null, null, null, 1, username);
+                        stripstatus = CheckAndSaveStripingOutput(requestid, headerkey, headerValue, strAPI, crenoteid, AnalysisID, username);
+
+                    }
+                    else
+                    {
+                        stripstatus = "Saved";
+                    }
+
+                    if (DailyInterestAccOutput == 292)
+                    {
+                        _V1CalcLogic.InsertUpdateCalculationQueueRequest(requestid, null, null, 267, null, null, null, 1, username);
+                        CheckAndSaveDailyData(requestid, headerkey, headerValue, strAPI, noteid, AnalysisID, username);
+                    }
+
+                    if (Periodicstatus == "Saved" && stripstatus == "Saved" && trnstatus == "Saved")
+                    {
+                        _V1CalcLogic.UpdateM61EngineCalcStatus(requestid, Convert.ToInt32(2), "");
+                        _V1CalcLogic.UpdateCalculationStatusForDependents(crenoteid, AnalysisID);
+                        Log.WriteLogInfo("CalcDataSaving", " Update Calculation Status For Dependents " + "CrenoteID : Requestid : " + crenoteid + " : " + requestid, requestid, "");
+
+                    }
+                    else
+                    {
+                        _V1CalcLogic.UpdateM61EngineCalcStatus(requestid, Convert.ToInt32(-1), "");
+                    }
 
                 }
 
                 if (CalcType == 776)
                 {
-                    // Prepay premium saving
-                    SavingFailedFor = "Prepaypremium_Output";
-                    var strPrepayPremiumAPI = strAPI + "/" + requestid + "/outputs/prepaypremium.csv";
-                    HttpClient prepaypremiumclient = new HttpClient();
-                    prepaypremiumclient.DefaultRequestHeaders.Add(headerkey, headerValue);
-                    var apiprepaypremiumresult = prepaypremiumclient.GetAsync(strPrepayPremiumAPI).Result;
-                    if (apiprepaypremiumresult.IsSuccessStatusCode == true)
+                    string PrepaypremiumOutputSave = "";
+                    string prepayallocationsSave = "";
+                    if (Prepaypremium_Output == 292)
                     {
-                        var prepaypremiumresponse = apiprepaypremiumresult.Content.ReadAsStringAsync().Result;
-                        var prepaypremiumoutput = JsonConvert.DeserializeObject<Jsonperiodicresponse>(prepaypremiumresponse);
-                        DataTable dtPrepaypremiumoutput = convertStringToDataTable(prepaypremiumoutput.data);
-
-                        _V1CalcLogic.InsertPrepayPremiumEntry(dtPrepaypremiumoutput, username);
+                        PrepayPremiumLogic prepay = new PrepayPremiumLogic();
+                        PrepaypremiumOutputSave = prepay.SavePrepayPremium(requestid, headerkey, headerValue, strAPI, username);
                     }
-                }
-
-                if (CalcType == 776)
-                {
-                    // Prepay allocations saving
-                    SavingFailedFor = "Prepayallocations_Output";
-                    var strPrepayallocationsAPI = strAPI + "/" + requestid + "/outputs/prepayallocations.csv";
-                    HttpClient prepayallocationsclient = new HttpClient();
-                    prepayallocationsclient.DefaultRequestHeaders.Add(headerkey, headerValue);
-                    var apiprepayallocationsresult = prepayallocationsclient.GetAsync(strPrepayallocationsAPI).Result;
-                    if (apiprepayallocationsresult.IsSuccessStatusCode == true)
+                    if (Prepayallocations_Output == 292)
                     {
-                        var prepayallocationsresponse = apiprepayallocationsresult.Content.ReadAsStringAsync().Result;
-                        var prepayallocationsoutput = JsonConvert.DeserializeObject<Jsonperiodicresponse>(prepayallocationsresponse);
-                        DataTable dtPrepayallocationsoutput = convertStringToDataTable(prepayallocationsoutput.data);
+                        V1CalcLogic v1logic = new V1CalcLogic();
+                        v1logic.InsertUpdateCalculationQueueRequest(requestid, null, null, null, null, 267, null, 1, username);
+                        // Prepay allocations saving
+                        SavingFailedFor = "Prepayallocations_Output";
+                        var strPrepayallocationsAPI = strAPI + "/" + requestid + "/outputs/prepayallocations.csv";
+                        HttpClient prepayallocationsclient = new HttpClient();
+                        prepayallocationsclient.DefaultRequestHeaders.Add(headerkey, headerValue);
+                        var apiprepayallocationsresult = prepayallocationsclient.GetAsync(strPrepayallocationsAPI).Result;
+                        if (apiprepayallocationsresult.IsSuccessStatusCode == true)
+                        {
+                            var prepayallocationsresponse = apiprepayallocationsresult.Content.ReadAsStringAsync().Result;
+                            var prepayallocationsoutput = JsonConvert.DeserializeObject<Jsonperiodicresponse>(prepayallocationsresponse);
+                            DataTable dtPrepayallocationsoutput = convertStringToDataTable(prepayallocationsoutput.data);
 
-                        _V1CalcLogic.InsertPrepayAllocationsEntry(dtPrepayallocationsoutput, username);
+                            _V1CalcLogic.InsertPrepayAllocationsEntry(dtPrepayallocationsoutput, username);
+                            v1logic.InsertUpdateCalculationQueueRequest(requestid, null, null, null, null, 266, null, 1, username);
+                            prepayallocationsSave = "Saved";
+                        }
                     }
+
+                    if (PrepaypremiumOutputSave == "Saved")
+                    {
+                        _V1CalcLogic.UpdateM61EngineCalcStatus(requestid, Convert.ToInt32(2), "");
+                    }
+                    else
+                    {
+                        _V1CalcLogic.UpdateM61EngineCalcStatus(requestid, Convert.ToInt32(-1), "");
+                    }
+
                 }
 
                 result = "Saved";
@@ -231,8 +241,8 @@ namespace CRES.NoteCalculatorServiceMVC.Controllers
                     result = SavingFailedFor + " M61 output api did not responds in 60 secs ";
                 }
 
-                v1logic.UpdateCalculationRequestsStatus(SourceNoteID, requestid, Convert.ToInt32(-1), AnalysisID, "00000000-0000-0000-0000-000000000000", "Note calculated successfully but failed to save data in DB.");
-                Log.WriteLogExceptionMessage(CRESEnums.Module.Calculator.ToString(), "Error in saving for  " + SavingFailedFor + " for request id:: " + requestid + " " + ex.StackTrace, requestid, "B0E6697B-3534-4C09-BE0A-04473401AB93", "GetFileOutput", result);
+                v1logic.UpdateCalculationRequestsStatus(crenoteid, requestid, Convert.ToInt32(-1), AnalysisID, "00000000-0000-0000-0000-000000000000", "Note calculated successfully but failed to save data in DB.");
+                Log.WriteLogExceptionMessage(CRESEnums.Module.V1Calculator.ToString(), "Error in saving for  " + SavingFailedFor + " for request id:: " + requestid + " " + ex.StackTrace, requestid, "B0E6697B-3534-4C09-BE0A-04473401AB93", "GetFileOutput", result);
             }
             finally
             {
@@ -240,419 +250,70 @@ namespace CRES.NoteCalculatorServiceMVC.Controllers
             }
         }
 
-        public void CheckAndSavePeriodicOutput(string requestid, string headerkey, string headerValue, string strAPI, string SourceNoteID, string AnalysisID, string username)
+        public string CheckAndSavePeriodicOutput(string requestid, string headerkey, string headerValue, string strAPI, string SourceNoteID, string AnalysisID, string username)
         {
-            var status = SavePeriodicOutput(requestid, headerkey, headerValue, strAPI, SourceNoteID, AnalysisID, username);
+            V1CalcLogic v1logic = new V1CalcLogic();
+            var status = v1logic.SavePeriodicOutput(requestid, headerkey, headerValue, strAPI, SourceNoteID, AnalysisID, username);
             if (status == "Retry")
             {
                 LoggerLogic Log = new LoggerLogic();
                 Log.WriteLogInfo("CalcDataSaving", " inside PeriodicOutput retry " + " Requestid " + requestid + " status " + status, requestid, "");
-                status = SavePeriodicOutput(requestid, headerkey, headerValue, strAPI, SourceNoteID, AnalysisID, username);
+                //status = SavePeriodicOutput(requestid, headerkey, headerValue, strAPI, SourceNoteID, AnalysisID, username);
+
+                v1logic.InsertUpdateCalculationQueueRequest(requestid, null, 265, null, null, null, null, 1, username);
             }
+
+            return status;
         }
 
-        public void CheckAndSaveTransactionsOutput(string requestid, string headerkey, string headerValue, string strAPI, string SourceNoteID, string AnalysisID, string username, string noteid)
+        public string CheckAndSaveDailyData(string requestid, string headerkey, string headerValue, string strAPI, string noteid, string AnalysisID, string username)
         {
+            V1CalcLogic v1logic = new V1CalcLogic();
 
-            var status = SaveTransactionsOutput(requestid, headerkey, headerValue, strAPI, SourceNoteID, AnalysisID, username, noteid);
+            var status = v1logic.SaveDailyData(requestid, headerkey, headerValue, strAPI, noteid, AnalysisID, username);
+            if (status == "Retry")
+            {
+                LoggerLogic Log = new LoggerLogic();
+                Log.WriteLogInfo("CalcDataSaving", " inside SaveDailyData retry " + " Requestid " + requestid + " status " + status, requestid, "");
+
+                v1logic.InsertUpdateCalculationQueueRequest(requestid, null, null, null, null, null, 265, 1, username);
+            }
+            return status;
+        }
+
+
+
+
+        public string CheckAndSaveTransactionsOutput(string requestid, string headerkey, string headerValue, string strAPI, string SourceNoteID, string AnalysisID, string username, string noteid)
+        {
+            V1CalcLogic v1logic = new V1CalcLogic();
+            var status = v1logic.SaveTransactionsOutput(requestid, headerkey, headerValue, strAPI, SourceNoteID, AnalysisID, username, noteid);
             if (status == "Retry")
             {
                 LoggerLogic Log = new LoggerLogic();
                 Log.WriteLogInfo("CalcDataSaving", " inside Transactions_Output retry " + " Requestid " + requestid + " status " + status, requestid, "");
 
-                status = SaveTransactionsOutput(requestid, headerkey, headerValue, strAPI, SourceNoteID, AnalysisID, username, noteid);
+                //status = SaveTransactionsOutput(requestid, headerkey, headerValue, strAPI, SourceNoteID, AnalysisID, username, noteid);
+
+
+                v1logic.InsertUpdateCalculationQueueRequest(requestid, 265, null, null, null, null, null, 1, username);
             }
+
+            return status;
         }
 
-        public void CheckAndSaveStripingOutput(string requestid, string headerkey, string headerValue, string strAPI, string SourceNoteID, string AnalysisID, string username)
+        public string CheckAndSaveStripingOutput(string requestid, string headerkey, string headerValue, string strAPI, string SourceNoteID, string AnalysisID, string username)
         {
-            var status = SaveStripingOutput(requestid, headerkey, headerValue, strAPI, SourceNoteID, AnalysisID, username);
+            V1CalcLogic v1logic = new V1CalcLogic();
+            var status = v1logic.SaveStripingOutput(requestid, headerkey, headerValue, strAPI, SourceNoteID, AnalysisID, username);
             if (status == "Retry")
             {
                 LoggerLogic Log = new LoggerLogic();
                 Log.WriteLogInfo("CalcDataSaving", " inside StripingOutput retry " + " Requestid " + requestid + " status " + status, requestid, "");
-                status = SaveStripingOutput(requestid, headerkey, headerValue, strAPI, SourceNoteID, AnalysisID, username);
-            }
-        }
 
-        public string SavePeriodicOutput(string requestid, string headerkey, string headerValue, string strAPI, string SourceNoteID, string AnalysisID, string username)
-        {
-            string status = "";
-            int? responsecode = null;
-            LoggerLogic Log = new LoggerLogic();
-            try
-            {
+                //status = SaveStripingOutput(requestid, headerkey, headerValue, strAPI, SourceNoteID, AnalysisID, username);
 
-                var cts = new CancellationTokenSource();
-
-                var strPeriodicAPI = strAPI + "/" + requestid + "/outputs/periodic.csv";
-                Log.WriteLogInfo("CalcDataSaving", "inside get Periodic_Output 3 " + " Requestid " + requestid, requestid, "");
-
-                V1CalcLogic _V1CalcLogic = new V1CalcLogic();
-                _V1CalcLogic.UpdateM61EngineCalcStatus(requestid, Convert.ToInt32(2), "");
-
-                System.Net.ServicePointManager.SecurityProtocol |= SecurityProtocolType.Tls12;
-                dynamic response;
-                using (var client = new HttpClient())
-                using (var request = new HttpRequestMessage())
-                {
-                    client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-                    client.DefaultRequestHeaders.Add(headerkey, headerValue);
-                    client.Timeout = TimeSpan.FromSeconds(60);
-
-                    request.Method = HttpMethod.Get;
-                    request.RequestUri = new Uri(strPeriodicAPI);
-                    response = client.GetAsync(strPeriodicAPI, cts.Token).Result;
-                    responsecode = (int)response.StatusCode;
-                    response.EnsureSuccessStatusCode();
-                }
-                Log.WriteLogInfo("CalcDataSaving", "inside  get Periodic_Output 4 " + " Requestid " + requestid, requestid, "");
-
-                if (response.IsSuccessStatusCode == true)
-                {
-                    Log.WriteLogInfo("CalcDataSaving", "inside  get Periodic_Output 5 " + " Requestid " + requestid, requestid, "");
-                    var periodresponse = response.Content.ReadAsStringAsync().Result;
-                    var periodoutput = JsonConvert.DeserializeObject<Jsonperiodicresponse>(periodresponse);
-                    DataTable dtperiodoutput = convertStringToDataTable(periodoutput.data);
-                    List<string> Peridiccollist = new List<string>();
-                    if (dtperiodoutput.Rows.Count > 0)
-                    {
-                        SourceNoteID = dtperiodoutput.Rows[0]["Note"].ToString();
-                    }
-                    foreach (DataRow row in dtperiodoutput.Rows)
-                    {
-                        row["Date"] = CommonHelper.ToDateTime(row["Date"]);
-                        row["initbal"] = CommonHelper.StringToDecimal(row["initbal"]);
-                        row["endbal"] = CommonHelper.StringToDecimal(row["endbal"]);
-                        row["initbal"] = CommonHelper.StringToDecimal(row["initbal"]);
-                        row["schprin"] = CommonHelper.StringToDecimal(row["schprin"]);
-                        row["funding"] = CommonHelper.StringToDecimal(row["funding"]);
-                        row["act_periodpikint"] = CommonHelper.StringToDecimal(row["act_periodpikint"]);
-                        row["paydown"] = CommonHelper.StringToDecimal(row["paydown"]);
-                        row["periodpikint"] = CommonHelper.StringToDecimal(row["periodpikint"]);
-                        row["act_periodint"] = CommonHelper.StringToDecimal(row["act_periodint"]);
-                        row["act_periodpikintpaid"] = CommonHelper.StringToDecimal(row["act_periodpikintpaid"]);
-                        row["act_pikprinpaid"] = CommonHelper.StringToDecimal(row["act_pikprinpaid"]);
-
-                        row["clean_cost"] = CommonHelper.StringToDecimal(row["clean_cost"]);
-                        row["feeamort"] = CommonHelper.StringToDecimal(row["feeamort"]);
-                        row["cum_am_fee"] = CommonHelper.StringToDecimal(row["cum_am_fee"]);
-                        row["am_capcosts"] = CommonHelper.StringToDecimal(row["am_capcosts"]);
-                        row["am_disc"] = CommonHelper.StringToDecimal(row["am_disc"]);
-                        row["gaapbv"] = CommonHelper.StringToDecimal(row["gaapbv"]);
-
-                        row["intaccrual"] = CommonHelper.StringToDecimal(row["intaccrual"]);
-                        row["pikintaccrual"] = CommonHelper.StringToDecimal(row["pikintaccrual"]);
-                        row["intsuspensebal"] = CommonHelper.StringToDecimal(row["intsuspensebal"]);
-
-                    }
-                    if (dtperiodoutput.Rows.Count > 0)
-                    {
-                        dtperiodoutput.Columns["Date"].SetOrdinal(0);
-                        dtperiodoutput.Columns["Note"].SetOrdinal(1);
-                        dtperiodoutput.Columns["initbal"].SetOrdinal(2);
-                        dtperiodoutput.Columns["funding"].SetOrdinal(3);
-                        dtperiodoutput.Columns["paydown"].SetOrdinal(4);
-                        dtperiodoutput.Columns["schprin"].SetOrdinal(5);
-                        dtperiodoutput.Columns["periodpikint"].SetOrdinal(6);
-                        dtperiodoutput.Columns["act_periodint"].SetOrdinal(7);
-                        dtperiodoutput.Columns["act_periodpikintpaid"].SetOrdinal(8);
-                        dtperiodoutput.Columns["act_periodpikint"].SetOrdinal(9);
-                        dtperiodoutput.Columns["act_pikprinpaid"].SetOrdinal(10);
-                        dtperiodoutput.Columns["endbal"].SetOrdinal(11);
-
-                        dtperiodoutput.Columns["clean_cost"].SetOrdinal(12);
-                        dtperiodoutput.Columns["feeamort"].SetOrdinal(13);
-                        dtperiodoutput.Columns["cum_am_fee"].SetOrdinal(14);
-                        dtperiodoutput.Columns["am_capcosts"].SetOrdinal(15);
-                        dtperiodoutput.Columns["am_disc"].SetOrdinal(16);
-                        dtperiodoutput.Columns["gaapbv"].SetOrdinal(17);
-
-                        dtperiodoutput.Columns["intaccrual"].SetOrdinal(18);
-                        dtperiodoutput.Columns["pikintaccrual"].SetOrdinal(19);
-                        dtperiodoutput.Columns["intsuspensebal"].SetOrdinal(20);
-
-                    }
-                    else
-                    {
-                        Log.WriteLogInfo("CalcDataSaving", "Periodic_Output Row count 0." + " Requestid " + requestid, requestid, "");
-                    }
-
-                    Log.WriteLogInfo("CalcDataSaving", "going for Periodic_Output saving " + " Requestid " + requestid, requestid, "");
-
-                    _V1CalcLogic.InsertUpdateNotePeriodicCalc(dtperiodoutput, AnalysisID, username, SourceNoteID);
-                    status = "Saved";
-                    Log.WriteLogInfo("CalcDataSaving", "Periodic_Output saving ended " + " Requestid " + requestid, requestid, "");
-                }
-                else
-                {
-                    Log.WriteLogInfo("CalcDataSaving", "Periodic_Output File not found.Error Code : " + responsecode + " Requestid " + requestid, requestid, "");
-                }
-
-            }
-            catch (Exception ex)
-            {
-                string result = "";
-                V1CalcLogic v1logic = new V1CalcLogic();
-                result = "Saving Failed for : PeriodicOutput : " + ex.Message;
-                if (result.Contains("A task was canceled"))
-                {
-                    status = "Retry";
-                    result = "Saving Failed for : PeriodicOutput as M61 output api did not responds in 10 secs ";
-                }
-
-                if (result.Contains("timeout"))
-                {
-                    status = "Retry";
-                }
-                if (result.Contains("deadlock"))
-                {
-                    status = "Retry";
-                }
-                v1logic.UpdateCalculationRequestsStatus(SourceNoteID, requestid, Convert.ToInt32(-1), AnalysisID, "00000000-0000-0000-0000-000000000000", "Note calculated successfully but failed to save data in DB." + status);
-                Log.WriteLogExceptionMessage(CRESEnums.Module.Calculator.ToString(), "Error in saving for PeriodicOutput " + " for request id:: " + requestid + " " + ex.StackTrace, requestid, "B0E6697B-3534-4C09-BE0A-04473401AB93", "GetFileOutput", result);
-
-            }
-            return status;
-        }
-
-        public string SaveTransactionsOutput(string requestid, string headerkey, string headerValue, string strAPI, string SourceNoteID, string AnalysisID, string username, string noteid)
-        {
-            string status = "";
-            int? responsecode = 0;
-            LoggerLogic Log = new LoggerLogic();
-            var cts = new CancellationTokenSource();
-#pragma warning disable CS0219 // The variable 'SavingFailedFor' is assigned but its value is never used
-            string SavingFailedFor = "";
-#pragma warning restore CS0219 // The variable 'SavingFailedFor' is assigned but its value is never used
-            V1CalcLogic _V1CalcLogic = new V1CalcLogic();
-
-            try
-            {
-                _V1CalcLogic.UpdateM61EngineCalcStatus(requestid, Convert.ToInt32(2), "");
-                Log.WriteLogInfo("CalcDataSaving", " inside Transactions_Output 1 " + " Requestid " + requestid, requestid, "");
-                // transactions saving
-                SavingFailedFor = "Transactions_Output";
-                var strtransactionAPI = strAPI + "/" + requestid + "/outputs/transactions.csv";
-                HttpClient transactionsclient = new HttpClient();
-                transactionsclient.Timeout = TimeSpan.FromSeconds(60);
-                transactionsclient.DefaultRequestHeaders.Add(headerkey, headerValue);
-                Log.WriteLogInfo("CalcDataSaving", " inside Transactions_Output 2 " + " Requestid " + requestid, requestid, "");
-                var apitransactionsresult = transactionsclient.GetAsync(strtransactionAPI, cts.Token).Result;
-                responsecode = (int)apitransactionsresult.StatusCode;
-                Log.WriteLogInfo("CalcDataSaving", " inside Transactions_Output 3 " + " Requestid " + requestid, requestid, "");
-                if (apitransactionsresult.IsSuccessStatusCode == true)
-                {
-                    var transactionsresponse = apitransactionsresult.Content.ReadAsStringAsync().Result;
-                    Log.WriteLogInfo("CalcDataSaving", " inside Transactions_Output 4 " + " Requestid " + requestid, requestid, "");
-                    var transactionsoutput = JsonConvert.DeserializeObject<Jsonperiodicresponse>(transactionsresponse);
-
-                    Log.WriteLogInfo("CalcDataSaving", " inside Transactions_Output 5 " + " Requestid " + requestid, requestid, "");
-                    DataTable dtTransactionsoutput = convertStringToDataTable(transactionsoutput.data);
-
-                    List<string> collist = new List<string>();
-                    foreach (DataColumn column in dtTransactionsoutput.Columns)
-                    {
-                        collist.Add(column.ColumnName);
-                    }
-                    string[] requiredcol = { "Date", "Note", "type", "value", "Fee Name", "IO Term End Date", "purpose", "remit_dt", "transdtbyrule_dt", "trans_dt", "due_dt" };
-
-                    //remove column which are not required 
-                    foreach (var item in collist)
-                    {
-                        var res = requiredcol.Contains(item);
-                        if (res == false)
-                        {
-                            if (dtTransactionsoutput.Columns.IndexOf(item) != -1)
-                            {
-                                dtTransactionsoutput.Columns.Remove(item);
-                            }
-                        }
-                    }
-                    // add column which are required 
-                    foreach (string item in requiredcol)
-                    {
-                        if (dtTransactionsoutput.Columns.IndexOf(item) == -1)
-                        {
-                            dtTransactionsoutput.Columns.Add(item);
-                        }
-
-                    }
-                    foreach (DataRow row in dtTransactionsoutput.Rows)
-                    {
-                        DateTime? due_dt = CommonHelper.ToDateTime(row["due_dt"]);
-                        int? currentpurpose = CommonHelper.ToInt32(CommonHelper.StringToDecimal(row["purpose"]));
-                        row["value"] = Math.Round(CommonHelper.StringToDecimal(row["value"]).GetValueOrDefault(0), 10);
-                        row["IO Term End Date"] = CommonHelper.ToDateTime(row["IO Term End Date"]);
-                        row["purpose"] = currentpurpose;
-                        row["remit_dt"] = CommonHelper.ToDateTime(row["remit_dt"]);
-                        row["transdtbyrule_dt"] = CommonHelper.ToDateTime(row["transdtbyrule_dt"]);
-                        row["trans_dt"] = CommonHelper.ToDateTime(row["trans_dt"]);
-                        row["due_dt"] = due_dt;
-                        if (currentpurpose != 0)
-                        {
-                            row["purpose"] = GetPurposeTypetext(currentpurpose);
-                        }
-                        if (due_dt != null)
-                        {
-                            row["Date"] = due_dt;
-                        }
-
-                    }
-                    Log.WriteLogInfo("CalcDataSaving", " inside Transactions_Output 6 " + " Requestid " + requestid, requestid, "");
-                    if (dtTransactionsoutput.Rows.Count > 0)
-                    {
-                        Log.WriteLogInfo("CalcDataSaving", "Transactions_Output saving started ." + dtTransactionsoutput.Rows.Count + " Requestid " + requestid, requestid, "");
-                        //Transactions_Output
-                        _V1CalcLogic.InsertTransactionEntry(dtTransactionsoutput, AnalysisID, username, SourceNoteID, username);
-                        Log.WriteLogInfo("CalcDataSaving", "Transactions_Output saving ended ." + dtTransactionsoutput.Rows.Count + " Requestid " + requestid, requestid, "");
-                        _V1CalcLogic.UpdateTransactionEntryCash_NonCash(noteid, AnalysisID);
-
-                        Log.WriteLogInfo("CalcDataSaving", "UpdateTransactionEntryCash_NonCash saving ended ." + dtTransactionsoutput.Rows.Count + " Requestid " + requestid, requestid, "");
-
-                        status = "Saved";
-                    }
-                    else
-                    {
-                        Log.WriteLogInfo("CalcDataSaving", "Transactions_Output Row count 0." + " Requestid " + requestid, requestid, "");
-                    }
-                }
-                else
-                {
-                    Log.WriteLogInfo("CalcDataSaving", "Transactions_Output File not found.Error Code " + responsecode + " Requestid " + requestid, requestid, "");
-                }
-            }
-            catch (Exception ex)
-            {
-
-                string result = "";
-                V1CalcLogic v1logic = new V1CalcLogic();
-
-                if (result.Contains("A task was canceled"))
-                {
-                    status = "Retry";
-                    result = "Saving Failed for : Transactions_Output as M61 output api did not responds in 60 secs ";
-                }
-                if (result.Contains("timeout"))
-                {
-                    status = "Retry";
-                }
-                if (result.Contains("deadlock"))
-                {
-                    status = "Retry";
-                }
-                v1logic.UpdateCalculationRequestsStatus(SourceNoteID, requestid, Convert.ToInt32(-1), AnalysisID, "00000000-0000-0000-0000-000000000000", "Note calculated successfully but failed to save data in DB." + status);
-                Log.WriteLogExceptionMessage(CRESEnums.Module.Calculator.ToString(), "Error in saving for Transactions_Output : " + responsecode + " for request id:: " + requestid + " " + ex.StackTrace, requestid, "B0E6697B-3534-4C09-BE0A-04473401AB93", "GetFileOutput", result);
-
-            }
-
-            return status;
-        }
-
-        public string SaveStripingOutput(string requestid, string headerkey, string headerValue, string strAPI, string SourceNoteID, string AnalysisID, string username)
-        {
-            string status = "";
-#pragma warning disable CS0219 // The variable 'responsecode' is assigned but its value is never used
-            int? responsecode = null;
-#pragma warning restore CS0219 // The variable 'responsecode' is assigned but its value is never used
-            LoggerLogic Log = new LoggerLogic();
-            var cts = new CancellationTokenSource();
-#pragma warning disable CS0219 // The variable 'SavingFailedFor' is assigned but its value is never used
-            string SavingFailedFor = "";
-#pragma warning restore CS0219 // The variable 'SavingFailedFor' is assigned but its value is never used
-            V1CalcLogic _V1CalcLogic = new V1CalcLogic();
-
-            try
-            {
-                // strips saving
-                SavingFailedFor = "Striping_Output";
-                _V1CalcLogic.UpdateM61EngineCalcStatus(requestid, Convert.ToInt32(2), "");
-                var strstripAPI = strAPI + "/" + requestid + "/outputs/strips.csv";
-                HttpClient stripClient = new HttpClient();
-                stripClient.DefaultRequestHeaders.Add(headerkey, headerValue);
-                var stripres = stripClient.GetAsync(strstripAPI).Result;
-                if (stripres.IsSuccessStatusCode == true)
-                {
-                    var response = stripres.Content.ReadAsStringAsync().Result;
-                    var output = JsonConvert.DeserializeObject<Jsonperiodicresponse>(response);
-                    DataTable dtoutput = convertStringToDataTable(output.data);
-
-                    string[] requiredcol = { "Date", "Note", "type", "value", "Fee Name", "Rate", "Effective Date", "Parent Note" };
-
-                    foreach (string item in requiredcol)
-                    {
-                        if (dtoutput.Columns.IndexOf(item) == -1)
-                        {
-                            dtoutput.Columns.Add(item);
-                        }
-
-                    }
-                    List<string> collist = new List<string>();
-                    foreach (DataColumn column in dtoutput.Columns)
-                    {
-                        collist.Add(column.ColumnName);
-                    }
-                    foreach (var item in collist)
-                    {
-                        var res = requiredcol.Contains(item);
-                        if (res == false)
-                        {
-                            if (dtoutput.Columns.IndexOf(item) != -1)
-                            {
-                                dtoutput.Columns.Remove(item);
-                            }
-                        }
-                    }
-                    foreach (DataRow row in dtoutput.Rows)
-                    {
-                        row["value"] = CommonHelper.StringToDecimal(row["value"]);
-                        row["Rate"] = CommonHelper.StringToDecimal(row["Rate"]);
-                        row["Date"] = Convert.ToDateTime(row["Date"]);
-                        row["Effective Date"] = Convert.ToDateTime(dtoutput.Rows[0]["Effective Date"]);
-                    }
-                    if (dtoutput.Rows.Count > 0)
-                    {
-                        if (dtoutput.Columns.IndexOf("Parent Note") == -1)
-                        {
-                            dtoutput.Columns.Add("Parent Note");
-                        }
-                        dtoutput.Columns["Parent Note"].ColumnName = "SourceNoteID";
-                        dtoutput.Columns["Date"].SetOrdinal(0);
-                        dtoutput.Columns["Note"].SetOrdinal(1);
-                        dtoutput.Columns["type"].SetOrdinal(2);
-                        dtoutput.Columns["value"].SetOrdinal(3);
-                        dtoutput.Columns["Rate"].SetOrdinal(4);
-                        dtoutput.Columns["Effective Date"].SetOrdinal(5);
-                        dtoutput.Columns["Fee Name"].SetOrdinal(6);
-                        dtoutput.Columns["SourceNoteID"].SetOrdinal(7);
-
-                        _V1CalcLogic.InsertPayRuleDistribution(dtoutput, AnalysisID, username);
-                        status = "Saved";
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-
-                string result = "";
-                V1CalcLogic v1logic = new V1CalcLogic();
-                result = "Saving Failed for : Striping_Output : " + ex.Message;
-                if (result.Contains("A task was canceled"))
-                {
-                    status = "Retry";
-                    result = "Saving Failed for : Striping_Output as M61 output api did not responds in 60 secs ";
-                }
-
-                if (result.Contains("timeout"))
-                {
-                    status = "Retry";
-                }
-                if (result.Contains("deadlock"))
-                {
-                    status = "Retry";
-                }
-                v1logic.UpdateCalculationRequestsStatus(SourceNoteID, requestid, Convert.ToInt32(-1), AnalysisID, "00000000-0000-0000-0000-000000000000", "Note calculated successfully but failed to save data in DB." + status);
-                Log.WriteLogExceptionMessage(CRESEnums.Module.Calculator.ToString(), "Error in saving for Striping_Output " + " for request id:: " + requestid + " " + ex.StackTrace, requestid, "B0E6697B-3534-4C09-BE0A-04473401AB93", "GetFileOutput", result);
+                v1logic.InsertUpdateCalculationQueueRequest(requestid, null, null, 265, null, null, null, 1, username);
             }
 
             return status;
@@ -671,48 +332,83 @@ namespace CRES.NoteCalculatorServiceMVC.Controllers
         }
         public DataTable convertStringToDataTable(string data)
         {
-
+            int loopindex = 0;
             DataTable dtCsv = new DataTable();
             // convert string to stream
             byte[] byteArray = Encoding.UTF8.GetBytes(data);
             MemoryStream Stream = new MemoryStream(byteArray);
-
-            using (StreamReader sr = new StreamReader(Stream))
+            Regex regx = new Regex("," + "(?=(?:[^\"]*\"[^\"]*\")*(?![^\"]*\"))");
+            try
             {
-                while (!sr.EndOfStream)
+                using (StreamReader sr = new StreamReader(Stream))
                 {
-                    var Fulltext = sr.ReadToEnd().ToString(); //read full file text  
-                    string[] rows = Fulltext.Split('\n'); //split full file text into rows  
-                    for (int i = 0; i < rows.Count() - 1; i++)
+                    while (!sr.EndOfStream)
                     {
-                        string[] rowValues = rows[i].Split(','); //split each row with comma to get individual values  
+                        var Fulltext = sr.ReadToEnd().ToString(); //read full file text  
+                        string[] rows = Fulltext.Split('\n'); //split full file text into rows  
+                        for (int i = 0; i < rows.Count() - 1; i++)
                         {
-                            if (i == 0)
+                            string[] rowValues = regx.Split(rows[i]); //split each row with comma to get individual values  
                             {
-                                for (int j = 0; j < rowValues.Count(); j++)
+                                if (i == 0)
                                 {
-                                    dtCsv.Columns.Add(rowValues[j]); //add headers  
+                                    for (int j = 0; j < rowValues.Count(); j++)
+                                    {
+                                        dtCsv.Columns.Add(rowValues[j]); //add headers  
+                                    }
+                                }
+                                else
+                                {
+                                    DataRow dr = dtCsv.NewRow();
+                                    for (int k = 0; k < rowValues.Count(); k++)
+                                    {
+                                        // remove the double quotes from the strings
+                                        //dr[k] = rowValues[k].ToString();
+                                        dr[k] = rowValues[k].Replace("\"", "").ToString();
+                                    }
+                                    dtCsv.Rows.Add(dr); //add other rows  
                                 }
                             }
-                            else
-                            {
-                                DataRow dr = dtCsv.NewRow();
-                                for (int k = 0; k < rowValues.Count(); k++)
-                                {
-                                    dr[k] = rowValues[k].ToString();
-                                }
-                                dtCsv.Rows.Add(dr); //add other rows  
-                            }
+                            loopindex = loopindex + 1;
                         }
                     }
                 }
-                //}
-
-
+            }
+            catch (Exception ex)
+            {
+                throw ex;
             }
             return dtCsv;
         }
 
+        //scheduler API for save calc output files 
+        [HttpGet]
+        [Route("api/v1calc/getcalcqueuerequest")]
+        public void GetCalcQueueRequest()
+        {
+            V1CalcLogic v1CalcLogic = new V1CalcLogic();
+            List<V1CalculationStatusDataContract> lstCalcRequest = v1CalcLogic.GetRequestIDFromCalculationQueueRequest();
+
+            if (lstCalcRequest != null || lstCalcRequest.Count > 0)
+            {
+                LoggerLogic logWrite = new LoggerLogic();
+                logWrite.WriteLogInfo(CRESEnums.Module.V1Calculator.ToString(), "GetCalcQueueRequest called. Records in Save pending.Count " + lstCalcRequest.Count, "", useridforSys_Scheduler);
+
+                Parallel.ForEach(lstCalcRequest, new ParallelOptions { MaxDegreeOfParallelism = 10 },
+                    (item, state) =>
+                    {
+
+                        GetFileOutput(item.RequestID, item.TransactionOutput, item.NotePeriodicOutput, item.StrippingOutput, item.Prepaypremium_Output, item.Prepayallocations_Output, item.DailyInterestAccOutput);
+
+                    }
+                 );
+            }
+            else
+            {
+                LoggerLogic logWrite = new LoggerLogic();
+                logWrite.WriteLogInfo(CRESEnums.Module.V1Calculator.ToString(), "GetCalcQueueRequest called. No records in Save pending", "", useridforSys_Scheduler);
+            }
+        }
         [HttpGet]
         [NoteCalculatorServiceMVC.Controllers.DeflateCompression]
         [Route("api/v1calc/CalculateAllDeals")]
@@ -720,52 +416,87 @@ namespace CRES.NoteCalculatorServiceMVC.Controllers
         {
             try
             {
+                LoggerLogic log = new LoggerLogic();
                 V1CalcLogic v1logic = new V1CalcLogic();
                 List<V1CalculationStatusDataContract> listofdeal = v1logic.GetRecordsFromCalculationRequest();
-                List<V1CalculationStatusDataContract> listofrequestid = v1logic.GetRequestIDFromCalculationRequestsDataNotSaveInDB();
-
+                CalculatePrepayment();
+                log.WriteLogInfo(CRESEnums.Module.V1Calculator.ToString(), "CalculateAllDeals in api using new calculator service ", "", "");
                 string res = "";
-                // string analysisID = "C10F3372-0FC2-4861-A9F5-148F1F80804F";
+                // string analysisID = "C10F3372-0FC2-4861-A9F5-148F1F80804F" 1;
                 if (listofdeal != null && listofdeal.Count > 0)
                 {
                     Parallel.ForEach(listofdeal, new ParallelOptions { MaxDegreeOfParallelism = 1 },
                                (item, state) =>
                                {
                                    //Log for check submit calc reuest to V1 engine
-                                   //response1.StatusCode
-                                   LoggerLogic log = new LoggerLogic();
-                                   log.WriteLogInfo(CRESEnums.Module.Calculator.ToString(), "CalculateAllDeals in api  " + item.objectID + " AnalysisID " + item.AnalysisID, "", "");
-                                   res = v1logic.SubmitCalcRequest(item.objectID, Convert.ToInt32(item.objectTypeId), item.AnalysisID, Convert.ToInt32(item.CalcType), true);
+                                   log.WriteLogInfo(CRESEnums.Module.V1Calculator.ToString(), "CalculateAllDeals in api using calculator service " + item.objectID + " AnalysisID " + item.AnalysisID, "", "");
+                                   res = v1logic.SubmitCalcRequest(item.objectID, Convert.ToInt32(item.objectTypeId), item.AnalysisID, Convert.ToInt32(item.CalcType), true, " new");
                                    //commit for testing
                                    if (res == "Batch Canceled")
                                    {
-
                                        //Log for check Batch Canceled in DB
-                                       //response1.StatusCode
-                                       LoggerLogic logBatch = new LoggerLogic();
-                                       logBatch.WriteLogExceptionMessage(CRESEnums.Module.Calculator.ToString(), "Batch Canceled in api  " + item.objectID + " AnalysisID " + item.AnalysisID, "", "", "SubmitCalcRequest", "Batch Canceled in api");
-
+                                       log.WriteLogInfo(CRESEnums.Module.V1Calculator.ToString(), "Batch Canceled in api  ", "", useridforSys_Scheduler);
                                    }
 
                                });
                 }
-                if (listofrequestid != null && listofrequestid.Count > 0)
+                else
                 {
+                    log.WriteLogInfo(CRESEnums.Module.V1Calculator.ToString(), "no record found in new calculator service ", "", useridforSys_Scheduler);
+                }
 
+
+            }
+            catch (Exception ex)
+            {
+                LoggerLogic log = new LoggerLogic();
+                log.WriteLogException(CRESEnums.Module.V1Calculator.ToString(), "Error in CalculateAllDeals " + ex.Message, "", "B0E6697B-3534-4C09-BE0A-04473401AB93", "CalculateAllDeals", "", ex);
+            }
+        }
+
+        public void CalculatePrepayment()
+        {
+
+            try
+            {
+                LoggerLogic log = new LoggerLogic();
+                V1CalcLogic v1logic = new V1CalcLogic();
+                List<V1CalculationStatusDataContract> listofdeal = v1logic.GetDealidForPrepaymentCalculation();
+
+                log.WriteLogInfo(CRESEnums.Module.PrepaymentCalculator.ToString(), "CalculatePrepayment in api using new calculator service ", "", "");
+                string res = "";
+
+                if (listofdeal != null && listofdeal.Count > 0)
+                {
+                    Parallel.ForEach(listofdeal, new ParallelOptions { MaxDegreeOfParallelism = 1 },
+                               (item, state) =>
+                               {
+                                   //Log for check submit calc reuest to V1 engine
+                                   log.WriteLogInfo(CRESEnums.Module.PrepaymentCalculator.ToString(), "Calculating Prepayment " + item.objectID + " AnalysisID " + item.AnalysisID, "", "");
+                                   res = v1logic.SubmitCalcRequest(item.objectID, Convert.ToInt32(item.objectTypeId), item.AnalysisID, 776, false, "");
+                                   if (res == "Batch Canceled")
+                                   {
+
+                                       log.WriteLogInfo(CRESEnums.Module.PrepaymentCalculator.ToString(), "Batch Canceled in api  ", "", useridforSys_Scheduler);
+                                   }
+                               });
+                }
+                else
+                {
+                    log.WriteLogInfo(CRESEnums.Module.PrepaymentCalculator.ToString(), "no record found :CalculatePrepayment ", "", useridforSys_Scheduler);
                 }
 
             }
             catch (Exception ex)
             {
                 LoggerLogic log = new LoggerLogic();
-                log.WriteLogException(CRESEnums.Module.Calculator.ToString(), "Error in CalculateAllDeals " + ex.Message, "", "B0E6697B-3534-4C09-BE0A-04473401AB93", "CalculateAllDeals", "", ex);
+                log.WriteLogException(CRESEnums.Module.PrepaymentCalculator.ToString(), "Error in CalculatePrepayment " + ex.Message, "", "B0E6697B-3534-4C09-BE0A-04473401AB93", "CalculatePrepayment", "", ex);
             }
         }
 
         public void SaveFileInBlob(string requestid, string UserID)
         {
             LoggerLogic Log = new LoggerLogic();
-#pragma warning disable CS0168 // The variable 'ex' is declared but never used
             try
             {
 
@@ -793,15 +524,14 @@ namespace CRES.NoteCalculatorServiceMVC.Controllers
                     }
                     else
                     {
-                        Log.WriteLogExceptionMessage(CRESEnums.Module.Calculator.ToString(), "Error occured in Upload Json for request id" + requestid, requestid.ToString(), "", "Error occured in Uploading Json for " + requestid, requestid.ToString());
+                        Log.WriteLogExceptionMessage(CRESEnums.Module.V1Calculator.ToString(), "Error occured in Upload Json for request id" + requestid, requestid.ToString(), "", "Error occured in Uploading Json for " + requestid, requestid.ToString());
                     }
                 }
             }
             catch (Exception ex)
             {
-                Log.WriteLogExceptionMessage(CRESEnums.Module.Calculator.ToString(), "Error occured in SaveFileInBlob" + requestid, requestid.ToString(), "", "Error occured in SaveFileInBlob" + requestid, requestid.ToString());
+                Log.WriteLogExceptionMessage(CRESEnums.Module.V1Calculator.ToString(), "Error occured in SaveFileInBlob" + requestid, requestid.ToString(), "", "Error occured in SaveFileInBlob" + requestid, requestid.ToString());
             }
-#pragma warning restore CS0168 // The variable 'ex' is declared but never used
         }
         public void CreateCSVFile(System.Data.DataTable dt, string csvname)
         {
@@ -858,37 +588,133 @@ namespace CRES.NoteCalculatorServiceMVC.Controllers
 
         [HttpGet]
         [Route("api/v1calc/CheckOutputSaving")]
-        public void CheckOutputSaving(string requestid)
+        public void CheckOutputSaving()
         {
-#pragma warning disable CS0168 // The variable 'ex' is declared but never used
+            V1CalcLogic v1logic = new V1CalcLogic();
             try
             {
-                GetFileOutput(requestid);
+                string headerkey = "auth_key";
+
+                //QA
+                string headerValue = "4fdfcfe813f040e5b468bf778ae3aaf0";
+                string strAPI = "https://m61engine-qa.azurewebsites.net/requests";
+
+                ////Dev
+                //string headerValue = "d25006feb05c4828b08564d6fac7cbbf";
+                //string strAPI = "https://m61engine-dev.azurewebsites.net/requests";
+
+                ////int
+                //string headerValue = "4fdfcfe813f040e5b468bf778ae3aaf0";
+                //string strAPI = "https://m61engine-int.azurewebsites.net/requests";
+
+                //prod
+                // string headerValue = "fc00b7e3880e4f04abffdf03b6fca55d";
+                //string strAPI = "https://m61engine.azurewebsites.net/requests";
+
+                string SourceNoteID = "24723";
+                string AnalysisID = "C10F3372-0FC2-4861-A9F5-148F1F80804F";
+                string username = "eef47d30-b788-4d4c-ad41-4d06b3ce7bff";
+                string noteid = "41A1468B-DBDF-469E-B806-4F8398C7BF50";
+                string requestid = "cfa44d836a254aefa200868e531d79ef";
+
+                CalculatePrepayment();
+                //GetV1Logs(requestid, headerkey, headerValue, strAPI);
+                //v1logic.SaveTransactionsOutputForLiabilityFeeAndInterest(requestid, headerkey, headerValue, strAPI, AnalysisID, username, 911);
+
+                v1logic.SaveTransactionsOutputForLiabilityFee(requestid, headerkey, headerValue, strAPI, AnalysisID, username, 935);
+                //GetFileOutput(requestid, null, null, null, 292, null, null);
+                PrepayPremiumLogic prepay = new PrepayPremiumLogic();
+                //prepay.SavePrepayPremium(requestid, headerkey, headerValue, strAPI, username);
+                //v1logic.SaveTransactionsOutput(requestid, headerkey, headerValue, strAPI, SourceNoteID, AnalysisID, username, noteid);
+                //v1logic.SavePeriodicOutput(requestid, headerkey, headerValue, strAPI, SourceNoteID, AnalysisID, username);
+                //SaveDailyData(requestid, headerkey, headerValue, strAPI, noteid, AnalysisID, username);
+
             }
             catch (Exception ex)
             {
                 throw;
             }
-#pragma warning restore CS0168 // The variable 'ex' is declared but never used
         }
-        [Route("api/v1calc/CheckRetry")]
-        public void CheckRetry()
+        [HttpGet]
+        [NoteCalculatorServiceMVC.Controllers.DeflateCompression]
+        [Route("api/v1calc/GetV1Logs")]
+        public IActionResult GetV1Logs(string requestid, string env)
         {
-            V1CalcLogic v1logic = new V1CalcLogic();
-            List<V1CalculationStatusDataContract> listofrequestid = v1logic.GetRequestIDFromCalculationRequestsDataNotSaveInDB();
-
-            if (listofrequestid != null && listofrequestid.Count > 0)
+            v1GenericResult _authenticationResult = null;
+            string headerkey = "auth_key";
+            string headerValue = "";
+            string strAPI = "";
+            env = env.ToLower();
+            if (env == "qa")
             {
-                foreach (var item in listofrequestid)
-                {
-                    GetFileOutput(item.RequestID);
-                }
+                //QA
+                headerValue = "4fdfcfe813f040e5b468bf778ae3aaf0";
+                strAPI = "https://m61engine-qa.azurewebsites.net/requests";
+            }
+            else if (env == "dev")
+            {
+                //Dev
+                headerValue = "d25006feb05c4828b08564d6fac7cbbf";
+                strAPI = "https://m61engine-dev.azurewebsites.net/requests";
+            }
+            else if (env == "int")
+            {
+                //Int
+                headerValue = "4fdfcfe813f040e5b468bf778ae3aaf0";
+                strAPI = "https://m61engine-int.azurewebsites.net/requests";
+            }
+            else if (env == "prod")
+            {
+                //Prod
+                headerValue = "fc00b7e3880e4f04abffdf03b6fca55d";
+                strAPI = "https://m61engine.azurewebsites.net/requests";
             }
 
-        }
+            string status = "";
 
+            try
+            {
+                //sample url
+                //https://m61engine-int.azurewebsites.net/requests/e1f0356a76944db59d06ad8ccbc82928/outputs/logs-e1f0356a76944db59d06ad8ccbc82928.log            
+                var strPrepayPremiumAPI = strAPI + "/" + requestid + "/outputs/logs-" + requestid + ".log";
+                HttpClient prepaypremiumclient = new HttpClient();
+                prepaypremiumclient.DefaultRequestHeaders.Add(headerkey, headerValue);
+                var apiprepaypremiumresult = prepaypremiumclient.GetAsync(strPrepayPremiumAPI).Result;
+
+
+                if (apiprepaypremiumresult.IsSuccessStatusCode == true)
+                {
+                    var prepaypremiumresponse = apiprepaypremiumresult.Content.ReadAsStringAsync().Result;
+                    status = prepaypremiumresponse;
+
+                }
+                _authenticationResult = new v1GenericResult()
+                {
+                    Status = 1,
+                    Succeeded = true,
+                    Message = status,
+                    ErrorDetails = ""
+                };
+            }
+            catch (Exception ex)
+            {
+                _authenticationResult = new v1GenericResult()
+                {
+                    Status = 2,
+                    Succeeded = true,
+                    Message = "Error",
+                    ErrorDetails = ex.StackTrace
+                };
+
+            }
+
+            return Ok(_authenticationResult);
+
+        }
         [HttpPost]
         [Route("api/v1calc/updateM61EnginecalcStatus")]
+        //[Route("api/v1calc/updateM61EnginecalcStatus")]
+
         public IActionResult UpdateM61EngineCalcStatus([FromBody] dynamic json)
         {
             v1GenericResult _authenticationResult = null;
@@ -897,6 +723,8 @@ namespace CRES.NoteCalculatorServiceMVC.Controllers
             GetConfigSetting();
             LoggerLogic log = new LoggerLogic();
             V1CalcLogic v1logic = new V1CalcLogic();
+
+            V1CalcQueueSaveOutput v1data = new V1CalcQueueSaveOutput();
 
             string requestid = ""; string status = ""; string message = "";
             requestid = json["request_id"];
@@ -907,6 +735,10 @@ namespace CRES.NoteCalculatorServiceMVC.Controllers
             {
                 headerValues = Request.Headers["CRETokenKey"].ToString();
             }
+            string strAPI = Sectionroot.GetSection("SubmitRequestConstantUrl").Value;
+            string v1headerkey = Sectionroot.GetSection("Authkeyname").Value;
+            string v1headerValue = Sectionroot.GetSection("Authkeyvalue").Value;
+
             if (headerkey == headerValues)
             {
                 try
@@ -915,30 +747,89 @@ namespace CRES.NoteCalculatorServiceMVC.Controllers
                     {
                         //Logger log
                         LoggerLogic logWrite = new LoggerLogic();
-                        logWrite.WriteLogInfo(CRESEnums.Module.Calculator.ToString(), "call UpdateM61EngineCalcStatus API for requestid " + requestid + " statusId " + status, requestid, "");
-
-                        string msg = v1logic.UpdateM61EngineCalcStatus(requestid, Convert.ToInt32(status), edc.StackTrace);
-                        if (status.ToString() == "2")
+                        logWrite.WriteLogInfo(CRESEnums.Module.V1Calculator.ToString(), "call UpdateM61EngineCalcStatus API for requestid new  " + requestid + " statusId " + status, requestid, "", "UpdateM61EngineCalcStatus");
+                        string TableName = v1logic.CheckRequestIdInCalcTable(requestid);
+                        if (!string.IsNullOrEmpty(TableName))
                         {
-                            //manish
-                            log.WriteLogInfo("CalcDataSaving", "GetFileOutput called." + " Requestid " + requestid, requestid, "");
-                            Thread FirstThread = new Thread(() => GetFileOutput(requestid));
-                            FirstThread.Start();
+                            {
+                                if (TableName == "CalculationRequests")
+                                {
+                                    string msg = v1logic.UpdateM61EngineCalcStatus(requestid, Convert.ToInt32(status), edc.StackTrace);
+                                    if (status.ToString() == "2")
+                                    {
+                                        //manish
+                                        // log.WriteLogInfo("CalcDataSaving", "GetFileOutput called." + " Requestid " + requestid, requestid, "");
+                                        v1data = GetDataFromCalcRequestsByRequestID(requestid);
+                                        v1data.headerkey = v1headerkey;
+                                        v1data.headerValue = v1headerValue;
+                                        v1data.strAPI = strAPI;
+                                        //V1CalcQueueAPI(v1data);
+                                    }
+                                    else if (status.ToString() == "-1" || status.ToString() == "-2")
+                                    {
+
+                                        edc = ReadException(message);
+                                        log.WriteLogExceptionMessage(CRESEnums.Module.V1Calculator.ToString(), "Error in calculating for request id:: " + Convert.ToString(json) + " " + edc.StackTrace, requestid, "B0E6697B-3534-4C09-BE0A-04473401AB93", edc.MethodName, edc.Summary);
+                                    }
+
+                                    _authenticationResult = new v1GenericResult()
+                                    {
+                                        Status = 1,
+                                        Succeeded = true,
+                                        Message = "Success",
+                                        ErrorDetails = ""
+                                    };
+
+                                }
+                                else if (TableName == "CalculationRequestsLiability")
+                                {
+                                    logWrite.WriteLogInfo(CRESEnums.Module.LiabiltyFeeInterestCalculator.ToString(), "called UpdateM61EngineCalcStatus API for CalculationRequestsLiability  " + requestid + " statusId " + status, requestid, "", "UpdateM61EngineCalcStatus");
+
+                                    if (status.ToString() == "2")
+                                    {
+                                        var res = "";
+                                        logWrite.WriteLogInfo(CRESEnums.Module.LiabiltyFeeInterestCalculator.ToString(), "Completed  " + requestid + " statusId " + status, requestid, "", "UpdateM61EngineCalcStatus");
+                                        v1data = v1logic.GetDataFromCalculationRequestsLiabilityByRequestID(requestid);
+                                        if (v1data.CalcType == 911)
+                                        {
+                                            res = v1logic.SaveTransactionsOutputForLiabilityFeeAndInterest(requestid, v1headerkey, v1headerValue, strAPI, v1data.AnalysisID, v1data.username, v1data.CalcType);
+                                        }
+                                        else if (v1data.CalcType == 935)
+                                        {
+                                            res = v1logic.SaveTransactionsOutputForLiabilityFee(requestid, v1headerkey, v1headerValue, strAPI, v1data.AnalysisID, v1data.username, v1data.CalcType);
+                                        }
+
+                                        if (res == "Saved")
+                                        {
+                                            string msg = v1logic.UpdateM61EngineCalcStatusForLiability(requestid, Convert.ToInt32(status), "");
+                                        }
+                                    }
+                                    else
+                                    {
+
+                                        v1logic.UpdateM61EngineCalcStatusForLiability(requestid, Convert.ToInt32(status), message);
+                                        if (status.ToString() == "-1" || status.ToString() == "-2")
+                                        {
+                                            edc = ReadException(message);
+                                            log.WriteLogExceptionMessage(CRESEnums.Module.LiabiltyFeeInterestCalculator.ToString(), "Error in calculating for request id:: " + Convert.ToString(json) + " " + edc.StackTrace, requestid, "B0E6697B-3534-4C09-BE0A-04473401AB93", edc.MethodName, edc.Summary);
+                                        }
+                                    }
+
+                                    _authenticationResult = new v1GenericResult()
+                                    {
+                                        Status = 1,
+                                        Succeeded = true,
+                                        Message = "Success",
+                                        ErrorDetails = ""
+                                    };
+                                }
+
+
+                            }
                         }
-                        else if (status.ToString() == "-1" || status.ToString() == "-2")
-                        {
 
-                            edc = ReadException(message);
-                            log.WriteLogExceptionMessage(CRESEnums.Module.Calculator.ToString(), "Error in calculating for request id:: " + Convert.ToString(json) + " " + edc.StackTrace, requestid, "B0E6697B-3534-4C09-BE0A-04473401AB93", edc.MethodName, edc.Summary);
-                        }
 
-                        _authenticationResult = new v1GenericResult()
-                        {
-                            Status = 1,
-                            Succeeded = true,
-                            Message = "Success",
-                            ErrorDetails = ""
-                        };
+
                     }
 
                 }
@@ -951,14 +842,14 @@ namespace CRES.NoteCalculatorServiceMVC.Controllers
                         Message = "Error",
                         ErrorDetails = ex.Message
                     };
-                    log.WriteLogException(CRESEnums.Module.Calculator.ToString(), "Error in UpdateM61EngineCalcStatus " + Convert.ToString(json), "", "B0E6697B-3534-4C09-BE0A-04473401AB93", "UpdateM61EngineCalcStatus", "", ex);
+                    log.WriteLogException(CRESEnums.Module.V1Calculator.ToString(), "Error in UpdateM61EngineCalcStatus " + Convert.ToString(json), "", "B0E6697B-3534-4C09-BE0A-04473401AB93", "UpdateM61EngineCalcStatus", "", ex);
 
                 }
                 return Ok(_authenticationResult);
             }
             else
             {
-                log.WriteLogInfo(CRESEnums.Module.Calculator.ToString(), "UpdateM61EngineCalcStatus api Unauthorized access", "", "");
+                log.WriteLogInfo(CRESEnums.Module.V1Calculator.ToString(), "UpdateM61EngineCalcStatus api Unauthorized access", "", "", "UpdateM61EngineCalcStatus");
                 return StatusCode(Microsoft.AspNetCore.Http.StatusCodes.Status401Unauthorized, "Unauthorized access");
             }
         }
@@ -1023,7 +914,7 @@ namespace CRES.NoteCalculatorServiceMVC.Controllers
                 return edc;
             }
         }
-
+        //======
         public string GetPurposeTypetext(int? purposeID)
         {
             string purposetype = "";
@@ -1077,9 +968,190 @@ namespace CRES.NoteCalculatorServiceMVC.Controllers
                 case 631:
                     purposetype = "Paydown";
                     break;
+                case 840:
+                    purposetype = "Principal Writeoff";
+                    break;
+                case 875:
+                    purposetype = "Net Property Income/Loss";
+                    break;
+                case 879:
+                    purposetype = "Equity Distribution";
+                    break;
             }
             return purposetype;
         }
+
+        [HttpGet]
+        [Route("api/v1calc/GetBackShopExportJson")]
+        public IActionResult GetBackShopExportJson(string dealid, string noteid, string type)
+        {
+
+            string jsonstring = "";
+            string returnjson = "[";
+            try
+            {
+                GetConfigSetting();
+                String[] stringarr = null;
+                if (type == "PIK")
+                {
+                    stringarr = new String[] { "Fundings" };
+                }
+                else if (type == "Balloon")
+                {
+                    stringarr = new String[] { "Fundings" };
+                }
+                else
+                {
+                    stringarr = new String[] { "Fundings", "Projection" };
+                }
+
+                string backshopconsturl = "";
+                BackShopExportLogic backlogic = new BackShopExportLogic();
+                backshopconsturl = Sectionroot.GetSection("BackshopImportConstantUrl").Value;
+                DataTable dt = backlogic.ExportFFandPIKgetrecordsforJson(dealid, noteid, useridforSys_Scheduler, type);
+                var countdeleted = dt.Select("IsDeleted = True").Count();
+
+                for (var i = 0; i < stringarr.Length; i++)
+                {
+                    jsonstring = "";
+                    DataTable tblFiltered = new DataTable();
+                    string datatype = stringarr[i];
+                    if (datatype == "Projection")
+                    {
+                        var count = dt.Select("IsProjectedPaydown = True and IsDeleted=False").Count();
+                        if (count > 0)
+                        {
+                            tblFiltered = dt.Select("IsProjectedPaydown = True and IsDeleted=False").CopyToDataTable();
+                            //create data
+                            List<BackShopExportProjectionDataContract> data = backlogic.CreateProjectionJson(tblFiltered);
+                            var objectd = new { Notes = data };
+                            jsonstring = JsonConvert.SerializeObject(objectd);
+
+                        }
+                    }
+                    else
+                    {
+                        var count = dt.Select("IsProjectedPaydown = False  and IsDeleted=False").Count();
+                        if (count > 0)
+                        {
+                            tblFiltered = dt.Select("IsProjectedPaydown = False and IsDeleted=False").CopyToDataTable();
+                            List<BackShopExportDataContract> data = backlogic.CreateFundingJson(tblFiltered);
+                            var objectd = new { Notes = data };
+                            jsonstring = JsonConvert.SerializeObject(objectd);
+                        }
+                    }
+
+                    returnjson = returnjson + jsonstring + ",";
+                }
+                if (returnjson != "")
+                {
+                    returnjson = returnjson.TrimEnd(',');
+                }
+
+                returnjson = returnjson + "]";
+                return Ok(returnjson);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(Microsoft.AspNetCore.Http.StatusCodes.Status500InternalServerError, "Internal Server Error");
+            }
+        }
+        //12
+        public void ExportDataTobackShop(string noteid, string requestid, string SourceNoteID, string username)
+        {
+            LoggerLogic Log = new LoggerLogic();
+            V1CalcLogic _V1CalcLogic = new V1CalcLogic();
+            try
+            {
+                string AllowBackshopPIKPrincipal = "";
+                string dealID = "";
+
+                DataTable dt = _V1CalcLogic.GetNoteInfoForPIKExport_V1(noteid);
+                foreach (DataRow dr in dt.Rows)
+                {
+                    AllowBackshopPIKPrincipal = Convert.ToString(dr["AllowBackshopPIKPrincipal"]);
+                    dealID = Convert.ToString(dr["dealid"]);
+                }
+                if (AllowBackshopPIKPrincipal == "1")
+                {
+
+                    Log.WriteLogInfo("CalcDataSaving", "BackshopPIKPrincipal Started ." + " Requestid " + requestid, requestid, "");
+                    BackShopExportLogic backShopExportLogic = new BackShopExportLogic();
+                    backShopExportLogic.ExportPIKPrincipalFromCRES_API(SourceNoteID, username);
+                    backShopExportLogic.ExportDataToBackShop(dealID, username, noteid, "PIK");
+                    Log.WriteLogInfo("CalcDataSaving", "BackshopPIKPrincipal Ended ." + " Requestid " + requestid, requestid, "");
+
+                }
+                WeightedSpreadCalcHelperLogic wsc = new WeightedSpreadCalcHelperLogic();
+                wsc.CaculateWeightedAvg(dealID, username, noteid);
+
+            }
+            catch (Exception ex)
+            {
+                Log.WriteLogExceptionMessage(CRESEnums.Module.V1Calculator.ToString(), "Error in ExportDataTobackShop : " + " for request id:: " + requestid + " " + ex.StackTrace, requestid, "B0E6697B-3534-4C09-BE0A-04473401AB93", "ExportDataTobackShop", ex.Message);
+            }
+        }
+
+        [HttpPost]
+        [Route("api/queuestorage/v1calcQueueAPI")]
+        public async Task V1CalcQueueAPI([FromBody] V1CalcQueueSaveOutput v1paramdata)
+        {
+            string AzureStorageAccConnString = _configuration["Application:AzureStorageAccConnString"];
+            string AzureQueueName = _configuration["Application:AzureQueueName"];
+
+            var options = new QueueClientOptions();
+            options.MessageEncoding = QueueMessageEncoding.Base64;
+
+            var queClient = new QueueClient(AzureStorageAccConnString, AzureQueueName, options);
+
+            string jsonData = System.Text.Json.JsonSerializer.Serialize(v1paramdata);
+            await queClient.SendMessageAsync(jsonData);
+
+        }
+
+        public V1CalcQueueSaveOutput GetDataFromCalcRequestsByRequestID(string requestid)
+        {
+            V1CalcLogic _V1CalcLogic = new V1CalcLogic();
+            V1CalcQueueSaveOutput v1data = new V1CalcQueueSaveOutput();
+
+            v1data.requestid = requestid;
+
+            DataTable dt = _V1CalcLogic.GetDataFromCalculationRequestsByRequestID(requestid);
+            foreach (DataRow dr in dt.Rows)
+            {
+                v1data.AnalysisID = Convert.ToString(dr["AnalysisID"]);
+                v1data.username = Convert.ToString(dr["UserName"]);
+                v1data.noteid = Convert.ToString(dr["NoteId"]);
+                v1data.SourceNoteID = Convert.ToString(dr["crenoteid"]);
+            }
+            return v1data;
+        }
+
+        [HttpGet]
+        [NoteCalculatorServiceMVC.Controllers.DeflateCompression]
+        [Route("api/v1calc/testresponse")]
+
+        public IActionResult testresponse()
+        {
+            string fileName = "request_rules.json";
+            string currentDirectoryPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot//JSONTemplate//" + fileName);
+
+            try
+            {
+                string finalFileNameWithPath = string.Empty;
+                finalFileNameWithPath = string.Format("{0}\\{1}", currentDirectoryPath, fileName);
+
+
+                string jsonRequest = System.IO.File.ReadAllText(currentDirectoryPath);
+                return Ok(jsonRequest);
+            }
+            catch (Exception ex)
+            {
+                return Ok(currentDirectoryPath + "-" + ex.Message + " " + ex.StackTrace);
+            }
+
+        }
+
     }
 }
 

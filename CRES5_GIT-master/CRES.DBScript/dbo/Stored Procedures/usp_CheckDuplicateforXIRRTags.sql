@@ -1,0 +1,20 @@
+CREATE PROCEDURE [dbo].[usp_CheckDuplicateforXIRRTags] 
+(   
+    @Name nvarchar(256),
+	@ID int
+)
+AS
+BEGIN
+	SET NOCOUNT ON;
+	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
+
+	DECLARE @IsExist bit = 0;
+
+		IF EXISTS(SELECT * FROM [CRE].TagMasterXIRR WHERE Name = @Name and TagMasterXIRRID <> @ID)
+		BEGIN
+			SET @IsExist = 1;
+		END
+	SELECT @IsExist;
+
+	SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+END

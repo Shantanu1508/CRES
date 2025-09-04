@@ -2,10 +2,8 @@
 
 
 CREATE PROCEDURE [dbo].[usp_GetServicingLogByNoteID] --'69f7abd1-c9c4-414d-8846-bc7247c9522b'
-
-@NoteID nvarchar(256),
-@Analysisid UNIQUEIDENTIFIER
- 
+	@NoteID nvarchar(256),
+	@Analysisid UNIQUEIDENTIFIER
 
 AS
 BEGIN
@@ -64,7 +62,11 @@ BEGIN
 	ELSE RelatedtoModeledPMTDate END) as datetime) ) as TransactionDateByRule,
 
 	ntd.TransactionDate as TransactionDateServicingLog,
-	ntd.RemittanceDate
+	ntd.RemittanceDate,
+	DATEADD(day,1,note.InitialInterestAccrualEndDate) as InitialInterestAccrualEndDate,
+	ntd.WriteOffAmount,
+	ntd.TotalInterest as CashInterest,
+	ntd.AddlInterest as CapitalizedInterest
 
 	from cre.NoteTransactionDetail ntd
 	inner join CRE.Note note on note.NoteID = ntd.NoteID 
@@ -113,7 +115,11 @@ BEGIN
 	ELSE RelatedtoModeledPMTDate END) as datetime) ) as TransactionDateByRule,
 
 	ntd.TransactionDate as TransactionDateServicingLog,
-	ntd.RemittanceDate
+	ntd.RemittanceDate,
+	DATEADD(day,1,note.InitialInterestAccrualEndDate) as InitialInterestAccrualEndDate,
+	ntd.WriteOffAmount,
+	ntd.TotalInterest as CashInterest,
+	ntd.AddlInterest as CapitalizedInterest
 
 	from cre.NoteTransactionDetail ntd
 	inner join CRE.Note note on note.NoteID = ntd.NoteID 

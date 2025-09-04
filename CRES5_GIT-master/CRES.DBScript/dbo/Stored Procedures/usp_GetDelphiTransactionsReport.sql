@@ -144,7 +144,7 @@ From(
 	inner join cre.deal d on d.dealid = n.dealid
 	inner join cre.TranscationReconciliation te on n.noteid = te.noteid
 	
-	left join cre.TransactionEntry tr on n.noteid = tr.noteid and tr.analysisID = 'C10F3372-0FC2-4861-A9F5-148F1F80804F' and tr.[Type] = te.TransactionType --in ('InterestPaid','StubInterest','FloatInterest','DefaultInterest','PurchasedInterest')
+	left join cre.TransactionEntry tr on acc.AccountID = tr.AccountID and tr.analysisID = 'C10F3372-0FC2-4861-A9F5-148F1F80804F' and tr.[Type] = te.TransactionType --in ('InterestPaid','StubInterest','FloatInterest','DefaultInterest','PurchasedInterest')
 	and te.RemittanceDate = tr.RemitDate and te.DateDue = tr.date
 
 	left join core.lookup lcurrency on lcurrency.lookupid = ISNULL(acc.BaseCurrencyID,187) and ParentID = 29
@@ -157,6 +157,7 @@ From(
 	and te.PostedDate is not null
 	and ABS(te.TotalInterest)>1
 	and te.TransactionType in ('InterestPaid','StubInterest','FloatInterest','DefaultInterest','PurchasedInterest')
+	and acc.AccountTypeID = 1
 	UNION
 
 	--transactions based on transaction date	
@@ -172,7 +173,7 @@ From(
 	inner join core.account acc on acc.accountid = n.account_accountid  
 	left join cre.FinancingSourcemaster fs on fs.FinancingSourcemasterID = n.FinancingSourceID 
 	inner join cre.deal d on d.dealid = n.dealid
-	inner join cre.TransactionEntry te on n.noteid = te.noteid and te.analysisID = 'C10F3372-0FC2-4861-A9F5-148F1F80804F' and [Type] in ('InitialFunding','ScheduledPrincipalPaid') ---,'PIKInterest'
+	inner join cre.TransactionEntry te on acc.AccountID = te.AccountID and te.analysisID = 'C10F3372-0FC2-4861-A9F5-148F1F80804F' and [Type] in ('InitialFunding','ScheduledPrincipalPaid') ---,'PIKInterest'
 	left join core.lookup lcurrency on lcurrency.lookupid = ISNULL(acc.BaseCurrencyID,187) and ParentID = 29
 	left join @transactionType temptr on te.[type]=temptr.[type]
 	where fs.FinancingSourceName like '%Delphi%'
@@ -180,6 +181,7 @@ From(
 	and ISNUMERIC(n.crenoteid) = 1
 	and (n.ActualPayOffDate is null OR n.ActualPayOffDate >= Cast(@currentdatetime as date))
 	and ABS(te.amount)>1
+	and acc.AccountTypeID = 1
 	
 	UNION
 
@@ -197,7 +199,7 @@ From(
 	inner join core.account acc on acc.accountid = n.account_accountid  
 	left join cre.FinancingSourcemaster fs on fs.FinancingSourcemasterID = n.FinancingSourceID 
 	inner join cre.deal d on d.dealid = n.dealid
-	inner join cre.TransactionEntry te on n.noteid = te.noteid and te.analysisID = 'C10F3372-0FC2-4861-A9F5-148F1F80804F' and [Type] in ('PIKInterest')
+	inner join cre.TransactionEntry te on acc.AccountID = te.AccountID and te.analysisID = 'C10F3372-0FC2-4861-A9F5-148F1F80804F' and [Type] in ('PIKInterest')
 	left join core.lookup lcurrency on lcurrency.lookupid = ISNULL(acc.BaseCurrencyID,187) and ParentID = 29
 	left join @transactionType temptr on te.[type]=temptr.[type]
 	where fs.FinancingSourceName like '%Delphi%'
@@ -206,7 +208,7 @@ From(
 	and (n.ActualPayOffDate is null OR n.ActualPayOffDate >= Cast(@currentdatetime as date))
 	and ABS(te.amount)>1
 	and te.FeeName = 'COVID'
-
+	and acc.AccountTypeID=1
 
 	union
 	
@@ -344,13 +346,14 @@ From(
 	inner join core.account acc on acc.accountid = n.account_accountid  
 	left join cre.FinancingSourcemaster fs on fs.FinancingSourcemasterID = n.FinancingSourceID 
 	inner join cre.deal d on d.dealid = n.dealid
-	inner join cre.TransactionEntry te on n.noteid = te.noteid and te.analysisID = 'C10F3372-0FC2-4861-A9F5-148F1F80804F' and [Type] in ('Balloon')
+	inner join cre.TransactionEntry te on acc.AccountID = te.AccountID and te.analysisID = 'C10F3372-0FC2-4861-A9F5-148F1F80804F' and [Type] in ('Balloon')
 	left join core.lookup lcurrency on lcurrency.lookupid = ISNULL(acc.BaseCurrencyID,187) and ParentID = 29
 	left join @transactionType temptr on te.[type]=temptr.[type]
 	where fs.FinancingSourceName like '%Delphi%'
 	and te.date = Cast(@currentdatetime as date) --'10/11/2017'
 	and ISNUMERIC(n.crenoteid) = 1
 	and te.amount>1
+	and acc.AccountTypeID= 1
 
 	union
 
@@ -390,14 +393,14 @@ From(
 	inner join core.account acc on acc.accountid = n.account_accountid  
 	left join cre.FinancingSourcemaster fs on fs.FinancingSourcemasterID = n.FinancingSourceID 
 	inner join cre.deal d on d.dealid = n.dealid
-	inner join cre.TransactionEntry te on n.noteid = te.noteid and te.analysisID = 'C10F3372-0FC2-4861-A9F5-148F1F80804F' and [Type] in ('PIKInterest')
+	inner join cre.TransactionEntry te on acc.AccountID = te.AccountID and te.analysisID = 'C10F3372-0FC2-4861-A9F5-148F1F80804F' and [Type] in ('PIKInterest')
 	left join core.lookup lcurrency on lcurrency.lookupid = ISNULL(acc.BaseCurrencyID,187) and ParentID = 29	
 	where fs.FinancingSourceName like '%Delphi%'
 	and te.date = Cast(@currentdatetime as date) --'02/07/2020'
 	and ISNUMERIC(n.crenoteid) = 1
 	and (n.ActualPayOffDate is null OR n.ActualPayOffDate >= Cast(@currentdatetime as date))
 	and ABS(te.amount)>1
-	
+	and acc.AccountTypeID = 1
 	
 	
 	union
@@ -450,14 +453,14 @@ From(
 	inner join core.account acc on acc.accountid = n.account_accountid  
 	left join cre.FinancingSourcemaster fs on fs.FinancingSourcemasterID = n.FinancingSourceID 
 	inner join cre.deal d on d.dealid = n.dealid
-	inner join cre.TransactionEntry te on n.noteid = te.noteid and te.analysisID = 'C10F3372-0FC2-4861-A9F5-148F1F80804F' and [Type] in ('PIKPrincipalFunding')
+	inner join cre.TransactionEntry te on acc.AccountID = te.AccountID and te.analysisID = 'C10F3372-0FC2-4861-A9F5-148F1F80804F' and [Type] in ('PIKPrincipalFunding')
 	left join core.lookup lcurrency on lcurrency.lookupid = ISNULL(acc.BaseCurrencyID,187) and ParentID = 29
 	left join @transactionType temptr on te.[type]=temptr.[type]
 	where fs.FinancingSourceName like '%Delphi%'
 	and te.date =  Cast(@currentdatetime as date) --'05/08/2020'
 	and ISNUMERIC(n.crenoteid) = 1
 	and (n.ActualPayOffDate is null OR n.ActualPayOffDate >= Cast(@currentdatetime as date))
-	
+	and acc.AccountTypeID = 1
 
 	union
 
@@ -471,7 +474,7 @@ From(
 	inner join core.account acc on acc.accountid = n.account_accountid  
 	left join cre.FinancingSourcemaster fs on fs.FinancingSourcemasterID = n.FinancingSourceID 
 	inner join cre.deal d on d.dealid = n.dealid
-	inner join cre.TransactionEntry te on n.noteid = te.noteid and te.analysisID = 'C10F3372-0FC2-4861-A9F5-148F1F80804F' and [Type] in ('PIKPrincipalFunding')
+	inner join cre.TransactionEntry te on acc.AccountID = te.AccountID and te.analysisID = 'C10F3372-0FC2-4861-A9F5-148F1F80804F' and [Type] in ('PIKPrincipalFunding')
 	left join core.lookup lcurrency on lcurrency.lookupid = ISNULL(acc.BaseCurrencyID,187) and ParentID = 29
 	left join @transactionType temptr on te.[type]=temptr.[type]
 	where fs.FinancingSourceName like '%Delphi%'
@@ -479,6 +482,7 @@ From(
 	and ISNUMERIC(n.crenoteid) = 1
 	and (n.ActualPayOffDate is null OR n.ActualPayOffDate >= Cast(@currentdatetime as date))
 	and te.FeeName = 'COVID' -- added by vishal 01/29/2021
+	and acc.AccountTypeID =  1
 
 	union 
 	
@@ -512,7 +516,7 @@ From(
 	inner join core.account acc on acc.accountid = n.account_accountid  
 	left join cre.FinancingSourcemaster fs on fs.FinancingSourcemasterID = n.FinancingSourceID 
 	inner join cre.deal d on d.dealid = n.dealid
-	inner join cre.TransactionEntry te on n.noteid = te.noteid and te.analysisID = 'C10F3372-0FC2-4861-A9F5-148F1F80804F'
+	inner join cre.TransactionEntry te on acc.AccountID = te.AccountID and te.analysisID = 'C10F3372-0FC2-4861-A9F5-148F1F80804F'
 	left join core.lookup lcurrency on lcurrency.lookupid = ISNULL(acc.BaseCurrencyID,187) and ParentID = 29
 	where fs.FinancingSourceName like '%Delphi%'
 	--and te.date = Cast(@currentdatetime as date) --'09/10/2021'
@@ -528,6 +532,7 @@ From(
 	and ISNUMERIC(n.crenoteid) = 1
 	and (n.ActualPayOffDate is null OR n.ActualPayOffDate >= Cast(@currentdatetime as date))
 	and acc.IsDeleted=0
+	and acc.AccountTypeID = 1
   ) tblFeeType
   group by LoanID,TransactionType,TradeDate,PostDate,DealID,DealName,LoanID,NoteName,tblFeeType.Currency
   ) tblfee where cast(replace(isnull(tblfee.fees,0), ',', '') as decimal(18,2))<>0
@@ -552,7 +557,7 @@ From(
 	inner join core.account acc on acc.accountid = n.account_accountid  
 	left join cre.FinancingSourcemaster fs on fs.FinancingSourcemasterID = n.FinancingSourceID 
 	inner join cre.deal d on d.dealid = n.dealid
-	inner join cre.TransactionEntry te on n.noteid = te.noteid and te.analysisID = 'C10F3372-0FC2-4861-A9F5-148F1F80804F'
+	inner join cre.TransactionEntry te on acc.AccountID = te.AccountID and te.analysisID = 'C10F3372-0FC2-4861-A9F5-148F1F80804F'
 	left join core.lookup lcurrency on lcurrency.lookupid = ISNULL(acc.BaseCurrencyID,187) and ParentID = 29
 	where fs.FinancingSourceName like '%Delphi%'
 	and te.date = Cast(@currentdatetime as date) --'09/10/2021'
@@ -562,6 +567,7 @@ From(
 	and ISNUMERIC(n.crenoteid) = 1
 	and (n.ActualPayOffDate is null OR n.ActualPayOffDate >= Cast(@currentdatetime as date))
 	and acc.IsDeleted=0
+	and acc.AccountTypeID = 1
   ) tblFeeType
   group by LoanID,TransactionType,TradeDate,PostDate,DealID,DealName,LoanID,NoteName,tblFeeType.Currency
 	

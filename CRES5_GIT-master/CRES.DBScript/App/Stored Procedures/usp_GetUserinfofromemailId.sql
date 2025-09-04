@@ -1,6 +1,6 @@
 ﻿
 
-CREATE PROCEDURE [App].[usp_GetUserinfofromemailId] --'msingh@newconinfosystems.com'
+Create PROCEDURE [App].[usp_GetUserinfofromemailId] --'msingh@newconinfosystems.com'
 (
 	@emailid nvarchar(256)
 	
@@ -10,13 +10,14 @@ BEGIN
 
 	SET NOCOUNT ON;
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
-	SELECT
-	Login,
-     [Password]     
-	FROM [App].[User]
-	WHERE Email = @emailid
+SELECT
+Login,
+ [Password]     
+FROM [App].[User]
+WHERE Email = @emailid
 
-		SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+
+	SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 END
 
 

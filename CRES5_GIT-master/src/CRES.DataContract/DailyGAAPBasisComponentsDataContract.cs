@@ -1,4 +1,8 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
 
 namespace CRES.DataContract
 {
@@ -12,9 +16,10 @@ namespace CRES.DataContract
         public decimal? EndingBalance { get; set; }
         public decimal? GrossDeferredFees { get; set; }
         public decimal? CleanCost { get; set; }
-        public decimal? CurrentPeriodInterestAccrualPeriodEnddate { get; set; }
-        public decimal? CurrentPeriodPIKInterestAccrualPeriodEnddate { get; set; }
+        public decimal? CurrentPeriodInterestAccrual { get; set; }
+        public decimal? CurrentPeriodPIKInterestAccrual { get; set; }
         public decimal? InterestSuspenseAccountBalance { get; set; }
+
         public Guid? AnalysisID { get; set; }
         public string CreatedBy { get; set; }
         public DateTime CreatedDate { get; set; }

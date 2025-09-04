@@ -1,0 +1,191 @@
+<form #f="ngForm">
+  <div class="col-sm-12">
+    <div class="head fixheaderdiv">
+      <h1 style="display: inline-block;margin-top: 10px;">Liability Calculation Manager</h1>
+
+      <span>
+        <button type="button" class="custombutton" (click)="CalcAtServer()">Calc</button>
+      </span>
+
+      <div *ngIf="_ShowSuccessmessagedivclose" class="alert alert-success fade in">
+        <strong>{{_ShowSuccessmessageclose}}</strong>
+        <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+
+      <div *ngIf="_ShowSuccessmessagediv" class="alert alert-success fade in">
+        <strong>{{_ShowSuccessmessage}}</strong>
+      </div>
+      <div *ngIf="_Showmessagediv" class="alert alert-danger fade in">
+        <strong>{{Message}}</strong>
+      </div>
+    </div>
+
+    <div class="fmst fixheadercontent">
+      <div class="cssload-container" *ngIf="_isCalcListFetching">
+        <div class="cssload-whirlpool"></div>
+      </div>
+
+      <ul id="myTab" class="nav nav-tabs nav-tabs">
+        <li class="active"><a data-target="#calculationManager" (click)="invlaidatecalculationManagergrid()" data-toggle="tab">Calculation manager</a></li>
+        <li><a data-target="#LiabilitySummary" (click)="GetAllLiabilitySummary()" data-toggle="tab">Liability Relationship</a></li>
+      </ul>
+
+      <div class="tab-content" id="myTabContent">
+        <div class="tab-pane fade active in" id="calculationManager">
+
+          <div class="box1a">
+            <h3>Calculation summary</h3>
+            <div class="form-group row pD10">
+
+              <div class="col-sm-12">
+                <div class="info-box-calcmanage">
+                  <div class="info-box-content">
+                    <span class="info-box-text-calcm">Processing</span>
+                    <span class="info-box-num-calcm" style="color:blue;">{{Remainingnotes}}</span>
+                  </div>
+                </div>
+                <div class="info-box-calcmanage">
+                  <div class="info-box-content">
+                    <span class="info-box-text-calcm">Running</span>
+                    <span class="info-box-num-calcm" style="color:Orange;">{{Running}}</span>
+                  </div>
+                </div>
+                <div class="info-box-calcmanage">
+                  <div class="info-box-content">
+                    <span class="info-box-text-calcm">Completed</span>
+                    <span class="info-box-num-calcm" style="color:green;">{{Completed}}</span>
+                  </div>
+                </div>
+                <div class="info-box-calcmanage">
+                  <div class="info-box-content">
+                    <span class="info-box-text-calcm">Failed</span>
+                    <span class="info-box-num-calcm" style="color:red;">{{Failed}}</span>
+                  </div>
+                </div>
+
+                <select style="width:max-content !important;float: right; margin-right: 20px; margin-top:12px;" class="ibox1" (change)="changeScenario($event.target.value)">
+                  <option *ngFor="let item of _lstScenario" value={{item.AnalysisID}} selected="{{item.ScenarioName=='Default'?'selected':''}}">
+                    {{item.ScenarioName}}
+                  </option>
+                </select>
+                <button type="button" class="custombutton" (click)="RefreshStatusandGrid()" style="float: left !important; margin-left: 20px !important; margin-top: 18px !important;"><i class="fa fa-refresh" aria-hidden="true" style="margin-right:7px;"></i>Refresh</button>
+              </div>
+
+              <div class="col-sm-12 customgridpadding" *ngIf="_lstcalculationlistCount != 0">
+
+                <wj-flex-grid #flexcalculation [itemsSource]="lstcalculationlist"
+                              [allowAddNew]="false"
+                              [allowResizing]="'Both'"
+                              (beginningEdit)="cellEditbeginCalc(flex,$event)"
+                              class="gridSize Calculationmanagergrid" keyActionTab="Cycle">
+                  <wj-flex-grid-filter #filter [filterColumns]="['LiabilityName','CalcStatus','StartTime','EndTime','ErrorMessage']"></wj-flex-grid-filter>
+                  <wj-flex-grid-column [header]="'Calc'" [binding]="'Active'" [width]="60">
+                    <ng-template wjFlexGridCellTemplate [cellType]="'ColumnHeader'" let cell="cell">
+                      <input (change)="SelectAll(flex)" type="checkbox" id="chkSelectAll" /> Calc
+                    </ng-template>
+                  </wj-flex-grid-column>
+                  <wj-flex-grid-column [header]="'AccountID'" [binding]="'AccountID'" [isReadOnly]="true" [width]="100" show-filter="true" [visible]="false"></wj-flex-grid-column>
+
+                  <wj-flex-grid-column [header]="'Fund'" [binding]="'LiabilityName'" [isReadOnly]="true" [width]="200" show-filter="true">
+
+                    <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
+                      <div>
+                        <a routerLink='/equity/n/{{cell.item.LiabilityID}}' routerLinkActive="active">{{cell.item.LiabilityName}}</a>
+                      </div>
+                    </ng-template>
+
+                  </wj-flex-grid-column>
+                  <wj-flex-grid-column [header]="'Request time'" [binding]="'RequestTime'" [width]="150" align="right" format="MM-dd-yyyy hh:mm:ss"></wj-flex-grid-column>
+                  <wj-flex-grid-column [header]="'Status'" [binding]="'CalcStatus'" [isReadOnly]="true" [width]="100" show-filter="true">
+
+                    <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
+                      <div [ngStyle]="{color: cell.item.CalcStatus == 'Failed' ? 'red' : cell.item.CalcStatus == 'Completed'?'green': cell.item.CalcStatus == 'Running'? 'Orange':cell.item.CalcStatus == 'Processing'?  'blue':cell.item.CalcStatus == 'Pause'? 'crimson':cell.item.CalcStatus == 'CalcSubmit'? 'blue':cell.item.CalcStatus == 'Dependents'? 'chocolate' :'White'}">
+                        {{cell.item.CalcStatus}}
+                      </div>
+                    </ng-template>
+                  </wj-flex-grid-column>
+
+                  <wj-flex-grid-column [header]="'Start Time'" [binding]="'StartTime'" type="datetime" format="MM-dd-yyyy hh:mm:ss" [isReadOnly]="true" [width]="150" align="right" show-filter="true"></wj-flex-grid-column>
+                  <wj-flex-grid-column [header]="'End Time'" [binding]="'EndTime'" type="datetime" format="MM-dd-yyyy hh:mm:ss" [isReadOnly]="true" [width]="150" align="right" show-filter="true"></wj-flex-grid-column>
+                  <wj-flex-grid-column [header]="'Error message'" [binding]="'ErrorMessage'" [isReadOnly]="true" [width]="300" show-filter="true">
+                    <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
+                      <div data-toggle="tooltip" data-placement="top" title={{cell.item.ErrorMessage}}>
+                        {{cell.item.ErrorMessage}}
+                      </div>
+                    </ng-template>
+                  </wj-flex-grid-column>
+
+                </wj-flex-grid>
+              </div>
+              <div *ngIf="_lstcalculationlistCount == 0" class="alert alert-danger fade in col-sm-12 customgridpadding">
+                <!--<a href="#" class="close" data-dismiss="alert" aria-label="close" title="close">×</a>-->
+                <strong>No matching records found</strong>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="tab-pane fade in" id="LiabilitySummary">
+          <div class="cssload-container" *ngIf="_isExceptionListFetching">
+            <div class="cssload-whirlpool"></div>
+          </div>
+          <div *ngIf="_ExceptionListCount == 0" class="alert alert-danger fade in" style="margin-top:18px;">
+            <!--<a href="#" class="close" data-dismiss="alert" aria-label="close" title="close">×</a>-->
+            <strong>No matching records found</strong>
+          </div>
+          <div class="box1a" *ngIf="_ExceptionListCount != 0">
+            <h3>Liability Relationship</h3>
+            <div class="col-sm-12">
+              <button type="button" style="float: right !important; width: 180px !important; line-height: 35px !important;" class="custombutton" (click)="GetExportExcelLiabilityRelationship()">Export to Excel</button>
+            </div>
+            <div>
+              <div>
+                <div>
+                  <wj-flex-grid id="flexLiabilitySummary" #flexLiabilitySummary [itemsSource]="lstLiabilitySummary" [allowAddNew]="false"
+                                [allowResizing]="'Both'"
+                                class="gridSize LiabilitySummarygrid" keyActionTab="Cycle" [frozenColumns]="2">
+                    <wj-flex-grid-filter #filter [filterColumns]="['FundName','LiabilityType','LiabilityName','FinancialInstitution','DealName','LiabilityNote','Status','PledgeDate','EffectiveDate','MaturityDate','PaydownAdvanceRate','FundingAdvanceRate','TargetAdvanceRate','CurrentBalance','CurrentAdvanceRate','UndrawnCapacity','ThirdPartyOwnership','IndexFloor','IndexName']"></wj-flex-grid-filter>
+
+                    <wj-flex-grid-column [header]="'Fund Name'" [binding]="'FundName'" [isReadOnly]="true" [width]="215"></wj-flex-grid-column>
+                    <wj-flex-grid-column [header]="'Liability Name'" [binding]="'LiabilityName'" [width]="208" [isReadOnly]="true"></wj-flex-grid-column>
+                    <wj-flex-grid-column [header]="'Liability Type'" [binding]="'LiabilityType'" [width]="123" [isReadOnly]="true"></wj-flex-grid-column>
+                    <wj-flex-grid-column [header]="'Financial Institution'" [binding]="'FinancialInstitution'" [width]="160" [isReadOnly]="true"></wj-flex-grid-column>
+                    <wj-flex-grid-column [header]="'Deal Name'" [binding]="'DealName'" [width]="220" [isReadOnly]="true"></wj-flex-grid-column>
+                    <wj-flex-grid-column [header]="'Liability Note'" [binding]="'LiabilityNote'" [width]="200" [isReadOnly]="true"></wj-flex-grid-column>
+                    <wj-flex-grid-column [header]="'Status'" [binding]="'Status'" [width]="70" [isReadOnly]="true"></wj-flex-grid-column>
+                    <wj-flex-grid-column [header]="'Pledge Date'" [binding]="'PledgeDate'" type="datetime" [width]="115" [isReadOnly]="true" align="right"></wj-flex-grid-column>
+                    <wj-flex-grid-column [header]="'Effective Date'" [binding]="'EffectiveDate'" type="datetime" format="MM-dd-yyyy" [width]="115" [isReadOnly]="true" align="right"></wj-flex-grid-column>
+                    <wj-flex-grid-column [header]="'MaturityDate'" [binding]="'MaturityDate'" [width]="115" [isReadOnly]="true" align="right"></wj-flex-grid-column>
+
+                    <wj-flex-grid-column [header]="'Paydown Advance Rate'" [binding]="'PaydownAdvanceRate'" [width]="170" [isReadOnly]="true" align="right" format="p2"></wj-flex-grid-column>
+                    <wj-flex-grid-column [header]="'Funding Advance Rate'" [binding]="'FundingAdvanceRate'" [width]="160" [isReadOnly]="true" align="right" format="p2"></wj-flex-grid-column>
+                    <wj-flex-grid-column [header]="'Target Advance Rate'" [binding]="'TargetAdvanceRate'" [width]="150" [isReadOnly]="true" align="right" format="p2"></wj-flex-grid-column>
+                    <wj-flex-grid-column [header]="'Current Advance Rate'" [binding]="'CurrentAdvanceRate'" [width]="160" [isReadOnly]="true" align="right" format="p2"></wj-flex-grid-column>
+                    <wj-flex-grid-column [header]="'Current Balance'" [binding]="'CurrentBalance'" [width]="150" [isReadOnly]="true" align="right" format="n2"></wj-flex-grid-column>
+                    <wj-flex-grid-column [header]="'Undrawn Capacity'" [binding]="'UndrawnCapacity'" [width]="150" [isReadOnly]="true" align="right" format="n2"></wj-flex-grid-column>
+                    <wj-flex-grid-column [header]="'Third Party Ownership'" [binding]="'ThirdPartyOwnership'" [isReadOnly]="true" align="right" [width]="170" format="p2"></wj-flex-grid-column>
+                    <wj-flex-grid-column [header]="'Index Floor'" [binding]="'IndexFloor'" [isReadOnly]="true" align="right" [width]="100" format="p2"></wj-flex-grid-column>
+                    <wj-flex-grid-column [header]="'Index Name'" [binding]="'IndexName'" [width]="150" [isReadOnly]="true"></wj-flex-grid-column>
+                  </wj-flex-grid>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <div id="dialogoverlay"></div>
+    <div id="dialogbox">
+      <div>
+        <div id="dialogboxhead"></div>
+        <div id="dialogboxbody"></div>
+        <div id="dialogboxfoot"><span class="btn custombutton" (click)="ok()">Ok</span></div>
+      </div>
+    </div>
+     
+     
+  </div>
+</form>

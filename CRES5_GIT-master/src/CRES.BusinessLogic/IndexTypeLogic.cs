@@ -1,10 +1,16 @@
-﻿using CRES.DAL.Helper;
+﻿using System.Data;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using CRES.DAL;
 using CRES.DAL.Repository;
 using CRES.DataContract;
 using System;
-using System.Collections.Generic;
-using System.Data;
-using System.Linq;
+using System.Dynamic;
+using System.Reflection;
+using CRES.DAL.Helper;
+using System.Globalization;
 
 namespace CRES.BusinessLogic
 {
@@ -39,12 +45,10 @@ namespace CRES.BusinessLogic
                                 IndexTypeDataContract index = new IndexTypeDataContract();
                                 index.Date = Convert.ToDateTime(dr[0].ToString());
                                 index.Name = (dc.ColumnName);
-#pragma warning disable CS0252 // Possible unintended reference comparison; to get a value comparison, cast the left hand side to type 'string'
                                 if (dr[colCount] == "" || dr[colCount] == null)
                                 {
                                     dr[colCount] = 0;
                                 }
-#pragma warning restore CS0252 // Possible unintended reference comparison; to get a value comparison, cast the left hand side to type 'string'
                                 index.Value = Convert.ToDecimal(dr[colCount]);
                                 index.AnalysisID = dr[lastcol].ToString();
 
@@ -92,17 +96,15 @@ namespace CRES.BusinessLogic
                         if (colCount > 0 && colCount < lastcol)
                         {
                             // if (!DBNull.Value.Equals(dr[colCount]))
-                            if (!String.IsNullOrWhiteSpace(dr[colCount].ToString()))
+                            if (!String.IsNullOrWhiteSpace(dr[colCount].ToString()))                           
                             {
                                 IndexTypeDataContract index = new IndexTypeDataContract();
                                 index.Date = Convert.ToDateTime(dr[0].ToString());
                                 index.Name = (dc.ColumnName);
-#pragma warning disable CS0252 // Possible unintended reference comparison; to get a value comparison, cast the left hand side to type 'string'
                                 if (dr[colCount] == "" || dr[colCount] == null)
                                 {
                                     dr[colCount] = 0;
                                 }
-#pragma warning restore CS0252 // Possible unintended reference comparison; to get a value comparison, cast the left hand side to type 'string'
                                 index.Value = Convert.ToDecimal(dr[colCount]);
                                 index.IndexesMasterGuid = new Guid(dr[lastcol].ToString());
 

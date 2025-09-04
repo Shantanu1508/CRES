@@ -1,4 +1,8 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
 
 namespace CRES.DataContract
 {
@@ -9,11 +13,11 @@ namespace CRES.DataContract
         {
         }
         public Guid? NoteID { get; set; }
-        public Guid? TargateNoteID { get; set; }
+        public Guid? TargateNoteID { get; set; }         
 
         public Guid? AccountID { get; set; }
-        public DateTime? Event_Date { get; set; }
-        public DateTime? EffectiveDate { get; set; }
+        public DateTime? Event_Date { get; set; }        
+        public DateTime? EffectiveDate { get; set; }        
         public int? EventTypeID { get; set; }
         public string EventTypeText { get; set; }
         public Guid? PIKScheduleID { get; set; }
@@ -45,8 +49,23 @@ namespace CRES.DataContract
         public string PIKComments { get; set; }
         public string PIKReasonCodeIDtext { get; set; }
 
+        public decimal? PeriodicRateCapAmount { get; set; }
+        public decimal? PeriodicRateCapPercent { get; set; }       
+
+
         public int? PIKIntCalcMethodID { get; set; }
         public string PIKIntCalcMethodIDText { get; set; }
+
+        public int? PIKSetUp { get; set; }
+        public string PIKSetUpText { get; set; }
+        public decimal? PIKPercentage { get; set; }
+        public decimal? PIKCurrentPayRate { get; set; }
+        public bool Isdeleted { get; set; }
+        public int? PIKInterestAddedToBalanceBasedOnBusinessAdjustedDate { get; set; }
+        public int? ImpactCommitmentCalc { get; set; }
+        public int? PIKSeparateCompounding { get; set; }
+        public string PIKSeparateCompoundingText { get; set; }
+        
 
     }
 

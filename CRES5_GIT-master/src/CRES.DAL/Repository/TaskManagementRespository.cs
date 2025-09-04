@@ -1,24 +1,24 @@
-﻿using CRES.DAL.IRepository;
-#pragma warning disable CS0105 // The using directive for 'CRES.DAL.IRepository' appeared previously in this namespace
-#pragma warning restore CS0105 // The using directive for 'CRES.DAL.IRepository' appeared previously in this namespace
+﻿using CRES.DAL;
+using CRES.DAL.IRepository;
+using CRES.DAL.IRepository;
 using CRES.DataContract;
 using CRES.Utilities;
 using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Data.SqlClient;
+using System.Linq;
 
 namespace CRES.DAL.Repository
 {
-    public class TaskManagementRespository : ITaskManagementRespository
+    public class TaskManagementRespository :  ITaskManagementRespository
     {
-
+     
 
         public string InsertUpdateTask(TaskManagementDataContract task, string username)
         {
             string result = "";
 
-#pragma warning disable CS0168 // The variable 'ex' is declared but never used
             try
             {
                 string NewTaskID;
@@ -83,18 +83,17 @@ namespace CRES.DAL.Repository
             {
                 throw;
             }
-#pragma warning restore CS0168 // The variable 'ex' is declared but never used
         }
 
-        public List<TaskManagementDataContract> GetAllTask(int status, Guid? userId, int? PageSize, int? PageIndex, out int? TotalCount)
+        public List<TaskManagementDataContract> GetAllTask(int status,Guid? userId, int? PageSize, int? PageIndex, out int? TotalCount)
         {
             DataTable dt = new DataTable();
             List<DateTime> lst = new List<DateTime>();
             DateTime dt1 = DateTime.Now;
             lst.Add(dt1);
 
-            // ObjectParameter totalCount = new ObjectParameter("TotalCount", typeof(int));
-
+           // ObjectParameter totalCount = new ObjectParameter("TotalCount", typeof(int));
+          
             List<TaskManagementDataContract> lstTaskDC = new List<TaskManagementDataContract>();
             Helper.Helper hp = new Helper.Helper();
             SqlParameter p1 = new SqlParameter { ParameterName = "@UserID", Value = userId };
@@ -122,7 +121,7 @@ namespace CRES.DAL.Repository
                 _taskdc.Description = Convert.ToString(dr["Description"]);
                 _taskdc.CategoryTag = Convert.ToString(dr["CategoryTag"]);
                 _taskdc.SubCategoryTag = Convert.ToString(dr["SubCategoryTag"]);
-                _taskdc.StartDate = CommonHelper.ToDateTime(dr["StartDate"]);
+                _taskdc.StartDate =  CommonHelper.ToDateTime(dr["StartDate"]);
                 _taskdc.DeadlineDate = CommonHelper.ToDateTime(dr["DeadlineDate"]);
                 _taskdc.AssignedTo = Convert.ToString(dr["AssignedTo"]);
                 _taskdc.EstimatedCompletionDate = CommonHelper.ToDateTime(dr["EstimatedCompletionDate"]);
@@ -152,7 +151,7 @@ namespace CRES.DAL.Repository
 
             //var _task = dbContext.usp_GetTaskByTaskID(taskid).FirstOrDefault();
 
-            if (dt != null && dt.Rows.Count > 0)
+            if (dt != null && dt.Rows.Count>0)
             {
                 _taskdc.TaskID = Convert.ToString(dt.Rows[0]["TaskID"]);
                 _taskdc.TaskAutoID = Convert.ToInt32(dt.Rows[0]["TaskAutoID"]);
@@ -166,11 +165,11 @@ namespace CRES.DAL.Repository
                 _taskdc.Description = Convert.ToString(dt.Rows[0]["Description"]);
                 _taskdc.CategoryTag = Convert.ToString(dt.Rows[0]["CategoryTag"]);
                 _taskdc.SubCategoryTag = Convert.ToString(dt.Rows[0]["SubCategoryTag"]);
-                _taskdc.StartDate = CommonHelper.ToDateTime(dt.Rows[0]["StartDate"]);
+                _taskdc.StartDate = CommonHelper.ToDateTime(dt.Rows[0]["StartDate"]); 
                 _taskdc.DeadlineDate = CommonHelper.ToDateTime(dt.Rows[0]["DeadlineDate"]);
                 _taskdc.AssignedTo = Convert.ToString(dt.Rows[0]["AssignedTo"]);
-                _taskdc.EstimatedCompletionDate = CommonHelper.ToDateTime(dt.Rows[0]["EstimatedCompletionDate"]);
-                _taskdc.ActualCompletionDate = CommonHelper.ToDateTime(dt.Rows[0]["ActualCompletionDate"]);
+                _taskdc.EstimatedCompletionDate = CommonHelper.ToDateTime(dt.Rows[0]["EstimatedCompletionDate"]); 
+                _taskdc.ActualCompletionDate = CommonHelper.ToDateTime(dt.Rows[0]["ActualCompletionDate"]); 
                 _taskdc.Tag1 = Convert.ToString(dt.Rows[0]["Tag1"]);
                 _taskdc.Tag2 = Convert.ToString(dt.Rows[0]["Tag2"]);
                 _taskdc.Tag3 = Convert.ToString(dt.Rows[0]["Tag3"]);
@@ -193,7 +192,6 @@ namespace CRES.DAL.Repository
         {
             string result = "";
 
-#pragma warning disable CS0168 // The variable 'ex' is declared but never used
             try
             {
                 string NewTaskCommentID;
@@ -206,7 +204,7 @@ namespace CRES.DAL.Repository
                 SqlParameter p5 = new SqlParameter { ParameterName = "@UpdatedBy", Value = comments.UpdatedBy };
                 SqlParameter p6 = new SqlParameter { ParameterName = "@NewTaskCommentsID", Direction = ParameterDirection.Output, Size = int.MaxValue };
                 SqlParameter[] sqlparam = new SqlParameter[] { p1, p2, p3, p4, p5, p6 };
-                var res = hp.ExecNonquery("dbo.AddupdateTaskComments", sqlparam);
+                 var res = hp.ExecNonquery("dbo.AddupdateTaskComments", sqlparam);
 
                 //var res = dbContext.AddupdateTaskComments(
                 //            comments.TaskCommentsID,
@@ -216,10 +214,10 @@ namespace CRES.DAL.Repository
                 //            comments.UpdatedBy,
                 //            newTaskCommentID
                 // );
-
+                
                 NewTaskCommentID = Convert.ToString(p6.Value);
-
-                result = res == -1 ? "TRUE" : "FALSE";
+                
+                result = res ==  -1 ? "TRUE" : "FALSE";
 
                 return result;
             }
@@ -227,41 +225,37 @@ namespace CRES.DAL.Repository
             {
                 throw;
             }
-#pragma warning restore CS0168 // The variable 'ex' is declared but never used
         }
 
         public string InsertTaskActivity(List<TaskManagementDataContract> tasklist, string username, string taskid)
         {
             string result = "";
 
-#pragma warning disable CS0168 // The variable 'ex' is declared but never used
             try
             {
-#pragma warning disable CS0168 // The variable 'NewTaskID' is declared but never used
                 string NewTaskID;
-#pragma warning restore CS0168 // The variable 'NewTaskID' is declared but never used
                 // ObjectParameter newTaskID = new ObjectParameter("NewTaskID", typeof(string));
                 Helper.Helper hp = new Helper.Helper();
                 foreach (TaskManagementDataContract task in tasklist)
                 {
-                    SqlParameter p1 = new SqlParameter { ParameterName = "@TaskID", Value = taskid };
-                    SqlParameter p2 = new SqlParameter { ParameterName = "@ActivityType", Value = task.ActivityType };
-                    SqlParameter p3 = new SqlParameter { ParameterName = "@Displaymessage", Value = task.Displaymessage };
-                    SqlParameter p4 = new SqlParameter { ParameterName = "@username", Value = username };
+                SqlParameter p1 = new SqlParameter { ParameterName = "@TaskID", Value = taskid };
+                SqlParameter p2 = new SqlParameter { ParameterName = "@ActivityType", Value = task.ActivityType };
+                SqlParameter p3 = new SqlParameter { ParameterName = "@Displaymessage", Value = task.Displaymessage };
+                SqlParameter p4 = new SqlParameter { ParameterName = "@username", Value = username };
+              
+                SqlParameter[] sqlparam = new SqlParameter[] { p1, p2, p3, p4 };
+                var res = hp.ExecNonquery("dbo.usp_InsertTaskActivity", sqlparam);
 
-                    SqlParameter[] sqlparam = new SqlParameter[] { p1, p2, p3, p4 };
-                    var res = hp.ExecNonquery("dbo.usp_InsertTaskActivity", sqlparam);
 
+                //foreach (TaskManagementDataContract task in tasklist)
+                //{
+                //    var res = dbContext.usp_InsertTaskActivity(
+                //            taskid,
+                //            task.ActivityType,
+                //            task.Displaymessage,
+                //            username
 
-                    //foreach (TaskManagementDataContract task in tasklist)
-                    //{
-                    //    var res = dbContext.usp_InsertTaskActivity(
-                    //            taskid,
-                    //            task.ActivityType,
-                    //            task.Displaymessage,
-                    //            username
-
-                    // );
+                // );
                 }
 
                 return result;
@@ -270,30 +264,29 @@ namespace CRES.DAL.Repository
             {
                 throw;
             }
-#pragma warning restore CS0168 // The variable 'ex' is declared but never used
         }
 
-        public List<TaskCommentDataContract> GetTaskCommentsByTaskId(Guid UserID, string Taskid, string currentTime, string CommentType)
+        public List<TaskCommentDataContract> GetTaskCommentsByTaskId(Guid UserID,string Taskid, string currentTime, string CommentType)
         {
             DataTable dt = new DataTable();
             List<TaskCommentDataContract> lstcommmetsDC = new List<TaskCommentDataContract>();
             //List<TaskComment> lstcommmets = new List<TaskComment>();
             //lstcommmets = GetAll().Where(x =>x.TaskID== new Guid(Taskid)).ToList();
             Helper.Helper hp = new Helper.Helper();
+            
+                SqlParameter p1 = new SqlParameter { ParameterName = "@UerID", Value = UserID };
+                SqlParameter p2 = new SqlParameter { ParameterName = "@Taskid", Value = Taskid };
+                SqlParameter p3 = new SqlParameter { ParameterName = "@currentTime", Value = currentTime };
+                SqlParameter p4 = new SqlParameter { ParameterName = "@CommentType", Value = CommentType };
 
-            SqlParameter p1 = new SqlParameter { ParameterName = "@UerID", Value = UserID };
-            SqlParameter p2 = new SqlParameter { ParameterName = "@Taskid", Value = Taskid };
-            SqlParameter p3 = new SqlParameter { ParameterName = "@currentTime", Value = currentTime };
-            SqlParameter p4 = new SqlParameter { ParameterName = "@CommentType", Value = CommentType };
-
-            SqlParameter[] sqlparam = new SqlParameter[] { p1, p2, p3, p4 };
-            dt = hp.ExecDataTable("dbo.usp_GetTaskCommentsByTaskId", sqlparam);
+                SqlParameter[] sqlparam = new SqlParameter[] { p1, p2, p3, p4 };
+                dt = hp.ExecDataTable("dbo.usp_GetTaskCommentsByTaskId", sqlparam);
 
             // var _comments = dbContext.usp_GetTaskCommentsByTaskId(UserID,Taskid, currentTime, CommentType);
 
             foreach (DataRow dr in dt.Rows)
             {
-                TaskCommentDataContract _task = new TaskCommentDataContract();
+               TaskCommentDataContract _task = new TaskCommentDataContract();
                 if (Convert.ToString(dr["TaskCommentsID"]) != "")
                 {
                     _task.TaskCommentsID = new Guid(Convert.ToString(dr["TaskCommentsID"]));
@@ -302,20 +295,20 @@ namespace CRES.DAL.Repository
                 {
                     _task.TaskID = new Guid(Convert.ToString(dr["TaskID"]));
                 }
-
-                _task.Comments = Convert.ToString(dr["Comments"]);
-                _task.CreatedBy = Convert.ToString(dr["CreatedBy"]);
-                _task.CreatedDate = CommonHelper.ToDateTime(dr["CreatedDate"]);
-                _task.UpdatedBy = Convert.ToString(dr["UpdatedBy"]);
-                _task.UpdatedDate = CommonHelper.ToDateTime(dr["UpdatedDate"]);
-                _task.AssignedToText = Convert.ToString(dr["AssignedToText"]);
-                _task.CommentedByFirstLetter = Convert.ToString(dr["CommentedByFirstLetter"]);
-                _task.Modified = Convert.ToString(dr["Modified"]);
-                _task.UColor = Convert.ToString(dr["UColor"]);
-                _task.TaskSummary = Convert.ToString(dr["TaskSummary"]);
-                _task.ActivityMessage = Convert.ToString(dr["ActivityMessage"]);
-                _task.ActivityUserFirstLetter = Convert.ToString(dr["activityuserfirstletter"]);
-                _task.ActivityColor = Convert.ToString(dr["activitycolor"]);
+               
+              _task.Comments = Convert.ToString(dr["Comments"]);
+              _task.CreatedBy = Convert.ToString(dr["CreatedBy"]);
+              _task.CreatedDate = CommonHelper.ToDateTime(dr["CreatedDate"]);
+              _task.UpdatedBy = Convert.ToString(dr["UpdatedBy"]);
+              _task.UpdatedDate = CommonHelper.ToDateTime(dr["UpdatedDate"]);
+              _task.AssignedToText = Convert.ToString(dr["AssignedToText"]);
+              _task.CommentedByFirstLetter = Convert.ToString(dr["CommentedByFirstLetter"]);
+              _task.Modified = Convert.ToString(dr["Modified"]);
+              _task.UColor = Convert.ToString(dr["UColor"]);
+              _task.TaskSummary = Convert.ToString(dr["TaskSummary"]);
+              _task.ActivityMessage = Convert.ToString(dr["ActivityMessage"]);
+              _task.ActivityUserFirstLetter = Convert.ToString(dr["activityuserfirstletter"]);
+              _task.ActivityColor = Convert.ToString(dr["activitycolor"]);
                 lstcommmetsDC.Add(_task);
             }
 
@@ -324,16 +317,14 @@ namespace CRES.DAL.Repository
 
         public string GetTaskDefaultConfigByTaskType(int? tasktype)
         {
-#pragma warning disable CS0219 // The variable 'userid' is assigned but its value is never used
             string userid = "";
-#pragma warning restore CS0219 // The variable 'userid' is assigned but its value is never used
             Helper.Helper hp = new Helper.Helper();
 
             SqlParameter p1 = new SqlParameter { ParameterName = "@TaskTypeID", Value = tasktype };
             SqlParameter[] sqlparam = new SqlParameter[] { p1 };
             var _task = hp.ExecuteScalarAll("dbo.usp_GetTaskDefaultConfigByTaskType", sqlparam);
             TaskManagementDataContract _taskdc = new TaskManagementDataContract();
-            // var _task = dbContext.usp_GetTaskDefaultConfigByTaskType(tasktype).FirstOrDefault();
+           // var _task = dbContext.usp_GetTaskDefaultConfigByTaskType(tasktype).FirstOrDefault();
 
             return _task.ToString();
         }
@@ -354,7 +345,7 @@ namespace CRES.DAL.Repository
                 _taskdc.TaskID = Convert.ToString(dr["TaskID"]);
                 _taskdc.CommentedByFirstLetter = Convert.ToString(dr["CommentedByFirstLetter"]);
                 _taskdc.FirstName = Convert.ToString(dr["FirstName"]);
-                _taskdc.SubscriptionStatus = Convert.ToBoolean(dr["SubscriptionStatus"]);
+                _taskdc.SubscriptionStatus =Convert.ToBoolean(dr["SubscriptionStatus"]);
                 _taskdc.LastName = Convert.ToString(dr["LastName"]);
                 _taskdc.UserID = Convert.ToString(dr["UserID"]);
                 _taskdc.UColor = Convert.ToString(dr["UColor"]);
@@ -365,7 +356,6 @@ namespace CRES.DAL.Repository
 
         public string InsertSubscriptionData(List<TaskSubscriptionDataContract> data, string username)
         {
-#pragma warning disable CS0168 // The variable 'ex' is declared but never used
             try
             {
                 DataTable dt = new DataTable();
@@ -398,17 +388,16 @@ namespace CRES.DAL.Repository
 
                     result = res == -1 ? "TRUE" : "FALSE";
                 }
-                //  result = "true";
+              //  result = "true";
                 return result;
             }
             catch (Exception ex)
             {
                 throw;
             }
-#pragma warning restore CS0168 // The variable 'ex' is declared but never used
         }
 
-        public List<UserDataContract> GetSubscribedUserEmailIDsByTaskID(string taskid, string userid)
+        public List<UserDataContract> GetSubscribedUserEmailIDsByTaskID(string taskid,string userid)
         {
             DataTable dt = new DataTable();
             List<UserDataContract> lstsubscriptions = new List<UserDataContract>();
@@ -428,7 +417,7 @@ namespace CRES.DAL.Repository
                 {
                     user.UserID = new Guid(Convert.ToString("UserID"));
                 }
-
+                            
                 lstsubscriptions.Add(user);
             }
             return lstsubscriptions;

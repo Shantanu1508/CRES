@@ -1,18 +1,20 @@
-﻿using CRES.DataContract;
-using CRES.TestAutoMationApp.Utility;
-using Newtonsoft.Json;
-using NPOI.SS.UserModel;
-using NPOI.XSSF.UserModel;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Data;
 using System.IO;
+using System.Text;
+using CRES.DataContract;
+using CRES.TestAutoMationApp.Utility;
+using Newtonsoft.Json;
+using NPOI.HSSF.UserModel;
+using NPOI.SS.UserModel;
+using NPOI.XSSF.UserModel;
 
 namespace CRES.TestAutoMationApp.ExecutionReports
 {
     public static class GenerateExcelFile
     {
-        public static String CreateExcel(List<AutoMationOutputData> ItemList, string FileName)
+        public static String  CreateExcel(List<AutoMationOutputData> ItemList, string FileName)
         {
             try
             {
@@ -62,7 +64,7 @@ namespace CRES.TestAutoMationApp.ExecutionReports
             }
             catch (Exception ex)
             {
-                TextLogger.Write("Error while creating Excel" + ex.Message.ToString(), "");
+                TextLogger.Write("Error while creating Excel"  + ex.Message.ToString(), "");
                 throw;
             }
         }
@@ -71,8 +73,8 @@ namespace CRES.TestAutoMationApp.ExecutionReports
         public static String CreateExcelDataTable(DataTable table, string FileName)
         {
             try
-            {
-
+            { 
+                
                 var memoryStream = new MemoryStream();
                 string path = ProjectBaseConfiguration.ExcelReportsFolder;
 
@@ -85,7 +87,7 @@ namespace CRES.TestAutoMationApp.ExecutionReports
                 using (var fs = new FileStream(path, FileMode.Create, FileAccess.Write))
                 {
                     IWorkbook workbook = new XSSFWorkbook();
-                    ISheet excelSheet = workbook.CreateSheet("Validation_Summary");
+                    ISheet excelSheet = workbook.CreateSheet("Validation_Summary");                
 
                     List<String> columns = new List<string>();
                     IRow row = excelSheet.CreateRow(0);
@@ -121,6 +123,6 @@ namespace CRES.TestAutoMationApp.ExecutionReports
                 throw;
             }
         }
-
+      
     }
 }

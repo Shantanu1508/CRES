@@ -1,12 +1,21 @@
-﻿using CRES.BusinessLogic;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
+using CRES.DAL;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
+
+using Microsoft.EntityFrameworkCore;
+using System.Security;
+using CRES.DataContract;
 using Newtonsoft.Json.Serialization;
+using CRES.BusinessLogic;
+using Microsoft.Extensions.Hosting;
 
 namespace CRES.ServiceMVC
 {
@@ -63,7 +72,7 @@ namespace CRES.ServiceMVC
     .AddNewtonsoftJson(options => { options.SerializerSettings.ContractResolver = new DefaultContractResolver(); });
 
             services.AddScoped<IEmailNotification, EmailNotification>();
-            services.AddSwaggerGen();
+         services.AddSwaggerGen();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -94,8 +103,8 @@ namespace CRES.ServiceMVC
             {
                 endpoints.MapControllerRoute("default", "{controller=Home}/{action=Index}/{id?}");
             });
-            app.UseSwagger();
-            app.UseSwaggerUI(options => options.SwaggerEndpoint("/swagger/v1/swagger.json", "Web API V1"));
+             app.UseSwagger();
+              app.UseSwaggerUI(options => options.SwaggerEndpoint("/swagger/v1/swagger.json", "Web API V1"));
             //app.UseSwagger(c =>
             //{
             //    c.RouteTemplate = "CRES/Swagger/{documentName}/Swagger.json";

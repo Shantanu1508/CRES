@@ -1,3 +1,4 @@
+--Drop PROCEDURE [dbo].[usp_IsValidUnreconcileTranscation]
 Create PROCEDURE [dbo].[usp_IsValidUnreconcileTranscation]
 @TmpUnrecon TableTypeTranscationRecon READONLY
 AS

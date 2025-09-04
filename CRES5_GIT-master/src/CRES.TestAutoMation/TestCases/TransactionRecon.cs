@@ -4,6 +4,9 @@ using CRES.BusinessLogic;
 using CRES.DataContract;
 using CRES.TestAutoMation.Pages;
 using CRES.TestAutoMation.Utility;
+using java.awt;
+using java.awt.datatransfer;
+using java.awt.@event;
 //using java.awt;
 //using java.awt.datatransfer;
 //using java.awt.@event;
@@ -12,8 +15,11 @@ using CRES.TestAutoMation.Utility;
 using NUnit.Framework;
 using OpenQA.Selenium;
 using OpenQA.Selenium.Interactions;
+using OpenQA.Selenium.Remote;
+using Org.BouncyCastle.Crypto.Generators;
 using System;
 using System.Collections.Generic;
+using System.Text;
 //using static com.sun.tools.classfile.Opcode;
 
 namespace CRES.TestAutoMation.TestCases
@@ -23,29 +29,23 @@ namespace CRES.TestAutoMation.TestCases
     {
         ExtentTest test = null;
 
-        Util util = null;
-        Deal deal = null;
-        Login login = null;
-        CRES_Login loginapp = null;
-        string subLoginUrl = "";
-        string BaseUrl = null;
-
-        public void loginPage()
+        [Test]
+        public void remittanceFile()
         {
             test = extent.CreateTest("Remittance file upload ").Info("Test started");
             Actions actions = new Actions(driver);
 
-            loginapp = new CRES_Login();
-            login = new Login(driver);
-            deal = new Deal(driver);
-            util = new Util(driver);
-
-
+            CRES_Login loginapp = new CRES_Login();
+            Login login = new Login(driver);
+            Deal deal = new Deal(driver);
+            Util util = new Util(driver);
+            string subLoginUrl;
+           
             string dealfunding = BaseConfiguration.GetURL() + BaseConfiguration.DealFunding();
             //string username = BaseConfiguration.getusername();
             //string password = BaseConfiguration.getpassword();
             //string LoginUrl = BaseConfiguration.LoginUrl();
-
+            string BaseUrl = null;
             string env = BaseConfiguration.GetEnvironment();
 
             BaseUrl = env switch
@@ -63,47 +63,6 @@ namespace CRES.TestAutoMation.TestCases
 
 
             System.Threading.Thread.Sleep(10000);
-        }
-
-        [Test]
-        public void remittanceFile()
-        {
-            /* Actions actions = new Actions(driver);
-
-              CRES_Login loginapp = new CRES_Login();
-              Login login = new Login(driver);
-              Deal deal = new Deal(driver);
-              Util util = new Util(driver);
-              string subLoginUrl;
-
-              string dealfunding = BaseConfiguration.GetURL() + BaseConfiguration.DealFunding();
-              //string username = BaseConfiguration.getusername();
-              //string password = BaseConfiguration.getpassword();
-              //string LoginUrl = BaseConfiguration.LoginUrl();
-              string BaseUrl = null;
-              string env = BaseConfiguration.GetEnvironment();
-
-              BaseUrl = env switch
-              {
-                  "QA" => BaseConfiguration.GetQAUrl(),
-                  "Integration" => BaseConfiguration.GetIntUrl(),
-                  "Staging" => BaseConfiguration.GetStagingUrl(),
-                  _ => BaseConfiguration.GetQAUrl(),
-              };
-
-              subLoginUrl = BaseConfiguration.GetLoginUrlNew();
-
-              string LoginUrl = BaseUrl + subLoginUrl;
-              util.OpenUrl(LoginUrl);
-
-
-              System.Threading.Thread.Sleep(10000);
-            */
-
-            test = extent.CreateTest("Remittance file upload ").Info("Test started");
-
-            loginPage();
-
             try
             {
                 if (login.LoginWebPage())
@@ -116,11 +75,10 @@ namespace CRES.TestAutoMation.TestCases
                     AutoItX3 autoit = new AutoItX3();
                     autoit.WinActivate("Open");
                     System.Threading.Thread.Sleep(2000);
-                    //autoit.Send("E:\\Data\\Code\\CRES5_GIT\\src\\CRES.TestAutoMation\\Inputs\\Remittance File Template.xlsx");
-                    autoit.Send("D:\\Shantanu_ng_CRES5_GIT-master\\CRES5_GIT-master\\src\\CRES.TestAutoMation\\Inputs\\TransReconFiles\\Remittance File Template.xlsx");
+                    autoit.Send("E:\\Data\\Code\\CRES5_GIT\\src\\CRES.TestAutoMation\\Inputs\\Remittance File Template.xlsx");
                     System.Threading.Thread.Sleep(2000);
                     autoit.Send("{Enter}");
-                    // clipboard.setContents(strSelection, null);
+                   // clipboard.setContents(strSelection, null);
                     System.Threading.Thread.Sleep(10000);
                     driver.FindElement(deal.uploadOkBtn).Click();
                     System.Threading.Thread.Sleep(9000);
@@ -129,12 +87,12 @@ namespace CRES.TestAutoMation.TestCases
                     var printMessages = "<p><b>Test FAILED!</b></p>";
                     if (SuccessMsg == true)
                     {
-                        Console.WriteLine("Remittance File uploaded successfully");
+                        Console.WriteLine("File uploaded successfully");
                         test.Log(Status.Pass, "File uploaded successfully");
                     }
                     else
                     {
-                        Console.WriteLine("Remittance File failed to upload");
+                        Console.WriteLine("File failed to upload");
                         printMessages += $"Message: <br>{"File failed to upload"}<br>";
                         test.Fail(printMessages);
                     }
@@ -147,7 +105,7 @@ namespace CRES.TestAutoMation.TestCases
             }
             catch (Exception e)
             {
-                Console.WriteLine("Remitt file exception =" + e);
+
             }
 
             System.Threading.Thread.Sleep(10000);
@@ -156,43 +114,38 @@ namespace CRES.TestAutoMation.TestCases
         [Test]
         public void manualTransactionsFile()
         {
-            /*
-             Actions actions = new Actions(driver);
-
-
-             CRES_Login loginapp = new CRES_Login();
-             Login login = new Login(driver);
-             Deal deal = new Deal(driver);
-             Util util = new Util(driver);
-             string subLoginUrl;
-
-             string dealfunding = BaseConfiguration.GetURL() + BaseConfiguration.DealFunding();
-             //string username = BaseConfiguration.getusername();
-             //string password = BaseConfiguration.getpassword();
-             //string LoginUrl = BaseConfiguration.LoginUrl();
-             string BaseUrl = null;
-             string env = BaseConfiguration.GetEnvironment();
-
-             BaseUrl = env switch
-             {
-                 "QA" => BaseConfiguration.GetQAUrl(),
-                 "Integration" => BaseConfiguration.GetIntUrl(),
-                 "Staging" => BaseConfiguration.GetStagingUrl(),
-                 _ => BaseConfiguration.GetQAUrl(),
-             };
-
-             subLoginUrl = BaseConfiguration.GetLoginUrlNew();
-
-             string LoginUrl = BaseUrl + subLoginUrl;
-             util.OpenUrl(LoginUrl);
-
-
-             System.Threading.Thread.Sleep(10000);
-            */
             test = extent.CreateTest("Manual transaction file upload ").Info("Test started");
+            Actions actions = new Actions(driver);
+            
 
-            loginPage();
+            CRES_Login loginapp = new CRES_Login();
+            Login login = new Login(driver);
+            Deal deal = new Deal(driver);
+            Util util = new Util(driver);
+            string subLoginUrl;
 
+            string dealfunding = BaseConfiguration.GetURL() + BaseConfiguration.DealFunding();
+            //string username = BaseConfiguration.getusername();
+            //string password = BaseConfiguration.getpassword();
+            //string LoginUrl = BaseConfiguration.LoginUrl();
+            string BaseUrl = null;
+            string env = BaseConfiguration.GetEnvironment();
+
+            BaseUrl = env switch
+            {
+                "QA" => BaseConfiguration.GetQAUrl(),
+                "Integration" => BaseConfiguration.GetIntUrl(),
+                "Staging" => BaseConfiguration.GetStagingUrl(),
+                _ => BaseConfiguration.GetQAUrl(),
+            };
+
+            subLoginUrl = BaseConfiguration.GetLoginUrlNew();
+
+            string LoginUrl = BaseUrl + subLoginUrl;
+            util.OpenUrl(LoginUrl);
+
+
+            System.Threading.Thread.Sleep(10000);
             try
             {
                 if (login.LoginWebPage())
@@ -205,7 +158,7 @@ namespace CRES.TestAutoMation.TestCases
                     AutoItX3 autoit = new AutoItX3();
                     autoit.WinActivate("Open");
                     System.Threading.Thread.Sleep(2000);
-                    autoit.Send("D:\\Shantanu_ng_CRES5_GIT-master\\CRES5_GIT-master\\src\\CRES.TestAutoMation\\Inputs\\TransReconFiles\\Manual Transaction File Template.xlsx");
+                    autoit.Send("E:\\Data\\Code\\CRES5_GIT\\src\\CRES.TestAutoMation\\Inputs\\Manual Transaction File Template.xlsx");
                     System.Threading.Thread.Sleep(5000);
                     autoit.Send("{Enter}");
                     //clipboard.setContents(strSelection, null);
@@ -217,12 +170,12 @@ namespace CRES.TestAutoMation.TestCases
                     var printMessages = "<p><b>Test FAILED!</b></p>";
                     if (SuccessMsg == true)
                     {
-                        Console.WriteLine("Manual File uploaded successfully");
+                        Console.WriteLine("File uploaded successfully");
                         test.Log(Status.Pass, "File uploaded successfully");
                     }
                     else
                     {
-                        Console.WriteLine("Manual File failed to upload");
+                        Console.WriteLine("File failed to upload");
                         printMessages += $"Message: <br>{"File failed to upload"}<br>";
                         test.Fail(printMessages);
                     }
@@ -235,7 +188,7 @@ namespace CRES.TestAutoMation.TestCases
             }
             catch (Exception e)
             {
-                Console.WriteLine("Manual file exception =" + e);
+
             }
 
             System.Threading.Thread.Sleep(10000);
@@ -244,44 +197,38 @@ namespace CRES.TestAutoMation.TestCases
         [Test]
         public void berkadiaFile()
         {
-            /*
-            
+
+            test = extent.CreateTest("Berkadia file upload ").Info("Test started");
             Actions actions = new Actions(driver);
 
-             CRES_Login loginapp = new CRES_Login();
-             Login login = new Login(driver);
-             Deal deal = new Deal(driver);
-             Util util = new Util(driver);
-             string subLoginUrl;
+            CRES_Login loginapp = new CRES_Login();
+            Login login = new Login(driver);
+            Deal deal = new Deal(driver);
+            Util util = new Util(driver);
+            string subLoginUrl;
 
-             string dealfunding = BaseConfiguration.GetURL() + BaseConfiguration.DealFunding();
-             //string username = BaseConfiguration.getusername();
-             //string password = BaseConfiguration.getpassword();
-             //string LoginUrl = BaseConfiguration.LoginUrl();
-             string BaseUrl = null;
-             string env = BaseConfiguration.GetEnvironment();
+            string dealfunding = BaseConfiguration.GetURL() + BaseConfiguration.DealFunding();
+            //string username = BaseConfiguration.getusername();
+            //string password = BaseConfiguration.getpassword();
+            //string LoginUrl = BaseConfiguration.LoginUrl();
+            string BaseUrl = null;
+            string env = BaseConfiguration.GetEnvironment();
 
-             BaseUrl = env switch
-             {
-                 "QA" => BaseConfiguration.GetQAUrl(),
-                 "Integration" => BaseConfiguration.GetIntUrl(),
-                 "Staging" => BaseConfiguration.GetStagingUrl(),
-                 _ => BaseConfiguration.GetQAUrl(),
-             };
+            BaseUrl = env switch
+            {
+                "QA" => BaseConfiguration.GetQAUrl(),
+                "Integration" => BaseConfiguration.GetIntUrl(),
+                "Staging" => BaseConfiguration.GetStagingUrl(),
+                _ => BaseConfiguration.GetQAUrl(),
+            };
 
-             subLoginUrl = BaseConfiguration.GetLoginUrlNew();
+            subLoginUrl = BaseConfiguration.GetLoginUrlNew();
 
-             string LoginUrl = BaseUrl + subLoginUrl;
-             util.OpenUrl(LoginUrl);
+            string LoginUrl = BaseUrl + subLoginUrl;
+            util.OpenUrl(LoginUrl);
 
 
-             System.Threading.Thread.Sleep(10000);
-
-            */
-            test = extent.CreateTest("Berkadia file upload ").Info("Test started");
-
-            loginPage();
-
+            System.Threading.Thread.Sleep(10000);
             try
             {
                 if (login.LoginWebPage())
@@ -294,8 +241,7 @@ namespace CRES.TestAutoMation.TestCases
                     AutoItX3 autoit = new AutoItX3();
                     autoit.WinActivate("Open");
                     System.Threading.Thread.Sleep(2000);
-                    autoit.Send("D:\\Shantanu_ng_CRES5_GIT-master\\CRES5_GIT-master\\src\\CRES.TestAutoMation\\Inputs\\TransReconFiles\\Berkadia File Template.xlsx");
-
+                    autoit.Send("E:\\Data\\Code\\CRES5_GIT\\src\\CRES.TestAutoMation\\Inputs\\Berkadia_File.xlsx");
                     System.Threading.Thread.Sleep(2000);
                     autoit.Send("{Enter}");
                     //clipboard.setContents(strSelection, null);
@@ -307,12 +253,12 @@ namespace CRES.TestAutoMation.TestCases
                     var printMessages = "<p><b>Test FAILED!</b></p>";
                     if (SuccessMsg == true)
                     {
-                        Console.WriteLine("Berkadia File uploaded successfully");
+                        Console.WriteLine("File uploaded successfully");
                         test.Log(Status.Pass, "File uploaded successfully");
                     }
                     else
                     {
-                        Console.WriteLine("Berkadia File failed to upload");
+                        Console.WriteLine("File failed to upload");
                         printMessages += $"Message: <br>{"File failed to upload"}<br>";
                         test.Fail(printMessages);
                     }
@@ -325,7 +271,7 @@ namespace CRES.TestAutoMation.TestCases
             }
             catch (Exception e)
             {
-                Console.WriteLine("Berkadia file exception =" + e);
+
             }
 
             System.Threading.Thread.Sleep(10000);
@@ -335,7 +281,7 @@ namespace CRES.TestAutoMation.TestCases
         {
 
             EmailDataContract emailDC = new EmailDataContract();
-            emailDC.To = "shantanu@hvantage.com";//rsahu@hvantage.com,msingh@hvantage.com,sbanerjee@hvantage.com
+            emailDC.To = "gthakur@hvantage.com";//rsahu@hvantage.com,msingh@hvantage.com,sbanerjee@hvantage.com
 
             //optional
             //emailDC.Cc = "skhan@hvantage.com,rsahu@hvnatge.com";

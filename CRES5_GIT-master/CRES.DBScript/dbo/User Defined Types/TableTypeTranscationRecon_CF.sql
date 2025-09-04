@@ -1,0 +1,28 @@
+CREATE TYPE [dbo].[TableTypeTranscationRecon_CF] AS TABLE (
+    [Transcationid]            UNIQUEIDENTIFIER NULL,
+    [DateDue]                  DATE             NULL,
+    [RemittanceDate]           DATE             NULL,
+    [DealId]                   UNIQUEIDENTIFIER NULL,
+    [NoteID]                   UNIQUEIDENTIFIER NULL,
+    [TransactionType]          NVARCHAR (250)   NULL,
+    [ServicingAmount]          DECIMAL (28, 15) NULL,
+    [CalculatedAmount]         DECIMAL (28, 15) NULL,
+    [Delta]                    DECIMAL (28, 15) NULL,
+    [Adjustment]               DECIMAL (28, 15) NULL,
+    [ActualDelta]              DECIMAL (28, 15) NULL,
+    [AddlInterest]             DECIMAL (28, 15) NULL,
+    [TotalInterest]            DECIMAL (28, 15) NULL,
+    [M61Value]                 BIT              NULL,
+    [ServicerValue]            BIT              NULL,
+    [Ignore]                   BIT              NULL,
+    [OverrideValue]            DECIMAL (28, 15) NULL,
+    [comments]                 NVARCHAR (MAX)   NULL,
+    [TransactionDate]          DATE             NULL,
+    [SourceType]               NVARCHAR (250)   NULL,
+    [OverrideReason]           INT              NULL,
+    [InterestAdj]              DECIMAL (28, 15) NULL,
+    [DueDateAlreadyReconciled] BIT              NULL,
+    [UpdatedBy]                UNIQUEIDENTIFIER NULL,
+    [WriteOffAmount]           DECIMAL (28, 15) NULL);
+GO
+

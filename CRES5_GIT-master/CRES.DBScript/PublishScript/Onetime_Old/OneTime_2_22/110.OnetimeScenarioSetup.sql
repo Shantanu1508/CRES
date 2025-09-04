@@ -1,0 +1,17 @@
+﻿Print('set scenario setup')
+go
+--update core.analysisparameter set CalculationMode = '503',UseActuals = '3' ,CalculationFrequency = '793',CalcEngineType = '798',AllowCalcOverride = '4' where analysisid = 'C10F3372-0FC2-4861-A9F5-148F1F80804F' 
+--update core.analysisparameter set CalculationMode = '503',UseActuals = '3' ,CalculationFrequency = '793',CalcEngineType = '798',AllowCalcOverride = '4' where analysisid = 'C197EB40-4811-467E-80C5-5A9CCE055365' 
+--update core.analysisparameter set CalculationMode = '504',UseActuals = '4' ,CalculationFrequency = '793',CalcEngineType = '798',AllowCalcOverride = '4' where analysisid = 'AA695720-93EA-4A3B-BA47-67D7E11902D1' 
+--update core.analysisparameter set CalculationMode = '504',UseActuals = '3' ,CalculationFrequency = '793',CalcEngineType = '798',AllowCalcOverride = '4' where analysisid = 'EFB2C7A2-08D8-418A-8E88-CA9A7C6A4EC9' 
+--update core.analysisparameter set CalculationMode = '507',UseActuals = '3' ,CalculationFrequency = '793',CalcEngineType = '798',AllowCalcOverride = '4' where analysisid = 'D8F8AF6D-B9C7-4015-A610-41D34941EEB5' 
+--update core.analysisparameter set CalculationMode = '507',UseActuals = '3' ,CalculationFrequency = '793',CalcEngineType = '798',AllowCalcOverride = '4' where analysisid = '45CF083B-4755-4A8C-982A-7DC6D7B8E5F2' 
+--update core.analysisparameter set CalculationMode = '507',UseActuals = '3' ,CalculationFrequency = '793',CalcEngineType = '798',AllowCalcOverride = '4' where analysisid = '261CA4F1-A0AF-45C1-8CF6-053DAFAAA835' 
+--update core.analysisparameter set CalculationMode = '507',UseActuals = '3' ,CalculationFrequency = '793',CalcEngineType = '798',AllowCalcOverride = '4' where analysisid = 'E50C2A12-5D4B-4540-A9C0-DB06D73F919D' 
+--update core.analysisparameter set CalculationMode = '503',UseActuals = '3' ,CalculationFrequency = '793',CalcEngineType = '798',AllowCalcOverride = '4' where analysisid = '4C13F294-D3EB-4F58-B664-24D6848CC33D' 
+--update core.analysisparameter set CalculationMode = '504',UseActuals = '3' ,CalculationFrequency = '793',CalcEngineType = '798',AllowCalcOverride = '4' where analysisid = '37F2140C-B408-4982-9192-67FEF1CD1BFC' 
+--update core.analysisparameter set CalculationMode = '504',UseActuals = '3' ,CalculationFrequency = '793',CalcEngineType = '798',AllowCalcOverride = '4' where analysisid = '852224D0-0532-4EA7-9EF4-CB47C68B8833' 
+--update core.analysisparameter set CalculationMode = '507',UseActuals = '3' ,CalculationFrequency = '793',CalcEngineType = '797',AllowCalcOverride = '4' where analysisid = 'EE7C138F-C80C-4C6C-82F0-0495C65B4951' 
+--update core.analysisparameter set CalculationMode = '507',UseActuals = '3' ,CalculationFrequency = '793',CalcEngineType = '798',AllowCalcOverride = '4' where analysisid = 'BB876017-F263-40DA-926D-0B77D925C2E4' 
+--update core.analysisparameter set CalculationMode = '507',UseActuals = '3' ,CalculationFrequency = '793',CalcEngineType = '798',AllowCalcOverride = '4' where analysisid = '02D20D3E-291A-42F8-AFCD-BDDFBB9DA16B' 
+--update core.analysisparameter set CalculationMode = '503',UseActuals = '4' ,CalculationFrequency = '793',CalcEngineType = '798',AllowCalcOverride = '4' where analysisid = '62C7211C-504E-418E-9089-8D8CA0FBC3BC' 

@@ -1,4 +1,5 @@
-﻿
+﻿-- Procedure
+
 --[dbo].[usp_InsertTransactionEntryFromTranManualForNewScenario]  '261CA4F1-A0AF-45C1-8CF6-053DAFAAA835','B0E6697B-3534-4C09-BE0A-04473401AB93'
 
 CREATE PROCEDURE [dbo].[usp_InsertTransactionEntryFromTranManualForNewScenario] 
@@ -23,12 +24,12 @@ BEGIN
 END
 
 
-	DELETE FROM [CRE].[TransactionEntry] WHERE [NoteID] in (Select noteid from cre.Note where EnableM61Calculations = 4) and AnalysisID = @AnalysisID
+	DELETE FROM [CRE].[TransactionEntry] WHERE AccountID in (Select Account_AccountID from cre.Note where EnableM61Calculations = 4) and AnalysisID = @AnalysisID
 	
 	INSERT INTO [CRE].[TransactionEntry]  
 	(  
-	NoteID  
-	,[Date]  
+	--NoteID  
+	[Date]  
 	,Amount  
 	,[Type]  
 	,CreatedBy  
@@ -38,10 +39,11 @@ END
 	,AnalysisID  		
 	,StrCreatedBy
 	,GeneratedBy
+	,AccountID
 	)  
 	Select  
-	NoteId  
-	,[Date]  
+	--tr.NoteId  
+	[Date]  
 	,Amount  
 	,Type as TransactionType  
 	,@CreatedBy  
@@ -51,8 +53,10 @@ END
 	,@AnalysisID
 	,@StrCreatedBy
 	,'M61AddInManualCashflows' as GeneratedBy
+	,n.Account_AccountID
 	FROM CRE.TransactionEntryManual tr
-	where Noteid in (Select noteid from cre.Note where EnableM61Calculations = 4)
+	Inner join cre.note n on n.Account_AccountID = tr.AccountID
+	where tr.AccountID in (Select Account_AccountID from cre.Note where EnableM61Calculations = 4)
 
 
 

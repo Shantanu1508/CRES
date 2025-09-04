@@ -21,7 +21,7 @@ where Type = 'ScheduledPrincipalpaid'
 
 And Scenario = 'Default'
 and isnull(n.MonthlyDSoverridewhenamortizing,0) <>0
-
+and AccountTypeID = 1
 group by T.Noteid,t.Dealname , n.Totalcommitment,  Amount
 ,ActualPayoffdate,Fullyextendedmaturitydate,Status,LienPosition
 

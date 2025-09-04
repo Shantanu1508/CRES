@@ -1,8 +1,10 @@
 ﻿using CRES.DAL.IRepository;
-using CRES.DataContract;
 using System;
-using System.Data;
+using System.Collections.Generic;
 using System.Data.SqlClient;
+using System.Text;
+using CRES.DataContract;
+using System.Data;
 
 namespace CRES.DAL.Repository
 {
@@ -34,7 +36,6 @@ namespace CRES.DAL.Repository
         public bool GetAllowLoggingValue()
         {
             bool allow = false;
-#pragma warning disable CS0168 // The variable 'ex' is declared but never used
             try
             {
 
@@ -61,7 +62,6 @@ namespace CRES.DAL.Repository
             {
                 allow = false;
             }
-#pragma warning restore CS0168 // The variable 'ex' is declared but never used
 
             return allow;
         }

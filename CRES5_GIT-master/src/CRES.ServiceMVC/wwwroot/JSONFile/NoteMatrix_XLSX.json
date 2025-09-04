@@ -1,5 +1,6 @@
 ﻿{
-  "SheetName": "Delphi - Note Matrix,TRE ACR - Note Matrix,ACORE Credit IV - Note Matrix",
+  //"SheetName": "Delphi - Note Matrix,TRE ACR - Note Matrix,ACORE Credit IV - Note Matrix",
+  "SheetName": "Delphi,TRE ACR,ACORE Credit IV,ACP II,ACSS,AHIP,Delaware Life,Harel,SILAC,Equitrust,LTV Clean,Fee",
   "LandingTableName": "DW.L_NoteMatrixBI",
   "HeaderPosition": 5,
   "Check2BlankRow": false,
@@ -329,6 +330,10 @@
     {
       "SheetColumnName": "SheetName",
       "LandingColumnName": "SheetName"
+    },
+    {
+      "SheetColumnName": "Exit Fee 1 % ",
+      "LandingColumnName": "ExitFee1"
     }
 
   ]

@@ -1,4 +1,8 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
 
 namespace CRES.DataContract
 {
@@ -13,11 +17,12 @@ namespace CRES.DataContract
         public int? Total { get; set; }
         public int? TotalCompleted { get; set; }
         public int? TotalFailed { get; set; }
+        public int? TotalCanceled { get; set; }
         public string BatchType { get; set; }
         public Guid? UserID { get; set; }
         public string Status { get; set; }
         public string Email { get; set; }
         public string UserName { get; set; }
-
+        
     }
 }

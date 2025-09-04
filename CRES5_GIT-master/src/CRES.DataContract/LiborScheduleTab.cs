@@ -29,6 +29,6 @@ namespace CRES.DataContract
         public string ScheduleID { get; set; }
         public decimal? Indexoverrides { get; set; }
         public string IndexType { get; set; }
-
+        
     }
 }

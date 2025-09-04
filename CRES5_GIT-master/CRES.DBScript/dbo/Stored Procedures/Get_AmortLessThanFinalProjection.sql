@@ -16,13 +16,17 @@ T.DealName
 , SUM(Amount)+SUM(Scheduleprincpal )SchedulePrincipal_Plus_RestofPrincipalTransactions
 ,ProjectedfullPayoff
 from Transactionentry T
+Inner join core.account acc on acc.accountid = T.accountid and acc.accounttypeID =  1
 Outer apply (Select DealName,  creNoteid, MiniAutoAspreadStartDate, Scheduleprincpal ,ProjectedfullPayoff
 				from SumofScehduleprincipalUntilMinAutospreaddate s
 			where T.noteid = s.crenoteid and T.date= s.MiniAutoAspreadStartDate
 			)x
 where Type in ('InitialFundingamount', 'FundingorRepayment', 'PKPrincipalFunding', 'PIKPrincipalPaid')
 and Scenario = 'Default' and T.Date = x.MiniAutoAspreadStartDate
+and acc.accounttypeID =  1
 --and T.Dealname = 'Crossroads'
 Group by NoteID, T.DealName,ProjectedfullPayoff
 
 end
+
+

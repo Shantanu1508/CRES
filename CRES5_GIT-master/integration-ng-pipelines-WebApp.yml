@@ -1,0 +1,49 @@
+trigger:
+  branches:
+    include:
+      - QA 
+  paths:
+    include:
+      - src/CRES.WebClient.V1/*
+
+pool:
+  vmImage: 'windows-2019'
+
+variables:
+  buildConfiguration: 'Release'
+
+
+steps:
+
+
+- script: echo Hello, world!
+  displayName: 'Run script for Web'
+
+- task: UseNode@1
+  inputs:
+    version: '14.17.3'
+
+- task: DotNetCoreCLI@2
+  inputs:
+    command: 'build'
+    projects: 'src/CRES.WebClient.V1/CRES.WebClient.V1.csproj'
+    workingDirectory: 'src/CRES.WebClient.V1/ClientApp/Dist'
+
+
+
+- task: DotNetCoreCLI@2
+  inputs:
+    command: 'publish'
+    publishWebProjects: false
+    projects: 'src/CRES.WebClient.V1/CRES.WebClient.V1.csproj'
+    workingDirectory: 'src/CRES.WebClient.V1/ClientApp'
+
+
+- task: AzureRmWebAppDeployment@4
+  inputs:
+    ConnectionType: 'AzureRM'
+    azureSubscription: 'iTechsol(3)(021c83fc-1e2a-4da6-92dd-8e1d74c0e1cb)'
+    appType: 'webApp'
+    WebAppName: 'qacres4-ng-test'
+    packageForLinux: '$(System.DefaultWorkingDirectory)/**/*.zip'
+

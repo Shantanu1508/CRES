@@ -6,7 +6,7 @@ CREATE PROCEDURE [dbo].[usp_InsertUpdatePayruleDistributions_v1] --'6d7be350-31e
 AS
  Begin
 
-
+ ----INSERT INTO [app.LoggerCalc] ([ObjectId],[AnalysisID],[RequestID],[Message]) VALUES(null, @AnalysisID, null, 'SP usp_InsertUpdatePayruleDistributions_v1 - start');  
 
 
 IF OBJECT_ID('tempdb..[#TablePayRuleDist]') IS NOT NULL                                         
@@ -84,7 +84,7 @@ INSERT INTO CRE.PayruleDistributions
  )  
 
 select
-distinct nc.[Date]
+ nc.[Date]  -----removed distinct for exit fee stripp issue
 ,nc.SourceNoteGuiID as SourceNoteID
 ,nc.ChildNoteGuiID  as StripTransferTo
 ,fsc.FeeTypeNameID as  RuleID
@@ -134,25 +134,30 @@ DEALLOCATE CursorDealSourceNote
 -----------------------------------------------
 
 
--- set all dependent note as Processing   
+---- set all dependent note as Processing   
 
   
-IF EXISTS(select distinct SourceNoteGuiID from [#TablePayRuleDist])  
-BEGIN    
-	DECLARE @PriorityID INT  
-	SET @PriorityID = (Select top 1 PriorityID FROM Core.CalculationRequests where AnalysisID = @analysisID and CalcType = 775 and NoteId in (select distinct SourceNoteGuiID from [#TablePayRuleDist]) )
+--IF EXISTS(select distinct SourceNoteGuiID from [#TablePayRuleDist])  
+--BEGIN    
+--	--- INSERT INTO [app.LoggerCalc] ([ObjectId],[AnalysisID],[RequestID],[Message]) VALUES(null, @AnalysisID, null, 'SP usp_InsertUpdatePayruleDistributions_v1 - IF EXISTS(select distinct SourceNoteGuiID from [#TablePayRuleDist])');  
+
+--	DECLARE @PriorityID INT  
+--	SET @PriorityID = (Select top 1 PriorityID FROM Core.CalculationRequests where AnalysisID = @analysisID and CalcType = 775 and NoteId in (select distinct SourceNoteGuiID from [#TablePayRuleDist]) )
  
-	Update Core.CalculationRequests SET [StatusID] = 292 ,StartTime = null,Endtime = null , PriorityID = @PriorityID  
-	where  AnalysisID = @analysisID  
-	and noteid in (    
-		SELECT NoteId FROM CORE.CalculationRequests    
-		WHERE AnalysisID = @analysisID  
-		and NoteId In  (select p.StripTransferTo from CRE.PayruleSetup p  where  p.StripTransferFrom in (select distinct SourceNoteGuiID from [#TablePayRuleDist]) )  
-		and [StatusID] = 326  
-		and CalcType = 775         
-	)    
-	and CalcType = 775        
-END   
+--	Update Core.CalculationRequests SET [StatusID] = 292 ,StartTime = null,Endtime = null , PriorityID = @PriorityID --,ErrorMessage = 'usp_InsertUpdatePayruleDistributions_v1' 
+--	where  AnalysisID = @analysisID  
+--	and noteid in (    
+--		SELECT NoteId FROM CORE.CalculationRequests    
+--		WHERE AnalysisID = @analysisID  
+--		and NoteId In  (select p.StripTransferTo from CRE.PayruleSetup p  where  p.StripTransferFrom in (select distinct SourceNoteGuiID from [#TablePayRuleDist]) )  
+--		and [StatusID] = 326  
+--		and CalcType = 775  
+--		and CalcEngineType  = 798  
+--	)    
+--	and CalcType = 775     
+--	and CalcEngineType  = 798  
+	   
+--END   
 
 
 

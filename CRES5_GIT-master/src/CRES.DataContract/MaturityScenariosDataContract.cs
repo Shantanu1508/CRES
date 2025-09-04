@@ -1,5 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
 
 namespace CRES.DataContract
 {
@@ -17,7 +20,12 @@ namespace CRES.DataContract
         public DateTime? ExpectedMaturityDate { get; set; }
         public DateTime? ActualPayoffDate { get; set; }
         public DateTime? OpenPrepaymentDate { get; set; }
+        public DateTime? MaturityDate { get; set; }
+        public DateTime? FullyExtendedMaturityDate { get; set; }
+        public string CRENoteID { get; set; }
+        
 
+        public int Approved { get; set; }
         public int MaturityID { get; set; }
         // public Guid? AccountID { get; set; }
         // public Guid? MaturityID { get; set; }

@@ -14,7 +14,8 @@
     [AuthenticationKey] NVARCHAR (256)   NULL,
     [ContactNo1]        NVARCHAR (256)   NULL,
     [UserToken]         NVARCHAR (50)    CONSTRAINT [DF__User__UserToken__5165187F] DEFAULT (newid()) NULL,
-    [IP] Varchar(256)
+    [IP]                Varchar(256),
+    [DeviceCode]        NVARCHAR(256) NULL
     CONSTRAINT [PK_UserID] PRIMARY KEY CLUSTERED ([UserID] ASC)
 );
 

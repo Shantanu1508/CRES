@@ -60,20 +60,29 @@ export class FinancingWareDetailComponent {
     });
   }
 
-
-
-
   SaveFinancingDetaillist(): void {
     if (this.flexfinancingwhouseupdatedRowNo.length > 0) {
       for (var i = 0; i < this.flexfinancingwhouseupdatedRowNo.length; i++) {
         //  this._financingWarehouse.lstFinancingWarehouseDetail[i].FinancingWarehouseID = this.FinancingWarehouseid;
-        this.flexfinancingwhouseToUpdate.push(this._financingWarehouse.lstFinancingWarehouseDetail[this.flexfinancingwhouseupdatedRowNo[i]]);
-        this.flexfinancingwhouseToUpdate[i].FinancingWarehouseID = this.FinancingWarehouseid;
+        //this.flexfinancingwhouseToUpdate.push(
+        //  this._financingWarehouse.lstFinancingWarehouseDetail[this.flexfinancingwhouseupdatedRowNo[i]]
+        //);
+        //this.flexfinancingwhouseToUpdate[i].FinancingWarehouseID = this.FinancingWarehouseid;
+
+
+        this.flexfinancingwhouseToUpdate.push({
+         // this._lstSpreadMaintenance[h].SpreadMaintenanceScheduleId == null ? 0 : this._lstSpreadMaintenance[h].SpreadMaintenanceScheduleId
+          'FinancingWarehouseDetailID': this._financingWarehouse.lstFinancingWarehouseDetail[i].FinancingWarehouseDetailID == undefined ? '00000000-0000-0000-0000-000000000000' : this._financingWarehouse.lstFinancingWarehouseDetail[i].FinancingWarehouseDetailID,
+          'FinancingWarehouseID': this.FinancingWarehouseid,
+          'StartDate': this._financingWarehouse.lstFinancingWarehouseDetail[i].StartDate,
+          'EndDate': this._financingWarehouse.lstFinancingWarehouseDetail[i].EndDate,
+          'Value': this._financingWarehouse.lstFinancingWarehouseDetail[i].Value,
+        });
+
       }
+      //this._financingWhouse.lstFinancingWarehouseDetail = this.flexfinancingwhouseToUpdate;
 
-      this._financingWhouse.lstFinancingWarehouseDetail = this.flexfinancingwhouseToUpdate;
-
-      this.financingsvc.SaveFinancingDetails(this._financingWhouse).subscribe(res => {
+      this.financingsvc.SaveFinancingDetails(this.flexfinancingwhouseToUpdate).subscribe(res => {
         if (res.Succeeded) {
           localStorage.setItem('divSucessFinancing', JSON.stringify(true));
           localStorage.setItem('divSucessMsgFinancing', JSON.stringify(res.Message));
@@ -101,14 +110,20 @@ export class FinancingWareDetailComponent {
     this.financingsvc.getFinancingWhousebyId(this._financingWhouse).subscribe(res => {
       if (res.Succeeded) {
         this._financingWarehouse = res.FinancingWarehouseDataContract;
+        this._financingWarehouse.TotalConstraint = this._financingWarehouse.TotalConstraint;
         this.accountid = this._financingWarehouse.AccountID;
-        for (var i = 0; i < this._financingWarehouse.lstFinancingWarehouseDetail.length; i++) {
-          if (this._financingWarehouse.lstFinancingWarehouseDetail[i].StartDate != null) {
-            this._financingWarehouse.lstFinancingWarehouseDetail[i].StartDate = new Date(this._financingWarehouse.lstFinancingWarehouseDetail[i].StartDate.toString().replace('T00', 'T17')).toLocaleDateString("en-US", options);
+        if (this._financingWarehouse.lstFinancingWarehouseDetail != null) {
+          for (var i = 0; i < this._financingWarehouse.lstFinancingWarehouseDetail.length; i++) {
+            if (this._financingWarehouse.lstFinancingWarehouseDetail[i].StartDate != null) {
+              this._financingWarehouse.lstFinancingWarehouseDetail[i].StartDate = new Date(this._financingWarehouse.lstFinancingWarehouseDetail[i].StartDate.toString().replace('T00', 'T17')).toLocaleDateString("en-US", options);
+            }
+            if (this._financingWarehouse.lstFinancingWarehouseDetail[i].EndDate != null) {
+              this._financingWarehouse.lstFinancingWarehouseDetail[i].EndDate = new Date(this._financingWarehouse.lstFinancingWarehouseDetail[i].EndDate.toString().replace('T00', 'T17')).toLocaleDateString("en-US", options);
+            }
           }
-          if (this._financingWarehouse.lstFinancingWarehouseDetail[i].EndDate != null) {
-            this._financingWarehouse.lstFinancingWarehouseDetail[i].EndDate = new Date(this._financingWarehouse.lstFinancingWarehouseDetail[i].EndDate.toString().replace('T00', 'T17')).toLocaleDateString("en-US", options);
-          }
+        }
+        else {
+          this._financingWarehouse.lstFinancingWarehouseDetail = [];
         }
       }
       else {
@@ -149,12 +164,11 @@ export class FinancingWareDetailComponent {
     this._financingWarehouse.IsRevolving = value;
   }
 
-
   CustomValidator() {
     if (this._financingWarehouse.Name != "" && this._financingWarehouse.Name != null) {
       this.saveFinancing();
     } else {
-      var msg = "";
+      var msg = "Facility name can not be blank. Please enter a name.";
       this.CustomAlert(msg)
     }
 

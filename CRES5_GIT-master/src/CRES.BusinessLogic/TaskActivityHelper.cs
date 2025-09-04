@@ -24,7 +24,7 @@ namespace CRES.BusinessLogic
                 {
                     activitylist.Add(ConvertToTaskmanagementDC("Priority change", "changed the Priority to " + tmdc.PriorityText));
                 }
-                if (tmdc.AssignedTo != null && tmdc.OldAssignedTo != null)
+                if (tmdc.AssignedTo !=null && tmdc.OldAssignedTo!=null)
                 {
                     if (tmdc.AssignedTo != tmdc.OldAssignedTo)
                     {

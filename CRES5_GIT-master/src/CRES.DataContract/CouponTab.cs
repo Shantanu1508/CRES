@@ -1,4 +1,8 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
 
 namespace CRES.DataContract
 {
@@ -30,6 +34,7 @@ namespace CRES.DataContract
         public int? ServicingOverrideTag { get; set; }
         public Decimal? CouponbasedonFutureFunding { get; set; }
         public Decimal? AccumCouponbasedonFutureFunding { get; set; }
+        public Decimal? InterestSuspenseAdjustment { get; set; }
         public Decimal? InterestSuspenseAccountActivityforthePeriod { get; set; }
         public Decimal? InterestSuspenseAccountBalance { get; set; }
         public Decimal? PMTDropDateDailyAccruedInterestbeforeStrippingRule { get; set; }
@@ -53,7 +58,8 @@ namespace CRES.DataContract
         public Decimal? InterestPaidServicingWithDropDate { get; set; }
         public Decimal? CouponStripReceivable { get; set; }
         public Decimal? UnpaidInterest { get; set; }
-        public Decimal? InterestSuspenseAccountBalanceWithAdj { get; set; }
-
+        public Decimal? InterestPastDue { get; set; }
+        public Decimal? CashInterest { get; set; }
+        public Decimal? CapitalizedInterest { get; set; }
     }
 }

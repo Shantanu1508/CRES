@@ -15,6 +15,13 @@
     [TransactionGroup]               NVARCHAR (256)   NULL,
     [Cash_NonCash] NVARCHAR(256) NULL, 
     [AccountName] NVARCHAR(256) NULL, 
+    DecodeNo int null,
+    DecodeName nvarchar(256) null,
+    RP_Mics_Comment nvarchar(256) null,
+    [Decode_Definition]              NVARCHAR (256)   NULL,
+    [UsedInXIRR]        INT              NULL,
+	[XIRRCategory]        NVARCHAR (256)              NULL,
+    [IsClubTransactionOnSameDate] INT NULL DEFAULT((4)),
     CONSTRAINT [PK_TransactionTypesID] PRIMARY KEY CLUSTERED ([TransactionTypesID] ASC)
 );
 

@@ -14,7 +14,7 @@ declare var $: any;
   selector: "function",
   templateUrl: "./function.html",
   providers: [functionService]
-})
+}) 
 
 export class FunctionComponent implements OnInit {
   public data: any;
@@ -36,14 +36,13 @@ export class FunctionComponent implements OnInit {
     public utilityService: UtilityService,
     private _router: Router) {
     $.getScript("/js/editorfunction.js");
-    this.getFastFolderListFromDB();
+  
     this.getFolderList();
-    //this.getFileList();
+ 
     this.utilityService.setPageTitle("M61–Files");
     this.foldername = "Select";
     this.zipfilename = "Select Zip File";
-    //   this.zipfiles:any = [];
-    //=new Array<string>();
+    
 
   }
 
@@ -105,24 +104,7 @@ export class FunctionComponent implements OnInit {
 
       );
   }
-
-  getFastFolderListFromDB(): void {
-
-
-    this.functionServiceSrv.getallFastFunction()
-      .subscribe(res => {
-
-        if (res != null && res.length > 0) {
-          this.lstFolderFromDB = res;
-        }
-
-      },
-        error => {
-
-        }
-
-      );
-  }
+   
 
   getFileListByFolder(): void {
     this.zipfiles = [];
@@ -139,19 +121,7 @@ export class FunctionComponent implements OnInit {
               this.zipfiles.push(this.data[i]);
               this._isDeployZip = true;
             }
-          }
-
-          //$.each(this.data, function (key, value) {
-          //    if (value.replace(/^.*\./, '') == 'zip') {
-          //        if (this.zipfiles == undefined)
-          //        {
-          //            this.data1
-          //            this.zipfiles = ["Select File"];
-          //        }
-
-          //        this.zipfiles.push(key);
-          //    }
-          //});
+          }         
 
           console.log(this.zipfiles);
         }
@@ -265,7 +235,7 @@ export class FunctionComponent implements OnInit {
       }
 
       this.functionServiceSrv.updateFileFunction(parameters).subscribe(res => {
-        this.getFastFolderListFromDB();
+        //this.getFastFolderListFromDB();
         this._isListFetching = false;
         alert('File saved successfully');
       }, error => {
@@ -316,7 +286,7 @@ export class FunctionComponent implements OnInit {
 
           this._isListFetching = false;
           this.ClosePopUpCreateCopy();
-          this.getFastFolderListFromDB();
+          //this.getFastFolderListFromDB();
           this.getFolderList();
           alert('function Created successfully');
           this._isDefault = false;
@@ -569,7 +539,7 @@ export class FunctionComponent implements OnInit {
           this.functionServiceSrv.updateFunction(parameters)
             .subscribe(res => {
               this.DeployFunction();
-              this.getFastFolderListFromDB();
+              //this.getFastFolderListFromDB();
             },
               error => {
                 alert('Error in updating function');

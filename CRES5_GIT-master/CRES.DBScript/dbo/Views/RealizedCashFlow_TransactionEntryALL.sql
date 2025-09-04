@@ -1,5 +1,5 @@
 ﻿-- View      
-Create View [dbo].[RealizedCashFlow_TransactionEntryALL]      
+CREATE View [dbo].[RealizedCashFlow_TransactionEntryALL]      
 as    
 Select NoteKey,
 NoteID,
@@ -66,7 +66,7 @@ From(
     
 	From [DW].[TransactionEntryBI] T      
 	left join DW.NoteBI N on N.Noteid = T.NoteID      
-	where AnalysisName = 'Default'  
+	where AnalysisName = 'Default' and T.AccountTypeID = 1 
 	
 	--and T.TransactionEntryID not in	 ---Ignore ballon and FundingOrRepayment
 	--(

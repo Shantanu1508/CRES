@@ -1,5 +1,5 @@
 ﻿
-CREATE PROCEDURE dbo.[usp_GetAllDealsForTranscationsFilter] 
+Create PROCEDURE dbo.[usp_GetAllDealsForTranscationsFilter] 
 @IsReconciled bit=0
 AS
 BEGIN
@@ -10,16 +10,19 @@ SET NOCOUNT ON;
 	Begin
 	SELECT distinct d.DealID			  
 			  , d.CREDealId,d.DealName from cre.Deal d 
-			inner join cre.TranscationReconciliation tr on tr.DealId =d.DealID
-			where tr.Deleted=0 and PostedDate is null
+			  where  d.isdeleted <> 1
+			--inner join cre.TranscationReconciliation tr on tr.DealId =d.DealID
+			--where tr.Deleted=0 and PostedDate is null and d.isdeleted <> 1
 			order by d.DealName
+			--AND d.Status=323 
 	END
 	ELSE
 	BEGIN
 	SELECT distinct d.DealID			  
 			  , d.CREDealId,d.DealName from cre.Deal d 
 			inner join cre.TranscationReconciliation tr on tr.DealId =d.DealID
-			where tr.Deleted=0 and PostedDate is not null
+			where tr.Deleted=0 and PostedDate is not null and d.isdeleted <> 1 
+			--and   d.Status=323
 			order by d.DealName
 	END
 

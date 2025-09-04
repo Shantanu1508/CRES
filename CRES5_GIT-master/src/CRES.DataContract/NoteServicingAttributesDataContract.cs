@@ -1,8 +1,12 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
 
 namespace CRES.DataContract
 {
-    public class NoteServicingAttributesDataContract
+   public class NoteServicingAttributesDataContract
     {
         public int NoteServicingAttributesID { get; set; }
         public int? NoteID { get; set; }
@@ -14,7 +18,7 @@ namespace CRES.DataContract
         public int? IncludeServicingPaymentOverrideinLevelYield { get; set; }
         public string IncludeServicingPaymentOverrideinLevelYieldText { get; set; }
 
-
-
+        
+      
     }
 }

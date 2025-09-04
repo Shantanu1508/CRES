@@ -1,5 +1,5 @@
-﻿CREATE View
-[dbo].[ExitFee_TotalCommitment]
+﻿-- View
+CREATE View [dbo].[ExitFee_TotalCommitment]
 As
 
 Select CreNoteid
@@ -10,8 +10,13 @@ Select CreNoteid
 ,MAX(analysisid)analysisid
 ,MAx(Type) Type
 from Cre.Note N
-Inner Join Cre.TransactionEntry T on N.Noteid = T.Noteid
-Where Type = 'ExitfeeExcludedFromLevelYield' and analysisid = 'C10F3372-0FC2-4861-A9F5-148F1F80804F'
+Inner Join CORE.Account acc on acc.accountid = n.account_accountid
+Inner Join Cre.TransactionEntry T on acc.accountid = T.accountid
+
+
+
+Where acc.AccounttypeID = 1 and Type = 'ExitfeeExcludedFromLevelYield' and analysisid = 'C10F3372-0FC2-4861-A9F5-148F1F80804F'
+
 Group By N.Crenoteid
 
 

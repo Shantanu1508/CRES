@@ -1,4 +1,6 @@
-﻿
+﻿-- Function
+-- Function
+
 CREATE Function ufn_UnderwrittingCheckPermissionFunction(@LoginId nvarchar(256)= null,@Password nvarchar(256)= null,@DealID nvarchar(256)= null)
 returns int
 with returns null on null input as
@@ -23,7 +25,7 @@ Begin
 					INNER JOIN [App].[ModuleTabMaster] mtm ON mtrrm.ModuleTabMasterID = mtm.ModuleTabMasterID
 					where 
 					u.StatusID = (Select LookupID from COre.Lookup where Name ='Active' and ParentID = 1)
-					and u.[Login]=@LoginID and u.[password]=@Password  and mtm.ModuleTabName='SizerUpload'
+					and u.[Login]=@LoginID and mtm.ModuleTabName='SizerUpload'
 					)a	
 				where RightsName='Edit'	)
 
@@ -31,12 +33,16 @@ Begin
 	if @Count>0
 	Begin
 		set @Permission=2;
+
 		set @AllowSizerUploadText=(
-		select isnull(l.Name,'N')  from cre.deal d
-		left join core.lookup l on l.LookupID=d.AllowSizerUpload
-		where CREDealID= @DealID and   isnull(isdeleted,0)=0
+			
+			select isnull(l.Name,'None')  from cre.deal d
+			left join core.lookup l on l.LookupID=d.AllowSizerUpload
+			where CREDealID= @DealID and   isnull(isdeleted,0)=0
+
 		)
-		if @AllowSizerUploadText='N' 
+
+		if (@AllowSizerUploadText='None' AND @AllowSizerUploadText='Settlement')
 		begin
 			set @Permission=1
 		end
@@ -48,3 +54,5 @@ end;
 
 
 --Select DBO.UnderwrittingCheckPermissionFunction('admin_dev','f225999720b317e32fa0ffac27b84269','17-1708.22222');
+GO
+

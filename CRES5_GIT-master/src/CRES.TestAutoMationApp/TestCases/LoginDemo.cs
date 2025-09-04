@@ -3,16 +3,18 @@ using OpenQA.Selenium;
 using OpenQA.Selenium.Chrome;
 using OpenQA.Selenium.Support.UI;
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
+using System.Text;
 
 
 namespace CRES.TestAutoMation_Latest.TestCases
 {
     public class LoginDemo
     {
-        //  [Test]
-        [Category("UITest")]
+      //  [Test]
+      [Category("UITest")]
         public void login()
         {
             var chromeOptions = new ChromeOptions();

@@ -79,6 +79,8 @@
     [IrisComment]                       NVARCHAR (256)   NULL,
     [M61Comment]                        NVARCHAR (256)   NULL,
     [M61DealStatus]                     NVARCHAR (256)   NULL,
+    [createdDate] DATETIME NULL, 
+    SheetName nvarchar(256)
     CONSTRAINT [PK_NoteMatrixBI_NoteMatrix_AutoID] PRIMARY KEY CLUSTERED ([NoteMatrix_AutoID] ASC)
 );
 

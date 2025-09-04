@@ -35,7 +35,7 @@ namespace CRES.TestAutoMation.Practice
         [Test]
         public void SetUp() {            
 
-            CRES_Login loginapp = new CRES_Login();
+            Login_Verification loginapp = new Login_Verification();
             Login login = new Login(driver);           
             // CreateNewDeal createDeal = new CreateNewDeal(driver);
             Util util = new Util(driver);

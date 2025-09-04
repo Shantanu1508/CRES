@@ -1,0 +1,41 @@
+# Staging-service
+
+trigger:
+  branches: 
+    include:
+      - Staging
+  paths:
+    include:
+      - src/CRES.ServiceMVC/*
+
+pool:
+  vmImage: 'windows-2022'
+
+variables:
+  buildConfiguration: 'Release'
+
+steps:
+
+- script: echo Hello, world!
+  displayName: 'Run script for API'
+
+- task: DotNetCoreCLI@2
+  inputs:
+    command: 'build'
+    projects: 'src/CRES.ServiceMVC/CRES.ServiceMVC.csproj'
+    workingDirectory: 'src/CRES.ServiceMVC'
+
+- task: DotNetCoreCLI@2
+  inputs:
+    command: 'publish'
+    publishWebProjects: false
+    projects: 'src/CRES.ServiceMVC/CRES.ServiceMVC.csproj'
+    workingDirectory: 'src/CRES.ServiceMVC'
+
+- task: AzureRmWebAppDeployment@4
+  inputs:
+    ConnectionType: 'AzureRM'
+    azureSubscription: 'Microsoft Partner Network 3'
+    appType: 'webApp'
+    WebAppName: 'Stagingcres4api'
+    packageForLinux: '$(System.DefaultWorkingDirectory)/**/*.zip'

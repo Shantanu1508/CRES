@@ -1,5 +1,6 @@
 import { AzureADServiceConstants } from '../ngAuth/authenticators/AzureADServiceConstants.model';
 import appsettings from '../../../../appsettings.json';
+import { AzureADServiceConstantsInternal } from './authenticators/AzureADServiceConstantsInternal.model';
 //import { Azuresettings } from '../../../../appsettings.json';
 
 //AzureAD Setting
@@ -9,6 +10,14 @@ export const serviceConstants: AzureADServiceConstants = new AzureADServiceConst
   appsettings.Azuresettings._azureADRedirectUrl,
   appsettings.Azuresettings._azureADBackendUrl,
   appsettings.Azuresettings._azureADGraphUrl
+);
+
+export const serviceConstantsInternal: AzureADServiceConstantsInternal = new AzureADServiceConstantsInternal(
+  appsettings.AzuresettingsInternal._azureADClientID,
+  appsettings.AzuresettingsInternal._azureADTenanID,
+  appsettings.AzuresettingsInternal._azureADRedirectUrl,
+  appsettings.AzuresettingsInternal._azureADBackendUrl,
+  appsettings.AzuresettingsInternal._azureADGraphUrl
 );
 
 

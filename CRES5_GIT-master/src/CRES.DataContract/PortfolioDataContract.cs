@@ -1,4 +1,8 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
 
 namespace CRES.DataContract
 {
@@ -19,5 +23,8 @@ namespace CRES.DataContract
         public Boolean? AllowWholeDeal { get; set; }
         public string AllowWholeDealText { get; set; }
         public string FinancingSourceIDs { get; set; }
+
+        public int? XIRRConfigID { get; set; }
+
     }
 }

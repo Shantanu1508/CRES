@@ -1,4 +1,6 @@
-﻿
+﻿-- Procedure
+-- Procedure
+
 
 CREATE PROCEDURE [DW].[usp_MergeTransactionEntry]
 @BatchLogId int
@@ -53,7 +55,22 @@ BEGIN
 		RemitDate,
 		PaymentDateNotAdjustedforWorkingDay,
 		[PurposeType],
-		[Cash_NonCash]
+		[Cash_NonCash],
+		AccountID,
+		AccountTypeID,
+		AccountTypeBI,
+		AllInCouponRate,
+		accountingclosedate,
+		AdjustmentType,
+		IndexDeterminationDate,
+		EndingBalance,
+		DecodeName,
+		Flag,
+		ParentAccountId,
+		BalloonRepayAmount,
+		IndexValue,
+		SpreadValue,
+		OriginalIndex
 		)
 	Select
 		tb.TransactionEntryID,
@@ -77,7 +94,22 @@ BEGIN
 		tb.RemitDate,
 		tb.PaymentDateNotAdjustedforWorkingDay,
 		tb.[PurposeType],
-		tb.[Cash_NonCash]
+		tb.[Cash_NonCash],
+		tb.AccountID,
+		tb.AccountTypeID,
+		tb.AccountTypeBI,
+		tb.AllInCouponRate,
+		tb.accountingclosedate,
+		tb.AdjustmentType,
+		tb.IndexDeterminationDate,
+		tb.EndingBalance,
+		tb.DecodeName,
+		tb.Flag,
+		tb.ParentAccountId,
+		tb.BalloonRepayAmount,
+		tb.IndexValue,
+		tb.SpreadValue,
+		tb.OriginalIndex
 		From [DW].[L_TransactionEntryBI] tb
 		Inner Join [DW].[NoteBI] n on n.NoteID = tb.NoteID
 		inner join DW.DealBI d on d.dealid = n.dealid
@@ -107,4 +139,3 @@ END
 SET TRANSACTION ISOLATION LEVEL READ COMMITTED 
 
 END
-

@@ -1,4 +1,6 @@
 ﻿
+-- Procedure
+
 
 --DECLARE @notefunding [TableTypeFundingSchedule]
 
@@ -21,6 +23,7 @@
 
 
 
+--Drop PROCEDURE [dbo].[usp_ExportFutureFundingFromCRES] 
 
 CREATE PROCEDURE [dbo].[usp_ExportFutureFundingFromCRES] 
 (
@@ -36,6 +39,9 @@ BEGIN
 BEGIN TRY
 --BEGIN TRAN
 	
+	Declare @Cutoffdate date = CAST((select [Value] from app.appconfig where [key] = 'CutOffDate_BackshopExport') as date)
+
+
 	Declare @DealID UNIQUEIDENTIFIER;
 	SET @DealID = (Select dealid from cre.note where noteid in (Select top 1 NoteId from @notefunding where NoteID is not null) )
 	
@@ -110,6 +116,9 @@ BEGIN TRY
 		WHEN 'Full Payoff' THEN 'FULLPAY'
 		WHEN 'Note Transfer' THEN 'NOTETRAN'	
 		WHEN 'Paydown' THEN 'PAYDOWN'	
+		WHEN 'Principal Writeoff' THEN 'PWRITEOFF'
+		WHEN 'Net Property Income/Loss' THEN 'NETINCLOSS'	
+		WHEN 'Equity Distribution' THEN 'EQUITYDIST'	
 		END
 		)as [FundingPurpose]
 		,@UserName as [AuditUserName]
@@ -145,7 +154,7 @@ BEGIN TRY
 		LEFT JOIN [CORE].[Lookup] LGeneratedBy ON LGeneratedBy.LookupID = fs.GeneratedBy
 		
 		where sEvent.StatusID = e.StatusID 
-		and fs.[Date] > '12/31/2019' 
+		and fs.[Date] > @Cutoffdate
 
 
 		-------======set IsProjectedPaydown = 1 where paydowns having no comment======		

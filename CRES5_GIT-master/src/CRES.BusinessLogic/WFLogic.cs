@@ -1,10 +1,12 @@
-﻿using CRES.DAL.Repository;
+﻿using CRES.DAL.Helper;
+using CRES.DAL.Repository;
 using CRES.DataContract;
-using CRES.DataContract.WorkFlow;
 using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Linq;
+using CRES.DAL;
+using CRES.DataContract.WorkFlow;
 
 namespace CRES.BusinessLogic
 {
@@ -42,7 +44,7 @@ namespace CRES.BusinessLogic
             string _result = _wfRepository.InsertWorkflowDetailForTaskId(_wfDetailDataContract);
             return _result;
         }
-
+        
         public List<WorkflowListDataContract> GetAllWorkflow(Guid? userId, int? pageSize, int? pageIndex, out int? TotalCount)
         {
             List<WorkflowListDataContract> lstWorkflow = new List<WorkflowListDataContract>();
@@ -50,10 +52,10 @@ namespace CRES.BusinessLogic
             return lstWorkflow;
         }
 
-        public List<WorkflowListDataContract> GetAllWorkflowByFiltertype(Guid? userId, string filterType, int? pageSize, int? pageIndex, out int? TotalCount)
+        public List<WorkflowListDataContract> GetAllWorkflowByFiltertype(Guid? userId, string filterType, string CREDealID, int? pageSize, int? pageIndex, out int? TotalCount)
         {
             List<WorkflowListDataContract> lstWorkflow = new List<WorkflowListDataContract>();
-            lstWorkflow = _wfRepository.GetAllWorkflowByFiltertype(userId, filterType, pageSize, pageIndex, out TotalCount).ToList();
+            lstWorkflow = _wfRepository.GetAllWorkflowByFiltertype(userId, filterType, CREDealID, pageSize, pageIndex, out TotalCount).ToList();
             return lstWorkflow;
         }
 
@@ -75,7 +77,7 @@ namespace CRES.BusinessLogic
 
         public string InsertUpdateWFNotification(WFNotificationDetailDataContract _wfDetailDataContract, string UserID)
         {
-            return _wfRepository.InsertUpdateWFNotification(_wfDetailDataContract, UserID);
+            return _wfRepository.InsertUpdateWFNotification(_wfDetailDataContract,UserID);
         }
 
         public List<WFTemplateRecipientDataContract> GetTemplateRecipientEmailIDs(WFNotificationMasterDataContract DCNotificationMaster)
@@ -148,7 +150,8 @@ namespace CRES.BusinessLogic
         {
             return _wfRepository.UpdateDrawFeeInvoiceDetailStatus(UserID, drawFeeDC);
         }
-
+       
+        
 
         public List<DrawFeeInvoiceDataContract> GetAllPendingInvoice(string UserID)
         {
@@ -162,7 +165,7 @@ namespace CRES.BusinessLogic
 
         public DataTable GetAllFeeInvoice(Guid? userId, string CREDealID, int? PageSize, int? PageIndex, out int? TotalCount)
         {
-            return _wfRepository.GetAllFeeInvoice(userId, CREDealID, PageSize, PageIndex, out TotalCount);
+            return _wfRepository.GetAllFeeInvoice(userId, CREDealID, PageSize, PageIndex,out TotalCount);
         }
 
         public DrawFeeInvoiceDataContract CheckQBDCompanyCustomer(DrawFeeInvoiceDataContract drawFeeDC)
@@ -170,15 +173,15 @@ namespace CRES.BusinessLogic
             return _wfRepository.CheckQBDCompanyCustomer(drawFeeDC);
         }
 
-        public string AddUpdateQBDCustomer(string UserID, QBDCustomerInputDataContract drawFeeDC)
+        public string AddUpdateQBDCustomer(string UserID,QBDCustomerInputDataContract drawFeeDC)
         {
-            return _wfRepository.AddUpdateQBDCustomer(UserID, drawFeeDC);
+            return _wfRepository.AddUpdateQBDCustomer(UserID,drawFeeDC);
         }
 
         public QBDCompanyDataContract GetQuickBookCompany(string UserID, QBDCompanyDataContract qbdCompany)
         {
             return _wfRepository.GetQuickBookCompany(UserID, qbdCompany);
-            //
+        //
         }
         public DataTable GetAllStatesMaster(string UserID)
         {
@@ -202,7 +205,7 @@ namespace CRES.BusinessLogic
 
         public DrawFeeInvoiceDataContract GetDealPrimaryAM(int InvoiceDetailID, string UserID)
         {
-            return _wfRepository.GetDealPrimaryAM(InvoiceDetailID, UserID);
+            return _wfRepository.GetDealPrimaryAM(InvoiceDetailID,UserID);
         }
 
         public InvoiceConfigDataContract GetInvoiceConfigByInvoiceType(int InvoiceTypeID, string UserID)
@@ -225,7 +228,7 @@ namespace CRES.BusinessLogic
             return _wfRepository.GetAllBatchInvoice(UserID);
         }
 
-        public DrawFeeInvoiceDataContract GetInvoiceDetailByObjectTypeID(int ObjectTypeID, string @ObjectID, string UserID)
+        public DrawFeeInvoiceDataContract GetInvoiceDetailByObjectTypeID(int ObjectTypeID, string @ObjectID,string UserID)
         {
             return _wfRepository.GetInvoiceDetailByObjectTypeID(ObjectTypeID, @ObjectID, UserID);
         }
@@ -247,16 +250,16 @@ namespace CRES.BusinessLogic
         //CompleteWorkflowViaScript
         public string CompleteWorkflowViaScript(WFDetailDataContract _wfDetailDataContract, string UserID)
         {
-            string _result = _wfRepository.CompleteWorkflowViaScript(_wfDetailDataContract, UserID);
+            string _result = _wfRepository.CompleteWorkflowViaScript(_wfDetailDataContract,UserID);
             return _result;
         }
 
         public List<InvoiceSplitOutputDataContract> GetInvoiceSplit(InvoiceSplitParamDataContract _param, string UserID)
         {
-            return _wfRepository.GetInvoiceSplit(_param, UserID);
+            return _wfRepository.GetInvoiceSplit(_param,UserID);
         }
 
-        public InvoiceAPIDataContract ValidateInvoiceAPIParams(DrawFeeInvoiceDataContract _DrawFeeInvoice, string UserID)
+        public InvoiceAPIDataContract ValidateInvoiceAPIParams(DrawFeeInvoiceDataContract _DrawFeeInvoice,string UserID)
         {
             return _wfRepository.ValidateInvoiceAPIParams(_DrawFeeInvoice, UserID);
         }
@@ -282,9 +285,9 @@ namespace CRES.BusinessLogic
             return _wfRepository.GetAllInvoicedInvoice(UserID);
         }
 
-        public UserDataContract GetDealPrimaryAMByDealOrTaskType(string DealID, int TaskTypeID, string TaskID, string UserID)
+        public UserDataContract GetDealPrimaryAMByDealOrTaskType(string DealID, int TaskTypeID,string TaskID, string UserID)
         {
-            return _wfRepository.GetDealPrimaryAMByDealOrTaskType(DealID, TaskTypeID, TaskID, UserID);
+            return _wfRepository.GetDealPrimaryAMByDealOrTaskType(DealID,TaskTypeID,TaskID,UserID);
         }
 
         public WFNotificationDetailDataContract GetEmailsForCancelFinalNotifiction(string ObjectID, int ObjectTypeId, string UserID)
@@ -292,5 +295,87 @@ namespace CRES.BusinessLogic
             return _wfRepository.GetEmailsForCancelFinalNotifiction(ObjectID, ObjectTypeId, UserID);
         }
 
+
+        public DataTable GetParentClientMissingEmail()
+        {
+            return _wfRepository.GetParentClientMissingEmail();
+        }
+        public string SaveWFDashboard(List<WFDashboardDataContract> lstWorkflow, string UserID)
+        {
+            return _wfRepository.SaveWFDashboard(lstWorkflow, UserID);
+        }
+
+        public List<DrawFeeInvoiceDataContract> GetAllInvoiceQueuedForSandbox(string UserID)
+        {
+            return _wfRepository.GetAllInvoiceQueuedForSandbox(UserID);
+        }
+
+        public string UpdateDrawFeeInvoiceDetailStatusForSandbox(string UserID, DrawFeeInvoiceDataContract drawFeeDC)
+        {
+            return _wfRepository.UpdateDrawFeeInvoiceDetailStatusForSandbox(UserID, drawFeeDC);
+        }
+        public List<DrawFeeInvoiceDataContract> GetMissingQBDCustomerInSandbox()
+        {
+            return _wfRepository.GetMissingQBDCustomerInSandbox();
+        }
+
+        public string AddUpdateQBDCustomerForSandbox(string UserID, QBDCustomerInputDataContract drawFeeDC)
+        {
+            return _wfRepository.AddUpdateQBDCustomerForSandbox(UserID, drawFeeDC);
+        }
+
+        public DrawFeeInvoiceDataContract GetInvoiceDetailByInvoiceNo(string UserID, string InvoiceNo)
+        {
+            return _wfRepository.GetInvoiceDetailByInvoiceNo(UserID, InvoiceNo);
+        }
+
+        public int CheckWFConcurrency (string UserID, WFConcurrencyParams prms)
+        {
+            return _wfRepository.CheckWFConcurrency(UserID, prms);
+        }
+
+        public string UpdateSponsorDetailFromBackshop(string DealID,string UserID)
+        {
+            return _wfRepository.UpdateSponsorDetailFromBackshop(DealID, UserID);
+        }
+        public DrawFeeInvoiceDataContract GetFormatedSponsorDetailFromBackshop(string DealID, string UserID)
+        {
+            return _wfRepository.GetFormatedSponsorDetailFromBackshop(DealID, UserID);
+        }
+        public void saveInvoicesLanding(DataTable dtInvoices)
+        {
+            _wfRepository.saveInvoicesLanding(dtInvoices);
+        }
+
+        public List<DrawFeeInvoiceDataContract> GetAllInvoicesFromInvoiceLanding(string UserID)
+        {
+            return _wfRepository.GetAllInvoicesFromInvoiceLanding(UserID);
+        }
+
+        public List<InvoicesLandingDataContract> GetAllReadyToPayInvoicesFromLanding(string UserID)
+        {
+            return _wfRepository.GetAllReadyToPayInvoicesFromLanding(UserID);
+        }
+
+        public string UpdateInvoiceDetailLandingStatus(string UserID,int InvoiceDetailID, string status)
+        {
+            return _wfRepository.UpdateInvoiceDetailLandingStatus(UserID, InvoiceDetailID,status);
+        }
+
+        public string DeleteInvoiceDetailLanding(string UserID, int InvoiceDetailID)
+        {
+            return _wfRepository.DeleteInvoiceDetailLanding(UserID, InvoiceDetailID);
+        }
+
+
+        public void updateInvoicesLanding(DataTable dtInvoices)
+        {
+            _wfRepository.updateInvoicesLanding(dtInvoices);
+        }
+
+        public void UpdateInvoice(string UserID, DrawFeeInvoiceDataContract drawFeeDC)
+        {
+            _wfRepository.updateInvoice(UserID, drawFeeDC);
+        }
     }
 }

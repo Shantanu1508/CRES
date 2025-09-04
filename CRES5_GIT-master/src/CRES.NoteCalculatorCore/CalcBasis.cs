@@ -1,7 +1,9 @@
-﻿using CRES.DataContract;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using CRES.DataContract;
 
 namespace CRES.NoteCalculator
 {
@@ -51,8 +53,8 @@ namespace CRES.NoteCalculator
                         pv.NetPrincipalInflowOutflow = CalculateNetInflowOutflow(pvindex, noteDC.IncludeServicingPaymentOverrideinLevelYieldText, ListBalanceTab, ListPIKInterestTab);
                         pv.CashFlowusedforLevelYieldPreCap = CFForLevelYield(pvindex, true, noteDC.SelectedMaturityDate, noteDC.IncludeServicingPaymentOverrideinLevelYieldText,
                             ListBalanceTab, ListPIKInterestTab, ListCouponTab, ListFeesTab, InterestPaidonPaymentDate);
-                        //pv.CashFlowForAllInBasis = CFForLevelYield(pvindex, false, noteDC.SelectedMaturityDate, noteDC.IncludeServicingPaymentOverrideinLevelYieldText,
-                        //    ListBalanceTab, ListPIKInterestTab, ListCouponTab, ListFeesTab, InterestPaidonPaymentDate);
+                        pv.CashFlowForAllInBasis = CFForLevelYield(pvindex, false, noteDC.SelectedMaturityDate, noteDC.IncludeServicingPaymentOverrideinLevelYieldText,
+                            ListBalanceTab, ListPIKInterestTab, ListCouponTab, ListFeesTab, InterestPaidonPaymentDate);
                     }
 
 
@@ -256,7 +258,6 @@ namespace CRES.NoteCalculator
         private decimal cXIRR(List<Decimal> values, List<DateTime> dates, double guess = 0.1)
         {
             decimal sumpv = 0, rate = 0, raten1 = 0, raten2 = 0, raten1cxnpv = 0, raten2cxnpv = 0;
-#pragma warning disable CS0168 // The variable 'ex' is declared but never used
             try
             {
 
@@ -291,7 +292,6 @@ namespace CRES.NoteCalculator
                     rate = -1;
                 }
             }
-#pragma warning restore CS0168 // The variable 'ex' is declared but never used
 
 
             return rate;

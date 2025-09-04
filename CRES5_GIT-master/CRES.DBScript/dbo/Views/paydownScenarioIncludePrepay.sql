@@ -1,4 +1,4 @@
-﻿Create View [dbo].[paydownScenarioIncludePrepay]
+﻿CREATE View [dbo].[paydownScenarioIncludePrepay]
 as
 Select 
 T.Noteid
@@ -24,18 +24,21 @@ Left Join paydownScenario PS on T.NoteID = PS.CRENoteID and T.Date = PS.PaymentD
 Outer Apply (Select Amount Libor from TransactionEntry T1
 			Where T.NoteID =  T1.NoteID and T.date = T1.date
 			and Type = 'LIBORPercentage' 
-			and AnalysisID = 'C10F3372-0FC2-4861-A9F5-148F1F80804F')X
+			and AnalysisID = 'C10F3372-0FC2-4861-A9F5-148F1F80804F'
+			and T.AccountTypeID = 1)X
 
 Outer Apply (Select Amount Spread from TransactionEntry T1
 			Where T.NoteID =  T1.NoteID and T.date = T1.date
 			and Type = 'SpreadPercentage' 
-			and AnalysisID = 'C10F3372-0FC2-4861-A9F5-148F1F80804F')y
+			and AnalysisID = 'C10F3372-0FC2-4861-A9F5-148F1F80804F'
+			and T.AccountTypeID = 1)y
 
 where T.Type = 'interestPaid'
 and T.AnalysisID = 'C10F3372-0FC2-4861-A9F5-148F1F80804F'
 and PS.Repaymentdate <>  Dateadd (Month, -1,NextAccrualDate)
 and PS.Amount < 0
 and Maturity_DateBI > GETDATE()
+and T.AccountTypeID = 1
 Group By
 T.Noteid
 ,T.Date

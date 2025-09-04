@@ -30,3 +30,4 @@ and Analysisid = 'C10F3372-0FC2-4861-A9F5-148F1F80804F'
 and Periodenddate =  eomonth (Periodenddate,0)
 --and crenoteid = '8789'
 --and crenoteid = '7734'
+  

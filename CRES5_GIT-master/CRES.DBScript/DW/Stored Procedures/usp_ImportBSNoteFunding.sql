@@ -47,7 +47,7 @@ truncate table [DW].[L_BSNoteFundingBI]
 --           ,[AuditUpdateUserId]
 --           ,[AuditUpdateDate]
 --		   ,ShardName)
---EXEC sp_execute_remote @data_source_name  = N'RemoteReferenceBackshopProduction', 
+--EXEC sp_execute_remote @data_source_name  = N'RemoteReferenceDataFF', 
 --@stmt = @query
 
 ------------------------------------------------------------

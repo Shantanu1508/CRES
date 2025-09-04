@@ -1,7 +1,8 @@
-import { Note } from "./note.model";
+import { Note, TagMasterXIRR } from "./note.model";
 
 export class deals {
-  public DealID : string;
+  public DealID: string;
+  public DealAccountID: string;
   public DealName!: string;
   public DealType!: number;
   public DealTypeText!: string;
@@ -9,8 +10,15 @@ export class deals {
   public LoanProgramText!: string;
   public LoanPurpose!: number;
   public LoanPurposeText!: string;
+
   public Statusid!: number;
   public StatusText!: string;
+  public ScenarioIdPrepay!: string;
+  public SendEmailAfterCalc!: string;
+  
+  public LiabilitySource!: number;
+  public LiabilitySourceText!: string;  
+
   public AppReceived!: Date;
   public EstClosingDate!: Date;
   public BorrowerRequest!: number;
@@ -51,10 +59,17 @@ export class deals {
   public CopyDealName!: string;
   public AnalysisID!: string;
   public EnableAutoSpread!: boolean;
+
   public ServicerDropDate!: number;
   public ServicereDayAjustement!: number;
   public FirstPaymentDate!: Date;
+
+  public currentUserName!: string;
+  public currentUserID!: string;
+
+  public isLiabilityTabCLicked!: boolean;
   public ListHoliday!: any;
+  public CalcEngineType: number;
   PayruleDealFundingList!: Array<DealFunding>;
   DeletedDealFundingList!: Array<DealFunding>;
   PayruleTargetNoteFundingScheduleList!: Array<Notefunding>;
@@ -69,8 +84,14 @@ export class deals {
   public maxMaturityDate!: Date;
   ShowUseRuleN!: boolean;
   AutoSpreadRuleList!: Array<AutoSpreadRule>;
+  ServicingWatchlistLegal!: Array<ServicingWatchlistDataContract>;
+  ServicingWatchlistAccounting!: Array<ServicingWatchlistDataContract>;
+  ServicingPotentialImpairment!: Array<ServicingWatchlistDataContract>;
+  ListDealLiability!: Array<DealLiabilityDataContract>;
+  ListDealLiabilityDupliateCheck!: Array<DealLiabilityDataContract>;
+  ListLiabilityFundingSchedule!: Array<LiabilityFundingSchedule>;
   public envname!: string;
-  amort : Amort;
+  amort: Amort;
   PrepaymentPremium: PrepaymentPremium;
   Flag_DealFundingSave: boolean = false;
   Flag_NoteSaveFromDealDetail: boolean = false;
@@ -85,12 +106,13 @@ export class deals {
   public AdditionalEquity!: number;
   public EnableAutospreadRepayments!: boolean;
   public AutoUpdateFromUnderwriting!: boolean;
+  public EnableAutospreadRepayments_db: boolean;
   public ExpectedFullRepaymentDate!: Date;
   public RepaymentAutoSpreadMethodID!: number;
   public RepaymentAutoSpreadMethodText!: string;
   public RepaymentStartDate!: Date;
   public EarliestPossibleRepaymentDate!: Date;
-  public Blockoutperiod !: number|null;
+  public Blockoutperiod !: number | null;
   public PossibleRepaymentdayofthemonth!: number;
   public Repaymentallocationfrequency!: number;
   public AutoPrepayEffectiveDate!: Date;
@@ -98,11 +120,13 @@ export class deals {
   public ListProjectedPayoff!: Array<ProjectedPayoffDate>;
   public ListAutoRepaymentBalances!: Array<AutoRepaymentBalances>;
   public ListNoteRepaymentBalances!: Array<AutoRepaymentNoteBalances>;
+  public ListLiabilityNoteAssetMapping!: Array<LiabilityNoteAssetMapping>;
   public KnownFullPayoffDate!: Date;
   public AllowFundingDevDataFlag!: boolean;
   public AllowFFSaveJsonIntoBlob!: boolean;
   public ListFeeInvoice: any = [];
   public EnableAutospreadUseRuleN!: boolean;
+  public LastWireConfirmDate_db: Date;
   public ApplyNoteLevelPaydowns!: boolean;
   public DealLevelMaturity!: boolean;
   public MaturityList: any = [];
@@ -111,22 +135,64 @@ export class deals {
   public IsREODeal!: boolean;
   public BalanceAware: boolean;
   public RepayExpectedMaturityDate!: Date;
+  public PropertyTypeID: number;
+  public LoanStatusID: number;
   public max_ExtensionMat: Date;
   public PrePayDate: Date;
   public ICMFullyFundedEquity: number;
   public EquityatClosing: number;
   public EnableM61Calculator: boolean;
-  constructor(DealID : string) {
+  public Listnoteid: any = [];
+  public LastAccountingclosedate: Date;
+
+  public InternalRefi!: number;
+  public PortfolioLoan!: number;
+  public AssigningLoanToTakeoutLender!: number;
+  public NettingofReservesEscrows!: number;
+
+  public InternalRefiText!: string;
+  public PortfolioLoanText!: string;
+  public AssigningLoanToTakeoutLenderText!: string;
+  public NettingofReservesEscrowsText!: string;
+
+
+  public WatchlistStatusID!: number;
+  public WatchlistStatusText!: string;
+  public IsServicingWatchlisttabClicked!: boolean;
+  public ServicingPotentialImpairmentList: any = [];
+  public DeleteServicingPotentialImpairment: any = [];
+  public ListSelectedXIRRTags: Array<TagMasterXIRR>;
+  XIRRCalculationRequests!: XIRRCalculationRequests;
+  public XIRRValue!: number
+  AutoDistributeWriteoffList!: Array<AutoDistributeWriteoff>;
+  public XIRROverride: any = [];
+  public EnableAutoDistributePrincipalWriteoff!: boolean;
+
+  ListRevolverDealFunding!: Array<DealFunding>;
+  ListRevolverNoteFunding!: Array<Notefunding>;
+  DealRelationshipList!: Array<DealRelationship>;
+
+  public dtPrepaymentGroup: any = [];
+  public dtPrepaymentNote: any = [];
+  public dtPrepaymentNoteAlloc: any = [];
+  public dtPayoffStatementFees: any = [];
+
+  PrepaymentGroupSize: number;
+  PrepaymentAllocationMethod: number;
+  public Bookmark: string;
+  public MaturityAdjMonthsOverride: number;
+  public ExcludeDealFromLiability!: boolean;
+  public isPipeline: string;
+  constructor(DealID: string) {
     this.DealID = DealID;
     this.amort = new Amort();
     this.PrepaymentPremium = new PrepaymentPremium();
-
   }
 }
 
 export class DealFunding {
   public DealFundingID!: string;
-  public DealID : string;
+  public DealID: string;
   public Date!: Date;
   public Amount!: number;
   public Comment!: string;
@@ -147,7 +213,10 @@ export class DealFunding {
   public DrawFeeFile!: string;
   public IsRowEdited!: boolean;
   public IsShowDrawStatus!: boolean;
-  constructor(DealID : string) {
+  public NonCommitmentAdj: boolean;
+  public AdjustmentType: number;
+  public _isSoftHoliday!: boolean;
+  constructor(DealID: string) {
     this.DealID = DealID;
   }
 }
@@ -162,7 +231,12 @@ export class Notefunding {
   public DealFundingRowno!: number;
   public DealFundingID!: string;
   public Applied!: boolean;
+  public NonCommitmentAdj!: boolean;
+  public AdjustmentType: number;
   public Comments!: string;
+  public GeneratedByText: string;
+  public GeneratedByUserID: string;
+  public GeneratedBy: number;
 }
 
 export class NoteSequence {
@@ -171,10 +245,14 @@ export class NoteSequence {
   public SequenceType!: string;
   public SequenceTypeText!: string;
   public Value!: number;
-  public Ratio : number = 0;
+  public Ratio: number = 0;
 }
 
+export class XIRRCalculationRequests {
+  public XIRRConfigID!: number;
+  public ObjectID!: string;
 
+}
 export class NoteDetailFunding {
   public NoteID!: string;
   public CRENoteID!: string;
@@ -215,6 +293,20 @@ export class AutoSpreadRule {
   DistributionMethodText!: string;
   public RequiredEquity!: number;
   public AdditionalEquity!: number;
+  public _isSoftHolidayStart!: boolean;
+  public _isSoftHolidayEnd!: boolean;
+}
+
+export class ServicingWatchlistDataContract {
+  public DealID!: string;
+  public StartDate!: Date;
+  public EndDate!: Date;
+  public TypeID!: number;
+  public TypeText!: string;
+  public Comment!: string;
+  public EffectiveDate!: Date;
+  public Amount!: number;
+  public IsDeleted!: boolean;
 
 }
 
@@ -331,6 +423,7 @@ export class DealAdjustedTotalCommitmentTab {
   public TotalRequiredEquity!: number;
   public TotalAdditionalEquity!: number;
   public TotalEquityatClosing: number;
+  public ExcludeFromCommitmentCalculation: number;
 }
 
 
@@ -358,7 +451,7 @@ export class AutoRepaymentBalances {
 export class AutoRepaymentNoteBalances {
   public NoteID!: string;
   public Date!: Date;
-  public Amount!: Date;
+  public Amount: number;
   public Type!: string;
 }
 
@@ -369,14 +462,15 @@ export class PrepaymentPremium {
   public DealID: string;
   public PrePayDate: Date;
   public EffectiveDate: Date;
-  public CalcThro: Date;
+  public CalcThru: Date;
   public PrepaymentMethod: number;
   public BaseAmount: number;
   public SpreadCalcMethod: number;
   public GreaterOfSMOrBaseAmtTimeSpread: boolean;
-  public HasNoteLevelSMSchedule: boolean; 
+  public HasNoteLevelSMSchedule: boolean;
   public Includefeesincredits: boolean;
   public RemainingSpread: number;
+  public MinimumMultipleDue: number;
   public OpenPaymentDate: Date;
   public PrepayDate: Date;
   public PrePaymentRuleType: number;
@@ -426,4 +520,105 @@ export class PrepayProjection {
   public OpenPrepaymentDate: Date
   public TotalPayoff: number
 
+}
+export class DealLiabilityDataContract {
+  public LiabilityNoteAutoID: string;
+  public LiabilityNoteAccountID: string;
+  public LiabilityNoteID: string;
+  public LiabilityNoteName: string;
+  public DealAccountID: string;
+  public AssetID: string;
+  public AssetNotes: string;
+  public PledgeDate: Date;
+  public MaturityDate: Date;
+  public PaydownAdvanceRate: number;
+  public FundingAdvanceRate: number;
+  public CurrentAdvanceRate: number;
+  public TargetAdvanceRate: number;
+  public CurrentLiabilityNoteBalance: number;
+  public UndrawnCapacity: number;
+  public modulename: string;
+  public IsDeleted!: boolean;
+}
+
+export class LiabilityNoteAssetMapping {
+  public LiabilityNoteId: string;
+  public DealAccountId: string;
+  public LiabilityNoteAccountId: string;
+  public AssetAccountId: string;
+}
+
+export class LiabilityFundingSchedule {
+  public LiabilityNoteID: string;
+  public LiabilityNoteAccountID: string;
+  public LiabilityNoteName: string;
+  public TransactionDate!: Date;
+  public TransactionAmount!: number;
+  public WorkflowStatus!: number;
+  public WorkflowStatusText: string;
+  public GeneratedBy!: number;
+  public GeneratedByText: string;
+  public Status!: number;
+  public StatusText: string;
+  public Comments: string;
+  public AssetAccountID: string;
+  public AssetName: string;
+  public AssetTransactionDate!: Date;
+  public AssetTransactionAmount!: number;
+  public TransactionAdvanceRate!: number;
+  public CumulativeAdvanceRate !: number;
+  public AssetTransactionComment: string;
+  public RowNo!: number;
+  public CreatedBy: string;
+  public CreatedDate: Date;
+  public UpdatedBy: string;
+  public UpdatedDate: Date;
+
+}
+
+export class AutoDistributeWriteoff {
+  public UserID!: string;
+  public DealID!: string;
+  public NoteID!: string;
+  public CRENoteID!: string;
+  public NoteName!: string;
+  public LienPosition!: string;
+  public PriorityOverride!: number;
+  public Priority!: number;
+  public EstBls!: number;
+}
+
+export class ServicingPotentialWriteoffList {
+
+  public WLDealPotentialImpairmentID!: string;
+  public DealID!: string;
+  public Date!: Date;
+  public Value!: number;
+  public AdjustmentType!: number;
+  public AdjustmentTypeText!: string;
+  public Comment!: string;
+  public RowNo!: number;
+  public Applied!: boolean;
+  public NoteID!: string;
+  public CRENoteID!: string;
+  public Notename!: string;
+  public UserID!: string;
+  public IsDeleted!: number;
+}
+
+
+export class PrincipalWriteoff {
+  AutoDistributeWriteoffList!: Array<AutoDistributeWriteoff>;
+  ServicingPotentialDealWriteoffList!: Array<ServicingPotentialWriteoffList>;
+  ServicingPotentialNoteWriteoffList!: Array<ServicingPotentialWriteoffList>;
+}
+
+export class DealRelationship {
+  public DealID!: string;
+  public RelationshipID!: number;
+  public LinkedDealID!: string;
+}
+
+export class ReserveAccountSync {
+  public DealID!: string;
 }

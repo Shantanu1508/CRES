@@ -4,15 +4,17 @@ using CRES.Utilities;
 using System;
 using System.Collections.Generic;
 using System.Data;
+using System.Linq;
 
 using System.Data.SqlClient;
+using Microsoft.AspNetCore.Http.Internal;
 
 namespace CRES.DAL.Repository
 {
     public class CalculationManagerRespository : ICalculationManagerRespository
     {
 
-        public List<CalculationManagerDataContract> RefreshCalculationStatus(CalculationManagerDataContract DCcalc, Guid? UserID, string Enablem61Calculation)
+        public List<CalculationManagerDataContract> RefreshCalculationStatus(CalculationManagerDataContract DCcalc, Guid? UserID)
         {
             DataTable dt = new DataTable();
             List<CalculationManagerDataContract> noteslist = new List<CalculationManagerDataContract>();
@@ -24,16 +26,22 @@ namespace CRES.DAL.Repository
             SqlParameter[] sqlparam = new SqlParameter[] { p1, p2, p3 };
             dt = hp.ExecDataTable("dbo.usp_RefreshCalculationRequests", sqlparam);
 
-            // var lstnotes = dbContext.usp_RefreshCalculationRequests(DCcalc.PortfolioMasterGuid, DCcalc.AnalysisID);
-
             foreach (DataRow dr in dt.Rows)
             {
                 CalculationManagerDataContract md = new CalculationManagerDataContract();
                 md.NoteId = Convert.ToString(dr["NoteId"]);
                 md.NoteName = Convert.ToString(dr["Name"]);
                 md.RequestTime = CommonHelper.ToDateTime(dr["RequestTime"]);
+
                 md.StatusID = CommonHelper.ToInt32(dr["StatusID"]);
                 md.StatusText = Convert.ToString(dr["StatusText"]);
+
+                //900	40	Pause_Dependents
+                if (md.StatusText == "Pause_Dependents")
+                {
+                    md.StatusID = 899;
+                    md.StatusText = "Pause";
+                }
                 md.UserName = Convert.ToString(dr["UserName"]);
                 md.ApplicationID = CommonHelper.ToInt32(dr["ApplicationID"]);
                 md.ApplicationText = Convert.ToString(dr["ApplicationText"]);
@@ -49,7 +57,8 @@ namespace CRES.DAL.Repository
                 {
                     md.CalculationRequestID = new Guid(Convert.ToString(dr["CalculationRequestID"]));
                 }
-                if (Enablem61Calculation == "true")
+                md.CalcEngineType = CommonHelper.ToInt32(dr["CalcEngineType"]);
+                if (md.CalcEngineType == 798)
                 {
                     md.FileName = Convert.ToString(dr["FileName_V1"]);
 
@@ -58,11 +67,13 @@ namespace CRES.DAL.Repository
                 {
                     md.FileName = Convert.ToString(dr["FileName"]);
                 }
-
+                md.CalcEngineTypeText = Convert.ToString(dr["CalcEngineTypeText"]);
                 md.EnableM61Calculations = CommonHelper.ToInt32(dr["EnableM61Calculations"]);
                 md.EnableM61CalculationsText = Convert.ToString(dr["EnableM61CalculationsText"]);
                 md.PayOffDate = CommonHelper.ToDateTime(dr["PayOffDate"]);
                 md.IsPaidOffDeal = CommonHelper.ToBoolean(dr["IsPaidOffDeal"]);
+                md.AccountingCloseDate = CommonHelper.ToDateTime(dr["AccountingCloseDate"]);
+
                 noteslist.Add(md);
             }
 
@@ -70,10 +81,9 @@ namespace CRES.DAL.Repository
             return noteslist;
         }
 
-        public bool QueueNotesForCalculation(List<CalculationManagerDataContract> noteslist, string username)
+        public bool QueueNotesForCalculation(List<CalculationManagerDataContract> noteslist, string username,string RequestFrom="")
         {
             bool status;
-#pragma warning disable CS0168 // The variable 'ex' is declared but never used
             try
             {
                 Helper.Helper hp = new Helper.Helper();
@@ -97,7 +107,7 @@ namespace CRES.DAL.Repository
                 }
                 if (dNote.Rows.Count > 0)
                 {
-                    hp.QueueLoansHelper("dbo.usp_QueueNotesForCalculation", dNote, username, "CalculationRequest", noteslist[0].BatchType, noteslist[0].PortfolioMasterGuid.ToString());
+                    hp.QueueLoansHelper("dbo.usp_QueueNotesForCalculation", dNote, username, "CalculationRequest", noteslist[0].BatchType, noteslist[0].PortfolioMasterGuid.ToString(), RequestFrom);
                 }
 
                 status = true;
@@ -105,11 +115,8 @@ namespace CRES.DAL.Repository
             catch (Exception ex)
             {
                 throw;
-#pragma warning disable CS0162 // Unreachable code detected
                 status = false;
-#pragma warning restore CS0162 // Unreachable code detected
             }
-#pragma warning restore CS0168 // The variable 'ex' is declared but never used
 
             return status;
         }
@@ -118,7 +125,6 @@ namespace CRES.DAL.Repository
         {
             List<CalculationManagerDataContract> noteslist = new List<CalculationManagerDataContract>();
 
-#pragma warning disable CS0168 // The variable 'ex' is declared but never used
             try
             {
                 DataTable dt = new DataTable();
@@ -147,7 +153,6 @@ namespace CRES.DAL.Repository
 
                 throw;
             }
-#pragma warning restore CS0168 // The variable 'ex' is declared but never used
 
 
 
@@ -159,7 +164,6 @@ namespace CRES.DAL.Repository
             List<CalculationManagerDataContract> noteslist = new List<CalculationManagerDataContract>();
             DataTable dt = new DataTable();
 
-#pragma warning disable CS0168 // The variable 'ex' is declared but never used
             try
             {
                 Helper.Helper hp = new Helper.Helper();
@@ -194,7 +198,6 @@ namespace CRES.DAL.Repository
             catch (Exception ex)
             {
             }
-#pragma warning restore CS0168 // The variable 'ex' is declared but never used
             return noteslist;
         }
 
@@ -251,6 +254,15 @@ namespace CRES.DAL.Repository
         }
         ///
 
+        public void UpdateNoteCalculatedWeightedSpread(string NoteID, decimal? WeightedSpread)
+        {
+            Helper.Helper hp = new Helper.Helper();
+            SqlParameter p1 = new SqlParameter { ParameterName = "@NoteID", Value = NoteID };
+            SqlParameter p2 = new SqlParameter { ParameterName = "@WeightedSpread", Value = WeightedSpread };
+
+            SqlParameter[] sqlparam = new SqlParameter[] { p1, p2 };
+            hp.ExecNonquery("CRE.usp_UpdateNoteCalculatedWeightedSpread", sqlparam);
+        }
         public void UpdateCalculationStatus(string noteid, string statustext, Guid? AnalysisID)
 
         {
@@ -312,7 +324,6 @@ namespace CRES.DAL.Repository
             DataTable dt = new DataTable();
             int result = 0;
 
-#pragma warning disable CS0168 // The variable 'ex' is declared but never used
             try
             {
                 Helper.Helper hp = new Helper.Helper();
@@ -327,7 +338,6 @@ namespace CRES.DAL.Repository
             catch (Exception ex)
             {
             }
-#pragma warning restore CS0168 // The variable 'ex' is declared but never used
 
             return result;
 
@@ -342,6 +352,31 @@ namespace CRES.DAL.Repository
             return 1;
         }
 
+        public void QueueNotesForCalculationForDuplicateTransaction()
+        {
+            try
+            {
+                Helper.Helper hp = new Helper.Helper();
+                hp.ExecDataTable("dbo.usp_QueueNotesForCalculationForDuplicateTransaction");
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
+
+        public void QueueNotesForCalculationIfDWoutofSync()
+        {
+            try
+            {
+                Helper.Helper hp = new Helper.Helper();
+                hp.ExecDataTable("dbo.usp_QueueNotesForCalculationIfDWoutofSync");
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
         public List<RequestFailureDataContract> GetCalculationRequestFailureNotes(int moduleId)
         {
             List<RequestFailureDataContract> noteslist = new List<RequestFailureDataContract>();
@@ -386,7 +421,6 @@ namespace CRES.DAL.Repository
             int result = 0;
             // ObjectParameter totalCount = new ObjectParameter("TotalCount", typeof(int));
 
-#pragma warning disable CS0168 // The variable 'ex' is declared but never used
             try
             {
                 Helper.Helper hp = new Helper.Helper();
@@ -400,7 +434,6 @@ namespace CRES.DAL.Repository
             {
 
             }
-#pragma warning restore CS0168 // The variable 'ex' is declared but never used
 
 
         }
@@ -417,7 +450,6 @@ namespace CRES.DAL.Repository
             Helper.Helper hp = new Helper.Helper();
             hp.ExecuteScalar("dbo.usp_SchedulerJobNightly");
         }
-
 
         public List<BatchCalculationMasterDataContract> GetBatchCalculationLog(CalculationManagerDataContract DCcalc)
         {
@@ -451,6 +483,7 @@ namespace CRES.DAL.Repository
                 batchCalc.Total = CommonHelper.ToInt32(dr["Total"]);
                 batchCalc.TotalCompleted = CommonHelper.ToInt32(dr["TotalCompleted"]);
                 batchCalc.TotalFailed = CommonHelper.ToInt32(dr["TotalFailed"]);
+                batchCalc.TotalCanceled = CommonHelper.ToInt32(dr["TotalCanceled"]);                
                 batchCalc.BatchType = Convert.ToString(dr["BatchType"]);
                 if (Convert.ToString(dr["UserID"]) != "")
                 {
@@ -589,6 +622,25 @@ namespace CRES.DAL.Repository
             return status;
         }
 
+        public void UpdateCalcStatusBYAnalysisIDAndType(string AnalysisID, string Type, Guid? UserID)
+        {
+
+            try
+            {
+                Helper.Helper hp = new Helper.Helper();
+                SqlParameter p1 = new SqlParameter { ParameterName = "@AnalysisID", Value = AnalysisID };
+                SqlParameter p2 = new SqlParameter { ParameterName = "@Type", Value = Type };
+                SqlParameter p3 = new SqlParameter { ParameterName = "@CreatedBy", Value = UserID };
+                SqlParameter[] sqlparam = new SqlParameter[] { p1, p2, p3 };
+                hp.ExecDataTable("dbo.usp_UpdateCalcStatusBYAnalysisIDAndType", sqlparam);
+
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
+
         public DataTable CancelBatchRequestByAnalysisID(string AnalysisID)
         {
             try
@@ -610,14 +662,27 @@ namespace CRES.DAL.Repository
             //return status;
         }
 
+        public void UpdateBatchDetailWhenCancel(string AnalysisID)
+        {            
+            try
+            {
+                Helper.Helper hp = new Helper.Helper();
+                SqlParameter p1 = new SqlParameter { ParameterName = "@AnalysisID", Value = AnalysisID };
+                SqlParameter[] sqlparam = new SqlParameter[] { p1, };
+                hp.ExecuteScalar("dbo.usp_UpdateBatchDetailWhenCancel", sqlparam);
+                 
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }           
+        }
+
         public DataTable GetCurrentoffsetbyuserID(Guid? UserID)
         {
             DataTable dt = new DataTable();
-#pragma warning disable CS0168 // The variable 'result' is declared but never used
             string result;
-#pragma warning restore CS0168 // The variable 'result' is declared but never used
 
-#pragma warning disable CS0168 // The variable 'ex' is declared but never used
             try
             {
                 Helper.Helper hp = new Helper.Helper();
@@ -628,12 +693,9 @@ namespace CRES.DAL.Repository
             catch (Exception ex)
             {
             }
-#pragma warning restore CS0168 // The variable 'ex' is declared but never used
 
             return dt;
         }
-
-
 
         public List<CalculationManagerDataContract> GetAllFailedCalculationNote()
         {
@@ -674,7 +736,6 @@ namespace CRES.DAL.Repository
         public DataTable GetTransactionCategory(Guid? UserID)
         {
             DataTable dt = new DataTable();
-#pragma warning disable CS0168 // The variable 'ex' is declared but never used
             try
             {
                 Helper.Helper hp = new Helper.Helper();
@@ -686,7 +747,6 @@ namespace CRES.DAL.Repository
             {
 
             }
-#pragma warning restore CS0168 // The variable 'ex' is declared but never used
 
             return dt;
         }
@@ -694,7 +754,6 @@ namespace CRES.DAL.Repository
         public DataTable GetTransactionGroup(Guid? UserID)
         {
             DataTable dt = new DataTable();
-#pragma warning disable CS0168 // The variable 'ex' is declared but never used
             try
             {
                 Helper.Helper hp = new Helper.Helper();
@@ -706,14 +765,11 @@ namespace CRES.DAL.Repository
             {
 
             }
-#pragma warning restore CS0168 // The variable 'ex' is declared but never used
 
             return dt;
         }
-
         public void InsertUpdatedNoteWiseEndingBalance(Guid NoteID, Guid? UserID)
         {
-#pragma warning disable CS0168 // The variable 'ex' is declared but never used
             try
             {
                 Helper.Helper hp = new Helper.Helper();
@@ -726,7 +782,21 @@ namespace CRES.DAL.Repository
             {
 
             }
-#pragma warning restore CS0168 // The variable 'ex' is declared but never used
+        }
+        public void CalcNetCapitalInvestedbyNoteId(string NoteID)
+        {
+            try
+            {
+                Helper.Helper hp = new Helper.Helper();
+                SqlParameter p1 = new SqlParameter { ParameterName = "@NoteID", Value = NoteID };
+
+                SqlParameter[] sqlparam = new SqlParameter[] { p1 };
+                hp.ExecNonquery("dbo.usp_CalcNetCapitalInvestedbyNoteId", sqlparam);
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
         }
 
         public void InsertExceptionsOfCalculatorComponent(Guid? NoteId, Guid? AnalysisID, string UserID)
@@ -746,20 +816,5 @@ namespace CRES.DAL.Repository
             }
         }
 
-        public void InsertNoteCommitmentDataFromCaluclator(List<NoteCommitmentEquityDataContract> calcNoteCommitmentdata)
-        {
-#pragma warning disable CS0168 // The variable 'ex' is declared but never used
-            try
-            {
-
-
-            }
-            catch (Exception ex)
-            {
-
-                throw;
-            }
-#pragma warning restore CS0168 // The variable 'ex' is declared but never used
-        }
     }
 }

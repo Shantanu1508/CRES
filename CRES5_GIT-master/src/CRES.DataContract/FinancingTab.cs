@@ -1,4 +1,8 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
 
 namespace CRES.DataContract
 {
@@ -21,7 +25,7 @@ namespace CRES.DataContract
         public Decimal? TotalLeveredCashFlows { get; set; }
 
         public Decimal? Yield { get; set; }
-
+        
 
 
     }

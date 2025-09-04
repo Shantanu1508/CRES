@@ -42,7 +42,7 @@
 
               <wj-flex-grid id="flex" #flex [itemsSource]="data" [allowResizing]="'Both'" auto-generate-columns="true" allow-sorting="true"
                             showFilterIcons="true" [headersVisibility]="1" [allowAddNew]="true" allow-add class="gridSize"
-                            style="height:calc(99.8vh - 283px);"
+                            style="height:calc(99.8vh - 283px);" keyActionTab="Cycle"
                             (beginningEdit)="beginningEditEmailLogin($event)"
                             (cellEditEnded)="cellEditEndedEmailLogin($event)"
                             (pasted)="pastedEmailLogin($event)">
@@ -50,17 +50,19 @@
                 <wj-flex-grid-column [header]="'FirstName'" [binding]="'FirstName'" [width]="'*'"></wj-flex-grid-column>
                 <wj-flex-grid-column [header]="'LastName'" [binding]="'LastName'" [width]="'*'"></wj-flex-grid-column>
                 <wj-flex-grid-column [header]="'Email'" [binding]="'Email'" [width]="'*'"></wj-flex-grid-column>
-                <wj-flex-grid-column [header]="'PrimaryContact'" [binding]="'ContactNo1'" [width]="'*'"></wj-flex-grid-column>
+                <wj-flex-grid-column [header]="'Primary Contact'" [binding]="'ContactNo1'" [width]="'*'"></wj-flex-grid-column>
                 <wj-flex-grid-column [header]="'Login'" [binding]="'Login'" [width]="'*'"></wj-flex-grid-column>
                 <wj-flex-grid-column [header]="'Role'" [binding]="'RoleName'" [width]="'*'"></wj-flex-grid-column>
                 <wj-flex-grid-column [header]="'Status'" [binding]="'Status'" [width]="'*'"></wj-flex-grid-column>
                 <wj-flex-grid-column [header]="'Time Zone'" [binding]="'TimeZone'" [width]="200"></wj-flex-grid-column>
-                <wj-flex-grid-column [name]="'buttons'" [isReadOnly]="true" align="center" [width]="'*'">
+
+                <wj-flex-grid-column [header]="'Reset Password'" [name]="'buttons'" [isReadOnly]="true" align="center" [width]="'*'">
                   <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
                     <a style="text-decoration: underline;" (click)="showDeleteDialog(cell.row.index)">Reset Password</a>
                   </ng-template>
                 </wj-flex-grid-column>
-                <wj-flex-grid-column [name]="'buttons'" [isReadOnly]="true" align="center" [width]="'*'">
+
+                <wj-flex-grid-column [header]="'Force Logout'" [name]="'buttons'" [isReadOnly]="true" align="center" [width]="'*'">
                   <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
                     <a style="text-decoration: underline;" (click)="showForceLogoutDialog(cell.row.index)">Force Logout</a>
                   </ng-template>
@@ -146,7 +148,7 @@
 
             <div class="col-sm-12 customgridpadding">
 
-              <wj-flex-grid #flexpermission [itemsSource]="moduleTabMasterList" [allowAddNew]="false" [allowResizing]="'Both'" class="gridSize" style="height:calc(99.8vh - 288px);">
+              <wj-flex-grid #flexpermission [itemsSource]="moduleTabMasterList" [allowAddNew]="false" [allowResizing]="'Both'" class="gridSize" keyActionTab="Cycle" style="height:calc(99.8vh - 288px);">
                 <wj-flex-grid-filter [filterColumns]="['ModuleTabMasterID','ModuleTabName','DisplayName','ModuleType','IsEdit','IsView','IsDelete']"></wj-flex-grid-filter>
                 <!--<wj-flex-grid-column [header]="'Module Tab MasterID'" [binding]="'ModuleTabMasterID'" show-filter="true" [isReadOnly]="true"></wj-flex-grid-column>-->
                 <!--<wj-flex-grid-column [header]="'Module Tab Name'" [binding]="'ModuleTabName'" [width]="'*'" show-filter="true" [isReadOnly]="true"></wj-flex-grid-column>-->
@@ -221,6 +223,16 @@
                     </td>
                   </tr>
                   <tr>
+                    <td> Allow Liability Blob Download</td>
+                    <td>
+                      <label class="switch">
+                        <input #chkLiabBlobDownld type="checkbox" id="chkLiabBlobDownld" [checked]="_isLiabBlobDownldChecked" (change)="UpdateAllowBasicLogin(chkLiabBlobDownld.checked,'AllowLiabBlobDownld')" />
+                        <span class="slider round"></span>
+                      </label>
+                    </td>
+                  </tr>
+
+                  <tr>
                     <td>Allow Manage Calc Booster</td>
                     <td>
                       <label class="switch">
@@ -281,8 +293,8 @@
                             [headersVisibility]="1"
                             [allowAddNew]="true"
                             allow-add class="gridSize"
-                            style="height:calc(99.8vh - 283px);">
-
+                            style="height:calc(99.8vh - 283px);"
+                            keyActionTab="Cycle">
                 <wj-flex-grid-filter #filter></wj-flex-grid-filter>
                 <wj-flex-grid-column [header]="'Name'" [binding]="'FirstName'" [isReadOnly]="true" [width]="170"></wj-flex-grid-column>
                 <wj-flex-grid-column [header]="'Login'" [binding]="'Login'" [isReadOnly]="true" [width]="135"></wj-flex-grid-column>
@@ -320,8 +332,9 @@
 
               <button type="submit" class="custombutton" tabindex="1" (click)="AddUpdateSchedulerConfig()">Save</button>
 
-              <wj-flex-grid id="flexScheduler" #flexScheduler [itemsSource]="schedulerdata" [allowResizing]="'Both'" auto-generate-columns="true" allow-sorting="true" showFilterIcons="true" [headersVisibility]="1" [allowAddNew]="true" allow-add class="gridSize" style="height:calc(99.8vh - 283px);">
-
+              <wj-flex-grid id="flexScheduler" #flexScheduler [itemsSource]="schedulerdata" [allowResizing]="'Both'" auto-generate-columns="true" allow-sorting="true"
+                            showFilterIcons="true" [headersVisibility]="1" [allowAddNew]="true" keyActionTab="Cycle"
+                            allow-add class="gridSize" style="height:calc(99.8vh - 283px);">
                 <wj-flex-grid-filter #filter></wj-flex-grid-filter>
                 <wj-flex-grid-column [header]="'Scheduler Name'" [binding]="'SchedulerName'" [width]="300"></wj-flex-grid-column>
                 <wj-flex-grid-column [header]="'Execution Time'" [binding]="'ExecutionTime'" [width]="135"></wj-flex-grid-column>

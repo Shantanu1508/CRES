@@ -33,12 +33,12 @@
             <wj-flex-grid-column [header]="'Download File'" [isReadOnly]="true" [width]="100">
               <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
                 <div>
-                  <a class="cur-pointer" (click)="DownloadDocument(cell.item.BlobFileName,cell.item.BlobFileName,'AzureBlob','')" title="Click to download" routerLinkActive="active"><img src="../../images/excel_icon.png" /></a>
+                  <a class="cur-pointer" (click)="DownloadDocument(cell.item.BlobFileName,cell.item.BlobFileName,'AzureBlob','')" title="Click to download" routerLinkActive="active"><img src="../assets/images/excel_icon.png" /></a>
                 </div>
               </ng-template>
             </wj-flex-grid-column>
 
-            <wj-flex-grid-column [name]="'buttons'" [isReadOnly]="true" align="center" [width]="100">
+            <wj-flex-grid-column [name]="'buttons'" [header]="'Delete'" [isReadOnly]="true" align="left" [width]="100">
               <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
                 <a style="text-decoration: underline;" (click)="DeleteAuditRecords(cell.item.BatchLogID)">Delete</a>
               </ng-template>

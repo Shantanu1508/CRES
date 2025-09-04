@@ -1,0 +1,17 @@
+CREATE VIEW [dbo].[vw_GeneralSetupDetailsLiabilityNoteBI]
+AS
+SELECT [GeneralSetupDetailsLiabilityAutoID]
+      ,[GeneralSetupDetailsLiabilityID]
+      ,[EventId]
+      ,[PledgeDate]
+      ,[LiabilityNoteAccountID]
+      ,[PaydownAdvanceRate]
+      ,[FundingAdvanceRate]
+      ,[TargetAdvanceRate]
+      ,[MaturityDate]
+      ,[CreatedBy]
+      ,[CreatedDate]
+      ,[UpdatedBy]
+      ,[UpdatedDate]
+      ,[ScheduleType]
+  FROM [DW].[GeneralSetupDetailsLiabilityNoteBI];

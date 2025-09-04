@@ -24,12 +24,12 @@ namespace CRES.BusinessLogic
             }
         }
 
-        public void InsertUpdatePayruleDistributions(string sourcenoteid, string username, Guid? AnalysisID)
+        public void InsertUpdatePayruleDistributions(string sourcenoteid, string username,Guid? AnalysisID)
 
         {
             try
             {
-                _PayruleSetupRepository.InsertUpdatePayruleDistributions(sourcenoteid, username, AnalysisID);
+                  _PayruleSetupRepository.InsertUpdatePayruleDistributions(sourcenoteid, username, AnalysisID);
             }
             catch (Exception ex)
             {
@@ -53,7 +53,7 @@ namespace CRES.BusinessLogic
         {
             try
             {
-                _PayruleSetupRepository.InsertIntoPayruleSetup(list, username, DealID);
+                _PayruleSetupRepository.InsertIntoPayruleSetup(list, username,DealID);
             }
             catch (Exception ex)
             {

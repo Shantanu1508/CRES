@@ -1,10 +1,13 @@
-﻿using CRES.DataContract;
-using System;
+﻿using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using CRES.DataContract;
 
 namespace CRES.DAL.IRepository
 {
-    public interface IUserRepository
+    public interface IUserRepository 
     {
         UserDataContract ValidateUser(UserDataContract Userobj);
         UserDataContract GetUserCredentialByUserID(Guid UserID, Guid? DelegatedUserID);
@@ -25,6 +28,7 @@ namespace CRES.DAL.IRepository
         int UpdateUserByUserID(UserDataContract _userDataContract);
         List<AppTimeZoneDataContract> GetAllTimeZoneSearchData(Guid? UserID, string Valuekey);
         List<AppTimeZoneDataContract> GetAllTimeZoneData(Guid? UserID);
+        List<UserDataContract> GetUsersInfoByRoleNameForDropDown(string RoleName);
 
     }
 }

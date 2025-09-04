@@ -27,6 +27,6 @@ Select NoteId,'Processing',@UpdatedBy,'Batch',@AnalysisID ,775 as CalcType
 From Cre.Note where crenoteid in (select CRENoteID from #tblListNotes)
 
 
-exec [dbo].[usp_QueueNotesForCalculation] @TableTypeCalculationRequests,@UpdatedBy,@UpdatedBy 
+exec [dbo].[usp_QueueNotesForCalculation] @TableTypeCalculationRequests,@UpdatedBy,@UpdatedBy, NULL, NULL, 'Note' 
 	 
 End

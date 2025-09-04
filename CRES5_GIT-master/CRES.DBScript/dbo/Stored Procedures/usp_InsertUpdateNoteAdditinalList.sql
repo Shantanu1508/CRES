@@ -1,11 +1,4 @@
 ﻿
-
- 
---DROP PROCEDURE [usp_InsertUpdateNoteAdditinalList] 
-
-
- 
---DROP PROCEDURE [usp_InsertUpdateNoteAdditinalList] 
 CREATE PROCEDURE [dbo].[usp_InsertUpdateNoteAdditinalList] 
 
 @noteAdditinallistXML XML,
@@ -90,7 +83,14 @@ declare @noteAdditinallist TABLE
 	PIKReasonCodeID int null,
 	PIKComments nvarchar(max) null,
 	PIKIntCalcMethodID int null,
-	IndexNameID int null
+	IndexNameID int null,
+	PeriodicRateCapAmount [varchar](256) NULL,
+	PeriodicRateCapPercent [varchar](256) NULL,
+	DeterminationDateHolidayList Int null,
+	PIKSetUp Int null,
+	PIKPercentage [varchar](256) NULL,
+	PIKCurrentPayRate [varchar](256) NULL,
+	[PIKSeparateCompounding]   INT   NULL
 
 )
 
@@ -168,7 +168,16 @@ nullif(Pers.value('(RateOrSpreadToBeStripped)[1]', 'nvarchar(max)'), ''),
 nullif(Pers.value('(PIKReasonCodeID)[1]', 'nvarchar(max)'), ''),
 nullif(Pers.value('(PIKComments)[1]', 'nvarchar(max)'), ''),
 nullif(Pers.value('(PIKIntCalcMethodID)[1]', 'nvarchar(max)'), ''),
-nullif(Pers.value('(IndexNameID)[1]', 'nvarchar(max)'), '')
+nullif(Pers.value('(IndexNameID)[1]', 'nvarchar(max)'), ''),
+
+nullif(Pers.value('(PeriodicRateCapAmount)[1]', 'nvarchar(max)'), ''),
+nullif(Pers.value('(PeriodicRateCapPercent)[1]', 'nvarchar(max)'), ''),
+nullif(Pers.value('(DeterminationDateHolidayList)[1]', 'nvarchar(max)'), ''),
+
+nullif(Pers.value('(PIKSetUp)[1]', 'nvarchar(max)'), ''),
+nullif(Pers.value('(PIKPercentage)[1]', 'nvarchar(max)'), ''),
+nullif(Pers.value('(PIKCurrentPayRate)[1]', 'nvarchar(max)'), ''),
+nullif(Pers.value('(PIKSeparateCompounding)[1]', 'nvarchar(max)'), '')
 
 FROM @noteAdditinallistXML.nodes('/ArrayOfNoteAdditionalList/NoteAdditionalList') as t(Pers);
 
@@ -296,9 +305,9 @@ SELECT @accountID = Account_AccountID FROM CRE.Note n inner join core.Account ac
 --END
 -------------------------------------------------------------------------------------------------------------
 
+
+---rss is saved from usp_InsertUpdateNoteRateSpreadSchedule
 --RateSpreadSchedule
-
-
 ---Update 
 UPDATE core.RateSpreadSchedule 
 SET
@@ -309,7 +318,8 @@ RateSpreadSchedule.IntCalcMethodID= t.IntCalcMethodID,
 RateSpreadSchedule.UpdatedBy = @UpdatedBy, 
 RateSpreadSchedule.UpdatedDate = GETDATE(),
 RateSpreadSchedule.RateOrSpreadToBeStripped = t.RateOrSpreadToBeStripped,
-RateSpreadSchedule.IndexNameID = t.IndexNameID
+RateSpreadSchedule.IndexNameID = t.IndexNameID,
+RateSpreadSchedule.DeterminationDateHolidayList = t.DeterminationDateHolidayList
 
 FROM core.Event e
 INNER JOIN @noteAdditinallist t
@@ -356,7 +366,7 @@ and Event.EffectiveStartDate>t.EffectiveDate
 	
 IF(@@ROWCOUNT > 0)
 BEGIN
-  INSERT INTO core.RateSpreadSchedule (EventId, Date, ValueTypeID, Value, IntCalcMethodID, CreatedBy, CreatedDate,UpdatedBy,UpdatedDate,RateOrSpreadToBeStripped,IndexNameID)
+  INSERT INTO core.RateSpreadSchedule (EventId, Date, ValueTypeID, Value, IntCalcMethodID, CreatedBy, CreatedDate,UpdatedBy,UpdatedDate,RateOrSpreadToBeStripped,IndexNameID,DeterminationDateHolidayList)
     SELECT (SELECT TOP 1
              EventId
            FROM CORE.[event] e
@@ -372,7 +382,8 @@ BEGIN
 	@UpdatedBy,
 	GETDATE(),
 	RateOrSpreadToBeStripped,
-	IndexNameID
+	IndexNameID,
+	DeterminationDateHolidayList
     FROM @noteAdditinallist 
     WHERE --ScheduleID IS NULL AND
      ModuleId = @RateSpreadSchedule and date is not null 
@@ -381,7 +392,7 @@ BEGIN
 END
 ELSE
 BEGIN
-	INSERT INTO core.RateSpreadSchedule (EventId, Date, ValueTypeID, Value, IntCalcMethodID, CreatedBy, CreatedDate,UpdatedBy,UpdatedDate,RateOrSpreadToBeStripped,IndexNameID)
+	INSERT INTO core.RateSpreadSchedule (EventId, Date, ValueTypeID, Value, IntCalcMethodID, CreatedBy, CreatedDate,UpdatedBy,UpdatedDate,RateOrSpreadToBeStripped,IndexNameID,DeterminationDateHolidayList)
     SELECT (SELECT TOP 1
              EventId
            FROM CORE.[event] e
@@ -397,7 +408,8 @@ BEGIN
 	@UpdatedBy,
 	GETDATE(),
 	RateOrSpreadToBeStripped,
-	IndexNameID
+	IndexNameID,
+	DeterminationDateHolidayList
     FROM @noteAdditinallist
     WHERE --ScheduleID IS NULL AND
     ModuleId = @RateSpreadSchedule and (ScheduleID is null or ScheduleID not in (Select RateSpreadScheduleID from core.RateSpreadSchedule)) and date is not null
@@ -406,9 +418,7 @@ BEGIN
 END
 --------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-  --PrepayAndAdditionalFeeSchedule
-  --Select * from core.PrepayAndAdditionalFeeSchedule
-
+---fee Schedule saved from usp_InsertUpdateNoteFeeSchedule
 --Update 
 
 UPDATE core.PrepayAndAdditionalFeeSchedule 
@@ -445,40 +455,6 @@ from @noteAdditinallist t
 where Event.AccountID = @accountID and t.ModuleId = @PrepayAndAdditionalFeeSchedule and Event.EventTypeID = @PrepayAndAdditionalFeeSchedule 
 and Event.EffectiveStartDate>t.EffectiveDate
 
-
---DELETE FROM core.PrepayAndAdditionalFeeSchedule
---WHERE PrepayAndAdditionalFeeScheduleID IN (SELECT
---t.ScheduleID
---FROM core.Event e
---INNER JOIN @noteAdditinallist t
---ON e.EventID = t.EventID
---AND e.EffectiveStartDate = CONVERT(datetime, t.EffectiveDate, 101)
---AND ModuleId = @PrepayAndAdditionalFeeSchedule)
-
---INSERT INTO core.PrepayAndAdditionalFeeSchedule (EventId, StartDate, ValueTypeID, Value, IncludedLevelYield, IncludedBasis, UpdatedBy, UpdatedDate)
---SELECT
---EventId,
---CONVERT(datetime, ScheduleStartDate, 101),
---ValueTypeID,
---Value,
---PPIncludeInLevelYieldCalc,
---PPIncludeInBasisCalc,
---UpdatedBy,
---GETDATE()
---FROM @noteAdditinallist
---WHERE ScheduleID IN (SELECT
---t.ScheduleID
---FROM core.Event e
---INNER JOIN @noteAdditinallist t
---ON e.EventID = t.EventID
---AND e.EffectiveStartDate = CONVERT(datetime, t.EffectiveDate, 101)
---AND ModuleId = @PrepayAndAdditionalFeeSchedule)
-
-
-
-
-
-  --Insert
 
   INSERT INTO Core.Event (EffectiveStartDate, AccountID, Date, EventTypeID, SingleEventValue, StatusID,CreatedBy, CreatedDate,UpdatedBy,UpdatedDate)
     --  OUTPUT inserted.EventID INTO @tInserted(tinsertedVal)		
@@ -1460,7 +1436,14 @@ PIKSchedule.UpdatedBy = @UpdatedBy,
 PIKSchedule.UpdatedDate = GETDATE(),
 PIKSchedule.PIKReasonCodeID = t.PIKReasonCodeID,
 PIKSchedule.PIKComments = t.PIKComments,
-PIKSchedule.PIKIntCalcMethodID = t.PIKIntCalcMethodID
+PIKSchedule.PIKIntCalcMethodID = t.PIKIntCalcMethodID,
+
+PIKSchedule.PeriodicRateCapAmount = t.PeriodicRateCapAmount,
+PIKSchedule.PeriodicRateCapPercent = t.PeriodicRateCapPercent,
+PIKSchedule.PIKSetup = t.PIKSetup,
+PIKSchedule.PIKPercentage = t.PIKPercentage,
+PIKSchedule.PIKCurrentPayRate = t.PIKCurrentPayRate,
+PIKSchedule.PIKSeparateCompounding = t.PIKSeparateCompounding
 
 FROM core.Event e
 INNER JOIN @noteAdditinallist t
@@ -1498,7 +1481,7 @@ PIKSchedule.PIKScheduleID = t.ScheduleID
 
 IF(@@ROWCOUNT > 0)
 BEGIN
-	INSERT INTO core.PIKSchedule (EventID,SourceAccountID,TargetAccountID,AdditionalIntRate,AdditionalSpread,IndexFloor,IntCompoundingRate,IntCompoundingSpread,StartDate,EndDate,IntCapAmt,PurBal,AccCapBal,CreatedBy, CreatedDate,UpdatedBy,UpdatedDate,PIKReasonCodeID,PIKComments,PIKIntCalcMethodID)
+	INSERT INTO core.PIKSchedule (EventID,SourceAccountID,TargetAccountID,AdditionalIntRate,AdditionalSpread,IndexFloor,IntCompoundingRate,IntCompoundingSpread,StartDate,EndDate,IntCapAmt,PurBal,AccCapBal,CreatedBy, CreatedDate,UpdatedBy,UpdatedDate,PIKReasonCodeID,PIKComments,PIKIntCalcMethodID,PeriodicRateCapAmount ,PeriodicRateCapPercent, PIKSetUp, PIKPercentage,PIKCurrentPayRate,PIKSeparateCompounding)
 	SELECT (SELECT TOP 1
 	EventId
 	FROM CORE.[event] e
@@ -1523,7 +1506,14 @@ BEGIN
 	GETDATE(),
 	PIKReasonCodeID,
 	PIKComments,
-	PIKIntCalcMethodID
+	PIKIntCalcMethodID,
+
+	PeriodicRateCapAmount ,
+	PeriodicRateCapPercent,
+	PIKSetUp,
+	PIKPercentage,
+	PIKCurrentPayRate,
+	PIKSeparateCompounding
 	FROM @noteAdditinallist
 	WHERE --ScheduleID IS NULL AND
 	ModuleId = @PIKSchedule
@@ -1543,7 +1533,7 @@ IF EXISTS(
 	and n.noteid = @NoteId
 )
 BEGIN
-	update cre.note set PIKInterestAddedToBalanceBasedOnBusinessAdjustedDate = 3 where noteid = @noteid and PIKInterestAddedToBalanceBasedOnBusinessAdjustedDate is null
+	update cre.note set PIKInterestAddedToBalanceBasedOnBusinessAdjustedDate = 4 where noteid = @noteid and PIKInterestAddedToBalanceBasedOnBusinessAdjustedDate is null
 END
 
 
@@ -1739,7 +1729,7 @@ exec [dbo].[usp_InsertUpdateAmortSchedule] @noteAmortSchedule,@CreatedBy,@Update
 --  END
 
 --declare @NoteID uniqueidentifier=(SELECT TOP 1 (NoteId) FROM @noteAdditinallist)
-EXEC [dbo].[usp_UpdateEffectiveDateAsClosingDateByNoteId] @NoteID
+EXEC [dbo].[usp_UpdateEffectiveDateAsClosingDateByNoteId] @NoteID, @CreatedBy
 
 
 --========================================================================================================================

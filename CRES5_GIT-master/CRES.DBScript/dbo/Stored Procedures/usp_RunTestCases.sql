@@ -64,10 +64,14 @@ BEGIN
 	from
 	(
 		--Ran Past Initial Maturity	
-		Select DISTINCT NoteID,@RanPastInitialMaturity as [TestCasesID] 
+		Select DISTINCT n1.NoteID,@RanPastInitialMaturity as [TestCasesID] 
 		from cre.transactionentry te
-		where ROUND(Amount ,0) <> 0 and [type] not in ('EndingGAAPBookValue','TotalGAAPIncomeforthePeriod') and
-		[Date] > 
+		 Inner join core.account acc on acc.accountid = te.AccountID
+        Inner join cre.note n1 on n1.account_accountid = acc.accountid
+ 
+		where ROUND(Amount ,0) <> 0 and [type] not in ('EndingGAAPBookValue','TotalGAAPIncomeforthePeriod')
+		and acc.AccounttypeID = 1 
+		and		[Date] > 
 		(
 
 			Select  mat.maturityDate as SelectedMaturityDate
@@ -82,7 +86,7 @@ BEGIN
 				INNER JOIN [CORE].[Account] acc ON acc.AccountID = n.Account_AccountID  
 				where EventTypeID = 11  and eve.statusID = 1
 				and acc.IsDeleted = 0  
-				and n.noteid = te.NoteID
+				and n.noteid = n1.NoteID
 				GROUP BY n.Account_AccountID,EventTypeID    
 			) sEvent    
 			ON sEvent.AccountID = e.AccountID and e.EffectiveStartDate = sEvent.EffectiveStartDate  and e.EventTypeID = sEvent.EventTypeID   and e.statusID = 1
@@ -91,7 +95,7 @@ BEGIN
 	
 			where mat.maturityType = 708 
 			and	mat.Approved = 3
-			and n.noteid = te.NoteID
+			and n.noteid = n1.NoteID
 
 			--Select TOP 1 mat.[SelectedMaturityDate]
 			--		from [CORE].Maturity mat
@@ -114,10 +118,14 @@ BEGIN
 		UNION ALL
 
 		--Ran Past Extended Maturity	
-		Select DISTINCT te.NoteID,@RanPastExtendedMaturity as [TestCasesID]
+		Select DISTINCT n2.NoteID,@RanPastExtendedMaturity as [TestCasesID]
 		from cre.transactionentry  te
-		left Join cre.Note n On n.NoteID = te.Noteid	 
+		 Inner join core.account acc on acc.accountid = te.AccountID
+        Inner join cre.note n2 on n2.account_accountid = acc.accountid
+ 
+		--left Join cre.Note n On n.NoteID = te.Noteid	 
 		where ROUND(Amount ,0) <> 0 and [type] not in ('EndingGAAPBookValue','TotalGAAPIncomeforthePeriod') 
+		and acc.AccounttypeID = 1
 		and te.Date > (
 
 			Select isnull(n1.ActualPayoffDate,
@@ -147,7 +155,7 @@ BEGIN
 							INNER JOIN [CRE].[Note] n ON n.Account_AccountID = eve.AccountID  
 							INNER JOIN [CORE].[Account] acc ON acc.AccountID = n.Account_AccountID  
 							where EventTypeID = 11  and eve.statusID = 1
-							and n.noteid = te.NoteID
+							and n.noteid = n2.NoteID
 							and acc.IsDeleted = 0  
 							GROUP BY n.Account_AccountID,EventTypeID    
 						) sEvent    
@@ -158,7 +166,7 @@ BEGIN
 						Left JOin Core.lookup lApproved on lApproved.lookupid = mat.Approved	
 						where mat.MaturityDate > getdate()
 						and lApproved.name = 'Y'
-						and n.noteid = te.NoteID
+						and n.noteid = n2.NoteID
 				)a where a.rno = 1
 			)currMat on currMat.noteid = n1.noteid
 			Left JOin(
@@ -174,7 +182,7 @@ BEGIN
 					INNER JOIN [CORE].[Account] acc ON acc.AccountID = n.Account_AccountID  
 					where EventTypeID = 11   and eve.statusID = 1
 					and acc.IsDeleted = 0  
-					and n.noteid = te.NoteID
+					and n.noteid = n2.NoteID
 					GROUP BY n.Account_AccountID,EventTypeID    
 				) sEvent    
 				ON sEvent.AccountID = e.AccountID and e.EffectiveStartDate = sEvent.EffectiveStartDate  and e.EventTypeID = sEvent.EventTypeID   and e.statusID = 1
@@ -183,7 +191,7 @@ BEGIN
 				where mat.MaturityType = 708 and mat.Approved = 3
 			)tblInitialMaturity on tblInitialMaturity.noteid = n1.noteid
 			where acc1.IsDeleted <> 1
-			and n1.noteid = te.NoteID
+			and n1.noteid = n2.NoteID
 			--select
 			--isnull(n.ActualPayoffDate, isnull(
 			--	case when @Column='Initial or Actual Payoff Date' then n.ActualPayoffDate 
@@ -220,8 +228,12 @@ BEGIN
 		Select DISTINCT NoteID,
 		@BalancePath as [TestCasesID]
 		 from (
-		Select NoteID,ROUND(SUM(Amount),0) amount from cre.transactionentry where Type in ('InitialFunding','FundingOrRepayment','Balloon','ScheduledPrincipalPaid')
-		group by NoteID
+		Select n.NoteID,ROUND(SUM(Amount),0) amount 
+		from cre.transactionentry tr
+		Inner JOin core.account acc on acc.accountID = tr.AccountID
+		Inner JOin cre.note n on n.Account_Accountid = acc.AccountID
+		where [Type] in ('InitialFunding','FundingOrRepayment','Balloon','ScheduledPrincipalPaid')
+		group by n.NoteID
 		)a
 		where a.amount <> 0
 
@@ -231,12 +243,15 @@ BEGIN
 		--For Funded notes, difference between "Commitment" and "Total Funding" = Zero	
 		Select Distinct Noteid,@ForFundedNotesdifferencebetweenCommitmentandTotalFunding as [TestCasesID]
 		from(
-		Select te.NoteID,(ROUND(ISNULL(n.TotalCommitment,0),0) + ROUND(SUM(te.Amount),0)) amount 
+		Select n.NoteID,(ROUND(ISNULL(n.TotalCommitment,0),0) + ROUND(SUM(te.Amount),0)) amount 
 		from cre.transactionentry  te
-		left Join cre.Note n On n.NoteID = te.Noteid
+		 Inner join core.account acc on acc.accountid = te.AccountID
+         Inner join cre.note n on n.account_accountid = acc.accountid
+ 
+		--left Join cre.Note n On n.NoteID = te.Noteid
 		where Type in ('InitialFunding','FundingOrRepayment','Balloon','ScheduledPrincipalPaid')
-		and te.Amount < 0
-		group by te.NoteID,n.TotalCommitment
+		and te.Amount < 0 and acc.AccounttypeID = 1
+		group by n.NoteID,n.TotalCommitment
 		)a
 		where a.amount <> 0
 	)b
@@ -265,7 +280,7 @@ BEGIN
 			ISNULL(d.LinkedDealID,CREDealID) CREDealID,ROUND(SUM(Amount),0) as Amount
 			from cre.Deal d 
 			left join cre.Note n on d.DealID = n.DealID
-			left join cre.TransactionEntry tr on tr.NoteId = n.NoteID
+			left join cre.TransactionEntry tr on tr.AccountID = n.Account_accountid
 			where CREDealID  in (Select Distinct LinkedDealID from cre.deal where NULLIF(LinkedDealID,'') is not null)
 			or LinkedDealID  in (Select Distinct LinkedDealID from cre.deal where NULLIF(LinkedDealID,'') is not null) 
 			group by ISNULL(d.LinkedDealID,CREDealID)

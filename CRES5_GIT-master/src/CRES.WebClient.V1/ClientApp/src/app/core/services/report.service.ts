@@ -25,6 +25,9 @@ export class ReportService {
   private _accountingreportgetDocumentsByObjectIdAPI: string = 'api/accountingreport/getdocumentsbyobjectid';
   private _accountingreportdownloadobjectfileAPI: string = 'api/excelupload/downloadobjectfile';
   private _accountingreportupdateReportLogStatusAPI: string = 'api/accountingreport/updatereportlogstatus';
+  private _UpdatePowerBIReportDataset: string = 'api/pbireport/updatecrespowerbidataset';
+  private _ImportBackshopTableForDiscrepancyAPI: string = 'api/note/ImportBackshopTableForDiscrepancy';
+
 
   //
 
@@ -103,7 +106,7 @@ export class ReportService {
   //}
   downloadObjectDocumentByStorageTypeAndLocation(id: string, storagetypeid: string, location: string) {
     this.accountService.set($.trim(this._accountingreportdownloadobjectfileAPI));
-    return this.accountService.getByIDStorageTypeAndLocationWithBlob(id, storagetypeid, location);
+    return this.accountService.getByIDStorageTypeAndLocationWithBlobGET(id, storagetypeid, location);
   }
 
   GetRefreshBSUnderwriting() {
@@ -123,4 +126,15 @@ export class ReportService {
     this.accountService.set(this._getrefreshentitydatatodw);
     return this.accountService.getAll();
   }
+
+  updatePowerBIReportDataset(datasetID: string) {
+    this.accountService.set(this._UpdatePowerBIReportDataset);
+    return this.accountService.getByID(datasetID);
+  }
+
+  importBackshopTableForDiscrepancy() {
+    this.accountService.set(this._ImportBackshopTableForDiscrepancyAPI);
+    return this.accountService.getAll();
+  }
+
 }

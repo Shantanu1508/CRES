@@ -1,5 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
 
 namespace CRES.DataContract
 {
@@ -38,12 +41,12 @@ namespace CRES.DataContract
         public string MoreData { get; set; }
         public string HasErrors { get; set; }
         public List<Contents> Contents { get; set; }
-        public List<Errors> Errors { get; set; }
+        public List<Errors> Errors {get;set;}
     }
     public class Contents
     {
         public ObjectCls Object { get; set; }
-        public List<Errors> Errors { get; set; }
+        public List<Errors> Errors { get;set;}
         public string Self { get; set; }
         public string Kind { get; set; }
     }
@@ -74,10 +77,10 @@ namespace CRES.DataContract
         public List<LinkedTransactions> LinkedTransactions { get; set; }
     }
 
-    public class Errors
-    {
-        public string Message { get; set; }
-        public string Code { get; set; }
+    public class Errors 
+    { 
+     public string Message { get; set; }
+     public string Code { get; set; }
     }
 
     public class Customer
@@ -99,7 +102,7 @@ namespace CRES.DataContract
     {
         public string ID { get; set; }
         public string FullName { get; set; }
-
+        
     }
     public class ItemLines
     {

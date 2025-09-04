@@ -1,8 +1,12 @@
-﻿using CRES.DataContract;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Data;
+using System.IO;
 using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using CRES.DataContract;
+using CRES.Utilities;
 
 namespace CRES.NoteCalculator
 {
@@ -15,9 +19,12 @@ namespace CRES.NoteCalculator
         public List<ProspectiveCashflow> FutureAdvCF = new List<ProspectiveCashflow>();
         public List<ProspectiveCashflow> BalloonCF = new List<ProspectiveCashflow>();
         public List<ProspectiveCashflow> CurtailmentsCF = new List<ProspectiveCashflow>();
+        public List<ProspectiveCashflow> EndBalanceCF = new List<ProspectiveCashflow>();
+
         public List<ProspectiveCashflow> FeeCF = new List<ProspectiveCashflow>();
         public List<ProspectiveCashflow> IntCF = new List<ProspectiveCashflow>();
         public List<ProspectiveCashflow> PIKCF = new List<ProspectiveCashflow>();
+        public List<ProspectiveCashflow> DefFeeCF = new List<ProspectiveCashflow>();
 
         public List<ProspectiveCashflow> FeeYieldCF = new List<ProspectiveCashflow>();
         public List<ProspectiveCashflow> DiscYieldCF = new List<ProspectiveCashflow>();
@@ -140,6 +147,22 @@ namespace CRES.NoteCalculator
                         Cashflows.Add(new Cashflow(bal.Date.Value.Date, bal.EndingBalance.GetValueOrDefault(0)));
                         break;
                 }
+            }
+        }
+        public ProspectiveCashflow(List<BalanceTab> ListBalanceTab, List<FeesTab> ListFeesTab, decimal? InitialFunding, DateTime? EffDate, Double Yield)
+        {
+            EffectiveDate = EffDate;
+            this.Yield = Yield;
+            decimal? cf = 0M, InitFunding = 0M;
+            BalanceTab bal; FeesTab fee;
+            int max = ListBalanceTab.Count;
+            for (int ndx = 0; ndx < max; ndx++)
+            {
+                InitFunding = ndx == 0 ? InitialFunding : 0M;
+                bal = ListBalanceTab[ndx]; fee = ListFeesTab[ndx];
+                cf = bal.BeginningBalance.GetValueOrDefault(0) - bal.EndingBalance.GetValueOrDefault(0) - InitFunding
+                    + fee.FeeAmountIncludedinLevelYield.GetValueOrDefault(0) + fee.StrippedFeeReceivableInclInLY.GetValueOrDefault(0);
+                Cashflows.Add(new Cashflow(bal.Date.Value.Date, cf));
             }
         }
         public ProspectiveCashflow(List<CouponTab> ListCouponTab, DateTime? EffDate)

@@ -33,7 +33,7 @@ DECLARE @tAccount TABLE (tAccountID UNIQUEIDENTIFIER)
 		   OUTPUT inserted.AccountID INTO @tAccount(tAccountID)
      VALUES
            (
-			(select LookupID from core.Lookup where Name='Note')
+			1 ---(select LookupID from core.Lookup where Name='Note')
 			,(select LookupID from core.Lookup where Name='Active'  and Parentid = 1)
 			,@UserName
 			,getdate()

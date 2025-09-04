@@ -3,11 +3,10 @@ import { Router, ActivatedRoute, Params, Route } from '@angular/router';
 import { Scenario, Scenariosearch } from "../core/domain/scenario.model";
 import { IndexType } from "../core/domain/indexType.model";
 import * as wjNg2Grid from '@grapecity/wijmo.angular2.grid';
-import { OperationResult } from '../core/domain/operationResult.model';
+
 import { scenarioService } from '../core/services/scenario.service';
 import { NotificationService } from '../core/services/notification.service'
 
-import { isLoggedIn } from '../core/services/isLoggedIn.service';
 import { UtilityService } from '../core/services/utility.service';
 import { Paginated } from '../core/common/paginated.service';
 
@@ -18,17 +17,17 @@ import { ModuleWithProviders, NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule, Routes } from '@angular/router';
-//import { Headers, RequestOptions, BaseRequestOptions } from '@angular/http';
 import { WjCoreModule } from '@grapecity/wijmo.angular2.core';
 import { WjGridModule } from '@grapecity/wijmo.angular2.grid';
 import { WjGridFilterModule } from '@grapecity/wijmo.angular2.grid.filter';
-import { functionService } from '../core/services/function.service';
+
 import { DataService } from '../core/services/data.service';
+import { MembershipService } from '../core/services/membership.service';
 
 @Component({
   selector: "scenariodetail",
   templateUrl: "./scenarioDetail.html",
-  providers: [scenarioService, NotificationService, UtilityService, functionService],
+  providers: [scenarioService, NotificationService, UtilityService, MembershipService],
 })
 
 export class ScenarioDetailComponent extends Paginated {
@@ -40,6 +39,8 @@ export class ScenarioDetailComponent extends Paginated {
   public indexupdatedRowNo: any = [];
   public indexrowsToUpdate: any = [];
   public _ShowmessagedivWar: boolean = false;
+  public _isshowCalcAndSave: boolean = true;
+
   public TotalCount: number = 0;
   public scenarioDetaildata: any;
   public scenarioindexdata: Array<any>;
@@ -48,6 +49,9 @@ export class ScenarioDetailComponent extends Paginated {
   public _Showmessagediv: boolean = false;
   public _isScenarioDetailFetching: boolean = true;
   public _isShowScenarioRuleType: boolean = false;
+  public _isShowOtherScenario: boolean = false;
+  public _disableScenarioStatus: boolean = false;
+  public _disableEditingSName: boolean = false;
   public _isScrolled: boolean = true;
   public _FirstDate: Date;
   public _lastDate: Date;
@@ -63,6 +67,15 @@ export class ScenarioDetailComponent extends Paginated {
   lstExcludedForcastedPrePayment: any;
   lstAutoCalcFreq: any;
   lstUseActuals: any;
+  lstIncludeProjectedPrincipalWriteoff: any;
+  lstCalculateLiability: any;
+  lstAllowCalcOverride: any;
+  lstAllowCalcAlongWithDefault: any;
+  lstAccountingClose: any;
+  lstScenarioStatus: any;
+  lstUseFinancingMaturityDateOverride: any;
+  lstIncludeInDiscrepancy: any;
+  public saveorupdate: any = "";
 
   columns: {
     binding?: string, header?: string, width?: any, format?: string
@@ -72,29 +85,34 @@ export class ScenarioDetailComponent extends Paginated {
   public autoVerfoldername: string;
   public lstBusinessDayAdjustment: any = [];
   public lstTemplatename: any = [];
-  
+
 
   public _lstruletype: any = [];
   public _lstruletypedetail: any = [];
   public _lstRuleTypeSetupNew: any = [];
   public _isReadOnlyRuleTypeName: boolean = true;
-   public _lstsunruletype: any = [];
+  public _lstsunruletype: any = [];
 
-    public cityMap: any = [];
-    public listruletype: any = [];
-  
+  public cityMap: any = [];
+  public listruletype: any = [];
 
-    public _isShowSaveScenario: boolean = true;
-    @ViewChild('RuleTypeList') RuleTypeList: wjcGrid.FlexGrid;
-    @ViewChild('flexScenarioDetail') flexScenarioDetail: wjcGrid.FlexGrid;s
+
+  public _isShowSaveScenario: boolean = true;
+  @ViewChild('RuleTypeList') RuleTypeList: wjcGrid.FlexGrid;
+  @ViewChild('flexScenarioDetail') flexScenarioDetail: wjcGrid.FlexGrid; s
+  lstCalculationFrequency: any;
+  lstCalcEngineType: any;
+  public CalculationFrequencyId: any;
+  public CalcEngineTypeId: any;
+  public _timezoneAbbreviation: any;
 
   constructor(private activatedRoute: ActivatedRoute,
     private _router: Router,
     public scenarioService: scenarioService,
-    public utilityService: UtilityService,  
+    public utilityService: UtilityService,
     public notificationService: NotificationService,
     public dataService: DataService,
-    public functionServiceSrv: functionService) {
+    public membershipservice: MembershipService) {
     super(30, 0, 0);
     this.activatedRoute.params.forEach((params: Params) => {
       if (params['id'] !== undefined) {
@@ -104,14 +122,9 @@ export class ScenarioDetailComponent extends Paginated {
         this.GetScenarioByID(scenarioaId);
       }
     });
-    this.getFastFolderList();
     this.utilityService.setPageTitle("M61 – Scenario Details");
+    this.GetUserTimezoneByID();
   }
-
-
-
-
-
   GetScenarioByID(_scenarioaId): void {
     try {
       this.scenarioService.GetScenarioByScenarioID(_scenarioaId).subscribe(res => {
@@ -119,17 +132,27 @@ export class ScenarioDetailComponent extends Paginated {
           if (typeof res.UserPermissionList !== 'undefined' && res.UserPermissionList.length > 0) {
             this._scenariodc = res.ScenarioParameters;
             var _isV1UIEnable = this.dataService._isV1UIEnable;
+
+            if (this._scenariodc.ScenarioName != "Default") {
+              this._isShowOtherScenario = true;
+            }
+
             if (_isV1UIEnable == "true") {
               this._isShowScenarioRuleType = true;
             }
             else {
               this._isShowScenarioRuleType = false;
             }
-            //this.GetIndexByScenarioID(_scenarioaId);
+
             this.GetAllLookups();
             this.GetAllIndexes();
 
             this._isScenarioDetailFetching = false;
+
+            if (this._scenariodc.ScenarioName == "Default" || this._scenariodc.ScenarioName == "Fully Extended (with Prepay, Index Flat)") {
+              this._disableScenarioStatus = true;
+              this._disableEditingSName = true;
+            }
           } else {
             localStorage.setItem('showWarningMsgdashboard', JSON.stringify(true));
             localStorage.setItem('WarmsgdashBoad', JSON.stringify('Sorry, you do not have permissions to access this page'));
@@ -142,6 +165,31 @@ export class ScenarioDetailComponent extends Paginated {
       });
     } catch (err) {
     }
+  }
+  OnChangeScenarioStatus(newvalue) {
+    this.showhidesaveandcalcbutton();
+
+  }
+  showhidesaveandcalcbutton() {
+
+    if (this._scenariodc.ScenarioStatus == 2) {
+      this._isshowCalcAndSave = false;
+    } else {
+      this._isshowCalcAndSave = true;
+    }
+  }
+  CustomDialogteSave(msg): void {
+    var winW = window.innerWidth;
+    var winH = window.innerHeight;
+    var dialogbox = document.getElementById('Genericdialogbox');
+    document.getElementById('savedialogmessage').innerHTML = msg;
+
+    dialogbox.style.display = "block";
+    $.getScript("/js/jsDrag.js");
+  }
+  ClosePopUpDialog() {
+    var modal = document.getElementById('Genericdialogbox');
+    modal.style.display = "none";
   }
   GetAllLookups(): void {
     try {
@@ -158,7 +206,29 @@ export class ScenarioDetailComponent extends Paginated {
           this.lstExcludedForcastedPrePayment = data.filter(x => x.ParentID == "2");
           this.lstAutoCalcFreq = data.filter(x => x.ParentID == "98");
           this.lstUseActuals = data.filter(x => x.ParentID == "2");
+          this.lstIncludeProjectedPrincipalWriteoff = data.filter(x => x.ParentID == "2");
+          this.lstCalculateLiability = data.filter(x => x.ParentID == "2");
+          this.lstAllowCalcOverride = data.filter(x => x.ParentID == "2");
+          this.lstAllowCalcAlongWithDefault = data.filter(x => x.ParentID == "2");
+          this.lstAccountingClose = data.filter(x => x.ParentID == "2");
           this.lstBusinessDayAdjustment = data.filter(x => x.ParentID == "2");
+          this.lstCalculationFrequency = data.filter(x => x.ParentID == "133");
+          this.lstCalcEngineType = data.filter(x => x.ParentID == "134");
+          this.lstScenarioStatus = data.filter(x => x.ParentID == "1");
+          this.lstUseFinancingMaturityDateOverride = data.filter(x => x.ParentID == "2");
+          this.lstIncludeInDiscrepancy = data.filter(x => x.ParentID == "2");
+          if (this.analysisid == "00000000-0000-0000-0000-000000000000") {
+            this.CalculationFrequencyId = this.lstCalculationFrequency.filter(x => x.Name == "Daily")[0].LookupID;
+            this._scenariodc.CalculationFrequency = this.CalculationFrequencyId;
+            this.CalcEngineTypeId = this.lstCalcEngineType.filter(x => x.Name == "V1 (New)")[0].LookupID;
+            this._scenariodc.CalcEngineType = this.CalcEngineTypeId;
+          }
+          if (this._scenariodc.CalcEngineType == 798) {
+            this._isShowScenarioRuleType = true;
+          }
+          else {
+            this._isShowScenarioRuleType = false;
+          }
         }
         else {
           this._router.navigate(['login']);
@@ -168,32 +238,39 @@ export class ScenarioDetailComponent extends Paginated {
     }
   }
 
-    
-
-    sortByName(a, b) {
-        var textA = a.FileName.toUpperCase();
-        var textB = b.FileName.toUpperCase();
-        return (textA < textB) ? -1 : (textA > textB) ? 1 : 0;
+  OnChangeCalcEngineType(newvalue) {
+    if (newvalue == 798) {
+      this._isShowScenarioRuleType = true;
+    }
+    else {
+      this._isShowScenarioRuleType = false;
     }
 
-    cellRuleTypeEditHandler = function (s, e) {
-        var col = s.columns[e.col];
-        if (col.binding == 'FileName') {
-            var RuleTypeName = s.rows[e.row].dataItem.RuleTypeName
-            switch (RuleTypeName) {
-                case RuleTypeName:
-                    this.lstRuleTypebyruleid = this._lstruletypedetail.filter(x => x.RuleTypeName == RuleTypeName)
-                    this.lstRuleTypebyruleid.sort(this.sortByName);
-                    col.dataMap = this._buildDataMapWithoutLookupNew(this.lstRuleTypebyruleid);
-                    break;
-                default:
-                    col.dataMap = this._buildDataMapWithoutLookupNew(this._lstruletypedetail);
-                    break;
-            }
-        }
-    }
+  }
 
-  
+  sortByName(a, b) {
+    var textA = a.FileName.toUpperCase();
+    var textB = b.FileName.toUpperCase();
+    return (textA < textB) ? -1 : (textA > textB) ? 1 : 0;
+  }
+
+  cellRuleTypeEditHandler = function (s, e) {
+    var col = s.columns[e.col];
+    if (col.binding == 'FileName') {
+      var RuleTypeName = s.rows[e.row].dataItem.RuleTypeName
+      switch (RuleTypeName) {
+        case RuleTypeName:
+          this.lstRuleTypebyruleid = this._lstruletypedetail.filter(x => x.RuleTypeName == RuleTypeName)
+          this.lstRuleTypebyruleid.sort(this.sortByName);
+          col.dataMap = this._buildDataMapWithoutLookupNew(this.lstRuleTypebyruleid);
+          break;
+        default:
+          col.dataMap = this._buildDataMapWithoutLookupNew(this._lstruletypedetail);
+          break;
+      }
+    }
+  }
+
   GetAllIndexes(): void {
     try {
       this.scenarioService.getIndexesFromIndexesMaster().subscribe(res => {
@@ -213,11 +290,23 @@ export class ScenarioDetailComponent extends Paginated {
     this._router.navigate(['scenarios']);
   }
 
+  CheckAndSaveScenario(Actionstatus) {
+    this.saveorupdate = Actionstatus;
+    if (Actionstatus == "CalcAndSave") {
+      var msg = "Are you sure to want to save and calculate " + this._scenariodc.ScenarioName + " scenario."
+      this.CustomDialogteSave(msg);
+    } else {
+      this.ValidateScenarioAndSave(Actionstatus);
+    }
 
+  }
+  InsertUpdateData() {
+    this.ValidateScenarioAndSave('CalcAndSave');
+  }
   ValidateScenarioAndSave(Actionstatus): void {
     try {
-            this._isShowLoader = true;
-            this._isShowSaveScenario = false;
+      this._isShowLoader = true;
+      this._isShowSaveScenario = false;
       var RuleTypelength = 0;
       var ruletypeerror = '';
 
@@ -248,13 +337,14 @@ export class ScenarioDetailComponent extends Paginated {
         this.CustomAlert(ruletypeerror);
       }
       else {
+        this._scenariodc.ActionStatus = Actionstatus;
         this._scenariodc.AnalysisID = this.analysisid;
         if (this._scenariodc.ScenarioName != "" && this._scenariodc.ScenarioName != null) {
           this.scenarioService.CheckDuplicateScenario(this._scenariodc).subscribe(res => {
             if (res.Succeeded) {
               if (res.Message != "Duplicate") {
                 this.InsertUpdateScenario();
-               // this.AddUpdateAnalusisRuleTypeSetup();
+                // this.AddUpdateAnalusisRuleTypeSetup();
               }
               else {
                 this._ShowmessagedivWar = true;
@@ -295,6 +385,10 @@ export class ScenarioDetailComponent extends Paginated {
 
   InsertUpdateScenario(): void {
     try {
+
+      const lstJsonString = JSON.stringify(this.lstjsonparameters);
+      this._scenariodc.jsonparam = lstJsonString;
+
       this.scenarioService.InsertUpdateScenario(this._scenariodc).subscribe(res => {
         if (res.Succeeded) {
           this.analysisid = res.newscenarioid;
@@ -324,20 +418,7 @@ export class ScenarioDetailComponent extends Paginated {
     cont[0].style.height = (cont[0].scrollHeight + 20) + "px";
   }
   public prevDateBeforeEdit: Date;
-  // index grid saving code
 
-  ScenarioDetailselectionChanged(): void {
-    //var flexIndex = this.flexScenarioDetail;
-    //var rowIdx = this.flexScenarioDetail.collectionView.currentPosition;
-    try {
-      //var count = this.indexupdatedRowNo.indexOf(rowIdx);
-      //if (count == -1)
-      //    this.indexupdatedRowNo.push(rowIdx);
-    }
-    catch (err) {
-      console.log(err);
-    }
-  }
   beginningEdit(modulename): void {
     switch (modulename) {
       case "ScenarioDetail":
@@ -346,27 +427,6 @@ export class ScenarioDetailComponent extends Paginated {
           this.prevDateBeforeEdit = this.scenarioDetaildata[sel.topRow].Date;
         break;
     }
-  }
-
-  getFastFolderList(): void {
-
-
-    this.functionServiceSrv.getallFastFunction()
-      .subscribe(res => {
-
-        this.lstFolders = res;
-        if (this.lstFolders != null && this.lstFolders.length > 0) {
-          this.autoVerfoldername = this.lstFolders[0].FunctionName;
-          this.lstFolders[0].FunctionName = "Auto-Version";
-          this.foldername = "Auto-Version";
-        }
-
-      },
-        error => {
-          this.utilityService.navigateToSignIn();
-        }
-
-      );
   }
   ChangeFolder(newvalue): void {
     this.foldername = newvalue;
@@ -398,7 +458,7 @@ export class ScenarioDetailComponent extends Paginated {
         if (RuleType) {
           var colRuleType = RuleType.columns.getColumn('FileName');
           if (colRuleType) {
-           // colRuleType.showDropDown = true;
+            // colRuleType.showDropDown = true;
             colRuleType.dataMap = this._buildDataMapWithoutLookupNew(this._lstruletypedetail);
           }
         }
@@ -415,7 +475,7 @@ export class ScenarioDetailComponent extends Paginated {
     });
   }
 
-  
+
 
   AddUpdateAnalusisRuleTypeSetup() {
     var RuleTypelength = 0;
@@ -463,391 +523,165 @@ export class ScenarioDetailComponent extends Paginated {
     document.getElementById('dialogoverlay').style.display = "none";
   }
 
-  //ngAfterViewInit() {
-  //    // commit row changes when scrolling the grid
-
-
-  //    this.flexScenarioDetail.scrollPositionChanged.addHandler(() => {
-  //        var myDiv = $('#flexScenarioDetail').find('div[wj-part="root"]');
-  //        if (myDiv.prop('offsetHeight') + myDiv.scrollTop() >= myDiv.prop('scrollHeight')) {
-
-  //            if (this.flexScenarioDetail.rows.length < this.TotalCount) {
-  //                this._isScenarioDetailFetching = true;
-  //                this._scenariosearch.AnalysisID = this.analysisid;
-  //                this._scenariosearch.Fromdate = this._lastDate;
-  //                this._scenariosearch.Todate = null;
-  //                this.GetIndexBetweenDates(this._scenariosearch, "after");
-  //            }
-  //        }
-  //        else if (myDiv.scrollTop() == 0) {
-  //            if (this.flexScenarioDetail.rows.length < this.TotalCount) {
-  //                this._scenariosearch.AnalysisID = this.analysisid;
-  //                this._isScenarioDetailFetching = true;
-  //                this._scenariosearch.Fromdate = null;
-  //                this._scenariosearch.Todate = this._FirstDate;
-  //                this.GetIndexBetweenDates(this._scenariosearch, "before");
-  //            }
-  //        }
-  //    });
-  //}
-
-
-  //GetIndexBetweenDates(scenariosearch: Scenariosearch, append: string) {
-  //    this.scenarioService.GetIndexBetweenDates(scenariosearch).subscribe(res => {
-  //        if (res.Succeeded) {
-  //            var tempdata = this.scenarioDetaildata;
-  //            this.scenarioindexdata = res.dtIndexType;
-  //            this._listlength = this.scenarioindexdata.length;
-  //            if (this.scenarioindexdata.length > 0) {
-  //                for (var i = 0; i < this.scenarioindexdata.length; i++) {
-  //                    if (this.scenarioindexdata[i].Date != null) {
-  //                        if (this.scenarioindexdata[i].Date == "1900-01-01T00:00:00") {
-  //                            this.scenarioindexdata[i].Date = "";
-  //                        } else {
-  //                            this.scenarioindexdata[i].Date = new Date(this.scenarioindexdata[i].Date.toString());
-  //                        }
-  //                    }
-  //                }
-
-
-  //                if (append == "before") {
-
-  //                    // if (this._FirstDate > this.scenarioindexdata[0].Date) { this._FirstDate = this.scenarioindexdata[0].Date; }
-  //                    this._FirstDate = this.scenarioindexdata[0].Date;
-  //                    this.scenarioDetaildata = this.scenarioindexdata.concat(tempdata);
-
-  //                    this.cvScenarioDetaildata = new wjcCore.CollectionView(this.scenarioDetaildata);
-  //                    this.cvScenarioDetaildata.trackChanges = true;
-
-  //                    this._isScenarioDetailFetching = false;
-  //                    var myDiv = $('#flexScenarioDetail').find('div[wj-part="root"]');
-  //                    myDiv.scrollTop(100);
-  //                }
-  //                else {
-
-  //                    if (this._lastDate < this.scenarioindexdata[this._listlength - 1].Date) {
-  //                        this._lastDate = this.scenarioindexdata[this._listlength - 1].Date;
-  //                    }
-  //                    if (this._lastDate != null) { this._lastDate = this.createDateAsUTC(this._lastDate); }
-  //                    this.scenarioDetaildata = this.scenarioDetaildata.concat(this.scenarioindexdata);
-
-  //                    this.cvScenarioDetaildata = new wjcCore.CollectionView(this.scenarioDetaildata);
-  //                    this.cvScenarioDetaildata.trackChanges = true;
-
-  //                    var myDiv = $('#flexScenarioDetail').find('div[wj-part="root"]');
-
-  //                }
-  //                var delrow = this.flexScenarioDetail.rows[30];
-  //                this.flexScenarioDetail.rows.remove(delrow);
-
-
-  //                // this.scenarioDetaildata = this.scenarioindexdata;
-  //                //this.scenarioindexdata.forEach((obj, i) => {
-  //                //    this.flexScenarioDetail.rows.push(new wjcGrid.Row(obj));
-
-  //                //});
-  //                this._isScenarioDetailFetching = false;
-  //            }
-  //            else {
-  //                //this.scenarioDetaildata = [];
-  //                //this.cvScenarioDetaildata = new wjcCore.CollectionView(this.scenarioDetaildata);
-  //                //this.cvScenarioDetaildata.trackChanges = true;
-  //                this._isScenarioDetailFetching = false;
-
-  //            }
-  //        }
-  //    });
-  //}
-
-
-  //downloadIndexsExportData(): void {
-
-  //    //var _note: Note;
-  //    this._isScenarioDetailFetching = true;
-  //    this._scenariosearch.AnalysisID = this.analysisid;
-  //    this.scenarioService.GetIndexesExportData(this._scenariosearch).subscribe(res => {
-
-  //        if (res.Succeeded) {
-  //            setTimeout(function () {
-  //                //== this.exportNoteCashflowsExcel();  
-  //                this._isScenarioDetailFetching = false;
-
-  //            }.bind(this), 100);
-
-  //            this.downloadFile(res.dtIndexType);
-  //        }
-  //        else {
-  //            // this._dvEmptynoteperiodiccalcMsg = true;
-  //        }
-  //        error => console.error('Error: ' + error)
-  //    });
-  //}
-
-
-  //GetIndexByScenarioID(ScenarioID): void {
-
-  //    this.scenarioService.GetIndexByScenarioID(ScenarioID, this._pageIndex, this._pageSize).subscribe(res => {
-  //        if (res.Succeeded) {
-  //            this.TotalCount = res.TotalCount
-  //            if (this.TotalCount == 0) {
-  //                this._isIndexLoad = false;
-  //            }
-  //            this._isScrolled = false;
-  //            this.scenarioindexdata = res.dtIndexType
-  //            this._isScrolled = true;
-
-  //            var locale = "en-US"
-  //            var options = { year: "numeric", month: "numeric", day: "numeric" };
-  //            // for (var i = 0; i < this.TotalCount; i++) {
-  //            for (var i = 0; i < this.scenarioindexdata.length; i++) {
-  //                if (this.scenarioindexdata[i].Date != null) {
-  //                    if (this.scenarioindexdata[i].Date == "1900-01-01T00:00:00") {
-  //                        this.scenarioindexdata[i].Date = "";
-  //                    } else {
-  //                        this.scenarioindexdata[i].Date = new Date(this.scenarioindexdata[i].Date.toString());
-  //                    }
-  //                }
-
-
-  //                if (i == this.scenarioindexdata.length - 1) {
-  //                    setTimeout(function () {
-  //                        this._isScenarioDetailFetching = false;
-  //                    }.bind(this), 2000);
-  //                }
-  //            }
-  //            this.scenarioDetaildata = this.scenarioindexdata;
-  //            if (this.scenarioindexdata.length > 0) {
-
-  //                this._FirstDate = this.scenarioindexdata[0].Date;
-  //                this._lastDate = this.scenarioindexdata[(this.scenarioindexdata.length) - 1].Date;
-  //                if (this._lastDate != null) { this._lastDate = this.createDateAsUTC(this._lastDate); }
-  //                this.cvScenarioDetaildata = new wjcCore.CollectionView(this.scenarioDetaildata);
-  //                this.cvScenarioDetaildata.trackChanges = true;
-  //            }
-  //            else {
-  //                this.scenarioDetaildata = [];
-  //                this.cvScenarioDetaildata = new wjcCore.CollectionView(this.scenarioDetaildata);
-  //                this.cvScenarioDetaildata.trackChanges = true;
-  //            }
-  //            var myDiv = $('#flexScenarioDetail').find('div[wj-part="root"]');
-  //            myDiv.scrollTop(200);
-
-  //            if (this.scenarioindexdata.length == 0) {
-  //                this._isScenarioDetailFetching = false;
-  //            }
-
-  //        }
-
-  //    });
-  //    error => console.error('Error: ' + error)
-  //}
-
-  //Addcolumn(header, binding) {
-  //    try {
-  //        this.columns.push({ "header": header, "binding": binding, "format": 'p5' })
-  //    } catch (err) { }
-  //}
-
-  //rowEditEnded(modulename): void {
-  //    switch (modulename) {
-  //        case "ScenarioDetail":
-  //            var sel = this.flexScenarioDetail.selection;
-  //            var flag = this.CheckDuplicateDate(sel.topRow);
-  //            //alert('end  - ' + this.prevDateBeforeEdit);
-  //            if (flag == true) {
-  //                var indformatDate: Date;
-
-  //                var locale = "en-US"
-  //                var options = { year: "numeric", month: "numeric", day: "numeric" };
-
-  //                indformatDate = this.scenarioDetaildata[sel.topRow].Date;
-  //                if (indformatDate.toString().indexOf("GMT") == -1)
-  //                    alert("Date - " + indformatDate + " already in list");
-  //                else
-  //                    alert("Date " + indformatDate.toLocaleDateString(locale, options) + " already in list");
-  //                this.scenarioDetaildata[sel.topRow].Date = this.prevDateBeforeEdit;
-
-  //                this.scenarioDetaildata[sel.topRow].AnalysisID = this.analysisid;
-  //            }
-  //    }
-  //    this.prevDateBeforeEdit = null;
-  //}
-  //CopiedDataValidate(modulename): void {
-  //    try {
-  //        switch (modulename) {
-  //            case "ScenarioDetail":
-  //                var sel = this.flexScenarioDetail.selection;
-  //                var rssformatDate: Date;
-  //                for (var tprow = sel.topRow; tprow <= sel.bottomRow; tprow++) {
-  //                    var flag = this.CheckDuplicateDate(tprow); //this.CheckDuplicateDate(this.scenarioDetaildata, tprow);
-  //                    if (flag == true) {
-  //                        var locale = "en-US"
-  //                        var options = { year: "numeric", month: "numeric", day: "numeric" };
-  //                        rssformatDate = this.scenarioDetaildata[tprow].Date;
-  //                        if (rssformatDate.toString().indexOf("GMT") == -1)
-  //                            alert("Date - " + rssformatDate + " already in list");
-  //                        else
-  //                            alert("Date - " + rssformatDate.toLocaleDateString(locale, options) + " already in list");
-  //                    }
-  //                    break;
-  //                }
-  //        }
-  //    }
-  //    catch (err) {
-  //        console.log(err);
-  //    }
-  //}
-
-  //CheckDuplicateDate(rwNum): boolean {
-  //    try {
-  //        var i;
-  //        for (i = 0; i < this.scenarioDetaildata.length; i++)
-  //            if (rwNum != i && this.scenarioDetaildata[rwNum].Date.toString() == this.scenarioDetaildata[i].Date.toString())
-  //                break;
-  //        if (i == this.scenarioDetaildata.length)
-  //            return false;
-  //        else
-  //            return true;
-  //    }
-  //    catch (err) {
-  //        console.log(err);
-  //    }
-  //}
-
-  //convertDatetoGMTGrid(Data) {
-  //    if (Data) {
-  //        for (var i = 0; i < Data.length; i++) {
-  //            if (this._indextype[i].Date) {
-  //                this._indextype[i].Date = this.createDateAsUTC(this._indextype[i].Date);
-  //            }
-  //        }
-  //    }
-  //}
-
-  //createDateAsUTC(date: Date) {
-  //    if (date) {
-  //        date = new Date(date);
-  //        return new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate(), date.getHours(), date.getMinutes(), date.getSeconds()));
-  //    } else
-  //        return date;
-  //}
-
-
-
-  //UpdateIndex(newscenarioid): void {
-  //    this._indextype = new IndexType();
-  //    //if (this.indexupdatedRowNo != null) {
-  //    //    for (var i = 0; i < this.indexupdatedRowNo.length; i++) {
-  //    //        this.scenarioDetaildata[this.indexupdatedRowNo[i]].AnalysisID = newscenarioid;
-  //    //        this.indexrowsToUpdate.push(this.scenarioDetaildata[this.indexupdatedRowNo[i]]);
-  //    //    }
-  //    //    this._indextype = this.indexrowsToUpdate;
-  //    //}
-  //    for (var j = 0; j < this.scenarioDetaildata.length; j++) {
-  //        this.scenarioDetaildata[j].AnalysisID = newscenarioid;
-
-  //        for (var i = 0; i < this.cvScenarioDetaildata.itemsAdded.length; i++) {
-  //            this._indextype = new IndexType();
-  //            this._indextype = this.cvScenarioDetaildata.itemsAdded[i];
-  //            if (this.scenarioDetaildata[j].Date == this._indextype.Date) {
-  //                this.indexrowsToUpdate.push(this.scenarioDetaildata[j])
-  //            }
-  //        }
-  //        for (var i = 0; i < this.cvScenarioDetaildata.itemsEdited.length; i++) {
-  //            this._indextype = new IndexType();
-  //            this._indextype = this.cvScenarioDetaildata.itemsEdited[i];
-  //            if (this.scenarioDetaildata[j].Date == this._indextype.Date) {
-  //                this.indexrowsToUpdate.push(this.scenarioDetaildata[j])
-  //            }
-  //        }
-
-  //    }
-
-  //    //for (var i = 0; i < this.cvScenarioDetaildata.itemsAdded.length; i++) {
-  //    //    //this.cvScenarioDetaildata.itemsAdded[i].AnalysisID = newscenarioid;
-  //    //    this.indexrowsToUpdate.push(this.cvScenarioDetaildata.itemsAdded[i]);
-  //    //}
-
-  //    //for (var i = 0; i < this.cvScenarioDetaildata.itemsEdited.length; i++) {
-  //    //    //this.cvScenarioDetaildata.itemsAdded[i].AnalysisID  = newscenarioid;
-  //    //    this.indexrowsToUpdate.push(this.cvScenarioDetaildata.itemsEdited[i]);
-  //    //}
-
-  //    this._indextype = this.indexrowsToUpdate;
-  //    this.convertDatetoGMTGrid(this._indextype);
-  //    this.indexrowsToUpdate = null;
-  //    this.indexrowsToUpdate = [];
-  //    this.indexupdatedRowNo = null;
-  //    this.indexupdatedRowNo = [];
-
-  //    this.scenarioService.AddUpdateIndexType(this._indextype).subscribe(res => {
-  //        if (res.Succeeded) {
-
-
-  //            this._router.navigate(['scenarios']);
-  //        }
-  //        else {
-  //            this._isScenarioDetailFetching = false;
-  //            this._ShowmessagedivWar = true;
-  //            this._ShowmessagedivMsgWar = "Error occured while saving."
-  //            setTimeout(() => {
-  //                this._ShowmessagedivWar = false;
-  //                this._ShowmessagedivMsgWar = "";
-  //            }, 3000);
-
-
-  //        }
-  //    });
-  //}
-
-
-  //downloadFile(objArray) {
-  //    var data = this.ConvertToCSV(objArray);
-  //    var displayDate = new Date().toLocaleDateString("en-US");
-  //    var fileName = "Indexes-" + displayDate + ".csv";
-
-  //    let blob = new Blob(['\ufeff' + data], { type: 'text/csv;charset=utf-8;' });
-  //    let dwldLink = document.createElement("a");
-  //    let url = URL.createObjectURL(blob);
-  //    let isSafariBrowser = navigator.userAgent.indexOf('Safari') != -1 && navigator.userAgent.indexOf('Chrome') == -1;
-  //    if (isSafariBrowser) {  //if Safari open in new window to save file with random filename.
-  //        dwldLink.setAttribute("target", "_blank");
-  //    }
-  //    dwldLink.setAttribute("href", url);
-  //    dwldLink.setAttribute("download", fileName);
-  //    dwldLink.style.visibility = "hidden";
-  //    document.body.appendChild(dwldLink);
-  //    dwldLink.click();
-  //    document.body.removeChild(dwldLink);
-  //}
-
-  //// convert Json to CSV data in Angular2
-  //ConvertToCSV(objArray) {
-  //    var array = typeof objArray != 'object' ? JSON.parse(objArray) : objArray;
-  //    var str = '';
-  //    var row = "";
-
-  //    for (var index in objArray[0]) {
-  //        //Now convert each value to string and comma-separated
-  //        row += index + ',';
-  //    }
-  //    row = row.slice(0, -1);
-  //    //append Label row with line break
-  //    str += row + '\r\n';
-
-  //    for (var i = 0; i < array.length; i++) {
-  //        var line = '';
-  //        for (var index in array[i]) {
-  //            if (line != '') line += ','
-
-  //            line += array[i][index];
-  //        }
-  //        str += line + '\r\n';
-  //    }
-  //    return str;
-  //}
-
-
+  trackGridChanges(ParentModuleName: string, ChildModuleName: string, ModuleID: string, FieldName: string, rowIndex: number, FieldValue: any) {
+    
+    const change = {
+      ParentModuleName: ParentModuleName,
+      ChildModuleName: ChildModuleName,
+      ModuleID: ModuleID,
+      FieldName: FieldName,
+      RowIndex: rowIndex,
+      FieldValue: FieldValue
+    };
+
+    const existingChangeIndex = this.lstjsonparameters.findIndex(item =>
+      item.FieldName === FieldName && item.RowIndex === rowIndex
+    );
+
+    if (existingChangeIndex !== -1) {
+      this.lstjsonparameters[existingChangeIndex].FieldValue = FieldValue;
+    } else {
+      this.lstjsonparameters.push(change);
+    }
+  }
+
+
+  onCellEditEnded(event: any, grid: any) {
+    const column = grid.columns[event.col];
+    const row = grid.rows[event.row];
+    const binding = column.binding;
+    const value = grid.getCellData(event.row, event.col, true);
+
+    this.trackGridChanges('Scenario', 'Scenario Detail', this._scenariodc.AnalysisID, binding, row.index, value);
+  }
+
+
+  lstjsonparameters: { ParentModuleName: string, ChildModuleName: string, ModuleID: string, FieldName: string, RowIndex: number, FieldValue: any }[] = [];
+
+  trackFieldChange(ParentModuleName: string, ChildModuleName: string, ModuleID: string, FieldName: string, FieldValue: any) {
+
+    let RowIndex = 0;
+
+    if (FieldName == "Maturity Scenario Override") {
+      var selectedMaturity = this.lstMaturityScenarioOverride.filter(option => option.LookupID == FieldValue);
+      if (selectedMaturity) {
+        FieldValue = selectedMaturity[0].Name;
+      }
+    }
+
+    if (FieldName == "Index Scenario Override") {
+      var selectedIndex = this.lstIndexesMaster.filter(option => option.IndexesMasterID == FieldValue);
+      if (selectedIndex) {
+        FieldValue = selectedIndex[0].IndexesName;
+      }
+    }
+
+    if (FieldName == "Calculation Mode") {
+      var selectedCalculation = this.lstCalculationMode.filter(option => option.LookupID == FieldValue);
+      if (selectedCalculation) {
+        FieldValue = selectedCalculation[0].Name;
+      }
+    }
+
+    if (FieldName == "Automate Calculation Frequency") {
+      var selectedCalcFreq = this.lstAutoCalcFreq.filter(option => option.LookupID == FieldValue);
+      if (selectedCalcFreq) {
+        FieldValue = selectedCalcFreq[0].Name;
+      }
+    }
+
+    if (FieldName == "Use Servicing Data") {
+      var selectedActuals = this.lstUseActuals.filter(option => option.LookupID == FieldValue);
+      if (selectedActuals) {
+        FieldValue = selectedActuals[0].Name;
+      }
+    }
+
+    if (FieldName == "Disable Business Day Adjustment") {
+      var selected = this.lstBusinessDayAdjustment.filter(option => option.LookupID == FieldValue);
+      if (selected) {
+        FieldValue = selected[0].Name;
+      }
+    }
+
+    if (FieldName == "Calculation Frequency") {
+      var selectedfreq = this.lstCalculationFrequency.filter(option => option.LookupID == FieldValue);
+      if (selectedfreq) {
+        FieldValue = selectedfreq[0].Name;
+      }
+    }
+    if (FieldName == "Calc Engine Type") {
+      var selectCalcEngineType = this.lstCalcEngineType.filter(option => option.LookupID == FieldValue);
+      if (selectCalcEngineType) {
+        FieldValue = selectCalcEngineType[0].Name;
+      }
+    }
+    if (FieldName == "Allow Calc Engine Type Override") {
+      var selectcalc = this.lstAllowCalcOverride.filter(option => option.LookupID == FieldValue);
+      if (selectcalc) {
+        FieldValue = selectcalc[0].Name;
+      }
+    }
+    if (FieldName == "Calc Along with Default") {
+      var selecteddefault = this.lstAllowCalcAlongWithDefault.filter(option => option.LookupID == FieldValue);
+      if (selecteddefault) {
+        FieldValue = selecteddefault[0].Name;
+      }
+    }
+    if (FieldName == "Include Projected Principal Writeoff") {
+      var selectedWriteoff = this.lstIncludeProjectedPrincipalWriteoff.filter(option => option.LookupID == FieldValue);
+      if (selectedWriteoff) {
+        FieldValue = selectedWriteoff[0].Name;
+      }
+    }
+    if (FieldName == "Calculate Liability") {
+      var selectedliability = this.lstCalculateLiability.filter(option => option.LookupID == FieldValue);
+      if (selectedliability) {
+        FieldValue = selectedliability[0].Name;
+      }
+    }
+    if (FieldName == "Scenario Status") {
+      var selectedStatus = this.lstScenarioStatus.filter(option => option.LookupID == FieldValue);
+      if (selectedStatus) {
+        FieldValue = selectedStatus[0].Name;
+      }
+    }
+    if (FieldName == "Use Financing Maturity Date Override") {
+      var sel = this.lstUseFinancingMaturityDateOverride.filter(option => option.LookupID == FieldValue);
+      if (sel) {
+        FieldValue = sel[0].Name;
+      }
+    }
+
+    if (FieldName == "Excluded Forcasted Pre Payment") {
+      var Excluded = this.lstExcludedForcastedPrePayment.filter(option => option.LookupID == FieldValue);
+      if (Excluded) {
+        FieldValue = Excluded[0].Name;
+      }
+    }
+    if (FieldName == "Include In Discrepancy") {
+      var desc = this.lstIncludeInDiscrepancy.filter(option => option.LookupID == FieldValue);
+      if (desc) {
+        FieldValue = desc[0].Name;
+      }
+    }
+
+    const existingIndex = this.lstjsonparameters.findIndex(item => item.FieldName === FieldName);
+    if (existingIndex !== -1) {
+      this.lstjsonparameters[existingIndex].FieldValue = FieldValue;
+    } else {
+      this.lstjsonparameters.push({ ParentModuleName, ChildModuleName, ModuleID, FieldName, RowIndex, FieldValue });
+    }
+  }
+
+  GetUserTimezoneByID() {
+    this.membershipservice.GetUserTimeZonebyUserID().subscribe(res => {
+      if (res.Succeeded) {
+        var data = res.dt;
+        this._timezoneAbbreviation = data[0].Abbreviation;
+      }
+    });
+  }
 }
 
 const routes: Routes = [

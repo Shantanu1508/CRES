@@ -86,6 +86,7 @@ export class WorkflowDetailComponent {
   public _Servicer: string = "Servicer";
   public _RevisedPreliminary: string = "RevisedPreliminary";
   public _RevisedFinal: string = "RevisedFinal";
+  public _CancelPreliminary: string = "CancelPreliminary";
   public _RevisedServicer: string = "RevisedServicer";
   public _FinalWithoutApproval: string = "FinalWithoutApproval";
   public _RevisedFinalWithoutApproval: string = "RevisedFinalWithoutApproval";
@@ -120,6 +121,8 @@ export class WorkflowDetailComponent {
   public rolename: string;
   r1Data;
   r2Data;
+  r3Data;
+  r4Data;
   dataMap;
 
   public _isShowChecklist: boolean = false;
@@ -136,7 +139,7 @@ export class WorkflowDetailComponent {
   public defaultSpecialInstructions: string;
   _wfamount: number;
   ListHoliday: any;
-  private _drawFeeInvoice: DrawFeeInvoiceDetail
+  public _drawFeeInvoice: DrawFeeInvoiceDetail
   _isShowDrawFee: boolean = false;
   _autoSendInvoice: number;
   public _dealfundingDrawFee: DealFunding;
@@ -156,9 +159,18 @@ export class WorkflowDetailComponent {
   public chkListTitle: string
   public isShowSendButton: boolean = true;
   public tblPayoff: string = "";
-  public _invoiceStorageType = appsettings._invoiceStorageType;
-  public _invoiceLocation = appsettings._invoiceLocation;
-
+  public _isShowPayOffFields: boolean = false;
+  public _prepPrem: string;
+  public _exitFee: string;
+  public _exitFeePercentage: string;
+  public _isPayOffNotifyClick: boolean = false;
+  public _isShowPropertyManager: boolean = false;
+  public _wfCheckLisupdated: any;
+  public _wfuser: User;
+  trustedPayOffDetail: SafeHtml;
+  public tblPayOffNoteAdditionalInfo: string = "";
+  public _outstandingDrawFees: string
+  public _SkipWorkflowNotification = false;
   constructor(
     private _router: Router,
     private _actrouting: ActivatedRoute,
@@ -200,6 +212,12 @@ export class WorkflowDetailComponent {
 
     });
     this._user = JSON.parse(localStorage.getItem('user'));
+    if (this._user != null) {
+
+      this._user.FirstName = this._user.FirstName != null ? this._user.FirstName.trim() : this._user.FirstName;
+      this._user.LastName = this._user.LastName != null ? this._user.LastName.trim() : this._user.LastName;
+
+    }
     // this._workflow.TaskID = 'A6146174-B5AC-44AE-8D62-0412A6A14C98';
     this.GetHolidayList();
     this.GetAllLookups();
@@ -218,6 +236,9 @@ export class WorkflowDetailComponent {
   //getSafeHTMLNoteAllocationPercentage() {
   //    return this.sanitizer.bypassSecurityTrustHtml(this.noteswithAllocationPercentage);
   //}
+  getSafeHTMLForPayoff() {
+    return this.sanitizer.bypassSecurityTrustHtml(this.tblPayoff);
+  }
   GetAllLookups(): void {
     this.dealSrv.getAllLookup().subscribe(res => {
       var data = res.lstLookups;
@@ -235,19 +256,18 @@ export class WorkflowDetailComponent {
     if (flexWFCheckList) {
       var colCheckListStatusType = flexWFCheckList.columns.getColumn('CheckListStatusText');
       if (colCheckListStatusType) {
-        //colCheckListStatusType.showDropDown = true;
-        colCheckListStatusType.dataMap = this._buildDataMap(this.lstCheckListStatusType, 'LookupID', 'Name');
+        colCheckListStatusType.showDropDown = true;
+        colCheckListStatusType.dataMap = this._buildDataMap(this.lstCheckListStatusType);
       }
     }
   }
 
-  private _buildDataMap(items: any, key: any, value: any): wjcGrid.DataMap {
+  private _buildDataMap(items): wjcGrid.DataMap {
     var map = [];
-    if (items) {
-      for (var i = 0; i < items.length; i++) {
-        var obj = items[i];
-        map.push({ key: obj[key], value: obj[value] });
-      }
+
+    for (var i = 0; i < items.length; i++) {
+      var obj = items[i];
+      map.push({ key: obj['LookupID'], value: obj['Name'] });
     }
     return new wjcGrid.DataMap(map, 'key', 'value');
   }
@@ -270,6 +290,31 @@ export class WorkflowDetailComponent {
       if (res.Succeeded) {
         if (typeof res.UserPermissionList !== 'undefined' && res.UserPermissionList.length > 0) {
           this._workflow = res.WFDetailDataContract;
+          this._wfAdditionalData = res.WFDetailDataContract.WFAdditionalList;
+
+          if (this._wfAdditionalData.TotalPendingInvoice > 0)
+            this._outstandingDrawFees = this._wfAdditionalData.TotalPendingInvoice + " Invoices / " + "$" + this._wfAdditionalData.TotalPendingInvoiceAmt.toFixed(2).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,");
+          else
+            this._outstandingDrawFees = 'None';
+
+          //if debt amount is zero then can not use workflow so transfer user to deal detail page
+
+          if (parseFloat(this._wfAdditionalData.Amount) == 0) {
+            var notenewcopied;
+            if (window.location.href.indexOf("dealdetail/a") > -1) {
+              notenewcopied = ['dealdetail', this._wfAdditionalData.CREDealID]
+            }
+            else {
+              notenewcopied = ['dealdetail/a', this._wfAdditionalData.CREDealID]
+            }
+
+            localStorage.setItem('ShowmessagedivWar', 'true');
+            localStorage.setItem('ClickedTabId', 'aFunding');
+            localStorage.setItem('ShowmessagedivMsgWar', 'Can not proceed workflow with zero debt amount');
+            this._router.navigate(notenewcopied);
+          }
+
+
           if (this._workflow.WorkFlowType == "WF_UNDERREVIEW") {
             this._isShowWorkActualWorkflow = false;
             this._isShowWorkflowWithoutValidationAndEmail = true;
@@ -291,20 +336,40 @@ export class WorkflowDetailComponent {
               if (drawFeeApplicable == 'Yes') {
                 this._isShowDrawFee = true;
               }
+              if (this._workflow.AmOversightMsg != '') {
+
+                this._ShowmessagedivWar = true;
+                this._ShowmessagedivMsgWar = this._workflow.AmOversightMsg;
+                //setTimeout(function () {
+                //  this._ShowmessagedivWar = false;
+                //  this._ShowmessagedivMsgWar = "";
+                //}.bind(this), 8000);
+
+              }
+              var skipWorkflow = res.WFDetailDataContract.WFCheckList.filter(x => x.CheckListMasterId == 21)[0].CheckListStatusText;
+              if (skipWorkflow == 'Operating Account' || skipWorkflow == "881")
+                this._SkipWorkflowNotification = true
+              else 
+                this._SkipWorkflowNotification = false;
             }
             else if (this._workflow.TaskTypeID == 719) {
               this.chkListTitle = "Reserve";
               var checklistYes = res.WFDetailDataContract.WFCheckList.filter(x => x.CheckListMasterId == 15)[0].CheckListStatusText;
+              var checklistPropertyManagerYes = res.WFDetailDataContract.WFCheckList.filter(x => x.CheckListMasterId == 17)[0] != undefined ? res.WFDetailDataContract.WFCheckList.filter(x => x.CheckListMasterId == 17)[0].CheckListStatusText : 'No';
               //primary user of that deal will not be able to complete if team's approval checklist item is 'Yes' regardless of the amount
               if (checklistYes == 'Yes' && this._workflow.IsOnlyPrimaryUser == 1 && this._workflow.NextStatusName == 'Completed') {
                 this._IsTeamApproval = true;
+              }
+              if (checklistPropertyManagerYes == 'Yes') {
+
+                this._isShowPropertyManager = true;
               }
             }
           }
 
           //this._CuurentWFStatusPurposeMappingID = this._workflow.WFStatusPurposeMappingID;
 
-          this._wfAdditionalData = res.WFDetailDataContract.WFAdditionalList;
+          //this._wfuser = res.WFDetailDataContract.User;
 
           if (this._wfAdditionalData.BaseCurrencyName == "USD") {
             this._basecurrencyname = '$';
@@ -330,6 +395,7 @@ export class WorkflowDetailComponent {
           this._wfStatusData = res.WFDetailDataContract.WFStatusList;
           this._workflow.AdditionalComments = this._wfAdditionalData.AdditionalComments;
           this._workflow.SpecialInstructions = this._wfAdditionalData.SpecialInstructions;
+          this._workflow.PropertyManagerEmail = this._wfAdditionalData.PropertyManagerEmail;
           // sepecial instruction default text functionality
           if (this._workflow.PurposeTypeId == 520) {
 
@@ -376,6 +442,7 @@ export class WorkflowDetailComponent {
           for (var i = 0; i < this.lstRejectList.length; i++) {
 
             this.lstRejectList[i].StatusDisplayName = this.FormatWFStatusName(this.lstRejectList[i].StatusDisplayName)
+
           }
 
           if (this._wfAdditionalData.BoxDocumentLink != null && this._wfAdditionalData.BoxDocumentLink != '') {
@@ -426,6 +493,7 @@ export class WorkflowDetailComponent {
             this.GetDrawFeeInvoiceDetailByTaskID();
 
             if (this._workflow.WorkFlowType == "WF_UNDERREVIEW" && this._workflow.PurposeTypeId == 630) {
+              this._isShowPayOffFields = true;
               this.GetWFPayOffNoteFunding();
             }
 
@@ -463,12 +531,37 @@ export class WorkflowDetailComponent {
             }
           ];
         }
-        else {
+        else if (this._workflow.WorkFlowType == "WF_Reserve") {
           this.r1Data = [
             {
               "line_id": 1,
               "LookupID": 499,
               "Name": "Yes"
+            },
+            {
+              "line_id": 1,
+              "LookupID": 500,
+              "Name": "Waived"
+            },
+            {
+              "line_id": 1,
+              "LookupID": 501,
+              "Name": "N/A"
+            },
+            {
+              "line_id": 1,
+              "LookupID": 550,
+              "Name": "Pending"
+            }
+          ];
+        }
+
+        else {
+          this.r1Data = [
+            {
+              "line_id": 1,
+              "LookupID": 873,
+              "Name": "Satisfied"
             },
             {
               "line_id": 1,
@@ -502,8 +595,39 @@ export class WorkflowDetailComponent {
           }
         ];
 
+        this.r3Data = [
+          {
+            "line_id": 3,
+            "LookupID": 873,
+            "Name": "Satisfied"
+          },
+          {
+            "line_id": 3,
+            "LookupID": 873,
+            "Name": "Unsatisfied "
+          },
+          {
+            "line_id": 3,
+            "LookupID": 501,
+            "Name": "N/A"
+          }
+        ];
+
+        this.r4Data = [
+          {
+            "line_id": 4,
+            "LookupID": 880,
+            "Name": "Lender"
+          },
+          {
+            "line_id": 4,
+            "LookupID": 881,
+            "Name": "Operating Account"
+          },
+        ];
+
         //let combinedMapData = [...this.r1Data, ...this.r2Data, ...this.r3Data, ...this.r4Data, ...this.r5Data, ...this.r6Data];
-        let combinedMapData = [...this.r1Data, ...this.r2Data];
+        let combinedMapData = [...this.r1Data, ...this.r2Data, ...this.r3Data, ...this.r4Data];
 
         this.dataMap = new wjcGrid.DataMap(combinedMapData, 'LookupID', 'Name');
         (this.dataMap as any).getDisplayValues = (item => {
@@ -515,7 +639,7 @@ export class WorkflowDetailComponent {
             if (cItem.line_id == item.RowId) {
               return true;
             }
-            else if (cItem.line_id == 1 && item.RowId != 1 && item.RowId != 2) {
+            else if (cItem.line_id == 1 && item.RowId != 1 && item.RowId != 2 && item.RowId != 3 && item.RowId != 4) {
               return true;
             }
             return false;
@@ -530,19 +654,19 @@ export class WorkflowDetailComponent {
         if (flexWFCheckList) {
           var colCheckListStatusType = flexWFCheckList.columns.getColumn('CheckListStatusText');
           if (colCheckListStatusType) {
-            //colCheckListStatusType.showDropDown = true;
+            colCheckListStatusType.showDropDown = true;
             colCheckListStatusType.dataMap = this.dataMap //this._buildDataMap(this.lstCheckListStatusType);
           }
         }
 
-        this.cvwfCheckListData.newItemCreator = function () {
-          return {
-            CheckListName: '',
-            Status: this.r1Data,
-            Comment: '',
-            RowID: 1
-          };
-        };
+        //this.cvwfCheckListData.newItemCreator = function () {
+        //  return {
+        //    CheckListName: '',
+        //    Status: this.r1Data,
+        //    Comment: '',
+        //    RowID: 1
+        //  };
+        //};
 
 
       }
@@ -556,19 +680,20 @@ export class WorkflowDetailComponent {
 
   init(flexgrid) {
     //some initializzation work for grid
-      flexgrid.formatItem.addHandler((s, e) => {
-        //if (e.panel.cellType != wjcGrid.CellType.Cell) {
-        //    return;
-        //}
-        if (e.panel.columns[e.col].binding == "CheckListStatusText") {
-          let item = e.panel.rows[e.row].dataItem;
-          if (!(item == undefined || item == null)) {
-            if (item.IsDisable == true) {
-              wjcCore.addClass(e.cell, 'disable-col');
-            }
+    flexgrid.formatItem.addHandler((s, e) => {
+      //if (e.panel.cellType != wjcGrid.CellType.Cell) {
+      //    return;
+      //}
+
+      if (e.panel.columns[e.col].binding == "CheckListStatusText") {
+        let item = e.panel.rows[e.row].dataItem;
+        if (item !== undefined && item!=null) {
+          if (item.IsDisable == true) {
+            wjcCore.addClass(e.cell, 'disable-col');
           }
         }
-      });
+      }
+    });
   }
 
   cellEditbeginCheckList(s, e) {
@@ -579,6 +704,27 @@ export class WorkflowDetailComponent {
         }
 
         if (this._drawFeeInvoice.DrawFeeStatus != 692 && this._drawFeeInvoice.DrawFeeStatus != 0 && this.cvwfCheckListData._view[e.row].CheckListMasterId == 9) {
+          e.cancel = true;
+        }
+
+        if (this.cvwfCheckListData._view[e.row].CheckListMasterId == 19) {
+          e.cancel = true;
+        }
+
+        //as per rohit we increased the validation limit from 3 to 10
+        if (this.cvwfCheckListData._view[e.row].CheckListMasterId == 6 && this._wfAdditionalData.TotalPendingInvoice >= 10) {
+          e.cancel = true;
+        }
+
+       //if (this._workflow.PurposeTypeId==520 && this.cvwfCheckListData._view[e.row].CheckListMasterId == 9) {
+       //   e.cancel = true;
+        // }
+
+        if (this.cvwfCheckListData._view[e.row].CheckListMasterId == 21 && this.cvwfCheckListData._view[e.row].IsDisable==true) {
+          e.cancel = true;
+        }
+
+        if (this.rolename != 'Asset Manager' && this.rolename != 'Super Admin' && this.rolename != 'Admin') {
           e.cancel = true;
         }
 
@@ -614,10 +760,51 @@ export class WorkflowDetailComponent {
           else
             this._isShowDrawFee = false;
         }
+        if (this.cvwfCheckListData._view[e.row].CheckListMasterId == 17) {
+          if (this.cvwfCheckListData._view[e.row].CheckListStatusText == "499") {
+            this._isShowPropertyManager = true
+          }
+          else
+            this._isShowPropertyManager = false;
+        }
+
+        if (this.cvwfCheckListData._view[e.row].CheckListMasterId == 21) {
+          if (this.cvwfCheckListData._view[e.row].CheckListStatusText == "881") {
+            this._SkipWorkflowNotification = true
+          }
+          else
+            this._SkipWorkflowNotification = false;
+        }
       }
     }
   }
+  PastedWFCheckList(s, e) {
+    if (this.cvwfCheckListData._view[e.row].CheckListMasterId == 19) {
+      e.cancel = true;
+    }
+    if (this._workflow.WFAdditionalList.WatchlistStatus.toLowerCase() != "reo" && this._workflow.WFAdditionalList.CREDealIDWithREO.toLowerCase() != "reo") {
+      if (this.cvwfCheckListData._view[e.row].CheckListMasterId == 21) {
+        e.cancel = true;
+      }
 
+    }
+  }
+
+  PastingWFCheckList(s, e) {
+    if (this.cvwfCheckListData._view[e.row].CheckListMasterId == 19) {
+      e.cancel = true;
+    }
+
+    if (this._workflow.WFAdditionalList.WatchlistStatus.toLowerCase() != "reo" && this._workflow.WFAdditionalList.CREDealIDWithREO.toLowerCase() != "reo") {
+      if (this.cvwfCheckListData._view[e.row].CheckListMasterId == 21) {
+        e.cancel = true;
+      }
+
+    }
+  }
+
+
+  
   CheckWireConfirmedOnReject(): void {
 
     this._isWFFetching = true;
@@ -717,13 +904,34 @@ export class WorkflowDetailComponent {
     this._workflow.WFAdditionalList = null;
     this.IsShowSaveAndStatusButton = false;
     //Promise.all(this.saveDrawFeeInvoice()).then(() => { }).catch(() => { });
-
+    this._workflow.CREDealID = this._wfAdditionalData.CREDealID;
     this.wfSrv.SaveWorkflowDetailByTaskId(this._workflow).subscribe(res => {
       if (res.Succeeded) {
         if (parseFloat(this._wfAdditionalData.Amount) > 0) {
-          if (this._workflow.StatusName == 'Projected' && this._workflow.SubmitType == 498) {
+
+          var lookupidForAccount = this.lstCheckListStatusType.filter(x => x.Name.toString().toLowerCase() === 'operating account')[0].LookupID;
+
+          var SkipWorkflowNotification = (this._workflow.WFCheckList.filter(x => x.CheckListMasterId == 21).length > 0 && this._workflow.WFCheckList.filter(x => x.CheckListMasterId == 21)[0].CheckListStatus == lookupidForAccount);
+
+          if (this._workflow.TaskTypeID == 502 && SkipWorkflowNotification == true && this._workflow.SubmitType == 498)
+          {
+            var workflowURL;
+            if (window.location.href.indexOf("workflowdetail/a") > -1) {
+              workflowURL = ['workflowdetail', this._workflow.TaskID, this._workflow.TaskTypeID]
+            }
+            else {
+              workflowURL = ['workflowdetail/a', this._workflow.TaskID, this._workflow.TaskTypeID]
+            }
+            this._isWFFetching = false;
+            localStorage.setItem('divSucessWorkflow', 'true');
+            localStorage.setItem('divSucessMsgWorkflow', 'Draw approval status updated successfully');
+            this._router.navigate(workflowURL);
+          }
+
+          else if (this._workflow.StatusName == 'Projected' && this._workflow.SubmitType == 498) {
 
             var notification_type = this._isShowRevisedPreliminary == true ? this._RevisedPreliminary : this._Preliminary;
+            this._workflow.OriginalWFStatusPurposeMappingID = res.WFStatusPurposeMappingID;
             this.GetWFCommentsByTaskIdOnNotification(this._workflow, notification_type);
             //this.showWFNotificationDialog(this._Preliminary);
             this.IsShowSaveAndStatusButton = true;
@@ -731,6 +939,7 @@ export class WorkflowDetailComponent {
           }
           else if (this._workflow.NextStatusName == 'Completed' && this._workflow.SubmitType == 498) {
             var notification_type = this._isShowRevisedFinal == true ? this._RevisedFinal : this._Final;
+            this._workflow.OriginalWFStatusPurposeMappingID = res.WFStatusPurposeMappingID;
             this.GetWFCommentsByTaskIdOnNotification(this._workflow, notification_type);
             // this.showWFNotificationDialog(this._Final);
             this.IsShowSaveAndStatusButton = true;
@@ -743,20 +952,34 @@ export class WorkflowDetailComponent {
           //}
 
           else {
-
-            var notenewcopied;
-            if (window.location.href.indexOf("dealdetail/a") > -1) {
-              notenewcopied = ['dealdetail', this._wfAdditionalData.CREDealID]
+            if (this.IsSaveClick == true) {
+              var workflowURL;
+              if (window.location.href.indexOf("workflowdetail/a") > -1) {
+                workflowURL = ['workflowdetail', this._workflow.TaskID, this._workflow.TaskTypeID]
+              }
+              else {
+                workflowURL = ['workflowdetail/a', this._workflow.TaskID, this._workflow.TaskTypeID]
+              }
+              this._isWFFetching = false;
+              localStorage.setItem('divSucessWorkflow', 'true');
+              localStorage.setItem('divSucessMsgWorkflow', 'Draw approval status updated successfully');
+              this._router.navigate(workflowURL);
             }
             else {
-              notenewcopied = ['dealdetail/a', this._wfAdditionalData.CREDealID]
+              var notenewcopied;
+              if (window.location.href.indexOf("dealdetail/a") > -1) {
+                notenewcopied = ['dealdetail', this._wfAdditionalData.CREDealID]
+              }
+              else {
+                notenewcopied = ['dealdetail/a', this._wfAdditionalData.CREDealID]
+              }
+
+              localStorage.setItem('ClickedTabId', 'aFunding');
+              localStorage.setItem('divSucessDeal', 'true');
+              localStorage.setItem('divSucessMsgDeal', 'Draw approval status updated successfully');
+
+              this._router.navigate(notenewcopied);
             }
-
-            localStorage.setItem('ClickedTabId', 'aFunding');
-            localStorage.setItem('divSucessDeal', 'true');
-            localStorage.setItem('divSucessMsgDeal', 'Draw approval status updated successfully');
-
-            this._router.navigate(notenewcopied);
           }
         }
 
@@ -778,6 +1001,14 @@ export class WorkflowDetailComponent {
         }
 
 
+      }
+      else if (res.StatusCode != undefined && res.StatusCode == 1) {
+
+        this.savedialogmsg = "<p>Another user has changed the workflow details. Please refresh the page before performing any operations.";
+        this.CustomDialogteSave();
+        this.IsShowSaveAndStatusButton = true;
+        this._isWFFetching = false;
+        return;
       }
       else {
         this._router.navigate(['login']);
@@ -802,6 +1033,7 @@ export class WorkflowDetailComponent {
           && this._workflow.PurposeTypeId == 630
         ) {
           var notification_type = this._FinalWithoutApproval;
+          this._workflow.OriginalWFStatusPurposeMappingID = res.WFStatusPurposeMappingID;
           this.showWFNotificationDialogForNegativeAmt(notification_type);
           this._isWFFetching = false;
         }
@@ -823,6 +1055,14 @@ export class WorkflowDetailComponent {
           this._isWFFetching = false;
         }
       }
+      else if (res.StatusCode != undefined && res.StatusCode == 1) {
+
+        this.savedialogmsg = "<p>Another user has changed the workflow details. Please refresh the page before performing any operations.";
+        this.CustomDialogteSave();
+        this.IsShowSaveAndStatusButton = true;
+        this._isWFFetching = false;
+        return;
+      }
       else {
         this._router.navigate(['login']);
       }
@@ -836,11 +1076,13 @@ export class WorkflowDetailComponent {
     this._isRefresh = true;
     this._isNotificationMsg = false;
     this._isWFFetching = true;
+    this._isPayOffNotifyClick = false;
 
     if (btnType == 'Rejected') {
       this._workflow.SubmitType = 496;
 
-      var selectedText = newvalue.target.className;
+      //var selectedText = newvalue.target.className;
+      var selectedText = newvalue.target.id;
       selectedText = selectedText.trim();
       var newWFStatusPurposeMappingID = this.lstRejectList.filter(x => x.StatusName == selectedText)[0].WFStatusPurposeMappingID;
       this._workflow.WFStatusPurposeMappingID = newWFStatusPurposeMappingID;
@@ -935,7 +1177,9 @@ export class WorkflowDetailComponent {
       }
       else if (this._workflow.wfFlag == 'FinalState') {
         for (var i = 0; i < chkListWithMandatoryFields.length; i++) {
-          if (Number(chkListWithMandatoryFields[i].CheckListStatus).toString() != lookupidForYes) {
+          if (Number(chkListWithMandatoryFields[i].CheckListStatus).toString() != lookupidForYes
+            && chkListWithMandatoryFields[i].CheckListMasterId != 19
+          ) {
             retvalue = false;
             msg = "<p>All checklist items should be marked as YES for completed status.";
             break;
@@ -946,6 +1190,33 @@ export class WorkflowDetailComponent {
         if (wcDate > todaysdate) {
           retvalue = false;
           msg = msg + "<p>" + "Funding date should not be greater than today's date." + "</p>";
+        }
+        if (this._workflow.PurposeTypeId == 630) {
+          if (this._workflow.PrepayPremium == null || this._workflow.PrepayPremium == undefined) {
+            retvalue = false;
+            msg = msg + "<p>Prepayment Premium cannot be Blank." + "</p>";
+          }
+          else if (this._workflow.PrepayPremium < 0) {
+            retvalue = false;
+            msg = msg + "<p>Prepayment Premium cannot be Negative." + "</p>";
+          }
+          if (this._workflow.ExitFee == null || this._workflow.ExitFee == undefined) {
+            retvalue = false;
+            msg = msg + "<p>Exit Fee cannot be Blank." + "</p>";
+          }
+          else if (this._workflow.ExitFee < 0) {
+            retvalue = false;
+            msg = msg + "<p>Exit Fee cannot be Negative." + "</p>";
+          }
+
+          if (this._workflow.ExitFeePercentage == null || this._workflow.ExitFeePercentage == undefined) {
+            retvalue = false;
+            msg = msg + "<p>Exit Fee Percentage cannot be Blank." + "</p>";
+          }
+          else if (this._workflow.ExitFeePercentage < 0) {
+            retvalue = false;
+            msg = msg + "<p>Exit Fee Percentage cannot be Negative." + "</p>";
+          }
         }
       }
     }
@@ -958,6 +1229,7 @@ export class WorkflowDetailComponent {
 
     var retvalue = true;
     var msg = "";
+    this._isPayOffNotifyClick = false;
     if (this._workflow.NextStatusName == 'Completed' && btnType == 'Approved' && this._workflow.TaskTypeID == 502) {
       this.wfSrv.ValidateWireConfirmByTaskId(this._workflow).subscribe(res => {
         if (res.Succeeded) {
@@ -1063,7 +1335,7 @@ export class WorkflowDetailComponent {
   }
 
   ValidateWireConfirmNegativAmtOnNotify(notificatioType): void {
-
+    this._isPayOffNotifyClick = true;
     var retvalue = true;
     var msg = "";
     if (this._workflow.TaskTypeID == 502) {
@@ -1191,6 +1463,7 @@ export class WorkflowDetailComponent {
     this._isNotificationMsg = false;
     this._isWFFetching = true;
     this.clickButtonType = btnType;
+    this._isPayOffNotifyClick = false;
 
     if (this.commentHistory != '') {
       this._workflow.ActivityLog = "<b>Activity log are below:</b><br/>" + this.commentHistory
@@ -1198,11 +1471,13 @@ export class WorkflowDetailComponent {
     this._workflow.FooterText = "Thank you,<br/>" + this._user.FirstName + ' ' + this._user.LastName + '<br/>' + this._user.Email + ((this._user.ContactNo1 != '' && this._user.ContactNo1 != null) ? ' | ' + this._user.ContactNo1 : '');
     this._workflow.SenderName = this._user.FirstName + ' ' + this._user.LastName;
 
+
     this._workflow.WFCheckListStatus = this.lstCheckListStatusType;
     if (btnType == 'Rejected') {
       this._workflow.SubmitType = 496;
 
-      var selectedText = newvalue.target.className;
+      //var selectedText = newvalue.target.className;
+      var selectedText = newvalue.target.id;
       selectedText = selectedText.trim();
       var newWFStatusPurposeMappingID = this.lstRejectList.filter(x => x.StatusName == selectedText)[0].WFStatusPurposeMappingID;
       this._workflow.WFStatusPurposeMappingID = newWFStatusPurposeMappingID;
@@ -1276,7 +1551,25 @@ export class WorkflowDetailComponent {
     //user need to sendf prelim notifiation before moving further after under review status
     //if debt amt = 0 then skip sending prelim notification
     if (parseFloat(this._wfAdditionalData.Amount) > 0) {
-      if (this._workflow.StatusName.toLowerCase() == 'under review' && this._workflow.SubmitType == 498 && this._isShowPreliminary == true) {
+      
+      var lookupidForAccount = this.lstCheckListStatusType.filter(x => x.Name.toString().toLowerCase() === 'operating account')[0].LookupID;
+
+      var SkipWorkflowNotification = (this._workflow.WFCheckList.filter(x => x.CheckListMasterId == 21).length > 0 && this._workflow.WFCheckList.filter(x => x.CheckListMasterId == 21)[0].CheckListStatus == lookupidForAccount);
+
+      
+
+      //if skip notification flag is enabled than skip normal workflow
+      if (this._workflow.StatusName.toLowerCase() == 'under review' && this._workflow.SubmitType == 498 && this._isShowPreliminary == true && SkipWorkflowNotification == false) {
+        if (!this._wfAdditionalData.IsPrelimDisabled) {
+
+          retvalue = false;
+          msg = "<p>Please send the preliminary  Notification before changing the Funding Status.";
+          this.savedialogmsg = msg;
+          return retvalue;
+        }
+      }
+      //if skip notification flag is enabled than skip normal workflow but no effect on  reserve workflow
+      if (this._workflow.StatusName.toLowerCase() == 'under review' && this._workflow.SubmitType == 498 && this._isShowPreliminary == true && SkipWorkflowNotification == true && this._workflow.TaskTypeID == 719) {
         retvalue = false;
         msg = "<p>Please send the preliminary  Notification before changing the Funding Status.";
         this.savedialogmsg = msg;
@@ -1310,6 +1603,10 @@ export class WorkflowDetailComponent {
     var lookupidForNA = this.lstCheckListStatusType.filter(x => x.Name.toString().toLowerCase() === 'n/a')[0].LookupID;
     var lookupidForWaived = this.lstCheckListStatusType.filter(x => x.Name.toString().toLowerCase() === 'waived')[0].LookupID;
     var lookupidForPending = this.lstCheckListStatusType.filter(x => x.Name.toString().toLowerCase() === 'pending')[0].LookupID;
+    var lookupidForSatisfied = this.lstCheckListStatusType.filter(x => x.Name.toString().toLowerCase() === 'satisfied')[0].LookupID;
+    var lookupidForUnSatisfied = this.lstCheckListStatusType.filter(x => x.Name.toString().toLowerCase() === 'unsatisfied')[0].LookupID;
+
+
 
     var chkListWithMandatoryFields = this._workflow.WFCheckList;
 
@@ -1320,6 +1617,7 @@ export class WorkflowDetailComponent {
       if (chkListWithMandatoryFields[i].hasOwnProperty('CheckListStatusText') == false) {
         this._workflow.WFCheckList[i].CheckListStatusText = '';
       }
+      
       if (chkListWithMandatoryFields[i].hasOwnProperty('Comment') == false) {
         this._workflow.WFCheckList[i].Comment = '';
       }
@@ -1331,6 +1629,15 @@ export class WorkflowDetailComponent {
     if (blankChklist.length > 0) {
       retvalue = false;
       msg = "<p>Check list name should not be blank.";
+      this.savedialogmsg = msg;
+      return retvalue;
+    }
+
+    //Check list status required
+    var blankstatustext = this._workflow.WFCheckList.filter(x => (x.CheckListStatusText.trim() === '' || x.CheckListStatusText.trim()==null));
+    if (blankstatustext.length > 0) {
+      retvalue = false;
+      msg = "<p>Check list option should not be blank.";
       this.savedialogmsg = msg;
       return retvalue;
     }
@@ -1354,7 +1661,9 @@ export class WorkflowDetailComponent {
 
         chkListWithMandatoryFields = this._workflow.WFCheckList.filter(x => x.IsMandatory === true);
         for (var i = 0; i < chkListWithMandatoryFields.length; i++) {
-          if (Number(chkListWithMandatoryFields[i].CheckListStatus).toString() != lookupidForYes) {
+          if (Number(chkListWithMandatoryFields[i].CheckListStatus).toString() != lookupidForYes
+            && Number(chkListWithMandatoryFields[i].CheckListStatus).toString() != lookupidForSatisfied
+          ) {
             retvalue = false;
             msg = "<p>" + chkListWithMandatoryFields[i].CheckListName.replace('*', '') + " is mandatory.";
             break;
@@ -1380,10 +1689,14 @@ export class WorkflowDetailComponent {
         for (var i = 0; i < chkListWithMandatoryFields.length; i++) {
           if (chkListWithMandatoryFields[i].CheckListMasterId != 6 && chkListWithMandatoryFields[i].CheckListMasterId != 15 &&
             chkListWithMandatoryFields[i].CheckListMasterId != 16 && chkListWithMandatoryFields[i].CheckListMasterId != 17 &&
-            chkListWithMandatoryFields[i].CheckListMasterId != 9) {
-            if (Number(chkListWithMandatoryFields[i].CheckListStatus).toString() != lookupidForYes && Number(chkListWithMandatoryFields[i].CheckListStatus).toString() != lookupidForNA && Number(chkListWithMandatoryFields[i].CheckListStatus).toString() != lookupidForWaived && Number(chkListWithMandatoryFields[i].CheckListStatus).toString() != lookupidForPending) {
+            chkListWithMandatoryFields[i].CheckListMasterId != 9 && chkListWithMandatoryFields[i].CheckListMasterId != 21
+          ) {
+            if (Number(chkListWithMandatoryFields[i].CheckListStatus).toString() != lookupidForYes
+              && Number(chkListWithMandatoryFields[i].CheckListStatus).toString() != lookupidForSatisfied
+              && Number(chkListWithMandatoryFields[i].CheckListStatus).toString() != lookupidForUnSatisfied 
+              && Number(chkListWithMandatoryFields[i].CheckListStatus).toString() != lookupidForNA && Number(chkListWithMandatoryFields[i].CheckListStatus).toString() != lookupidForWaived && Number(chkListWithMandatoryFields[i].CheckListStatus).toString() != lookupidForPending) {
               retvalue = false;
-              msg = "<p>All checklist items should be marked as YES or N/A or Waived for completed status.";
+              msg = "<p>All checklist items should be marked as YES or N/A or Waived or Satisfied for completed status.";
               break;
             }
           }
@@ -1415,7 +1728,9 @@ export class WorkflowDetailComponent {
 
       chkListWithMandatoryFields = this._workflow.WFCheckList.filter(x => x.IsMandatory === true);
       for (var i = 0; i < chkListWithMandatoryFields.length; i++) {
-        if (Number(chkListWithMandatoryFields[i].CheckListStatus).toString() != lookupidForYes) {
+        if (Number(chkListWithMandatoryFields[i].CheckListStatus).toString() != lookupidForYes
+          && Number(chkListWithMandatoryFields[i].CheckListStatus).toString() != lookupidForSatisfied
+        ) {
           retvalue = false;
           msg = "<p>" + chkListWithMandatoryFields[i].CheckListName.replace('*', '') + " is mandatory.";
           break;
@@ -1438,6 +1753,41 @@ export class WorkflowDetailComponent {
           retvalue = false;
           msg = errorMsg;
           //this.CustomAlert(errorMsg);
+        }
+      }
+    }
+    if (this._workflow.AdditionalEmail) {
+      const Emailexp = /^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
+      this._workflow.AdditionalEmail = this._workflow.AdditionalEmail.replace(/,(?=\s*$)/, '');
+      var drawccemail = this._workflow.AdditionalEmail.replace(/;/g, ",").replace(/,(?=\s*$)/, '');
+
+      var foundemail = '';
+      var foundcomma = drawccemail.indexOf(",");
+      if (foundcomma > 0) {
+        var splitemail = drawccemail.split(",");
+        for (var k = 0; k < splitemail.length; k++) {
+          splitemail[k] = splitemail[k].replace(/\s/g, '');
+          if (splitemail[k].trim() != '') {
+            if (!Emailexp.test(String(splitemail[k]).toLowerCase())) {
+              foundemail = foundemail + splitemail[k] + ", ";
+            }
+          }
+        }
+        if (foundemail != '') {
+          msg = "<p>" + "Please enter valid Additional Email Address(es) separated by comma/semicolon." + "</p>";
+          this.savedialogmsg = msg;
+          retvalue = false;
+          return retvalue;
+        }
+      }
+      else {
+        if (this._workflow.AdditionalEmail != "") {
+          if (!Emailexp.test(String(this._workflow.AdditionalEmail).toLocaleLowerCase())) {
+            msg = "<p>" + "Please enter valid Additional Email Address(es) separated by comma/semicolon." + "</p>";
+            retvalue = false;
+            this.savedialogmsg = msg;
+            return retvalue;
+          }
         }
       }
     }
@@ -1521,16 +1871,19 @@ export class WorkflowDetailComponent {
         }
         else if (this._workflow.TaskTypeID == 719) {
 
-          if (this._wfAdditionalData.IsREODeal || notificatioType == this._Final || notificatioType == this._RevisedFinal) {
-            this.showWFNotificationDialogForReserveWorkflow(notificatioType);
-          }
-          else {
-            this._isRefresh = true;
-            this._isWFFetching = false;
-            localStorage.setItem('divSucessWorkflow', 'true');
-            localStorage.setItem('divSucessMsgWorkflow', 'Draw approval status updated successfully');
-            this.CloseWFNotificationDialog();
-          }
+          //if (this._wfAdditionalData.IsREODeal || notificatioType == this._Final || notificatioType == this._RevisedFinal) {
+          //  this.showWFNotificationDialogForReserveWorkflow(notificatioType);
+          //}
+          //else {
+          //  this._isRefresh = true;
+          //  this._isWFFetching = false;
+          //  localStorage.setItem('divSucessWorkflow', 'true');
+          //  localStorage.setItem('divSucessMsgWorkflow', 'Draw approval status updated successfully');
+          //  this.CloseWFNotificationDialog();
+          //}
+
+          //need reserve workflow prelim and final notifications for both REO and Non REO deals
+          this.showWFNotificationDialogForReserveWorkflow(notificatioType);
         }
 
       }
@@ -1772,7 +2125,7 @@ export class WorkflowDetailComponent {
 
     // add checklist to popup
 
-    var table = '<table id="noteinfo" border="1" style="border-collapse:collapse;font-size:12px;"><tr style="font-weight:bold"><td style="padding-left:5px!important;padding-right:5px!important;">Checklist</td><td style="padding-left:5px!important;padding-right:5px!important;">Status</td><td style="padding-left:5px!important;padding-right:5px!important;">Comment</td></tr>'
+    var table = '<table id="noteinfo" border="1" style="border-collapse:collapse;"><tr style="font-weight:bold"><td style="padding-left:5px!important;padding-right:5px!important;">Checklist</td><td style="padding-left:5px!important;padding-right:5px!important;">Status</td><td style="padding-left:5px!important;padding-right:5px!important;">Comment</td></tr>'
     var tr = "";
     for (var i = 0; i < this._workflow.WFCheckList.length; i++) {
 
@@ -1904,6 +2257,10 @@ export class WorkflowDetailComponent {
 
       this._wfNotificationDetail.WFBody = this._bodyText;
       this._notificationTittle = "Revised - Preliminary Notification";
+      if (this._wfAdditionalData.RevisedMessage != undefined && this._wfAdditionalData.RevisedMessage != '') {
+
+        this._wfAdditionalData.RevisedMessage = this._wfAdditionalData.RevisedMessage.replace('[Preliminary or Final]', 'Preliminary');
+      }
     }
 
     else if (notificatioType == this._Final) {
@@ -2043,39 +2400,65 @@ export class WorkflowDetailComponent {
       if (this.commentHistory != '') {
         this._activityLog = "<b>Activity log are below:</b><br/>" + this.commentHistory
       }
-    }
-    //else if (notificatioType == this._Servicer) {
-    //    this._wfNotificationDetail.WFNotificationMasterID = 3
-    //    this._wfNotificationDetail.Subject = "Notification of Funding - " + this._wfAdditionalData.DealName + drawnumber;
-    //    this._bodyText = "ACORE will be making this loan advance on  " + this.convertDateToBindable(this._wfAdditionalData.Date) + ". " +
-    //        "Please update Wells’ records accordingly.\n\nDetails by note are below:\n" +
-    //        "\nDeal Name - " + this._wfAdditionalData.DealName +
-    //        "\nFunding Date - " + this.convertDateToBindable(this._wfAdditionalData.Date)+
-    //    "\nFunding amount per note:" + '\n'+this.noteswithAmount;
-    //    this._wfNotificationDetail.WFBody = this._bodyText;
-    //    this._notificationTittle = "Servicer Notification";
-    //}
-    //else if (notificatioType == this._RevisedServicer) {
-    //    this._wfNotificationDetail.WFNotificationMasterID = 3
-    //    this._wfNotificationDetail.Subject = "Revised - Notification of Funding - " + this._wfAdditionalData.DealName + drawnumber;
-    //    this._bodyText = "ACORE will be making this loan advance on  " + this.convertDateToBindable(this._wfAdditionalData.Date) + ". " +
-    //        "Please update Wells’ records accordingly.\n\nDetails by note are below:\n" +
-    //        "\nDeal Name - " + this._wfAdditionalData.DealName +
-    //        "\nFunding Date - " + this.convertDateToBindable(this._wfAdditionalData.Date) +
-    //        "\nFunding amount per note:" + '\n'+ this.noteswithAmount
-    //    this._wfNotificationDetail.WFBody = this._bodyText;
-    //    this._notificationTittle = "Servicer Notification";
-    //}
+      if (this._wfAdditionalData.RevisedMessage != undefined && this._wfAdditionalData.RevisedMessage != '') {
 
+        this._wfAdditionalData.RevisedMessage = this._wfAdditionalData.RevisedMessage.replace('[Preliminary or Final]', 'Final');
+      }
+    }
+    else if (notificatioType == this._CancelPreliminary) {
+
+      if (prelimEmails != null && prelimEmails.length > 0) {
+        if (prelimEmails[0].EmailID != '' && prelimEmails[0].EmailID != null) {
+          emailto = prelimEmails[0].EmailIDs
+        }
+        if (prelimEmails[0].ClientName != '') {
+          IsMultiinvestor = prelimEmails[0].ClientFunding.split('|').length > 1
+          clientName = prelimEmails[0].ClientsName + " ";
+        }
+
+        if (prelimEmails[0].DealClients != '') {
+          dealclientName = prelimEmails[0].DealClients + " ";
+        }
+
+      }
+
+
+      if (IsMultiinvestor) {
+        var client = ''
+        var detail = prelimEmails[0].ClientFunding.split('|');
+        if (detail.length > 0) {
+          for (var i = 0; i < detail.length; i++) {
+            ClientFundingDetail = ClientFundingDetail + detail[i].split(',')[0] + ": $" + parseFloat(detail[i].split(',')[1]).toFixed(2).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,") + "\n"
+            client = client + detail[i].split(',')[0] + '/';
+          }
+          ClientFundingDetailText = "\n\nAmount broken out by " + client.slice(0, -1) + " are as follows:\n" + ClientFundingDetail
+        }
+      }
+
+      this._wfNotificationDetail.WFNotificationMasterID = 7
+      this._wfNotificationDetail.Subject = "Canceled – Preliminary " + dealclientName + "Capital Call Notice - " + this._wfAdditionalData.DealName + drawnumber + fundingdateMMDDYYYYPrelim;
+      this._bodyText = "Please be advised that the below transaction has been canceled. Please disregard the Preliminary Capital Call below." +
+        "\n\nThe Preliminary Capital Call that was originally sent " + this.convertDateToBindable(this._wfAdditionalData.LastPrelimSentDate) + ", " +
+        "with Asset Management's " + "approval due on " + this.convertDateToBindable(this._wfAdditionalData.DeadLineDate) + "." +
+        ClientFundingDetailText;
+      this._wfNotificationDetail.WFBody = this._bodyText;
+      this._notificationTittle = "Cancel Preliminary Notification";
+    }
     this._footerText = "Thank you,\n" + this._user.FirstName + ' ' + this._user.LastName + '\n' + this._user.Email + ((this._user.ContactNo1 != '' && this._user.ContactNo1 != null) ? ' | ' + this._user.ContactNo1 : '');
     this._wfNotificationDetail.WFFooter = this._footerText;
     this._wfNotificationDetail.EnvironmentName = this.environmentName;
-    this._wfNotificationDetail.Subject = this.environmentName + this._wfNotificationDetail.Subject
+
 
     //change in subject for force funding type--need to uncomment for integration
     if (this._workflow.PurposeTypeId == 520) {
-      this._wfNotificationDetail.Subject = "Force Funding – " + this._wfNotificationDetail.Subject;
+      if (notificatioType == this._CancelPreliminary) {
+        this._wfNotificationDetail.Subject = "Canceled - Force Funding – " + this._wfNotificationDetail.Subject.substring(11);
+      }
+      else {
+        this._wfNotificationDetail.Subject = "Force Funding – " + this._wfNotificationDetail.Subject;
+      }
     }
+    this._wfNotificationDetail.Subject = this.environmentName + this._wfNotificationDetail.Subject
     var Emailcc = "";
     if (notificatioType == this._Final || notificatioType == this._RevisedFinal) {
       Emailcc = this._wfAdditionalData.AMEmails.replace('|', '');
@@ -2083,6 +2466,21 @@ export class WorkflowDetailComponent {
     else {
       Emailcc = this._wfAdditionalData.AMEmails.split('|')[0];
 
+    }
+    if (notificatioType == this._Preliminary || notificatioType == this._RevisedPreliminary || notificatioType == this._Final || notificatioType == this._RevisedFinal
+      || notificatioType == this._CancelPreliminary
+    ) {
+      Emailcc = Emailcc.replace(/,\s*$/, "")
+      if (Emailcc != '') {
+        if (this._workflow.AdditionalEmail != '') {
+          Emailcc = Emailcc + ',' + this._workflow.AdditionalEmail;
+        }
+      }
+      else {
+        if (this._workflow.AdditionalEmail != '') {
+          Emailcc = this._workflow.AdditionalEmail;
+        }
+      }
     }
 
     //removed amfunding team from the notification as requested by client
@@ -2182,15 +2580,37 @@ export class WorkflowDetailComponent {
       if (this.notificatio_type == this._FinalWithoutApproval) {
         this._wfNotificationDetail.Subject = "Final Loan Payoff Notice: " + this._wfAdditionalData.DealName;
 
-        this._bodyText = "The " + this._wfAdditionalData.DealName + " loan paid off today, " + this.convertDateToBindable(new Date()) + ", with a principal balance of " + "$" + Math.abs(parseFloat(this._wfAdditionalData.Amount)).toFixed(2).toString() + ". Funds will be remitted by " + this._wfAdditionalData.ServicerName + " within 2 business days.";
+        this._bodyText = "The " + this._wfAdditionalData.DealName + " loan paid off " + this.convertDateToBindable(this._wfAdditionalData.Date) + ", with a principal balance of " + "$" + Math.abs(parseFloat(this._wfAdditionalData.Amount)).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,") + ". Funds will be remitted by " + this._wfAdditionalData.ServicerName + " within 2 business days.";
         this._wfNotificationDetail.WFBody = this._bodyText;
         this._notificationTittle = "Full Payoff Notification";
       }
       else if (this.notificatio_type == this._RevisedFinalWithoutApproval) {
         this._wfNotificationDetail.Subject = "Revised-Final Loan Payoff Notice: " + this._wfAdditionalData.DealName;
-        this._bodyText = "The " + this._wfAdditionalData.DealName + " loan paid off today, " + this.convertDateToBindable(new Date()) + ", with a principal balance of " + "$" + Math.abs(parseFloat(this._wfAdditionalData.Amount)).toFixed(2).toString() + ". Funds will be remitted by " + this._wfAdditionalData.ServicerName + " within 2 business days.";
+        this._bodyText = "The " + this._wfAdditionalData.DealName + " loan paid off " + this.convertDateToBindable(this._wfAdditionalData.Date) + ", with a principal balance of " + "$" + Math.abs(parseFloat(this._wfAdditionalData.Amount)).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,") + ". Funds will be remitted by " + this._wfAdditionalData.ServicerName + " within 2 business days.";
         this._wfNotificationDetail.WFBody = this._bodyText;
         this._notificationTittle = "Revised-Full Payoff Notification";
+      }
+
+
+      if (this.tblPayOffNoteAdditionalInfo != "") {
+
+        var prepPrem = "";
+        var exitFee = "";
+        var exitFeePer = "";
+
+        prepPrem = "$" + (this._workflow.PrepayPremium == null ? "0" : this._workflow.PrepayPremium.toFixed(0)).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,");
+        exitFee = "$" + (this._workflow.ExitFee == null ? "0" : this._workflow.ExitFee.toFixed(0)).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,");
+        //exitFeePer = (this._workflow.ExitFeePercentage * 100).toString() + "%";
+        var extFee1 = Number.isInteger(this._workflow.ExitFeePercentage * 100) ? (this._workflow.ExitFeePercentage * 100).toFixed(2) : parseFloat((this._workflow.ExitFeePercentage * 100).toString());
+
+        extFee1 = extFee1.toString().split(".")[1].length < 2 ? parseFloat(extFee1.toString()).toFixed(2) : extFee1.toString();
+        exitFeePer = extFee1.toString() + "%";
+
+        var tblPayoffLocal = this.tblPayOffNoteAdditionalInfo.replace("$prePrem$", prepPrem);
+        tblPayoffLocal = tblPayoffLocal.replace("$exitFee$", exitFee);
+        tblPayoffLocal = tblPayoffLocal.replace("$exitFeePer$", exitFeePer);
+        tblPayoffLocal = tblPayoffLocal + this.tblPayoff
+        this.trustedPayOffDetail = this.sanitizer.bypassSecurityTrustHtml(tblPayoffLocal);
       }
     }
 
@@ -2214,6 +2634,17 @@ export class WorkflowDetailComponent {
     else
 
       Emailcc = this._wfAdditionalData.AMEmails;
+    Emailcc = Emailcc.replace(/,\s*$/, "")
+    if (Emailcc != '') {
+      if (this._workflow.AdditionalEmail != '') {
+        Emailcc = Emailcc + ',' + this._workflow.AdditionalEmail;
+      }
+    }
+    else {
+      if (this._workflow.AdditionalEmail != '') {
+        Emailcc = this._workflow.AdditionalEmail;
+      }
+    }
 
 
     this._wfNotificationDetail.EmailCCIds = Emailcc;
@@ -2329,8 +2760,13 @@ export class WorkflowDetailComponent {
       var modal = document.getElementById('myModalWFNotification');
       modal.style.display = "none";
 
-      if (this._isRefresh) {
+      //commented cancel final notification functionality
+      if (this.notificatio_type == this._Final && !this._wfAdditionalData.IsCancelFinalSent) {
 
+        this.CancelWFNotification();
+      }
+
+      else if (this._isRefresh) {
         var notenewcopied;
         if (window.location.href.indexOf("workflowdetail/a/") > -1) {
           notenewcopied = ['workflowdetail', this._wfAdditionalData.TaskID, this._workflow.TaskTypeID]
@@ -2406,8 +2842,18 @@ export class WorkflowDetailComponent {
 
   SendWFNotification(btnType): void {
 
+    this._MsgText = "";
+    if (this._wfAdditionalData.NotesWithFinancingSourceNone != '') {
+      this._IsShowMsg = true;
+      this.isShowSendButton = true;
+      this._MsgText = "Note(s) " + this._wfAdditionalData.NotesWithFinancingSourceNone + " does not have a financing source assigned. Please get with Accounting to have the financing source corrected. Once saved, then return to this page to send the Notification."
+      //setTimeout(function () {
+      //    this._IsShowMsg = false;
+      //}.bind(this), 4000);
 
-    if (this.ValidateTOCCEmail()) {
+    }
+
+    else if (this.ValidateTOCCEmail()) {
 
       this.isShowSendButton = false;
       this._isWFFetching = true;
@@ -2433,19 +2879,42 @@ export class WorkflowDetailComponent {
         this._wfNotificationDetail.MessageHTML += this._wfNotificationDetail.WFHeader + '\n\n';
       }
 
-      if (this._workflow.SpecialInstructions != undefined && this._workflow.SpecialInstructions != '') {
-        //this._wfNotificationDetail.MessageHTML += this._wfNotificationDetail.WFBody.replace(/\n/g, "<br>") + '<br/><br/>';
-        this._wfNotificationDetail.MessageHTML += '<span style="color: black;font-weight:bold;font-size:16px;background-color:yellow">' + this._workflow.SpecialInstructions + '</span>' + '\n\n';
+
+      if (this.notificatio_type == this._CancelPreliminary) {
+        if (this._wfNotificationDetail.WFBody != undefined) {
+          //this._wfNotificationDetail.MessageHTML += this._wfNotificationDetail.WFBody + '<br/><br/>';
+          if (this._workflow.TaskTypeID == 719)
+            this._wfNotificationDetail.MessageHTML += this._wfNotificationDetail.WFBody;
+          else
+            this._wfNotificationDetail.MessageHTML += this._wfNotificationDetail.WFBody + '\n\n';
+
+        }
+        if (this._workflow.SpecialInstructions != undefined && this._workflow.SpecialInstructions != '') {
+          //this._wfNotificationDetail.MessageHTML += this._wfNotificationDetail.WFBody.replace(/\n/g, "<br>") + '<br/><br/>';
+          this._wfNotificationDetail.MessageHTML += '<span style="color: black;font-weight:bold;font-size:16px;background-color:yellow">' + this._workflow.SpecialInstructions + '</span>' + '\n\n';
+        }
       }
+      else {
+        if ((this.notificatio_type == this._RevisedPreliminary || this.notificatio_type == this._RevisedFinal) &&
+          this._wfAdditionalData.RevisedMessage != undefined && this._wfAdditionalData.RevisedMessage != '') {
+
+          this._wfNotificationDetail.MessageHTML += '<span style="color: black;font-weight:bold;font-size:16px;background-color:yellow">' + this._wfAdditionalData.RevisedMessage + '</span>' + '\n\n';
+        }
+
+        if (this._workflow.SpecialInstructions != undefined && this._workflow.SpecialInstructions != '') {
+          //this._wfNotificationDetail.MessageHTML += this._wfNotificationDetail.WFBody.replace(/\n/g, "<br>") + '<br/><br/>';
+          this._wfNotificationDetail.MessageHTML += '<span style="color: black;font-weight:bold;font-size:16px;background-color:yellow">' + this._workflow.SpecialInstructions + '</span>' + '\n\n';
+        }
 
 
-      if (this._wfNotificationDetail.WFBody != undefined) {
-        //this._wfNotificationDetail.MessageHTML += this._wfNotificationDetail.WFBody + '<br/><br/>';
-        if (this._workflow.TaskTypeID == 719)
-          this._wfNotificationDetail.MessageHTML += this._wfNotificationDetail.WFBody;
-        else
-          this._wfNotificationDetail.MessageHTML += this._wfNotificationDetail.WFBody + '\n\n';
+        if (this._wfNotificationDetail.WFBody != undefined) {
+          //this._wfNotificationDetail.MessageHTML += this._wfNotificationDetail.WFBody + '<br/><br/>';
+          if (this._workflow.TaskTypeID == 719)
+            this._wfNotificationDetail.MessageHTML += this._wfNotificationDetail.WFBody;
+          else
+            this._wfNotificationDetail.MessageHTML += this._wfNotificationDetail.WFBody + '\n\n';
 
+        }
       }
       if (this.delphinoteswithAmount != undefined && this.delphinoteswithAmount != '') {
         //this._wfNotificationDetail.MessageHTML += this._wfNotificationDetail.WFBody + '<br/><br/>';
@@ -2477,12 +2946,16 @@ export class WorkflowDetailComponent {
           this._wfNotificationDetail.MessageHTML += "Draw Approval checklist:\n\n" + this.checklistInTable + '\n\n';
         }
       }
-      if (this.noteswithAllocationAmount != undefined && this.noteswithAllocationAmount != '') {
+      if (this.noteswithAllocationAmount != undefined && this.noteswithAllocationAmount != ''
+        && this.delphinoteswithAmount != undefined && this.delphinoteswithAmount != ''
+      ) {
         //this._wfNotificationDetail.MessageHTML += this._wfNotificationDetail.WFBody + '<br/><br/>';
         this._wfNotificationDetail.MessageHTML += "\n" + this.noteswithAllocationAmount + '\n\n';
       }
 
-      if (this.noteswithAllocationPercentage != undefined && this.noteswithAllocationPercentage != '') {
+      if (this.noteswithAllocationPercentage != undefined && this.noteswithAllocationPercentage != ''
+        && this.delphinoteswithAmount != undefined && this.delphinoteswithAmount != ''
+      ) {
         //this._wfNotificationDetail.MessageHTML += this._wfNotificationDetail.WFBody + '<br/><br/>';
         this._wfNotificationDetail.MessageHTML += "\n" + this.noteswithAllocationPercentage + '\n\n';
       }
@@ -2504,11 +2977,18 @@ export class WorkflowDetailComponent {
       else {
         this._wfNotificationDetail.EmailCCIds = "";
       }
+
       this._wfNotificationDetail.UserName = this._user.FirstName + " " + this._user.LastName;
       this._wfNotificationDetail.AdditionalComments = this._workflow.AdditionalComments;
       this._wfNotificationDetail.SpecialInstructions = this._workflow.SpecialInstructions;
       this._wfNotificationDetail.WFCheckList = this._workflow.WFCheckList;
       this._wfNotificationDetail.TaskTypeID = this._workflow.TaskTypeID;
+      this._wfNotificationDetail.AdditionalEmail = this._workflow.AdditionalEmail;
+      this._wfNotificationDetail.ExitFee = this._workflow.ExitFee;
+      this._wfNotificationDetail.ExitFeePercentage = this._workflow.ExitFeePercentage;
+      this._wfNotificationDetail.PrepayPremium = this._workflow.PrepayPremium;
+      this._wfNotificationDetail.OriginalWFStatusPurposeMappingID = this._workflow.OriginalWFStatusPurposeMappingID;
+
       this.wfSrv.InsertUpdateWFNotification(this._wfNotificationDetail).subscribe(res => {
         if (res.Succeeded) {
           //if (this._wfNotificationDetail.WFNotificationMasterID == 2 && this._autoSendInvoice == 571) {
@@ -2533,7 +3013,7 @@ export class WorkflowDetailComponent {
                     //this._drawFeeInvoice.TemplateName = "m61 invoice template";
                     //this._drawFeeInvoice.InvoiceCode = "Draw Fees";
                     this._drawFeeInvoice.InvoiceTypeID = 558;
-                    this._drawFeeInvoice.StorageType = this._invoiceStorageType;
+                    this._drawFeeInvoice.StorageType = appsettings._invoiceStorageType;
                     this._drawFeeInvoice.FundingAmount = parseFloat(this._wfAdditionalData.Amount);
 
                     this.wfSrv.CreateInvoice(this._drawFeeInvoice).subscribe(res => {
@@ -2584,6 +3064,16 @@ export class WorkflowDetailComponent {
             this.CloseWFNotificationDialog();
           }
         }
+        else if (res.StatusCode != undefined && res.StatusCode == 1) {
+
+          this._IsShowMsg = true;
+          this.isShowSendButton = true;
+          this._isWFFetching = false;
+          this._MsgText = "Another user has changed the workflow details. Please refresh the page before performing any operations."
+          setTimeout(function () {
+            this._IsShowMsg = false;
+          }.bind(this), 4000);
+        }
         else {
           this._router.navigate(['login']);
         }
@@ -2603,8 +3093,8 @@ export class WorkflowDetailComponent {
 
   SendWFNotificationForNegativeAmt(): void {
 
-
-    if (this.ValidateTOCCEmail()) {
+    //if (this.ValidateTOCCEmail()) {
+    if (this.NegativeAmtValidation()) {
 
 
       this._isWFFetching = true;
@@ -2619,27 +3109,60 @@ export class WorkflowDetailComponent {
         this._wfNotificationDetail.MessageHTML += this._wfNotificationDetail.WFHeader + '\n\n';
       }
 
-      if (this._workflow.SpecialInstructions != undefined && this._workflow.SpecialInstructions != '') {
-        //this._wfNotificationDetail.MessageHTML += this._wfNotificationDetail.WFBody.replace(/\n/g, "<br>") + '<br/><br/>';
-        this._wfNotificationDetail.MessageHTML += '<span style="color: black;font-weight:bold;font-size:16px;background-color:yellow">' + this._workflow.SpecialInstructions + '</span>' + '\n\n';
+
+      if (this.notificatio_type == this._CancelPreliminary) {
+
+
+        if (this._wfNotificationDetail.WFBody != undefined) {
+          //this._wfNotificationDetail.MessageHTML += this._wfNotificationDetail.WFBody + '<br/><br/>';
+          this._wfNotificationDetail.MessageHTML += this._wfNotificationDetail.WFBody + '\n\n';
+        }
+        if (this._workflow.SpecialInstructions != undefined && this._workflow.SpecialInstructions != '') {
+          //this._wfNotificationDetail.MessageHTML += this._wfNotificationDetail.WFBody.replace(/\n/g, "<br>") + '<br/><br/>';
+          this._wfNotificationDetail.MessageHTML += '<span style="color: black;font-weight:bold;font-size:16px;background-color:yellow">' + this._workflow.SpecialInstructions + '</span>' + '\n\n';
+        }
+
       }
+      else {
+
+        if (this._workflow.SpecialInstructions != undefined && this._workflow.SpecialInstructions != '') {
+          //this._wfNotificationDetail.MessageHTML += this._wfNotificationDetail.WFBody.replace(/\n/g, "<br>") + '<br/><br/>';
+          this._wfNotificationDetail.MessageHTML += '<span style="color: black;font-weight:bold;font-size:16px;background-color:yellow">' + this._workflow.SpecialInstructions + '</span>' + '\n\n';
+        }
 
 
-      if (this._wfNotificationDetail.WFBody != undefined) {
-        //this._wfNotificationDetail.MessageHTML += this._wfNotificationDetail.WFBody + '<br/><br/>';
-        this._wfNotificationDetail.MessageHTML += this._wfNotificationDetail.WFBody + '\n\n';
+        if (this._wfNotificationDetail.WFBody != undefined) {
+          //this._wfNotificationDetail.MessageHTML += this._wfNotificationDetail.WFBody + '<br/><br/>';
+          this._wfNotificationDetail.MessageHTML += this._wfNotificationDetail.WFBody + '\n\n';
+        }
       }
-
 
       if (this._workflow.AdditionalComments != undefined && this._workflow.AdditionalComments != '') {
         //this._wfNotificationDetail.MessageHTML += this._wfNotificationDetail.WFBody.replace(/\n/g, "<br>") + '<br/><br/>';
         this._wfNotificationDetail.MessageHTML += this._workflow.AdditionalComments + '\n\n';
       }
-      if (this.tblPayoff != "") {
 
-        this._wfNotificationDetail.MessageHTML += "\n" + this.tblPayoff + '\n\n';
+      if (this.tblPayOffNoteAdditionalInfo != "") {
+
+        var prepPrem = "";
+        var exitFee = "";
+        var exitFeePer = "";
+
+        prepPrem = "$" + (this._workflow.PrepayPremium == null ? "0" : this._workflow.PrepayPremium.toFixed(0)).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,");
+        exitFee = "$" + (this._workflow.ExitFee == null ? "0" : this._workflow.ExitFee.toFixed(0)).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,");
+        //exitFeePer = (this._workflow.ExitFeePercentage * 100).toString() + "%";
+        var extFee1 = Number.isInteger(this._workflow.ExitFeePercentage * 100) ? (this._workflow.ExitFeePercentage * 100).toFixed(2) : parseFloat((this._workflow.ExitFeePercentage * 100).toString());
+
+        extFee1 = extFee1.toString().split(".")[1].length < 2 ? parseFloat(extFee1.toString()).toFixed(2) : extFee1.toString();
+        exitFeePer = extFee1.toString() + "%";
+
+        var tblPayoffLocal = this.tblPayOffNoteAdditionalInfo.replace("$prePrem$", prepPrem);
+        tblPayoffLocal = tblPayoffLocal.replace("$exitFee$", exitFee);
+        tblPayoffLocal = tblPayoffLocal.replace("$exitFeePer$", exitFeePer);
+        tblPayoffLocal = tblPayoffLocal + this.tblPayoff;
+        this._wfNotificationDetail.MessageHTML += "\n" + tblPayoffLocal + '\n\n';
+
       }
-
 
       if (this._wfNotificationDetail.WFFooter != undefined) {
         //this._wfNotificationDetail.MessageHTML += this._wfNotificationDetail.WFFooter.replace(/\n/g, "<br>");
@@ -2659,7 +3182,11 @@ export class WorkflowDetailComponent {
       this._wfNotificationDetail.SpecialInstructions = this._workflow.SpecialInstructions;
       this._wfNotificationDetail.WFCheckList = this._workflow.WFCheckList;
       this._wfNotificationDetail.TaskTypeID = this._workflow.TaskTypeID;
-      //this.wfSrv.SendWFNotificationForNegativeAmt(this._wfNotificationDetail).subscribe(res => {
+      this._wfNotificationDetail.AdditionalEmail = this._workflow.AdditionalEmail;
+      this._wfNotificationDetail.ExitFee = this._workflow.ExitFee;
+      this._wfNotificationDetail.ExitFeePercentage = this._workflow.ExitFeePercentage;
+      this._wfNotificationDetail.PrepayPremium = this._workflow.PrepayPremium;
+      this._wfNotificationDetail.OriginalWFStatusPurposeMappingID = this._workflow.OriginalWFStatusPurposeMappingID;
       this.wfSrv.InsertUpdateWFNotification(this._wfNotificationDetail).subscribe(res => {
         if (res.Succeeded) {
 
@@ -2669,6 +3196,16 @@ export class WorkflowDetailComponent {
           localStorage.setItem('divSucessMsgWorkflow', 'Notification sent successfully');
           this.CloseWFNotificationDialogForNegativeAmt();
         }
+        else if (res.StatusCode != undefined && res.StatusCode == 1) {
+
+          this._IsShowMsg = true;
+          this.isShowSendButton = true;
+          this._isWFFetching = false;
+          this._MsgText = "Another user has changed the workflow details. Please refresh the page before performing any operations."
+          setTimeout(function () {
+            this._IsShowMsg = false;
+          }.bind(this), 4000);
+        }
         else {
           this._router.navigate(['login']);
         }
@@ -2676,15 +3213,83 @@ export class WorkflowDetailComponent {
 
       error => console.error('Error: ' + error)
     }
-    else {
-      this._IsShowMsg = true;
-      this._MsgText = "Invalid email address. Please correct."
-      setTimeout(function () {
-        this._IsShowMsg = false;
-      }.bind(this), 4000);
-    }
-  }
 
+  }
+  NegativeAmtValidation(): boolean {
+    var isValid = true;
+    this._MsgText = '';
+    //var emailregx = /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/
+    if (this._wfNotificationDetail.EmailToIds != null &&
+      this._wfNotificationDetail.EmailToIds != undefined &&
+      this._wfNotificationDetail.EmailToIds != '') {
+
+      var toEmails = this._wfNotificationDetail.EmailToIds.replace(/;/g, ",").split(',')
+      for (var i = 0; i < toEmails.length; i++) {
+
+        if (toEmails[i].trim() != '') {
+          if (!this.ValidateEmail(toEmails[i].trim())) {
+            isValid = false;
+            this._MsgText = "Invalid email address. Please correct."
+            break;
+          }
+        }
+      }
+    }
+    else {
+      isValid = false;
+    }
+    if (isValid) {
+      if (this._wfNotificationDetail.EmailCCIds != null &&
+        this._wfNotificationDetail.EmailCCIds != undefined &&
+        this._wfNotificationDetail.EmailCCIds != '') {
+        var ccEmails = this._wfNotificationDetail.EmailCCIds.replace(/;/g, ",").split(',')
+        for (var i = 0; i < ccEmails.length; i++) {
+          if (ccEmails[i].trim() != '') {
+            if (!this.ValidateEmail(ccEmails[i].trim())) {
+              isValid = false;
+              this._MsgText = "Invalid email address. Please correct."
+              break;
+            }
+          }
+        }
+      }
+    }
+
+    if (isValid) {
+      if (this._workflow.IsDiscrepancyForCommitment && this._workflow.WorkFlowType == "WF_UNDERREVIEW" && this._workflow.PurposeTypeId == 630) {
+        var msg = "Warning – Commitment does not match between deal and note(s).Please go back to the Deal Funding Schedule page and click Generate, then Save.Then return to this page to send the Final Payoff Notification.";
+        if (this._MsgText != '' && this._MsgText != undefined) {
+          this._MsgText = this._MsgText + "<br/>" + msg
+        }
+        else {
+          this._MsgText = msg;
+        }
+      }
+    }
+
+    if (this._wfAdditionalData.NotesWithFinancingSourceNone != '') {
+      var msg = "Note(s) " + this._wfAdditionalData.NotesWithFinancingSourceNone + " does not have a financing source assigned. Please get with Accounting to have the financing source corrected. Once saved, then return to this page to send the Notification."
+      if (this._MsgText != '' && this._MsgText != undefined) {
+        this._MsgText = this._MsgText + "<br/>" + msg
+      }
+      else {
+        this._MsgText = msg;
+      }
+
+    }
+    if (this._MsgText != '' && this._MsgText != undefined) {
+      isValid = false;
+      this._IsShowMsg = true;
+      if (this._wfAdditionalData.NotesWithFinancingSourceNone == '' || this._wfAdditionalData.NotesWithFinancingSourceNone == undefined) {
+        setTimeout(function () {
+          this._IsShowMsg = false;
+          this._MsgText = '';
+        }.bind(this), 4000);
+      }
+    }
+
+    return isValid;
+  }
   getTemplateRecipientEmailIDs(WFNotificationMasterID: number): void {
 
     this._notificationmaster.WFNotificationMasterID = WFNotificationMasterID;
@@ -2709,11 +3314,11 @@ export class WorkflowDetailComponent {
     var strnotesdelphi = '';
     var total = 0.00;
     var totaldelphi = 0.00;
-    var trHeader = '<table id="noteinfo" border="1" style="border-collapse:collapse;font-size:12px;"><tr style="font-weight:bold"><td style="padding-left:5px!important;padding-right:5px!important;">Loan#</td><td style="padding-left:5px!important;padding-right:5px!important;">Note ID</td><td style="padding-left:5px!important;padding-right:5px!important;">Financing Source</td><td style="padding-left:5px!important;padding-right:5px!important;">Note Name</td><td style="padding-left:5px!important;padding-right:5px!important;">Current Request</td> </tr>'
-    var trHeaderdelphi = '<table id="noteinfo" border="1" style="border-collapse:collapse;font-size:12px;">' +
+    var trHeader = '<table id="noteinfo" border="1" style="border-collapse:collapse;"><tr style="font-weight:bold"><td style="padding-left:5px!important;padding-right:5px!important;">Loan#</td><td style="padding-left:5px!important;padding-right:5px!important;">Note ID</td><td style="padding-left:5px!important;padding-right:5px!important;">Financing Source</td><td style="padding-left:5px!important;padding-right:5px!important;">Note Name</td><td style="padding-left:5px!important;padding-right:5px!important;">Current Request</td> </tr>'
+    var trHeaderdelphi = '<table id="noteinfo" border="1" style="border-collapse:collapse;">' +
       '<tr style="font-weight:bold"><td colspan="5" style="text-align:center;">Delphi Financial Summary</td></tr>' +
       '<tr style="font-weight:bold"><td style="padding-left:5px!important;padding-right:5px!important;">Loan#</td><td style="padding-left:5px!important;padding-right:5px!important;">Note ID</td><td style="padding-left:5px!important;padding-right:5px!important;">Financing Source</td><td style="padding-left:5px!important;padding-right:5px!important;">Note Name</td><td style="padding-left:5px!important;padding-right:5px!important;">Current Request</td> </tr>'
-    var trHeaderForInternalEmail = '<table id="noteinfo" border="1" style="border-collapse:collapse;font-size:12px;margin:7px 0px 0px 28px"><tr style="font-weight:bold"><td style="padding-left:5px!important;padding-right:5px!important;">Loan#</td><td style="padding-left:5px!important;padding-right:5px!important;">Note ID</td><td style="padding-left:5px!important;padding-right:5px!important;">Financing Source</td><td style="padding-left:5px!important;padding-right:5px!important;">Note Name</td><td style="padding-left:5px!important;padding-right:5px!important;">Current Request</td> </tr>'
+    var trHeaderForInternalEmail = '<table id="noteinfo" border="1" style="border-collapse:collapse;margin:7px 0px 0px 28px"><tr style="font-weight:bold"><td style="padding-left:5px!important;padding-right:5px!important;">Loan#</td><td style="padding-left:5px!important;padding-right:5px!important;">Note ID</td><td style="padding-left:5px!important;padding-right:5px!important;">Financing Source</td><td style="padding-left:5px!important;padding-right:5px!important;">Note Name</td><td style="padding-left:5px!important;padding-right:5px!important;">Current Request</td> </tr>'
 
     try {
       this.dealSrv.GetWFNoteFunding(this._dealfunding).subscribe(res => {
@@ -2723,7 +3328,7 @@ export class WorkflowDetailComponent {
 
           res.lstNoteDealFunding.forEach(function (value, index) {
 
-            if (res.lstNoteDealFunding[index].Value != 0 || res.lstNoteDealFunding[index].TaxVendorLoanNumber != '') {
+            if (res.lstNoteDealFunding[index].Value != 0 && res.lstNoteDealFunding[index].TaxVendorLoanNumber != '' && res.FinancingSourceID != 26) {
 
 
               strnotes = strnotes +
@@ -2748,6 +3353,11 @@ export class WorkflowDetailComponent {
             trHeader = trHeader + strnotes + '</table>';
             trHeaderForInternalEmail = trHeaderForInternalEmail + strnotes + '</table>';
           }
+          else {
+            trHeader = "";
+            trHeaderForInternalEmail = "";
+          }
+
           if (strnotesdelphi != "") {
             strnotesdelphi = strnotesdelphi + '<tr><td></td><td></td><td></td><td style="text-align:left;font-weight:bold;text-align:right;padding-left:5px!important;padding-right:5px!important;">Total Loan Funds</td><td style="text-align:right;font-weight:bold;text-align:right;padding-left:5px!important;padding-right:5px!important;">' + "$" + totaldelphi.toFixed(2).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,") + '</td></tr >';
             trHeaderdelphi = trHeaderdelphi + strnotesdelphi + '</table>';
@@ -2759,7 +3369,7 @@ export class WorkflowDetailComponent {
           //this.trustedNoteDetail = this.sanitizer.bypassSecurityTrustResourceUrl(trHeader);
 
           this.noteswithAmount = trHeader
-          this._workflow.NoteswithAmount = '<br/><br/><b style="margin:7px 0px 0px 28px"> Details by note are below: </b><br/>' + trHeaderForInternalEmail;
+          this._workflow.NoteswithAmount = trHeaderForInternalEmail != "" ? '<br/><br/><b style="margin:7px 0px 0px 28px"> Details by note are below: </b><br/>' + trHeaderForInternalEmail : "";
           this.trustedNoteDetail = this.sanitizer.bypassSecurityTrustHtml(this.noteswithAmount);
         }
         else {
@@ -2779,11 +3389,11 @@ export class WorkflowDetailComponent {
     var totalCurrBal = 0.00;
     var totalReqAmt = 0.00;
     var totalNewBal = 0.00;
-    var trHeaderPrelim = '<table id="noteinfo" border="1" style="border-collapse:collapse;font-size:12px;"><tr style="font-weight:bold"><td style="padding-left:5px!important;padding-right:5px!important;">Reserve Name</td><td style="padding-left:5px!important;padding-right:5px!important;">Current Balance</td><td style="padding-left:5px!important;padding-right:5px!important;">Pending Request</td><td style="padding-left:5px!important;padding-right:5px!important;">Expected New Balance</td> </tr>';
-    //var trHeaderFinal = '<table id="noteinfo" border="1" style="border-collapse:collapse;font-size:12px;"><tr style="font-weight:bold"><td style="padding-left:5px!important;padding-right:5px!important;">Reserve Name</td><td style="padding-left:5px!important;padding-right:5px!important;">Previous Balance</td><td style="padding-left:5px!important;padding-right:5px!important;">Current Request</td><td style="padding-left:5px!important;padding-right:5px!important;">New Balance</td> </tr>';
-    var trHeaderFinal = '<table id="noteinfo" border="1" style="border-collapse:collapse;font-size:12px;"><tr style="font-weight:bold"><td style="padding-left:5px!important;padding-right:5px!important;">Reserve Name</td><td style="padding-left:5px!important;padding-right:5px!important;">Current Balance</td><td style="padding-left:5px!important;padding-right:5px!important;">Pending Request</td><td style="padding-left:5px!important;padding-right:5px!important;">Expected New Balance</td> </tr>';
+    var trHeaderPrelim = '<table width="80%" id="noteinfo" border="1" style="border-collapse:collapse;"><tr style="font-weight:bold"><td width="25%" style="padding-left:5px!important;padding-right:5px!important;">Reserve Name</td><td width="25%" style="padding-left:5px!important;padding-right:5px!important;">Current Balance</td><td width="25%" style="padding-left:5px!important;padding-right:5px!important;">Pending Request</td><td width="25%" style="padding-left:5px!important;padding-right:5px!important;">Expected New Balance</td> </tr>';
+    //var trHeaderFinal = '<table id="noteinfo" border="1" style="border-collapse:collapse;"><tr style="font-weight:bold"><td style="padding-left:5px!important;padding-right:5px!important;">Reserve Name</td><td style="padding-left:5px!important;padding-right:5px!important;">Previous Balance</td><td style="padding-left:5px!important;padding-right:5px!important;">Current Request</td><td style="padding-left:5px!important;padding-right:5px!important;">New Balance</td> </tr>';
+    var trHeaderFinal = '<table width="80%" id="noteinfo" border="1" style="border-collapse:collapse;"><tr style="font-weight:bold"><td width="25%" style="padding-left:5px!important;padding-right:5px!important;">Reserve Name</td><td width="25%" style="padding-left:5px!important;padding-right:5px!important;">Current Balance</td><td width="25%" style="padding-left:5px!important;padding-right:5px!important;">Pending Request</td><td width="25%" style="padding-left:5px!important;padding-right:5px!important;">Expected New Balance</td> </tr>';
 
-    var trHeaderInternal = '<table id="noteinfo" border="1" style="border-collapse:collapse;font-size:12px;margin:7px 0px 0px 28px"><tr style="font-weight:bold"><td style="padding-left:5px!important;padding-right:5px!important;">Reserve Name</td><td style="padding-left:5px!important;padding-right:5px!important;">Current Balance</td><td style="padding-left:5px!important;padding-right:5px!important;">Pending Request</td><td style="padding-left:5px!important;padding-right:5px!important;">Expected New Balance</td> </tr>';
+    var trHeaderInternal = '<table width="80%" id="noteinfo" border="1" style="border-collapse:collapse;margin:7px 0px 0px 28px"><tr style="font-weight:bold"><td width="25%" style="padding-left:5px!important;padding-right:5px!important;">Reserve Name</td><td width="25%" style="padding-left:5px!important;padding-right:5px!important;">Current Balance</td><td width="25%" style="padding-left:5px!important;padding-right:5px!important;">Pending Request</td><td width="25%" style="padding-left:5px!important;padding-right:5px!important;">Expected New Balance</td> </tr>';
 
     try {
       this.wfSrv.GetReserveScheduleBreakDown(this._workflow).subscribe(res => {
@@ -2816,8 +3426,10 @@ export class WorkflowDetailComponent {
           //this.trustedNoteDetail = this.sanitizer.bypassSecurityTrustResourceUrl(trHeader);
 
           this.ReserveScheduleBreakDownPrelim = "Anticipated breakdown by reserve is shown below:\n" + trHeaderPrelim;
-          this.ReserveScheduleBreakDownFinal = "Breakdown by reserve is shown below:\n" + trHeaderFinal;
-          this._workflow.ReserveScheduleBreakDown = '<br/><br/><b style="margin:7px 0px 0px 28px"> Anticipated breakdown by reserve is shown below: </b><br/>' + trHeaderInternal;
+          this.ReserveScheduleBreakDownFinal = "\nBreakdown by reserve is shown below:\n\n" + trHeaderFinal;
+          this._workflow.ReserveScheduleBreakDown = '<br/><p style = "padding:0px; margin:28px 0px 0px 28px;">' +
+            '<strong>Anticipated breakdown by reserve is shown below: </strong>' +
+            '</p><br/>' + trHeaderInternal;
         }
         else {
           this._router.navigate(['login']);
@@ -2833,13 +3445,13 @@ export class WorkflowDetailComponent {
     var tdValue = ''
     var strnotes = '';
     var total = 0.00;
-    //var tableAllocation = '<table id="noteinfo" style="border-collapse:collapse;font-size:12px;border-top: 1px solid;border-bottom: 1px solid;border-left: 1px solid;border-right: 1px solid;" width="98%">';
-    var tableAllocation = '<table border="1" id="noteinfo" style="border-collapse:collapse;font-size:12px;" width="98%">';
+    //var tableAllocation = '<table id="noteinfo" style="border-collapse:collapse;border-top: 1px solid;border-bottom: 1px solid;border-left: 1px solid;border-right: 1px solid;" width="98%">';
+    var tableAllocation = '<table border="1" id="noteinfo" style="border-collapse:collapse;" width="98%">';
     var trAllocation = '';
     var tdAllocation = '';
 
-    //var tableAllocationAmount = '<table id="noteinfo"  style="border-collapse:collapse;font-size:12px;border-top: 1px solid;border-bottom: 1px solid;border-left: 1px solid;border-right: 1px solid;" width="98%">';
-    var tableAllocationAmount = '<table border="1" id="noteinfo"  style="border-collapse:collapse;font-size:12px;" width="98%">';
+    //var tableAllocationAmount = '<table id="noteinfo"  style="border-collapse:collapse;border-top: 1px solid;border-bottom: 1px solid;border-left: 1px solid;border-right: 1px solid;" width="98%">';
+    var tableAllocationAmount = '<table border="1" id="noteinfo"  style="border-collapse:collapse;" width="98%">';
     var trAllocationAmount = '';
     var tdAllocationAmount = '';
     var tdAllocationAmountTotal = '';
@@ -2971,41 +3583,44 @@ export class WorkflowDetailComponent {
     var totaldelphi = 0.00;
     var tblNoteAdditionalInfo = '';
     var tableALL = "";
-    var tblInvestorSummary = '<table id = "investorSummary" border = "1" style = "border-collapse:collapse;font-size:12px;" > ' +
-      '<tr style="font-weight:bold"><td colspan="6" style="text-align:center;">Investor  Summary</td></tr>' +
+    var tblInvestorSummary = '<table id = "investorSummary" border = "1" style = "border-collapse:collapse;" > ' +
+      '<tr style="font-weight:bold"><td colspan="7" style="text-align:center;">Investor  Summary</td></tr>' +
       '<tr style="font-weight:bold">' +
-      '<td style="padding-left:5px!important;padding-right:5px!important;" > Investor </td>' +
-      '<td style="padding-left:5px!important;padding-right:5px!important;">Initial Funding</td>' +
-      '<td style="padding-left:5px!important;padding-right:5px!important;">Current Balance</td>' +
-      '<td style="padding-left:5px!important;padding-right:5px!important;">Current Commitment</td>' +
-      '<td style="padding-left:5px!important;padding-right:5px!important;">Remaining Unfunded</td>' +
-      '<td style="padding-left:5px!important;padding-right:5px!important;">Spread</td>'
+      '<td style="padding-left:5px!important;padding-right:5px!important;text-align:center;" > Investor </td>' +
+      '<td style="padding-left:5px!important;padding-right:5px!important;text-align:center;">Initial Funding</td>' +
+      '<td style="padding-left:5px!important;padding-right:5px!important;text-align:center;">Current Balance</td>' +
+      '<td style="padding-left:5px!important;padding-right:5px!important;text-align:center;">Current Commitment</td>' +
+      '<td style="padding-left:5px!important;padding-right:5px!important;text-align:center;">Remaining Unfunded</td>' +
+      '<td style="padding-left:5px!important;padding-right:5px!important;text-align:center;">Spread</td>'+
+    '<td style="padding-left:5px!important;padding-right:5px!important;text-align:center;">PIK Spread</td>'
     '</tr>';
-    var tbldelphi = '<table id = "tbldelphi" border = "1" style = "border-collapse:collapse;font-size:12px;" > ' +
-      '<tr style="font-weight:bold"><td colspan="9" style="text-align:center;">Delphi Financial Summary</td></tr>' +
+    var tbldelphi = '<table id = "tbldelphi" border = "1" style = "border-collapse:collapse;" > ' +
+      '<tr style="font-weight:bold"><td colspan="10" style="text-align:center;">Delphi Financial Summary</td></tr>' +
       '<tr style="font-weight:bold">' +
-      '<td style="padding-left:5px!important;padding-right:5px!important;" > Loan # </td>' +
-      '<td style="padding-left:5px!important;padding-right:5px!important;" > Note ID </td>' +
-      '<td style="padding-left:5px!important;padding-right:5px!important;" > Financing Source </td>' +
-      '<td style="padding-left:5px!important;padding-right:5px!important;" > Note Name </td>' +
-      '<td style="padding-left:5px!important;padding-right:5px!important;">Initial Funding</td>' +
-      '<td style="padding-left:5px!important;padding-right:5px!important;">Current Balance</td>' +
-      '<td style="padding-left:5px!important;padding-right:5px!important;">Current Commitment</td>' +
-      '<td style="padding-left:5px!important;padding-right:5px!important;">Remaining Unfunded</td>' +
-      '<td style="padding-left:5px!important;padding-right:5px!important;">Spread</td>'
+      '<td style="padding-left:5px!important;padding-right:5px!important;text-align:center;" > Loan # </td>' +
+      '<td style="padding-left:5px!important;padding-right:5px!important;text-align:center;" > Note ID </td>' +
+      '<td style="padding-left:5px!important;padding-right:5px!important;text-align:center;" > Financing Source </td>' +
+      '<td style="padding-left:5px!important;padding-right:5px!important;text-align:center;" > Note Name </td>' +
+      '<td style="padding-left:5px!important;padding-right:5px!important;text-align:center;">Initial Funding</td>' +
+      '<td style="padding-left:5px!important;padding-right:5px!important;text-align:center;">Current Balance</td>' +
+      '<td style="padding-left:5px!important;padding-right:5px!important;text-align:center;">Current Commitment</td>' +
+      '<td style="padding-left:5px!important;padding-right:5px!important;text-align:center;">Remaining Unfunded</td>' +
+      '<td style="padding-left:5px!important;padding-right:5px!important;text-align:center;">Spread</td>'+
+    '<td style="padding-left:5px!important;padding-right:5px!important;text-align:center;">PIK Spread</td>'
     '</tr>';
 
-    var tblFSource = '<table id = "tblFSource" border = "1" style = "border-collapse:collapse;font-size:12px;" > ' +
+    var tblFSource = '<table id = "tblFSource" border = "1" style = "border-collapse:collapse;" > ' +
       '<tr style="font-weight:bold">' +
-      '<td style="padding-left:5px!important;padding-right:5px!important;" > Loan # </td>' +
-      '<td style="padding-left:5px!important;padding-right:5px!important;" > Note ID </td>' +
-      '<td style="padding-left:5px!important;padding-right:5px!important;" > Financing Source </td>' +
-      '<td style="padding-left:5px!important;padding-right:5px!important;" > Note Name </td>' +
-      '<td style="padding-left:5px!important;padding-right:5px!important;">Initial Funding</td>' +
-      '<td style="padding-left:5px!important;padding-right:5px!important;">Current Balance</td>' +
-      '<td style="padding-left:5px!important;padding-right:5px!important;">Current Commitment</td>' +
-      '<td style="padding-left:5px!important;padding-right:5px!important;">Remaining Unfunded</td>' +
-      '<td style="padding-left:5px!important;padding-right:5px!important;">Spread</td>'
+      '<td style="padding-left:5px!important;padding-right:5px!important;text-align:center;" > Loan # </td>' +
+      '<td style="padding-left:5px!important;padding-right:5px!important;text-align:center;" > Note ID </td>' +
+      '<td style="padding-left:5px!important;padding-right:5px!important;text-align:center;" > Financing Source </td>' +
+      '<td style="padding-left:5px!important;padding-right:5px!important;text-align:center;" > Note Name </td>' +
+      '<td style="padding-left:5px!important;padding-right:5px!important;text-align:center;">Initial Funding</td>' +
+      '<td style="padding-left:5px!important;padding-right:5px!important;text-align:center;">Current Balance</td>' +
+      '<td style="padding-left:5px!important;padding-right:5px!important;text-align:center;">Current Commitment</td>' +
+      '<td style="padding-left:5px!important;padding-right:5px!important;text-align:center;">Remaining Unfunded</td>' +
+      '<td style="padding-left:5px!important;padding-right:5px!important;text-align:center;">Spread</td>'+
+    '<td style="padding-left:5px!important;padding-right:5px!important;text-align:center;">PIK Spread</td>'
     '</tr>';
     var trInvestor = "";
     var TotaltrInvestor = "";
@@ -3013,6 +3628,18 @@ export class WorkflowDetailComponent {
     var TotaltrDelphi = "";
     var trFSources = "";
     var TotaltrFSources = "";
+    var current_Balance = "";
+    var curr_bal_investor = "";
+    var curr_bal_delphi = "";
+    var curr_bal_fsource = "";
+    var curr_comm_investor = "";
+    var curr_comm_delphi = "";
+    var curr_comm_fsource = "";
+    var strThirpPartyAmount = "";
+
+
+
+
     try {
       this.dealSrv.GetWFPayOffNoteFunding(this._dealfunding).subscribe(res => {
         if (res.Succeeded) {
@@ -3020,44 +3647,81 @@ export class WorkflowDetailComponent {
           if (res.dtNoteAdditionalInfo != null &&
             res.dtNoteAdditionalInfo != undefined
           ) {
-            tblNoteAdditionalInfo = '<table id="noteinfo" border="1" style="border-collapse:collapse;font-size:12px;">' +
-              '<tr style = "font-weight:bold" > <td style="padding-left:5px!important;padding-right:5px!important;"> Current Balance</td><td style="padding-left:5px!important;padding-right:5px!important;">' + "$" + parseFloat(res.dtNoteAdditionalInfo[0].CurrentBalance).toFixed(2).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,") + '</td></tr>' +
-              '<tr style = "font-weight:bold" > <td style="padding-left:5px!important;padding-right:5px!important;"> Loan Closing Date</td><td style="padding-left:5px!important;padding-right:5px!important;">' + this.convertDateTOMMDDYYYY(res.dtNoteAdditionalInfo[0].ClosingDate) + '</td></tr>' +
-              '<tr style = "font-weight:bold" > <td style="padding-left:5px!important;padding-right:5px!important;"> Initial Maturity</td><td style="padding-left:5px!important;padding-right:5px!important;">' + this.convertDateTOMMDDYYYY(res.dtNoteAdditionalInfo[0].InitialMaturityDate) + '</td></tr>' +
-              '<tr style = "font-weight:bold" > <td style="padding-left:5px!important;padding-right:5px!important;"> Initial Funding</td><td style="padding-left:5px!important;padding-right:5px!important;">' + "$" + parseFloat(res.dtNoteAdditionalInfo[0].InitialFundingAmount).toFixed(2).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,") + '</td></tr>' +
-              '<tr style = "font-weight:bold" > <td style="padding-left:5px!important;padding-right:5px!important;"> Current Commitment</td><td style="padding-left:5px!important;padding-right:5px!important;">' + "$" + parseFloat(res.dtNoteAdditionalInfo[0].AdjustedTotalCommitment).toFixed(2).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,") + '</td></tr>' +
-              '<tr style = "font-weight:bold" > <td style="padding-left:5px!important;padding-right:5px!important;"> Spread</td><td style="padding-left:5px!important;padding-right:5px!important;">' + parseFloat(res.dtNoteAdditionalInfo[0].SpreadPercentage).toFixed(2).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,") + '</td></tr>' +
-              '<tr style = "font-weight:bold" > <td style="padding-left:5px!important;padding-right:5px!important;"> Prepayment Premium</td><td style="padding-left:5px!important;padding-right:5px!important;"></td></tr>' +
-              '<tr style = "font-weight:bold" > <td style="padding-left:5px!important;padding-right:5px!important;"> Client</td><td style="padding-left:5px!important;padding-right:5px!important;">' + res.dtNoteAdditionalInfo[0].ParentClient + '</td></tr>' +
-              '<tr style = "font-weight:bold" > <td style="padding-left:5px!important;padding-right:5px!important;"> Financing source</td><td style="padding-left:5px!important;padding-right:5px!important;">' + res.dtNoteAdditionalInfo[0].FinancingSourceName + '</td></tr>' +
-              '<tr style = "font-weight:bold" > <td style="padding-left:5px!important;padding-right:5px!important;"> Third Party Financing</td><td style="padding-left:5px!important;padding-right:5px!important;">' + res.dtNoteAdditionalInfo[0].ThirpPartyFinancingSources + '</td></tr>' +
+            if (parseFloat(res.dtNoteAdditionalInfo[0].CurrentBalance) < 0) {
+              current_Balance = "-$" + Math.abs(parseFloat(res.dtNoteAdditionalInfo[0].CurrentBalance)).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,")
+            }
+            else {
+              current_Balance = "$" + parseFloat(res.dtNoteAdditionalInfo[0].CurrentBalance).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,")
+            }
+            if (parseFloat(res.dtNoteAdditionalInfo[0].ThirpPartyAmount) == 0) {
+              strThirpPartyAmount = "N/A";
+            }
+            else {
+              strThirpPartyAmount = "$" + parseFloat(res.dtNoteAdditionalInfo[0].ThirpPartyAmount).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,")
+            }
+
+
+            this._prepPrem = "$" + parseFloat(res.dtNoteAdditionalInfo[0].PrepayPremium).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,");
+            this._exitFee = "$" + parseFloat(res.dtNoteAdditionalInfo[0].ExitFee).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,");
+            ////this._exitFeePercentage = parseFloat(res.dtNoteAdditionalInfo[0].ExitFeePercentage).toString() + "%";
+            var extFee = Number.isInteger(res.dtNoteAdditionalInfo[0].ExitFeePercentage) ? res.dtNoteAdditionalInfo[0].ExitFeePercentage.toFixed(2) : parseFloat(res.dtNoteAdditionalInfo[0].ExitFeePercentage)
+            this._exitFeePercentage = extFee.toString().split(".")[1].length < 2 ? extFee.toFixed(2) + "%" : extFee.toString() + "%";
+
+            tblNoteAdditionalInfo = '<table id="noteinfo" border="1" style="border-collapse:collapse;">' +
+              '<tr> <td style="padding-left:5px!important;padding-right:5px!important;"><b> Current Balance</b></td><td style="padding-left:5px!important;padding-right:5px!important;">' + current_Balance + '</td></tr>' +
+              '<tr> <td style="padding-left:5px!important;padding-right:5px!important;"><b> Loan Closing Date</b></td><td style="padding-left:5px!important;padding-right:5px!important;">' + this.convertDateTOMMDDYYYY(res.dtNoteAdditionalInfo[0].ClosingDate) + '</td></tr>' +
+              '<tr> <td style="padding-left:5px!important;padding-right:5px!important;"><b> Initial Maturity</b></td><td style="padding-left:5px!important;padding-right:5px!important;">' + this.convertDateTOMMDDYYYY(res.dtNoteAdditionalInfo[0].InitialMaturityDate) + '</td></tr>' +
+              '<tr> <td style="padding-left:5px!important;padding-right:5px!important;"><b> Initial Funding</b></td><td style="padding-left:5px!important;padding-right:5px!important;">' + "$" + parseFloat(res.dtNoteAdditionalInfo[0].InitialFundingAmount).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,") + '</td></tr>' +
+              '<tr> <td style="padding-left:5px!important;padding-right:5px!important;"><b> Original Commitment</b></td><td style="padding-left:5px!important;padding-right:5px!important;">' + "$" + parseFloat(res.dtNoteAdditionalInfo[0].TotalCommitment).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,") + '</td></tr>' +
+              '<tr> <td style="padding-left:5px!important;padding-right:5px!important;"><b> Current Commitment</b></td><td style="padding-left:5px!important;padding-right:5px!important;">' + "$" + parseFloat(res.dtNoteAdditionalInfo[0].AdjustedTotalCommitment).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,") + '</td></tr>' +
+              '<tr> <td style="padding-left:5px!important;padding-right:5px!important;"><b> Index Floor</b></td><td style="padding-left:5px!important;padding-right:5px!important;">' + parseFloat(res.dtNoteAdditionalInfo[0].IndexFloor).toFixed(2).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,") + '%</td></tr>' +
+              '<tr> <td style="padding-left:5px!important;padding-right:5px!important;"><b> Spread</b></td><td style="padding-left:5px!important;padding-right:5px!important;">' + parseFloat(res.dtNoteAdditionalInfo[0].SpreadPercentage).toFixed(2).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,") + '%</td></tr>' +
+              '<tr> <td style="padding-left:5px!important;padding-right:5px!important;"><b> PIK Spread </b></td><td style="padding-left:5px!important;padding-right:5px!important;">' + parseFloat(res.dtNoteAdditionalInfo[0].PikSpreadPercentage).toFixed(2).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,") + '%</td></tr>' +
+              '<tr> <td style="padding-left:5px!important;padding-right:5px!important;"><b> Prepayment Premium</b></td><td style="padding-left:5px!important;padding-right:5px!important;">$prePrem$</td></tr>' +
+              '<tr> <td style="padding-left:5px!important;padding-right:5px!important;"><b> Exit Fee</b></td><td style="padding-left:5px!important;padding-right:5px!important;">$exitFee$</td></tr>' +
+              '<tr> <td style="padding-left:5px!important;padding-right:5px!important;"><b> Exit Fee %</b></td><td style="padding-left:5px!important;padding-right:5px!important;">$exitFeePer$</td></tr>' +
+              '<tr> <td style="padding-left:5px!important;padding-right:5px!important;"><b> Client</b></td><td style="padding-left:5px!important;padding-right:5px!important;">' + res.dtNoteAdditionalInfo[0].ParentClient + '</td></tr>' +
+              '<tr> <td style="padding-left:5px!important;padding-right:5px!important;"><b> Financing source</b></td><td style="padding-left:5px!important;padding-right:5px!important;">' + res.dtNoteAdditionalInfo[0].FinancingSourceName + '</td></tr>' +
+              '<tr> <td style="padding-left:5px!important;padding-right:5px!important;"><b> Third Party Financing</b></td><td style="padding-left:5px!important;padding-right:5px!important;">' + res.dtNoteAdditionalInfo[0].ThirpPartyFinancingSources + '</td></tr>' +
+              '<tr> <td style="padding-left:5px!important;padding-right:5px!important;"><b> Third Party Amount</b></td><td style="padding-left:5px!important;padding-right:5px!important;">' + strThirpPartyAmount + '</td></tr>' +
               '</table>';
           }
 
           //res.dtInvestors;
           //res.dtNoteFinancingSources;
           res.dtInvestors.forEach(function (value, index) {
-            //    if (res.lstNoteDealFunding[index].Value != 0 || res.lstNoteDealFunding[index].TaxVendorLoanNumber != '') {
+            curr_bal_investor = "$" + parseFloat(res.dtInvestors[index].CurrentBalance).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,")
+            if (parseFloat(res.dtInvestors[index].CurrentBalance) < 0) {
+              curr_bal_investor = "-$" + Math.abs(parseFloat(res.dtInvestors[index].CurrentBalance)).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,")
+            }
+            curr_comm_investor = "$" + parseFloat(res.dtInvestors[index].AdjustedTotalCommitment).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,")
+            if (parseFloat(res.dtInvestors[index].AdjustedTotalCommitment) < 0) {
+              curr_comm_investor = "-$" + Math.abs(parseFloat(res.dtInvestors[index].AdjustedTotalCommitment)).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,")
+            }
+
             if (res.dtInvestors[index].RowType == "Data") {
+
               trInvestor = trInvestor +
                 '<tr>' +
-                '<tr><td style="text-align:right;padding-left:5px!important;padding-right:5px!important;">' + res.dtInvestors[index].ParentClient + '</td>' +
-                '<td style="text-align:right:left;padding-left:5px!important;padding-right:5px!important;">' + "$" + parseFloat(res.dtInvestors[index].InitialFundingAmount).toFixed(2).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,") + '</td>' +
-                '<td style="text-align:right:left;padding-left:5px!important;padding-right:5px!important;">' + "$" + parseFloat(res.dtInvestors[index].CurrentBalance).toFixed(2).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,") + '</td>' +
-                '<td style="text-align:right:left;padding-left:5px!important;padding-right:5px!important;">' + "$" + parseFloat(res.dtInvestors[index].AdjustedTotalCommitment).toFixed(2).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,") + '</td>' +
-                '<td style="text-align:right:left;padding-left:5px!important;padding-right:5px!important;">' + "$" + parseFloat(res.dtInvestors[index].RemainingUnfunded).toFixed(2).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,") + '</td>' +
-                '<td style="text-align:right:left;padding-left:5px!important;padding-right:5px!important;">' + res.dtInvestors[index].SpreadPercentage + '</td>' +
+                '<td style="text-align:left;padding-left:5px!important;padding-right:5px!important;">' + res.dtInvestors[index].ParentClient + '</td>' +
+                '<td style="text-align:right;padding-left:5px!important;padding-right:5px!important;">' + "$" + parseFloat(res.dtInvestors[index].InitialFundingAmount).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,") + '</td>' +
+                '<td style="text-align:right;padding-left:5px!important;padding-right:5px!important;">' + curr_bal_investor + '</td>' +
+                '<td style="text-align:right;padding-left:5px!important;padding-right:5px!important;">' + curr_comm_investor + '</td>' +
+                '<td style="text-align:right;padding-left:5px!important;padding-right:5px!important;">' + "$" + parseFloat(res.dtInvestors[index].RemainingUnfunded).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,") + '</td>' +
+                '<td style="text-align:right;padding-left:5px!important;padding-right:5px!important;">' + parseFloat(res.dtInvestors[index].SpreadPercentage).toFixed(2).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,") + '%</td>' +
+                '<td style="text-align:right;padding-left:5px!important;padding-right:5px!important;">' + parseFloat(res.dtInvestors[index].PikSpreadPercentage).toFixed(2).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,") + '%</td>' +
                 '</tr>';
             }
             else if (res.dtInvestors[index].RowType == "Total") {
               TotaltrInvestor =
                 '<tr>' +
-                '<tr><td style="font-weight:bold;text-align:right;padding-left:5px!important;padding-right:5px!important;">Total</td>' +
-                '<td style="text-align:right:left;padding-left:5px!important;padding-right:5px!important;">' + "$" + parseFloat(res.dtInvestors[index].InitialFundingAmount).toFixed(2).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,") + '</td>' +
-                '<td style="text-align:right:left;padding-left:5px!important;padding-right:5px!important;">' + "$" + parseFloat(res.dtInvestors[index].CurrentBalance).toFixed(2).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,") + '</td>' +
-                '<td style="text-align:right:left;padding-left:5px!important;padding-right:5px!important;">' + "$" + parseFloat(res.dtInvestors[index].AdjustedTotalCommitment).toFixed(2).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,") + '</td>' +
-                '<td style="text-align:right:left;padding-left:5px!important;padding-right:5px!important;">' + "$" + parseFloat(res.dtInvestors[index].RemainingUnfunded).toFixed(2).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,") + '</td>' +
-                '<td style="text-align:right:left;padding-left:5px!important;padding-right:5px!important;">' + res.dtInvestors[index].SpreadPercentage + '</td>' +
+                '<td style="text-align:left;padding-left:5px!important;padding-right:5px!important;"><b>Total</b></td>' +
+                '<td style="text-align:right;padding-left:5px!important;padding-right:5px!important;"><b>' + "$" + parseFloat(res.dtInvestors[index].InitialFundingAmount).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,") + '</b></td>' +
+                '<td style="text-align:right;padding-left:5px!important;padding-right:5px!important;"><b>' + curr_bal_investor + '</b></td>' +
+                '<td style="text-align:right;padding-left:5px!important;padding-right:5px!important;"><b>' + curr_comm_investor + '</b></td>' +
+                '<td style="text-align:right;padding-left:5px!important;padding-right:5px!important;"><b>' + "$" + parseFloat(res.dtInvestors[index].RemainingUnfunded).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,") + '</b></td>' +
+                '<td style="text-align:right;padding-left:5px!important;padding-right:5px!important;"><b>' + parseFloat(res.dtInvestors[index].SpreadPercentage).toFixed(2).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,") + '%</td>' +
+              '<td style="text-align:right;padding-left:5px!important;padding-right:5px!important;"><b>' + parseFloat(res.dtInvestors[index].PikSpreadPercentage).toFixed(2).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,") + '%</td>' +
                 '</tr>';
             }
 
@@ -3066,33 +3730,43 @@ export class WorkflowDetailComponent {
 
 
           res.dtDelphi.forEach(function (value, index) {
-            //    if (res.lstNoteDealFunding[index].Value != 0 || res.lstNoteDealFunding[index].TaxVendorLoanNumber != '') {
+            curr_bal_delphi = "$" + parseFloat(res.dtDelphi[index].CurrentBalance).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,")
+            if (parseFloat(res.dtDelphi[index].CurrentBalance) < 0) {
+              curr_bal_delphi = "-$" + Math.abs(parseFloat(res.dtDelphi[index].CurrentBalance)).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,")
+            }
+            curr_comm_delphi = "$" + parseFloat(res.dtDelphi[index].AdjustedTotalCommitment).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,")
+            if (parseFloat(res.dtDelphi[index].AdjustedTotalCommitment) < 0) {
+              curr_comm_delphi = "-$" + Math.abs(parseFloat(res.dtDelphi[index].AdjustedTotalCommitment)).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,")
+            }
             if (res.dtDelphi[index].RowType == "Data") {
               trDelphi = trDelphi +
                 '<tr>' +
-                '<td style="text-align:right;padding-left:5px!important;padding-right:5px!important;">' + res.dtDelphi[index].TaxVendorLoanNumber + '</td>' +
-                '<td style="text-align:right;padding-left:5px!important;padding-right:5px!important;">' + res.dtDelphi[index].NoteID + '</td>' +
-                '<td style="text-align:right;padding-left:5px!important;padding-right:5px!important;">' + res.dtDelphi[index].FinancingSourceName + '</td>' +
-                '<td style="text-align:right;padding-left:5px!important;padding-right:5px!important;">' + res.dtDelphi[index].Name + '</td>' +
-                '<td style="text-align:right:left;padding-left:5px!important;padding-right:5px!important;">' + "$" + parseFloat(res.dtDelphi[index].InitialFundingAmount).toFixed(2).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,") + '</td>' +
-                '<td style="text-align:right:left;padding-left:5px!important;padding-right:5px!important;">' + "$" + parseFloat(res.dtDelphi[index].CurrentBalance).toFixed(2).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,") + '</td>' +
-                '<td style="text-align:right:left;padding-left:5px!important;padding-right:5px!important;">' + "$" + parseFloat(res.dtDelphi[index].AdjustedTotalCommitment).toFixed(2).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,") + '</td>' +
-                '<td style="text-align:right:left;padding-left:5px!important;padding-right:5px!important;">' + "$" + parseFloat(res.dtDelphi[index].RemainingUnfunded).toFixed(2).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,") + '</td>' +
-                '<td style="text-align:right:left;padding-left:5px!important;padding-right:5px!important;">' + res.dtDelphi[index].SpreadPercentage + '</td>' +
+                '<td style="text-align:left;padding-left:5px!important;padding-right:5px!important;">' + res.dtDelphi[index].TaxVendorLoanNumber + '</td>' +
+                '<td style="text-align:left;padding-left:5px!important;padding-right:5px!important;">' + res.dtDelphi[index].NoteID + '</td>' +
+                '<td style="text-align:left;padding-left:5px!important;padding-right:5px!important;">' + res.dtDelphi[index].FinancingSourceName + '</td>' +
+                '<td style="text-align:left;padding-left:5px!important;padding-right:5px!important;">' + res.dtDelphi[index].Name + '</td>' +
+                '<td style="text-align:right;padding-left:5px!important;padding-right:5px!important;">' + "$" + parseFloat(res.dtDelphi[index].InitialFundingAmount).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,") + '</td>' +
+                '<td style="text-align:right;padding-left:5px!important;padding-right:5px!important;">' + curr_bal_delphi + '</td>' +
+                '<td style="text-align:right;padding-left:5px!important;padding-right:5px!important;">' + curr_comm_delphi + '</td>' +
+                '<td style="text-align:right;padding-left:5px!important;padding-right:5px!important;">' + "$" + parseFloat(res.dtDelphi[index].RemainingUnfunded).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,") + '</td>' +
+                '<td style="text-align:right;padding-left:5px!important;padding-right:5px!important;">' + parseFloat(res.dtDelphi[index].SpreadPercentage).toFixed(2).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,") + '%</td>' +
+                '<td style="text-align:right;padding-left:5px!important;padding-right:5px!important;">' + parseFloat(res.dtDelphi[index].PikSpreadPercentage).toFixed(2).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,") + '%</td>' +
+
                 '</tr>';
             }
             else if (res.dtDelphi[index].RowType == "Total") {
 
               TotaltrDelphi = '<tr>' +
-                '<td style="font-weight:bold;text-align:right;padding-left:5px!important;padding-right:5px!important;">Total</td>' +
-                '<td style="text-align:right;padding-left:5px!important;padding-right:5px!important;"></td>' +
-                '<td style="text-align:right;padding-left:5px!important;padding-right:5px!important;"></td>' +
-                '<td style="text-align:right;padding-left:5px!important;padding-right:5px!important;"></td>' +
-                '<td style="text-align:right:left;padding-left:5px!important;padding-right:5px!important;">' + "$" + parseFloat(res.dtDelphi[index].InitialFundingAmount).toFixed(2).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,") + '</td>' +
-                '<td style="text-align:right:left;padding-left:5px!important;padding-right:5px!important;">' + "$" + parseFloat(res.dtDelphi[index].CurrentBalance).toFixed(2).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,") + '</td>' +
-                '<td style="text-align:right:left;padding-left:5px!important;padding-right:5px!important;">' + "$" + parseFloat(res.dtDelphi[index].AdjustedTotalCommitment).toFixed(2).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,") + '</td>' +
-                '<td style="text-align:right:left;padding-left:5px!important;padding-right:5px!important;">' + "$" + parseFloat(res.dtDelphi[index].RemainingUnfunded).toFixed(2).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,") + '</td>' +
-                '<td style="text-align:right:left;padding-left:5px!important;padding-right:5px!important;">' + res.dtDelphi[index].SpreadPercentage + '</td>' +
+                '<td style="text-align:left;padding-left:5px!important;padding-right:5px!important;"><b>Total</b></td>' +
+                '<td style="text-align:left;padding-left:5px!important;padding-right:5px!important;"></td>' +
+                '<td style="text-align:left;padding-left:5px!important;padding-right:5px!important;"></td>' +
+                '<td style="text-align:left;padding-left:5px!important;padding-right:5px!important;"></td>' +
+                '<td style="text-align:right;padding-left:5px!important;padding-right:5px!important;"><b>' + "$" + parseFloat(res.dtDelphi[index].InitialFundingAmount).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,") + '</b></td>' +
+                '<td style="text-align:right;padding-left:5px!important;padding-right:5px!important;"><b>' + curr_bal_delphi + '</b></td>' +
+                '<td style="text-align:right;padding-left:5px!important;padding-right:5px!important;"><b>' + curr_comm_delphi + '</b></td>' +
+                '<td style="text-align:right;padding-left:5px!important;padding-right:5px!important;"><b>' + "$" + parseFloat(res.dtDelphi[index].RemainingUnfunded).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,") + '</b></td>' +
+                '<td style="text-align:right;padding-left:5px!important;padding-right:5px!important;"><b>' + parseFloat(res.dtDelphi[index].SpreadPercentage).toFixed(2).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,") + '%</b></td>' +
+                '<td style="text-align:right;padding-left:5px!important;padding-right:5px!important;"><b>' + parseFloat(res.dtDelphi[index].PikSpreadPercentage).toFixed(2).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,") + '%</b></td>' +
                 '</tr>';
             }
 
@@ -3100,39 +3774,51 @@ export class WorkflowDetailComponent {
           tbldelphi += trDelphi + TotaltrDelphi + '</table>';
 
           res.dtNoteFinancingSources.forEach(function (value, index) {
-            //    if (res.lstNoteDealFunding[index].Value != 0 || res.lstNoteDealFunding[index].TaxVendorLoanNumber != '') {
+            curr_bal_fsource = "$" + parseFloat(res.dtNoteFinancingSources[index].CurrentBalance).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,")
+            if (parseFloat(res.dtNoteFinancingSources[index].CurrentBalance) < 0) {
+              curr_bal_fsource = "-$" + Math.abs(parseFloat(res.dtNoteFinancingSources[index].CurrentBalance)).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,")
+            }
+            curr_comm_fsource = "$" + parseFloat(res.dtNoteFinancingSources[index].AdjustedTotalCommitment).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,")
+            if (parseFloat(res.dtNoteFinancingSources[index].AdjustedTotalCommitment) < 0) {
+              curr_comm_fsource = "-$" + Math.abs(parseFloat(res.dtNoteFinancingSources[index].AdjustedTotalCommitment)).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,")
+            }
             if (res.dtNoteFinancingSources[index].RowType == "Data") {
               trFSources = trFSources +
                 '<tr>' +
-                '<td style="text-align:right;padding-left:5px!important;padding-right:5px!important;">' + res.dtNoteFinancingSources[index].TaxVendorLoanNumber + '</td>' +
-                '<td style="text-align:right;padding-left:5px!important;padding-right:5px!important;">' + res.dtNoteFinancingSources[index].NoteID + '</td>' +
-                '<td style="text-align:right;padding-left:5px!important;padding-right:5px!important;">' + res.dtNoteFinancingSources[index].FinancingSourceName + '</td>' +
-                '<td style="text-align:right;padding-left:5px!important;padding-right:5px!important;">' + res.dtNoteFinancingSources[index].Name + '</td>' +
-                '<td style="text-align:right:left;padding-left:5px!important;padding-right:5px!important;">' + "$" + parseFloat(res.dtNoteFinancingSources[index].InitialFundingAmount).toFixed(2).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,") + '</td>' +
-                '<td style="text-align:right:left;padding-left:5px!important;padding-right:5px!important;">' + "$" + parseFloat(res.dtNoteFinancingSources[index].CurrentBalance).toFixed(2).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,") + '</td>' +
-                '<td style="text-align:right:left;padding-left:5px!important;padding-right:5px!important;">' + "$" + parseFloat(res.dtNoteFinancingSources[index].AdjustedTotalCommitment).toFixed(2).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,") + '</td>' +
-                '<td style="text-align:right:left;padding-left:5px!important;padding-right:5px!important;">' + "$" + parseFloat(res.dtNoteFinancingSources[index].RemainingUnfunded).toFixed(2).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,") + '</td>' +
-                '<td style="text-align:right:left;padding-left:5px!important;padding-right:5px!important;">' + res.dtNoteFinancingSources[index].SpreadPercentage + '</td>' +
+                '<td style="text-align:left;padding-left:5px!important;padding-right:5px!important;">' + res.dtNoteFinancingSources[index].TaxVendorLoanNumber + '</td>' +
+                '<td style="text-align:left;padding-left:5px!important;padding-right:5px!important;">' + res.dtNoteFinancingSources[index].NoteID + '</td>' +
+                '<td style="text-align:left;padding-left:5px!important;padding-right:5px!important;">' + res.dtNoteFinancingSources[index].FinancingSourceName + '</td>' +
+                '<td style="text-align:left;padding-left:5px!important;padding-right:5px!important;">' + res.dtNoteFinancingSources[index].Name + '</td>' +
+                '<td style="text-align:right;padding-left:5px!important;padding-right:5px!important;">' + "$" + parseFloat(res.dtNoteFinancingSources[index].InitialFundingAmount).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,") + '</td>' +
+                '<td style="text-align:right;padding-left:5px!important;padding-right:5px!important;">' + curr_bal_fsource + '</td>' +
+                '<td style="text-align:right;padding-left:5px!important;padding-right:5px!important;">' + curr_comm_fsource + '</td>' +
+                '<td style="text-align:right;padding-left:5px!important;padding-right:5px!important;">' + "$" + parseFloat(res.dtNoteFinancingSources[index].RemainingUnfunded).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,") + '</td>' +
+                '<td style="text-align:right;padding-left:5px!important;padding-right:5px!important;">' + parseFloat(res.dtNoteFinancingSources[index].SpreadPercentage).toFixed(2).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,") + '%</td>' +
+                '<td style="text-align:right;padding-left:5px!important;padding-right:5px!important;">' + parseFloat(res.dtNoteFinancingSources[index].PikSpreadPercentage).toFixed(2).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,") + '%</td>' +
                 '</tr>';
             }
             else if (res.dtNoteFinancingSources[index].RowType == "Total") {
 
               TotaltrFSources = '<tr>' +
-                '<td style="font-weight:bold;text-align:right;padding-left:5px!important;padding-right:5px!important;">Total</td>' +
-                '<td style="text-align:right;padding-left:5px!important;padding-right:5px!important;"></td>' +
-                '<td style="text-align:right;padding-left:5px!important;padding-right:5px!important;"></td>' +
-                '<td style="text-align:right;padding-left:5px!important;padding-right:5px!important;"></td>' +
-                '<td style="text-align:right:left;padding-left:5px!important;padding-right:5px!important;">' + "$" + parseFloat(res.dtNoteFinancingSources[index].InitialFundingAmount).toFixed(2).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,") + '</td>' +
-                '<td style="text-align:right:left;padding-left:5px!important;padding-right:5px!important;">' + "$" + parseFloat(res.dtNoteFinancingSources[index].CurrentBalance).toFixed(2).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,") + '</td>' +
-                '<td style="text-align:right:left;padding-left:5px!important;padding-right:5px!important;">' + "$" + parseFloat(res.dtNoteFinancingSources[index].AdjustedTotalCommitment).toFixed(2).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,") + '</td>' +
-                '<td style="text-align:right:left;padding-left:5px!important;padding-right:5px!important;">' + "$" + parseFloat(res.dtNoteFinancingSources[index].RemainingUnfunded).toFixed(2).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,") + '</td>' +
-                '<td style="text-align:right:left;padding-left:5px!important;padding-right:5px!important;">' + res.dtNoteFinancingSources[index].SpreadPercentage + '</td>' +
+                '<td style="text-align:left;padding-left:5px!important;padding-right:5px!important;"><b>Total</b></td>' +
+                '<td style="text-align:left;padding-left:5px!important;padding-right:5px!important;"></td>' +
+                '<td style="text-align:left;padding-left:5px!important;padding-right:5px!important;"></td>' +
+                '<td style="text-align:left;padding-left:5px!important;padding-right:5px!important;"></td>' +
+                '<td style="text-align:right;padding-left:5px!important;padding-right:5px!important;"><b>' + "$" + parseFloat(res.dtNoteFinancingSources[index].InitialFundingAmount).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,") + '</b></td>' +
+                '<td style="text-align:right;padding-left:5px!important;padding-right:5px!important;"><b>' + curr_bal_fsource + '</b></td>' +
+                '<td style="text-align:right;padding-left:5px!important;padding-right:5px!important;"><b>' + curr_comm_fsource + '</b></td>' +
+                '<td style="text-align:right;padding-left:5px!important;padding-right:5px!important;"><b>' + "$" + parseFloat(res.dtNoteFinancingSources[index].RemainingUnfunded).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,") + '</b></td>' +
+                '<td style="text-align:right;padding-left:5px!important;padding-right:5px!important;"><b>' + parseFloat(res.dtNoteFinancingSources[index].SpreadPercentage).toFixed(2).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,") + '%</b></td>' +
+                '<td style="text-align:right;padding-left:5px!important;padding-right:5px!important;"><b>' + parseFloat(res.dtNoteFinancingSources[index].PikSpreadPercentage).toFixed(2).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,") + '%</b></td>' +
                 '</tr>';
             }
 
           });
           tblFSource += trFSources + TotaltrFSources + '</table>';
-          tableALL = "Additional information below:\n" + tblNoteAdditionalInfo;
+
+
+          this.tblPayOffNoteAdditionalInfo = "Additional information below:\n" + tblNoteAdditionalInfo;
+          //tableALL = "Additional information below:\n" + tblNoteAdditionalInfo;
           if (trInvestor != "")
             tableALL += "\nSummary by Client(s):\n\n" + tblInvestorSummary;
           if (trDelphi != "")
@@ -3141,6 +3827,28 @@ export class WorkflowDetailComponent {
             tableALL += "\nDetails by Financing Sources Below:\n\n" + tblFSource;
 
           this.tblPayoff = tableALL;
+
+          if (this.tblPayOffNoteAdditionalInfo != "") {
+
+            var prepPrem = "";
+            var exitFee = "";
+            var exitFeePer = "";
+
+            prepPrem = "$" + (this._workflow.PrepayPremium == null ? "0" : this._workflow.PrepayPremium.toFixed(0)).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,");
+            exitFee = "$" + (this._workflow.ExitFee == null ? "0" : this._workflow.ExitFee.toFixed(0)).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,");
+            //exitFeePer = (this._workflow.ExitFeePercentage * 100).toString() + "%";
+            var extFee1 = Number.isInteger(this._workflow.ExitFeePercentage * 100) ? (this._workflow.ExitFeePercentage * 100).toFixed(2) : parseFloat((this._workflow.ExitFeePercentage * 100).toString());
+
+            extFee1 = extFee1.toString().split(".")[1].length < 2 ? parseFloat(extFee1.toString()).toFixed(2) : extFee1.toString();
+            exitFeePer = extFee1.toString() + "%";
+
+            var tblPayoffLocal = this.tblPayOffNoteAdditionalInfo.replace("$prePrem$", prepPrem);
+            tblPayoffLocal = tblPayoffLocal.replace("$exitFee$", exitFee);
+            tblPayoffLocal = tblPayoffLocal.replace("$exitFeePer$", exitFeePer);
+            tblPayoffLocal = tblPayoffLocal + this.tblPayoff
+            this.trustedPayOffDetail = this.sanitizer.bypassSecurityTrustHtml(tblPayoffLocal);
+          }
+
         }
         else {
           this._router.navigate(['login']);
@@ -3289,7 +3997,7 @@ export class WorkflowDetailComponent {
 
     }
     else if (this._drawFeeInvoice.DrawFeeStatusText == "Invoiced" || this._drawFeeInvoice.DrawFeeStatusText == "Paid") {
-      this.dealSrv.downloadObjectDocumentByStorageTypeAndLocation(this._drawFeeInvoice.FileName, this._invoiceStorageType, this._invoiceLocation)
+      this.dealSrv.downloadObjectDocumentByStorageTypeAndLocation(this._drawFeeInvoice.FileName, appsettings._invoiceStorageType, appsettings._invoiceLocation)
         .subscribe(fileData => {
           let b: any = new Blob([fileData]);
           //var url = window.URL.createObjectURL(b);
@@ -3519,6 +4227,41 @@ export class WorkflowDetailComponent {
 
   }
 
+  CheckValidationforPropertyManager(errMsg) {
+    var errorMsg = "";
+    const Emailexp = /^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
+
+    if (this._workflow.PropertyManagerEmail) {
+      this._workflow.PropertyManagerEmail = this._workflow.PropertyManagerEmail.replace(/,(?=\s*$)/, '');
+      var drawtoemail = this._workflow.PropertyManagerEmail.replace(/;/g, ",").replace(/,(?=\s*$)/, '');
+      var foundemail = '';
+      var foundcomma = drawtoemail.indexOf(",");
+      if (foundcomma > 0) {
+        var splitemail = drawtoemail.split(",");
+        for (var k = 0; k < splitemail.length; k++) {
+          splitemail[k] = splitemail[k].replace(/\s/g, '');
+          if (splitemail[k].trim() != '') {
+            if (!Emailexp.test(String(splitemail[k]).toLowerCase())) {
+              foundemail = foundemail + splitemail[k] + ", ";
+            }
+          }
+        }
+        if (foundemail != '') {
+          errorMsg = errorMsg + "<p>" + "Please enter valid Email Address(es) for property manager separated by comma/semicolon." + "</p>";
+        }
+      }
+      else {
+        if (this._workflow.PropertyManagerEmail != "") {
+          if (!Emailexp.test(String(this._workflow.PropertyManagerEmail).toLocaleLowerCase())) {
+            errorMsg = errorMsg + "<p>" + "Please enter valid Email Address(es) for property manager separated by comma/semicolon." + "</p>";
+          }
+        }
+      }
+
+    }
+    errMsg = errorMsg;
+    return errMsg;
+  }
   CheckValidationforDrawFee(errMsg) {
     var errorMsg = "";
     const Emailexp = /^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
@@ -3844,18 +4587,30 @@ export class WorkflowDetailComponent {
 
   enableDrawSection() {
     // to enable or disable controls
+
     if (this.rolename == 'Asset Manager' && (this._drawFeeInvoice.DrawFeeStatus == 0 || this._drawFeeInvoice.DrawFeeStatus == 692 || this._drawFeeInvoice.DrawFeeStatus == 696)) {
       this.IsDrawFeeEditClick = true;
+      ////for sponsor
+      //$("#drawFeeInvoicedivs").find('input, select, textarea, checkbox, radio').not("[name=FirstName],[name=Email1]").removeAttr('disabled', false);
+      //$("#drawFeeInvoicedivs").find('input, select, textarea, checkbox, radio').not("[name=FirstName],[name=Email1]").removeClass("disabledrawfee");
+      //$("#drawFeeInvoicedivs").find('wj-input-number').not("[name=FirstName],[name=Email1]").removeClass("disabledrawfee");
+
       $("#drawFeeInvoicedivs").find('input, select, textarea, checkbox, radio').removeAttr('disabled', false);
       $("#drawFeeInvoicedivs").find('input, select, textarea, checkbox, radio').removeClass("disabledrawfee");
       $("#drawFeeInvoicedivs").find('wj-input-number').removeClass("disabledrawfee");
+
     }
 
   }
 
   disableDrawSection() {
+    ////for sponsor
+    //$('#drawFeeInvoicedivs').find('input, select, textarea, checkbox, radio').not("[name=FirstName],[name=Email1]").attr('disabled', true);
+    //$("#drawFeeInvoicedivs").find('input, select, textarea, checkbox, radio').not("[name=FirstName],[name=Email1]").addClass("disabledrawfee");
+
     $('#drawFeeInvoicedivs').find('input, select, textarea, checkbox, radio').attr('disabled', true);
     $("#drawFeeInvoicedivs").find('input, select, textarea, checkbox, radio').addClass("disabledrawfee");
+
 
   }
 
@@ -3913,7 +4668,7 @@ export class WorkflowDetailComponent {
 
     // add checklist to popup
 
-    var table = '<table id="noteinfo" border="1" style="border-collapse:collapse;font-size:12px;"><tr style="font-weight:bold"><td style="padding-left:5px!important;padding-right:5px!important;">Checklist</td><td style="padding-left:5px!important;padding-right:5px!important;">Status</td><td style="padding-left:5px!important;padding-right:5px!important;">Comment</td></tr>'
+    var table = '<table id="noteinfo" border="1" style="border-collapse:collapse;"><tr style="font-weight:bold"><td style="padding-left:5px!important;padding-right:5px!important;">Checklist</td><td style="padding-left:5px!important;padding-right:5px!important;">Status</td><td style="padding-left:5px!important;padding-right:5px!important;">Comment</td></tr>'
     var tr = "";
     for (var i = 0; i < this._workflow.WFCheckList.length; i++) {
 
@@ -3990,7 +4745,7 @@ export class WorkflowDetailComponent {
 
       this._bodyText = "ACORE has no objection to the release of reserve funds associated with " + drawnumberWithoutDash.trim() +
         ", totaling " + "$" + parseFloat(this._wfAdditionalData.Amount).toFixed(2).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,") +
-        ", to be released immediately.\n\nPlease confirm once funds are released.\n";
+        ", to be released immediately.\n\nPlease confirm once funds are released.\n\n";
       this._wfNotificationDetail.WFBody = this._bodyText;
       this._notificationTittle = "Final Notification";
       if (this.commentHistory != '') {
@@ -4025,6 +4780,7 @@ export class WorkflowDetailComponent {
 
 
     this._footerText = "Thank you,\n" + this._user.FirstName + ' ' + this._user.LastName + '\n' + this._user.Email + ((this._user.ContactNo1 != '' && this._user.ContactNo1 != null) ? ' | ' + this._user.ContactNo1 : '');
+
     this._wfNotificationDetail.WFFooter = this._footerText;
     this._wfNotificationDetail.EnvironmentName = this.environmentName;
     this._wfNotificationDetail.Subject = this.environmentName + this._wfNotificationDetail.Subject
@@ -4050,6 +4806,40 @@ export class WorkflowDetailComponent {
 
 
     var EmailTo = this._wfAdditionalData.AMEmails.split('|')[0];
+
+
+    if (this._workflow.TaskTypeID == 719) {
+
+      //need to remove wells and berkadia email from reserve prelim notification TO section
+      if (notificatioType == this._Preliminary || notificatioType == this._RevisedPreliminary) {
+        EmailTo = this._wfAdditionalData.AMEmailsWithoutWellsBerkadia.split('|')[0];
+      }
+
+
+      this._wfCheckLisupdated = this._wfCheckListData;
+
+
+
+      if (this._wfCheckLisupdated.filter(x => x.CheckListMasterId == 16)[0] != undefined) {
+        var checklistAccountingYes = this._wfCheckLisupdated.filter(x => x.CheckListMasterId == 16)[0].CheckListStatus
+
+        if (checklistAccountingYes == 499) {
+          EmailTo = EmailTo.replace(/^,|,$/g, '');
+          EmailTo = EmailTo + ',' + this._wfAdditionalData.AccountingEmail;
+          EmailTo = EmailTo.replace(/^,|,$/g, '');
+        }
+      }
+      if (this._wfCheckLisupdated.filter(x => x.CheckListMasterId == 17)[0] != undefined) {
+        var checklistPropertyManagerYes = this._wfCheckLisupdated.filter(x => x.CheckListMasterId == 17)[0].CheckListStatus
+
+        if (checklistPropertyManagerYes == 499) {
+          EmailTo = EmailTo.replace(/^,|,$/g, '');
+          EmailTo = EmailTo + ',' + this._workflow.PropertyManagerEmail;
+          EmailTo = EmailTo.replace(/^,|,$/g, '');
+        }
+      }
+    }
+
     if (recipients !== undefined && recipients != null && recipients.length > 0 && recipients[0].TO != '')
       EmailTo = recipients[0].TO + "," + EmailTo;
 
@@ -4065,8 +4855,32 @@ export class WorkflowDetailComponent {
     //    }
     //}
 
+    //added new group email in cc for final notification as requested by client
+    if (notificatioType == this._Final || notificatioType == this._RevisedFinal) {
+
+      if (Emailcc != '') {
+        Emailcc = Emailcc + ',' + this._wfAdditionalData.AdditionalGroupEmail;
+      }
+      else {
+        Emailcc = this._wfAdditionalData.AdditionalGroupEmail;
+      }
+    }
+    if (notificatioType == this._Preliminary || notificatioType == this._RevisedPreliminary || notificatioType == this._Final || notificatioType == this._RevisedFinal) {
+
+      Emailcc = Emailcc.replace(/,\s*$/, "")
+      if (Emailcc != '') {
+        if (this._workflow.AdditionalEmail != '') {
+          Emailcc = Emailcc + ',' + this._workflow.AdditionalEmail;
+        }
+      }
+      else {
+        if (this._workflow.AdditionalEmail != '') {
+          Emailcc = this._workflow.AdditionalEmail;
+        }
+      }
+    }
+
     this._wfNotificationDetail.EmailCCIds = Emailcc;
-    //this._wfNotificationDetail.ReplyTo = recipients[0].ReplyTo;
     this._wfNotificationDetail.ReplyTo = this._user.Email;
 
     this._wfNotificationDetail.EmailToIds = EmailTo;
@@ -4088,10 +4902,280 @@ export class WorkflowDetailComponent {
     modalWFNotification.style.display = "block";
     $.getScript("/js/jsDrag.js");
   }
+  CompleteWorkflowViaScript(): void {
+    this.CloseCompleteViaScriptPopUp();
+    for (var i = 0; i < this._workflow.WFCheckList.length; i++) {
+      if (!(Number(this._workflow.WFCheckList[i].CheckListStatusText).toString() == "NaN" || Number(this._workflow.WFCheckList[i].CheckListStatusText) == 0)) {
+        this._workflow.WFCheckList[i].CheckListStatus = Number(this._workflow.WFCheckList[i].CheckListStatusText);
+      }
+    }
+    this._isWFFetching = true;
+    this.wfSrv.CompleteWorkflowViaScript(this._workflow).subscribe(res => {
+      if (res.Succeeded) {
+        this._isWFFetching = false;
+        var notenewcopied;
+        if (window.location.href.indexOf("dealdetail/a") > -1) {
+          notenewcopied = ['dealdetail', this._wfAdditionalData.CREDealID]
+        }
+        else {
+          notenewcopied = ['dealdetail/a', this._wfAdditionalData.CREDealID]
+        }
+
+        localStorage.setItem('ClickedTabId', 'aFunding');
+        localStorage.setItem('divSucessDeal', 'true');
+        localStorage.setItem('divSucessMsgDeal', 'Draw approval status updated successfully');
+
+        this._router.navigate(notenewcopied);
+      }
+      else if (res.StatusCode != undefined && res.StatusCode == 1) {
+
+        this.savedialogmsg = "<p>Another user has changed the workflow details. Please refresh the page before performing any operations.";
+        this.CustomDialogteSave();
+        this.IsShowSaveAndStatusButton = true;
+        this._isWFFetching = false;
+        return;
+      }
+      else {
+        this._isWFFetching = false;
+        this._router.navigate(['login']);
+      }
+    });
+    error => console.error('Error: ' + error)
+  }
+  CloseCompleteViaScriptPopUp() {
+    var modal = document.getElementById('myModalCompleteViaScript');
+    modal.style.display = "none";
+  }
+  showCompleteViaScriptPopUp(): void {
+    var modalDelete = document.getElementById('myModalCompleteViaScript');
+    modalDelete.style.display = "block";
+    $.getScript("/js/jsDrag.js");
+  }
+
+  UpdatePropertyManagerEmail(): void {
+    try {
+
+      var errorMsg = this.CheckValidationforPropertyManager('');
+      if (errorMsg != "") {
+        this.CustomAlert(errorMsg);
+      }
+      else {
+        //
+        this._isWFFetching = true;
+        this._workflow.CREDealID = this._wfAdditionalData.CREDealID;
+        this.wfSrv.UpdatePropertyManagerEmail(this._workflow).subscribe(res => {
+          if (res.Succeeded) {
+            this._isWFFetching = false;
+            this._Showmessagediv = true;
+            this._ShowmessagedivMsg = 'Property manager email updated successfully';
+            setTimeout(function () {
+              this._Showmessagediv = false;
+              this._ShowmessagedivMsg = "";
+            }.bind(this), 4000);
+          }
+          else {
+            this._router.navigate(['login']);
+          }
+        });
+        error => console.error('Error: ' + error)
+        //
+      }
+    } catch (err) {
+      this._isWFFetching = false;
+      console.log(err);
+    }
+  }
+
+  SendInternalNotificion(notificatioType): void {
+    this._isWFFetching = true;
+    this._workflow.WFAdditionalList = null;
+    this.IsShowSaveAndStatusButton = false;
+    this._workflow.CREDealID = this._wfAdditionalData.CREDealID;
+    this._workflow.WFCheckListStatus = this.lstCheckListStatusType;
+    this._workflow.FooterText = "Thank you,<br/>" + this._user.FirstName + ' ' + this._user.LastName + '<br/>' + this._user.Email + ((this._user.ContactNo1 != '' && this._user.ContactNo1 != null) ? ' | ' + this._user.ContactNo1 : '');
+    this._workflow.SenderName = this._user.FirstName + ' ' + this._user.LastName;
+    this.wfSrv.SendInternalNotificion(this._workflow).subscribe(res => {
+      if (res.Succeeded) {
+
+        this._isRefresh = true;
+        this._isWFFetching = false;
+        localStorage.setItem('divSucessWorkflow', 'true');
+        localStorage.setItem('divSucessMsgWorkflow', 'Notification sent successfully');
+        this.isShowSendButton = true;
+        this.IsShowSaveAndStatusButton = true;
+        var notenewcopied;
+        if (window.location.href.indexOf("workflowdetail/a/") > -1) {
+          notenewcopied = ['workflowdetail', this._wfAdditionalData.TaskID, this._workflow.TaskTypeID]
+        }
+        else {
+          notenewcopied = ['workflowdetail/a', this._wfAdditionalData.TaskID, this._workflow.TaskTypeID]
+        }
+        this._router.navigate(notenewcopied);
+
+      }
+      else {
+        this._router.navigate(['login']);
+      }
+    });
+
+    error => console.error('Error: ' + error)
+
+  }
+  CancelWFNotification(): void {
+    this.isShowSendButton = false;
+    this._isWFFetching = true;
+
+    //
+    if (this.notificatio_type == this._Final || this.notificatio_type == this._RevisedFinal) {
+
+      this.environmentName = this.dataService._environmentNamae != '' ? "(" + this.dataService._environmentNamae.replace("-", "").trim() + ") " : "";
+      if (this._workflow.TaskTypeID == 502) {
+        this._wfNotificationDetail.WFNotificationMasterID = 8;
+        this._wfNotificationDetail.Subject = "REMINDER – Need to Send Out Final Capital Call Notice on " + this._wfAdditionalData.DealName + " for " + this.convertDateTOMMDDYYYY(this._wfAdditionalData.Date);
+      }
+      else {
+        this._wfNotificationDetail.WFNotificationMasterID = 9;
+        this._wfNotificationDetail.Subject = "REMINDER – Need to Send Out Reserve Final Capital Call Notice on " + this._wfAdditionalData.DealName + " for " + this.convertDateTOMMDDYYYY(this._wfAdditionalData.Date);
+      }
+      this._wfNotificationDetail.Subject = this.environmentName + this._wfNotificationDetail.Subject
+      var notificationConfig = this.notificationConfig.filter(x => x.WFNotificationMasterID == this._wfNotificationDetail.WFNotificationMasterID);
+      this._wfNotificationDetail.TemplateFileName = notificationConfig[0].TemplateFileName;
+      this.isShowSendButton = false;
+      this._workflow.TimeZone = 'EST';
+      //this._workflow.WFAdditionalList = null;
+      if (this.commentHistory != '') {
+
+        this.wfSrv.GetWFCommentsByTaskId(this._workflow).subscribe(res => {
+          if (res.Succeeded) {
+            this.commentHistory = '';
+            this._workflow.TimeZone = '';
+            this.lstWFComments = res.lstWFComments;
+            var lstWFStatus = this.lstWFComments.filter(x => (x.SubmitType == 496 || x.SubmitType == 498) && x.WFStatusMasterID != 1 && x.WFStatusMasterID != 2);
+
+            for (var i = 0; i < this.lstWFComments.length; i++) {
+              this.lstWFComments[i].StatusName = (this.lstWFComments[i].SubmitType == 496 && this.lstWFComments[i].Comment == '' ? "rejected transaction back to " : "") + this.FormatWFStatusName(this.lstWFComments[i].StatusName);
+
+              if (((this.lstWFComments[i].WFStatusMasterID != 1 && this.lstWFComments[i].WFStatusMasterID != 2) || (this.lstWFComments[i].SubmitType == 496))
+                && this.lstWFComments[i].Comment != 'Checklist updated'
+                && this.lstWFComments[i].Comment.indexOf("Changed the funding date") < 0 && this.lstWFComments[i].Comment.indexOf("Changed the funding amount") < 0
+              ) {
+                if (!(this.lstWFComments[i].DelegatedUserName == null || this.lstWFComments[i].DelegatedUserName == "" || this.lstWFComments[i].DelegatedUserName == undefined)) {
+                  this.lstWFComments[i].Login = this.lstWFComments[i].DelegatedUserName + " (on behalf of " + this.lstWFComments[i].Login + " )";
+                }
+                this.commentHistory += "<i>" + this.lstWFComments[i].Login + "  " + this.lstWFComments[i].StatusName + "  " + this.convertDateTimeIn12Hours(this.lstWFComments[i].CreatedDate) + " " + this.lstWFComments[i].Abbreviation + "</i>" + "\n";
+                if (this.lstWFComments[i].Comment != '' && this.lstWFComments[i].Comment != 'Checklist updated') {
+                  this.commentHistory += this.lstWFComments[i].Comment + "\n";
+                }
+              }
+              //(this.lstWFComments[i].Comment != '' && this.lstWFComments[i].Comment != 'Checklist updated') ? this.lstWFComments[i].Comment + "\n" : '';
+
+            }
+            if (this.commentHistory != '') {
+              this._activityLog = "\n<p><b>Activity log are below</b>:</p>" + this.commentHistory + '\n\n';
+            }
+            this._wfNotificationDetail.ActionType = 577;
+            this._wfNotificationDetail.TaskID = this._workflow.TaskID;
+            this._wfNotificationDetail.MessageHTML = '';
+            this._wfNotificationDetail.DealName = this._wfAdditionalData.DealName;
+
+            this._wfNotificationDetail.DealDetail = "<tr><td>" + this._wfNotificationDetail.DealName + "</td><td>" + this.convertDateTOMMDDYYYY(this._wfAdditionalData.Date) + "</td><td>" + this._totalfundingamount + "</td><td>" + this.convertDateTOMMDDYYYY(this._wfAdditionalData.DeadLineDate) + "</td></tr>";
+
+            //send checklist detail on final notification
+            if (this._isShowChecklist) {
+              if (this.checklistInTable != undefined && this.checklistInTable != '') {
+                this._wfNotificationDetail.MessageHTML += "\n<p>Draw Approval checklist:</p>" + this.checklistInTable;
+              }
+            }
+
+            if (this.noteswithAmount != undefined && this.noteswithAmount != '') {
+              //this._wfNotificationDetail.MessageHTML += this._wfNotificationDetail.WFBody + '<br/><br/>';
+              this._wfNotificationDetail.MessageHTML += "\n<p>Details by note are below:</p>" + this.noteswithAmount + '\n\n';
+            }
+
+            if (this.ReserveScheduleBreakDown != undefined && this.ReserveScheduleBreakDown != '') {
+              //this._wfNotificationDetail.MessageHTML += this._wfNotificationDetail.WFBody + '<br/><br/>';
+              this._wfNotificationDetail.MessageHTML += this.ReserveScheduleBreakDown + '\n\n';
+            }
+
+            if (this._activityLog != undefined && this._activityLog != '') {
+              //this._wfNotificationDetail.MessageHTML += this._wfNotificationDetail.WFBody + '<br/><br/>';
+              this._wfNotificationDetail.MessageHTML += this._activityLog;
+            }
+            this._wfNotificationDetail.MessageHTML += '\n';
+            this._wfNotificationDetail.EmailToIds = this._wfNotificationDetail.EmailToIds.replace(/,\s*$/, "");
+
+            if (this._wfNotificationDetail.EmailCCIds != null &&
+              this._wfNotificationDetail.EmailCCIds != undefined &&
+              this._wfNotificationDetail.EmailCCIds != '') {
+              this._wfNotificationDetail.EmailCCIds = this._wfNotificationDetail.EmailCCIds.replace(/,\s*$/, "");
+            }
+            else {
+              this._wfNotificationDetail.EmailCCIds = "";
+            }
+            this._wfNotificationDetail.UserName = this._user.FirstName + " " + this._user.LastName;
+            this._wfNotificationDetail.AdditionalComments = this._workflow.AdditionalComments;
+            this._wfNotificationDetail.SpecialInstructions = this._workflow.SpecialInstructions;
+            this._wfNotificationDetail.WFCheckList = this._workflow.WFCheckList;
+            this._wfNotificationDetail.TaskTypeID = this._workflow.TaskTypeID;
+            this.wfSrv.CancelNotification(this._wfNotificationDetail).subscribe(res => {
+              if (res.Succeeded) {
+                this.isShowSendButton = true;
+                this._isRefresh = true;
+                this._isWFFetching = false;
+                localStorage.setItem('divSucessWorkflow', 'true');
+                localStorage.setItem('divSucessMsgWorkflow', 'Draw approval status updated successfully');
+                if (this._isNotificationMsg) {
+                  localStorage.setItem('divSucessMsgWorkflow', 'Notification sent successfully');
+                }
+                this.CloseWFNotificationDialog();
+              }
+              else {
+                this._router.navigate(['login']);
+              }
+            });
+
+            error => console.error('Error: ' + error)
+          }
+          else {
+            this._router.navigate(['login']);
+          }
+        });
+
+        //
+
+      }
+    }
+
+    //
+
+  }
+  ////for sponsor
+  //UpdateSponsorDetailFromBackshop(): void {
+  //  this._isWFFetching = true;
+  //  this.IsShowSaveAndStatusButton = false;
+  //  this.wfSrv.UpdateSponsorDetailFromBackshop(this._wfAdditionalData.CREDealID).subscribe(res => {
+  //    if (res.Succeeded) {
+
+  //      this._isWFFetching = false;
+  //      if (this._isShowinvoicesaveMsg == false) {
+  //        this._Showmessagediv = true;
+  //        this._ShowmessagedivMsg = 'Invoice detail updated successfully';
+  //        setTimeout(function () {
+  //          this._Showmessagediv = false;
+  //          this._ShowmessagedivMsg = "";
+  //        }.bind(this), 4000);
+  //      }
+
+  //      this.GetDrawFeeInvoiceDetailByTaskID();
+  //    }
+  //    else {
+  //      this._router.navigate(['login']);
+  //    }
+  //  });
+  //  error => console.error('Error: ' + error)
+  //}
 
 }
-
-
 
 
 
@@ -4104,4 +5188,4 @@ const routes: Routes = [
   declarations: [WorkflowDetailComponent]
 })
 
-export class workflowDetailModule { }
+export class WorkFlowDetailModule { }

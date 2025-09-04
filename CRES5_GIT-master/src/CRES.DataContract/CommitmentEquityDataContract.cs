@@ -1,4 +1,8 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
 
 namespace CRES.DataContract
 {
@@ -50,8 +54,8 @@ namespace CRES.DataContract
         public Decimal? TotalCommitment { get; set; }
         public Decimal? TotalRequiredEquity { get; set; }
         public Decimal? TotalAdditionalEquity { get; set; }
+        //public Boolean? ExcludeFromCommitmentCalculation { get; set; }
 
-        public Boolean? ExcludeFromCommitmentCalculation { get; set; }
         public string Comments { get; set; }
 
 

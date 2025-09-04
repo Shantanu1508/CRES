@@ -86,6 +86,7 @@ BEGIN
 			  ,[AccrualPeriodID] = tf.AccrualPeriodID
 			  ,[UpdatedBy] = @UserID
 			  ,[UpdatedDate] = getdate()
+			  ,[FunctionNameText] = tf.FunctionNameText
 
 			  FROM
 			(

@@ -83,7 +83,28 @@ from app.EmailNotification where ModuleId=704 and [Status]=1
 FOR XML PATH('') ), 1, 2, ',')
 )
 
+declare @wfemail table
+(
+dealid	uniqueidentifier,
+credealid	nvarchar(256),
+dealname	nvarchar(256),
+ClientID	int,
+ClientName	nvarchar(256),
+lookupID	int,
+EmailID	    nvarchar(256),
+ClientFunding	nvarchar(500),
+ClientsName	    nvarchar(500),
+EmailIDs	    nvarchar(500),
+DealClients     nvarchar(500)
+)
 
+declare @financingEmail table
+(
+ ID int identity(1,1),
+ EmailId nvarchar(500)
+)
+
+insert into @wfemail
 	
 SELECT dealid,credealid,dealname,0 as ClientID,ClientName,lookupID,EmailID,replace(ClientFunding,'aaaaa','') as ClientFunding,
 -- format client name as 'client1,client2 and client3'
@@ -213,8 +234,35 @@ and acc.IsDeleted = 0
 and wf.LookupId <> 607
 GROUP BY d.dealid,d.credealid,l.ParentClient,wf.lookupID,d.dealname,wf.EmailID,tblClientFunding.ClientFunding
 
-) tbl order by ClientName
+) tbl-- order by ClientName
 
+--changes as per jason's email-
+--There should be no use case in which Harel/Winthrop are the only “clients” participating in a draw. 
+--If there is ever an event where the system has no email address to include in the ‘TO’ field, 
+--please use amfinancialcontrols@acorecapital.com and ar@acorecapital.com.
+
+if exists(select 1 from @wfemail where ClientName in ('Harel','Winthrop'))
+BEGIN
+if exists (select 1 from @wfemail where ClientName not in ('Harel','Winthrop') and ClientName not in 
+ (
+   select ParentClient from cre.FinancingSourceMaster where IsThirdParty=1
+ ))
+ begin
+     declare @cnt int=1, @cntall int=0 ,@F_EmailID nvarchar(256)
+	 insert into @financingEmail  select distinct fn.Value from Cre.WFNotificationMasterEmail wf
+		outer apply [dbo].[fn_Split_Str](EmailID,',') fn where ParentClient in ('Harel','Winthrop')
+	 
+	  select @cntall=count(1) from @financingEmail
+	  while(@cnt<=@cntall)
+	  begin
+		select @F_EmailID=EmailId from @financingEmail where ID=@cnt
+		update @wfemail set EmailIDs=REPLACE(LTRIM(RTRIM(REPLACE(REPLACE(REPLACE(REPLACE(replace(EmailIDs,@F_EmailID,''), ',', '~,'), ',~', ''), '~,', ','), ',', ' '))), ' ', ',')
+		set @cnt+=1
+	  end
+    
+ end
+ END
+ select dealid,credealid,dealname,ClientID,ClientName,lookupID,EmailID,ClientFunding,ClientsName,EmailIDs,DealClients from @wfemail order by ClientName
 END
 ELSE IF(@TaskTypeID=719)
 	BEGIN

@@ -8,7 +8,7 @@ T.Noteid
 from TransactionEntry T
 Inner JOin Note N on T.NoteKey = N.Notekey
 Where Type = 'InterestPaid'
-
+and T.AccountTypeID = 1
 Group by T.NoteID, Day (FullyExtendedMaturityDate)
 
 HAving  Day (FullyExtendedMaturityDate) <> 8  

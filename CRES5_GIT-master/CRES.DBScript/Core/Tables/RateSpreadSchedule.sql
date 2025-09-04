@@ -12,6 +12,7 @@
     [RateOrSpreadToBeStripped] DECIMAL (28, 15) NULL,
     [RateSpreadScheduleAutoID] INT              IDENTITY (1, 1) NOT NULL,
     [IndexNameID] INT NULL, 
+    DeterminationDateHolidayList int null
     CONSTRAINT [PK_RateSpreadScheduleAutoID] PRIMARY KEY CLUSTERED ([RateSpreadScheduleAutoID] ASC),
     CONSTRAINT [FK_RateSpreadScheduleID_EventId] FOREIGN KEY ([EventId]) REFERENCES [Core].[Event] ([EventID])
 );
@@ -34,3 +35,7 @@ CREATE NONCLUSTERED INDEX [IX_RateSpreadSchedule_ValueTypeID_Date]
     ON [Core].[RateSpreadSchedule]([ValueTypeID] ASC, [Date] ASC)
     INCLUDE([EventId], [Value]);
 
+
+GO
+ALTER TABLE [Core].[RateSpreadSchedule] ENABLE CHANGE_TRACKING WITH (TRACK_COLUMNS_UPDATED = ON);
+GO

@@ -1,5 +1,6 @@
 ﻿<!DOCTYPE html>
 <html>
+
 <head>
     <title></title>
     <meta charset="utf-8" />
@@ -16,7 +17,9 @@
             width: 100%;
         }
 
-        table, th, td {
+        table,
+        th,
+        td {
             border: 2px solid black;
             border-collapse: collapse;
         }
@@ -34,6 +37,7 @@
         }
     </style>
 </head>
+
 <body>
 
     <table class="new" style="background-color:#FFF;border:0px;">
@@ -41,17 +45,34 @@
         <tr>
         <tr bgcolor="#FFFFFF">
             <td>
-                Hello,
+                Hi,
                 <br />
-                Below is the consolidate discrepancy found -
                 <br />
-                <!--<p style="padding:0px; margin:0px 0px 0px 0px;"><strong style="color:#333333; font-size:14px;  font-family:Arial, Helvetica">Admin,</strong></p>-->
+                Please refer below grid for the discrepancies found today. A copy of this can be found online at below
+                link:                
             </td>
-        </tr>
-
         <tr>
             <td>
-                <p style="font-weight: bold;"><strong>Summary:</strong></p>
+
+                <br />
+                <a href="{ReportURL}" class="f-fallback button" target="_blank">Online Discrepancy Report </a>
+            </td>
+        </tr>
+        <tr>
+            <td>
+
+                <br />
+                The data in the online report is live and variances related to backshop can be updated by clicking on
+                the ‘Refresh’ button on top left corner.
+                 <br />
+                 <br />
+            </td>
+        </tr>
+        </tr>
+        <tr>
+            <td>
+                <!--<p style="font-weight: bold;"><strong>Summary:</strong></p>-->
+                <strong>Summary:</strong>
                 <table style="width:330px !important;border-collapse: collapse; border-style: hidden;">
                     <tr>
                         <td>
@@ -60,29 +81,115 @@
                     </tr>
                 </table>
 
-                <p style="font-weight: bold;"><strong>Details:</strong></p>
+                <br />
+                <strong>Details:</strong>
+                <br />
 
-                <p style="font-weight: bold;"><strong>{discrepancytitle}</strong></p>
+                <strong>{discrepancytitle}</strong>
+                <br />
                 {message}
+                <br /> <br />
+
+                <strong>{exitfeetitle}</strong>
                 <br />
-                <p style="font-weight: bold;"><strong>{exitfeetitle}</strong></p>
                 {message1}
+                <br /> <br />
+
+                <strong>{FFBetweenM61andBackshoptitle}</strong>
                 <br />
-                <p style="font-weight: bold;"><strong>{FFBetweenM61andBackshoptitle}</strong></p>
                 {message2}
+                <br /> <br />
+
+                <!--<p style="font-weight: bold;"><strong>{CommitmentDiscrepancytitle}</strong></p>
+    {message3}
+    <br />-->
+
+                <strong>{CommitmentDiscrepancyDatatitle}</strong>
                 <br />
-                <p style="font-weight: bold;"><strong>{CommitmentDiscrepancytitle}</strong></p>
-                {message3}
-                <br />
-                <p style="font-weight: bold;"><strong>{CommitmentDiscrepancyDatatitle}</strong></p>
                 {message4}
+                <br /> <br />
+
+                <strong>{Eligibledealsautospreadtitle}</strong>
                 <br />
-                <p style="font-weight: bold;"><strong>{Eligibledealsautospreadtitle}</strong></p>
                 {message5}
+                <br /> <br />
+
+                <strong>{EPBetweenM61andBackshoptitle}</strong>
                 <br />
-                <p style="font-weight: bold;"><strong>{EPBetweenM61andBackshoptitle}</strong></p>
                 {message6}
-                <br /><br />
+                <br /> <br />
+
+                <strong>{NetIOTransactiontitle}</strong>
+                <br />
+                {message7}
+                <br /> <br />
+
+                <strong>{FinancingSource}</strong>
+                <br />
+                {message8}
+                <br /> <br />
+
+                <strong>{InvoiceDiscrepancy}</strong>
+                <br />
+                {message9}
+                <br />
+                <br /> <br />
+
+                <strong>{GetDiscrepancyForWireConfirmed}</strong>
+                <br />
+                {message10}
+                <br />
+                <br /> <br />
+
+                <strong>{GetDiscrepancyForBalanceM61VsBackshop}</strong>
+                <br />
+                {message11}
+                <br />
+                <br /> <br />
+
+
+                <strong>{GetDiscrepancyForAdjCommitmentM61VsBackshop}</strong>
+                <br />
+                {message12}
+                <br />
+                <br /> <br />
+
+                <strong>{GetDiscrepancyForTotalFFVsUnfundedCommitment}</strong>
+                <br />
+                {message13}
+                <br />
+                <br /> <br />
+
+                <strong>{GetDiscrepancyForDuplicatePIK_InBackshop}</strong>
+                <br />
+                {message14}
+                <br />
+                <br /> <br />
+
+                <strong>{GetDiscrepancyForNotesFailedInCalculation}</strong>
+                <br />
+                {message15}
+                <br />
+                <br /> <br />
+
+                <strong>{GetDiscrepancyAutoSpreadDealWithNoUnderwriting}</strong>
+                <br />
+                {message16}
+                <br />
+                <br /> <br />
+
+                <strong>{GetDiscrepancyAmortSchedule}</strong>
+                <br />
+                {message17}
+                <br />
+                <br /> <br />
+
+                <strong>{GetDiscrepancyForDuplicateTransactions}</strong>
+                <br />
+                {message18}
+                <br />
+                <br /> <br />
+
                 Thanks,<br />
                 M61 Support Team
             </td>
@@ -97,14 +204,26 @@
     <table style="border: 0px;  margin-left:0px !important; padding-left:0px !important;">
         <tr>
             <td style="border:0px; ">
-                <p style="padding:0px; font-size:12px"><strong>Note:</strong> This is a system generated email. Please do not reply to this email.</p>
+                <p style="padding:0px; font-size:12px"><strong>Note:</strong> This is a system generated email. Please
+                    do not reply to this email.</p>
                 <hr style="padding:0px; font-size:12px" />
                 <p style="padding:0px; font-size:12px">
-                    ACORE Capital Email Notice: This e-mail communication is intended only for the addressee(s) named above and any others who have been specifically authorized to receive it and may contain information that is privileged, confidential or otherwise protected from disclosure. If you are not the intended recipient of this e-mail communication, please do not copy, use or disclose to others the contents of this communication. Please notify the sender that you have received this e-mail in error by replying to this e-mail. Please then delete the e-mail from your system and any copies of it. No confidentiality or privilege is waived or lost by any transmission errors. This communication does not constitute an offer to sell or a solicitation of an offer to purchase any interest in any investment vehicles managed or advised by ACORE Capital. ACORE Capital does not provide tax, accounting, or legal advice to our clients, and all investors are advised to consult with their tax, accounting, or legal advisers regarding any potential investment.
+                    ACORE Capital Email Notice: This e-mail communication is intended only for the addressee(s) named
+                    above and any others who have been specifically authorized to receive it and may contain information
+                    that is privileged, confidential or otherwise protected from disclosure. If you are not the intended
+                    recipient of this e-mail communication, please do not copy, use or disclose to others the contents
+                    of this communication. Please notify the sender that you have received this e-mail in error by
+                    replying to this e-mail. Please then delete the e-mail from your system and any copies of it. No
+                    confidentiality or privilege is waived or lost by any transmission errors. This communication does
+                    not constitute an offer to sell or a solicitation of an offer to purchase any interest in any
+                    investment vehicles managed or advised by ACORE Capital. ACORE Capital does not provide tax,
+                    accounting, or legal advice to our clients, and all investors are advised to consult with their tax,
+                    accounting, or legal advisers regarding any potential investment.
                 </p>
             </td>
         </tr>
 
     </table>
 </body>
+
 </html>

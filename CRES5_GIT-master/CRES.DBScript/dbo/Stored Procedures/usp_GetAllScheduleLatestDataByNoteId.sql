@@ -1,8 +1,8 @@
 ﻿
---[dbo].[usp_GetAllScheduleLatestDataByNoteId] '6504AE99-9AB5-49E5-B4C8-2B9A90994267', '80E27BC4-B933-4724-9DB2-EF3CDB8ADB6B',1,1,null
+--[dbo].[usp_GetAllScheduleLatestDataByNoteId] '91D37CB0-F60B-456C-9B2A-8FB1957175B9','b0e6697b-3534-4c09-be0a-04473401ab93', 'c10f3372-0fc2-4861-a9f5-148f1f80804f',1,1,null
 
 
-CREATE PROCEDURE [dbo].[usp_GetAllScheduleLatestDataByNoteId] --'6504AE99-9AB5-49E5-B4C8-2B9A90994267', '80E27BC4-B933-4724-9DB2-EF3CDB8ADB6B',1,1,null
+Create PROCEDURE [dbo].[usp_GetAllScheduleLatestDataByNoteId] --'6504AE99-9AB5-49E5-B4C8-2B9A90994267', '80E27BC4-B933-4724-9DB2-EF3CDB8ADB6B',1,1,null
 (
     @NoteId UNIQUEIDENTIFIER,
 	@UserID UNIQUEIDENTIFIER,
@@ -52,6 +52,8 @@ UpdatedDate
 ,StrippedAmount
 ,RuleType 
 ,FeeName
+--,ISNULL(NonCommitmentAdj,0) NonCommitmentAdj
+,AdjustmentTypeText
 FROM
 (
 
@@ -82,6 +84,8 @@ Select
 ,null StrippedAmount
 ,null RuleType 
 ,null FeeName
+--,fs.NonCommitmentAdj
+,LAdjustmentType.Name as AdjustmentTypeText
 from [CORE].FundingSchedule fs
 INNER JOIN [CORE].[Event] e on e.EventID = fs.EventId
 INNER JOIN 
@@ -104,6 +108,7 @@ ON sEvent.AccountID = e.AccountID and e.EffectiveStartDate = sEvent.EffectiveSta
 
 left JOIN [CORE].[Lookup] LEventTypeID ON LEventTypeID.LookupID = e.EventTypeID
 left JOIN [CORE].[Lookup] LPurposeID ON LPurposeID.LookupID = fs.PurposeID 
+left JOIN [CORE].[Lookup] LAdjustmentType ON LAdjustmentType.LookupID = fs.AdjustmentType 
 INNER JOIN [CORE].[Account] acc ON acc.AccountID = e.AccountID
 INNER JOIN [CRE].[Note] n ON n.Account_AccountID = acc.AccountID
 
@@ -140,6 +145,7 @@ ls.[Date]
 ,null StrippedAmount
 ,null RuleType 
 ,null FeeName
+,null NonCommitmentAdj
 from [CORE].AmortSchedule ls
 INNER JOIN [CORE].[Event] e on e.EventID = ls.EventId
 INNER JOIN 
@@ -194,6 +200,7 @@ ls.[Date]
 ,null StrippedAmount
 ,null RuleType 
 ,null FeeName
+,null NonCommitmentAdj
 from [CORE].PIKScheduleDetail ls
 INNER JOIN [CORE].[Event] e on e.EventID = ls.EventId
 INNER JOIN 
@@ -248,6 +255,7 @@ Select
 ,ls.StrippedAmount
 ,LRuleTypeID.FeeTypeNameText+' '+ 'Strip' RuleType 
 ,ls.FeeName
+,null NonCommitmentAdj
 from [CORE].FeeCouponStripReceivable ls
 INNER JOIN [CORE].[Event] e on e.EventID = ls.EventId
 INNER JOIN 

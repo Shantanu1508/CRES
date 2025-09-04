@@ -1,10 +1,14 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
 
 namespace CRES.DataContract
 {
-    public partial class NoteRateHedgeScheduleDataContract
+     public partial class NoteRateHedgeScheduleDataContract
     {
-        public NoteRateHedgeScheduleDataContract()
+         public NoteRateHedgeScheduleDataContract()
         {
 
         }
@@ -31,7 +35,7 @@ namespace CRES.DataContract
         public string HedgeTypeText { get; set; }
         public string HedgePayFrequencyText { get; set; }
         public string HedgeCurrencyText { get; set; }
-
+        
         public string CreatedBy { get; set; }
         public DateTime? CreatedDate { get; set; }
         public string UpdatedBy { get; set; }

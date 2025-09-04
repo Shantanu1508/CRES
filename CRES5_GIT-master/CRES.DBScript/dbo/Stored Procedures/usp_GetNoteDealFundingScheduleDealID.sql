@@ -1,6 +1,6 @@
 ﻿ 
---[dbo].[usp_GetNoteDealFundingScheduleDealID]  'b0e6697b-3534-4c09-be0a-04473401ab93', '11536C5A-2B6F-4BD8-BE65-47038CB0E065',1      
---[dbo].[usp_GetNoteDealFundingScheduleDealID]  'b4718098-fbab-46b6-8d0a-4905b80f6493', 'E484C0C5-0A6F-4D0F-8BCB-BFF9F3282EE1'  ,0  
+--[dbo].[usp_GetNoteDealFundingScheduleDealID]  'b0e6697b-3534-4c09-be0a-04473401ab93', '50dee1cb-0776-430c-b68d-0800cca947e8',1      
+--[dbo].[usp_GetNoteDealFundingScheduleDealID]  'b4718098-fbab-46b6-8d0a-4905b80f6493', 'B9A7EDE5-A3B7-4326-A7C0-BC5929000539'  ,0  
    --41--116
 
 CREATE PROCEDURE [dbo].[usp_GetNoteDealFundingScheduleDealID]        
@@ -19,7 +19,9 @@ DECLARE @ColPivot AS NVARCHAR(MAX),
 @query  AS NVARCHAR(MAX),      
 @query1 as nvarchar(MAX) ,
 @query2 as nvarchar(MAX) ,
-@query3 as nvarchar(MAX)      
+@query3 as nvarchar(MAX)  ,
+@query4 as nvarchar(MAX) ,
+@query5 as nvarchar(MAX)     
       
 Declare @UseRuletoDetermineNoteFundingAsYes int=(Select LookupID from CORE.Lookup where Name = 'Y' and Parentid = 2)      
 Declare @UseRuletoDetermineNoteFundingAsNo int= (Select LookupID from CORE.Lookup where Name = 'N' and Parentid = 2)      
@@ -27,7 +29,10 @@ Declare  @FundingSchedule  int  =10;
 DECLARE @Active int = (Select LookupID from Core.Lookup where name = 'Active' and ParentID = 1)      
 Declare @InActive as nvarchar(256)=(select LookupID from core.lookup where name ='InActive' and ParentID=1),@TaskTypeID int=502     
       
-Declare @OrderBy nvarchar(256);      
+Declare @OrderBy nvarchar(256)
+
+Declare @SkipWorkflowNotification bit =1
+
       
  IF(@IsShowUseRuleN=0) --'Y'      
  BEGIN      
@@ -54,7 +59,8 @@ Declare @OrderBy nvarchar(256);
   ,a.AdditionalEquity       
   --,a.SubPurposeType      
   ,a.UpdatedDate      
-  ,a.Applied      
+  ,a.Applied    
+  ,a.AdjustmentType  
   ,a.DrawFundingId      
   ,a.orgDate      
   ,a.orgValue      
@@ -69,7 +75,7 @@ Declare @OrderBy nvarchar(256);
   ,a.wf_isUserCurrentFlow      
   ,a.WF_isParticipate      
   ,a.WF_IsFlowStart
-  ,a.DealID,a.Date,a.PurposeID,a.DealFundingRowno, a.DrawFeeStatus,a.DrawFeeStatusName,a.DrawFeeFile,a.GeneratedByText,a.IsShowDrawStatus' + IIF(ISNULL(@ColPivot,'') = '','',','+ISNULL(@ColPivot,'')) + '       
+  ,a.DealID,a.Date,a.PurposeID,a.DealFundingRowno, a.DrawFeeStatus,a.DrawFeeStatusName,a.DrawFeeFile,a.IsShowDrawStatus,a.GeneratedByText,a.GeneratedByUserID ' + IIF(ISNULL(@ColPivot,'') = '','',','+ISNULL(@ColPivot,'')) + '       
    from(       
   Select      
    fs.DealFundingID DealFundingID       
@@ -85,7 +91,8 @@ Declare @OrderBy nvarchar(256);
   ,fs.AdditionalEquity      
   --,fs.SubPurposeType      
   ,fs.UpdatedDate UpdatedDate        
-  ,ISNULL(fs.Applied,0) Applied      
+  ,ISNULL(fs.Applied,0) Applied  
+  ,fs.AdjustmentType    
   ,DrawFundingId      
   ,fs.[Date] as orgDate      
   ,fs.[Amount] as orgValue      
@@ -93,6 +100,7 @@ Declare @OrderBy nvarchar(256);
   ,fs.[PurposeID] as orgPurposeID      
   ,l1.name  as OrgPurposeText      
   ,fs.Issaved as Issaved      
+  'SET @query2 = N'
   ,ISNULL(fs.DealFundingRowno,0) as DealFundingRowno 
 	,(CASE WHEN tblPhtm.dealid is not null THEN NULL ELSE tblWF.WF_CurrentStatus END) as WF_CurrentStatus
 	,tblWF.WF_CurrentStatusDisplayName as WF_CurrentStatusDisplayName
@@ -106,16 +114,26 @@ Declare @OrderBy nvarchar(256);
   ,LDrawFeeStatusID.Name as DrawFeeStatusName      
   ,i.FileName as DrawFeeFile  
   ,IsShowDrawStatus= case when i.DrawFeeStatus is not null and ((fs.Applied=1 and i.DrawFeeStatus=692) or (fs.Applied=0 and i.DrawFeeStatus<>692) or (fs.Applied=1 and i.DrawFeeStatus<>692)) then 1 else 0 end  
-  ,lGeneratedBy.name as GeneratedByText
+  ,(CASE WHEN fs.GeneratedBy = 822 THEN  tblGeneratedBy_Name.Login ELSE lGeneratedBy.name END) as GeneratedByText
+  ,tblGeneratedBy_Name.GeneratedByUserID
   from [CRE].[DealFunding] fs      
   left join cre.deal d on d.DealID = fs.DealID      
   Left Join Core.Lookup l1 on fs.PurposeID=l1.LookupID  
   Left Join Core.Lookup lGeneratedBy on fs.GeneratedBy=lGeneratedBy.LookupID     
-  left join cre.InvoiceDetail i on i.ObjectID=fs.DealFundingID and i.InvoiceTypeID=558 and i.ObjectTypeID=698  
+  left join (
+		select ObjectID,InvoiceTypeID,ObjectTypeID,DrawFeeStatus,[FileName] from cre.InvoiceDetail	where InvoiceTypeID=558 and ObjectTypeID=698 and ObjectID in (Select dealfundingid from cre.dealfunding where dealid = '''+convert(varchar(MAX),@DealID)+''')
+    ) i on i.ObjectID=fs.DealFundingID and i.InvoiceTypeID=558 and i.ObjectTypeID=698  
   and exists(select 1 from cre.wfchecklistdetail where taskid = i.ObjectID and wfchecklistmasterID=9 and CheckListStatus=499)  
-  left JOIN [CORE].[Lookup] LDrawFeeStatusID ON LDrawFeeStatusID.LookupID = i.DrawFeeStatus  '   
-
-  SET @query2 = N'LEFT JOIN(
+  left JOIN [CORE].[Lookup] LDrawFeeStatusID ON LDrawFeeStatusID.LookupID = i.DrawFeeStatus  
+  Left Join(
+	Select df.DealFundingID, u.[Login],NULLIF(df.GeneratedByUserID,'''') as GeneratedByUserID
+	from [CRE].[DealFunding] df
+	left join app.[user] u on u.userid = NULLIF(df.GeneratedByUserID,'''')
+	Where df.DealID = '''+convert(varchar(MAX),@DealID)+'''
+	and df.GeneratedBy = 822
+  )tblGeneratedBy_Name on tblGeneratedBy_Name.DealFundingID = fs.DealFundingID  
+  'SET @query3 = N'
+  LEFT JOIN(
 	select DealID from cre.deal where [status]=325 and isnull(linkeddealid,'''') ='''' and DealID = '''+convert(varchar(MAX),@DealID)+'''
   )tblPhtm on tblPhtm.dealid = d.dealid
   Left Join(
@@ -124,7 +142,8 @@ Declare @OrderBy nvarchar(256);
 			SELECT td.TaskId
 			,sm.StatusName
 			,td.WFTaskDetailID	
-			,(Case WHEN tblNoti.taskid is not null and sm.StatusName=''Completed'' then ''Completed'' 
+			,(Case WHEN tblNoti.taskid is not null and sm.StatusName=''Completed'' then ''Completed''
+                when tblChkd.CheckListStatus=881 and td.TaskTypeID=502 and sm.StatusName=''Completed'' then ''Completed''
 				when (lPurposeType.Value1=''WF_UNDERREVIEW'' or df.[Amount] = 0) then sm.WFUnderReviewDisplayName 
 				else sm.DealFundingDisplayName end) as WF_CurrentStatusDisplayName
 			,ROW_NUMBER() OVER(Partition by td.TaskId order by td.TaskId,td.WFTaskDetailID desc) rno
@@ -138,13 +157,17 @@ Declare @OrderBy nvarchar(256);
 				select TaskID from cre.WFNotification where WFNotificationMasterID=2 and ActionType=577
 			)tblNoti on tblNoti.taskid = td.taskid	
 			LEFT JOIN cre.dealfunding df on df.dealfundingid = td.taskid
-			LEFT JOIN core.Lookup lPurposeType on lPurposeType.LookupID = df.PurposeID and lPurposeType.ParentID = 50	
+			LEFT JOIN core.Lookup lPurposeType on lPurposeType.LookupID = df.PurposeID and lPurposeType.ParentID = 50
+            LEFT JOIN (
+                select CheckListStatus,TaskId from cre.WFCheckListDetail
+                where WFCheckListMasterID=21
+            ) tblChkd on tblChkd.taskid = td.taskid	
 			WHERE td.TaskId in (Select dealfundingid from cre.dealfunding where dealid = '''+convert(varchar(MAX),@DealID)+''')	
 		)a
 		where rno = 1
    )tblWF on tblWF.TaskId = fs.dealfundingid
 
-	where fs.DealID = '''+convert(varchar(MAX),@DealID)+''' and d.IsDeleted = 0      
+	where fs.DealID = '''+convert(varchar(MAX),@DealID)+''' and d.IsDeleted = 0  and fs.PurposeID <> 840
   --order by fs.[Date]      
   ) a      
   '        
@@ -183,7 +206,7 @@ Declare @OrderBy nvarchar(256);
   where sEvent.StatusID = e.StatusID and n.UseRuletoDetermineNoteFunding=(Select LookupID from Core.Lookup where name = ''Y'' and parentId=2)      
   --and isnull(acc.StatusID, '''+convert(varchar(MAX),@Active)+''')!= '''+convert(varchar(MAX),@InActive)+'''       
   and acc.IsDeleted = 0 and       
-  df.DealID ='''+convert(varchar(MAX),@DealID)+''' and d.IsDeleted = 0      
+  df.DealID ='''+convert(varchar(MAX),@DealID)+''' and d.IsDeleted = 0 and fs.PurposeID <> 840     
   ) x       
   pivot       
   (      
@@ -224,7 +247,8 @@ Declare @OrderBy nvarchar(256);
   ,a.AdditionalEquity      
   --,a.SubPurposeType      
   ,a.UpdatedDate      
-  ,a.Applied      
+  ,a.Applied  
+  ,a.AdjustmentType    
   ,a.DrawFundingId      
   ,a.orgDate      
   ,a.orgValue      
@@ -238,11 +262,9 @@ Declare @OrderBy nvarchar(256);
   ,a.WF_IsAllow      
   ,a.wf_isUserCurrentFlow      
   ,a.WF_isParticipate      
-  ,a.WF_IsFlowStart      
-        
-  ,a.DealID,a.Date,a.PurposeID,a.DealFundingRowno,a.DrawFeeStatus,a.DrawFeeStatusName,a.DrawFeeFile,a.GeneratedByText,a.IsShowDrawStatus,' + @ColPivot + '      
-        
-  from(       
+  ,a.WF_IsFlowStart 
+  ,a.DealID,a.Date,a.PurposeID,a.DealFundingRowno,a.DrawFeeStatus,a.DrawFeeStatusName,a.DrawFeeFile,a.IsShowDrawStatus,a.GeneratedByText,a.GeneratedByUserID,' + @ColPivot + '      
+   from(       
    Select      
     fs.DealFundingID DealFundingID       
    ,fs.[DealID] DealID      
@@ -257,7 +279,8 @@ Declare @OrderBy nvarchar(256);
    ,fs.AdditionalEquity        
    --,fs.SubPurposeType      
    ,fs.UpdatedDate UpdatedDate         
-   ,ISNULL(fs.Applied,0) Applied      
+   ,ISNULL(fs.Applied,0) Applied
+   ,fs.AdjustmentType
    ,DrawFundingId      
    ,fs.[Date] as orgDate      
    ,fs.[Amount] as orgValue      
@@ -266,7 +289,7 @@ Declare @OrderBy nvarchar(256);
    ,l1.name  as OrgPurposeText      
    ,fs.Issaved as Issaved      
    ,ISNULL(fs.DealFundingRowno,0) as DealFundingRowno  
-   
+   'SET @query2 = N'
    ,(CASE WHEN tblPhtm.dealid is not null THEN NULL ELSE tblWF.WF_CurrentStatus END) as WF_CurrentStatus
 	,tblWF.WF_CurrentStatusDisplayName as WF_CurrentStatusDisplayName
 	,(SELECT CASE WHEN (SELECT MAX(OrderIndex) FROm [CRE].[WFStatusPurposeMapping] WHERE PurposetypeId = fs.[PurposeID] ) = tblWF.OrderIndex then 1 ELSE 0 END) as WF_IsCompleted
@@ -280,16 +303,26 @@ Declare @OrderBy nvarchar(256);
 	,LDrawFeeStatusID.Name as DrawFeeStatusName      
 	,i.FileName as DrawFeeFile  
    ,IsShowDrawStatus= case when i.DrawFeeStatus is not null and ((fs.Applied=1 and i.DrawFeeStatus=692) or (fs.Applied=0 and i.DrawFeeStatus<>692) or (fs.Applied=1 and i.DrawFeeStatus<>692)) then 1 else 0 end      
-   ,lGeneratedBy.name as GeneratedByText
+   ,(CASE WHEN fs.GeneratedBy = 822 THEN  tblGeneratedBy_Name.Login ELSE lGeneratedBy.name END) as GeneratedByText
+   ,tblGeneratedBy_Name.GeneratedByUserID
    from [CRE].[DealFunding] fs      
    left join cre.deal d on d.DealID = fs.DealID      
    Left Join Core.Lookup l1 on fs.PurposeID=l1.LookupID 
    Left Join Core.Lookup lGeneratedBy on fs.GeneratedBy=lGeneratedBy.LookupID
-   left join cre.InvoiceDetail i on i.ObjectID=fs.DealFundingID and i.InvoiceTypeID=558 and i.ObjectTypeID=698  
+   left join (
+		select ObjectID,InvoiceTypeID,ObjectTypeID,DrawFeeStatus,[FileName] from cre.InvoiceDetail	where InvoiceTypeID=558 and ObjectTypeID=698 and ObjectID in (Select dealfundingid from cre.dealfunding where dealid = '''+convert(varchar(MAX),@DealID)+''')
+    ) i on i.ObjectID=fs.DealFundingID and i.InvoiceTypeID=558 and i.ObjectTypeID=698  
    and exists(select 1 from cre.wfchecklistdetail where taskid = i.ObjectID and wfchecklistmasterID=9 and CheckListStatus=499)      
-   left JOIN [CORE].[Lookup] LDrawFeeStatusID ON LDrawFeeStatusID.LookupID = i.DrawFeeStatus  '      
+   left JOIN [CORE].[Lookup] LDrawFeeStatusID ON LDrawFeeStatusID.LookupID = i.DrawFeeStatus
+   Left Join(
+	Select df.DealFundingID, u.[Login],NULLIF(df.GeneratedByUserID,'''') as GeneratedByUserID
+	from [CRE].[DealFunding] df
+	left join app.[user] u on u.userid = NULLIF(df.GeneratedByUserID,'''')
+	Where df.DealID = '''+convert(varchar(MAX),@DealID)+'''
+	and df.GeneratedBy = 822
+  )tblGeneratedBy_Name on tblGeneratedBy_Name.DealFundingID = fs.DealFundingID      
    
-   SET @query2 = N'LEFT JOIN(
+   'SET @query3 = N'LEFT JOIN(
 	select DealID from cre.deal where [status]=325 and isnull(linkeddealid,'''') ='''' and DealID = '''+convert(varchar(MAX),@DealID)+'''
   )tblPhtm on tblPhtm.dealid = d.dealid
   Left Join(
@@ -298,7 +331,8 @@ Declare @OrderBy nvarchar(256);
 			SELECT td.TaskId
 			,sm.StatusName
 			,td.WFTaskDetailID	
-			,(Case WHEN tblNoti.taskid is not null and sm.StatusName=''Completed'' then ''Completed'' 
+			,(Case WHEN tblNoti.taskid is not null and sm.StatusName=''Completed'' then ''Completed''
+                when tblChkd.CheckListStatus=881 and td.TaskTypeID=502 and sm.StatusName=''Completed'' then ''Completed''
 				when (lPurposeType.Value1=''WF_UNDERREVIEW'' or df.[Amount] = 0) then sm.WFUnderReviewDisplayName 
 				else sm.DealFundingDisplayName end) as WF_CurrentStatusDisplayName
 			,ROW_NUMBER() OVER(Partition by td.TaskId order by td.TaskId,td.WFTaskDetailID desc) rno
@@ -312,13 +346,17 @@ Declare @OrderBy nvarchar(256);
 				select TaskID from cre.WFNotification where WFNotificationMasterID=2 and ActionType=577
 			)tblNoti on tblNoti.taskid = td.taskid	
 			LEFT JOIN cre.dealfunding df on df.dealfundingid = td.taskid
-			LEFT JOIN core.Lookup lPurposeType on lPurposeType.LookupID = df.PurposeID and lPurposeType.ParentID = 50	
+			LEFT JOIN core.Lookup lPurposeType on lPurposeType.LookupID = df.PurposeID and lPurposeType.ParentID = 50
+            LEFT JOIN (
+                select CheckListStatus,TaskId from cre.WFCheckListDetail
+                where WFCheckListMasterID=21
+            ) tblChkd on tblChkd.taskid = td.taskid	
 			WHERE td.TaskId in (Select dealfundingid from cre.dealfunding where dealid = '''+convert(varchar(MAX),@DealID)+''')	
 		)a
 		where rno = 1
    )tblWF on tblWF.TaskId = fs.dealfundingid   
 
-   where fs.DealID = '''+convert(varchar(MAX),@DealID)+''' and d.IsDeleted = 0      
+   where fs.DealID = '''+convert(varchar(MAX),@DealID)+''' and d.IsDeleted = 0   and fs.PurposeID <> 840   
    --order by fs.[Date]      
    ) a      
    '      
@@ -358,7 +396,7 @@ Declare @OrderBy nvarchar(256);
    where sEvent.StatusID = e.StatusID       
    --and isnull(acc.StatusID, '''+convert(varchar(MAX),@Active)+''')!= '''+convert(varchar(MAX),@InActive)+'''       
    and acc.IsDeleted = 0 and       
-   df.DealID ='''+convert(varchar(MAX),@DealID)+''' and d.IsDeleted = 0      
+   df.DealID ='''+convert(varchar(MAX),@DealID)+''' and d.IsDeleted = 0   and fs.PurposeID <> 840
    ) x       
    pivot       
    (      
@@ -397,7 +435,8 @@ Declare @OrderBy nvarchar(256);
    null as PurposeID ,        
    null as UpdatedDate ,        
    null as PurposeText ,        
-   null as Applied ,        
+   null as Applied ,   
+   null as AdjustmentType,     
    null as DrawFundingId ,        
    null as orgDate ,        
    null as orgValue ,        
@@ -420,7 +459,8 @@ Declare @OrderBy nvarchar(256);
    null as DrawFeeStatusName,  
     null as DrawFeeFile,  
  null as IsShowDrawStatus,
- null as GeneratedByText, '      
+ null as GeneratedByText,
+ null as GeneratedByUserID, '      
    + @ColPivot + ' '      
       
    set @query = ' '      
@@ -435,12 +475,14 @@ Declare @OrderBy nvarchar(256);
       
 print @query1 
 print @query2
+print @query3
 print @query      
 print @OrderBy      
       
       
-exec(@query1+@query2+@query + @OrderBy);      
+exec(@query1+@query2+@query3+@query + @OrderBy);      
       
       
  SET TRANSACTION ISOLATION LEVEL READ COMMITTED      
 END  
+GO

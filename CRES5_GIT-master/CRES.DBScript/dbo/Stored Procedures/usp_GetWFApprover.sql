@@ -9,7 +9,7 @@ AS
 BEGIN
 	SET NOCOUNT ON;
 
-SELECT e.EmailId, u.Login, e.EmailNotificationID,e.ModuleId,e.Status, u.FirstName , u.LastName,
+SELECT e.EmailId, u.Login, e.EmailNotificationID,e.ModuleId,e.Status, u.FirstName , u.LastName,u.UserID,
 CASE
 	WHEN l.Name = '1st Approval' THEN 'First draw approver'
 	WHEN l.Name = 'Tier 1 Approval' THEN 'Tier 1 approver'
@@ -20,7 +20,7 @@ CASE
  FROM [App].[EmailNotification] e
 left join  [CORE].[Lookup] l ON l.LookupID = e.ModuleId
 left join [App].[User] u ON  u.Email = e.EmailId
-WHERE e.ModuleId in ('552','606','617','720')
+WHERE e.ModuleId in ('552','606','617','720','858')
 ORDER BY Name, u.FirstName, u.LastName
 
 

@@ -6,8 +6,11 @@ using System.Net.Http;
 using CRES.DataContract;
 using CRES.BusinessLogic;
 using System.Threading.Tasks;
+using System.Collections;
 using CRES.Utilities;
 using System.Net.Http.Headers;
+using System.Drawing;
+using System.Configuration;
 using Microsoft.WindowsAzure.Storage;
 using Microsoft.WindowsAzure.Storage.Auth;
 using Microsoft.WindowsAzure.Storage.Blob;
@@ -15,30 +18,33 @@ using CRES.Services;
 using System.IO;
 using System.Data;
 using CRES.Services.Infrastructure;
+using Microsoft.Azure;
+using Newtonsoft.Json;
 using Microsoft.AspNetCore.Mvc;
-#pragma warning disable CS0105 // The using directive for 'CRES.BusinessLogic' appeared previously in this namespace
-#pragma warning restore CS0105 // The using directive for 'CRES.BusinessLogic' appeared previously in this namespace
+using CRES.BusinessLogic;
 using Microsoft.Extensions.Configuration;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.StaticFiles;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Html;
+using OfficeOpenXml.FormulaParsing.Excel.Functions.Text;
+using Syncfusion.DocIO.DLS;
+using Amazon.Auth.AccessControlPolicy;
+using OfficeOpenXml.Style;
+using System.Globalization;
+using System.Dynamic;
+using ThirdParty.Json.LitJson;
 
 namespace CRES.ServicesNew.Controllers
 {
     [Microsoft.AspNetCore.Cors.EnableCors("CRESPolicy")]
     public class FileUploadController : ControllerBase
     {
-#pragma warning disable CS0649 // Field 'FileUploadController._env' is never assigned to, and will always have its default value null
-#pragma warning disable CS0618 // 'IHostingEnvironment' is obsolete: 'This type is obsolete and will be removed in a future version. The recommended alternative is Microsoft.AspNetCore.Hosting.IWebHostEnvironment.'
         private IHostingEnvironment _env;
-#pragma warning restore CS0618 // 'IHostingEnvironment' is obsolete: 'This type is obsolete and will be removed in a future version. The recommended alternative is Microsoft.AspNetCore.Hosting.IWebHostEnvironment.'
-#pragma warning restore CS0649 // Field 'FileUploadController._env' is never assigned to, and will always have its default value null
         private readonly string[] _supportedMimeTypes = { "image/png", "image/jpeg", "image/jpg", "csv/csv", "xlsx/xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "application/vnd.ms-excel", "application/vnd.openxmlformats-officedocument.wordprocessingml.document", "application/pdf", "application/msword" };
         private readonly string[] _supportedExtensions = { "png", "jpeg", "jpg", "csv", "xlsx", "xls", "doc", "docx", "pdf" };
         private DocumentLogic _documentLogic = new DocumentLogic();
-#pragma warning disable CS0649 // Field 'FileUploadController._iEmailNotification' is never assigned to, and will always have its default value null
         private static readonly IEmailNotification _iEmailNotification;
-#pragma warning restore CS0649 // Field 'FileUploadController._iEmailNotification' is never assigned to, and will always have its default value null
         string AzureFileName = "";
         //private const string Container = "images";
 
@@ -187,7 +193,7 @@ namespace CRES.ServicesNew.Controllers
             int result = _importservicinglog.ImportIntoINServicingTransaction(dtExcel, headerUserID.ToString(), sourceBlobFileName, fileDisplayName, storagetype, _fromDate, _todate);
             if (result != 0)
             {
-                return Ok($"Success==File:  { fileDisplayName} has successfully uploaded.");
+                return Ok($"Success==File:  {fileDisplayName} has successfully uploaded.");
                 //  return Ok($"Success==File:" + {fileDisplayName} + "has successfully uploaded");
                 //  return Ok($"File: {fileDisplayName} has successfully uploaded");
             }
@@ -354,6 +360,8 @@ namespace CRES.ServicesNew.Controllers
                 _docDC.FileName = fDetail[i].NewFileName;
                 _docDC.OriginalFileName = fDetail[i].FileName;
                 _docDC.Storagetype = "azureblob";
+
+                AzureFileName = fDetail[i].NewFileName;
                 result = _documentLogic.InsertUploadedDocumentLog(_docDC);
 
             }
@@ -377,9 +385,7 @@ namespace CRES.ServicesNew.Controllers
             GenericResult _authenticationResult = null;
             List<DocumentDataContract> lstDocuments = new List<DocumentDataContract>();
 
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
 
             var headerUserID = new Guid();
 
@@ -461,9 +467,7 @@ namespace CRES.ServicesNew.Controllers
             GenericResult _authenticationResult = null;
             List<DocumentDataContract> lstDocuments = new List<DocumentDataContract>();
 
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
 
             var headerUserID = new Guid();
 
@@ -495,9 +499,7 @@ namespace CRES.ServicesNew.Controllers
 
         [HttpGet]//http get as it return file 
         [Route("api/fileupload/downloadfilefromlocalstorage")]
-#pragma warning disable CS1998 // This async method lacks 'await' operators and will run synchronously. Consider using the 'await' operator to await non-blocking API calls, or 'await Task.Run(...)' to do CPU-bound work on a background thread.
         public async Task<IActionResult> DownloadFileFromLocalStorage(string filePath, string fileName)
-#pragma warning restore CS1998 // This async method lacks 'await' operators and will run synchronously. Consider using the 'await' operator to await non-blocking API calls, or 'await Task.Run(...)' to do CPU-bound work on a background thread.
         {
             MemoryStream memStreamDownloaded = new MemoryStream();
             try
@@ -536,9 +538,7 @@ namespace CRES.ServicesNew.Controllers
             MemoryStream memStreamDownloaded = new MemoryStream();
             try
             {
-#pragma warning disable CS0219 // The variable 'response' is assigned but its value is never used
                 HttpResponseMessage response = null;
-#pragma warning restore CS0219 // The variable 'response' is assigned but its value is never used
                 var Container = Sectionroot.GetSection("storage:container:name").Value;
 
                 string fileName = ID;
@@ -877,9 +877,7 @@ namespace CRES.ServicesNew.Controllers
 
         [HttpGet]//http get as it return file 
         [Route("api/fileupload/downloadfilefromwells")]
-#pragma warning disable CS1998 // This async method lacks 'await' operators and will run synchronously. Consider using the 'await' operator to await non-blocking API calls, or 'await Task.Run(...)' to do CPU-bound work on a background thread.
         public async Task<IActionResult> DownloadFileFromWellsAPI(string ID)
-#pragma warning restore CS1998 // This async method lacks 'await' operators and will run synchronously. Consider using the 'await' operator to await non-blocking API calls, or 'await Task.Run(...)' to do CPU-bound work on a background thread.
         {
             NoteController _objNoteController = new Controllers.NoteController(_iEmailNotification, _env);
             DataSet ds = _objNoteController.ImportWellsDataByDealID(ID);
@@ -901,10 +899,53 @@ namespace CRES.ServicesNew.Controllers
             }
         }
 
+        [HttpGet]//http get as it return file 
+        [Route("api/fileupload/downloadPayoffstatement")]
+        public async Task<IActionResult> DownloadPayoffStatement(string ID)
+        {
+            try
+            {
+                string filepath = System.IO.Directory.GetCurrentDirectory() + @"\wwwroot\PDFTemplate\PayoffStatement.html";
+
+                string sr = string.Empty;
+                using (StreamReader reader = new StreamReader(filepath))
+                {
+                    sr = reader.ReadToEnd();
+                }
+                sr = sr.Replace("{test}", "Pay off notice");
+                sr = sr.Replace("{test}", "Pay off notice");
+                //StringReader htmlContent = new StringReader(sr);
+
+                using (var ms = new MemoryStream())
+                {
+
+                    //var config = new TheArtOfDev.HtmlRenderer.PdfSharp.PdfGenerateConfig();
+                    //config.PageSize = PdfSharp.PageSize.Letter;
+                    //config.SetMargins(20);
+                    PdfSharpCore.Pdf.PdfDocument pdfx = HtmlRendererCore.PdfSharp.PdfGenerator.GeneratePdf(sr, PdfSharpCore.PageSize.A3);
+
+                    int pages = pdfx.PageCount;
+                    //PdfSharp.Pdf.PdfDocument pdfx = TheArtOfDev.HtmlRenderer.PdfSharp.PdfGenerator.GeneratePdf(htmlContent.ToString(), config,null,null,null);
+
+                    pdfx.Close();
+                    pdfx.Save(ms);
+
+                    MemoryStream memStream = new MemoryStream(ms.ToArray());
+                    return File(memStream, "application/octet-stream");
+                }
+
+            }
+            catch (Exception ex)
+            {
+                Logger.Write(ModuleName.WellsExtract.ToString(), "Error occurred  while downloading Payoff Statement : Deal ID " + ID, MessageLevel.Error, "00000000-0000-0000-0000-000000000000", "00000000-0000-0000-0000-000000000000");
+                return StatusCode(StatusCodes.Status500InternalServerError, ex);
+            }
+        } 
+
         private MemoryStream GenerateExcel(DataSet dataToExcel, params string[] tabName)
         {
-            string fileName = "M61_Wells_Export";// + string.Format("{0:ddmmyyyhhmmss}", System.DateTime.Now);
-            string currentDirectorypath = Path.Combine(Directory.GetCurrentDirectory(), "ExcelTemplate");
+            string fileName = "M61_Trimont_Export";// + string.Format("{0:ddmmyyyhhmmss}", System.DateTime.Now);
+            string currentDirectorypath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot//ExcelTemplate");
             string finalFileNameWithPath = string.Empty;
             string cellLocation = "";
             try
@@ -974,14 +1015,10 @@ namespace CRES.ServicesNew.Controllers
 
         [HttpGet]//http get as it return file 
         [Route("api/fileupload/downloadfilefromurl")]
-#pragma warning disable CS1998 // This async method lacks 'await' operators and will run synchronously. Consider using the 'await' operator to await non-blocking API calls, or 'await Task.Run(...)' to do CPU-bound work on a background thread.
         public async Task<IActionResult> DownloadFileFromURL(string ID)
-#pragma warning restore CS1998 // This async method lacks 'await' operators and will run synchronously. Consider using the 'await' operator to await non-blocking API calls, or 'await Task.Run(...)' to do CPU-bound work on a background thread.
         {
             NoteController _objNoteController = new Controllers.NoteController(_iEmailNotification, _env);
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
 
             var headerUserID = new Guid();
 
@@ -1278,6 +1315,5 @@ namespace CRES.ServicesNew.Controllers
 
             return result;
         }
-
     }
 }

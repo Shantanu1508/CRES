@@ -1,6 +1,7 @@
 ﻿using CRES.BusinessLogic;
 using CRES.DataContract;
 using CRES.DataContract.WorkFlow;
+using CRES.NoteCalculator;
 using CRES.Services.Infrastructure;
 using CRES.Utilities;
 using iTextSharp.text;
@@ -14,6 +15,7 @@ using Microsoft.WindowsAzure.Storage.Auth;
 using Microsoft.WindowsAzure.Storage.Blob;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using OfficeOpenXml.FormulaParsing.Excel.Functions.DateTime;
 using System;
 using System.Collections.Generic;
 using System.Data;
@@ -24,10 +26,14 @@ using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Net.Mail;
+using System.Net.Security;
+using System.Reflection;
 using System.Security;
+using System.Security.Cryptography.X509Certificates;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
+
 
 namespace CRES.Services.Controllers
 {
@@ -47,15 +53,12 @@ namespace CRES.Services.Controllers
         [Services.Controllers.IsAuthenticate]
         [Services.Controllers.DeflateCompression]
         [Route("api/wfcontroller/getworkflowdetailbytaskId")]
-        //GetWorkflowDetailByTaskId
         public IActionResult GetWorkflowDetailByTaskId([FromBody] WFDetailDataContract _wfDetailDataContract)
         {
             GenericResult _authenticationResult = null;
             //WFDetailDataContract _wfDetailDataContract = new WFDetailDataContract();
 
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
             var headerUserID = new Guid();
             if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
             {
@@ -80,6 +83,20 @@ namespace CRES.Services.Controllers
                     _wfDetailDataContract.ExitFeePercentage = _wfDetailDataContract.WFAdditionalList.ExitFeePercentage;
                     _wfDetailDataContract.PrepayPremium = _wfDetailDataContract.WFAdditionalList.PrepayPremium;
                 }
+                //GetDiscrepancyForCommitmentDataByDealID
+                if (_wfDetailDataContract.WFStatusMasterID > 1)
+                {
+                    DealLogic dl = new DealLogic();
+                    DataTable dt = dl.GetDiscrepancyForCommitmentDataByDealID(_wfDetailDataContract.DealID);
+                    if (dt != null && dt.Rows.Count > 0)
+                    {
+                        _wfDetailDataContract.IsDiscrepancyForCommitment = true;
+                    }
+                }
+            }
+            if (_wfDetailDataContract.WFAdditionalList! != null)
+            {
+                _wfDetailDataContract.AdditionalEmail = _wfDetailDataContract.WFAdditionalList.AdditionalEmail;
             }
 
             _wfDetailDataContract.WFCheckList = _wfLogic.GetCheckListByTaskId(_wfDetailDataContract, headerUserID.ToString());
@@ -88,12 +105,59 @@ namespace CRES.Services.Controllers
                 //_wfDetailDataContract.WFCheckList.ForEach(i => i.IsDisable = (_wfDetailDataContract.IsDisableFundingTeamApproval == 1 && i.CheckListMasterId == 6));
 
                 if (_wfDetailDataContract.TaskTypeID == 502)
+                {
                     _wfDetailDataContract.WFCheckList.Where(i => i.CheckListMasterId == 6).ToList().ForEach(i => { i.CheckListStatus = 499; i.CheckListStatusText = "Yes"; i.IsDisable = true; });
+                    _wfDetailDataContract.WFCheckList.Where(i => i.CheckListMasterId == 19).ToList().ForEach(i => {i.IsDisable = true; });
+                }
                 else if (_wfDetailDataContract.TaskTypeID == 719)
                 {
                     _wfDetailDataContract.WFCheckList.Where(i => i.CheckListMasterId == 15).ToList().ForEach(i => { i.CheckListStatus = 499; i.CheckListStatusText = "Yes"; i.IsDisable = true; });
                 }
             }
+
+            if (_wfDetailDataContract.TaskTypeID == 502)
+            {
+                _wfDetailDataContract.WFCheckList.Where(i => i.CheckListMasterId == 19).ToList().ForEach(i => { i.IsDisable = true; });
+
+                //if (_wfDetailDataContract.WFAdditionalList.TotalPendingInvoice >= 3)
+                //as per rohit we increased the validation limit to 10
+                if (_wfDetailDataContract.WFAdditionalList.TotalPendingInvoice >= 10)
+
+                 {
+                     _wfDetailDataContract.WFCheckList.Where(i => i.CheckListMasterId == 6).ToList().ForEach(i => { i.CheckListStatus = 499; i.CheckListStatusText = "Yes"; i.IsDisable = true; });
+                }
+
+                if ((!string.IsNullOrEmpty(_wfDetailDataContract.WFAdditionalList.WatchlistStatus) && _wfDetailDataContract.WFAdditionalList.WatchlistStatus.ToLower() != "reo") &&
+                    _wfDetailDataContract.WFAdditionalList.CREDealIDWithREO.ToLower() != "reo")
+                {
+                    _wfDetailDataContract.WFCheckList.Where(i => i.CheckListMasterId == 21).ToList().ForEach(i => { i.CheckListStatus = 880; i.CheckListStatusText = "Lender"; i.IsDisable = true; });
+                }
+
+                //if (_wfDetailDataContract.WFStatusMasterID > 1)
+                //{
+                //    _wfDetailDataContract.WFCheckList.Where(i => i.CheckListMasterId == 21).ToList().ForEach(i => { i.IsDisable = true; });
+                //}
+
+                if (permissionlist.Count > 0)
+                {
+                    if (permissionlist[0].RoleName.ToLower() != "asset manager" && permissionlist[0].RoleName.ToLower() != "super admin" && permissionlist[0].RoleName.ToLower() != "admin")
+                    {
+                        _wfDetailDataContract.WFCheckList.Where(i => i.CheckListMasterId == 21).ToList().ForEach(i => { i.IsDisable = true; });
+                    }
+                }
+
+            }
+
+            //commented as per jason's email asking for backtrack the change- M61 - Make Draw Fee Applicable Checklist Item "No" on Force Funding Purpose Type
+            //if (_wfDetailDataContract.PurposeTypeId == 520)
+            //{
+            //    if (_wfDetailDataContract.TaskTypeID == 502)
+            //        _wfDetailDataContract.WFCheckList.Where(i => i.CheckListMasterId == 9).ToList().ForEach(i => { i.CheckListStatus = 616; i.CheckListStatusText = "No"; i.IsDisable = true;i.Comment = String.IsNullOrEmpty(i.Comment) ? "Force Funding" : i.Comment; });
+
+            //}
+
+
+
             _wfDetailDataContract.WFStatusList = _wfLogic.GetStatusMasterByTaskId(_wfDetailDataContract, headerUserID.ToString());
             //_wfDetailDataContract.WFClientList = _wfLogic.GetClientByDealFundingID(new Guid(_wfDetailDataContract.TaskID), headerUserID.ToString());
             _wfDetailDataContract.WFNotificationMasterEmail = _wfLogic.GetWFNotificationMasterEmail(_wfDetailDataContract, headerUserID.ToString());
@@ -213,13 +277,12 @@ namespace CRES.Services.Controllers
         public IActionResult ManageWorkflowDetailForTaskId([FromBody] WFDetailDataContract _wfDetailDataContract)
         {
             GenericResult _authenticationResult = null;
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
             List<WFNotificationDataContract> lstWFDetail = new List<WFNotificationDataContract>();
             string PreHeaderText = "";
             var headerUserID = string.Empty;
             var delegateuserid = string.Empty;
+            int status = 0;
 
             if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
             {
@@ -232,23 +295,48 @@ namespace CRES.Services.Controllers
 
             try
             {
+
+
+
                 _wfDetailDataContract.CreatedBy = headerUserID;
                 _wfDetailDataContract.DelegatedUserID = delegateuserid;
 
                 WFLogic _wfLogic = new WFLogic();
 
+                WFConcurrencyParams conparams = new WFConcurrencyParams();
+                conparams.TaskID = _wfDetailDataContract.TaskID;
+                conparams.TaskTypeID = _wfDetailDataContract.TaskTypeID;
+                conparams.WFStatusPurposeMappingID = _wfDetailDataContract.OriginalWFStatusPurposeMappingID;
+
+                status = _wfLogic.CheckWFConcurrency(headerUserID, conparams);
+                if (status == 1)
+                {
+                    _authenticationResult = new GenericResult()
+                    {
+                        Succeeded = false,
+                        StatusCode = status
+                    };
+                    return Ok(_authenticationResult);
+                }
+
+
+
                 string res = _wfLogic.InsertWorkflowDetailForTaskId(_wfDetailDataContract);
                 //add/update full pay of fields
-                if (_wfDetailDataContract.PurposeTypeId == 630)
-                {
-                    WFTaskAdditionalDetailDataContract dc = new WFTaskAdditionalDetailDataContract();
-                    dc.TaskID = _wfDetailDataContract.TaskID;
-                    dc.TaskTypeID = _wfDetailDataContract.TaskTypeID;
-                    dc.ExitFee = _wfDetailDataContract.ExitFee;
-                    dc.ExitFeePercentage = _wfDetailDataContract.ExitFeePercentage;
-                    dc.PrepayPremium = _wfDetailDataContract.PrepayPremium;
-                    _wfLogic.InsertUpdateWFTaskAdditionalDetail(dc, headerUserID);
-                }
+
+                //if (_wfDetailDataContract.PurposeTypeId == 630 || !string.IsNullOrEmpty(_wfDetailDataContract.AdditionalEmail))
+                //if (_wfDetailDataContract.PurposeTypeId == 630)
+
+                // {
+                WFTaskAdditionalDetailDataContract dc = new WFTaskAdditionalDetailDataContract();
+                dc.TaskID = _wfDetailDataContract.TaskID;
+                dc.TaskTypeID = _wfDetailDataContract.TaskTypeID;
+                dc.ExitFee = _wfDetailDataContract.ExitFee;
+                dc.ExitFeePercentage = _wfDetailDataContract.ExitFeePercentage;
+                dc.PrepayPremium = _wfDetailDataContract.PrepayPremium;
+                dc.AdditionalEmail = _wfDetailDataContract.AdditionalEmail;
+                _wfLogic.InsertUpdateWFTaskAdditionalDetail(dc, headerUserID);
+                //}
 
                 if (_wfDetailDataContract.TaskTypeID == 719)
                 {
@@ -353,7 +441,9 @@ namespace CRES.Services.Controllers
                         _authenticationResult = new GenericResult()
                         {
                             Succeeded = true,
-                            Message = message
+                            Message = message,
+                            WFStatusPurposeMappingID = _wfDetailDataContract.WFStatusPurposeMappingID
+
                         };
                     }
                     else
@@ -395,9 +485,7 @@ namespace CRES.Services.Controllers
             GenericResult _authenticationResult = null;
             List<WorkflowListDataContract> _lstWorkflow = new List<WorkflowListDataContract>();
 
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
             var headerUserID = new Guid();
             if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
             {
@@ -417,7 +505,7 @@ namespace CRES.Services.Controllers
             //}
 
             //_lstWorkflow = wfLogic.GetAllWorkflow(headerUserID, pageSize, pageIndex, out totalCount);
-            _lstWorkflow = wfLogic.GetAllWorkflowByFiltertype(headerUserID, filterType, pageSize, pageIndex, out totalCount);
+            _lstWorkflow = wfLogic.GetAllWorkflowByFiltertype(headerUserID, filterType,"", pageSize, pageIndex, out totalCount);
 
             try
             {
@@ -463,10 +551,10 @@ namespace CRES.Services.Controllers
         {
             GenericResult _authenticationResult = null;
             List<WorkflowListDataContract> _lstWorkflow = new List<WorkflowListDataContract>();
+            List<WFDashboardDataContract> _lstWFDashboard = new List<WFDashboardDataContract>();
 
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
+
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
             var headerUserID = new Guid();
             if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
             {
@@ -486,12 +574,15 @@ namespace CRES.Services.Controllers
             //}
 
             //_lstWorkflow = wfLogic.GetAllWorkflow(headerUserID, pageSize, pageIndex, out totalCount);
-            _lstWorkflow = wfLogic.GetAllWorkflowByFiltertype(headerUserID, _wfDetailDataContract.FilterType, pageSize, pageIndex, out totalCount);
+            _lstWorkflow = wfLogic.GetAllWorkflowByFiltertype(headerUserID, _wfDetailDataContract.FilterType, _wfDetailDataContract.CREDealID ,pageSize, pageIndex, out totalCount);
+            //to get user 
+            var userdata = upl.GetFCApprover(headerUserID);
 
             try
             {
                 if (_lstWorkflow != null)
                 {
+
                     Logger.Write("Workflow list loaded successfully", MessageLevel.Info, headerUserID.ToString());
                     _authenticationResult = new GenericResult()
                     {
@@ -499,7 +590,8 @@ namespace CRES.Services.Controllers
                         Message = "Authentication succeeded",
                         TotalCount = Convert.ToInt32(totalCount),
                         lstWorkflow = _lstWorkflow,
-                        UserPermissionList = permissionlist
+                        UserPermissionList = permissionlist,
+                        UserList = userdata
                     };
                 }
                 else
@@ -535,9 +627,7 @@ namespace CRES.Services.Controllers
 
             GenericResult _authenticationResult = null;
 
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
             var headerUserID = new Guid();
             if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
             {
@@ -603,9 +693,7 @@ namespace CRES.Services.Controllers
             GenericResult _authenticationResult = null;
             List<WFNotificationConfigDataContract> WFNotificationConfig = new List<WFNotificationConfigDataContract>();
 
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
             var headerUserID = new Guid();
             if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
             {
@@ -656,12 +744,11 @@ namespace CRES.Services.Controllers
         public IActionResult InsertUpdateWFNotification([FromBody] WFNotificationDetailDataContract _wfDetailDataContract)
         {
             GenericResult _authenticationResult = null;
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
             var headerUserID = string.Empty;
             var delegatedUserID = string.Empty;
             string htmlContent = "";
+            int status = 0;
 
             if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
             {
@@ -678,7 +765,24 @@ namespace CRES.Services.Controllers
                 _wfDetailDataContract.DelegatedUserID = delegatedUserID;
                 WFLogic _wfLogic = new WFLogic();
 
-#pragma warning disable CS0168 // The variable 'ex' is declared but never used
+                //
+                WFConcurrencyParams conparams = new WFConcurrencyParams();
+                conparams.TaskID = _wfDetailDataContract.TaskID.ToString();
+                conparams.TaskTypeID = _wfDetailDataContract.TaskTypeID;
+                conparams.WFStatusPurposeMappingID = _wfDetailDataContract.OriginalWFStatusPurposeMappingID;
+
+                status = _wfLogic.CheckWFConcurrency(headerUserID, conparams);
+                if (status == 1)
+                {
+                    _authenticationResult = new GenericResult()
+                    {
+                        Succeeded = false,
+                        StatusCode = status
+                    };
+                    return Ok(_authenticationResult);
+                }
+                //
+
                 try
                 {
                     ////send email except Save,Save & Draft
@@ -691,7 +795,18 @@ namespace CRES.Services.Controllers
                     if (!string.IsNullOrEmpty(_wfDetailDataContract.EmailCCIds))
                     {
                         _wfDetailDataContract.EmailCCIds = _wfDetailDataContract.EmailCCIds.Replace(";", ",");
+                        //if (!string.IsNullOrEmpty(_wfDetailDataContract.AdditionalEmail))
+                        //{
+                        //    _wfDetailDataContract.EmailCCIds = _wfDetailDataContract.EmailCCIds + "," + _wfDetailDataContract.AdditionalEmail.Replace(";", ",");
+                        //}
                     }
+                    //else if(!string.IsNullOrEmpty(_wfDetailDataContract.AdditionalEmail))
+                    //{
+                    //    _wfDetailDataContract.EmailCCIds = _wfDetailDataContract.AdditionalEmail.Replace(";", ",");
+                    //}
+
+
+
                     //LogDB("sending email");
                     _iEmailNotification.SendWFNotification(_wfDetailDataContract, out htmlContent);
                 }
@@ -700,7 +815,6 @@ namespace CRES.Services.Controllers
 
                     //LogDB(ex.Message);
                 }
-#pragma warning restore CS0168 // The variable 'ex' is declared but never used
 
                 _wfDetailDataContract.MessageHTML = htmlContent;
                 if (!string.IsNullOrEmpty(_wfDetailDataContract.EnvironmentName))
@@ -710,6 +824,16 @@ namespace CRES.Services.Controllers
 
                 string res = _wfLogic.InsertUpdateWFNotification(_wfDetailDataContract, headerUserID);
 
+                //update exit fee and additional email info
+                WFTaskAdditionalDetailDataContract dc = new WFTaskAdditionalDetailDataContract();
+                dc.TaskID = _wfDetailDataContract.TaskID.ToString();
+                dc.TaskTypeID = _wfDetailDataContract.TaskTypeID;
+                dc.ExitFee = _wfDetailDataContract.ExitFee;
+                dc.ExitFeePercentage = _wfDetailDataContract.ExitFeePercentage;
+                dc.PrepayPremium = _wfDetailDataContract.PrepayPremium;
+                dc.AdditionalEmail = _wfDetailDataContract.AdditionalEmail;
+                _wfLogic.InsertUpdateWFTaskAdditionalDetail(dc, headerUserID);
+                //
                 string message = "Changes were saved successfully.";
 
                 if (headerUserID != null)
@@ -762,9 +886,7 @@ namespace CRES.Services.Controllers
             GenericResult _authenticationResult = null;
             List<WFTemplateRecipientDataContract> wfTemplateRecipient = new List<WFTemplateRecipientDataContract>();
 
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
             var headerUserID = new Guid();
             if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
             {
@@ -815,9 +937,7 @@ namespace CRES.Services.Controllers
             GenericResult _authenticationResult = null;
             List<WFTemplateRecipientDataContract> wfTemplateRecipient = new List<WFTemplateRecipientDataContract>();
 
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
             var headerUserID = new Guid();
 
             if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
@@ -870,9 +990,7 @@ namespace CRES.Services.Controllers
         {
             GenericResult _authenticationResult = null;
             WFDetailDataContract wfDate = new WFDetailDataContract();
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
             var headerUserID = new Guid();
 
             if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
@@ -927,9 +1045,7 @@ namespace CRES.Services.Controllers
         public IActionResult ValidateWireConfirmByTaskId([FromBody] WFDetailDataContract _wfDetailDataContract)
         {
             GenericResult _authenticationResult = null;
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
             var headerUserID = string.Empty;
 
             if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
@@ -1034,13 +1150,13 @@ namespace CRES.Services.Controllers
 
                     DateTime next10Workingdate = DateExtensions.GetnextWorkingDays(dtnxtdate, Convert.ToInt16(10), "US", _HolidayList).Date;
                     DateTime next5Workingdate = DateExtensions.GetnextWorkingDays(dtnxtdate, Convert.ToInt16(5), "US", _HolidayList).Date;
-                    DateTime next3Workingdate = DateExtensions.GetnextWorkingDays(dtnxtdate, Convert.ToInt16(3), "US", _HolidayList).Date;
+                    DateTime next2Workingdate = DateExtensions.GetnextWorkingDays(dtnxtdate, Convert.ToInt16(2), "US", _HolidayList).Date;
 
                     //   var datediff = (nextWorkingdate - DateTime.Now.Date).TotalDays;
                     //  if (Convert.ToInt32(datediff) > 10)
                     //if (Convert.ToInt32(datediff) == 10 || Convert.ToInt32(datediff) == 5 || Convert.ToInt32(datediff) == 3)
 
-                    if (next10Workingdate == fdat || next5Workingdate == fdat || next3Workingdate == fdat)
+                    if (next10Workingdate == fdat || next5Workingdate == fdat || next2Workingdate == fdat)
                     {
                         if (next10Workingdate == fdat && dr["NotificationStatus"].ToString() == "PreliminaryNotSent")
                         {
@@ -1108,9 +1224,9 @@ namespace CRES.Services.Controllers
                                 }
                             }
                         }
-                        if (next3Workingdate == fdat && dr["NotificationStatus"].ToString() == "FinalNotSent")
+                        if (next2Workingdate == fdat && dr["NotificationStatus"].ToString() == "FinalNotSent")
                         {
-                            datediff = 3;
+                            datediff = 2;
                             var lstWFDetail = _wfLogic.GetForceFundingNotificationByTaskID(Convert.ToString(dr["Taskid"]));
                             DateTime fundingDate = Convert.ToDateTime(dr["Date"]);
                             if (lstWFDetail.Count > 0)
@@ -1122,22 +1238,22 @@ namespace CRES.Services.Controllers
                                     !string.IsNullOrEmpty(_notificationData.DwarApprovalList))
                                 {
                                     lstWFDetail.ForEach(x =>
-                                {
-                                    x.DealName = _notificationData.DealName;
-                                    x.Comment = _notificationData.Comment;
-                                    x.ActivityLog = _notificationData.ActivityLog;
-                                    x.FooterText = _notificationData.FooterText;
-                                    x.SenderName = _notificationData.SenderName;
-                                    x.DwarApprovalList = _notificationData.DwarApprovalList;
-                                    x.SpecialInstructions = _notificationData.SpecialInstructions;
-                                    x.AdditionalComments = _notificationData.AdditionalComments;
-                                    x.NoteswithAmount = _notificationData.NoteswithAmount;
-                                    x.ReserveScheduleBreakDown = _notificationData.ReserveScheduleBreakDown;
-                                    x.PreHeaderText = _notificationData.PreHeaderText;
-                                    x.TaskTypeID = _notificationData.TaskTypeID;
-                                    x.DealLine = _notificationData.DealLine;
+                                    {
+                                        x.DealName = _notificationData.DealName;
+                                        x.Comment = _notificationData.Comment;
+                                        x.ActivityLog = _notificationData.ActivityLog;
+                                        x.FooterText = _notificationData.FooterText;
+                                        x.SenderName = _notificationData.SenderName;
+                                        x.DwarApprovalList = _notificationData.DwarApprovalList;
+                                        x.SpecialInstructions = _notificationData.SpecialInstructions;
+                                        x.AdditionalComments = _notificationData.AdditionalComments;
+                                        x.NoteswithAmount = _notificationData.NoteswithAmount;
+                                        x.ReserveScheduleBreakDown = _notificationData.ReserveScheduleBreakDown;
+                                        x.PreHeaderText = _notificationData.PreHeaderText;
+                                        x.TaskTypeID = _notificationData.TaskTypeID;
+                                        x.DealLine = _notificationData.DealLine;
 
-                                });
+                                    });
                                     _iEmailNotification.SendEmailForceFundingNotification(lstWFDetail, Convert.ToString(dr["DealName"]), fundingDate, datediff);
                                 }
                             }
@@ -1366,6 +1482,9 @@ namespace CRES.Services.Controllers
                         DrawFeeDC = CreateInvoiceInQBD(DrawFeeDC);
                         if (DrawFeeDC.IsSuccess)
                         {
+                           //update work description using OData service.
+                            DrawFeeDC.WorkDescription = string.IsNullOrEmpty(DrawFeeDC.Comment) ? DrawFeeDC.DrawNo : DrawFeeDC.Comment;
+                            bool isSuccess = UpdateWorkDescriptionusingOData(DrawFeeDC, headerUserID);
                             DrawFeeDC.DrawFeeStatus = 693;
                             DrawFeeDC.IsLogActivity = true;
                             _wfLogic = new WFLogic();
@@ -1604,11 +1723,12 @@ namespace CRES.Services.Controllers
                     // _docDC.Storagetype = "Box";
                     _docDC.FolderName = Location;
 
-
                     //    var DocumentStorageID =  new BoxHelper().UploadFileToFolder("", _docDC, ms);
                     var DocumentStorageID = new BoxHelper().UploadFileToFolder("", _docDC, ms).GetAwaiter().GetResult();
-
                     fileName = DocumentStorageID.ToString();
+
+
+                    //fileName = DocumentStorageID.ToString();
                     //  }
 
 
@@ -1651,7 +1771,15 @@ namespace CRES.Services.Controllers
 
                     if (sr.Length > 0)
                     {
-                        sr = sr.Replace("{feename}", InvoiceTypeNameWithoutSpecialChar.Trim());
+                        if (!string.IsNullOrEmpty(DrawFeeDC.InvoiceTypeFreeText))
+                        {
+                            string InvoiceTypeFreeTextWithoutSpecialChar = illegalInFileName.Replace(DrawFeeDC.InvoiceTypeFreeText, "-");
+                            sr = sr.Replace("{feename}", InvoiceTypeFreeTextWithoutSpecialChar.Trim());
+                        }
+                        else
+                        {
+                            sr = sr.Replace("{feename}", InvoiceTypeNameWithoutSpecialChar.Trim());
+                        }
                         sr = sr.Replace("{fullname}", (DrawFeeDC.FirstName + " " + DrawFeeDC.LastName).Trim());
                         sr = sr.Replace("{feeamount}", String.Format("{0:C}", DrawFeeDC.Amount));
                         sr = sr.Replace("{fundingdate}", DrawFeeDC.FundingDate.ToString());
@@ -1679,7 +1807,17 @@ namespace CRES.Services.Controllers
                         sr = sr.Replace("{dealandcomment}", DrawFeeDC.DealName);
                         sr = sr.Replace("{memo}", DrawFeeDC.InvoiceNoUI);
                         sr = sr.Replace("{currdate}", DateTime.Now.ToString("MMMM d, yyyy"));
+                        if (DrawFeeDC.InvoiceTypeID != 558)
+                        {
 
+                            sr = sr.Replace("{invoicecomment}", string.IsNullOrEmpty(DrawFeeDC.InvoiceComment) ? "" : " - " + DrawFeeDC.InvoiceComment);
+
+                        }
+                        else
+                        {
+                            sr = sr.Replace("{invoicecomment}", " - In accordance with Loan Agreement");
+
+                        }
 
                     }
 
@@ -1898,7 +2036,6 @@ namespace CRES.Services.Controllers
                     _httpClient.DefaultRequestHeaders.Add("SchemaVersion", "20.04");
                     foreach (DrawFeeInvoiceDataContract df in lstDraw)
                     {
-#pragma warning disable CS0168 // The variable 'ex' is declared but never used
                         try
                         {
                             string AutoFURL = AutofyBaseURL + "data/" + AutofyCompanyEndPoint + "/Invoice?number=" + df.InvoiceNo;
@@ -1933,7 +2070,6 @@ namespace CRES.Services.Controllers
                             }
                         }
                         catch (Exception ex) { }
-#pragma warning restore CS0168 // The variable 'ex' is declared but never used
 
                     }
                 }
@@ -1944,7 +2080,6 @@ namespace CRES.Services.Controllers
                     DynamicsSalesInvoiceOutput invoiceoutput = null;
                     foreach (DrawFeeInvoiceDataContract df in lstDraw)
                     {
-#pragma warning disable CS0168 // The variable 'ex' is declared but never used
                         try
                         {
                             invoiceoutput = GetInvoiceDetailDynamicByGuid(df.InvoiceGuid, authToken);
@@ -1964,7 +2099,6 @@ namespace CRES.Services.Controllers
                             }
                         }
                         catch (Exception ex) { }
-#pragma warning restore CS0168 // The variable 'ex' is declared but never used
                     }
 
 
@@ -2016,6 +2150,9 @@ namespace CRES.Services.Controllers
                         DrawFeeDC = CreateInvoiceInQBD(df);
                         if (DrawFeeDC.IsSuccess)
                         {
+                            DrawFeeDC.WorkDescription = string.IsNullOrEmpty(DrawFeeDC.Comment) ? DrawFeeDC.DrawNo : DrawFeeDC.Comment;
+                            bool isSuccess = UpdateWorkDescriptionusingOData(DrawFeeDC, "");
+
                             DrawFeeDC.DrawFeeStatus = 693;
                             DrawFeeDC.IsLogActivity = true;
                             _wfLogic.UpdateDrawFeeInvoiceDetailStatus("", DrawFeeDC);
@@ -2070,9 +2207,7 @@ namespace CRES.Services.Controllers
             GenericResult _authenticationResult = null;
 
 
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
             var headerUserID = new Guid();
             if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
             {
@@ -2442,6 +2577,7 @@ namespace CRES.Services.Controllers
                     //start-customer by Odata api
                     DynamicsODataCustomerInput cust = new DynamicsODataCustomerInput();
                     cust.Name = CommonHelper.FormatCustomerForQuickBook(drawFeeDC.DealName, drawFeeDC.CreDealID); ;
+                    cust.No = drawFeeDC.CreDealID;
                     //cust.type = "Company";
                     cust.Contact = drawFeeDC.FirstName + " " + drawFeeDC.LastName;
                     string add = drawFeeDC.Address;
@@ -3241,10 +3377,17 @@ namespace CRES.Services.Controllers
                             //dinput.currencyCode = "USD";
                             //dinput.currencyId = "00000000-0000-0000-0000-000000000000";
 
-                            dinput.paymentTermsId = DynamicsAppConfig.Where(i => i.Key == "Dynamics_paymentTermsId").FirstOrDefault().Value;
-                            dinput.currencyCode = DynamicsAppConfig.Where(i => i.Key == "Dynamics_currencyCode").FirstOrDefault().Value;
-                            dinput.currencyId = DynamicsAppConfig.Where(i => i.Key == "Dynamics_currencyId").FirstOrDefault().Value;
-
+                            //dinput.paymentTermsId = DynamicsAppConfig.Where(i => i.Key == "Dynamics_paymentTermsId").FirstOrDefault().Value;
+                            //dinput.currencyCode = DynamicsAppConfig.Where(i => i.Key == "Dynamics_currencyCode").FirstOrDefault().Value;
+                            //dinput.currencyId = DynamicsAppConfig.Where(i => i.Key == "Dynamics_currencyId").FirstOrDefault().Value;
+                            dinput.externalDocumentNumber = DrawFeeDC.InvoiceNoUI;
+                            //shift comment to work description as per rohits discussion
+                            //dinput.customerPurchaseOrderReference = string.IsNullOrEmpty(DrawFeeDC.Comment) ? DrawFeeDC.DrawNo : DrawFeeDC.Comment;
+                            //if (dinput.customerPurchaseOrderReference.Length > 35)
+                            //{
+                            //    dinput.customerPurchaseOrderReference = dinput.customerPurchaseOrderReference.Substring(0, 35);
+                            //}
+                            //
 
                             dinput.salesInvoiceLines = new List<DynamicsSalesInvoiceLineInput>();
                             //call invoice split
@@ -3384,9 +3527,7 @@ namespace CRES.Services.Controllers
         public IActionResult SendWFNotificationForNegativeAmt([FromBody] WFNotificationDetailDataContract _wfDetailDataContract)
         {
             GenericResult _authenticationResult = null;
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
             var headerUserID = string.Empty;
             var delegatedUserID = string.Empty;
             string htmlContent = "";
@@ -3397,7 +3538,6 @@ namespace CRES.Services.Controllers
             }
             _wfDetailDataContract.CreatedBy = headerUserID;
             WFLogic _wfLogic = new WFLogic();
-#pragma warning disable CS0168 // The variable 'ex' is declared but never used
             try
             {
                 _wfDetailDataContract.MessageHTML = Regex.Replace(_wfDetailDataContract.MessageHTML, @"\r\n?|\n", "<br />");
@@ -3416,7 +3556,6 @@ namespace CRES.Services.Controllers
             {
                 //LogDB(ex.Message);
             }
-#pragma warning restore CS0168 // The variable 'ex' is declared but never used
             _authenticationResult = new GenericResult()
             {
                 Succeeded = true
@@ -3490,7 +3629,9 @@ namespace CRES.Services.Controllers
             UpdateDrawFeeInvoiceStatus();
             //process invoice uploaded by batch
             ProcessInvoiceUploadedByBatch();
-
+            //create invoice in sandbox for testing-need remove later
+            //InvoiceQueuedToInvoicedForSandBox();
+            //
             SendInvoiceSyncSuccessNotification();
         }
 
@@ -4128,10 +4269,15 @@ namespace CRES.Services.Controllers
                             //dinput.currencyCode = "USD";
                             //dinput.currencyId = "00000000-0000-0000-0000-000000000000";
                             //dinput.paymentTermsId = "7e5ed7ef-a1b1-ec11-8aa5-0022482b5b4b";
-                            dinput.paymentTermsId = DynamicsAppConfig.Where(i => i.Key == "Dynamics_paymentTermsId").FirstOrDefault().Value;
-                            dinput.currencyCode = DynamicsAppConfig.Where(i => i.Key == "Dynamics_currencyCode").FirstOrDefault().Value;
-                            dinput.currencyId = DynamicsAppConfig.Where(i => i.Key == "Dynamics_currencyId").FirstOrDefault().Value;
-
+                            //dinput.paymentTermsId = DynamicsAppConfig.Where(i => i.Key == "Dynamics_paymentTermsId").FirstOrDefault().Value;
+                            //dinput.currencyCode = DynamicsAppConfig.Where(i => i.Key == "Dynamics_currencyCode").FirstOrDefault().Value;
+                            //dinput.currencyId = DynamicsAppConfig.Where(i => i.Key == "Dynamics_currencyId").FirstOrDefault().Value;
+                            dinput.externalDocumentNumber = DrawFeeDC.InvoiceNoUI;
+                            dinput.customerPurchaseOrderReference = string.IsNullOrEmpty(DrawFeeDC.Comment) ? DrawFeeDC.DrawNo : DrawFeeDC.Comment;
+                            if (dinput.customerPurchaseOrderReference.Length > 35)
+                            {
+                                dinput.customerPurchaseOrderReference = dinput.customerPurchaseOrderReference.Substring(0, 35);
+                            }
                             dinput.salesInvoiceLines = new List<DynamicsSalesInvoiceLineInput>();
 
                             List<InvoiceSplitOutputDataContract> lstSplit = new List<InvoiceSplitOutputDataContract>();
@@ -4262,6 +4408,7 @@ namespace CRES.Services.Controllers
                             DrawFeeDC.FileName = pdfFileName;
                             DrawFeeDC.IsLogActivity = false;
                             _wfLogic.UpdateDrawFeeInvoiceDetailStatus("", DrawFeeDC);
+                            AttachGenericInvoiceSendEmail(DrawFeeDC);
                         }
                     }
                     catch (Exception ex)
@@ -4312,6 +4459,7 @@ namespace CRES.Services.Controllers
             GenericResult _authenticationResult = null;
             List<WFNotificationDataContract> lstWFDetail = new List<WFNotificationDataContract>();
             var headerUserID = string.Empty;
+            int status = 0;
 
             if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
             {
@@ -4321,6 +4469,26 @@ namespace CRES.Services.Controllers
             try
             {
                 WFLogic _wfLogic = new WFLogic();
+                //
+                WFConcurrencyParams conparams = new WFConcurrencyParams();
+                conparams.TaskID = _wfDetailDataContract.TaskID.ToString();
+                conparams.TaskTypeID = _wfDetailDataContract.TaskTypeID;
+                conparams.WFStatusPurposeMappingID = _wfDetailDataContract.OriginalWFStatusPurposeMappingID;
+
+                status = _wfLogic.CheckWFConcurrency(headerUserID, conparams);
+                if (status == 1)
+                {
+                    _authenticationResult = new GenericResult()
+                    {
+                        Succeeded = false,
+                        StatusCode = status
+                    };
+                    return Ok(_authenticationResult);
+                }
+                //
+
+
+
                 string res = _wfLogic.CompleteWorkflowViaScript(_wfDetailDataContract, headerUserID);
                 string message = "Changes were saved successfully.";
 
@@ -4413,12 +4581,8 @@ namespace CRES.Services.Controllers
             int InvoiceDeatailID = 0;
             GetConfigSetting();
             var BackshopAuthKey = Sectionroot.GetSection("BackshopAuthKey").Value;
-#pragma warning disable CS0219 // The variable 'Message' is assigned but its value is never used
             string Message = "";
-#pragma warning restore CS0219 // The variable 'Message' is assigned but its value is never used
-#pragma warning disable CS0219 // The variable 'UserName' is assigned but its value is never used
             string UserName = "";
-#pragma warning restore CS0219 // The variable 'UserName' is assigned but its value is never used
             var headerUserID = string.Empty;
             var headerBackshopAuthKey = string.Empty;
             string ErrorMandatory = "";
@@ -4430,9 +4594,8 @@ namespace CRES.Services.Controllers
 
             var ZipRegEx = @"^\d{5}(?:[-\s]\d{4})?$";
             var PhoneRexEx = @"^(\([0-9]{3}\) |[0-9]{3}-)[0-9]{3}-[0-9]{4}$";
-#pragma warning disable CS0219 // The variable 'DateRegEx' is assigned but its value is never used
             var DateRegEx = @"(((0|1)[0-9]|2[0-9]|3[0-1])\/(0[1-9]|1[0-2])\/((19|20)\d\d))$";
-#pragma warning restore CS0219 // The variable 'DateRegEx' is assigned but its value is never used
+            string InvoiceNo = "";
 
             DataTable apidata = new DataTable();
             DynamicSizerLogic _dynamicsizer = new DynamicSizerLogic();
@@ -4502,6 +4665,11 @@ namespace CRES.Services.Controllers
                 if (genericEntityobject.Amount == null || string.IsNullOrEmpty(((Object)genericEntityobject.Amount).ToString()))
                 {
                     ErrorMandatory += "Amount,";
+                }
+               
+                if (genericEntityobject.FeeType == null || string.IsNullOrEmpty(((Object)genericEntityobject.FeeType).ToString()))
+                {
+                    ErrorMandatory += "FeeType,";
                 }
                 if (genericEntityobject.InvoiceType == null || string.IsNullOrEmpty(((Object)genericEntityobject.InvoiceType).ToString()))
                 {
@@ -4627,8 +4795,8 @@ namespace CRES.Services.Controllers
                     dc.InvoiceNoUI = ((Object)genericEntityobject.InvoiceNo).ToString();
                 if (genericEntityobject.State != null)
                     dc.State = ((Object)genericEntityobject.State).ToString();
-                if (genericEntityobject.InvoiceType != null)
-                    dc.InvoiceTypeName = ((Object)genericEntityobject.InvoiceType).ToString();
+                if (genericEntityobject.FeeType != null)
+                    dc.InvoiceTypeName = ((Object)genericEntityobject.FeeType).ToString();
                 dcInvoice = _wfLogic.ValidateInvoiceAPIParams(dc, "");
 
                 if (dcInvoice.StateID == 0)
@@ -4637,7 +4805,7 @@ namespace CRES.Services.Controllers
                 }
                 if (dcInvoice.InvoiceTypeID == 0)
                 {
-                    ErrorInvalid += "InvoiceType,";
+                    ErrorInvalid += "FeeType,";
                 }
 
 
@@ -4708,6 +4876,9 @@ namespace CRES.Services.Controllers
                 _dcCust.InvoiceNoUI = ((Object)genericEntityobject.InvoiceNo).ToString();
                 if (genericEntityobject.Comment != null)
                     _dcCust.Comment = ((Object)genericEntityobject.Comment).ToString();
+
+                if (genericEntityobject.InvoiceType != null)
+                    _dcCust.InvoiceTypeFreeText = ((Object)genericEntityobject.InvoiceType).ToString();
                 _dcCust.InvoiceDate = Convert.ToDateTime((Object)genericEntityobject.InvoiceDate);
                 _dcCust.InvoiceDueDate = Convert.ToDateTime((Object)genericEntityobject.InvoiceDueDate);
                 _dcCust.InvoiceTypeID = dcInvoice.InvoiceTypeID;
@@ -4743,8 +4914,16 @@ namespace CRES.Services.Controllers
                         if (InvoiceDeatailID != 0)
                         {
                             _dcCust.DrawFeeInvoiceDetailID = InvoiceDeatailID;
+                            _wfLogic.UpdateInvoice(headerUserID, _dcCust);
                             _dtInvoice = _wfLogic.GetInvoiceDetailByID("", InvoiceDeatailID);
-                            CreateInvoiceForBatch(_dtInvoice, "");
+                            _dtInvoice.InvoiceTypeFreeText = _dcCust.InvoiceTypeFreeText;
+                            _dtInvoice.Comment = _dcCust.Comment;
+                            _invoiceResult = new BackshopInvoiceResult();
+                            _invoiceResult = CreateInvoiceForBatch(_dtInvoice, "");
+                            _invoiceResult.Succeeded = true;
+                            _invoiceResult.Message = "Invoice request sent successfully";
+                            _invoiceResult.InvoiceNo = dc.InvoiceNoUI;
+                            return _invoiceResult;
                         }
                         else
                         {
@@ -4776,12 +4955,6 @@ namespace CRES.Services.Controllers
                     };
                     return _invoiceResult;
                 }
-                _invoiceResult = new BackshopInvoiceResult()
-                {
-                    Succeeded = true,
-                    Message = "Invoice request sent successfully"
-                };
-
             }
             catch (Exception ex)
             {
@@ -4839,16 +5012,18 @@ namespace CRES.Services.Controllers
             else
                 return false;
         }
-        public void CreateInvoiceForBatch(DrawFeeInvoiceDataContract DrawFeeDC, string headerUserID)
+        public BackshopInvoiceResult CreateInvoiceForBatch(DrawFeeInvoiceDataContract DrawFeeDC, string headerUserID)
         {
             WFLogic _wfLogic = new WFLogic();
+            BackshopInvoiceResult invoiceResult = new BackshopInvoiceResult();
             try
             {
                 if (string.IsNullOrEmpty(DrawFeeDC.InvoiceNo))
                 {
                     //if draw date is greater than wire confirmed date than change invoice status to “Invoice Queued” 
-                    //and the Draw Fee invoice will be sent at 5 PM EST on the Funding Date.   
-                    if (DrawFeeDC.InvoiceDate.Date > DrawFeeDC.CurrentDate.Date)
+                    //and the Draw Fee invoice will be sent at 5 PM EST on the Funding Date.
+                    //this logic is only for the Draw fee(InvoiceTypeID== 558)
+                    if (DrawFeeDC.InvoiceDate.Date > DrawFeeDC.CurrentDate.Date && DrawFeeDC.InvoiceTypeID == 558)
                     {
                         DrawFeeDC.DrawFeeStatus = 696;
                         if (DrawFeeDC.DrawFeeInvoiceDetailID == 0 || string.IsNullOrEmpty(DrawFeeDC.FirstName))
@@ -4867,6 +5042,8 @@ namespace CRES.Services.Controllers
                         DrawFeeDC = CreateInvoiceInQBDFromBatch(DrawFeeDC);
                         if (DrawFeeDC.IsSuccess)
                         {
+                            DrawFeeDC.WorkDescription = DrawFeeDC.InvoiceComment;
+                            bool isSuccess = UpdateWorkDescriptionusingOData(DrawFeeDC, headerUserID);
                             DrawFeeDC.DrawFeeStatus = 693;
                             DrawFeeDC.IsLogActivity = true;
                             _wfLogic.UpdateDrawFeeInvoiceDetailStatus(headerUserID, DrawFeeDC);
@@ -4876,6 +5053,10 @@ namespace CRES.Services.Controllers
                             DrawFeeDC.FileName = pdfFileName;
                             DrawFeeDC.IsLogActivity = false;
                             _wfLogic.UpdateDrawFeeInvoiceDetailStatus(headerUserID, DrawFeeDC);
+                            invoiceResult.InvoiceNo = DrawFeeDC.InvoiceNo;
+                            invoiceResult.FileName = DrawFeeDC.FileName;
+                            AttachGenericInvoiceSendEmail(DrawFeeDC);
+
                         }
                         else//if creating invoice is not successfull then put it in the queue(update invoice status as invoice queued)
                         {
@@ -4904,6 +5085,7 @@ namespace CRES.Services.Controllers
                 emaildc.Body = "Error occurred while creating invoice in QBD from batch upload for InvoiceDetailID " + DrawFeeDC.DrawFeeInvoiceDetailID.ToString() + " - " + ex.Message;
                 _iEmailNotification.SendErrorNotificationEmail(emaildc);
             }
+            return invoiceResult;
         }
 
         public string GetBusinessCentralAccessToken()
@@ -4912,7 +5094,6 @@ namespace CRES.Services.Controllers
             {
                 return DynamicsAuthToken;
             }
-#pragma warning disable CS0168 // The variable 'ex' is declared but never used
             try
             {
                 /* generate token by user crediantial
@@ -4951,7 +5132,6 @@ namespace CRES.Services.Controllers
             {
                 DynamicsAuthToken = "";
             }
-#pragma warning restore CS0168 // The variable 'ex' is declared but never used
             return DynamicsAuthToken;
         }
 
@@ -4976,7 +5156,6 @@ namespace CRES.Services.Controllers
             {
                 headerUserID = new Guid(Request.Headers["TokenUId"]);
             }
-#pragma warning disable CS0168 // The variable 'ex' is declared but never used
             try
             {
                 IConfiguration config = configroot.GetSection("Dynamics365BusinessCentralDetail");
@@ -5015,7 +5194,6 @@ namespace CRES.Services.Controllers
             {
                 custId = "";
             }
-#pragma warning restore CS0168 // The variable 'ex' is declared but never used
             return custId;
         }
 
@@ -5024,6 +5202,7 @@ namespace CRES.Services.Controllers
             string CustomerNo = "";
             WFLogic _wfLogic = new WFLogic();
             var headerUserID = new Guid();
+            string[] custname = { };
             try
             {
                 if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
@@ -5032,13 +5211,19 @@ namespace CRES.Services.Controllers
                 }
             }
             catch { }
-#pragma warning disable CS0168 // The variable 'ex' is declared but never used
             try
             {
                 IConfiguration config = configroot.GetSection("Dynamics365BusinessCentralDetail");
+                custname = cust.Name.Split("&");
                 string CompanyID = config.GetSection("CompanyID").Value;
                 string BusinessCentralAPIURL = config.GetSection("BusinessCentralBaseURL").Value
                     + "companies(" + CompanyID + ")/customers?$filter=displayName eq " + "'" + cust.Name + "'";
+
+                if (custname.Length > 1)
+                {
+                    BusinessCentralAPIURL = config.GetSection("BusinessCentralBaseURL").Value
+                       + "companies(" + CompanyID + ")/customers?$filter=startswith(displayName," + "'" + custname[0].Trim() + "') and endswith(displayName," + "'" + custname[custname.Length - 1].Trim() + "')";
+                }
 
                 HttpClient _httpClient = new HttpClient();
                 _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", authToken);
@@ -5071,7 +5256,6 @@ namespace CRES.Services.Controllers
             {
                 CustomerNo = "";
             }
-#pragma warning restore CS0168 // The variable 'ex' is declared but never used
             return CustomerNo;
         }
         public DynamicsSalesInvoiceOutput GetInvoiceDetailDynamicByGuid(string InvoiceGuid, string authToken)
@@ -5162,7 +5346,6 @@ namespace CRES.Services.Controllers
         public IActionResult TestUploadFileToblob()
         {
             GenericResult _authenticationResult = null;
-#pragma warning disable CS0168 // The variable 'ex' is declared but never used
             try
             {
                 //get config
@@ -5189,7 +5372,6 @@ namespace CRES.Services.Controllers
             {
 
             }
-#pragma warning restore CS0168 // The variable 'ex' is declared but never used
             return Ok(_authenticationResult);
         }
 
@@ -5440,9 +5622,7 @@ namespace CRES.Services.Controllers
         public IActionResult SendInternalNotificion([FromBody] WFDetailDataContract _wfDetailDataContract)
         {
             GenericResult _authenticationResult = null;
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
             List<WFNotificationDataContract> lstWFDetail = new List<WFNotificationDataContract>();
             string PreHeaderText = "";
             var headerUserID = string.Empty;
@@ -5469,9 +5649,6 @@ namespace CRES.Services.Controllers
 
                 if (headerUserID != null)
                 {
-                    //send email except Save,Save & Draft
-                    if (_wfDetailDataContract.SubmitType != 551 && _wfDetailDataContract.SubmitType != 497)
-                    {
                         //notifiy user by sending email
                         lstWFDetail = _wfLogic.GetWorkflowNotificationDetailByTaskId(_wfDetailDataContract.TaskID, Convert.ToInt32(_wfDetailDataContract.TaskTypeID), headerUserID);
                         if (lstWFDetail.Count > 0)
@@ -5549,7 +5726,6 @@ namespace CRES.Services.Controllers
                                 _iEmailNotification.SendReserveWorkFlowInternalNotification(lstWFDetail);
                             }
                         }
-                    }
 
                     _authenticationResult = new GenericResult()
                     {
@@ -5634,6 +5810,59 @@ namespace CRES.Services.Controllers
             return Ok(_authenticationResult);
         }
 
+        [HttpGet]
+        [Route("api/wfcontroller/createinvoicedinvoicesindyanamicsandbox")]
+        public IActionResult CreateInvoicedInvoicesInDyanamicSandbox()
+        {
+
+            GenericResult _authenticationResult = null;
+            WFLogic _wfLogic = new WFLogic();
+            List<DrawFeeInvoiceDataContract> lstDraw = new List<DrawFeeInvoiceDataContract>();
+            DrawFeeInvoiceDataContract DrawFeeDC = null;
+
+            try
+            {
+
+                GetConfigSetting();
+                CreateMissingCustomerInSandbox();
+                lstDraw = _wfLogic.GetAllInvoicedInvoice("");
+
+                //call invoice api and update status of invoice
+                foreach (DrawFeeInvoiceDataContract df in lstDraw)
+                {
+                    try
+                    {
+                        DrawFeeDC = df;
+                        DrawFeeDC = CreateInvoiceInDynamicSandbox(df);
+                        if (DrawFeeDC.IsSuccess)
+                        {
+                            _wfLogic = new WFLogic();
+                            _wfLogic.UpdateDrawFeeInvoiceDetailStatusForSandbox("", DrawFeeDC);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+
+                        LoggerLogic Log = new LoggerLogic();
+                        Log.WriteLogException(CRESEnums.Module.DrawFee.ToString(), "Error occurred while creating invoice in Dynamics from CreateInvoicedInvoicesInDyanamics method for InvoiceDetailID " + DrawFeeDC.DrawFeeInvoiceDetailID.ToString(), DrawFeeDC.DrawFeeInvoiceDetailID.ToString(), "", ex.TargetSite.Name.ToString(), "", ex);
+                    }
+
+                }
+            }
+            catch (Exception ex)
+            {
+
+                _authenticationResult = new GenericResult()
+                {
+                    Succeeded = false,
+                    Message = ex.Message
+                };
+                LoggerLogic Log = new LoggerLogic();
+                Log.WriteLogException(CRESEnums.Module.DrawFee.ToString(), "Error occurred while creating invoice in Dynamics from CreateInvoicedInvoicesInDyanamics method", "", "", ex.TargetSite.Name.ToString(), "", ex);
+
+            }
+            return Ok(_authenticationResult);
+        }
 
 
         public WFNotificationDataContract GetInternalNotificionDetail(WFDetailDataContract _wfDetailDataContract)
@@ -5773,12 +6002,11 @@ namespace CRES.Services.Controllers
         [Services.Controllers.IsAuthenticate]
         [Services.Controllers.DeflateCompression]
         [Route("api/wfcontroller/cancelnotification")]
+        //CancelNotification
         public IActionResult CancelNotification([FromBody] WFNotificationDetailDataContract _wfDetailDataContract)
         {
             GenericResult _authenticationResult = null;
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
             var headerUserID = string.Empty;
             var delegatedUserID = string.Empty;
             string htmlContent = "";
@@ -5799,7 +6027,6 @@ namespace CRES.Services.Controllers
                 _wfDetailDataContract.DelegatedUserID = delegatedUserID;
                 WFLogic _wfLogic = new WFLogic();
 
-#pragma warning disable CS0168 // The variable 'ex' is declared but never used
                 try
                 {
                     ////send email except Save,Save & Draft
@@ -5826,7 +6053,6 @@ namespace CRES.Services.Controllers
 
                     //LogDB(ex.Message);
                 }
-#pragma warning restore CS0168 // The variable 'ex' is declared but never used
 
                 _wfDetailDataContract.MessageHTML = htmlContent;
                 if (!string.IsNullOrEmpty(_wfDetailDataContract.EnvironmentName))
@@ -5878,5 +6104,1642 @@ namespace CRES.Services.Controllers
             return Ok(_authenticationResult);
         }
 
+
+
+        [HttpPost]
+        [Services.Controllers.IsAuthenticate]
+        [Services.Controllers.DeflateCompression]
+        [Route("api/wfcontroller/savewfdashboard")]
+        //SaveWFDashboard
+        public IActionResult SaveWFDashboard([FromBody] List<WFDashboardDataContract> _lstWorkflow)
+        {
+            GenericResult _authenticationResult = null;
+            var headerUserID = string.Empty;
+            if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
+            {
+                headerUserID = Convert.ToString(Request.Headers["TokenUId"]);
+            }
+            WFLogic _wfLogic = new WFLogic();
+            try
+            {
+                //_lstWorkflow.Where(x => x.UserID == null).ToList().ForEach(x =>
+                //{
+                //    x.UserID = new Guid("00000000-0000-0000-0000-000000000000");
+                //});
+
+                string res = _wfLogic.SaveWFDashboard(_lstWorkflow, headerUserID);
+
+                string message = "Changes were saved successfully.";
+
+                if (headerUserID != null)
+                {
+                    if (res == "success")
+                    {
+                        _authenticationResult = new GenericResult()
+                        {
+                            Succeeded = true,
+                            Message = message
+                        };
+                    }
+                    else
+                    {
+                        _authenticationResult = new GenericResult()
+                        {
+                            Succeeded = true,
+                            Message = "Some Error Occured."
+                        };
+                    }
+                }
+                else
+                {
+                    _authenticationResult = new GenericResult()
+                    {
+                        Succeeded = false,
+                        Message = "Authentication failed"
+                    };
+                }
+            }
+            catch (Exception ex)
+            {
+
+                LoggerLogic Log = new LoggerLogic();
+                Log.WriteLogException(CRESEnums.Module.Account.ToString(), "Error occurred in SaveWFDashboard", "", "", ex.TargetSite.Name.ToString(), "", ex);
+
+                _authenticationResult = new GenericResult()
+                {
+                    Succeeded = false,
+                    Message = ex.Message
+                };
+            }
+
+            return Ok(_authenticationResult);
+        }
+
+        //sandbox code-start
+        [HttpGet]
+        [Route("api/wfcontroller/createinvoiceinsandbox")]
+        public IActionResult InvoiceQueuedToInvoicedForSandBox()
+        {
+
+            GenericResult _authenticationResult = null;
+            WFLogic _wfLogic = new WFLogic();
+            List<DrawFeeInvoiceDataContract> lstDraw = new List<DrawFeeInvoiceDataContract>();
+            DrawFeeInvoiceDataContract DrawFeeDC = null;
+
+            try
+            {
+
+                GetConfigSetting();
+                CreateMissingCustomerInSandbox();
+                lstDraw = _wfLogic.GetAllInvoiceQueuedForSandbox("");
+
+                //call invoice api and update status of invoice
+                foreach (DrawFeeInvoiceDataContract df in lstDraw)
+                {
+                    try
+                    {
+                        DrawFeeDC = df;
+                        DrawFeeDC = CreateInvoiceInDynamicSandbox(df);
+                        if (DrawFeeDC.IsSuccess)
+                        {
+                            _wfLogic = new WFLogic();
+                            _wfLogic.UpdateDrawFeeInvoiceDetailStatusForSandbox("", DrawFeeDC);
+                        }
+
+
+                    }
+                    catch (Exception ex)
+                    {
+
+                        LoggerLogic Log = new LoggerLogic();
+                        Log.WriteLogException(CRESEnums.Module.DrawFee.ToString(), "Sandbox-Error occurred while creating invoice in Sandbox from scheduler for InvoiceDetailID " + DrawFeeDC.DrawFeeInvoiceDetailID.ToString(), DrawFeeDC.DrawFeeInvoiceDetailID.ToString(), "", ex.TargetSite.Name.ToString(), "", ex);
+
+                        EmailDataContract emaildc = new EmailDataContract();
+                        emaildc.ModuleId = 705;
+                        emaildc.Subject = "Sandbox Invoice Error Notification";
+                        emaildc.Body = "Sandbox-Error occurred while creating invoice in Sandbox from scheduler for InvoiceDetailID " + DrawFeeDC.DrawFeeInvoiceDetailID.ToString() + " - " + ex.Message;
+                        _iEmailNotification.SendErrorNotificationEmail(emaildc);
+                    }
+
+                }
+            }
+            catch (Exception ex)
+            {
+
+                _authenticationResult = new GenericResult()
+                {
+                    Succeeded = false,
+                    Message = ex.Message
+                };
+                LoggerLogic Log = new LoggerLogic();
+                Log.WriteLogException(CRESEnums.Module.DrawFee.ToString(), "Sandbox-Error occurred while creating invoice in Sandbox from scheduler", "", "", ex.TargetSite.Name.ToString(), "", ex);
+
+            }
+            return Ok(_authenticationResult);
+        }
+
+        public DrawFeeInvoiceDataContract CreateInvoiceInDynamicSandbox([FromBody] DrawFeeInvoiceDataContract DrawFeeDC)
+        {
+
+            // generate invoice in below cases
+            //if autosend invoice from workflow
+            //if manual from dealdetail
+            if ((DrawFeeDC.AutoSendInvoice == 571 || DrawFeeDC.IsManualInvoice == true || DrawFeeDC.InvoiceSource == "System")
+            && string.IsNullOrEmpty(DrawFeeDC.InvoiceNo) == false)
+            {
+                GetConfigSetting();
+                SetDynamicsAppConfig();
+                var headerUserID = string.Empty;
+                //if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
+                //{
+                //    headerUserID = Convert.ToString(Request.Headers["TokenUId"]);
+                //}
+
+                try
+                {
+                    WFLogic _wfLogicInvoiceConfig = new WFLogic();
+                    InvoiceConfigDataContract invoiceDC = new InvoiceConfigDataContract();
+                    invoiceDC = _wfLogicInvoiceConfig.GetInvoiceConfigByInvoiceType(DrawFeeDC.InvoiceTypeID, "");
+                    if (invoiceDC != null && !string.IsNullOrEmpty(invoiceDC.InvoiceCode))
+                    {
+                        DrawFeeDC.InvoiceCode = invoiceDC.InvoiceCode;
+                        DrawFeeDC.TemplateName = invoiceDC.Template;
+                    }
+
+                    WFLogic _wfLogic = new WFLogic();
+                    if (DrawFeeDC.DrawFeeInvoiceDetailID == 0 || string.IsNullOrEmpty(DrawFeeDC.FirstName))
+                    {
+                        DrawFeeInvoiceDataContract drawDC = new DrawFeeInvoiceDataContract();
+                        drawDC = _wfLogic.GetDrawFeeInvoiceDetailByTaskID(DrawFeeDC.TaskID.ToString(), headerUserID.ToString());
+                        DrawFeeDC.DrawFeeInvoiceDetailID = drawDC.DrawFeeInvoiceDetailID;
+                        DrawFeeDC.FirstName = drawDC.FirstName;
+                        DrawFeeDC.LastName = drawDC.LastName;
+                        DrawFeeDC.Amount = drawDC.Amount;
+                        DrawFeeDC.City = drawDC.City;
+                        DrawFeeDC.State = drawDC.State;
+                        DrawFeeDC.Zip = drawDC.Zip;
+                        DrawFeeDC.Address = drawDC.Address;
+                        DrawFeeDC.Email1 = drawDC.Email1;
+                        DrawFeeDC.Email2 = drawDC.Email2;
+                        DrawFeeDC.PhoneNo = drawDC.PhoneNo;
+                        DrawFeeDC.AlternatePhone = drawDC.AlternatePhone;
+                        DrawFeeDC.CompanyName = drawDC.CompanyName;
+                        DrawFeeDC.InvoiceNoUI = drawDC.InvoiceNoUI;
+                        DrawFeeDC.InvoiceNo = drawDC.InvoiceNo;
+                        DrawFeeDC.AMEmails = drawDC.AMEmails;
+                        DrawFeeDC.SenderFirstName = drawDC.SenderFirstName;
+                        DrawFeeDC.SenderLastName = drawDC.SenderLastName;
+                        DrawFeeDC.SenderEmail = drawDC.SenderEmail;
+                    }
+
+                    if (string.IsNullOrEmpty(DrawFeeDC.InvoiceNo) == false)
+                    {
+                        //create invoice in dynamic 365
+                        GetConfigRoot();
+                        IConfiguration config = configroot.GetSection("Dynamics365BusinessCentralDetail");
+                        string CompanyID = config.GetSection("CompanyID").Value;
+                        string BusinessCentralAPIURL = config.GetSection("BusinessCentralBaseURL").Value
+                            + "companies(" + CompanyID + ")/salesInvoices";
+                        string authToken = GetBusinessCentralAccessToken();
+
+                        if (string.IsNullOrEmpty(authToken))
+                        {
+                            LoggerLogic Log = new LoggerLogic();
+                            Log.WriteLogExceptionMessage(CRESEnums.Module.DrawFee.ToString(), "Sanbbox - Error occurred while creating invoice in Dynamics for InvoiceDetailID " + DrawFeeDC.DrawFeeInvoiceDetailID.ToString(), DrawFeeDC.DrawFeeInvoiceDetailID.ToString(), headerUserID.ToString(), "CreateInvoiceInDynamicSandbox", "Unauthentication token");
+                            DrawFeeDC.IsSuccess = false;
+                            return DrawFeeDC;
+                        }
+
+                        string accountName = CommonHelper.FormatCustomerForQuickBook(DrawFeeDC.DealName, DrawFeeDC.CreDealID);
+                        DynamicsCustomer dcust = _wfLogic.GetCustomerByAccountName(accountName);
+                        DynamicsSalesInvoiceInput dinput = new DynamicsSalesInvoiceInput();
+                        dinput.invoiceDate = DrawFeeDC.FundingDate.ToString("yyyy-MM-dd");
+                        dinput.dueDate = DrawFeeDC.FundingDate.ToString("yyyy-MM-dd");
+                        dinput.postingDate = DrawFeeDC.FundingDate.ToString("yyyy-MM-dd");
+                        dinput.customerNumber = dcust.CustomerNo;
+                        //dinput.paymentTermsId = "5335f8d6-c141-ec11-bb7b-000d3a256200";
+                        //dinput.paymentTermsId = "7e5ed7ef-a1b1-ec11-8aa5-0022482b5b4b";
+                        //dinput.currencyCode = "USD";
+                        //dinput.currencyId = "00000000-0000-0000-0000-000000000000";
+
+                        //dinput.paymentTermsId = DynamicsAppConfig.Where(i => i.Key == "Dynamics_paymentTermsId").FirstOrDefault().Value;
+                        //dinput.currencyCode = DynamicsAppConfig.Where(i => i.Key == "Dynamics_currencyCode").FirstOrDefault().Value;
+                        //dinput.currencyId = DynamicsAppConfig.Where(i => i.Key == "Dynamics_currencyId").FirstOrDefault().Value;
+
+                        dinput.externalDocumentNumber = DrawFeeDC.InvoiceNoUI;
+                        //dinput.customerPurchaseOrderReference = DrawFeeDC.InvoiceNo;
+                        dinput.customerPurchaseOrderReference = string.IsNullOrEmpty(DrawFeeDC.Comment) ? DrawFeeDC.DrawNo : DrawFeeDC.Comment;
+
+                        if (dinput.customerPurchaseOrderReference.Length > 35)
+                        {
+                            dinput.customerPurchaseOrderReference = dinput.customerPurchaseOrderReference.Substring(0, 35);
+                        }
+                        dinput.salesInvoiceLines = new List<DynamicsSalesInvoiceLineInput>();
+                        //call invoice split
+                        //get invoice split by financial source and adjustedcommitment
+                        List<InvoiceSplitOutputDataContract> lstSplit = new List<InvoiceSplitOutputDataContract>();
+                        if (invoiceDC != null && invoiceDC.IsApplySplit == true)
+                        {
+                            InvoiceSplitParamDataContract param = new InvoiceSplitParamDataContract();
+                            param.DealID = DrawFeeDC.CreDealID;
+                            param.InvoiceTypeID = DrawFeeDC.InvoiceTypeID;
+                            param.FeeAmount = DrawFeeDC.Amount;
+                            lstSplit = _wfLogic.GetInvoiceSplit(param, headerUserID);
+                            if (lstSplit.Count > 0)
+                            {
+                                foreach (InvoiceSplitOutputDataContract itm in lstSplit)
+                                {
+                                    dinput.salesInvoiceLines.Add(
+                                    new DynamicsSalesInvoiceLineInput
+                                    {
+                                        lineType = "Account",
+                                        description = itm.QBItemName,
+                                        lineObjectNumber = itm.QBAccountNo,
+                                        quantity = 1,
+                                        unitPrice = itm.SplitAmount
+                                    }
+                                    );
+                                }
+                            }
+                        }
+                        else
+                        {
+                            dinput.salesInvoiceLines.Add(
+                                    new DynamicsSalesInvoiceLineInput
+                                    {
+                                        lineType = "Account",
+                                        description = invoiceDC.InvoiceCode,
+                                        lineObjectNumber = invoiceDC.InvoiceAccountNo,
+                                        quantity = 1,
+                                        unitPrice = DrawFeeDC.Amount
+                                    }
+                                    );
+                        }
+
+                        string inputjsonstring = JsonConvert.SerializeObject(dinput);
+                        HttpResponseMessage result = null;
+                        HttpClient _httpClient = new HttpClient();
+                        _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", authToken);
+                        _httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+                        //Set the Authorization header with the Access Token received specifying the Credentials
+                        using (var content = new StringContent(inputjsonstring, System.Text.Encoding.UTF8, "application/json"))
+                        {
+                            result = _httpClient.PostAsync(BusinessCentralAPIURL, content).Result;
+                            if (result.StatusCode == System.Net.HttpStatusCode.Created || result.StatusCode == System.Net.HttpStatusCode.OK)
+                            {
+                                string resultString = result.Content.ReadAsStringAsync().Result;
+                                var jsonOutputResult = JsonConvert.DeserializeObject<DynamicsSalesInvoiceOutput>(resultString);
+                                DrawFeeDC.IsSuccess = true;
+                                DrawFeeDC.InvoiceNo = jsonOutputResult.number;
+                                DrawFeeDC.PreAssignedInvoiceNo = jsonOutputResult.number;
+                                DrawFeeDC.InvoiceGuid = jsonOutputResult.id;
+                            }
+
+                            else
+                            {
+                                string resultString = result.Content.ReadAsStringAsync().Result;
+                                var jsonResultError = JsonConvert.DeserializeObject<error>(resultString);
+                                string errmessage = string.IsNullOrEmpty(jsonResultError.message) ? resultString : jsonResultError.message;
+                                errmessage = errmessage + "-Url-" + BusinessCentralAPIURL + "-status code-" + result.StatusCode;
+                                LoggerLogic Log = new LoggerLogic();
+                                Log.WriteLogExceptionMessage(CRESEnums.Module.DrawFee.ToString(), "Sanbbox - Error occurred while creating invoice in dynamics for InvoiceDetailID " + DrawFeeDC.DrawFeeInvoiceDetailID.ToString(), "", headerUserID.ToString(), "CreateInvoiceInDynamicSandbox", errmessage);
+                                //EmailDataContract emaildc = new EmailDataContract();
+                                //emaildc.ModuleId = 705;
+                                //emaildc.Subject = "Sanbbox - Dynamics 365 Invoice Error Notification";
+                                //emaildc.Body = "Sanbbox - Error occurred while creating invoice in Dynamics for InvoiceDetailID " + DrawFeeDC.DrawFeeInvoiceDetailID.ToString() + " - " + errmessage;
+                                //_iEmailNotification.SendErrorNotificationEmail(emaildc);
+                            }
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    LoggerLogic Log = new LoggerLogic();
+                    Log.WriteLogException(CRESEnums.Module.DrawFee.ToString(), "Sanbbox - Error occurred while creating invoice in Dynamics for InvoiceDetailID " + DrawFeeDC.DrawFeeInvoiceDetailID.ToString(), DrawFeeDC.DrawFeeInvoiceDetailID.ToString(), headerUserID.ToString(), ex.TargetSite.Name.ToString(), "", ex);
+                    DrawFeeDC.IsSuccess = false;
+                    EmailDataContract emaildc = new EmailDataContract();
+                    emaildc.ModuleId = 705;
+                    emaildc.Subject = "Sanbbox - Dynamics 365 Invoice Error Notification";
+                    emaildc.Body = "Sanbbox - Error occurred while creating invoice in QBD for InvoiceDetailID " + DrawFeeDC.DrawFeeInvoiceDetailID.ToString() + " - " + ex.Message;
+                    _iEmailNotification.SendErrorNotificationEmail(emaildc);
+                }
+            }
+
+            return DrawFeeDC;
+        }
+
+        public void CreateMissingCustomerInSandbox()
+        {
+            GetConfigSetting();
+            List<DrawFeeInvoiceDataContract> lstdrawDC = new List<DrawFeeInvoiceDataContract>();
+            WFLogic wfLogic = new WFLogic();
+            lstdrawDC = wfLogic.GetMissingQBDCustomerInSandbox();
+
+            List<DynamicsODataCustomerOutput> lstCustSandbox = GetAllSandboxCustomer();
+            var result = lstdrawDC.Where(p => !lstCustSandbox.Any(x => x.Name == p.DealName)).ToList();
+
+            IActionResult ActionResult = null;
+            foreach (DrawFeeInvoiceDataContract drawFeeDC in result)
+            {
+                drawFeeDC.CreatedFrom = "Scheduler";
+                ActionResult = CreateCustomerInSandbox(drawFeeDC);
+            }
+        }
+
+        public IActionResult CreateCustomerInSandbox([FromBody] DrawFeeInvoiceDataContract drawFeeDC)
+        {
+            GenericResult _authenticationResult = null;
+            DrawFeeInvoiceDataContract drawDC = new DrawFeeInvoiceDataContract();
+            WFLogic wfLogic = new WFLogic();
+            var headerUserID = new Guid();
+            try
+            {
+                if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
+                {
+                    headerUserID = new Guid(Request.Headers["TokenUId"]);
+                }
+            }
+            catch { }
+            string CreatedFrom = "";
+            try
+            {
+                SetDynamicsAppConfig();
+                if (!string.IsNullOrEmpty(drawFeeDC.CreatedFrom))
+                {
+                    CreatedFrom = " From " + drawFeeDC.CreatedFrom;
+                }
+                GetConfigRoot();
+                IConfiguration config = configroot.GetSection("Dynamics365BusinessCentralDetail");
+                string BusinessCentralAPIURL = config.GetSection("BusinessCentralOdataBaseURL").Value;
+                string BusinessCentralCompanyName = config.GetSection("CompanyName").Value;
+                BusinessCentralAPIURL = BusinessCentralAPIURL + "Company('" + BusinessCentralCompanyName + "')/"
+                + "CustomerListAPI";
+                string authToken = GetBusinessCentralAccessToken();
+                if (string.IsNullOrEmpty(authToken))
+                {
+                    _authenticationResult = new GenericResult()
+                    {
+                        Succeeded = false,
+                        Message = "Authentication failed"
+                    };
+                    LoggerLogic Log = new LoggerLogic();
+                    Log.WriteLogExceptionMessage(CRESEnums.Module.DrawFee.ToString(), "Sandbox - Error occurred while creating customer " + drawFeeDC.DealName + " in Dynamics" + CreatedFrom, "", headerUserID.ToString(), "CreateCustomerInSandbox", "Unauthentication token");
+                    return Ok(_authenticationResult);
+                }
+
+                //  end - customer by dynamic api
+                //start-customer by Odata api
+                DynamicsODataCustomerInput cust = new DynamicsODataCustomerInput();
+                cust.Name = CommonHelper.FormatCustomerForQuickBook(drawFeeDC.DealName, drawFeeDC.CreDealID); ;
+                cust.No = drawFeeDC.CreDealID;
+
+                //cust.type = "Company";
+                cust.Contact = drawFeeDC.FirstName + " " + drawFeeDC.LastName;
+                string add = drawFeeDC.Address;
+                cust.Address = add.Length > 100 ? add.Substring(0, 100) : add;
+                cust.Address_2 = add.Length > 100 ? add.Substring(100, add.Remove(0, 100).Length) : "";
+                //cust.addressLine2 = "Company";
+                cust.City = drawFeeDC.City;
+                cust.State = drawFeeDC.State;
+                //cust.country = "Company";
+                cust.Post_Code = drawFeeDC.Zip;
+                cust.Phone_No = drawFeeDC.PhoneNo;
+                cust.E_Mail = drawFeeDC.Email1;
+                //cust.taxLiable = true;
+                //cust.currencyId = "00000000-0000-0000-0000-000000000000";
+                //cust.Currency_Code = "USD";
+                //cust.paymentTermsId = "5335f8d6-c141-ec11-bb7b-000d3a256200";
+                //cust.Payment_Method_Code = "BANK";
+                cust.Payment_Method_Code = DynamicsAppConfig.Where(i => i.Key == "Dynamics_Payment_Method_Code").FirstOrDefault().Value;
+                //cust.Payment_Terms_Code = "1M(8D)";
+                //cust.Payment_Terms_Code = "30 DAYS";
+                cust.Payment_Terms_Code = DynamicsAppConfig.Where(i => i.Key == "Dynamics_Payment_Terms_Code").FirstOrDefault().Value;
+                cust.Blocked = "";
+                //cust.Customer_Posting_Group = "ACCOUNTS REC";
+                cust.Customer_Posting_Group = DynamicsAppConfig.Where(i => i.Key == "Dynamics_Customer_Posting_Group").FirstOrDefault().Value;
+                //cust.Gen_Bus_Posting_Group = "DOMESTIC";
+                cust.Gen_Bus_Posting_Group = DynamicsAppConfig.Where(i => i.Key == "Dynamics_Gen_Bus_Posting_Group").FirstOrDefault().Value;
+                cust.Country_Region_Code = DynamicsAppConfig.Where(i => i.Key == "Dynamics_Country_Region_Code").FirstOrDefault().Value;
+
+                //cust.id = "00000000-0000-0000-0000-000000000000";
+                //cust.id = "";
+
+                string CustomerNo = CheckCustomerinDynamicsByOdataForSandbox(cust, authToken);
+                //string CustomerNo = "" ;
+
+                HttpResponseMessage result = null;
+
+                // call business central api
+                DynamicsODataCustomerUpdate updt = new DynamicsODataCustomerUpdate();
+                updt.Contact = drawFeeDC.FirstName + " " + drawFeeDC.LastName;
+                updt.Address = cust.Address;
+                updt.Address_2 = cust.Address_2;
+                updt.City = cust.City;
+                updt.State = cust.State;
+                updt.Post_Code = cust.Post_Code;
+                updt.Phone_No = cust.Phone_No;
+                updt.E_Mail = cust.E_Mail;
+                //updt.Country_Region_Code = "US";
+                updt.Country_Region_Code = DynamicsAppConfig.Where(i => i.Key == "Dynamics_Country_Region_Code").FirstOrDefault().Value;
+                updt.Payment_Method_Code = DynamicsAppConfig.Where(i => i.Key == "Dynamics_Payment_Method_Code").FirstOrDefault().Value;
+                updt.Payment_Terms_Code = DynamicsAppConfig.Where(i => i.Key == "Dynamics_Payment_Terms_Code").FirstOrDefault().Value;
+                updt.Customer_Posting_Group = DynamicsAppConfig.Where(i => i.Key == "Dynamics_Customer_Posting_Group").FirstOrDefault().Value;
+                updt.Gen_Bus_Posting_Group = DynamicsAppConfig.Where(i => i.Key == "Dynamics_Gen_Bus_Posting_Group").FirstOrDefault().Value;
+                updt.Country_Region_Code = DynamicsAppConfig.Where(i => i.Key == "Dynamics_Country_Region_Code").FirstOrDefault().Value;
+                string inputjsonstring = "";
+                HttpClient _httpClient = new HttpClient();
+                _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", authToken);
+                _httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+
+                //Set the Authorization header with the Access Token received specifying the Credentials
+                if (string.IsNullOrEmpty(CustomerNo))
+                {
+                    inputjsonstring = JsonConvert.SerializeObject(cust);
+                }
+                else
+                {
+                    inputjsonstring = JsonConvert.SerializeObject(updt);
+                }
+
+
+                //using (var content = new StringContent(JsonConvert.SerializeObject(jsonInput), System.Text.Encoding.UTF8, "application/json"))
+                using (var content = new StringContent(inputjsonstring, System.Text.Encoding.UTF8, "application/json"))
+                {
+
+                    if (string.IsNullOrEmpty(CustomerNo))
+                    {
+                        result = _httpClient.PostAsync(BusinessCentralAPIURL, content).Result;
+
+                    }
+                    else //Update customer
+                    {
+                        BusinessCentralAPIURL = BusinessCentralAPIURL + "('" + CustomerNo + "')";
+                        _httpClient.DefaultRequestHeaders.TryAddWithoutValidation("If-Match", "*");
+                        result = _httpClient.PatchAsync(BusinessCentralAPIURL, content).Result;
+                    }
+                    if (result.StatusCode == System.Net.HttpStatusCode.Created || result.StatusCode == System.Net.HttpStatusCode.OK)
+                    {
+                        string resultString = result.Content.ReadAsStringAsync().Result;
+                        var jsonOutputResult = JsonConvert.DeserializeObject<DynamicsODataCustomerOutput>(resultString);
+                        QBDCustomerInputDataContract qbdcustomer = new QBDCustomerInputDataContract();
+                        //qbdcustomer.ID = jsonOutputResult.id;
+                        qbdcustomer.FullName = jsonOutputResult.Name;
+                        qbdcustomer.CustomerNo = jsonOutputResult.No;
+                        qbdcustomer.ID = jsonOutputResult.SystemId;
+                        qbdcustomer.ContactID = jsonOutputResult.Primary_Contact_No;
+                        wfLogic.AddUpdateQBDCustomerForSandbox(headerUserID.ToString(), qbdcustomer);
+                        _authenticationResult = new GenericResult()
+                        {
+                            Succeeded = true,
+                            Message = "Authentication succeeded"
+                        };
+                    }
+                    else
+                    {
+                        string resultString = result.Content.ReadAsStringAsync().Result;
+                        var jsonResultError = JsonConvert.DeserializeObject<error>(resultString);
+                        string errmessage = string.IsNullOrEmpty(jsonResultError.message) ? resultString : jsonResultError.message;
+                        errmessage = errmessage + "-Url-" + BusinessCentralAPIURL + "-status code-" + result.StatusCode;
+                        LoggerLogic Log = new LoggerLogic();
+                        Log.WriteLogExceptionMessage(CRESEnums.Module.DrawFee.ToString(), "Sandbox - Error occurred while creating customer " + drawFeeDC.DealName + " in Dynamics" + CreatedFrom, "", headerUserID.ToString(), "CreateQBDCustomer", errmessage);
+
+                        _authenticationResult = new GenericResult()
+                        {
+                            Succeeded = false,
+                            Message = "Authentication failed"
+                        };
+                        EmailDataContract emaildc = new EmailDataContract();
+                        emaildc.ModuleId = 705;
+                        emaildc.Subject = "Sandbox - Dynamics 365 Customer Error Notification";
+                        emaildc.Body = "Sandbox - Error occurred while creating customer " + drawFeeDC.DealName + " in Dynamics - " + errmessage;
+                        _iEmailNotification.SendErrorNotificationEmail(emaildc);
+                    }
+
+                    //End-customer by Odata api
+
+                }
+            }
+
+            catch (Exception ex)
+            {
+                LoggerLogic Log = new LoggerLogic();
+                Log.WriteLogException(CRESEnums.Module.DrawFee.ToString(), "Sandbox - Error occurred while creating customer " + drawFeeDC.DealName + " in dynamics" + CreatedFrom, "", headerUserID.ToString(), ex.TargetSite.Name.ToString(), "", ex);
+
+                _authenticationResult = new GenericResult()
+                {
+                    Succeeded = false,
+                    Message = ex.Message
+                };
+            }
+            return Ok(_authenticationResult);
+        }
+
+        //[HttpGet]
+        //[Route("api/wfcontroller/getallsandboxcustomer")]
+        public List<DynamicsODataCustomerOutput> GetAllSandboxCustomer()
+        {
+            GenericResult _authenticationResult = null;
+            List<DynamicsODataCustomerOutput> lstcust = new List<DynamicsODataCustomerOutput>();
+            WFLogic wfLogic = new WFLogic();
+            var headerUserID = new Guid();
+            try
+            {
+                if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
+                {
+                    headerUserID = new Guid(Request.Headers["TokenUId"]);
+                }
+            }
+            catch { }
+            try
+            {
+                SetDynamicsAppConfig();
+                GetConfigRoot();
+                IConfiguration config = configroot.GetSection("Dynamics365BusinessCentralDetail");
+                string BusinessCentralAPIURL = config.GetSection("BusinessCentralOdataBaseURL").Value;
+                string BusinessCentralCompanyName = config.GetSection("CompanyName").Value;
+                BusinessCentralAPIURL = BusinessCentralAPIURL + "Company('" + BusinessCentralCompanyName + "')/"
+                + "CustomerListAPI";
+                string authToken = GetBusinessCentralAccessToken();
+                if (string.IsNullOrEmpty(authToken))
+                {
+                    _authenticationResult = new GenericResult()
+                    {
+                        Succeeded = false,
+                        Message = "Authentication failed"
+                    };
+                    LoggerLogic Log = new LoggerLogic();
+                    Log.WriteLogExceptionMessage(CRESEnums.Module.DrawFee.ToString(), "Sandbox - Error occurred while getting customer in Dynamics - GetAllSandboxCustomer", "", headerUserID.ToString(), "GetAllSandboxCustomer", "Unauthentication token");
+
+                }
+
+                HttpClient _httpClient = new HttpClient();
+                _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", authToken);
+                HttpResponseMessage result = _httpClient.GetAsync(BusinessCentralAPIURL).Result;
+                if (result.StatusCode == System.Net.HttpStatusCode.OK)
+                {
+                    string resultString = result.Content.ReadAsStringAsync().Result;
+                    resultString = resultString.Substring(resultString.IndexOf('['), resultString.Length - resultString.IndexOf('[') - 1);
+                    var jsonOutputResult = JsonConvert.DeserializeObject<List<DynamicsODataCustomerOutput>>(resultString);
+                    lstcust = jsonOutputResult;
+                }
+                else
+                {
+                    string resultString = result.Content.ReadAsStringAsync().Result;
+                    var jsonResultError = JsonConvert.DeserializeObject<error>(resultString);
+                    string errmessage = string.IsNullOrEmpty(jsonResultError.message) ? resultString : jsonResultError.message;
+                    errmessage = errmessage + "-Url-" + BusinessCentralAPIURL + "-status code-" + result.StatusCode;
+                    LoggerLogic Log = new LoggerLogic();
+                    Log.WriteLogExceptionMessage(CRESEnums.Module.DrawFee.ToString(), "Sanbbox - Error occurred while getting customer in dynamics-- GetAllSandboxCustomer ", "", headerUserID.ToString(), "GetAllSandboxCustomer", errmessage);
+                }
+            }
+            catch (Exception ex)
+            {
+                LoggerLogic Log = new LoggerLogic();
+                Log.WriteLogException(CRESEnums.Module.DrawFee.ToString(), "Sandbox - Error occurred while getting customer in dynamics - GetAllSandboxCustomer", "", headerUserID.ToString(), ex.TargetSite.Name.ToString(), "", ex);
+            }
+            return lstcust;
+        }
+
+        public string CheckCustomerinDynamicsByOdataForSandbox(DynamicsODataCustomerInput cust, string authToken)
+        {
+            string CustomerNo = "";
+            WFLogic _wfLogic = new WFLogic();
+            var headerUserID = new Guid();
+            string[] custname = { };
+            try
+            {
+                if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
+                {
+                    headerUserID = new Guid(Request.Headers["TokenUId"]);
+                }
+            }
+            catch { }
+            try
+            {
+                IConfiguration config = configroot.GetSection("Dynamics365BusinessCentralDetail");
+                custname = cust.Name.Split("&");
+                string CompanyID = config.GetSection("CompanyID").Value;
+                string BusinessCentralAPIURL = config.GetSection("BusinessCentralBaseURL").Value
+                    + "companies(" + CompanyID + ")/customers?$filter=displayName eq " + "'" + cust.Name + "'";
+
+                if (custname.Length > 1)
+                {
+                    BusinessCentralAPIURL = config.GetSection("BusinessCentralBaseURL").Value
+                       + "companies(" + CompanyID + ")/customers?$filter=startswith(displayName," + "'" + custname[0].Trim() + "') and endswith(displayName," + "'" + custname[custname.Length - 1].Trim() + "')";
+                }
+
+
+                HttpClient _httpClient = new HttpClient();
+                _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", authToken);
+                _httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+                //Set the Authorization header with the Access Token received specifying the Credentials
+
+                //using (var content = new StringContent(JsonConvert.SerializeObject(jsonInput), System.Text.Encoding.UTF8, "application/json"))
+
+                HttpResponseMessage result = _httpClient.GetAsync(BusinessCentralAPIURL).Result;
+
+                if (result.StatusCode == System.Net.HttpStatusCode.OK || result.StatusCode == System.Net.HttpStatusCode.Created)
+                {
+                    string resultString = result.Content.ReadAsStringAsync().Result;
+                    var jsonOutputResult = JsonConvert.DeserializeObject<SearchCustomerOutput>(resultString);
+                    QBDCustomerInputDataContract qbdcustomer = new QBDCustomerInputDataContract();
+                    if (jsonOutputResult.value != null && jsonOutputResult.value.Count > 0)
+                    {
+                        qbdcustomer.ID = jsonOutputResult.value.FirstOrDefault().id;
+                        qbdcustomer.CustomerNo = jsonOutputResult.value.FirstOrDefault().number;
+                        CustomerNo = qbdcustomer.CustomerNo;
+                        qbdcustomer.FullName = jsonOutputResult.value.FirstOrDefault().displayName;
+
+                    }
+
+
+                }
+            }
+            catch (Exception ex)
+            {
+                CustomerNo = "";
+            }
+            return CustomerNo;
+        }
+
+        //sandbox code-end
+
+        [HttpGet]
+        [Route("api/wfcontroller/createmissingcustomerinsandboxbyapi")]
+        public void CreateMissingCustomerInSandboxAPI()
+        {
+            GetConfigSetting();
+            List<DrawFeeInvoiceDataContract> lstdrawDC = new List<DrawFeeInvoiceDataContract>();
+            WFLogic wfLogic = new WFLogic();
+            lstdrawDC = wfLogic.GetMissingQBDCustomerInSandbox();
+
+            List<DynamicsODataCustomerOutput> lstCustSandbox = GetAllSandboxCustomer();
+            var result = lstdrawDC.Where(p => !lstCustSandbox.Any(x => x.Name == p.DealName)).ToList();
+
+            IActionResult ActionResult = null;
+            foreach (DrawFeeInvoiceDataContract drawFeeDC in result)
+            {
+                drawFeeDC.CreatedFrom = "Scheduler";
+                ActionResult = CreateCustomerInSandbox(drawFeeDC);
+            }
+        }
+
+        /*
+        [HttpGet]
+        [Services.Controllers.DeflateCompression]
+        [Route("api/downloadinvoiceinbytes")]
+        public DownloadInvoiceResult DownloadInvoiceInBytes(string Key,string Id)
+        {
+            var headerBackshopAuthKey = string.Empty;
+            //string filename = "ACORE Draw Fee Invoice – 10 West End - 18-2204-DR-0001.pdf";
+            DownloadInvoiceResult _invoiceResult = null;
+            WFLogic _wfLogic = new WFLogic();
+            DrawFeeInvoiceDataContract _dtInvoice = new DrawFeeInvoiceDataContract();
+
+            //
+
+            GetConfigSetting();
+            string Location = Sectionroot.GetSection("storage:invoiceStorageLocation").Value;
+            var invoiceStorageTypeId = Sectionroot.GetSection("storage:invoiceStorageTypeId").Value;
+            var BackshopAuthKey = Sectionroot.GetSection("BackshopAuthKey").Value;
+            try
+            {
+
+
+                //if (!string.IsNullOrEmpty(Request.Headers["AuthenticationKey"]))
+                //{
+                //    headerBackshopAuthKey = Convert.ToString(Request.Headers["AuthenticationKey"]);
+                //}
+                //if (string.IsNullOrEmpty(headerBackshopAuthKey) == true || BackshopAuthKey != headerBackshopAuthKey)
+                //{
+                //    _invoiceResult = new DownloadInvoiceResult()
+                //    {
+                //        Succeeded = false,
+                //        Message = "User Authentication failed."
+                //    };
+                //    return NotFound("Authentication failed");
+                //}
+                if (string.IsNullOrEmpty(Key))
+                {
+                    //return NotFound("Authentication key is required");
+
+                    _invoiceResult = new DownloadInvoiceResult()
+                    {
+                        Succeeded = false,
+                        Message = "Invoice id is required."
+                    };
+                    //return NotFound("Authentication failed");
+                }
+                else if (string.IsNullOrEmpty(Id))
+                {
+                    _invoiceResult = new DownloadInvoiceResult()
+                    {
+                        Succeeded = false,
+                        Message = "Invoice id is required."
+                    };
+                    //return NotFound("Invoice id is required");
+                }
+
+
+                if (BackshopAuthKey != Key)
+                {
+                    _invoiceResult = new DownloadInvoiceResult()
+                    {
+                        Succeeded = false,
+                        Message = "User Authentication failed."
+                    };
+                    //return NotFound("Authentication failed");
+                }
+
+
+                _dtInvoice = _wfLogic.GetInvoiceDetailByInvoiceNo("", Id);
+
+                if (string.IsNullOrEmpty(_dtInvoice.InvoiceNo))
+                {
+                    _invoiceResult = new DownloadInvoiceResult()
+                    {
+                        Succeeded = false,
+                        Message = "Invoice is not generated"
+                    };
+                    //return NotFound("Invoice is not generated");
+                }
+
+                MemoryStream memStreamDownloaded = new MemoryStream();
+                if (invoiceStorageTypeId == "392")
+                {
+
+                    var Container = Sectionroot.GetSection("storage:container:name").Value;
+                    var accountName = Sectionroot.GetSection("storage:account:name").Value;
+                    var accountKey = Sectionroot.GetSection("storage:account:key").Value;
+                    var storageAccount = new CloudStorageAccount(new StorageCredentials(accountName, accountKey), true);
+                    CloudBlobClient blobClient = storageAccount.CreateCloudBlobClient();
+                    CloudBlobContainer excelContainer = blobClient.GetContainerReference(Container);
+                    CloudBlobDirectory dr = excelContainer.GetDirectoryReference(Location);
+                    CloudBlockBlob cloudBlockBlob = dr.GetBlockBlobReference(_dtInvoice.FileName);
+                    cloudBlockBlob.DownloadToStream(memStreamDownloaded);
+                    MemoryStream memStream = new MemoryStream(memStreamDownloaded.ToArray());
+                    //return File(memStream, "text/plain", _dtInvoice.FileName);
+                }
+                else
+                {
+                    DocumentDataContract _docDC = new DocumentDataContract();
+                    _docDC.FolderName = Location;
+                    _docDC.FileName = _dtInvoice.FileName;
+
+                    var memStreamDown = new BoxHelper().DownloadFile(_docDC);
+                    // MemoryStream memStream = new MemoryStream(memStreamDown.Result.ToArray());
+                    memStreamDownloaded = new MemoryStream(memStreamDown.Result.ToArray());
+                    //return File(memStream, "text/plain", _dtInvoice.FileName);
+                }
+
+                _invoiceResult = new DownloadInvoiceResult()
+                {
+                    Succeeded = true,
+                    Message = "file Downloaded successfully",
+                    FileName = _dtInvoice.FileName,
+                    FileByte = memStreamDownloaded.ToArray()
+                };
+
+            }
+            catch (Exception ex)
+            {
+                _invoiceResult = new DownloadInvoiceResult()
+                {
+                    Succeeded = false,
+                    Message = ex.Message
+                };
+                //return NotFound("File not found");
+            }
+            return _invoiceResult;
+            //return File(memStreamDownloaded, "application/pdf", filename);
+        }
+        */
+
+
+        [HttpGet]
+        [Route("api/downloadinvoice")]
+        public async Task<IActionResult> DownloadInvoice(string InvNo)
+        {
+            var headerBackshopAuthKey = string.Empty;
+            //string filename = "ACORE Draw Fee Invoice – 10 West End - 18-2204-DR-0001.pdf";
+            DownloadInvoiceResult _invoiceResult = null;
+            WFLogic _wfLogic = new WFLogic();
+            DrawFeeInvoiceDataContract _dtInvoice = new DrawFeeInvoiceDataContract();
+            MemoryStream memStreamDownloaded = new MemoryStream();
+            //
+            string filename = "";
+            GetConfigSetting();
+            string Location = Sectionroot.GetSection("storage:invoiceStorageLocation").Value;
+            var invoiceStorageTypeId = Sectionroot.GetSection("storage:invoiceStorageTypeId").Value;
+            var BackshopAuthKey = Sectionroot.GetSection("BackshopAuthKey").Value;
+            try
+            {
+
+                if (!string.IsNullOrEmpty(Request.Headers["AuthenticationKey"]))
+                {
+                    headerBackshopAuthKey = Convert.ToString(Request.Headers["AuthenticationKey"]);
+                }
+                if (string.IsNullOrEmpty(headerBackshopAuthKey) == true || BackshopAuthKey != headerBackshopAuthKey)
+                {
+                    _invoiceResult = new DownloadInvoiceResult()
+                    {
+                        Succeeded = false,
+                        Message = "User Authentication failed."
+                    };
+                    return NotFound("User Authentication failed");
+                }
+
+                if (string.IsNullOrEmpty(InvNo))
+                {
+                    _invoiceResult = new DownloadInvoiceResult()
+                    {
+                        Succeeded = false,
+                        Message = "Invoice No is required."
+                    };
+                    return NotFound("Invoice No is required");
+                }
+
+
+
+                _dtInvoice = _wfLogic.GetInvoiceDetailByInvoiceNo("", InvNo);
+
+                if (string.IsNullOrEmpty(_dtInvoice.InvoiceNo))
+                {
+                    _invoiceResult = new DownloadInvoiceResult()
+                    {
+                        Succeeded = false,
+                        Message = "File not found"
+                    };
+                    return NotFound("File not found");
+                }
+
+
+                if (invoiceStorageTypeId == "392")
+                {
+
+                    var Container = Sectionroot.GetSection("storage:container:name").Value;
+                    var accountName = Sectionroot.GetSection("storage:account:name").Value;
+                    var accountKey = Sectionroot.GetSection("storage:account:key").Value;
+                    var storageAccount = new CloudStorageAccount(new StorageCredentials(accountName, accountKey), true);
+                    CloudBlobClient blobClient = storageAccount.CreateCloudBlobClient();
+                    CloudBlobContainer excelContainer = blobClient.GetContainerReference(Container);
+                    CloudBlobDirectory dr = excelContainer.GetDirectoryReference(Location);
+                    CloudBlockBlob cloudBlockBlob = dr.GetBlockBlobReference(_dtInvoice.FileName);
+                    await cloudBlockBlob.DownloadToStreamAsync(memStreamDownloaded);
+                    MemoryStream memStream = new MemoryStream(memStreamDownloaded.ToArray());
+                    filename = _dtInvoice.FileName;
+                    return File(memStream, "text/plain", _dtInvoice.FileName);
+                }
+                else
+                {
+                    DocumentDataContract _docDC = new DocumentDataContract();
+                    _docDC.FolderName = Location;
+                    _docDC.FileName = _dtInvoice.FileName;
+
+                    memStreamDownloaded = await new BoxHelper().DownloadFile(_docDC);
+                    // MemoryStream memStream = new MemoryStream(memStreamDown.Result.ToArray());
+                    MemoryStream memStream = new MemoryStream(memStreamDownloaded.ToArray());
+                    return File(memStream, "text/plain", _dtInvoice.FileName);
+                }
+            }
+            catch (Exception ex)
+            {
+                return NotFound("There is some error Downloading the file.");
+            }
+        }
+
+        [HttpPost]
+        [Services.Controllers.IsAuthenticate]
+        [Services.Controllers.DeflateCompression]
+        [Route("api/deal/checkwfconcurrency")]
+        public IActionResult CheckWFConcurrency([FromBody] WFDetailDataContract _wfDetailDataContract)
+        {
+            GenericResult _authenticationResult = null;
+            DealDataContract Deal = new DealDataContract();
+            IEnumerable<string> headerValues;
+            var headerUserID = string.Empty;
+            if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
+            {
+                headerUserID = Convert.ToString(Request.Headers["TokenUId"]);
+            }
+            WFLogic _WFLogic = new WFLogic();
+            WFConcurrencyParams prms = new WFConcurrencyParams();
+            prms.TaskTypeID = _wfDetailDataContract.TaskTypeID;
+            prms.TaskID = _wfDetailDataContract.TaskID;
+            prms.WFStatusPurposeMappingID = _wfDetailDataContract.WFStatusPurposeMappingID;
+            int status = _WFLogic.CheckWFConcurrency(headerUserID, prms);
+
+            try
+            {
+                if (status == 0)
+                {
+                    _authenticationResult = new GenericResult()
+                    {
+                        Succeeded = true,
+                        Message = "",
+                        StatusCode = status
+                    };
+                }
+                if (status == 1)
+                {
+                    _authenticationResult = new GenericResult()
+                    {
+                        Succeeded = true,
+                        Message = "",
+                        StatusCode = status
+
+                    };
+                }
+            }
+            catch (Exception ex)
+            {
+                LoggerLogic Log = new LoggerLogic();
+                Log.WriteLogException(CRESEnums.Module.Deal.ToString(), "Error occurred in CheckWFConcurrency", "", headerUserID.ToString(), ex.TargetSite.Name.ToString(), "", ex);
+                _authenticationResult = new GenericResult()
+                {
+                    Succeeded = false,
+                    Message = ex.Message,
+                    StatusCode = 2
+                };
+            }
+            return Ok(_authenticationResult);
+        }
+        
+        public void AttachGenericInvoiceSendEmail(DrawFeeInvoiceDataContract DrawFeeDC)
+        {
+            GetConfigSetting();
+            string Location = Sectionroot.GetSection("storage:invoiceStorageLocation").Value;
+            var invoiceStorageTypeId = Sectionroot.GetSection("storage:invoiceStorageTypeId").Value;
+            MemoryStream memStreamDownloaded = new MemoryStream();
+            if (invoiceStorageTypeId == "392")
+            {
+
+                var Container = Sectionroot.GetSection("storage:container:name").Value;
+                var accountName = Sectionroot.GetSection("storage:account:name").Value;
+                var accountKey = Sectionroot.GetSection("storage:account:key").Value;
+                var storageAccount = new CloudStorageAccount(new StorageCredentials(accountName, accountKey), true);
+                CloudBlobClient blobClient = storageAccount.CreateCloudBlobClient();
+                CloudBlobContainer excelContainer = blobClient.GetContainerReference(Container);
+                CloudBlobDirectory dr = excelContainer.GetDirectoryReference(Location);
+                CloudBlockBlob cloudBlockBlob = dr.GetBlockBlobReference(DrawFeeDC.FileName);
+                cloudBlockBlob.DownloadToStream(memStreamDownloaded);
+                // MemoryStream memStream = new MemoryStream(memStreamDownloaded.ToArray());
+            }
+            else
+            {
+                DocumentDataContract _docDC = new DocumentDataContract();
+                _docDC.FolderName = Location;
+                _docDC.FileName = DrawFeeDC.FileName;
+                var memStreamDown = new BoxHelper().DownloadFile(_docDC);
+                // MemoryStream memStream = new MemoryStream(memStreamDown.Result.ToArray());
+                memStreamDownloaded = new MemoryStream(memStreamDown.Result.ToArray());
+            }
+            DrawFeeDC.filestream = memStreamDownloaded;
+            _iEmailNotification.SendGenericInvoiceNotification(DrawFeeDC);
+
+        }
+
+        [HttpPost]
+        [Route("api/wfcontroller/saveInvoicesLanding")]
+        public IActionResult saveInvoicesLanding([FromBody] dynamic InvoicesLandingData)
+        {
+            GenericResult _authenticationResult = null;
+            WFLogic lc = new WFLogic();
+
+            try
+            {
+                var InvoicesJSON = InvoicesLandingData["Invoices"];
+
+                if (InvoicesJSON.Count > 0)
+                {
+
+                    List<InvoicesLandingDataContract> lstInvoices = new List<InvoicesLandingDataContract>();
+
+                    for (var i = 0; i < InvoicesJSON.Count; i++)
+                    {
+                        InvoicesLandingDataContract dd = new InvoicesLandingDataContract();
+
+                        dd.InvoiceDetailID = CommonHelper.ToInt32(InvoicesJSON[i].InvoiceDetailID);
+                        dd.DealID = InvoicesJSON[i].CREDealID;
+                        dd.CustomerName = InvoicesJSON[i].CustomerName;
+                        dd.InvoiceDate = CommonHelper.ToDateTime(InvoicesJSON[i].InvoiceDate);
+                        dd.InvoiceNo = InvoicesJSON[i].InvoiceNo;
+                        dd.ItemCode = InvoicesJSON[i].ItemCode;
+                        dd.Description = InvoicesJSON[i].Description;
+                        dd.Amount = CommonHelper.StringToDecimal(InvoicesJSON[i].Amount);
+                        dd.Memo = InvoicesJSON[i].Memo;
+
+                        lstInvoices.Add(dd);
+                    }
+
+                    DataTable dtInvoices = ToDataTable<InvoicesLandingDataContract>(lstInvoices);
+
+                    lc.saveInvoicesLanding(dtInvoices);
+
+                    Thread FirstThread = new Thread(() => UpdateInvoiceQueuedToInvoicedForManualProcess());
+                    FirstThread.Start();
+                }
+                _authenticationResult = new GenericResult()
+                {
+                    Succeeded = true,
+                    Message = "Success"
+                };
+
+            }
+            catch (Exception ex)
+            {
+
+                _authenticationResult = new GenericResult()
+                {
+                    Succeeded = false,
+                    Message = ex.Message
+                };
+            }
+
+            return Ok(_authenticationResult);
+        }
+        public static DataTable ToDataTable<T>(List<T> items)
+        {
+            DataTable dataTable = new DataTable(typeof(T).Name);
+
+            //Get all the properties
+            PropertyInfo[] Props = typeof(T).GetProperties(BindingFlags.Public | BindingFlags.Instance);
+            foreach (PropertyInfo prop in Props)
+            {
+                //Defining type of data column gives proper data table 
+                var type = (prop.PropertyType.IsGenericType && prop.PropertyType.GetGenericTypeDefinition() == typeof(Nullable<>) ? Nullable.GetUnderlyingType(prop.PropertyType) : prop.PropertyType);
+                //Setting column names as Property names
+                dataTable.Columns.Add(prop.Name, type);
+            }
+            foreach (T item in items)
+            {
+                var values = new object[Props.Length];
+                for (int i = 0; i < Props.Length; i++)
+                {
+                    //inserting property values to datatable rows
+                    values[i] = Props[i].GetValue(item, null);
+                }
+                dataTable.Rows.Add(values);
+            }
+            //put a breakpoint here and check datatable
+            return dataTable;
+        }
+
+        [HttpGet]
+        [Route("api/wfcontroller/updateinvoicequeuedtoinvoicedformanualprocess")]
+        public IActionResult UpdateInvoiceQueuedToInvoicedForManualProcess()
+        {
+
+            GenericResult _authenticationResult = null;
+            WFLogic _wfLogic = new WFLogic();
+            List<DrawFeeInvoiceDataContract> lstDraw = new List<DrawFeeInvoiceDataContract>();
+            DrawFeeInvoiceDataContract DrawFeeDC = null;
+
+            try
+            {
+
+                GetConfigSetting();
+                //CreateMissingQBDCustomer();
+                lstDraw = _wfLogic.GetAllInvoicesFromInvoiceLanding("");
+
+                //call invoice api and update status of invoice
+                foreach (DrawFeeInvoiceDataContract df in lstDraw)
+                {
+                    try
+                    {
+                        DrawFeeDC = df;
+                        DrawFeeDC.IsSuccess = true;
+                        DrawFeeDC.InvoiceNo = df.InvoiceNo;
+                        // AttachInvoiceSendEmail(df);
+                         //DrawFeeDC = CreateInvoiceInQBD(df);
+                        if (DrawFeeDC.IsSuccess && !string.IsNullOrEmpty(DrawFeeDC.InvoiceNo))
+                        {
+                            DrawFeeDC.DrawFeeStatus = 693;
+                            DrawFeeDC.IsLogActivity = true;
+                            _wfLogic.UpdateDrawFeeInvoiceDetailStatus("", DrawFeeDC);
+                            //DrawFeeDC.InvoiceNo = jsonOutputResult.Contents[0].Object.Number;
+                            //DrawFeeDC.InvoiceNoUI = DrawFeeDC.CreDealID + "-DR-" + DrawFeeDC.DrawNo;
+                           
+                            string pdfFileName = CreateJsonToPDF(DrawFeeDC);
+                            DrawFeeDC.FileName = pdfFileName;
+                            DrawFeeDC.IsLogActivity = false;
+                            _wfLogic.UpdateDrawFeeInvoiceDetailStatus("", DrawFeeDC);
+                            //send draw fee invoice to email
+                            AttachInvoiceSendEmail(DrawFeeDC);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+
+                        LoggerLogic Log = new LoggerLogic();
+                        Log.WriteLogException(CRESEnums.Module.DrawFee.ToString(), "Error occurred while creating invoice in QBD from UpdateInvoiceQueuedToInvoicedForManualProcess for InvoiceDetailID " + DrawFeeDC.DrawFeeInvoiceDetailID.ToString(), DrawFeeDC.DrawFeeInvoiceDetailID.ToString(), "", ex.TargetSite.Name.ToString(), "", ex);
+
+                        EmailDataContract emaildc = new EmailDataContract();
+                        emaildc.ModuleId = 705;
+                        emaildc.Subject = "Quickbook Invoice Error Notification";
+                        emaildc.Body = "Error occurred while creating invoice in QBD from UpdateInvoiceQueuedToInvoicedForManualProcess for InvoiceDetailID " + DrawFeeDC.DrawFeeInvoiceDetailID.ToString() + " - " + ex.Message;
+                        _iEmailNotification.SendErrorNotificationEmail(emaildc);
+                    }
+
+                }
+
+                if (lstDraw.Count > 0) {
+
+                    EmailDataContract emailDc = new EmailDataContract();
+                    emailDc.ModuleId = 707;
+                    emailDc.Subject = "M61-Invoices creation.";
+                    emailDc.Body = "Invoices created successfully in M61";
+                    SendInvoiceNotificationForManualProcess(emailDc);
+                }
+            }
+            catch (Exception ex)
+            {
+
+                _authenticationResult = new GenericResult()
+                {
+                    Succeeded = false,
+                    Message = ex.Message
+                };
+                LoggerLogic Log = new LoggerLogic();
+                Log.WriteLogException(CRESEnums.Module.DrawFee.ToString(), "Error occurred while creating invoice in QBD from scheduler", "", "", ex.TargetSite.Name.ToString(), "", ex);
+
+            }
+            //ProcessInvoiceUploadedByBatch();
+            return Ok(_authenticationResult);
+
+        }
+
+
+        [Route("api/wfcontroller/updatedrawfeeinvoicestatusformanualprocess")]
+        public IActionResult UpdateDrawFeeInvoiceStatusForManualProcess()
+        {
+
+            GenericResult _authenticationResult = null;
+            WFLogic _wfLogic = new WFLogic();
+            List<InvoicesLandingDataContract> lstDraw = new List<InvoicesLandingDataContract>();
+            DrawFeeInvoiceDataContract DrawFeeDC = null;
+            try
+            {
+                lstDraw = _wfLogic.GetAllReadyToPayInvoicesFromLanding("");
+                
+                    foreach (InvoicesLandingDataContract df in lstDraw)
+                    {
+                        try
+                        {
+                                DrawFeeDC = new DrawFeeInvoiceDataContract();
+                                DrawFeeDC.DrawFeeInvoiceDetailID = System.Convert.ToInt32(df.InvoiceDetailID);
+                                DrawFeeDC.DrawFeeStatus = 694;
+                                DrawFeeDC.IsLogActivity = true;
+                                DrawFeeDC.AmountPaid = System.Convert.ToDecimal(df.AmountPaid);
+                                DrawFeeDC.PaymentDate = df.PaymentDate;
+                                _wfLogic.UpdateDrawFeeInvoiceDetailStatus("", DrawFeeDC);
+                                _wfLogic.DeleteInvoiceDetailLanding("", DrawFeeDC.DrawFeeInvoiceDetailID);
+
+                    }
+                    catch (Exception ex) {
+                        LoggerLogic Log = new LoggerLogic();
+                        Log.WriteLogException(CRESEnums.Module.DrawFee.ToString(), "Error occurred while updating invoice status in QBD from UpdateDrawFeeInvoiceStatusForManualProcess for InvoiceDetailID " + DrawFeeDC.DrawFeeInvoiceDetailID.ToString(), DrawFeeDC.DrawFeeInvoiceDetailID.ToString(), "", ex.TargetSite.Name.ToString(), "", ex);
+
+                    }
+
+                }
+
+                if (lstDraw.Count > 0)
+                {
+                    EmailDataContract emailDc = new EmailDataContract();
+                    emailDc.ModuleId = 707;
+                    emailDc.Subject = "M61-Invoices paid.";
+                    emailDc.Body = "Invoices marked as paid successfully in M61";
+                    SendInvoiceNotificationForManualProcess(emailDc);
+                }
+
+            }
+            catch (Exception ex)
+            {
+
+                _authenticationResult = new GenericResult()
+                {
+                    Succeeded = false,
+                    Message = ex.Message
+                };
+                LoggerLogic Log = new LoggerLogic();
+                Log.WriteLogException(CRESEnums.Module.DrawFee.ToString(), "Error occurred while updating invoice status in QBD from UpdateDrawFeeInvoiceStatusForManualProcess for InvoiceDetailID " + DrawFeeDC.DrawFeeInvoiceDetailID.ToString(), DrawFeeDC.DrawFeeInvoiceDetailID.ToString(), "", ex.TargetSite.Name.ToString(), "", ex);
+
+            }
+            return Ok(_authenticationResult);
+
+        }
+
+        [HttpPost]
+        [Route("api/wfcontroller/updateInvoicesLanding")]
+        public IActionResult updateInvoicesLanding([FromBody] dynamic InvoicesLandingData)
+        {
+            GenericResult _authenticationResult = null;
+            WFLogic lc = new WFLogic();
+
+            try
+            {
+                var InvoicesJSON = InvoicesLandingData["Invoices"];
+
+                if (InvoicesJSON.Count > 0)
+                {
+                    List<InvoicesLandingDataContract> lstInvoices = new List<InvoicesLandingDataContract>();
+
+                    for (var i = 0; i < InvoicesJSON.Count; i++)
+                    {
+                        InvoicesLandingDataContract dd = new InvoicesLandingDataContract();
+
+                        dd.InvoiceDetailID = CommonHelper.ToInt32(InvoicesJSON[i].InvoiceDetailID);
+                        dd.AmountPaid = CommonHelper.StringToDecimal(InvoicesJSON[i].AmountPaid);
+                        dd.PaymentDate = CommonHelper.ToDateTime(InvoicesJSON[i].PaymentDate);
+
+                        lstInvoices.Add(dd);
+                    }
+
+                    DataTable dtInvoices = ToDataTable<InvoicesLandingDataContract>(lstInvoices);
+
+                    lc.updateInvoicesLanding(dtInvoices);
+
+                    UpdateDrawFeeInvoiceStatusForManualProcess();
+                }
+
+                _authenticationResult = new GenericResult()
+                {
+                    Succeeded = true,
+                    Message = "Success"
+                };
+
+            }
+            catch (Exception ex)
+            {
+
+                _authenticationResult = new GenericResult()
+                {
+                    Succeeded = false,
+                    Message = ex.Message
+                };
+            }
+
+            return Ok(_authenticationResult);
+        }
+
+        public void SendInvoiceNotificationForManualProcess(EmailDataContract emaildc)
+        {
+            if (emaildc.ModuleId > 0 && !string.IsNullOrEmpty(emaildc.Subject) && !string.IsNullOrEmpty(emaildc.Body))
+                {
+                //EmailDataContract emaildc = new EmailDataContract();
+                //emaildc.ModuleId = 707;
+                //emaildc.Subject = "Invoice data sync status";
+                //emaildc.Body = "Invoice data sync process completed successfully.";
+                _iEmailNotification.SendInvoiceSyncNotification(emaildc);
+            }
+
+        }
+
+        [HttpGet]
+        [Route("api/wfcontroller/TestCreateJsonToPDF")]
+        public string TestCreateJsonToPDF(DrawFeeInvoiceDataContract DrawFeeDC)
+        {
+            GetConfigSetting();
+            //FundingDate(MMDDYYYY)_DealName_ItemCode_ItemDescription_Amount.pdf
+            string Location = Sectionroot.GetSection("storage:invoiceStorageLocation").Value; ;
+            string fileName = "ACORE Draw Fee Invoice_Test.pdf";
+            //392-AzureBlob, 459-Box, 641-LocalServer, 642-FTPServer
+
+            var invoiceStorageTypeId = Sectionroot.GetSection("storage:invoiceStorageTypeId").Value;
+
+            // string fileName = "DrawFeeInvoice_" + DateTime.Now.ToString("MMddyyyy_HHmmss")+ ".pdf";
+            string filepath = Directory.GetCurrentDirectory() + @"\wwwroot\InvoiceTemplate\DrawFeePDF.html";
+            if (invoiceStorageTypeId == "392")
+            {
+                using (MemoryStream stream = new System.IO.MemoryStream())
+                {
+                    //Create document
+                    Document doc = new Document();
+                    //string FirstName = "pushp singh";
+                    string sr = string.Empty;
+                    using (StreamReader reader = new StreamReader(filepath))
+                    {
+                        sr = reader.ReadToEnd();
+                    }
+
+                    
+
+                    StringReader htmlContent = new StringReader(sr);
+                    //Without saving local pdf
+
+                    var Container = Sectionroot.GetSection("storage:container:name").Value;
+                    CloudBlobContainer container = BlobUtilities.GetBlobClient.GetContainerReference(Container);
+                    CloudBlobDirectory blobDirectory = container.GetDirectoryReference(Location);
+                    CloudBlockBlob blockBlob = blobDirectory.GetBlockBlobReference(fileName);
+
+
+                    using (MemoryStream ms = new MemoryStream())
+                    {
+                        using (var docm = new iTextSharp.text.Document())
+                        {
+                            PdfWriter writer = PdfWriter.GetInstance(docm, ms);
+                            docm.Open();
+                            XMLWorkerHelper.GetInstance().ParseXHtml(writer, docm, htmlContent);
+                        }
+                        var byteArray = ms.ToArray();
+
+                        blockBlob.Properties.ContentType = "application/pdf";
+                        blockBlob.UploadFromByteArray(byteArray, 0, byteArray.Length);
+                    }
+                }
+
+
+                return fileName;
+            }
+            return fileName;
+        }
+        /* update invoice code commented as need to do some more rnd
+        [HttpPost]
+        [Route("api/updateInvoice/{id}")]
+        public BackshopInvoiceResult UpdateInvoiceInDynamics([FromBody] dynamic inputjson,string id)
+        {
+            BackshopInvoiceResult _invoiceResult = null;
+            int InvoiceDeatailID = 0;
+            GetConfigSetting();
+            var BackshopAuthKey = Sectionroot.GetSection("BackshopAuthKey").Value;
+            var headerUserID = string.Empty;
+            var headerBackshopAuthKey = string.Empty;
+            string ErrorMandatory = "";
+            string ErrorInvalid = "";
+            string ErrorAll = "";
+
+            WFLogic _wfLogic = new WFLogic();
+            DataTable apidata = new DataTable();
+            DynamicSizerLogic _dynamicsizer = new DynamicSizerLogic();
+            try
+            {
+
+                string jsonString = Newtonsoft.Json.JsonConvert.SerializeObject(inputjson);
+                dynamic data = JObject.Parse(jsonString);
+
+                var genericEntityobject = data["Invoice"];
+
+                if (!string.IsNullOrEmpty(Request.Headers["AuthenticationKey"]))
+                {
+                    headerBackshopAuthKey = Convert.ToString(Request.Headers["AuthenticationKey"]);
+                }
+                if (string.IsNullOrEmpty(headerBackshopAuthKey) == true || BackshopAuthKey != headerBackshopAuthKey)
+                {
+                    _invoiceResult = new BackshopInvoiceResult()
+                    {
+                        Succeeded = false,
+                        Message = "User Authentication failed."
+                    };
+                    return _invoiceResult;
+                }
+                DrawFeeInvoiceDataContract dc = new DrawFeeInvoiceDataContract();
+                InvoiceAPIDataContract dcInvoice = new InvoiceAPIDataContract();
+
+                //create customer in qbd
+                DrawFeeInvoiceDataContract _dcCust = new DrawFeeInvoiceDataContract();
+                DrawFeeInvoiceDataContract _dtInvoice = new DrawFeeInvoiceDataContract();
+
+
+                if (InvoiceDeatailID != 0)
+                {
+                    _dtInvoice = _wfLogic.GetInvoiceDetailByID("", InvoiceDeatailID);
+                    _dtInvoice.Amount = Convert.ToDecimal((Object)genericEntityobject.Amount);
+                    _dtInvoice.InvoiceGuid = id;
+                    _invoiceResult = new BackshopInvoiceResult();
+                    UpdateInvoice(_dtInvoice);
+                    _invoiceResult.Succeeded = true;
+                    _invoiceResult.Message = "Invoice updated successfully";
+                    _invoiceResult.InvoiceNo = dc.InvoiceNoUI;
+                    return _invoiceResult;
+                }
+                else
+                {
+                    _invoiceResult = new BackshopInvoiceResult()
+                    {
+                        Succeeded = false,
+                        Message = "Exception occured while updating Invoice detail"
+                    };
+                    return _invoiceResult;
+                }
+
+            }
+            catch (Exception ex)
+            {
+                _invoiceResult = new BackshopInvoiceResult()
+                {
+                    Succeeded = true,
+                    Message = ex.Message,
+                };
+
+                //LoggerLogic Log = new LoggerLogic();
+                //Log.WriteLogException(CRESEnums.Module.VSTO.ToString(), "Error occurred in vsto CreateInvoiceFromBackshop ", "", "", ex.TargetSite.Name.ToString(), "", ex);
+            }
+
+            return _invoiceResult;
+        }
+
+
+        public DrawFeeInvoiceDataContract UpdateInvoice([FromBody] DrawFeeInvoiceDataContract DrawFeeDC)
+        {
+
+            if (string.IsNullOrEmpty(DrawFeeDC.InvoiceNo) == true)
+            {
+                GetConfigSetting();
+                SetDynamicsAppConfig();
+                var headerUserID = string.Empty;
+                try
+                {
+                    WFLogic _wfLogicInvoiceConfig = new WFLogic();
+                    InvoiceConfigDataContract invoiceDC = new InvoiceConfigDataContract();
+                    invoiceDC = _wfLogicInvoiceConfig.GetInvoiceConfigByInvoiceType(DrawFeeDC.InvoiceTypeID, "");
+                    if (invoiceDC != null && !string.IsNullOrEmpty(invoiceDC.InvoiceCode))
+                    {
+                        DrawFeeDC.InvoiceCode = invoiceDC.InvoiceCode;
+                        DrawFeeDC.TemplateName = invoiceDC.Template;
+                    }
+
+                    WFLogic _wfLogic = new WFLogic();
+                    if (string.IsNullOrEmpty(DrawFeeDC.InvoiceNo) == true)
+                    {
+                        //create invoice in dynamic 365
+                        GetConfigRoot();
+                        IConfiguration config = configroot.GetSection("Dynamics365BusinessCentralDetail");
+                        string CompanyID = config.GetSection("CompanyID").Value;
+                        string BusinessCentralAPIURL = config.GetSection("BusinessCentralBaseURL").Value
+                            + "companies(" + CompanyID + ")/salesInvoices/(" + DrawFeeDC.InvoiceGuid + ")";
+                        string authToken = GetBusinessCentralAccessToken();
+
+                        if (string.IsNullOrEmpty(authToken))
+                        {
+                            LoggerLogic Log = new LoggerLogic();
+                            Log.WriteLogExceptionMessage(CRESEnums.Module.DrawFee.ToString(), "Error occurred while updating invoice in Dynamics for InvoiceDetailID " + DrawFeeDC.DrawFeeInvoiceDetailID.ToString(), DrawFeeDC.DrawFeeInvoiceDetailID.ToString(), headerUserID.ToString(), "CreateInvoiceInQBD", "Unauthentication token");
+                            DrawFeeDC.IsSuccess = false;
+                            return DrawFeeDC;
+                        }
+
+
+
+                        DynamicsSalesInvoiceInput dinput = new DynamicsSalesInvoiceInput();
+                        dinput.salesInvoiceLines = new List<DynamicsSalesInvoiceLineInput>();
+
+                        List<InvoiceSplitOutputDataContract> lstSplit = new List<InvoiceSplitOutputDataContract>();
+                        if (invoiceDC != null && invoiceDC.IsApplySplit == true)
+                        {
+                            InvoiceSplitParamDataContract param = new InvoiceSplitParamDataContract();
+                            param.DealID = DrawFeeDC.CreDealID;
+                            param.InvoiceTypeID = DrawFeeDC.InvoiceTypeID;
+                            param.FeeAmount = DrawFeeDC.Amount;
+                            lstSplit = _wfLogic.GetInvoiceSplit(param, headerUserID);
+                            if (lstSplit.Count > 0)
+                            {
+                                foreach (InvoiceSplitOutputDataContract itm in lstSplit)
+                                {
+                                    dinput.salesInvoiceLines.Add(
+                                    new DynamicsSalesInvoiceLineInput
+                                    {
+                                        lineType = "Account",
+                                        description = itm.QBItemName,
+                                        lineObjectNumber = itm.QBAccountNo,
+                                        quantity = 1,
+                                        unitPrice = itm.SplitAmount
+                                    }
+                                    );
+                                }
+                            }
+                        }
+                        else
+                        {
+                            dinput.salesInvoiceLines.Add(
+                                new DynamicsSalesInvoiceLineInput
+                                {
+                                    lineType = "Account",
+                                    description = invoiceDC.InvoiceCode,
+                                    lineObjectNumber = invoiceDC.InvoiceAccountNo,
+                                    quantity = 1,
+                                    unitPrice = DrawFeeDC.Amount
+                                }
+                                );
+                        }
+                        string inputjsonstring = JsonConvert.SerializeObject(dinput);
+                        HttpResponseMessage result = null;
+                        HttpClient _httpClient = new HttpClient();
+                        _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", authToken);
+                        _httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+                        //Set the Authorization header with the Access Token received specifying the Credentials
+                        using (var content = new StringContent(inputjsonstring, System.Text.Encoding.UTF8, "application/json"))
+                        {
+                            result = _httpClient.PatchAsync(BusinessCentralAPIURL, content).Result;
+                            if (result.StatusCode == System.Net.HttpStatusCode.Created || result.StatusCode == System.Net.HttpStatusCode.OK)
+                            {
+                                string resultString = result.Content.ReadAsStringAsync().Result;
+                                var jsonOutputResult = JsonConvert.DeserializeObject<DynamicsSalesInvoiceOutput>(resultString);
+                                DrawFeeDC.IsSuccess = true;
+                                DrawFeeDC.InvoiceNo = jsonOutputResult.number;
+                                DrawFeeDC.PreAssignedInvoiceNo = jsonOutputResult.number;
+                                DrawFeeDC.InvoiceGuid = jsonOutputResult.id;
+                            }
+
+                            else
+                            {
+                                string resultString = result.Content.ReadAsStringAsync().Result;
+                                var jsonResultError = JsonConvert.DeserializeObject<error>(resultString);
+                                string errmessage = string.IsNullOrEmpty(jsonResultError.message) ? resultString : jsonResultError.message;
+                                errmessage = errmessage + "-Url-" + BusinessCentralAPIURL + "-status code-" + result.StatusCode;
+                                LoggerLogic Log = new LoggerLogic();
+                                Log.WriteLogExceptionMessage(CRESEnums.Module.DrawFee.ToString(), "Error occurred while updating invoice in QBD for InvoiceDetailID " + DrawFeeDC.DrawFeeInvoiceDetailID.ToString(), "", headerUserID.ToString(), "UpdateInvoice", errmessage);
+                                EmailDataContract emaildc = new EmailDataContract();
+                                emaildc.ModuleId = 705;
+                                emaildc.Subject = "Dynamics 365 Invoice Error Notification";
+                                emaildc.Body = "Error occurred while updating invoice in Dynamics for InvoiceDetailID " + DrawFeeDC.DrawFeeInvoiceDetailID.ToString() + " - " + errmessage;
+                                _iEmailNotification.SendErrorNotificationEmail(emaildc);
+                            }
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    LoggerLogic Log = new LoggerLogic();
+                    Log.WriteLogException(CRESEnums.Module.DrawFee.ToString(), "Error occurred while updating invoice in Dynamics for InvoiceDetailID " + DrawFeeDC.DrawFeeInvoiceDetailID.ToString(), DrawFeeDC.DrawFeeInvoiceDetailID.ToString(), headerUserID.ToString(), ex.TargetSite.Name.ToString(), "", ex);
+                    DrawFeeDC.IsSuccess = false;
+                    EmailDataContract emaildc = new EmailDataContract();
+                    emaildc.ModuleId = 705;
+                    emaildc.Subject = "Dynamics 365 Invoice Error Notification";
+                    emaildc.Body = "Error occurred while updating invoice in QBD for InvoiceDetailID " + DrawFeeDC.DrawFeeInvoiceDetailID.ToString() + " - " + ex.Message;
+                    _iEmailNotification.SendErrorNotificationEmail(emaildc);
+                }
+            }
+
+
+            return DrawFeeDC;
+        }
+        */
+
+
+        bool UpdateWorkDescriptionusingOData(DrawFeeInvoiceDataContract DrawFeeDC,string UserId)
+        {
+
+            bool IsSuccess = false;
+            try
+            {
+                string authToken = GetBusinessCentralAccessToken();
+
+                if (string.IsNullOrEmpty(authToken))
+                {
+                    LoggerLogic Log = new LoggerLogic();
+                    Log.WriteLogExceptionMessage(CRESEnums.Module.DrawFee.ToString(), "Error occurred while updating work description in Dynamics for InvoiceDetailID " + DrawFeeDC.DrawFeeInvoiceDetailID.ToString(), DrawFeeDC.DrawFeeInvoiceDetailID.ToString(), UserId, "CreateInvoiceInQBD", "Unauthentication token");
+                    IsSuccess = false;
+                }
+
+                //create invoice in dynamic 365
+                GetConfigRoot();
+                IConfiguration config = configroot.GetSection("Dynamics365BusinessCentralDetail");
+                string BusinessCentralAPIURL = config.GetSection("BusinessCentralOdataBaseURL").Value;
+                string BusinessCentralCompanyName = config.GetSection("CompanyName").Value;
+                BusinessCentralAPIURL = BusinessCentralAPIURL + "Company('" + BusinessCentralCompanyName + "')/"
+                + "salesDocuments(" + DrawFeeDC.InvoiceGuid + ")/workDescription";
+
+
+                HttpResponseMessage result = null;
+                HttpClient _httpClient = new HttpClient();
+                _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", authToken);
+                _httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("text/plain"));
+                //Set the Authorization header with the Access Token received specifying the Credentials
+                using (var content = new StringContent(DrawFeeDC.WorkDescription, System.Text.Encoding.UTF8, "text/plain"))
+                {
+                    _httpClient.DefaultRequestHeaders.TryAddWithoutValidation("If-Match", "*");
+                    result = _httpClient.PatchAsync(BusinessCentralAPIURL, content).Result;
+                    if (result.StatusCode == System.Net.HttpStatusCode.Created || result.StatusCode == System.Net.HttpStatusCode.OK || result.StatusCode==HttpStatusCode.NoContent)
+                    {
+                        string resultString = result.Content.ReadAsStringAsync().Result;
+                        var jsonOutputResult = JsonConvert.DeserializeObject<DynamicsSalesInvoiceOutput>(resultString);
+                        IsSuccess = true;
+                    }
+
+                    else
+                    {
+                        IsSuccess = false;
+                        string resultString = result.Content.ReadAsStringAsync().Result;
+                        var jsonResultError = JsonConvert.DeserializeObject<error>(resultString);
+                        string errmessage = string.IsNullOrEmpty(jsonResultError.message) ? resultString : jsonResultError.message;
+                        errmessage = errmessage + "-Url-" + BusinessCentralAPIURL + "-status code-" + result.StatusCode;
+                        LoggerLogic Log = new LoggerLogic();
+                        Log.WriteLogExceptionMessage(CRESEnums.Module.DrawFee.ToString(), "Error occurred while updating work description in dynamics for InvoiceDetailID " + DrawFeeDC.DrawFeeInvoiceDetailID.ToString(), "", UserId, "UpdateWorkDescriptionusingOData", errmessage);
+                        EmailDataContract emaildc = new EmailDataContract();
+                        emaildc.ModuleId = 705;
+                        emaildc.Subject = "Dynamics 365 Invoice Error Notification";
+                        emaildc.Body = "Error occurred while updating work description in Dynamics for InvoiceDetailID " + DrawFeeDC.DrawFeeInvoiceDetailID.ToString() + " - " + errmessage;
+                        _iEmailNotification.SendErrorNotificationEmail(emaildc);
+                    }
+                }
+
+            }
+            catch(Exception ex) {
+                LoggerLogic Log = new LoggerLogic();
+                Log.WriteLogException(CRESEnums.Module.DrawFee.ToString(), "Error occurred while updating work description in Dynamics for InvoiceDetailID " + DrawFeeDC.DrawFeeInvoiceDetailID.ToString(), DrawFeeDC.DrawFeeInvoiceDetailID.ToString(), UserId, ex.TargetSite.Name.ToString(), "", ex);
+                IsSuccess = false;
+            }
+            return IsSuccess;
+        }
     }
 }
