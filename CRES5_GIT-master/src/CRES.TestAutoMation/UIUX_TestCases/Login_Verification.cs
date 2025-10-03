@@ -2,14 +2,14 @@
 using CRES.BusinessLogic;
 using CRES.DataContract;
 using CRES.TestAutoMation.Pages;
+using CRES.TestAutoMation.TestCases;
 using CRES.TestAutoMation.Utility;
-using New_UI_TestAutomation.TestCases;
 using NUnit.Framework;
 using OpenQA.Selenium;
 using System;
 using System.Collections.Generic;
 
-namespace CRES.TestAutoMation.TestCases
+namespace CRES.TestAutoMation.UIUX_TestCases
 
 {
     [TestFixture]

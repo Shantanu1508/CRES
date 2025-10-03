@@ -63,22 +63,20 @@
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-    <PackageReference Include="Selenium.Support" Version="4.34.0" />
-    <PackageReference Include="Selenium.WebDriver" Version="4.34.0" />
-    <PackageReference Include="Selenium.WebDriver.ChromeDriver" Version="138.0.7204.16800" />
+    <PackageReference Include="Selenium.Support" Version="4.35.0" />
+    <PackageReference Include="Selenium.WebDriver" Version="4.35.0" />
+    <PackageReference Include="Selenium.WebDriver.ChromeDriver" Version="140.0.7339.8000" />
     <PackageReference Include="Selenium.WebDriver.MicrosoftDriver" Version="17.17134.0" />
     <PackageReference Include="SettingsManagment.System.Configuration" Version="1.0.0" />
     <PackageReference Include="System.Data.OleDb" Version="7.0.0" />
-    <PackageReference Include="WebDriverManager" Version="2.17.1" />
+    <PackageReference Include="WebDriverManager" Version="2.17.6" />
   </ItemGroup>
   <ItemGroup>
-    <Folder Include="ExecutionReports\ExcelReports\" />
+    <Folder Include="ExecutionReports\ExecutionLogs\ExecutionLogs\" />
     <Folder Include="ExecutionReports\FailedCaseScreenshots\" />
     <Folder Include="ExecutionReports\GraphicalReports\" />
-    <Folder Include="ExecutionReports\ExecutionLogs\" />
     <Folder Include="ExecutionReports\ExportToExcelFiles\" />
     <Folder Include="ExecutionReports\Screenshots\" />
-    <Folder Include="ExecutionReports\NoteCalculation\" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\CRES.BusinessLogic\CRES.BusinessLogic.csproj" />

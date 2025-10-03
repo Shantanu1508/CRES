@@ -9,6 +9,8 @@ namespace CRES.TestAutoMation.Pages
 {
     public class Login
     {
+      
+
         private IWebDriver driver = null;
         private Util util = null;
         public Login(IWebDriver d)
@@ -29,7 +31,7 @@ namespace CRES.TestAutoMation.Pages
         private By LoginHeader = By.XPath("//div[@id='dvHeaderlogo']");
 
         private By btnaddmenu = By.XPath("/html/body/div/ng-component/div/div[1]/div/div/div[4]/div/ul/li[2]/a/i");
-
+      
 
         public bool LoginWebPageOld(string username, string password)
         {
@@ -53,7 +55,8 @@ namespace CRES.TestAutoMation.Pages
         }
 
         public bool LoginWebPage()
-        {
+        {           
+           
             bool res = false;
             string BaseUrl = null;
             string username = null;
@@ -64,8 +67,15 @@ namespace CRES.TestAutoMation.Pages
                 string env = BaseConfiguration.GetEnvironment();
                 switch (env)
                 {
+
+                    case "NewQA":
+                        BaseUrl = BaseConfiguration.GetNewQAUrl();
+                        username = BaseConfiguration.GetQaUsername();
+                        password = BaseConfiguration.GetQaPassword();
+                        break;
+
                     case "QA":
-                        BaseUrl = BaseConfiguration.GetQAUrl();
+                        BaseUrl = BaseConfiguration.GetNewQAUrl();
                         username = BaseConfiguration.GetQaUsername();
                         password = BaseConfiguration.GetQaPassword();
                         break;

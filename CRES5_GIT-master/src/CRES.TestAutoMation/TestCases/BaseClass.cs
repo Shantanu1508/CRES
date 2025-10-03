@@ -31,7 +31,7 @@ namespace CRES.TestAutoMation.TestCases
                 string headless = BaseConfiguration.HeadlessDriver();
                 ChromeOptions options = new ChromeOptions();
                 options.AddArguments("--window-size=1366x768");
-                options.AddArguments("headless");
+                //options.AddArguments("headless");
                 options.AddArguments("--incognito");
                 options.AddArguments("start-maximized");
                 options.AddArguments("disable-infobars");

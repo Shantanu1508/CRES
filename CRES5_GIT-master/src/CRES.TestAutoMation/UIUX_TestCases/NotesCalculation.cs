@@ -6,6 +6,7 @@ using CRES.BusinessLogic;
 using CRES.DataContract;
 //using CRES.DataContract;
 using CRES.TestAutoMation.Pages;
+using CRES.TestAutoMation.TestCases;
 using CRES.TestAutoMation.Utility;
 using DocumentFormat.OpenXml.Presentation;
 using DocumentFormat.OpenXml.Spreadsheet;
@@ -56,7 +57,7 @@ using x1 = Microsoft.Office.Interop.Excel;
     12. Generate the Html report.
     12.Send this reports to Team via GMail.
  */
-namespace CRES.TestAutoMation.TestCases
+namespace CRES.TestAutoMation.UIUX_TestCases
 {
 
     [Category("Regression")]

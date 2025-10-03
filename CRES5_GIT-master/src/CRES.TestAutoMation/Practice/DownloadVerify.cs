@@ -32,7 +32,7 @@ namespace CRES.TestAutoMation.Practice
             Deal deal = new Deal(driver);
             
             Util util = new Util(driver);
-            string dealfunding = BaseConfiguration.GetURL() + BaseConfiguration.DealFunding();
+            string dealfunding = BaseConfiguration.GetNewQAUrl() + BaseConfiguration.DealFunding();
             // string username = BaseConfiguration.getusername();
             //string password = BaseConfiguration.getpassword();
             //string LoginUrl = BaseConfiguration.LoginUrl();
@@ -43,7 +43,7 @@ namespace CRES.TestAutoMation.Practice
 
             BaseUrl = env switch
             {
-                "QA" => BaseConfiguration.GetQAUrl(),
+                "QA" => BaseConfiguration.GetNewQAUrl(),
                 "Ng" => BaseConfiguration.GetNgUrl(),
                 "Integration" => BaseConfiguration.GetIntUrl(),
                 "Staging" => BaseConfiguration.GetStagingUrl(),

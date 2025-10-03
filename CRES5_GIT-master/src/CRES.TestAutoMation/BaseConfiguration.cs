@@ -85,6 +85,16 @@ namespace CRES.TestAutoMation
             return setting;
 
         }
+
+        public static string GetNewQAUrl()
+        {
+
+            string setting = "";
+            setting = Builder["appSettings:NewQAUrl"];
+            return setting;
+
+        }
+
         public static string GetNgUrl()
         {
 
@@ -97,7 +107,7 @@ namespace CRES.TestAutoMation
         {
 
             string setting = "";
-            setting = Builder["appSettings:QaUsername"];
+            setting = Builder["appSettings:NewQaUsername"];
             return setting;
 
         }
@@ -106,7 +116,7 @@ namespace CRES.TestAutoMation
         {
 
             string setting = "";
-            setting = Builder["appSettings:QaPassword"];
+            setting = Builder["appSettings:NewQaPassword"];
             return setting;
 
         }

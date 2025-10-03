@@ -39,6 +39,7 @@ namespace CRES.TestAutoMation.Pages
 
         public By Maturity = By.Id("aMaturitytab");
         public By MaturityHeading = By.Id("anchortag-Maturitytab");
+
         public By ViewHistory = By.XPath("//div//button[contains(text(),'View history')]");
 
         public By RightArrow = By.XPath("(//img[contains(@class,'tabs-slider-control-arrow')])[2]");
@@ -50,6 +51,7 @@ namespace CRES.TestAutoMation.Pages
 
         public By XirrHeading = By.Id("anchortag-XIRRtab");
         public By AccountingBasis = By.Id("anchortag-AccountingBasis");
+
         public By Accounting =  By.XPath("//div//h3[text()='Accounting']");
         public By Xirr = By.Id("aXIRRTab");
         public By Rules = By.Id("aRulestab");

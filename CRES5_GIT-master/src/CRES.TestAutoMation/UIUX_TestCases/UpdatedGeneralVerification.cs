@@ -4,7 +4,7 @@ using CRES.DataContract;
 using CRES.TestAutoMation.EmailTemplate;
 using CRES.TestAutoMation.Pages;
 using CRES.TestAutoMation.Utility;
-using New_UI_TestAutomation.TestCases;
+using CRES.TestAutoMation.TestCases;
 using Newtonsoft.Json;
 using NPOI.SS.UserModel;
 using NPOI.XSSF.UserModel;
@@ -14,14 +14,19 @@ using CRES.TestAutoMation;
 using OpenQA.Selenium;
 using OpenQA.Selenium.Interactions;
 using System.Data;
-using CRES.TestAutoMation.TestCases;
 using DocumentFormat.OpenXml.Vml.Spreadsheet;
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Threading;
+using NUnit.Framework;
+using sun.swing;
 //using java.nio.file;
 
 
 // IntegrationGeneralVerification
 
-namespace New_UI_TestAutomation.TestCases
+namespace CRES.TestAutoMation.UIUX_TestCases
 {
     public class UpdatedGeneralVerification : BaseClass
 
@@ -1175,7 +1180,7 @@ namespace New_UI_TestAutomation.TestCases
 
                     try
                     {
-                        driver.FindElement(deal.noteFundingtab).Click();
+                        driver.FindElement(deal.noteFundingTab).Click();
                     }
                     catch (Exception e)
                     {
@@ -4285,19 +4290,19 @@ namespace New_UI_TestAutomation.TestCases
                 test = extent.CreateTest("To verify search bar ").Info("Test started");
                 Actions actions = new Actions(driver);
 
-                Login_Verification loginapp = new Login_Verification();
+                //Login_Verification loginapp = new Login_Verification();
                 Login login = new Login(driver);
                 Deal deal = new Deal(driver);
                 Util util = new Util(driver);
                 string subLoginUrl;
 
-                string dealfunding = BaseConfiguration.GetURL() + BaseConfiguration.DealFunding();
+                string dealfunding = BaseConfiguration.GetNewQAUrl() + BaseConfiguration.DealFunding();
                 string BaseUrl = null;
                 string env = BaseConfiguration.GetEnvironment();
 
                 BaseUrl = env switch
                 {
-                    "QA" => BaseConfiguration.GetQAUrl(),
+                    "QA" => BaseConfiguration.GetNewQAUrl(),
                     "Integration" => BaseConfiguration.GetIntUrl(),
                     "Staging" => BaseConfiguration.GetStagingUrl(),
                     _ => BaseConfiguration.GetQAUrl(),
@@ -4393,14 +4398,15 @@ namespace New_UI_TestAutomation.TestCases
 
 
                     EmailDataContract emailDC = new EmailDataContract();  // Check Point
-                    emailDC.To = "shantanu@hvantage.com,rsahu@hvantage.com,msingh@hvantage.com";
+                    emailDC.To = "shantanu@hvantage.com,rsahu@hvantage.com";
 
                     //optional
-                    emailDC.Cc = "ssingh@hvantage.com,vbalapure@hvantage.com,vandana@hvantage.com";
+                    //emailDC.Cc = "ssingh@hvantage.com,vbalapure@hvantage.com,vandana@hvantage.com";
                     //emailDC.Bcc = "skhan@hvantage.com,rsahu@hvnatge.com";
                     emailDC.ReceiverName = "All";
                     emailDC.FileAttachment = new List<FileAttachmentDataContract>();
                     emailDC.FileAttachment.Add(new FileAttachmentDataContract { FilePath = pathNew + "\\ExecutionReports\\ExcelReports\\" + pathExcel });
+                    Console.WriteLine("Excel file path =" + pathNew + "\\ExecutionReports\\ExcelReports\\" + pathExcel);
                     //string path = ProjectBaseConfiguration.ExecutionReportFolder;
                     emailDC.FileAttachment.Add(new FileAttachmentDataContract { FilePath = path + "\\index.html" });
                     emailDC.Subject = "Automation - All Pages Load Verification Report";

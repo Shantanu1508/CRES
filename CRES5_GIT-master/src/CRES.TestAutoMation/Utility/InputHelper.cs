@@ -110,30 +110,7 @@ namespace CRES.TestAutoMation.Utility
                     }
                 }
 
-                //// set test name
-                //var testCaseName = string.IsNullOrEmpty(testName) ? sheetName : testName;
-
-                //if (diffParam != null && diffParam.Any())
-                //{
-                //    try
-                //    {
-                //  testCaseName = TestCaseName(diffParam, testParams, testCaseName);
-                //    }
-                //    catch (Exception ex)
-                //    {
-                //        throw ex;
-                //    }
-                //}
-                //else
-                //{
-                //    testCaseName = testCaseName + "_row(" + row + ")";
-                //}
-
-                //var data = new TestCaseData(testParams);
-                //data.SetName(testCaseName);
-                //yield return data;
-
-
+                
             }
             return parmeters;
         }
