@@ -1,12 +1,16 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
 
 namespace CRES.DataContract
 {
     public partial class NotePrepayAndAdditionalFeeSchedule
     {
         public NotePrepayAndAdditionalFeeSchedule()
-        {
-
+        { 
+        
         }
 
         public Guid? EventId { get; set; }
@@ -25,7 +29,7 @@ namespace CRES.DataContract
         public Decimal? Value { get; set; }
         public DateTime? ScheduleStartDate { get; set; }
         public Decimal? PPIncludeInLevelYieldCalc { get; set; }
-        public Decimal? PPIncludeInBasisCalc { get; set; }
+        public Decimal? PPIncludeInBasisCalc { get; set; }       
 
         public string CreatedBy { get; set; }
         public DateTime CreatedDate { get; set; }

@@ -10,7 +10,15 @@ BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 
 
-Declare @NoteID Uniqueidentifier = (select n.NoteID from CRE.Note n inner join Core.Account ac on n.Account_AccountID=ac.AccountID where n.CRENoteID=  @CRENoteId and ac.isdeleted=0)
+Declare @NoteID Uniqueidentifier
+Declare @AccountID Uniqueidentifier
+
+select @NoteID = n.NoteID ,@AccountID = n.Account_AccountID
+from CRE.Note n 
+inner join Core.Account ac on n.Account_AccountID=ac.AccountID 
+where n.CRENoteID=  @CRENoteId and ac.isdeleted=0
+
+
 
 SELECT
  
@@ -24,7 +32,7 @@ SELECT
 ,ISNULL([CurrentPeriodInterestAccrual] ,0) as [CurrentPeriodInterestAccrual]
 ,ISNULL([TotalGAAPInterestFortheCurrentPeriod] ,0) as [TotalGAAPInterestFortheCurrentPeriod]
 ,ISNULL([AllInCouponRate] ,0) as [AllInCouponRate]
-,ISNULL([PIKInterestAccrualforthePeriod] ,0) as [PIKInterestAccrualforthePeriod]
+--,ISNULL([PIKInterestAccrualforthePeriod] ,0) as [PIKInterestAccrualforthePeriod]
 ,ISNULL([OrigFeeAccrual] ,0) as [OrigFeeAccrual]
 ,ISNULL(DiscountPremiumAccrual ,0) as DiscountPremiumAccrual
 ,ISNULL(ExitFeeAccrual ,0) as ExitFeeAccrual
@@ -86,10 +94,14 @@ SELECT
 ,ISNULL([CapitalizedCostAccrual] ,0) as CapitalizedCostAccrual
 ,ISNULL(InvestmentBasis ,0) as InvestmentBasis 
 ,ISNULL(AllInBasisValuation ,0) as AllInBasisValuation
+,ISNULL(CurrentPeriodPIKInterestAccrual ,0) as CurrentPeriodPIKInterestAccrual
 
 FROM [CRE].[NotePeriodicCalc] npc 
-where npc.NoteID = @NoteID
-and [PeriodEndDate] in (SELECT DISTINCT EOMONTH([PeriodEndDate]) FROM [CRE].[NotePeriodicCalc] where NoteID = @NoteID)
+Inner join core.account acc on acc.accountid = npc.AccountID
+Inner join cre.note n on n.account_accountid = acc.accountid and acc.AccounttypeID = 1
+where n.NoteID = @NoteID 
+and acc.AccounttypeID = 1
+and [PeriodEndDate] in (SELECT DISTINCT EOMONTH([PeriodEndDate]) FROM [CRE].[NotePeriodicCalc] where AccountID = @AccountID)
 
 ORDER BY [PeriodEndDate]
 

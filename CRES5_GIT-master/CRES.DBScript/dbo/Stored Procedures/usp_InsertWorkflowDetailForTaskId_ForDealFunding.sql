@@ -262,16 +262,20 @@ From(
 	,TaskTypeID
 	,WFCheckListMasterID
 	,CheckListStatus 
-	,(CASE WHEN WFCheckListMasterID in (6,7,8) and ISNULL(CheckListStatus,550) = 550 THEN 616
-		WHEN WFCheckListMasterID = 9 and ISNULL(CheckListStatus,550) = 550 THEN 499
+	,(CASE WHEN WFCheckListMasterID in (6,7,8,20) and ISNULL(CheckListStatus,550) = 550 THEN 616
+		WHEN WFCheckListMasterID = 9 and ISNULL(CheckListStatus,550) = 550 THEN 499 
+		WHEN WFCheckListMasterID = 21 and ISNULL(CheckListStatus,550) = 550 THEN 880 else CheckListStatus
 		END
 	)as CheckListStatus_new
 
 	from cre.WFCheckListDetail 
 	where taskid in (Select TaskID from #tblWorkflowDetail where TaskTypeID = 502) 
 	and TaskTypeID=502
+	and IsDeleted <> 1
+	and (WFCheckListMasterID in (6,7,8,9,20,21) and CheckListStatus is null)
 )a
 Where cre.WFCheckListDetail.WFCheckListDetailid = a.WFCheckListDetailid
+and cre.WFCheckListDetail.IsDeleted <> 1
 
 ----=============================================
 INSERT INTO CRE.WFTaskAdditionalDetail([TaskID],[TaskTypeID],[SpecialInstruction],[AdditionalComment],[CreatedBy],[CreatedDate],[UpdatedBy],[UpdatedDate])

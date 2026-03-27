@@ -1,4 +1,5 @@
-﻿using CRES.BusinessLogic;
+﻿using Amazon.AutoScaling.Model;
+using CRES.BusinessLogic;
 using CRES.DataContract;
 using CRES.DataContract.WorkFlow;
 using CRES.NoteCalculator;
@@ -9,16 +10,25 @@ using iTextSharp.tool.xml;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Graph;
+using Microsoft.WindowsAzure.Storage.Blob;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
+using OfficeOpenXml;
+using OfficeOpenXml.Style;
+using OfficeOpenXml.Table;
 using System;
 using System.Collections.Generic;
 using System.Data;
+using System.Drawing;
 using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
 using System.Text;
 using System.Threading;
+using System.Threading.Tasks;
+
 
 namespace CRES.Services.Controllers
 {
@@ -31,14 +41,12 @@ namespace CRES.Services.Controllers
             if (Sectionroot == null)
             {
                 IConfigurationBuilder builder = new ConfigurationBuilder();
-                builder.AddJsonFile(Path.Combine(Directory.GetCurrentDirectory(), "appsettings.json"));
+                builder.AddJsonFile(Path.Combine(System.IO.Directory.GetCurrentDirectory(), "appsettings.json"));
                 var root = builder.Build();
                 Sectionroot = root.GetSection("Application");
             }
         }
-#pragma warning disable CS0618 // 'IHostingEnvironment' is obsolete: 'This type is obsolete and will be removed in a future version. The recommended alternative is Microsoft.AspNetCore.Hosting.IWebHostEnvironment.'
         private IHostingEnvironment _env;
-#pragma warning restore CS0618 // 'IHostingEnvironment' is obsolete: 'This type is obsolete and will be removed in a future version. The recommended alternative is Microsoft.AspNetCore.Hosting.IWebHostEnvironment.'
         //public DealController(IHostingEnvironment env)
         //{
 
@@ -46,15 +54,13 @@ namespace CRES.Services.Controllers
         //}
 
         private readonly IEmailNotification _iEmailNotification;
-#pragma warning disable CS0618 // 'IHostingEnvironment' is obsolete: 'This type is obsolete and will be removed in a future version. The recommended alternative is Microsoft.AspNetCore.Hosting.IWebHostEnvironment.'
         public DealController(IEmailNotification iemailNotification, IHostingEnvironment env)
-#pragma warning restore CS0618 // 'IHostingEnvironment' is obsolete: 'This type is obsolete and will be removed in a future version. The recommended alternative is Microsoft.AspNetCore.Hosting.IWebHostEnvironment.'
         {
             _iEmailNotification = iemailNotification;
             _env = env;
         }
 
-
+        private string useridforSys_Scheduler = "3D6DB33D-2B3A-4415-991D-A3DA5CEB8B50";
         [HttpGet]
         [Services.Controllers.IsAuthenticate]
         [Services.Controllers.DeflateCompression]
@@ -64,9 +70,7 @@ namespace CRES.Services.Controllers
             GenericResult _authenticationResult = null;
             List<DealDataContract> _lstDeals = new List<DealDataContract>();
 
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
             var headerUserID = new Guid();
             if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
             {
@@ -123,17 +127,21 @@ namespace CRES.Services.Controllers
 
         [HttpPost]
         [Services.Controllers.IsAuthenticate]
-        // [Services.Controllers.DeflateCompression]
         [Route("api/deal/getdealbydealid")]
-        //public IActionResult GetDealByDealId([FromBody]UserDataContract DealDC)
         public IActionResult GetDealByDealId([FromBody] DealDataContract DealDC)
         {
+            LoggerLogic Log = new LoggerLogic();
+            string currentUserName = "";
+            string currentUserID = "";
+
             string DealCalcuStatus = "";
+            DateTime? LastAccountingclosedate = null;
             GenericResult _authenticationResult = null;
             DealDataContract _dealDC = new DealDataContract();
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
+            DealDashDataContract _dashDC = new DealDashDataContract();
+            DataTable dtLastUpdatedforTabs = new DataTable();
+
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
             List<IDValueDataContract> ListScheduledPrincipalPaid = new List<IDValueDataContract>();
             var headerUserID = new Guid();
             if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
@@ -144,23 +152,59 @@ namespace CRES.Services.Controllers
             UserPermissionLogic upl = new UserPermissionLogic();
             DealLogic dealLogic = new DealLogic();
 
+            UserLogic userlogic = new UserLogic();
+            UserDataContract userDC = new UserDataContract();
+            userDC = userlogic.GetUserCredentialByUserID(headerUserID, new Guid("00000000-0000-0000-0000-000000000000"));
+
+            if (userDC != null)
+            {
+                currentUserName = userDC.Login;
+                currentUserID = userDC.UserID.ToString();
+            }
+            TagXIRRLogic tagXIRRLogic = new TagXIRRLogic();
             //to get user permission
             List<UserPermissionDataContract> permissionlist = upl.GetuserPermissionByUserIDAndPageName(headerUserID.ToString(), "DealDetail", DealDC.DealID.ToString() == "00000000-0000-0000-0000-000000000000" ? DealDC.CREDealID : DealDC.DealID.ToString(), 283);
             if (permissionlist != null && permissionlist.Count > 0)
             {
                 _dealDC = dealLogic.GetDealByDealId(DealDC.DealID.ToString() == "00000000-0000-0000-0000-000000000000" ? DealDC.CREDealID : DealDC.DealID.ToString(), headerUserID);
-                ListScheduledPrincipalPaid = dealLogic.GetScheduledPrincipalByDealID(headerUserID, DealDC.DealID.ToString() == "00000000-0000-0000-0000-000000000000" ? DealDC.CREDealID : DealDC.DealID.ToString());
-                List<AutoRepaymentBalancesDataContract> autoRepayBalancesDC = new List<AutoRepaymentBalancesDataContract>();
-                _dealDC.ListAutoRepaymentBalances = dealLogic.GetAutospreadRepaymentBalancesDealID(_dealDC.DealID);
-                if (_dealDC.ListAutoRepaymentBalances != null)
+                if (_dealDC.StatusCode == 200)
                 {
-                    if (_dealDC.ListAutoRepaymentBalances.Count > 0)
-                    {
-                        _dealDC.ListNoteRepaymentBalances = dealLogic.GetNoteAutospreadRepaymentBalancesByDealId(_dealDC.DealID);
-                    }
-                }
+                    _dealDC.ListSelectedXIRRTags = tagXIRRLogic.GetTagMasterXIRRByAccountID(_dealDC.DealAccountID);
 
-                DealCalcuStatus = dealLogic.GetDealCalculationStatus(DealDC.DealID.ToString());
+                    PeriodicLogic pr = new PeriodicLogic();
+                    if (_dealDC.DealID != null || _dealDC.DealID != new Guid("00000000-0000-0000-0000-000000000000"))
+                    {
+
+                        LastAccountingclosedate = pr.GetLastAccountingCloseDateByDealIDORNoteID(_dealDC.DealID, null);
+                        //LastAccountingclosedate = Convert.ToDateTime("07/30/2023");
+                        _dealDC.LastAccountingclosedate = LastAccountingclosedate;
+
+                        _dealDC.currentUserName = currentUserName;
+                        _dealDC.currentUserID = currentUserID;
+                        if (_dealDC.LastAccountingclosedate != null)
+                        {
+                            if (_dealDC.LastAccountingclosedate.Value.Year < 1970)
+                            {
+                                _dealDC.LastAccountingclosedate = null;
+                            }
+                        }
+                        _dashDC = dealLogic.GetDealDashBoardByDealId(_dealDC.DealID);
+                    }
+
+                    ListScheduledPrincipalPaid = dealLogic.GetScheduledPrincipalByDealID(headerUserID, DealDC.DealID.ToString() == "00000000-0000-0000-0000-000000000000" ? DealDC.CREDealID : DealDC.DealID.ToString());
+
+                    _dealDC.ListAutoRepaymentBalances = dealLogic.GetAutospreadRepaymentBalancesDealID(_dealDC.DealID);
+                    if (_dealDC.ListAutoRepaymentBalances != null)
+                    {
+                        if (_dealDC.ListAutoRepaymentBalances.Count > 0)
+                        {
+                            _dealDC.ListNoteRepaymentBalances = dealLogic.GetNoteAutospreadRepaymentBalancesByDealId(_dealDC.DealID);
+                        }
+                    }
+                    DealCalcuStatus = dealLogic.GetDealCalculationStatus(DealDC.DealID.ToString());
+
+                    dtLastUpdatedforTabs = dealLogic.GetLastUpdatedforDealTabs(_dealDC.DealID, headerUserID);
+                }
 
             }
             try
@@ -176,22 +220,47 @@ namespace CRES.Services.Controllers
                         ListScheduledPrincipalPaid = ListScheduledPrincipalPaid,
                         ListPrePaySchedule = _dealDC.PrepaySchedule,
                         StatusCode = 200,
-                        DealCalcuStatus = DealCalcuStatus
+                        DealCalcuStatus = DealCalcuStatus,
+                        DealDashData = _dashDC,
+                        dtLastUpdatedforTabs = dtLastUpdatedforTabs
                     };
                 }
                 else
                 {
-                    _authenticationResult = new GenericResult()
+                    if (_dealDC.StatusCode == 400)
                     {
-                        Succeeded = true,
-                        Message = "Not Exists",
-                        StatusCode = 404
-                    };
+                        _authenticationResult = new GenericResult()
+                        {
+                            Succeeded = true,
+                            Message = "Not Exists",
+                            StatusCode = 404
+                        };
+                    }
+                    else if (_dealDC.StatusCode == 500)
+                    {
+                        Log.WriteLogExceptionMessage (CRESEnums.Module.Deal.ToString(), "Error occurred  in get Deal By DealId deal: Deal ID " + DealDC.CREDealID + " :" + _dealDC.DealStackTrace, _dealDC.DealID.ToString(),  headerUserID.ToString(), "GetDealByDealId", _dealDC.DealErrorMessage);
+                        _authenticationResult = new GenericResult()
+                        {
+                            Succeeded = false,
+                            Message = "Internal Server Error",
+                            StatusCode = 500
+                        };
+                    }
+                    else
+                    {
+                        _authenticationResult = new GenericResult()
+                        {
+                            Succeeded = false,
+                            Message = "Authentication failed",
+                            StatusCode = 400
+                        };
+                    }
+
                 }
             }
             catch (Exception ex)
             {
-                LoggerLogic Log = new LoggerLogic();
+                
                 Log.WriteLogException(CRESEnums.Module.Deal.ToString(), "Error occurred  in get Deal By DealId deal: Deal ID " + DealDC.CREDealID, DealDC.DealID.ToString(), headerUserID.ToString(), ex.TargetSite.Name.ToString(), "", ex);
 
                 _authenticationResult = new GenericResult()
@@ -210,12 +279,10 @@ namespace CRES.Services.Controllers
         public IActionResult GetAllLookup()
         {
 
-            string getAllLookup = "1,2,4,5,6,7,8,15,16,38,50,51,21,25,65,77,78,82,83,84,85,86,87,88,89,90,91,92,94,101,103,95,104,106,108,114,118,119,120,121,123,124,125";
+            string getAllLookup = "1,2,4,5,6,7,8,15,16,38,50,51,52,21,25,65,74,77,78,79,82,83,84,85,86,87,88,89,90,91,92,94,98,101,103,95,104,106,108,114,118,119,120,121,123,124,125,133,134,140,141,142,147,71,148,151,153";
             GenericResult _authenticationResult = null;
             List<LookupDataContract> lstlookupDC = new List<LookupDataContract>();
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
             var headerUserID = string.Empty;
             if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
             {
@@ -225,6 +292,7 @@ namespace CRES.Services.Controllers
             LookupLogic lookupLogic = new LookupLogic();
             lstlookupDC = lookupLogic.GetAllLookups(getAllLookup);
             lstlookupDC = lstlookupDC.OrderBy(x => x.SortOrder).ToList();
+
             try
             {
                 if (lstlookupDC != null)
@@ -260,6 +328,60 @@ namespace CRES.Services.Controllers
             return Ok(_authenticationResult);
         }
 
+        [HttpGet]
+        [Services.Controllers.IsAuthenticate]
+        [Services.Controllers.DeflateCompression]
+        [Route("api/deal/getAllLiabilityTypesDetail")]
+        public IActionResult GetAllLiabilityTypesDetailLookup()
+        {
+            GenericResult _authenticationResult = null;
+            IEnumerable<string> headerValues;
+            var headerUserID = string.Empty;
+            if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
+            {
+                headerUserID = Convert.ToString(Request.Headers["TokenUId"]);
+            }
+
+            LiabilityNoteLogic LiabilityNotelogic = new LiabilityNoteLogic();
+            List<LookupDataContract> lstSearch = LiabilityNotelogic.GetAllLiabilityTypeLookup();
+            List<LookupDataContract> lstDebtEquityType = LiabilityNotelogic.GetDebtEquityTypeList();
+
+            try
+            {
+                if (lstSearch != null)
+                {
+
+                    _authenticationResult = new GenericResult()
+                    {
+                        Succeeded = true,
+                        Message = "Authentication succeeded",
+                        AssetList = lstSearch,
+                        lstDebtEquityType = lstDebtEquityType
+                    };
+                }
+                else
+                {
+                    _authenticationResult = new GenericResult()
+                    {
+                        Succeeded = false,
+                        Message = "Authentication failed"
+                    };
+                }
+            }
+            catch (Exception ex)
+            {
+                LoggerLogic Log = new LoggerLogic();
+                Log.WriteLogException(CRESEnums.Module.Deal.ToString(), "Error occured in GetAllLiabilityTypesDetail for deal id", "", headerUserID.ToString(), ex.TargetSite.Name.ToString(), "", ex);
+
+                _authenticationResult = new GenericResult()
+                {
+                    Succeeded = false,
+                    Message = ex.Message
+                };
+            }
+            return Ok(_authenticationResult);
+        }
+
         [HttpPost]
         [Services.Controllers.IsAuthenticate]
         [Services.Controllers.DeflateCompression]
@@ -269,9 +391,7 @@ namespace CRES.Services.Controllers
 
             LoggerLogic Log = new LoggerLogic();
             GenericResult _authenticationResult = null;
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
             var headerUserID = string.Empty;
             var delegateduserid = string.Empty;
             if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
@@ -293,17 +413,17 @@ namespace CRES.Services.Controllers
                 DealLogic dealLogic = new DealLogic();
                 PayruleSetupLogic psl = new PayruleSetupLogic();
 
+
                 CollectCalculatorLogs("0 Deal Saving Starts", DealDC.CREDealID, collectlogs);
 
                 CollectCalculatorLogs("1 InsertUpdateDeal Starts", DealDC.CREDealID, collectlogs);
                 string res = dealLogic.InsertUpdateDeal(DealDC);
                 CollectCalculatorLogs("2 InsertUpdateDeal Ends", DealDC.CREDealID, collectlogs);
-#pragma warning disable CS0219 // The variable 'BackShopStatus' is assigned but its value is never used
                 string BackShopStatus = "";
-#pragma warning restore CS0219 // The variable 'BackShopStatus' is assigned but its value is never used
 
                 if (res != "FALSE")
                 {
+
                     if (DealDC.PayruleDealFundingList != null)
                     {
                         foreach (PayruleDealFundingDataContract pd in DealDC.PayruleDealFundingList)
@@ -321,10 +441,23 @@ namespace CRES.Services.Controllers
 
                             if (pd.GeneratedBy == 0 || pd.GeneratedBy == null)
                             {
-                                //	User Entered
-                                pd.GeneratedBy = 746;
+                                //	User Name
+                                pd.GeneratedBy = 822;
+                                pd.GeneratedByUserID = DealDC.currentUserID;
                             }
 
+                            if (pd.GeneratedBy == 822)
+                            {
+                                if (pd.GeneratedByUserID == null || pd.GeneratedByUserID == "")
+                                {
+                                    pd.GeneratedByUserID = DealDC.currentUserID;
+                                }
+                            }
+
+                            if (pd.AdjustmentType == 836)
+                            {
+                                pd.AdjustmentType = null;
+                            }
                             pd.UpdatedDate = System.DateTime.Now;
                             pd.DealID = new Guid(res);
                             pd.EquityAmount = pd.EquityAmount.GetValueOrDefault(0);
@@ -386,16 +519,18 @@ namespace CRES.Services.Controllers
                                 }
 
                             }
+                            if (DealDC.DeletedDealFundingList.Count > 0)
+                            {
+                                CollectCalculatorLogs("11 InsertUpdateDealArchieveFunding Starts", DealDC.CREDealID, collectlogs);
+                                dealLogic.InsertUpdateDealArchieveFunding(DealDC.DeletedDealFundingList, headerUserID);
+                                CollectCalculatorLogs("12 InsertUpdateDealArchieveFunding Ends", DealDC.CREDealID, collectlogs);
+                            }
                             CollectCalculatorLogs("9 InsertNoteFutureFunding Starts", DealDC.CREDealID, collectlogs);
                             nl.InsertNoteFutureFunding(DealDC.PayruleTargetNoteFundingScheduleList, headerUserID);
                             CollectCalculatorLogs("10 InsertNoteFutureFunding Ends", DealDC.CREDealID, collectlogs);
 
                             if (DealDC.DeletedDealFundingList.Count > 0)
                             {
-                                CollectCalculatorLogs("11 InsertUpdateDealArchieveFunding Starts", DealDC.CREDealID, collectlogs);
-                                dealLogic.InsertUpdateDealArchieveFunding(DealDC.DeletedDealFundingList, headerUserID);
-                                CollectCalculatorLogs("12 InsertUpdateDealArchieveFunding Ends", DealDC.CREDealID, collectlogs);
-
                                 CollectCalculatorLogs("13 DeleteNoteFundingDataForDealFundingID Starts", DealDC.CREDealID, collectlogs);
                                 dealLogic.DeleteNoteFundingDataForDealFundingID(DealDC.DealID);
                                 CollectCalculatorLogs("14 DeleteNoteFundingDataForDealFundingID Ends", DealDC.CREDealID, collectlogs);
@@ -404,6 +539,7 @@ namespace CRES.Services.Controllers
                             CollectCalculatorLogs("15 CopyDealFundingFromLegalToPhantom Start", DealDC.CREDealID, collectlogs);
                             dealLogic.CopyDealFundingFromLegalToPhantom(DealDC.CREDealID);
                             CollectCalculatorLogs("16 CopyDealFundingFromLegalToPhantom Ends", DealDC.CREDealID, collectlogs);
+
 
                             if (DealDC.ShowUseRuleN == false || DealDC.EnableAutospreadRepayments == true)
                             {
@@ -415,10 +551,63 @@ namespace CRES.Services.Controllers
                             CollectCalculatorLogs("19 UpdateWireConfirmedForPhantomDeal Start", DealDC.CREDealID, collectlogs);
                             dealLogic.UpdateWireConfirmedForPhantomDeal(DealDC.CREDealID);
                             CollectCalculatorLogs("20 UpdateWireConfirmedForPhantomDeal Ends", DealDC.CREDealID, collectlogs);
-                            //export
-                            Thread FirstThread = new Thread(() => ExportFutureFundingFromCRES(DealDC.PayruleTargetNoteFundingScheduleList, headerUserID, DealDC));
-                            FirstThread.Start();
+
+                            if (DealDC.dtPayoffStatementFees != null)
+                            {
+                                foreach (DataRow dr in DealDC.dtPayoffStatementFees.Rows)
+                                {
+                                    dr["DealID"] = DealDC.DealID;
+                                    if (dr["PayoffStatementFeesID"] == null || dr["PayoffStatementFeesID"].ToString() == "")
+                                    {
+                                        dr["PayoffStatementFeesID"] = 0;
+                                    }
+                                }
+
+                                dealLogic.InsertUpdatePayoffStatementFees(DealDC.dtPayoffStatementFees, headerUserID);
+                            }
+
+                            if (DealDC.dtPrepaymentGroup != null)
+                            {
+                                dealLogic.InsertUpdatePrepaymentGroup(DealDC.dtPrepaymentGroup, headerUserID);
+                            }
+                            if (DealDC.dtPrepaymentNote != null)
+                            {
+                                dealLogic.InsertUpdatePrepaymentNote(DealDC.dtPrepaymentNote, headerUserID);
+                            }
+                            if (DealDC.dtPrepaymentNoteAlloc != null)
+                            {
+                                dealLogic.InsertUpdatePrepaymentNoteAllocationSetup(DealDC.dtPrepaymentNoteAlloc, headerUserID);
+                            }
+                            //if (DealDC.ShowUseRuleN == false || DealDC.EnableAutospreadRepayments == true)
+                            //{
+                            //    CheckAndQueuePhantomDealForAutomation(DealDC.CREDealID);
+
+                            //}
+                            ////New
+                            ////Export using Backshop API
+                            Thread thirdThread = new Thread(() => ExportFutureFundingFromCRES_API(DealDC.PayruleTargetNoteFundingScheduleList, headerUserID, DealDC));
+                            thirdThread.Start();
+
                         }
+                    }
+                    if (DealDC.IsServicingWatchlisttabClicked == true)
+                    {
+                        //Delete Potential ImpairmentList 
+                        if (DealDC.DeleteServicingPotentialImpairment != null)
+                        {
+                            if (DealDC.DeleteServicingPotentialImpairment.Rows.Count != 0)
+                            {
+                                ServicingWatchListLogic SWLogic = new ServicingWatchListLogic();
+                                CollectCalculatorLogs("25 DeleteServicingPotentialImpairment Start", DealDC.CREDealID, collectlogs);
+                                SWLogic.DeleteServicingWatchlistPotentialImpairment(DealDC.DeleteServicingPotentialImpairment, headerUserID);
+                                CollectCalculatorLogs("26 DeleteServicingPotentialImpairment Ends", DealDC.CREDealID, collectlogs);
+                            }
+                        }
+                        SaveServicingWatchListData(DealDC, headerUserID);
+                    }
+                    if (DealDC.isLiabilityTabCLicked == true)
+                    {
+                        SaveDealLiability(DealDC, headerUserID);
                     }
                     //Save deal amortization schedule   
                     if (DealDC.Flag_DealAmortSave == true)
@@ -453,6 +642,8 @@ namespace CRES.Services.Controllers
                         psl.InsertIntoPayruleSetup(DealDC.PayruleSetupList, headerUserID, DealDC.DealID.ToString());
                         CollectCalculatorLogs("24 InsertIntoPayruleSetup Ends", DealDC.CREDealID, collectlogs);
                     }
+
+
                     //Delete Total Commitment
                     if (DealDC.DeleteAdjustedTotalCommitment != null)
                     {
@@ -522,11 +713,41 @@ namespace CRES.Services.Controllers
                         CollectCalculatorLogs("38 UpdatExpectedMaturityDateByDealID Ends", DealDC.CREDealID, collectlogs);
                     }
 
-                    CollectCalculatorLogs("39 CallDealForCalculation Starts", DealDC.CREDealID, collectlogs);
-                    dealLogic.CallDealForCalculation(DealDC.DealID.ToString(), headerUserID, DealDC.AnalysisID, 775);
-                    CollectCalculatorLogs("40 CallDealForCalculation Ends", DealDC.CREDealID, collectlogs);
+                    //For AutoDistributeWriteOff
+                    if (DealDC.AutoDistributeWriteoffList != null)
+                    {
+                        CollectCalculatorLogs("39 InsertUpdateAutoDistributeWriteoff Starts", DealDC.CREDealID, collectlogs);
+                        dealLogic.InsertUpdateAutoDistributeWriteoff(DealDC.AutoDistributeWriteoffList, headerUserID);
+                        CollectCalculatorLogs("40 InsertUpdateAutoDistributeWriteoff Ends", DealDC.CREDealID, collectlogs);
+                    }
+
+                    //For XIRROverride
+                    if (DealDC.XIRROverride != null)
+                    {
+                        CollectCalculatorLogs("41 InsertUpdateXIRROverride Starts", DealDC.CREDealID, collectlogs);
+                        dealLogic.InsertUpdateXIRROverride(DealDC.XIRROverride, headerUserID);
+                        CollectCalculatorLogs("42 InsertUpdateXIRROverride Ends", DealDC.CREDealID, collectlogs);
+                    }
+
+                    //For DealRelationship
+                    if (DealDC.DealRelationshipList != null)
+                    {
+                        CollectCalculatorLogs("43 SaveDealRelationshipList Starts", DealDC.CREDealID, collectlogs);
+                        dealLogic.SaveDealRelationship(DealDC.DealRelationshipList, headerUserID);
+                        CollectCalculatorLogs("44 SaveDealRelationshipList Ends", DealDC.CREDealID, collectlogs);
+                    }
+
                     Thread CalculateDealThread = new Thread(() => CalculateDeal(DealDC, headerUserID));
                     CalculateDealThread.Start();
+                }
+
+                if (DealDC.DealAccountID != null)
+                {
+                    TagXIRRLogic tagXIRRLogic = new TagXIRRLogic();
+                    tagXIRRLogic.InsertUpdateTagAccountMappingXIRR(DealDC.DealAccountID, DealDC.ListSelectedXIRRTags, headerUserID);
+
+                    tagXIRRLogic.CalculateXIRRAfterDealSave(DealDC.DealAccountID, headerUserID);
+
                 }
 
                 // to call for AIEntityApi
@@ -534,7 +755,7 @@ namespace CRES.Services.Controllers
                 Thread SecondThread = new Thread(() => _dynamicentity.InsertUpdateAIDealEntitiesAsync(DealDC, headerUserID));
                 SecondThread.Start();
 
-                CollectCalculatorLogs("41 Deal saved successfully", DealDC.CREDealID, collectlogs);
+                CollectCalculatorLogs("45 Deal saved successfully", DealDC.CREDealID, collectlogs);
 
                 string message = "Changes were saved successfully.";
                 if (headerUserID != null)
@@ -572,7 +793,6 @@ namespace CRES.Services.Controllers
             }
             return Ok(_authenticationResult);
         }
-
         public void CollectCalculatorLogs(string message, string credealid, Boolean? collectlog)
         {
             if (collectlog == true)
@@ -582,58 +802,214 @@ namespace CRES.Services.Controllers
             }
         }
 
+        public void UpdateNoteFundingLinkedPhantomDeal(string credealid, string userid, string AnalysisID, bool ShowUseRuleN, DealDataContract legaldeal)
+        {
+            List<DealDataContract> listDeal = new List<DealDataContract>();
+            DealLogic dealLogic = new DealLogic();
+            listDeal = dealLogic.GetLinkedPhantomDealID(credealid);
+            NoteLogic nl = new NoteLogic();
+            PayruleNoteFutureFundingHelper pm = new PayruleNoteFutureFundingHelper();
+            Decimal endingbalance = 0;
+            var headerUserID = string.Empty;
+            if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
+            {
+                headerUserID = Convert.ToString(Request.Headers["TokenUId"]);
+            }
+            var delegateduserid = string.Empty;
+            if (!string.IsNullOrEmpty(Request.Headers["DelegatedUser"]))
+            {
+                delegateduserid = Convert.ToString(Request.Headers["DelegatedUser"]);
+            }
+            if (listDeal != null && listDeal.Count > 0)
+            {
+                LoggerLogic Log = new LoggerLogic();
+
+                foreach (DealDataContract dc in listDeal)
+                {
+                    DealDataContract deal = new DealDataContract();
+                    int? TotalCount;
+                    dc.PayruleNoteDetailFundingList = nl.GetNotesForPayruleCalculationByDealID(dc.DealID.ToString(), new Guid(userid), 1, 1000, out TotalCount).OrderByDescending(x => x.NoteID).ToList();
+                    dc.PayruleNoteAMSequenceList = dealLogic.GetFundingRepaymentSequenceByDealID(new Guid(dc.DealID.ToString())).OrderByDescending(x => x.NoteID).ToList();
+                    dc.PayruleDealFundingList = dealLogic.GetDealFundingScheduleByDealID(new Guid(dc.DealID.ToString()));
+                    dc.PayruleTargetNoteFundingScheduleList = dealLogic.GetNoteFundingbyDealID(new Guid(dc.DealID.ToString()));
+                    //For resolve phtm duplicate record issue
+                    //dc.PayruleTargetNoteFundingScheduleList = dc.PayruleTargetNoteFundingScheduleList.FindAll(x => x.Applied == true).ToList();
+                    dc.ListHoliday = legaldeal.ListHoliday;
+                    //dc.maxMaturityDate = legaldeal.maxMaturityDate;
+                    dc.FirstPaymentDate = legaldeal.FirstPaymentDate;
+                    // dc.maxMaturityDate = le
+
+                    foreach (PayruleNoteAMSequenceDataContract pdc in dc.PayruleNoteAMSequenceList)
+                    {
+                        //Funding Sequence
+
+                        if (pdc.SequenceTypeText == "Funding sequence")
+                        {
+                            pdc.SequenceTypeText = "Funding Sequence";
+                        }
+                        if (pdc.SequenceTypeText == "Repayment sequence")
+                        {
+                            pdc.SequenceTypeText = "Repayment Sequence";
+                        }
+                    }
+
+                    DateTime maxDate = DateTime.MinValue;
+
+                    if (ShowUseRuleN == true)
+                    {
+                        if (dc.EnableAutospreadRepayments == true)
+                        {
+                            dc.EnableAutospreadUseRuleN = true;
+                        }
+                    }
+                    else
+                    {
+                        dc.EnableAutospreadUseRuleN = false;
+                    }
+                    // code required only autospread repayment 
+                    if (dc.EnableAutospreadRepayments == true || dc.EnableAutospreadUseRuleN == true)
+                    {
+
+                        DataTable dt = dealLogic.GetProjectedPayOffDBDataByDealID(dc.DealID, headerUserID);
+                        List<ProjectedPayoffDataContract> ListProjectedPayoff = new List<ProjectedPayoffDataContract>();
+                        foreach (DataRow dr in dt.Rows)
+                        {
+
+                            ProjectedPayoffDataContract projectedpayoffdata = new ProjectedPayoffDataContract();
+                            projectedpayoffdata.ProjectedPayoffAsofDate = CommonHelper.ToDateTime(dr["ProjectedPayoffAsofDate"]);
+                            projectedpayoffdata.CumulativeProbability = CommonHelper.ToDecimal(dr["CumulativeProbability"]);
+                            ListProjectedPayoff.Add(projectedpayoffdata);
+                        }
+                        dc.ListProjectedPayoff = ListProjectedPayoff;
+
+                        dc.ListAutoRepaymentBalances = dealLogic.GetAutospreadRepaymentBalancesDealID(dc.DealID);
+                        if (dc.ListAutoRepaymentBalances != null)
+                        {
+                            if (dc.ListAutoRepaymentBalances.Count > 0)
+                            {
+                                dc.ListNoteRepaymentBalances = dealLogic.GetNoteAutospreadRepaymentBalancesByDealId(dc.DealID);
+                            }
+                        }
+                        if (dc.ListNoteRepaymentBalances == null)
+                        {
+                            dc.ListNoteRepaymentBalances = new List<AutoRepaymentNoteBalancesDataContract>();
+
+                        }
+                        // get ending balance from database           
+                        foreach (var funding in dc.PayruleDealFundingList)
+                        {
+                            if (funding.Applied == true)
+                            {
+                                if (funding.Date.Value.Date > maxDate)
+                                {
+                                    maxDate = funding.Date.Value.Date;
+                                }
+                            }
+                        }
+
+                        if (maxDate == DateTime.MinValue)
+                        {
+                            maxDate = DateTime.Now.Date;
+                        }
+                        if (maxDate != DateTime.MinValue)
+                        {
+                            if (dc.EnableAutospreadRepayments == true)
+                            {
+                                endingbalance = dealLogic.GetEndingBalanceByDate(dc.DealID, maxDate);
+                            }
+
+                            if (dc.EnableAutospreadUseRuleN == true || dc.ApplyNoteLevelPaydowns == true)
+                            {
+                                dc.ListNoteEndingBalance = dealLogic.GetNoteEndingBalaceByDate(dc.DealID, maxDate);
+
+                            }
+                            if (endingbalance == 0)
+                            {
+                                Log.WriteLogInfo(CRESEnums.Module.Deal.ToString(), "Auto Repayment phantom deal starting Balances is 0 ", dc.DealID.ToString(), headerUserID.ToString());
+                            }
+                            else
+                            {
+                                dc.Endingbalance = endingbalance;
+                            }
+                            dc.MaxWireConfirmRecord = maxDate;
+                        }
+
+                        else
+                        {
+                            dc.MaxWireConfirmRecord = Convert.ToDateTime(dc.EstClosingDate);
+                        }
+                    }
+                    // var json = JsonConvert.SerializeObject(dc);
+                    deal = pm.StartCalculation(dc);
+
+
+                    //update deal funding with proper row number 
+
+                    foreach (PayruleDealFundingDataContract pd in deal.PayruleDealFundingList)
+                    {
+                        pd.CreatedBy = headerUserID;
+                        pd.UpdatedBy = headerUserID;
+                        if (pd.CreatedDate == null)
+                        {
+                            pd.CreatedDate = System.DateTime.Now;
+                        }
+                        else
+                        {
+                            pd.CreatedDate = pd.CreatedDate;
+                        }
+                        pd.UpdatedDate = System.DateTime.Now;
+                        pd.DealID = deal.DealID;
+                        pd.EquityAmount = pd.EquityAmount.GetValueOrDefault(0);
+                        pd.RemainingFFCommitment = pd.RemainingFFCommitment.GetValueOrDefault(0);
+                        pd.RemainingEquityCommitment = pd.RemainingEquityCommitment.GetValueOrDefault(0);
+                        pd.RequiredEquity = pd.RequiredEquity.GetValueOrDefault(0);
+                        pd.AdditionalEquity = pd.AdditionalEquity.GetValueOrDefault(0);
+                    }
+
+                    dealLogic.InsertUpdateDealFunding(deal.PayruleDealFundingList, userid);
+                    nl.InsertNoteFutureFunding(deal.PayruleTargetNoteFundingScheduleList, userid);
+
+                    if (deal.PayruleDeletedDealFundingList.Count > 0)
+                    {
+                        dealLogic.InsertUpdateDealArchieveFunding(deal.PayruleDeletedDealFundingList, userid);
+                        dealLogic.DeleteNoteFundingDataForDealFundingID(deal.DealID);
+                    }
+                    //call 
+                    dealLogic.CallDealForCalculation(dc.DealID.ToString(), userid, AnalysisID, 775);
+                    //Delete FF record if not exists in dealfunding
+                    dealLogic.DeleteNoteFundingDataForDealFundingID(dc.DealID);
+                }
+
+                //
+
+            }
+        }
+
 
         private void CalculateDeal(DealDataContract DealDC, string userid)
         {
+
             GetConfigSetting();
             DealLogic dealLogic = new DealLogic();
-            //var headerUserID = string.Empty;
-            //if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
-            //{
-            //    headerUserID = Convert.ToString(Request.Headers["TokenUId"]);
-            //}
-            //AppConfigLogic appl = new AppConfigLogic();
-            ////to get user 
-            //List<AppConfigDataContract> SettingKeyslist;
-            //var Enablem61Calculation = string.Empty;
-            //if (headerUserID == "")
-            //    SettingKeyslist = appl.GetAppConfigByKey(null, "EnableM61Calculator");
-            //else
-            //    SettingKeyslist = appl.GetAppConfigByKey(new Guid(headerUserID), "EnableM61Calculator");
 
-            //if (SettingKeyslist != null)
-            //{
-            //    var Value = SettingKeyslist.FirstOrDefault().Value;
-            //    if (Value == "1")
-            //    {
-            //        Enablem61Calculation = "true";
-            //    }
-            //    else
-            //    {
-            //        Enablem61Calculation = "false";
-            //    }
-            //}
-
-            // var Enablem61Calculation = Sectionroot.GetSection("Enablem61Calculation").Value;
-            if (DealDC.EnableM61Calculator == true)
+            dealLogic.CallDealForCalculation(DealDC.DealID.ToString(), userid, DealDC.AnalysisID, 775);
+            if (DealDC.CalcEngineType == 798)
             {
                 V1CalcLogic v1logic = new V1CalcLogic();
                 if (DealDC.BalanceAware == true)
                 {
-                    v1logic.SubmitCalcRequest(DealDC.DealID.ToString(), 283, DealDC.AnalysisID, 775, false);
+                    v1logic.SubmitCalcRequest(DealDC.DealID.ToString(), 283, DealDC.AnalysisID, 775, false, "");
                 }
                 else
                 {
                     var notelist = dealLogic.GetParnetNotesInaDealForCalculation(DealDC.DealID.ToString());
                     foreach (var item in notelist)
                     {
-                        v1logic.SubmitCalcRequest(item.objectID, 182, DealDC.AnalysisID, 775, false);
+                        v1logic.SubmitCalcRequest(item.objectID, 182, DealDC.AnalysisID, 775, false, "");
                     }
                 }
-
-
-
             }
+
         }
         private static GenericResult NewMethod(string res, string message)
         {
@@ -714,74 +1090,33 @@ namespace CRES.Services.Controllers
 
             }
         }
+        public void ExportFutureFundingFromCRES_API(List<PayruleTargetNoteFundingScheduleDataContract> PayruleTargetNoteFundingScheduleDataContract, string headerUserID, DealDataContract DealDC)
+        {
+            string AllowBackshopFF = "";
+            try
+            {
+                AppConfigLogic acl = new AppConfigLogic();
 
-        //[HttpPost]
-        //[Services.Controllers.IsAuthenticate]
-        //[Services.Controllers.DeflateCompression]
-        //[Route("api/deal/SaveDealArchieve")]
-        //public IActionResult InsertUpdateDealArchieve([FromBody] DealDataContract DealDC)
-        //{
-        //    GenericResult _authenticationResult = null;
-        //    IEnumerable<string> headerValues;
-        //    var headerUserID = string.Empty;
-
-        //    if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
-        //    {
-        //        headerUserID = Convert.ToString(Request.Headers["TokenUId"]);
-        //    }
-
-        //    DealDC.CreatedBy = headerUserID;
-        //    DealDC.UpdatedBy = headerUserID;
-        //    DealLogic dealLogic = new DealLogic();
-        //    //string res = dealLogic.InsertUpdateDeal(DealDC);
-        //    string res = null;
-        //    dealLogic.InsertUpdateDealArchieveFunding(DealDC.PayruleDealFundingList, headerUserID);
-        //    if (DealDC.PayruleDealFundingList.Count > 0)
-        //    {
-        //        dealLogic.DeleteNoteFundingDataForDealFundingID(DealDC.DealID);
-        //    }
-        //    try
-        //    {
-        //        if (headerUserID != null)
-        //        {
-        //            if (res != "FALSE")
-        //            {
-
-        //                _authenticationResult = new GenericResult()
-        //                {
-        //                    newDeailID = res,
-        //                    Succeeded = true,
-        //                    Message = "Changes were saved successfully."
-        //                };
-        //            }
-        //            else
-        //            {
-        //                _authenticationResult = new GenericResult()
-        //                {
-        //                    Succeeded = true,
-        //                    Message = "Some Error Occured."
-        //                };
-        //            }
-        //        }
-        //        else
-        //        {
-        //            _authenticationResult = new GenericResult()
-        //            {
-        //                Succeeded = false,
-        //                Message = "Authentication failed"
-        //            };
-        //        }
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        _authenticationResult = new GenericResult()
-        //        {
-        //            Succeeded = false,
-        //            Message = ex.Message
-        //        };
-        //    }
-        //    return Ok(_authenticationResult);
-        //}
+                List<AppConfigDataContract> listappconfig = acl.GetAllAppConfig(new Guid(headerUserID));
+                foreach (AppConfigDataContract item in listappconfig)
+                {
+                    if (item.Key == "AllowBackshopFF")
+                    {
+                        AllowBackshopFF = item.Value;
+                    }
+                }
+                if (AllowBackshopFF == "1")
+                {
+                    BackShopExportLogic bsl = new BackShopExportLogic();
+                    bsl.ExportFutureFundingFromCRES_API(PayruleTargetNoteFundingScheduleDataContract, headerUserID, DealDC);
+                }
+            }
+            catch (Exception ex)
+            {
+                LoggerLogic Log = new LoggerLogic();
+                _iEmailNotification.SendEmailExportFFBackShopFail(DealDC, "", ex.Message);
+            }
+        }
 
         [HttpPost]
         [Services.Controllers.IsAuthenticate]
@@ -791,9 +1126,10 @@ namespace CRES.Services.Controllers
         {
             GenericResult _authenticationResult = null;
             DataTable dt = new DataTable();
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
+            DataTable dtBlank = new DataTable();
+            DataTable dtImpairment = new DataTable();
+
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
 
             var headerUserID = string.Empty;
 
@@ -805,11 +1141,13 @@ namespace CRES.Services.Controllers
             DealLogic dealLogic = new DealLogic();
             dt = dealLogic.GetNoteDealFundingScheduleByDealID(new Guid(DealDC.DealID.ToString()), headerUserID, DealDC.ShowUseRuleN);
 
+
             ////assign row no after sorting
             if (dt != null)
             {
                 if (dt.Rows.Count > 0)
                 {
+                    dt.Columns.Add("_isSoftHoliday").SetOrdinal(35);
                     dt.DefaultView.Sort = "Date asc";
                 }
             }
@@ -820,6 +1158,39 @@ namespace CRES.Services.Controllers
                 //Console.WriteLine(row["ImagePath"]);
                 row["DealFundingRowno"] = i++;
                 //i++;
+            }
+
+            //get default deal funding structure with dynamic notes
+            dtBlank = dealLogic.GetNoteDealFundingScheduleByDealID(new Guid(DealDC.DealID.ToString()), headerUserID, true);
+            //
+            //get imparent data
+            dtImpairment = dealLogic.GetDealFundingWLDealPotentialImpairmentByDealID(new Guid(DealDC.DealID.ToString()), headerUserID);
+            //
+            //add data to list for ListRevolverDealFunding
+            List<PayruleDealFundingDataContract> ListRevolverDealFunding = new List<PayruleDealFundingDataContract>();
+            foreach (DataRow dr in dt.Rows)
+            {
+                int? currentadjtype = CommonHelper.ToInt32(dr["AdjustmentType"]);
+
+                if (currentadjtype == 835)
+                {
+                    PayruleDealFundingDataContract dealfund = new PayruleDealFundingDataContract();
+                    dealfund.DealFundingID = new Guid(dr["DealFundingID"].ToString());
+                    dealfund.Value = CommonHelper.ToDecimal(dr["Value"]);
+
+                    dealfund.Date = CommonHelper.ToDateTime(dr["Date"]);
+                    dealfund.DealFundingRowno = CommonHelper.ToInt32_NotNullable(dr["DealFundingRowno"]);
+                    dealfund.Applied = CommonHelper.ToBoolean(dr["Applied"]);
+
+                    dealfund.Comment = dr["Comment"].ToString();
+                    dealfund.PurposeText = dr["PurposeText"].ToString();
+                    dealfund.PurposeID = CommonHelper.ToInt32_NotNullable(dr["PurposeID"]);
+                    dealfund.RequiredEquity = CommonHelper.ToDecimal(dr["RequiredEquity"]);
+                    dealfund.AdditionalEquity = CommonHelper.ToDecimal(dr["AdditionalEquity"]);
+                    dealfund.AdditionalEquity = CommonHelper.ToDecimal(dr["AdditionalEquity"]);
+                    dealfund.AdjustmentType = currentadjtype;
+                    ListRevolverDealFunding.Add(dealfund);
+                }
             }
 
             WFLogic wflogic = new WFLogic();
@@ -834,7 +1205,10 @@ namespace CRES.Services.Controllers
                         Succeeded = true,
                         Message = "Authentication succeeded",
                         lstNoteDealFunding = dt,
-                        lstWFStatusPurposeMapping = lstWFStatusPurposeMap
+                        lstNoteDealFundingBlank = dtBlank,
+                        lstWFStatusPurposeMapping = lstWFStatusPurposeMap,
+                        lstDealFundingImpairment = dtImpairment,
+                        ListRevolverDealFunding = ListRevolverDealFunding
                     };
                 }
                 else
@@ -868,9 +1242,7 @@ namespace CRES.Services.Controllers
         {
             GenericResult _authenticationResult = null;
             DataTable dt = new DataTable();
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
 
             var headerUserID = string.Empty;
 
@@ -1032,9 +1404,7 @@ namespace CRES.Services.Controllers
         {
             GenericResult _authenticationResult = null;
             List<PayruleNoteAMSequenceDataContract> notesequence = new List<PayruleNoteAMSequenceDataContract>();
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
 
             var headerUserID = string.Empty;
 
@@ -1086,9 +1456,9 @@ namespace CRES.Services.Controllers
         {
             GenericResult _authenticationResult = null;
             DataTable dt = new DataTable();
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
+            DataTable dtWeightedSpread = new DataTable();
+            DataTable dtNetCapitalInvested = new DataTable();
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
 
             var headerUserID = string.Empty;
 
@@ -1098,10 +1468,58 @@ namespace CRES.Services.Controllers
             }
             DealLogic dealLogic = new DealLogic();
             dt = dealLogic.GetFundingRepaymentSequenceHistoryByDealID(new Guid(DealDC.DealID.ToString()));
-            if (dt != null)
+
+            dtWeightedSpread = dealLogic.GetCalculatedWeightedSpreadByDealID(new Guid(DealDC.DealID.ToString()));
+            dtNetCapitalInvested = dealLogic.GetFundingNetCapitalInvestedbyDealID(new Guid(DealDC.DealID.ToString()));
+
+            dtWeightedSpread = WeightedSpreadCalcHelperLogic.CaculateWeightedAvg(dtWeightedSpread);
+            decimal? CalcWeightedSpread = 0;
+            decimal? CalcWeightedEffectiveRate = 0;
+
+            if (dt != null && dtWeightedSpread != null)
             {
+
                 foreach (DataRow row in dt.Rows)
                 {
+                    string noteId = row["NoteID"].ToString();
+
+                    foreach (DataRow weightedSpreadRow in dtWeightedSpread.Rows)
+                    {
+                        string weightedSpreadNoteId = weightedSpreadRow["NoteID"].ToString();
+                        if (noteId == weightedSpreadNoteId)
+                        {
+                            CalcWeightedSpread = CalcWeightedSpread.GetValueOrDefault(0) + CommonHelper.StringToDecimal(weightedSpreadRow["SpreadNextPayDtWeightedRate"]);
+                            CalcWeightedEffectiveRate = CalcWeightedEffectiveRate.GetValueOrDefault(0) + CommonHelper.StringToDecimal(weightedSpreadRow["CalcWeightedEffectiveRate"]);
+                            decimal? WeightedSpread = CommonHelper.StringToDecimal(weightedSpreadRow["SpreadNextPayDt"]);
+                            decimal? EffectiveRate = CommonHelper.StringToDecimal(weightedSpreadRow["EffectiveRate"]);
+                            row["WeightedSpread"] = WeightedSpread;
+                            row["EffectiveRate"] = EffectiveRate;
+
+                            break;
+                        }
+                    }
+                }
+
+                if (CalcWeightedSpread == null)
+                {
+                    CalcWeightedSpread = 0;
+                }
+                else
+                {
+                    CalcWeightedSpread = Math.Round(CalcWeightedSpread.Value, 8) * 100;
+                }
+
+                if (CalcWeightedEffectiveRate == null)
+                {
+                    CalcWeightedEffectiveRate = 0;
+                }
+                else
+                {
+                    CalcWeightedEffectiveRate = Math.Round(CalcWeightedEffectiveRate.Value, 8) * 100;
+                }
+                foreach (DataRow row in dt.Rows)
+                {
+
                     //update funding sequence and repayment sequence Null value with 0
                     foreach (DataColumn col in dt.Columns)
                     {
@@ -1118,6 +1536,31 @@ namespace CRES.Services.Controllers
                 }
             }
 
+
+            if (dt != null && dtNetCapitalInvested != null)
+            {
+
+                foreach (DataRow row in dt.Rows)
+                {
+                    string noteId = row["NoteID"].ToString();
+
+                    foreach (DataRow dtNetCapitalInvestedrow in dtNetCapitalInvested.Rows)
+                    {
+                        string dtNetCapitalInvestedNoteId = dtNetCapitalInvestedrow["NoteID"].ToString();
+                        if (noteId == dtNetCapitalInvestedNoteId)
+                        {
+                            decimal? NetCapitalInvested = CommonHelper.StringToDecimalWithNull(dtNetCapitalInvestedrow["NetCapitalInvested"]);
+
+                            row["NetCapitalInvested"] = NetCapitalInvested.HasValue ? (object)NetCapitalInvested.Value : DBNull.Value;
+
+
+                            break;
+                        }
+                    }
+                }
+
+            }
+
             try
             {
                 if (dt != null)
@@ -1127,7 +1570,9 @@ namespace CRES.Services.Controllers
                     {
                         Succeeded = true,
                         Message = "Authentication succeeded",
-                        lstFundingRepaymentSequenceHistory = dt
+                        lstFundingRepaymentSequenceHistory = dt,
+                        CalcWeightedSpread = CalcWeightedSpread,
+                        CalcWeightedEffectiveRate = CalcWeightedEffectiveRate
                     };
                 }
                 else
@@ -1161,9 +1606,7 @@ namespace CRES.Services.Controllers
         {
             GenericResult _authenticationResult = null;
             List<PayruleTargetNoteFundingScheduleDataContract> notefunding = new List<PayruleTargetNoteFundingScheduleDataContract>();
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
 
             var headerUserID = string.Empty;
 
@@ -1173,6 +1616,18 @@ namespace CRES.Services.Controllers
             }
             DealLogic dealLogic = new DealLogic();
             notefunding = dealLogic.GetNoteFundingbyDealID(new Guid(DealDC.DealID.ToString()));
+
+            List<PayruleTargetNoteFundingScheduleDataContract> ListRevolverNoteFunding = new List<PayruleTargetNoteFundingScheduleDataContract>();
+            if (notefunding != null)
+            {
+                foreach (var item in notefunding)
+                {
+                    if (item.AdjustmentType == 835)
+                    {
+                        ListRevolverNoteFunding.Add(item);
+                    }
+                }
+            }
             try
             {
                 if (notefunding != null)
@@ -1182,7 +1637,8 @@ namespace CRES.Services.Controllers
                     {
                         Succeeded = true,
                         Message = "Authentication succeeded",
-                        lstnoteFundingschedule = notefunding
+                        lstnoteFundingschedule = notefunding,
+                        ListRevolverNoteFunding = ListRevolverNoteFunding
                     };
                 }
                 else
@@ -1344,7 +1800,8 @@ namespace CRES.Services.Controllers
                 }
             }
 
-            // var json = JsonConvert.SerializeObject(DealDC);
+            //var json =;
+            Utilities.WriteDataToFile.WriteDataToNewFile(DealDC.DealName + "_Autospread_Issue.json", JsonConvert.SerializeObject(DealDC));
             if (DealDC.AllowFFSaveJsonIntoBlob == true)
             {
                 string jsonStr = JsonConvert.SerializeObject(DealDC);
@@ -1357,9 +1814,8 @@ namespace CRES.Services.Controllers
                 .Select(y => y.NoteName.Trim().ToLower()).ToArray();
 
             Deal = pm.StartCalculation(DealDC);
-
-
             DealDC.UpdatedBy = headerUserID;
+
             if (Deal.PayruleGenerationExceptionMessage == "" || Deal.PayruleGenerationExceptionMessage == null)
             {
                 foreach (PayruleTargetNoteFundingScheduleDataContract dm in Deal.PayruleTargetNoteFundingScheduleList)
@@ -1442,9 +1898,7 @@ namespace CRES.Services.Controllers
             string noteids = "";
             GenericResult _authenticationResult = null;
             DealDataContract Deal = new DealDataContract();
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
 
             var headerUserID = string.Empty;
 
@@ -1455,6 +1909,8 @@ namespace CRES.Services.Controllers
 
             string Status = "";
             string msg = "";
+            string Liabilitymsg = "";
+            string LiabilityDuplicatenotes = "";
             foreach (var notes in DealDC.notelist)
             {
                 if (notes.CRENewNoteID != null)
@@ -1462,6 +1918,13 @@ namespace CRES.Services.Controllers
                     if (notes.CRENewNoteID != "")
                     {
                         noteids = noteids + notes.CRENewNoteID + ",";
+                    }
+                }
+                else if (notes.CRENoteID != null)
+                {
+                    if (notes.CRENoteID != "")
+                    {
+                        noteids = noteids + notes.CRENoteID + ",";
                     }
                 }
             }
@@ -1495,6 +1958,47 @@ namespace CRES.Services.Controllers
             {
                 msg = "Save";
             }
+            LiabilityNoteLogic LiabilityNotelogic = new LiabilityNoteLogic();
+            if (DealDC.ListDealLiabilityDupliateCheck != null)
+            {
+                foreach (var item in DealDC.ListDealLiabilityDupliateCheck)
+                {
+                    if (item.LiabilityNoteAccountID == null)
+                    {
+                        item.LiabilityNoteAccountID = new Guid("00000000-0000-0000-0000-000000000000");
+                    }
+                    if (item.LiabilityNoteID != "")
+                    {
+                        Status = LiabilityNotelogic.CheckDuplicateforLiabilities(item.LiabilityNoteID, "LiabilityNote", item.LiabilityNoteAccountID);
+                        if (Status == "True")
+                        {
+                            LiabilityDuplicatenotes = LiabilityDuplicatenotes + item.LiabilityNoteID.ToString() + ",";
+
+                        }
+                        else if (Status == "False")
+                        {
+
+                            Liabilitymsg = "Save";
+                        }
+                    }
+
+                }
+            }
+
+            if (LiabilityDuplicatenotes != "")
+            {
+                String withoutLast = LiabilityDuplicatenotes.Substring(0, (LiabilityDuplicatenotes.Length - 1));
+                withoutLast = "Liability Note " + withoutLast + " already exist. Please enter unique Liability Note ID.";
+                if (msg != "Save")
+                {
+                    msg = msg + " " + withoutLast;
+                }
+                else
+                {
+                    msg = withoutLast;
+                }
+            }
+
             try
             {
                 if (msg != "")
@@ -1536,9 +2040,7 @@ namespace CRES.Services.Controllers
         {
             GenericResult _authenticationResult = null;
             NoteDataContract note = new NoteDataContract();
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
 
             var headerUserID = string.Empty;
 
@@ -1590,9 +2092,7 @@ namespace CRES.Services.Controllers
         {
             GenericResult _authenticationResult = null;
             NoteDataContract note = new NoteDataContract();
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
 
             var headerUserID = string.Empty;
 
@@ -1642,9 +2142,7 @@ namespace CRES.Services.Controllers
         {
             GenericResult _authenticationResult = null;
             DataTable dt = new DataTable();
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
 
             var headerUserID = string.Empty;
 
@@ -1697,9 +2195,7 @@ namespace CRES.Services.Controllers
         {
             GenericResult _authenticationResult = null;
             DealDataContract Deal = new DealDataContract();
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
 
             var headerUserID = string.Empty;
             var delegateduserid = string.Empty;
@@ -1722,6 +2218,11 @@ namespace CRES.Services.Controllers
             AIDynamicEntityUpdateLogic _dynamicentity = new AIDynamicEntityUpdateLogic();
             Thread SecondThread = new Thread(() => _dynamicentity.InsertUpdateAIDealEntitiesAsync(DealDC, headerUserID));
             SecondThread.Start();
+
+            XIRRCalcHelperLogic xirrhelper = new XIRRCalcHelperLogic();
+            Thread ThreadXirr = new Thread(() => xirrhelper.CalculateXIRRAfterDealSave(DealDC.CREDealID, headerUserID));
+            ThreadXirr.Start();
+
             try
             {
                 if (result)
@@ -1744,7 +2245,11 @@ namespace CRES.Services.Controllers
             catch (Exception ex)
             {
                 LoggerLogic Log = new LoggerLogic();
-                Log.WriteLogException(CRESEnums.Module.Deal.ToString(), "Error occured in CopyDeal for Deal ID: " + DealDC.CREDealID, DealDC.DealID.ToString(), headerUserID.ToString(), ex.TargetSite.Name.ToString(), "", ex);
+                string formatedstring = Log.WriteLogException(CRESEnums.Module.Deal.ToString(), "Error occured in CopyDeal for Deal ID: " + DealDC.CREDealID, DealDC.DealID.ToString(), headerUserID.ToString(), ex.TargetSite.Name.ToString(), "", ex);
+
+                string emailextrainfo = "CREDealID :" + DealDC.CREDealID + " DealName :" + DealDC.DealName + " ";
+                Thread FirstThread = new Thread(() => _iEmailNotification.SendEmailOnExceptionFailed("CopyDeal", formatedstring, ExceptionHelper.GetFullMessage(ex), headerUserID, emailextrainfo));
+                FirstThread.Start();
 
                 _authenticationResult = new GenericResult()
                 {
@@ -1755,187 +2260,40 @@ namespace CRES.Services.Controllers
             return Ok(_authenticationResult);
         }
 
-
-        public void UpdateNoteFundingLinkedPhantomDeal(string credealid, string userid, string AnalysisID, bool ShowUseRuleN, DealDataContract legaldeal)
+        public void CheckAndQueuePhantomDealForAutomation(string credealid)
         {
-            List<DealDataContract> listDeal = new List<DealDataContract>();
-            DealLogic dealLogic = new DealLogic();
-            listDeal = dealLogic.GetLinkedPhantomDealID(credealid);
-            NoteLogic nl = new NoteLogic();
-            PayruleNoteFutureFundingHelper pm = new PayruleNoteFutureFundingHelper();
-            Decimal endingbalance = 0;
-            var headerUserID = string.Empty;
-            if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
+            try
             {
-                headerUserID = Convert.ToString(Request.Headers["TokenUId"]);
+                List<DealDataContract> listDeal = new List<DealDataContract>();
+                DealLogic dealLogic = new DealLogic();
+                listDeal = dealLogic.GetLinkedPhantomDealID(credealid);
+                var headerUserID = string.Empty;
+                if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
+                {
+                    headerUserID = Convert.ToString(Request.Headers["TokenUId"]);
+                }
+                if (listDeal != null && listDeal.Count > 0)
+                {
+
+                    List<GenerateAutomationDataContract> list = new List<GenerateAutomationDataContract>();
+                    foreach (DealDataContract deal in listDeal)
+                    {
+                        GenerateAutomationDataContract gad = new GenerateAutomationDataContract();
+                        gad.DealID = Convert.ToString(deal.DealID);
+                        gad.StatusText = "Processing";
+                        gad.AutomationType = 807;
+                        gad.AutomationTypeText = "Phantom_Deal";
+                        gad.BatchType = "Phantom_Deal";
+                        list.Add(gad);
+                    }
+                    GenerateAutomationLogic GenerateAutomationLogic = new GenerateAutomationLogic();
+                    GenerateAutomationLogic.QueueDealForAutomation(list, headerUserID);
+                }
             }
-            var delegateduserid = string.Empty;
-            if (!string.IsNullOrEmpty(Request.Headers["DelegatedUser"]))
-            {
-                delegateduserid = Convert.ToString(Request.Headers["DelegatedUser"]);
-            }
-            if (listDeal != null && listDeal.Count > 0)
+            catch (Exception ex)
             {
                 LoggerLogic Log = new LoggerLogic();
-
-                foreach (DealDataContract dc in listDeal)
-                {
-                    DealDataContract deal = new DealDataContract();
-                    int? TotalCount;
-                    dc.PayruleNoteDetailFundingList = nl.GetNotesForPayruleCalculationByDealID(dc.DealID.ToString(), new Guid(userid), 1, 10, out TotalCount).OrderByDescending(x => x.NoteID).ToList();
-                    dc.PayruleNoteAMSequenceList = dealLogic.GetFundingRepaymentSequenceByDealID(new Guid(dc.DealID.ToString())).OrderByDescending(x => x.NoteID).ToList();
-                    dc.PayruleDealFundingList = dealLogic.GetDealFundingScheduleByDealID(new Guid(dc.DealID.ToString()));
-                    dc.PayruleTargetNoteFundingScheduleList = dealLogic.GetNoteFundingbyDealID(new Guid(dc.DealID.ToString()));
-                    //For resolve phtm duplicate record issue
-                    //dc.PayruleTargetNoteFundingScheduleList = dc.PayruleTargetNoteFundingScheduleList.FindAll(x => x.Applied == true).ToList();
-                    dc.ListHoliday = legaldeal.ListHoliday;
-                    //dc.maxMaturityDate = legaldeal.maxMaturityDate;
-                    dc.FirstPaymentDate = legaldeal.FirstPaymentDate;
-                    // dc.maxMaturityDate = le
-
-                    foreach (PayruleNoteAMSequenceDataContract pdc in dc.PayruleNoteAMSequenceList)
-                    {
-                        //Funding Sequence
-
-                        if (pdc.SequenceTypeText == "Funding sequence")
-                        {
-                            pdc.SequenceTypeText = "Funding Sequence";
-                        }
-                        if (pdc.SequenceTypeText == "Repayment sequence")
-                        {
-                            pdc.SequenceTypeText = "Repayment Sequence";
-                        }
-                    }
-
-                    DateTime maxDate = DateTime.MinValue;
-
-                    if (ShowUseRuleN == true)
-                    {
-                        if (dc.EnableAutospreadRepayments == true)
-                        {
-                            dc.EnableAutospreadUseRuleN = true;
-                        }
-                    }
-                    else
-                    {
-                        dc.EnableAutospreadUseRuleN = false;
-                    }
-                    // code required only autospread repayment 
-                    if (dc.EnableAutospreadRepayments == true || dc.EnableAutospreadUseRuleN == true)
-                    {
-
-                        DataTable dt = dealLogic.GetProjectedPayOffDBDataByDealID(dc.DealID, headerUserID);
-                        List<ProjectedPayoffDataContract> ListProjectedPayoff = new List<ProjectedPayoffDataContract>();
-                        foreach (DataRow dr in dt.Rows)
-                        {
-
-                            ProjectedPayoffDataContract projectedpayoffdata = new ProjectedPayoffDataContract();
-                            projectedpayoffdata.ProjectedPayoffAsofDate = CommonHelper.ToDateTime(dr["ProjectedPayoffAsofDate"]);
-                            projectedpayoffdata.CumulativeProbability = CommonHelper.ToDecimal(dr["CumulativeProbability"]);
-                            ListProjectedPayoff.Add(projectedpayoffdata);
-                        }
-                        dc.ListProjectedPayoff = ListProjectedPayoff;
-
-                        dc.ListAutoRepaymentBalances = dealLogic.GetAutospreadRepaymentBalancesDealID(dc.DealID);
-                        if (dc.ListAutoRepaymentBalances != null)
-                        {
-                            if (dc.ListAutoRepaymentBalances.Count > 0)
-                            {
-                                dc.ListNoteRepaymentBalances = dealLogic.GetNoteAutospreadRepaymentBalancesByDealId(dc.DealID);
-                            }
-                        }
-                        if (dc.ListNoteRepaymentBalances == null)
-                        {
-                            dc.ListNoteRepaymentBalances = new List<AutoRepaymentNoteBalancesDataContract>();
-
-                        }
-                        // get ending balance from database           
-                        foreach (var funding in dc.PayruleDealFundingList)
-                        {
-                            if (funding.Applied == true)
-                            {
-                                if (funding.Date.Value.Date > maxDate)
-                                {
-                                    maxDate = funding.Date.Value.Date;
-                                }
-                            }
-                        }
-
-                        if (maxDate == DateTime.MinValue)
-                        {
-                            maxDate = DateTime.Now.Date;
-                        }
-                        if (maxDate != DateTime.MinValue)
-                        {
-                            if (dc.EnableAutospreadRepayments == true)
-                            {
-                                endingbalance = dealLogic.GetEndingBalanceByDate(dc.DealID, maxDate);
-                            }
-
-                            if (dc.EnableAutospreadUseRuleN == true || dc.ApplyNoteLevelPaydowns == true)
-                            {
-                                dc.ListNoteEndingBalance = dealLogic.GetNoteEndingBalaceByDate(dc.DealID, maxDate);
-
-                            }
-                            if (endingbalance == 0)
-                            {
-                                Log.WriteLogInfo(CRESEnums.Module.Deal.ToString(), "Auto Repayment phantom deal starting Balances is 0 ", dc.DealID.ToString(), headerUserID.ToString());
-                            }
-                            else
-                            {
-                                dc.Endingbalance = endingbalance;
-                            }
-                            dc.MaxWireConfirmRecord = maxDate;
-                        }
-
-                        else
-                        {
-                            dc.MaxWireConfirmRecord = Convert.ToDateTime(dc.EstClosingDate);
-                        }
-                    }
-                    // var json = JsonConvert.SerializeObject(dc);
-                    deal = pm.StartCalculation(dc);
-
-
-                    //update deal funding with proper row number 
-
-                    foreach (PayruleDealFundingDataContract pd in deal.PayruleDealFundingList)
-                    {
-                        pd.CreatedBy = headerUserID;
-                        pd.UpdatedBy = headerUserID;
-                        if (pd.CreatedDate == null)
-                        {
-                            pd.CreatedDate = System.DateTime.Now;
-                        }
-                        else
-                        {
-                            pd.CreatedDate = pd.CreatedDate;
-                        }
-                        pd.UpdatedDate = System.DateTime.Now;
-                        pd.DealID = deal.DealID;
-                        pd.EquityAmount = pd.EquityAmount.GetValueOrDefault(0);
-                        pd.RemainingFFCommitment = pd.RemainingFFCommitment.GetValueOrDefault(0);
-                        pd.RemainingEquityCommitment = pd.RemainingEquityCommitment.GetValueOrDefault(0);
-                        pd.RequiredEquity = pd.RequiredEquity.GetValueOrDefault(0);
-                        pd.AdditionalEquity = pd.AdditionalEquity.GetValueOrDefault(0);
-                    }
-
-                    dealLogic.InsertUpdateDealFunding(deal.PayruleDealFundingList, userid);
-                    nl.InsertNoteFutureFunding(deal.PayruleTargetNoteFundingScheduleList, userid);
-
-                    if (deal.PayruleDeletedDealFundingList.Count > 0)
-                    {
-                        dealLogic.InsertUpdateDealArchieveFunding(deal.PayruleDeletedDealFundingList, userid);
-                        dealLogic.DeleteNoteFundingDataForDealFundingID(deal.DealID);
-                    }
-                    //call 
-                    dealLogic.CallDealForCalculation(dc.DealID.ToString(), userid, AnalysisID, 775);
-                    //Delete FF record if not exists in dealfunding
-                    dealLogic.DeleteNoteFundingDataForDealFundingID(dc.DealID);
-                }
-
-                //
-
+                Log.WriteLogExceptionMessage(CRESEnums.Module.Deal.ToString(), ex.StackTrace, credealid, "", "CheckAndQueuePhantomDealForAutomation", "Error occurred" + credealid + " " + ex.Message);
             }
         }
 
@@ -1949,9 +2307,7 @@ namespace CRES.Services.Controllers
             GenericResult _authenticationResult = null;
             List<DealDataContract> _lstDeals = new List<DealDataContract>();
 
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
             var headerUserID = new Guid();
             if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
             {
@@ -2006,9 +2362,7 @@ namespace CRES.Services.Controllers
             GenericResult _authenticationResult = null;
             List<DealDataContract> _lstDeals = new List<DealDataContract>();
 
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
             var headerUserID = new Guid();
             if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
             {
@@ -2082,7 +2436,7 @@ namespace CRES.Services.Controllers
 
             DealDataContract dc = new DealDataContract();
             int? TotalCount;
-            dc.PayruleNoteDetailFundingList = nl.GetNotesForPayruleCalculationByDealID(DealID, new Guid(userid), 1, 10, out TotalCount).OrderByDescending(x => x.NoteID).ToList();
+            dc.PayruleNoteDetailFundingList = nl.GetNotesForPayruleCalculationByDealID(DealID, new Guid(userid), 1, 1000, out TotalCount).OrderByDescending(x => x.NoteID).ToList();
             dc.PayruleNoteAMSequenceList = dealLogic.GetFundingRepaymentSequenceByDealID(new Guid(DealID.ToString())).OrderByDescending(x => x.NoteID).ToList();
             dc.PayruleDealFundingList = dealLogic.GetDealFundingScheduleByDealID(new Guid(DealID));
 
@@ -2113,9 +2467,7 @@ namespace CRES.Services.Controllers
         {
             GenericResult _authenticationResult = null;
             DealDataContract Deal = new DealDataContract();
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
             var headerUserID = string.Empty;
             if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
             {
@@ -2212,9 +2564,7 @@ namespace CRES.Services.Controllers
         {
             GenericResult _authenticationResult = null;
             List<FutureFundingScheduleDetailDataContract> _funding = new List<FutureFundingScheduleDetailDataContract>();
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
 
             var headerUserID = string.Empty;
 
@@ -2268,9 +2618,7 @@ namespace CRES.Services.Controllers
         {
             GenericResult _authenticationResult = null;
             List<FutureFundingScheduleDetailDataContract> _funding = new List<FutureFundingScheduleDetailDataContract>();
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
 
             var headerUserID = string.Empty;
 
@@ -2362,8 +2710,6 @@ namespace CRES.Services.Controllers
             return Ok(_authenticationResult);
         }
 
-
-
         [HttpPost]
         [Services.Controllers.IsAuthenticate]
         [Services.Controllers.DeflateCompression]
@@ -2372,9 +2718,7 @@ namespace CRES.Services.Controllers
         {
             GenericResult _authenticationResult = null;
             List<AutoSpreadRuleDataContract> _autospreadrule = new List<AutoSpreadRuleDataContract>();
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
 
 
             var headerUserID = string.Empty;
@@ -2428,9 +2772,7 @@ namespace CRES.Services.Controllers
         {
             GenericResult _authenticationResult = null;
             DealDataContract _deal = new DealDataContract();
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
 
             var headerUserID = string.Empty;
 
@@ -2474,9 +2816,7 @@ namespace CRES.Services.Controllers
         public IActionResult GetNoteDetailForDealAmortByDealID([FromBody] DealDataContract DealDC)
         {
             GenericResult _authenticationResult = null;
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
             DataTable dt = new DataTable();
             var headerUserID = string.Empty;
 
@@ -2582,9 +2922,7 @@ namespace CRES.Services.Controllers
         {
             GenericResult _authenticationResult = null;
             List<DealAmortScheduleDataContract> _dmlist = new List<DealAmortScheduleDataContract>();
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
 
             var headerUserID = string.Empty;
             if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
@@ -2598,9 +2936,7 @@ namespace CRES.Services.Controllers
             DataTable StartEndDatedt = new DataTable();
             DataTable amortdt = new DataTable();
             DateTime Amort_StartDate, Amort_EndDate;
-#pragma warning disable CS0219 // The variable 'Errormsg' is assigned but its value is never used
             string Errormsg = "";
-#pragma warning restore CS0219 // The variable 'Errormsg' is assigned but its value is never used
             StartEndDatedt = pm.GetStartEndDate(DealDC);
             if (StartEndDatedt.Rows.Count > 0)
             {
@@ -2657,9 +2993,7 @@ namespace CRES.Services.Controllers
             GenericResult _authenticationResult = null;
 
             DealDataContract Deal = new DealDataContract();
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
             DateTime Amort_StartDate;
             DateTime? Amort_EndDate;
             string Errormsg = "";
@@ -2813,9 +3147,7 @@ namespace CRES.Services.Controllers
             GenericResult _authenticationResult = null;
 
             DealDataContract Deal = new DealDataContract();
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
             var headerUserID = string.Empty;
 
             if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
@@ -2869,9 +3201,7 @@ namespace CRES.Services.Controllers
         {
             GenericResult _authenticationResult = null;
             PayloadDataContract payload = new PayloadDataContract();
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
             var headerUserID = string.Empty;
             if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
             {
@@ -2980,15 +3310,12 @@ namespace CRES.Services.Controllers
             GenericResult _authenticationResult = null;
             List<ProjectedPayoffDataContract> _lstprojectedpayoffdates = new List<ProjectedPayoffDataContract>();
 
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
             var headerUserID = new Guid();
             if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
             {
                 headerUserID = new Guid(Request.Headers["TokenUId"]);
             }
-#pragma warning disable CS0168 // The variable 'ex' is declared but never used
             try
             {
                 var DealID = Convert.ToString(dtDeal.Rows[0]["DealID"]);
@@ -2996,6 +3323,28 @@ namespace CRES.Services.Controllers
                 DealLogic dealLogic = new DealLogic();
                 _lstprojectedpayoffdates = dealLogic.GetProjectedPayOffDateByDealID(headerUserID.ToString(), new Guid(DealID), DealStatus);
 
+                if (_lstprojectedpayoffdates != null && _lstprojectedpayoffdates.Count > 0)
+                {
+                    NoteLogic _NoteLogic = new NoteLogic();
+                    List<HolidayListDataContract> ListHoliday = _NoteLogic.GetHolidayList();
+
+                    foreach (ProjectedPayoffDataContract item in _lstprojectedpayoffdates)
+                    {
+                        if (item.EarliestDate != null)
+                        {
+                            item.EarliestDate = DateExtensions.GetWorkingDayUsingOffset(Convert.ToDateTime(item.EarliestDate.Value), Convert.ToInt16(-1), "US", ListHoliday).Date;
+                        }
+                        if (item.ExpectedDate != null)
+                        {
+
+                            item.ExpectedDate = DateExtensions.GetWorkingDayUsingOffset(Convert.ToDateTime(item.ExpectedDate.Value), Convert.ToInt16(-1), "US", ListHoliday).Date;
+                        }
+                        if (item.LatestDate != null)
+                        {
+                            item.LatestDate = DateExtensions.GetWorkingDayUsingOffset(Convert.ToDateTime(item.LatestDate.Value), Convert.ToInt16(-1), "US", ListHoliday).Date;
+                        }
+                    }
+                }
                 if (_lstprojectedpayoffdates.Count > 0)
                 {
                     if (_lstprojectedpayoffdates[0].Status == "Success")
@@ -3042,18 +3391,10 @@ namespace CRES.Services.Controllers
                     Message = "No data for the deal in Backshop.",
                     _lstprojectedpayoffdates = null
                 };
-                //LoggerLogic Log = new LoggerLogic();
-                //Log.WriteLogException(CRESEnums.Module.Deal.ToString(), "Error occured in autospread repayment backshop procedure execution for deal id", "", headerUserID.ToString(), ex.TargetSite.Name.ToString(), "", ex);
-
-                //_authenticationResult = new GenericResult()
-                //{
-                //    Succeeded = false,
-                //    Message = "Backshop error.",
-                //    _lstprojectedpayoffdates = _lstprojectedpayoffdates
-                //};
+                LoggerLogic Log = new LoggerLogic();
+                Log.WriteLogException(CRESEnums.Module.Deal.ToString(), "Error occured in autospread repayment backshop procedure execution for deal id", "", headerUserID.ToString(), ex.TargetSite.Name.ToString(), "", ex);
 
             }
-#pragma warning restore CS0168 // The variable 'ex' is declared but never used
             return Ok(_authenticationResult);
         }
 
@@ -3066,9 +3407,7 @@ namespace CRES.Services.Controllers
             GenericResult _authenticationResult = null;
             List<ProjectedPayoffDataContract> _lstprojectedpayoffdates = new List<ProjectedPayoffDataContract>();
 
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
             var headerUserID = new Guid();
             if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
             {
@@ -3142,9 +3481,7 @@ namespace CRES.Services.Controllers
         {
             GenericResult _authenticationResult = null;
 
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
 
             var headerUserID = string.Empty;
 
@@ -3204,9 +3541,7 @@ namespace CRES.Services.Controllers
         {
             GenericResult _authenticationResult = null;
 
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
 
             var headerUserID = string.Empty;
 
@@ -3260,9 +3595,7 @@ namespace CRES.Services.Controllers
         {
             GenericResult _authenticationResult = null;
 
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
 
             var headerUserID = string.Empty;
 
@@ -3319,9 +3652,7 @@ namespace CRES.Services.Controllers
         {
             GenericResult _authenticationResult = null;
 
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
 
             var headerUserID = string.Empty;
 
@@ -3477,6 +3808,7 @@ namespace CRES.Services.Controllers
         {
             GenericResult _authenticationResult = null;
             PrepayDataContract lstprepay = new PrepayDataContract();
+            DataTable lstCurrentSpread = new DataTable();
 
             var headerUserID = new Guid();
 
@@ -3487,6 +3819,7 @@ namespace CRES.Services.Controllers
 
             DealLogic dealLogic = new DealLogic();
             lstprepay = dealLogic.GetPrepayPremiumDetailDataByDealId(DealId, headerUserID);
+            lstCurrentSpread = dealLogic.GetCurrentSpreadfromRateSpreadSchByDealID(DealId);
 
             try
             {
@@ -3501,7 +3834,8 @@ namespace CRES.Services.Controllers
                         lstDealSpreadMaintenance = lstprepay.SpreadMaintenanceSchedule,
                         lstDealMiniSpread = lstprepay.MinMultSchedule,
                         lstDealMiniFee = lstprepay.FeeCredits,
-                        lstDealSpreadMaintenanceDeallevel = lstprepay.SpreadMaintenanceScheduleDeallevel
+                        lstDealSpreadMaintenanceDeallevel = lstprepay.SpreadMaintenanceScheduleDeallevel,
+                        lstCurrentSpread = lstCurrentSpread
 
                     };
                 }
@@ -3645,15 +3979,18 @@ namespace CRES.Services.Controllers
             {
                 headerUserID = Convert.ToString(Request.Headers["TokenUId"]);
             }
+            int? IsEmailSent = null;
             DealLogic dealLogic = new DealLogic();
-
-            dealLogic.CallDealForPrePayCalculation(dealDataContract.DealID.ToString(), headerUserID, "c10f3372-0fc2-4861-a9f5-148f1f80804f", 776);
-            //  var Enablem61Calculation = Sectionroot.GetSection("Enablem61Calculation").Value;
-            if (dealDataContract.EnableM61Calculator == true)
+            if (dealDataContract.SendEmailAfterCalc == "Y")
             {
-                V1CalcLogic v1logic = new V1CalcLogic();
-                v1logic.SubmitCalcRequest(dealDataContract.DealID.ToString(), 283, "c10f3372-0fc2-4861-a9f5-148f1f80804f", 776, false);
+                IsEmailSent = 4;
             }
+
+            // Call the deal calculation before prepay calculation
+            dealLogic.CallDealForCalculation(dealDataContract.DealID.ToString(), headerUserID, dealDataContract.ScenarioIdPrepay, 775);
+            //queue the prepay calculation request
+            dealLogic.CallDealForPrePayCalculation(dealDataContract.DealID.ToString(), headerUserID, dealDataContract.ScenarioIdPrepay, 776, "Deal", IsEmailSent);
+
             try
             {
                 if (res != null)
@@ -3683,7 +4020,6 @@ namespace CRES.Services.Controllers
             }
             return Ok(_authenticationResult);
         }
-
 
 
         [HttpPost]
@@ -3726,7 +4062,6 @@ namespace CRES.Services.Controllers
             }
             return Ok(_authenticationResult);
         }
-
         [HttpPost]
         [Services.Controllers.IsAuthenticate]
         [Services.Controllers.DeflateCompression]
@@ -3734,13 +4069,9 @@ namespace CRES.Services.Controllers
         public IActionResult AddUpdateDealRuleTypeSetup([FromBody] List<ScenarioruletypeDataContract> scenarioDC)
         {
             GenericResult _authenticationResult = null;
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
             var headerUserID = string.Empty;
-#pragma warning disable CS0219 // The variable 'scenariomsg' is assigned but its value is never used
             string scenariomsg = "";
-#pragma warning restore CS0219 // The variable 'scenariomsg' is assigned but its value is never used
             if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
             {
                 headerUserID = Convert.ToString(Request.Headers["TokenUId"]);
@@ -3836,9 +4167,7 @@ namespace CRES.Services.Controllers
         public IActionResult GetAllPropertyType()
         {
             GenericResult _authenticationResult = null;
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
             var headerUserID = new Guid();
             if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
             {
@@ -3924,8 +4253,7 @@ namespace CRES.Services.Controllers
 
             }
             headerUserID = new Guid("b0e6697b-3534-4c09-be0a-04473401ab93");
-
-            CommitmentEquityHelper ce = new CommitmentEquityHelper();
+            CommitmentEquityHelperLogic ce = new CommitmentEquityHelperLogic();
             ce.calcNoteCommitment(DealId, headerUserID);
             try
             {
@@ -3957,208 +4285,7 @@ namespace CRES.Services.Controllers
         //    NoteDataContract note = JsonConvert.DeserializeObject<NoteDataContract>(json);
         //    ce.calcNoteCommitment(note);
         //}
-        [HttpGet]
-        [Route("api/deal/generateFundingUsingAPI")]
-        public void GenerateFundingUsingAPI(string DealID)
-        {
 
-            string AnalysisID = "c10f3372-0fc2-4861-a9f5-148f1f80804f";
-
-            bool ShowUseRuleN = true;
-            DealLogic dealLogic = new DealLogic();
-            NoteLogic nl = new NoteLogic();
-            LoggerLogic Log = new LoggerLogic();
-            DealDataContract dc = new DealDataContract();
-            DealDataContract deal = new DealDataContract();
-
-            PayruleNoteFutureFundingHelper pm = new PayruleNoteFutureFundingHelper();
-            Decimal endingbalance = 0;
-            var headerUserID = string.Empty;
-            int? TotalCount;
-
-            NoteLogic _NoteLogic = new NoteLogic();
-            List<HolidayListDataContract> ListHoliday = _NoteLogic.GetHolidayList();
-
-            if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
-            {
-                headerUserID = Convert.ToString(Request.Headers["TokenUId"]);
-            }
-            if (headerUserID == null || headerUserID == "")
-            {
-                headerUserID = "00000000-0000-0000-0000-000000000000";
-            }
-
-            dc = dealLogic.GetDealByDealId(DealID, new Guid(headerUserID));
-
-            dc.PayruleNoteDetailFundingList = nl.GetNotesForPayruleCalculationByDealID(DealID, new Guid(headerUserID), 1, 10, out TotalCount).OrderByDescending(x => x.NoteID).ToList();
-            dc.PayruleNoteAMSequenceList = dealLogic.GetFundingRepaymentSequenceByDealID(new Guid(DealID)).OrderByDescending(x => x.NoteID).ToList();
-            dc.PayruleDealFundingList = dealLogic.GetDealFundingScheduleByDealID(new Guid(DealID.ToString()));
-            dc.PayruleTargetNoteFundingScheduleList = dealLogic.GetNoteFundingbyDealID(new Guid(DealID.ToString()));
-
-            dc.ListHoliday = ListHoliday;
-            dc.FirstPaymentDate = dc.FirstPaymentDate;
-
-            List<NoteUsedInDealDataContract> notelist = nl.GetNotesFromDealDetailByDealID(DealID, new Guid(headerUserID), 1000, 1, out TotalCount);
-            dc.maxMaturityDate = notelist.Max(x => x.FullyExtendedMaturityDate);
-
-
-            if (dc.EnableAutoSpread == true)
-            {
-                dc.AutoSpreadRuleList = dealLogic.GetAutoSpreadRuleByDealID(new Guid(headerUserID), new Guid(dc.DealID.ToString()));
-            }
-
-            foreach (PayruleNoteAMSequenceDataContract pdc in dc.PayruleNoteAMSequenceList)
-            {
-                //Funding Sequence
-                if (pdc.SequenceTypeText == "Funding sequence")
-                {
-                    pdc.SequenceTypeText = "Funding Sequence";
-                }
-                if (pdc.SequenceTypeText == "Repayment sequence")
-                {
-                    pdc.SequenceTypeText = "Repayment Sequence";
-                }
-            }
-
-            foreach (var pnd in dc.PayruleNoteDetailFundingList)
-            {
-                if (pnd.UseRuletoDetermineNoteFunding == 3)
-                {
-                    ShowUseRuleN = false;
-                    break;
-                }
-            }
-            DateTime maxDate = DateTime.MinValue;
-            if (ShowUseRuleN == true)
-            {
-                if (dc.EnableAutospreadRepayments == true)
-                {
-                    dc.EnableAutospreadUseRuleN = true;
-                }
-            }
-            else
-            {
-                dc.EnableAutospreadUseRuleN = false;
-            }
-            // code required only autospread repayment 
-            if (dc.EnableAutospreadRepayments == true || dc.EnableAutospreadUseRuleN == true)
-            {
-                DataTable dt = dealLogic.GetProjectedPayOffDBDataByDealID(dc.DealID, headerUserID);
-                List<ProjectedPayoffDataContract> ListProjectedPayoff = new List<ProjectedPayoffDataContract>();
-                foreach (DataRow dr in dt.Rows)
-                {
-
-                    ProjectedPayoffDataContract projectedpayoffdata = new ProjectedPayoffDataContract();
-                    projectedpayoffdata.ProjectedPayoffAsofDate = CommonHelper.ToDateTime(dr["ProjectedPayoffAsofDate"]);
-                    projectedpayoffdata.CumulativeProbability = CommonHelper.ToDecimal(dr["CumulativeProbability"]);
-                    ListProjectedPayoff.Add(projectedpayoffdata);
-                }
-                dc.ListProjectedPayoff = ListProjectedPayoff;
-                dc.ListAutoRepaymentBalances = dealLogic.GetAutospreadRepaymentBalancesDealID(dc.DealID);
-                if (dc.ListAutoRepaymentBalances != null)
-                {
-                    if (dc.ListAutoRepaymentBalances.Count > 0)
-                    {
-                        dc.ListNoteRepaymentBalances = dealLogic.GetNoteAutospreadRepaymentBalancesByDealId(dc.DealID);
-                    }
-                }
-                if (dc.ListNoteRepaymentBalances == null)
-                {
-                    dc.ListNoteRepaymentBalances = new List<AutoRepaymentNoteBalancesDataContract>();
-                }
-                // get ending balance from database           
-                foreach (var funding in dc.PayruleDealFundingList)
-                {
-                    if (funding.Applied == true)
-                    {
-                        if (funding.Date.Value.Date > maxDate)
-                        {
-                            maxDate = funding.Date.Value.Date;
-                        }
-                    }
-                }
-                if (maxDate == DateTime.MinValue)
-                {
-                    maxDate = DateTime.Now.Date;
-                }
-                if (maxDate != DateTime.MinValue)
-                {
-                    if (dc.EnableAutospreadRepayments == true)
-                    {
-                        endingbalance = dealLogic.GetEndingBalanceByDate(dc.DealID, maxDate);
-                    }
-
-                    if (dc.EnableAutospreadUseRuleN == true || dc.ApplyNoteLevelPaydowns == true)
-                    {
-                        dc.ListNoteEndingBalance = dealLogic.GetNoteEndingBalaceByDate(dc.DealID, maxDate);
-
-                    }
-                    if (endingbalance == 0)
-                    {
-                        //Log.WriteLogInfo(CRESEnums.Module.Deal.ToString(), "Auto Repayment phantom deal starting Balances is 0 ", dc.DealID.ToString(), headerUserID.ToString());
-                    }
-                    else
-                    {
-                        dc.Endingbalance = endingbalance;
-                    }
-                    dc.MaxWireConfirmRecord = maxDate;
-                }
-
-                else
-                {
-                    dc.MaxWireConfirmRecord = Convert.ToDateTime(dc.EstClosingDate);
-                }
-            }
-            var json = JsonConvert.SerializeObject(dc);
-            deal = pm.StartCalculation(dc);
-            if (deal.PayruleGenerationExceptionMessage == "")
-            {
-                //update deal funding with proper row number
-                foreach (PayruleDealFundingDataContract pd in deal.PayruleDealFundingList)
-                {
-                    pd.CreatedBy = headerUserID;
-                    pd.UpdatedBy = headerUserID;
-                    if (pd.CreatedDate == null)
-                    {
-                        pd.CreatedDate = System.DateTime.Now;
-                    }
-                    else
-                    {
-                        pd.CreatedDate = pd.CreatedDate;
-                    }
-                    pd.UpdatedDate = System.DateTime.Now;
-                    pd.DealID = deal.DealID;
-                    pd.EquityAmount = pd.EquityAmount.GetValueOrDefault(0);
-                    pd.RemainingFFCommitment = pd.RemainingFFCommitment.GetValueOrDefault(0);
-                    pd.RemainingEquityCommitment = pd.RemainingEquityCommitment.GetValueOrDefault(0);
-                    pd.RequiredEquity = pd.RequiredEquity.GetValueOrDefault(0);
-                    pd.AdditionalEquity = pd.AdditionalEquity.GetValueOrDefault(0);
-                }
-
-                dealLogic.InsertUpdateDealFunding(deal.PayruleDealFundingList, headerUserID);
-                nl.InsertNoteFutureFunding(deal.PayruleTargetNoteFundingScheduleList, headerUserID);
-
-                if (deal.PayruleDeletedDealFundingList != null)
-                {
-                    if (deal.PayruleDeletedDealFundingList.Count > 0)
-                    {
-                        dealLogic.InsertUpdateDealArchieveFunding(deal.PayruleDeletedDealFundingList, headerUserID);
-                        dealLogic.DeleteNoteFundingDataForDealFundingID(deal.DealID);
-                    }
-                }
-                //call 
-                dealLogic.CallDealForCalculation(dc.DealID.ToString(), headerUserID, AnalysisID, 775);
-                //Delete FF record if not exists in dealfunding
-                dealLogic.DeleteNoteFundingDataForDealFundingID(dc.DealID);
-            }
-            else
-            {
-                //failed to generate funding                          
-                Log.WriteLogExceptionMessage(CRESEnums.Module.Deal.ToString(), deal.PayruleGenerationStackTrace, DealID, "", "GenerateFundingUsingAPI", "Error occurred  while generating future funding for deal id using API" + dc.CREDealID + " " + deal.PayruleGenerationExceptionMessage);
-
-            }
-
-        }
 
         [HttpPost]
         [Services.Controllers.IsAuthenticate]
@@ -4201,54 +4328,9 @@ namespace CRES.Services.Controllers
             return Ok(_authenticationResult);
         }
 
-        [HttpPost]
-        [Services.Controllers.IsAuthenticate]
-        [Services.Controllers.DeflateCompression]
-        [Route("api/deal/GetPrepayCalcStatusMessage")]
-        public IActionResult GetPrepayCalcStatusMessage([FromBody] string DealId)
-        {
-            GenericResult _authenticationResult = null;
-            var headerUserID = new Guid();
-            if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
-            {
-                headerUserID = new Guid(Request.Headers["TokenUId"]);
-            }
-#pragma warning disable CS0219 // The variable 'requestid' is assigned but its value is never used
-            string requestid = "";
-#pragma warning restore CS0219 // The variable 'requestid' is assigned but its value is never used
-            DealLogic dealLogic = new DealLogic();
-            PrepayCalcStatusDataContract prepayCalc = new PrepayCalcStatusDataContract();
-            prepayCalc = dealLogic.GetPrepayCalcStatusMessage(DealId);
-            string a = GetLoggedFile(prepayCalc.RequestID);
-            List<string> loggedfileresult = convertStringToDataTable(a);
-            try
-            {
-                _authenticationResult = new GenericResult()
-                {
-                    Succeeded = true,
-                    Message = "Authentication succeeded",
-                    PrepayCalcFailedStatusData = prepayCalc,
-                    loggedfiledata = loggedfileresult
-
-                };
-
-            }
-            catch (Exception ex)
-            {
-                _authenticationResult = new GenericResult()
-                {
-                    Succeeded = false,
-                    Message = ex.Message
-                };
-            }
-            return Ok(_authenticationResult);
-        }
-
         public string GetLoggedFile(string requestid)
         {
-#pragma warning disable CS0219 // The variable 'SavingFailedFor' is assigned but its value is never used
             string SavingFailedFor = "";
-#pragma warning restore CS0219 // The variable 'SavingFailedFor' is assigned but its value is never used
             string result = "";
             try
             {
@@ -4316,9 +4398,7 @@ namespace CRES.Services.Controllers
             {
                 headerUserID = new Guid(Request.Headers["TokenUId"]);
             }
-#pragma warning disable CS0219 // The variable 'requestid' is assigned but its value is never used
             string requestid = "";
-#pragma warning restore CS0219 // The variable 'requestid' is assigned but its value is never used
             DealLogic dealLogic = new DealLogic();
             List<EquitySummaryDataContract> equitySummaryData = new List<EquitySummaryDataContract>();
             equitySummaryData = dealLogic.GetEquitySummaryByDealID(DealId);
@@ -4334,6 +4414,1804 @@ namespace CRES.Services.Controllers
 
                 };
 
+            }
+            catch (Exception ex)
+            {
+                _authenticationResult = new GenericResult()
+                {
+                    Succeeded = false,
+                    Message = ex.Message
+                };
+            }
+            return Ok(_authenticationResult);
+        }
+
+
+
+        [HttpGet]
+        [Route("api/deal/CheckBackShopExport")]
+        public IActionResult CheckBackShopExport(string DealID, string noteid, string Type)
+        {
+
+            try
+            {
+                BackShopExportLogic bsl = new BackShopExportLogic();
+                string res = bsl.ExportDataToBackShop(DealID, "B0E6697B-3534-4C09-BE0A-04473401AB93", noteid, Type);
+                return Ok(res);
+            }
+            catch (Exception ex)
+            {
+                return Ok(ex);
+            }
+        }
+
+        [HttpPost]
+        [Services.Controllers.IsAuthenticate]
+        [Services.Controllers.DeflateCompression]
+        [Route("api/deal/getServicingWatchListDatabyDealid")]
+        public IActionResult GetServicingWatchListDatabyDealid([FromBody] string DealID)
+        {
+            GenericResult _authenticationResult = null;
+            List<ServicingWatchlistDataContract> ListServicingWatchlistLegal = new List<ServicingWatchlistDataContract>();
+            List<ServicingWatchlistDataContract> ListServicingWatchlistAccounting = new List<ServicingWatchlistDataContract>();
+            List<ServicingWatchlistDataContract> ListServicingPotentialImpairment = new List<ServicingWatchlistDataContract>();
+
+            IEnumerable<string> headerValues;
+            var headerUserID = new Guid();
+
+            if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
+            {
+                headerUserID = new Guid(Request.Headers["TokenUId"]);
+            }
+
+            ServicingWatchListLogic swlogic = new ServicingWatchListLogic();
+
+            ListServicingWatchlistAccounting = swlogic.GetServicingWatchlistDealAccountingByDealID(DealID);
+            ListServicingWatchlistLegal = swlogic.GetServicingWatchlistDealLegalStatusByDealID(DealID);
+            //ListServicingPotentialImpairment = swlogic.GetServicingWatchlistDealPotentialImpairmentByDealID(DealID);
+            DataTable dt = new DataTable();
+            dt = swlogic.GetDealPotentialImpairmentByDealID(new Guid(DealID), headerUserID);
+
+
+            try
+            {
+                //if (dt.Rows.Count > 0)
+                {
+                    _authenticationResult = new GenericResult()
+                    {
+                        Succeeded = true,
+                        Message = "Succeeded",
+                        ListServicingWatchlistLegal = ListServicingWatchlistLegal,
+                        ListServicingWatchlistAccounting = ListServicingWatchlistAccounting,
+                        ListServicingPotentialImpairment = ListServicingPotentialImpairment,
+                        dt = dt
+                    };
+                }
+
+            }
+            catch (Exception ex)
+            {
+                LoggerLogic Log = new LoggerLogic();
+                //Log.WriteLogException(CRESEnums.Module.Deal.ToString(), "Error occured in autospread GetServicingWatchListDatabyDealid for deal id", "", headerUserID.ToString(), ex.TargetSite.Name.ToString(), "", ex);
+
+                _authenticationResult = new GenericResult()
+                {
+                    Succeeded = false,
+                    Message = "Failed"
+                };
+            }
+            return Ok(_authenticationResult);
+        }
+
+        public void SaveServicingWatchListData(DealDataContract dealdc, string userid)
+        {
+            LoggerLogic Log = new LoggerLogic();
+
+            try
+            {
+                ServicingWatchListLogic SWLogic = new ServicingWatchListLogic();
+                foreach (var item in dealdc.ServicingWatchlistAccounting)
+                {
+                    item.UserID = userid;
+                    item.DealID = dealdc.DealID.ToString();
+                    if (item.IsDeleted == null)
+                    {
+                        item.IsDeleted = false;
+                    }
+                }
+                SWLogic.InsertUpdatedServicingWatchlistAccounting(dealdc.ServicingWatchlistAccounting);
+
+                foreach (var item in dealdc.ServicingPotentialImpairment)
+                {
+                    item.UserID = userid;
+                    item.DealID = dealdc.DealID.ToString();
+                    if (item.IsDeleted == null)
+                    {
+                        item.IsDeleted = false;
+                    }
+
+                }
+                if (dealdc.ServicingPotentialImpairmentList != null && dealdc.ServicingPotentialImpairmentList.Rows.Count > 0)
+                {
+                    SWLogic.InsertUpdatedServicingWatchlistPotentialImpairment(dealdc.ServicingPotentialImpairmentList, userid);
+                }
+            }
+            catch (Exception ex)
+            {
+                Log.WriteLogException(CRESEnums.Module.Deal.ToString(), "Error occured in SaveServicingWatchListData for deal id" + dealdc.DealID, "", userid, ex.TargetSite.Name.ToString(), "", ex);
+                throw ex;
+            }
+
+        }
+
+        [HttpPost]
+        [Route("api/deal/updatedealdataintoM61")]
+        public IActionResult UpdateDealDataIntoM61([FromBody] dynamic root)
+        {
+            GetConfigSetting();
+            string headerkey = Sectionroot.GetSection("m61authKey").Value;
+            LoggerLogic log = new LoggerLogic();
+            v1GenericResult _authenticationResult = null;
+            List<string> ListError = new List<string>();
+            string headerValues = "";
+            try
+            {
+                if (!string.IsNullOrEmpty(Request.Headers["m61authKey"]))
+                {
+                    headerValues = Request.Headers["m61authKey"].ToString();
+                }
+                if (headerkey == headerValues)
+                {
+                    List<ServicingWatchlistDataContract> watchList = new List<ServicingWatchlistDataContract>();
+                    JObject jsonObject = JObject.FromObject(root);
+                    JArray dealsArray = (JArray)jsonObject["Deals"];
+                    string currentdealid = "";
+                    foreach (var dealToken in dealsArray)
+                    {
+                        JArray watchListArray = (JArray)dealToken["SpecialServicingStatus"];
+                        foreach (var watchListItem in watchListArray)
+                        {
+                            currentdealid = Convert.ToString(dealToken["DealID"]);
+                            if (currentdealid != "" && currentdealid != null)
+                            {
+                                string Errorkey = "";
+                                ServicingWatchlistDataContract leagl = new ServicingWatchlistDataContract();
+
+                                if (CommonHelper.ToDateTime(watchListItem["StartDate"].ToString()) == null)
+                                {
+                                    Errorkey += "StartDate is not valid,";
+                                }
+                                if (Convert.ToString(watchListItem["Type"]) == "" || Convert.ToString(watchListItem["Type"]) == null)
+                                {
+                                    Errorkey += "Type is empty,";
+                                }
+
+                                if (Errorkey == "")
+                                {
+                                    leagl.StartDate = CommonHelper.ToDateTime(watchListItem["StartDate"]);
+                                    leagl.Type = Convert.ToString(watchListItem["Type"]);
+
+                                    leagl.CreDealID = Convert.ToString(dealToken["DealID"]);
+                                    leagl.Comment = Convert.ToString(watchListItem["Comment"]);
+                                    leagl.UserID = Convert.ToString(watchListItem["UserName"]);
+
+                                    string ReasonCodetxt = "";
+                                    if (watchListItem["ReasonCodes"] != null)
+                                    {
+                                        var ReasonCodestArray = watchListItem["ReasonCodes"];
+                                        if (ReasonCodestArray != null)
+                                        {
+                                            foreach (var item in ReasonCodestArray)
+                                            {
+                                                ReasonCodetxt = ReasonCodetxt + item["ReasonCode"] + " / ";
+                                            }
+                                        }
+                                    }
+                                    if (ReasonCodetxt != "")
+                                    {
+                                        leagl.ReasonCode = ReasonCodetxt.Substring(0, ReasonCodetxt.Length - 3);
+                                    }
+                                    leagl.UpdatedBy = Convert.ToString(watchListItem["UserName"]);
+                                    watchList.Add(leagl);
+                                }
+                                else
+                                {
+                                    ListError.Add("For Deal ID " + currentdealid + " " + Errorkey.Trim().Trim(',') + ".");
+                                }
+
+                            }
+                            else
+                            {
+                                ListError.Add("Deal ID Cannot be empty");
+                                // no deal id
+                            }
+                        }
+                    }
+                    ServicingWatchListLogic SWLogic = new ServicingWatchListLogic();
+                    SWLogic.InsertWLDealLegalStatusFromAPI(watchList);
+                    log.WriteLogInfo(CRESEnums.Module.ServicingWatchlist.ToString(), "UpdateDealDataIntoM61 data saved in database", "", "");
+                    _authenticationResult = new v1GenericResult()
+                    {
+                        Status = 200,
+                        Succeeded = true,
+                        Message = "Data Saved Successfully.",
+                        ErrorDetails = "",
+                        Validationarray = ListError
+                    };
+                }
+                else
+                {
+                    return StatusCode(Microsoft.AspNetCore.Http.StatusCodes.Status401Unauthorized, "Unauthorized access");
+                }
+            }
+            catch (Exception ex)
+            {
+                _authenticationResult = new v1GenericResult()
+                {
+                    Status = 500,
+                    Succeeded = false,
+                    Message = "Internal Server Error",
+                    ErrorDetails = ex.Message
+                };
+                log.WriteLogException(CRESEnums.Module.ServicingWatchlist.ToString(), "Error in UpdateDealDataIntoM61 " + Convert.ToString(root), "", useridforSys_Scheduler, "UpdateDealDataIntoM61", "", ex);
+            }
+            return Ok(_authenticationResult);
+        }
+
+        public static bool IsValidDate(string dt)
+        {
+            DateTime Test;
+            if (DateTime.TryParseExact(dt, "MM/dd/yyyy", null, DateTimeStyles.None, out Test) == true)
+                return true;
+            else
+                return false;
+        }
+
+
+
+        [HttpPost]
+        [Services.Controllers.IsAuthenticate]
+        [Services.Controllers.DeflateCompression]
+        [Route("api/deal/getdealliabilitybydealid")]
+        public IActionResult GetDealLiabilityByDealID([FromBody] string DealAccountID)
+        {
+            GenericResult _authenticationResult = null;
+            IEnumerable<string> headerValues;
+
+            var headerUserID = string.Empty;
+            LiabilityNoteLogic LiabilityNoteLogic = new LiabilityNoteLogic();
+            if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
+            {
+                headerUserID = Convert.ToString(Request.Headers["TokenUId"]);
+            }
+            List<LiabilityNoteDataContract> ListLiabilityNotes = new List<LiabilityNoteDataContract>();
+            try
+            {
+                ListLiabilityNotes = LiabilityNoteLogic.GetLiabilityNoteByDealAccountID(DealAccountID);
+                List<LiabilityFundingScheduleDataContract> ListLiabilityFundingSchedule = LiabilityNoteLogic.GetLiabilityFundingScheduleByDealAccountID(DealAccountID);
+
+                List<LookupDataContract> AssetList = LiabilityNoteLogic.GetAssetListByDealAccountID(Convert.ToString(DealAccountID));
+                List<LiabilityNoteAssetMapping> LNoteAssetMap = LiabilityNoteLogic.GetLiabilityNoteAssetMappingByDealAccountID(Convert.ToString(DealAccountID));
+
+                List<LookupDataContract> lstLookups = LiabilityNoteLogic.GetTransactionTypesLookupForJournalEntry();
+                if (ListLiabilityNotes != null)
+                {
+                    _authenticationResult = new GenericResult()
+                    {
+                        Succeeded = true,
+                        Message = "Authentication succeeded",
+                        ListDealLiability = ListLiabilityNotes,
+                        ListLiabilityFundingSchedule = ListLiabilityFundingSchedule,
+                        AssetList = AssetList,
+                        LNoteAssetMap = LNoteAssetMap,
+                        lstLookups = lstLookups
+                    };
+                }
+                else
+                {
+                    _authenticationResult = new GenericResult()
+                    {
+                        Succeeded = false,
+                        Message = "Authentication failed"
+                    };
+                }
+            }
+            catch (Exception ex)
+            {
+
+                _authenticationResult = new GenericResult()
+                {
+                    Succeeded = false,
+                    Message = ex.Message
+                };
+            }
+            return Ok(_authenticationResult);
+        }
+        public void SaveDealLiability(DealDataContract dealdc, string userid)
+        {
+
+            try
+            {
+                LiabilityNoteLogic lnl = new LiabilityNoteLogic();
+                //if (dealdc.ListLiabilityFundingSchedule != null)
+                //{
+                //    if (dealdc.ListLiabilityFundingSchedule.Count > 0)
+                //    {
+                //        int rowno = 1;
+                //        foreach (var item in dealdc.ListLiabilityFundingSchedule)
+                //        {
+                //            if (item.AssetAccountID == null || item.AssetAccountID == "")
+                //            {
+                //                item.AssetAccountID = "00000000-0000-0000-0000-000000000000";
+                //            }
+                //            item.RowNo = rowno;
+                //            rowno = rowno + 1;
+                //        }
+                //        lnl.InsertUpdatedLiabilityFundingSchedule(dealdc.ListLiabilityFundingSchedule, userid);
+
+                //    }
+                //}
+                // lnl.MoveConfirmedToAdditionalTransactionEntry(dealdc.DealAccountID, userid);
+
+                if (dealdc.ListDealLiability != null)
+                {
+                    if (dealdc.ListDealLiability.Count > 0)
+                    {
+
+                        foreach (LiabilityNoteDataContract note in dealdc.ListDealLiability)
+                        {
+                            if (note.AssetAccountID == null || note.AssetAccountID == "")
+                            {
+                                note.AssetAccountID = "00000000-0000-0000-0000-000000000000";
+                            }
+                            if (note.LiabilityNoteAutoID == null)
+                            {
+                                note.LiabilityNoteAutoID = 0;
+                            }
+                            if (note.PledgeDate == null)
+                            {
+                                note.PledgeDate = DateTime.Now;
+                            }
+                            if (note.DealAccountID == null)
+                            {
+                                note.DealAccountID = dealdc.DealAccountID;
+                            }
+
+                            //create list of liability note asset mapping
+                            List<LiabilityNoteAssetMapping> LiabilityAssetMap = new List<LiabilityNoteAssetMapping>();
+                            LiabilityAssetMap = dealdc.ListLiabilityNoteAssetMapping.FindAll(x => x.LiabilityNoteId == note.LiabilityNoteID);
+
+                            if (note.IsDeleted == true)
+                            {
+                                lnl.DeleteLiabilityNote(note.LiabilityNoteAccountID);
+                            }
+                            else if (note.IsDeleted == false)
+                            {
+                                lnl.InsertUpdateLiabilityNote(note, userid, LiabilityAssetMap);
+                            }
+                            //lnl.InsertUpdatedLiabilityNoteAssetMapping(dealdc.ListLiabilityNoteAssetMapping, userid);
+                        }
+                    }
+                }
+
+
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
+
+
+        [HttpGet]
+        [Services.Controllers.IsAuthenticate]
+        [Route("api/deal/getAllTagNameXIRR")]
+        public IActionResult GetAllTagNameXIRR()
+        {
+            GenericResult _authenticationResult = null;
+            TagXIRRLogic tagXIRRLogic = new TagXIRRLogic();
+            var headerUserID = new Guid();
+            if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
+            {
+                headerUserID = new Guid(Request.Headers["TokenUId"]);
+            }
+
+            DataTable dt = tagXIRRLogic.GetAllNoteTagsXIRR(headerUserID);
+
+
+            try
+            {
+                if (dt.Rows.Count > 0)
+                {
+                    _authenticationResult = new GenericResult()
+                    {
+                        Succeeded = true,
+                        Message = "Authentication succeeded",
+                        dt = dt
+
+                    };
+                }
+                else
+                {
+                    _authenticationResult = new GenericResult()
+                    {
+                        Succeeded = false,
+                        Message = "Authentication failed"
+                    };
+                }
+            }
+            catch (Exception ex)
+            {
+                LoggerLogic Log = new LoggerLogic();
+                Log.WriteLogException(CRESEnums.Module.Account.ToString(), "Error occurred in GetAllTags", "", "", ex.TargetSite.Name.ToString(), "", ex);
+
+                _authenticationResult = new GenericResult()
+                {
+                    Succeeded = false,
+                    Message = ex.Message
+                };
+            }
+            return Ok(_authenticationResult);
+        }
+
+        [HttpPost]
+        [Services.Controllers.IsAuthenticate]
+        [Services.Controllers.DeflateCompression]
+        [Route("api/deal/getXIRROutputByObjectID")]
+        public IActionResult GetXIRROutputByObjectID([FromBody] string DealAccountID)
+        {
+            GenericResult _authenticationResult = null;
+            IEnumerable<string> headerValues;
+
+            var headerUserID = string.Empty;
+            TagXIRRLogic TagXIRRLogic = new TagXIRRLogic();
+            if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
+            {
+                headerUserID = Convert.ToString(Request.Headers["TokenUId"]);
+            }
+            DataTable dt = new DataTable();
+            DataTable dtCalcReq = new DataTable();
+            try
+            {
+                dt = TagXIRRLogic.GetXIRROutputByObjectID("Deal", DealAccountID);
+                //  dtCalcReq = TagXIRRLogic.GetXIRRCalculationStatusByObjectID(DealAccountID, headerUserID);
+                if (dt.Rows.Count > 0 || dtCalcReq.Rows.Count > 0)
+                {
+                    _authenticationResult = new GenericResult()
+                    {
+                        Succeeded = true,
+                        Message = "Succeeded",
+                        dt = dt,
+                        dtCalcReq = dtCalcReq
+                    };
+                }
+                else
+                {
+                    _authenticationResult = new GenericResult()
+                    {
+                        Succeeded = true,
+                        Message = "No Data."
+                    };
+                }
+            }
+            catch (Exception ex)
+            {
+
+                _authenticationResult = new GenericResult()
+                {
+                    Succeeded = false,
+                    Message = ex.Message
+                };
+            }
+            return Ok(_authenticationResult);
+        }
+
+
+        //[HttpPost]
+        //[Services.Controllers.IsAuthenticate]
+        //[Services.Controllers.DeflateCompression]
+        //[Route("api/deal/getXIRRViewNotesByObjectID")]
+        //public IActionResult GetXIRRViewNotesByObjectID([FromBody] XIRRCalculationRequestsDataContract requestdata)
+        //{
+        //    GenericResult _authenticationResult = null;
+        //    IEnumerable<string> headerValues;
+
+        //    var headerUserID = string.Empty;
+        //    TagXIRRLogic TagXIRRLogic = new TagXIRRLogic();
+        //    if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
+        //    {
+        //        headerUserID = Convert.ToString(Request.Headers["TokenUId"]);
+        //    }
+        //    DataTable dt = new DataTable();
+        //    try
+        //    {
+        //        dt = TagXIRRLogic.GetXIRRViewNotesByObjectID(requestdata.ObjectID, requestdata.XIRRConfigID);
+        //        if (dt.Rows.Count > 0)
+        //        {
+        //            _authenticationResult = new GenericResult()
+        //            {
+        //                Succeeded = true,
+        //                Message = "Succeeded",
+        //                dt = dt
+        //            };
+        //        }
+        //        else
+        //        {
+        //            _authenticationResult = new GenericResult()
+        //            {
+        //                Succeeded = true,
+        //                Message = "No Data."
+        //            };
+        //        }
+        //    }
+        //    catch (Exception ex)
+        //    {
+
+        //        _authenticationResult = new GenericResult()
+        //        {
+        //            Succeeded = false,
+        //            Message = ex.Message
+        //        };
+        //    }
+        //    return Ok(_authenticationResult);
+        //}
+
+        [HttpPost]
+        [Services.Controllers.IsAuthenticate]
+        [Services.Controllers.DeflateCompression]
+        [Route("api/deal/GetXIRRCalculationStatusByObjectID")]
+        public IActionResult GetXIRRCalculationStatusByObjectID([FromBody] string DealAccountID)
+        {
+            GenericResult _authenticationResult = null;
+            IEnumerable<string> headerValues;
+
+            var headerUserID = string.Empty;
+            TagXIRRLogic TagXIRRLogic = new TagXIRRLogic();
+            if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
+            {
+                headerUserID = Convert.ToString(Request.Headers["TokenUId"]);
+            }
+            DataTable dtCalcReq = new DataTable();
+            try
+            {
+
+                dtCalcReq = TagXIRRLogic.GetXIRRCalculationStatusByObjectID(DealAccountID, headerUserID);
+                if (dtCalcReq.Rows.Count > 0)
+                {
+                    _authenticationResult = new GenericResult()
+                    {
+                        Succeeded = true,
+                        Message = "Succeeded",
+                        dtCalcReq = dtCalcReq
+                    };
+                }
+                else
+                {
+                    _authenticationResult = new GenericResult()
+                    {
+                        Succeeded = true,
+                        Message = "No Data."
+                    };
+                }
+            }
+            catch (Exception ex)
+            {
+
+                _authenticationResult = new GenericResult()
+                {
+                    Succeeded = false,
+                    Message = ex.Message
+                };
+            }
+            return Ok(_authenticationResult);
+        }
+
+
+        [HttpPost]
+        [Services.Controllers.IsAuthenticate]
+        [Services.Controllers.DeflateCompression]
+        [Route("api/deal/GetAutoDistributeWriteoffByDealID")]
+        public IActionResult GetAutoDistributeWriteoffByDealID([FromBody] DealDataContract deal)
+        {
+            GenericResult _authenticationResult = null;
+            List<AutoDistributeWriteoffDataContract> _autodistributewriteoff = new List<AutoDistributeWriteoffDataContract>();
+            IEnumerable<string> headerValues;
+
+
+            var headerUserID = string.Empty;
+            if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
+            {
+                headerUserID = Convert.ToString(Request.Headers["TokenUId"]);
+            }
+
+            DealLogic dealLogic = new DealLogic();
+            _autodistributewriteoff = dealLogic.GetAutoDistributeWriteoffByDealID(new Guid(deal.DealID.ToString()));
+            try
+            {
+                if (_autodistributewriteoff != null)
+                {
+                    _authenticationResult = new GenericResult()
+                    {
+                        Succeeded = true,
+                        Message = "Authentication succeeded",
+                        _autodistributewriteoff = _autodistributewriteoff
+                    };
+                }
+                else
+                {
+                    _authenticationResult = new GenericResult()
+                    {
+                        Succeeded = false,
+                        Message = "Authentication failed",
+                    };
+                }
+            }
+            catch (Exception ex)
+            {
+                LoggerLogic Log = new LoggerLogic();
+                Log.WriteLogException(CRESEnums.Module.Deal.ToString(), "Error occured in GetAutoDistributeWriteoffByDealID : Deal ID " + deal.CREDealID, deal.DealID.ToString(), headerUserID.ToString(), ex.TargetSite.Name.ToString(), "", ex);
+
+                _authenticationResult = new GenericResult()
+                {
+                    Succeeded = false,
+                    Message = ex.Message
+                };
+            }
+            return Ok(_authenticationResult);
+        }
+
+        [HttpPost]
+        [Services.Controllers.IsAuthenticate]
+        [Services.Controllers.DeflateCompression]
+        [Route("api/deal/autodistributePrincipalWriteoff")]
+        public IActionResult AutoDistributePrincipalWriteoff([FromBody] PrincipalWriteoffDataContract _principalwriteoff)
+        {
+            GenericResult _authenticationResult = null;
+            var headerUserID = string.Empty;
+            LoggerLogic Log = new LoggerLogic();
+            PrincipalWriteoffDataContract PrincipalWriteoffData = new PrincipalWriteoffDataContract();
+            try
+            {
+                if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
+                {
+                    headerUserID = Convert.ToString(Request.Headers["TokenUId"]);
+                }
+                //var json = JsonConvert.SerializeObject(_principalwriteoff);
+                PrincipalWriteoffHelper pw = new PrincipalWriteoffHelper();
+                PrincipalWriteoffData = pw.StartCalculation(_principalwriteoff);
+                if (PrincipalWriteoffData.GenerationExceptionMessage == "" || PrincipalWriteoffData.GenerationExceptionMessage == null)
+                {
+                    _authenticationResult = new GenericResult()
+                    {
+                        Succeeded = true,
+                        Message = "Principal Write-off auto distributed successfully",
+                        PrincipalWriteoffData = PrincipalWriteoffData
+                    };
+                }
+                else
+                {
+                    Log.WriteLogExceptionMessage(CRESEnums.Module.Deal.ToString(), "Error occured in AutoDistributePrincipalWriteoff : Deal ID " + _principalwriteoff.DealID + PrincipalWriteoffData.GenerationExceptionMessage, _principalwriteoff.DealID, headerUserID.ToString(), "AutoDistributePrincipalWriteoff", PrincipalWriteoffData.GenerationExceptionMessage);
+                    _authenticationResult = new GenericResult()
+                    {
+                        Succeeded = false,
+                        Message = "Principal Write-off auto distribution Failed.",
+                    };
+                }
+
+            }
+            catch (Exception ex)
+            {
+
+                Log.WriteLogException(CRESEnums.Module.Deal.ToString(), "Error occured in AutoDistributePrincipalWriteoff : Deal ID " + _principalwriteoff.DealID + PrincipalWriteoffData.GenerationExceptionMessage, _principalwriteoff.DealID, headerUserID.ToString(), ex.TargetSite.Name.ToString(), "", ex);
+
+                _authenticationResult = new GenericResult()
+                {
+                    Succeeded = false,
+                    Message = "Principal Write-off auto distribution Failed.",
+                };
+            }
+            return Ok(_authenticationResult);
+        }
+
+        [HttpPost]
+        [Services.Controllers.IsAuthenticate]
+        [Services.Controllers.DeflateCompression]
+        [Route("api/deal/GetDealRelationshipByDealID")]
+        public IActionResult GetDealRelationshipByDealID([FromBody] string dealID)
+        {
+            GenericResult _authenticationResult = null;
+            List<DealRelationshipDataContract> _dealRelationship = new List<DealRelationshipDataContract>();
+            IEnumerable<string> headerValues;
+
+            var headerUserID = string.Empty;
+            if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
+            {
+                headerUserID = Convert.ToString(Request.Headers["TokenUId"]);
+            }
+
+            DealLogic dealLogic = new DealLogic();
+            _dealRelationship = dealLogic.GetDealRelationshipByDealID(new Guid(dealID));
+            try
+            {
+                if (_dealRelationship != null)
+                {
+                    _authenticationResult = new GenericResult()
+                    {
+                        Succeeded = true,
+                        Message = "Authentication succeeded",
+                        _dealRelationship = _dealRelationship
+                    };
+                }
+                else
+                {
+                    _authenticationResult = new GenericResult()
+                    {
+                        Succeeded = false,
+                        Message = "Authentication failed",
+                    };
+                }
+            }
+            catch (Exception ex)
+            {
+                LoggerLogic Log = new LoggerLogic();
+                Log.WriteLogException(CRESEnums.Module.Deal.ToString(), "Error occured in GetAutoDistributeWriteoffByDealID : Deal ID " + dealID, dealID.ToString(), headerUserID.ToString(), ex.TargetSite.Name.ToString(), "", ex);
+
+                _authenticationResult = new GenericResult()
+                {
+                    Succeeded = false,
+                    Message = ex.Message
+                };
+            }
+            return Ok(_authenticationResult);
+        }
+
+
+
+        [HttpPost]
+        [Services.Controllers.IsAuthenticate]
+        [Route("api/deal/PrepaymentNoteSetupByDealID")]
+        public IActionResult GetPrepaymentNoteSetupByDealID([FromBody] string DealID)
+        {
+            GenericResult _authenticationResult = null;
+            DealLogic dealLogic = new DealLogic();
+            var headerUserID = new Guid();
+            if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
+            {
+                headerUserID = new Guid(Request.Headers["TokenUId"]);
+            }
+
+            DataTable dt = dealLogic.GetPrepaymentNoteSetupByDealID(new Guid(DealID));
+            if (dt.Rows.Count == 0)
+            {
+                DataRow dr = dt.NewRow();
+                dt.Rows.Add(dr);
+            }
+
+            try
+            {
+                if (dt.Rows.Count > 0)
+                {
+                    _authenticationResult = new GenericResult()
+                    {
+                        Succeeded = true,
+                        Message = "Authentication succeeded",
+                        dt = dt
+
+                    };
+                }
+                else
+                {
+                    _authenticationResult = new GenericResult()
+                    {
+                        Succeeded = false,
+                        Message = "Authentication failed"
+                    };
+                }
+            }
+            catch (Exception ex)
+            {
+                LoggerLogic Log = new LoggerLogic();
+                Log.WriteLogException(CRESEnums.Module.Account.ToString(), "Error occurred in Get Prepayment NoteSetupByDealID", "", "", ex.TargetSite.Name.ToString(), "", ex);
+
+                _authenticationResult = new GenericResult()
+                {
+                    Succeeded = false,
+                    Message = ex.Message
+                };
+            }
+            return Ok(_authenticationResult);
+        }
+
+        [HttpPost]
+        [Services.Controllers.IsAuthenticate]
+        [Route("api/deal/PrepaymentGroupByDealID")]
+        public IActionResult GetPrepaymentGroupByDealID([FromBody] string DealID)
+        {
+            GenericResult _authenticationResult = null;
+            DealLogic dealLogic = new DealLogic();
+            var headerUserID = new Guid();
+            if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
+            {
+                headerUserID = new Guid(Request.Headers["TokenUId"]);
+            }
+
+            DataTable dt = dealLogic.GetPrepaymentGroupByDealID(new Guid(DealID));
+            if (dt.Rows.Count == 0)
+            {
+                DataRow dr = dt.NewRow();
+                dt.Rows.Add(dr);
+            }
+
+            try
+            {
+                if (dt.Rows.Count > 0)
+                {
+                    _authenticationResult = new GenericResult()
+                    {
+                        Succeeded = true,
+                        Message = "Authentication succeeded",
+                        dt = dt
+
+                    };
+                }
+                else
+                {
+                    _authenticationResult = new GenericResult()
+                    {
+                        Succeeded = false,
+                        Message = "Authentication failed"
+                    };
+                }
+            }
+            catch (Exception ex)
+            {
+                LoggerLogic Log = new LoggerLogic();
+                Log.WriteLogException(CRESEnums.Module.Account.ToString(), "Error occurred in Get Prepayment Group By DealID", "", "", ex.TargetSite.Name.ToString(), "", ex);
+
+                _authenticationResult = new GenericResult()
+                {
+                    Succeeded = false,
+                    Message = ex.Message
+                };
+            }
+            return Ok(_authenticationResult);
+        }
+
+        [HttpPost]
+        [Services.Controllers.IsAuthenticate]
+        [Route("api/deal/getPayoffStatementFeesByDealID")]
+        public IActionResult GetPayoffStatementFeesByDealID([FromBody] string DealID)
+        {
+            GenericResult _authenticationResult = null;
+            DealLogic dealLogic = new DealLogic();
+            var headerUserID = new Guid();
+            if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
+            {
+                headerUserID = new Guid(Request.Headers["TokenUId"]);
+            }
+
+            DataTable dt = dealLogic.GetPayoffStatementFeesDetailsByDealID(new Guid(DealID));
+            if (dt.Rows.Count == 0)
+            {
+                PrepayPremiumLogic PrepayPremiumLogic = new PrepayPremiumLogic();
+                dt = PrepayPremiumLogic.GetDefeaultDataForPayoffStatementFees(DealID);
+            }
+
+            try
+            {
+                if (dt.Rows.Count > 0)
+                {
+                    _authenticationResult = new GenericResult()
+                    {
+                        Succeeded = true,
+                        Message = "Authentication succeeded",
+                        dt = dt
+
+                    };
+                }
+                else
+                {
+                    _authenticationResult = new GenericResult()
+                    {
+                        Succeeded = false,
+                        Message = "Authentication failed"
+                    };
+                }
+            }
+            catch (Exception ex)
+            {
+                LoggerLogic Log = new LoggerLogic();
+                Log.WriteLogException(CRESEnums.Module.Account.ToString(), "Error occurred in Get Prepayment Group By DealID", "", "", ex.TargetSite.Name.ToString(), "", ex);
+
+                _authenticationResult = new GenericResult()
+                {
+                    Succeeded = false,
+                    Message = ex.Message
+                };
+            }
+            return Ok(_authenticationResult);
+        }
+
+        [HttpGet]//http get as it return file 
+        [Route("api/deal/downloadPayoffstatementexcel")]
+        public async Task<IActionResult> DownloadPayoffStatementExcel(string ID, string ID1, string ID2)
+        {
+
+            LoggerLogic Log = new LoggerLogic();
+
+            var headerUserID = string.Empty;
+            if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
+            {
+                headerUserID = Convert.ToString(Request.Headers["TokenUId"]);
+            }
+            string fileName = "payoff";// + string.Format("{0:ddmmyyyhhmmss}", System.DateTime.Now);
+                                       //string currentDirectorypath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot//ExcelTemplate");
+            string currentDirectorypath = Path.Combine(System.IO.Directory.GetCurrentDirectory(), "wwwroot//ExcelTemplate/payoff.xlsx");
+
+            DateTime parsedDate = DateTime.Parse(ID1);
+            string formattedDate = parsedDate.ToString("MM-dd-yyyy");
+
+            DataTable blobData = await GetCsvFromAzureBlobAsDataTable("PPOutputCF_" + ID + "_" + formattedDate + ".csv");
+
+            if (blobData != null)
+            {
+                if (blobData.Columns.Contains("Column1"))
+                {
+                    blobData.Columns.Remove("Column1");
+                }
+
+                string dateColumnName = "Date";
+                if (blobData.Columns.Contains(dateColumnName))
+                {
+                    foreach (DataRow row in blobData.Rows)
+                    {
+                        if (DateTime.TryParse(row[dateColumnName]?.ToString(), out DateTime dateValue))
+                        {
+                            row[dateColumnName] = dateValue.ToString("MM/dd/yyyy");
+                        }
+                    }
+                }
+            }
+
+            string finalFileNameWithPath = string.Empty;
+            String[,] tabName = new string[,] { { "Master", "Master" }, { "PrincipalPaydown", "Principal Paydown" }, { "AccruedInterest", "Accrued Interest" }, { "AccruedInterestForward", "Accrued Interest" }, { "ExitFee", "Exit Fee" }, { "UnusedFee", "Unused Fee" }, { "OriginationFee", "Origination Fee" }, { "PrepaymentPremium", "Prepayment Premium" }, { "MiscellaneousFees", "Miscellaneous Fees" }, { "EscrowsReserves", "Netting of Escrows/Reserves" } };
+            int startRow = 29, startCol = 6;
+            DateTime PayoffDate = Convert.ToDateTime(ID1);  //("06/06/2025");
+            DateTime? ActualPayoffDate = null;
+            if (ID2 != "null")
+            {
+                ActualPayoffDate = Convert.ToDateTime(ID2);
+            }
+            double gridTotal = 0, OverAllTotal = 0;
+
+            try
+            {
+                PayoffLogic pfLogic = new PayoffLogic();
+                string CurrentServicername = "";
+                string srvnodename = "";
+
+                var dataToExcel = pfLogic.GetPayoffAnalysisData(ID, PayoffDate, ActualPayoffDate);
+                for (int tabIndex = 0; tabIndex < tabName.GetLength(0); tabIndex++)
+                {
+                    dataToExcel.Tables[tabIndex].TableName = tabName[tabIndex, 0];
+                }
+
+                var newFile = new FileInfo(currentDirectorypath);
+
+                Log.WriteLogInfo("DownloadPayoffStatement", finalFileNameWithPath + " " + newFile.Exists, "", "", "DownloadPayoffStatement");
+
+                //Step 1 : Create object of ExcelPackage class and pass file path to constructor.
+                using (var package = new OfficeOpenXml.ExcelPackage(newFile))
+                {
+                    OfficeOpenXml.ExcelWorksheet worksheet = package.Workbook.Worksheets["ACORE Payoff Letter"];
+
+                    DataTable masterdata = dataToExcel.Tables[0];
+
+                    foreach (DataRow masterrow in masterdata.Rows)
+                    {
+                        worksheet.Cells[17, 6].Value = masterrow["Servicer"].ToString();
+                        //worksheet.Cells[21, 6].Value = masterrow["SeniorNote"].ToString();
+                        worksheet.Cells[22, 6].Value = masterrow["DealName"].ToString();
+                        worksheet.Cells[17, 12].Value = CommonHelper.ToDateTimeStringFormat(masterrow["PayoffDate"]);
+                        worksheet.Cells[19, 12].Value = CommonHelper.ToDateTimeStringFormat(masterrow["PayoffDate"]);
+                        worksheet.Cells[22, 9].Value = masterrow["InvestorName"].ToString();
+
+
+                        string vBorrowerName = masterrow["BorrowerName"].ToString();
+                        var splitary = vBorrowerName.Split("|");
+
+                        if (splitary != null)
+                        {
+                            int startindex = 23;
+                            foreach (var item in splitary)
+                            {
+                                worksheet.Cells[startindex, 6].Value = item.ToString();
+                                startindex = startindex + 1;
+                            }
+                        }
+
+
+                        string vBorrowerAddress = masterrow["BorrowerAddress"].ToString();
+                        var splitaryb = vBorrowerAddress.Split("|");
+
+                        if (splitaryb != null)
+                        {
+                            int startindex = 21;
+                            foreach (var item in splitaryb)
+                            {
+                                worksheet.Cells[startindex, 11].Value = item.ToString();
+                                startindex = startindex + 1;
+                            }
+                        }
+
+                        worksheet.Cells[19, 12].Value = CommonHelper.ToDateTimeStringFormat(masterrow["PayoffDate"]);
+                        CurrentServicername = masterrow["ServicerName"].ToString();
+
+                        if (CurrentServicername == "Berkadia Commercial Mortgage")
+                        {
+                            srvnodename = "Berkadia_Commercial_Mortgage";
+                        }
+                        else
+                        {
+                            srvnodename = "Trimont";
+                        }
+
+                        string configfilename = "PayOffConfiguration.json";
+                        string currentDirectoryPath = Path.Combine(System.IO.Directory.GetCurrentDirectory(), "wwwroot//JSONTemplate//" + configfilename);
+                        string jsonRequest = System.IO.File.ReadAllText(currentDirectoryPath);
+
+                        var objJson = JsonConvert.DeserializeObject<dynamic>(jsonRequest);
+
+                        var servicerinfo = objJson[srvnodename];
+
+                        string vLoanServicer = objJson["LoanServicer"];
+                        string vAttention = objJson["Attention"];
+                        string vFooter = objJson["FooterText"];
+
+
+                        worksheet.Cells[40, 4].Value = vLoanServicer.Replace("SERVICERINFORMATION", CurrentServicername);
+
+                        worksheet.Cells[41, 5].Value = Convert.ToString(servicerinfo["PrimaryContact"]);
+                        worksheet.Cells[42, 5].Value = Convert.ToString(servicerinfo["PrimaryPhone"]);
+                        worksheet.Cells[43, 5].Value = Convert.ToString(servicerinfo["PrimaryEmail"]);
+                        worksheet.Cells[46, 5].Value = Convert.ToString(servicerinfo["BackupContact"]);
+                        worksheet.Cells[47, 5].Value = Convert.ToString(servicerinfo["BackupPhone"]);
+                        worksheet.Cells[48, 5].Value = Convert.ToString(servicerinfo["BackupEmail"]);
+
+                        string vWiringInstructions = objJson["WiringInstructions"];
+                        worksheet.Cells[39, 8].Value = vWiringInstructions.Replace("SERVICERINFORMATION", CurrentServicername);
+
+                        worksheet.Cells[40, 9].Value = Convert.ToString(servicerinfo["Bank"]);
+                        worksheet.Cells[41, 9].Value = Convert.ToString(servicerinfo["Beneficiary"]);
+                        worksheet.Cells[42, 9].Value = Convert.ToString(servicerinfo["AcctName"]);
+                        worksheet.Cells[43, 9].Value = Convert.ToString(servicerinfo["ABANo"]);
+                        worksheet.Cells[44, 9].Value = Convert.ToString(servicerinfo["AcctNo"]);
+                        worksheet.Cells[45, 9].Value = vAttention.Replace("SERVICERILoanID", masterrow["ServicerID"].ToString());
+                        worksheet.Cells["D36"].Value = vFooter.Replace("SERVICERINFORMATION", CurrentServicername);
+                        string Disclaimer = Convert.ToString(servicerinfo["DisclaimerExtra"]) + Convert.ToString(objJson["Disclaimer"]);
+
+                        Disclaimer = Disclaimer.Replace("SERVICERINFORMATION", CurrentServicername);
+                        Disclaimer = Disclaimer.Replace("newline", "\r\n");
+
+                        worksheet.Cells["H47"].Value = Disclaimer;
+                    }
+
+
+                    int tabIndex = 0, rowCount = 0, colCount = 0;
+                    string excelSheetName, heading;
+                    //Step 2 : Add a new worksheet to ExcelPackage object and give a suitable name
+                    for (tabIndex = 1; tabIndex < tabName.GetLength(0) - 1; tabIndex++)
+                    {
+                        excelSheetName = tabName[tabIndex, 0];
+                        heading = tabName[tabIndex, 1];
+                        rowCount = dataToExcel.Tables[excelSheetName].Rows.Count;
+                        colCount = dataToExcel.Tables[excelSheetName].Columns.Count;
+
+                        if (((excelSheetName == "PrincipalPaydown" || excelSheetName == "MiscellaneousFees" || excelSheetName == "UnusedFee" || excelSheetName == "OriginationFee") && rowCount > 0) || ((excelSheetName == "AccruedInterest" || excelSheetName == "AccruedInterestForward" || excelSheetName == "ExitFee" || excelSheetName == "PrepaymentPremium") && rowCount > 1))
+                        {
+
+                            worksheet.InsertRow(startRow, rowCount + 3);
+
+                            //set dates with header for Accrued Interest
+                            string fullName = "";
+
+                            if (heading == "Accrued Interest")
+                            {
+                                if (dataToExcel.Tables[excelSheetName].Rows.Count >= 2)
+                                {
+                                    DataRow secondRow = dataToExcel.Tables[excelSheetName].Rows[1]; // Index 1 = second row (0-based index)
+                                    fullName = $"({secondRow["From"]}-{secondRow["Through"]})";
+                                }
+                            }
+
+                            // Set custom heading (merged cell)
+                            worksheet.Cells[startRow, startCol, startRow, startCol + 6].Merge = true;
+                            worksheet.Cells[startRow, startCol, startRow, startCol].Value = heading + " " + fullName;
+                            worksheet.Cells[startRow, startCol, startRow, startCol].Style.Font.Size = 12;
+                            worksheet.Cells[startRow, startCol, startRow, startCol].Style.Font.Bold = true;
+                            worksheet.Cells[startRow, startCol, startRow, startCol].Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
+                            worksheet.Cells[startRow, startCol, startRow, startCol].Style.Fill.PatternType = ExcelFillStyle.Solid;
+                            worksheet.Cells[startRow, startCol, startRow, startCol].Style.Fill.BackgroundColor.SetColor(Color.LightGray);
+
+                            worksheet.Cells[startRow, startCol, startRow, startCol + 6].Style.Border.Left.Style = ExcelBorderStyle.Thin;
+                            worksheet.Cells[startRow, startCol, startRow, startCol + 6].Style.Border.Bottom.Style = ExcelBorderStyle.Thin;
+                            worksheet.Cells[startRow, startCol, startRow, startCol + 6].Style.Border.Right.Style = ExcelBorderStyle.Thin;
+                            worksheet.Cells[startRow, startCol, startRow, startCol + 6].Style.Border.Top.Style = ExcelBorderStyle.Thin;
+
+                            worksheet.Cells[startRow + 1, startCol, startRow + 1, startCol].LoadFromDataTable(dataToExcel.Tables[excelSheetName], false, OfficeOpenXml.Table.TableStyles.None);
+
+                            if (excelSheetName != "PrincipalPaydown" && excelSheetName != "MiscellaneousFees")
+                            {
+                                worksheet.Cells[startRow + 1, startCol, startRow + 1, startCol + colCount].Style.Font.Bold = true;
+                                worksheet.Cells[startRow + 1, startCol, startRow + 1, startCol + colCount].Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
+                            }
+
+                            int rowTotal = startRow + rowCount + 1;
+                            worksheet.Cells[startRow + 1, startCol + 6, rowTotal, startCol + 6].StyleID = worksheet.Cells["A1"].StyleID;
+                            worksheet.Cells[rowTotal, startCol + 5].Value = heading + ":";
+                            worksheet.Cells[rowTotal, startCol + 5, rowTotal, startCol + 6].Style.Font.Bold = true;
+                            //worksheet.Cells[rowTotal, startCol + 6].Value = dataToExcel.Tables[excelSheetName].AsEnumerable().Sum(r => Double.Parse(r["Amount"].ToString())).Where;
+                            gridTotal = dataToExcel.Tables[excelSheetName].AsEnumerable().Where(r => r["Amount"] != DBNull.Value && !string.IsNullOrWhiteSpace(r["Amount"].ToString())).Sum(r => Convert.ToDouble(r["Amount"]));
+                            worksheet.Cells[rowTotal, startCol + 6].Value = gridTotal;
+                            OverAllTotal = OverAllTotal + gridTotal;
+
+                            worksheet.Cells[rowTotal, startCol].Style.Border.Left.Style = ExcelBorderStyle.Thin;
+                            worksheet.Cells[rowTotal, startCol, rowTotal, startCol + 6].Style.Border.Bottom.Style = ExcelBorderStyle.Thin;
+                            worksheet.Cells[rowTotal, startCol + 6].Style.Border.Right.Style = ExcelBorderStyle.Thin;
+                            worksheet.Cells[rowTotal, startCol, rowTotal, startCol + 6].Style.Border.Top.Style = ExcelBorderStyle.Thin;
+
+                            worksheet.Cells[startRow, startCol, rowTotal, startCol].Style.Border.Left.Style = ExcelBorderStyle.Thin;
+                            worksheet.Cells[startRow, startCol + 6, rowTotal, startCol + 6].Style.Border.Right.Style = ExcelBorderStyle.Thin;
+
+                            worksheet.Cells[startRow, startCol - 2, rowTotal + 1, startCol - 2].Style.Border.Left.Style = ExcelBorderStyle.Medium;
+                            worksheet.Cells[startRow, startCol + 7, rowTotal + 1, startCol + 7].Style.Border.Right.Style = ExcelBorderStyle.Medium;
+
+                            startRow = startRow + rowCount + 3;
+
+                            //dataToExcel.Tables[excelSheetName].Rows.Count
+                        }
+                    }
+                    worksheet.Cells[startRow, startCol + 5].Value = "Sub-Total: ";
+                    worksheet.Cells[startRow, startCol + 6].Value = OverAllTotal;
+
+                    worksheet.Cells[startRow, startCol + 6].StyleID = worksheet.Cells["A1"].StyleID;
+                    worksheet.Cells[startRow, startCol + 5, startRow, startCol + 6].Style.Font.Name = "Arial Black";
+                    worksheet.Cells[startRow, startCol + 5, startRow, startCol + 6].Style.Font.Size = 12;
+                    worksheet.Cells[startRow, startCol + 5, startRow, startCol + 6].Style.Font.Bold = true;
+                    worksheet.Cells[startRow, startCol + 5, startRow, startCol + 6].Style.Fill.PatternType = ExcelFillStyle.Solid;
+                    worksheet.Cells[startRow, startCol + 5, startRow, startCol + 6].Style.Fill.BackgroundColor.SetColor(0, 255, 255, 153);
+
+                    startRow = startRow + 2;
+
+                    worksheet.InsertRow(startRow, 2);
+
+                    excelSheetName = tabName[tabIndex, 0];
+                    heading = tabName[tabIndex, 1];
+                    rowCount = dataToExcel.Tables[excelSheetName].Rows.Count;
+                    colCount = dataToExcel.Tables[excelSheetName].Columns.Count;
+
+                    if (rowCount > 0)
+                    {
+
+                        worksheet.InsertRow(startRow, rowCount + 3);
+
+                        worksheet.Cells[startRow, startCol, startRow, startCol + 6].Merge = true;
+                        worksheet.Cells[startRow, startCol, startRow, startCol].Value = heading;
+                        worksheet.Cells[startRow, startCol, startRow, startCol].Style.Font.Size = 12;
+                        worksheet.Cells[startRow, startCol, startRow, startCol].Style.Font.Bold = true;
+                        worksheet.Cells[startRow, startCol, startRow, startCol].Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
+                        worksheet.Cells[startRow, startCol, startRow, startCol].Style.Fill.PatternType = ExcelFillStyle.Solid;
+                        worksheet.Cells[startRow, startCol, startRow, startCol].Style.Fill.BackgroundColor.SetColor(Color.LightGray);
+
+                        worksheet.Cells[startRow, startCol, startRow, startCol + 6].Style.Border.Left.Style = ExcelBorderStyle.Thin;
+                        worksheet.Cells[startRow, startCol, startRow, startCol + 6].Style.Border.Bottom.Style = ExcelBorderStyle.Thin;
+                        worksheet.Cells[startRow, startCol, startRow, startCol + 6].Style.Border.Right.Style = ExcelBorderStyle.Thin;
+                        worksheet.Cells[startRow, startCol, startRow, startCol + 6].Style.Border.Top.Style = ExcelBorderStyle.Thin;
+
+                        worksheet.Cells[startRow + 1, startCol, startRow + 1, startCol].LoadFromDataTable(dataToExcel.Tables[excelSheetName], false, OfficeOpenXml.Table.TableStyles.None);
+
+                        int rowTotal = startRow + rowCount + 1;
+                        worksheet.Cells[startRow + 1, startCol + 6, rowTotal, startCol + 6].StyleID = worksheet.Cells["A1"].StyleID;
+                        worksheet.Cells[rowTotal, startCol + 5].Value = heading + ":";
+                        worksheet.Cells[rowTotal, startCol + 5, rowTotal, startCol + 6].Style.Font.Bold = true;
+                        //worksheet.Cells[rowTotal, startCol + 6].Value = dataToExcel.Tables[excelSheetName].AsEnumerable().Sum(r => Double.Parse(r["Amount"].ToString())).Where;
+                        gridTotal = dataToExcel.Tables[excelSheetName].AsEnumerable().Where(r => r["Amount"] != DBNull.Value && !string.IsNullOrWhiteSpace(r["Amount"].ToString())).Sum(r => Convert.ToDouble(r["Amount"]));
+                        worksheet.Cells[rowTotal, startCol + 6].Value = gridTotal;
+                        OverAllTotal = OverAllTotal - gridTotal;
+
+                        worksheet.Cells[rowTotal, startCol].Style.Border.Left.Style = ExcelBorderStyle.Thin;
+                        worksheet.Cells[rowTotal, startCol, rowTotal, startCol + 6].Style.Border.Bottom.Style = ExcelBorderStyle.Thin;
+                        worksheet.Cells[rowTotal, startCol + 6].Style.Border.Right.Style = ExcelBorderStyle.Thin;
+                        worksheet.Cells[rowTotal, startCol, rowTotal, startCol + 6].Style.Border.Top.Style = ExcelBorderStyle.Thin;
+
+                        worksheet.Cells[startRow, startCol, rowTotal, startCol].Style.Border.Left.Style = ExcelBorderStyle.Thin;
+                        worksheet.Cells[startRow, startCol + 6, rowTotal, startCol + 6].Style.Border.Right.Style = ExcelBorderStyle.Thin;
+
+                        worksheet.Cells[startRow, startCol - 2, rowTotal + 1, startCol - 2].Style.Border.Left.Style = ExcelBorderStyle.Medium;
+                        worksheet.Cells[startRow, startCol + 7, rowTotal + 1, startCol + 7].Style.Border.Right.Style = ExcelBorderStyle.Medium;
+
+                        startRow = startRow + rowCount + 3;
+
+                    }
+
+                    worksheet.Cells[startRow, startCol + 6].StyleID = worksheet.Cells["A1"].StyleID;
+                    worksheet.Cells[startRow, startCol + 5].Value = "Total Amount Due: ";
+                    worksheet.Cells[startRow, startCol + 6].Value = OverAllTotal;
+
+                    worksheet.Cells[startRow, startCol + 5, startRow, startCol + 6].Style.Font.Name = "Arial Black";
+                    worksheet.Cells[startRow, startCol + 5, startRow, startCol + 6].Style.Font.Size = 12;
+                    worksheet.Cells[startRow, startCol + 5, startRow, startCol + 6].Style.Font.Bold = true;
+                    worksheet.Cells[startRow, startCol + 5, startRow, startCol + 6].Style.Fill.PatternType = ExcelFillStyle.Solid;
+                    worksheet.Cells[startRow, startCol + 5, startRow, startCol + 6].Style.Fill.BackgroundColor.SetColor(0, 255, 255, 153);
+
+                    worksheet.Cells[startRow, startCol - 2, startRow + 1, startCol - 2].Style.Border.Left.Style = ExcelBorderStyle.Medium;
+                    worksheet.Cells[startRow, startCol + 7, startRow + 1, startCol + 7].Style.Border.Right.Style = ExcelBorderStyle.Medium;
+
+                    if (blobData != null)
+                    {
+                        DataTable dt = new DataTable();
+                        dt.Columns.Add("Date", typeof(DateTime));
+                        dt.Columns.Add("M61 Amount", typeof(double));
+                        dt.Columns.Add("Type", typeof(string));
+                        dt.Columns.Add("Fee Name", typeof(string));
+                        dt.Columns.Add("Fee Type Name", typeof(string));
+                        dt.Columns.Add("Note ID", typeof(string));
+                        dt.Columns.Add("Interest Used in Calc", typeof(double));
+
+                        foreach (DataRow row in blobData.Rows)
+                        {
+                            DateTime date = DateTime.MinValue;
+                            double amount = 0.0;
+                            string type = string.Empty;
+                            string feename = string.Empty;
+                            string feetype = string.Empty;
+                            string noteid = string.Empty;
+                            double InterestCalcAmt = 0.0;
+
+                            if (DateTime.TryParse(row["Date"].ToString(), out DateTime parseDate))
+                                date = parseDate;
+
+                            if (double.TryParse(row["Amount"].ToString(), out double parsedAmount))
+                                amount = parsedAmount;
+
+                            type = row["Type"]?.ToString() ?? string.Empty;
+
+                            feename = row["FeeName"]?.ToString() ?? string.Empty;
+
+                            feetype = row["FeeTypeName"]?.ToString() ?? string.Empty;
+
+                            noteid = row["noteid"]?.ToString() ?? string.Empty;
+
+                            if (double.TryParse(row["spreadpaid"].ToString(), out double parsedInterest))
+                                InterestCalcAmt = parsedInterest;
+
+                            dt.Rows.Add(date, amount, type, feename, feetype, noteid, InterestCalcAmt);
+
+                        }
+
+
+                        var newWorksheet = package.Workbook.Worksheets["M61 Input"];
+                        newWorksheet.Cells["A1"].LoadFromDataTable(dt, true, TableStyles.Medium2);
+
+                    }
+
+                    Byte[] fileBytes = package.GetAsByteArray();
+                    MemoryStream ms = new MemoryStream(fileBytes);
+                    return File(fileBytes, "application/octet-stream");
+                }
+            }
+            catch (Exception ex)
+            {
+
+                Log.WriteLogException("DownloadPayoffStatement", "Error in DownloadPayoffStatement: For Deal ID " + ID, ID, headerUserID.ToString(), ex.TargetSite.Name.ToString(), "", ex);
+
+                throw ex;
+            }
+        }
+
+
+        public async Task<IActionResult> GeneratePayOffStatementandSendEmail()
+        {
+            GenericResult _authenticationResult = null;
+            try
+            {
+                PrepayPremiumLogic prepayPremiumLogic = new PrepayPremiumLogic();
+                DataTable dt = prepayPremiumLogic.GetPayoffEmailData();
+
+                string DealID = "";
+                string PrePayDate = "";
+                string maturityActualPayoffDate = "null";
+                string EmailID = "";
+                string CalculationRequestID = "";
+                string DealName = "";
+                string UserName = "";
+
+                foreach (DataRow row in dt.Rows)
+                {
+                    CalculationRequestID = row["CalculationRequestID"].ToString();
+                    DealID = row["DealID"].ToString();
+                    PrePayDate = row["PrepayDate"].ToString();
+                    EmailID = row["Email"].ToString();
+                    DealName = row["DealName"].ToString();
+                    UserName = row["FirstName"].ToString();
+
+                    string Filename = "Payoff Analysis_" + DealName + "_" + DateTime.Now.ToString("mm.dd.yyyy.hhss") + ".xlsx";
+                    DateTime dtprepay = Convert.ToDateTime(PrePayDate);
+                    string summary = "Please find the attached Payoff Statement for Deal " + DealName + " for Prepay Date " + dtprepay.ToString("MM/dd/yyy");
+                    var result = await DownloadPayoffStatementExcel(DealID, PrePayDate, maturityActualPayoffDate);
+
+                    if (result is FileContentResult fileResult)
+                    {
+                        using (var memoryStream = new MemoryStream(fileResult.FileContents))
+                        {
+                            _iEmailNotification.SendEmailforPrepayPayOffStatementwithAttachment(EmailID, memoryStream, Filename, DealName, UserName, summary);
+                        }
+
+                        prepayPremiumLogic.UpdateCalculationRequestSetIsEmailSentToYes(CalculationRequestID);
+                    }
+                }
+
+                _authenticationResult = new GenericResult()
+                {
+                    Succeeded = true,
+                    Message = "Authentication succeeded"
+
+                };
+            }
+            catch (Exception ex)
+            {
+                LoggerLogic Log = new LoggerLogic();
+                Log.WriteLogException(CRESEnums.Module.Account.ToString(), "Error occurred in GeneratePayOffStatementandSendEmail", "", "", ex.TargetSite.Name.ToString(), "", ex);
+
+                _authenticationResult = new GenericResult()
+                {
+                    Succeeded = false,
+                    Message = ex.Message
+                };
+            }
+            return Ok(_authenticationResult);
+
+        }
+
+        [HttpPost]
+        [Services.Controllers.IsAuthenticate]
+        [Route("api/deal/UpdateDealForPayoffStatementConfiguration")]
+        public IActionResult UpdateDealForPayoffStatementConfiguration([FromBody] DealDataContract DealDC)
+        {
+            GenericResult _authenticationResult = null;
+            DealLogic dealLogic = new DealLogic();
+
+            var headerUserID = string.Empty;
+            if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
+            {
+                headerUserID = Convert.ToString(Request.Headers["TokenUId"]);
+            }
+
+
+            dealLogic.UpdateDealForPayoffStatementConfiguration(DealDC);
+
+            if (DealDC.dtPayoffStatementFees != null)
+            {
+                foreach (DataRow dr in DealDC.dtPayoffStatementFees.Rows)
+                {
+                    dr["DealID"] = DealDC.DealID;
+                    if (dr["PayoffStatementFeesID"] == null || dr["PayoffStatementFeesID"].ToString() == "")
+                    {
+                        dr["PayoffStatementFeesID"] = 0;
+                    }
+                }
+                dealLogic.InsertUpdatePayoffStatementFees(DealDC.dtPayoffStatementFees, headerUserID);
+            }
+
+
+            try
+            {
+                _authenticationResult = new GenericResult()
+                {
+                    Succeeded = true,
+                    Message = "Saved"
+
+                };
+            }
+            catch (Exception ex)
+            {
+                LoggerLogic Log = new LoggerLogic();
+                Log.WriteLogException(CRESEnums.Module.Account.ToString(), "Error occurred in UpdateDealForPayoffStatementConfiguration", "", "", ex.TargetSite.Name.ToString(), "", ex);
+
+                _authenticationResult = new GenericResult()
+                {
+                    Succeeded = false,
+                    Message = ex.Message
+                };
+            }
+            return Ok(_authenticationResult);
+        }
+
+        [HttpPost]
+        [Services.Controllers.IsAuthenticate]
+        [Route("api/deal/PrepaymentNoteAllocationSetup")]
+        public IActionResult GetPrepaymentNoteAllocationSetup([FromBody] string DealID)
+        {
+            GenericResult _authenticationResult = null;
+            DealLogic dealLogic = new DealLogic();
+            var headerUserID = new Guid();
+            if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
+            {
+                headerUserID = new Guid(Request.Headers["TokenUId"]);
+            }
+
+            DataTable dt = dealLogic.GetPrepaymentNoteAllocationSetup(new Guid(DealID));
+            if (dt.Rows.Count == 0)
+            {
+                DataRow dr = dt.NewRow();
+                dt.Rows.Add(dr);
+            }
+
+            try
+            {
+                if (dt.Rows.Count > 0)
+                {
+                    _authenticationResult = new GenericResult()
+                    {
+                        Succeeded = true,
+                        Message = "Authentication succeeded",
+                        dt = dt
+
+                    };
+                }
+                else
+                {
+                    _authenticationResult = new GenericResult()
+                    {
+                        Succeeded = false,
+                        Message = "Authentication failed"
+                    };
+                }
+            }
+            catch (Exception ex)
+            {
+                LoggerLogic Log = new LoggerLogic();
+                Log.WriteLogException(CRESEnums.Module.Account.ToString(), "Error occurred in Get Prepayment Group By DealID", "", "", ex.TargetSite.Name.ToString(), "", ex);
+
+                _authenticationResult = new GenericResult()
+                {
+                    Succeeded = false,
+                    Message = ex.Message
+                };
+            }
+            return Ok(_authenticationResult);
+        }
+
+        [HttpPost]
+        [Services.Controllers.IsAuthenticate]
+        [Services.Controllers.DeflateCompression]
+        [Route("api/deal/CalcDealForAnalysisID")]
+        public IActionResult CalcDealForAnalysisID([FromBody] DealDataContract DealDC)
+        {
+            GenericResult _authenticationResult = null;
+            try
+            {
+                var headerUserID = string.Empty;
+                if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
+                {
+                    headerUserID = Convert.ToString(Request.Headers["TokenUId"]);
+                }
+
+                GetConfigSetting();
+                DealLogic dealLogic = new DealLogic();
+
+                dealLogic.CallDealForCalculation(DealDC.DealID.ToString(), headerUserID, DealDC.AnalysisID, 775);
+                _authenticationResult = new GenericResult()
+                {
+                    Succeeded = true,
+                    Message = "Deal submitted for calculation successfully."
+                };
+            }
+            catch (Exception ex)
+            {
+                _authenticationResult = new GenericResult()
+                {
+                    Succeeded = false,
+                    Message = ex.Message
+                };
+            }
+            return Ok(_authenticationResult);
+        }
+
+
+
+        [HttpGet]
+        [Route("api/deal/CheckAndSendPayoffEmail")]
+        public async Task<IActionResult> CheckAndPayoffEmail()
+        {
+            v1GenericResult _authenticationResult = null;
+            PrepayPremiumLogic PrepayPremiumLogic = new PrepayPremiumLogic();
+            int count = PrepayPremiumLogic.GetPayoffEmailToSendCount();
+
+            if (count > 0)
+            {
+                await GeneratePayOffStatementandSendEmail();
+            }
+            try
+            {
+                _authenticationResult = new v1GenericResult()
+                {
+                    Succeeded = true,
+                    Message = "Succeeded",
+
+                };
+            }
+            catch (Exception ex)
+            {
+                _authenticationResult = new v1GenericResult()
+                {
+                    Succeeded = false,
+                    Message = ex.Message
+                };
+            }
+
+            return Ok(_authenticationResult);
+        }
+
+
+
+        [HttpGet]
+        [Services.Controllers.IsAuthenticate]
+        [Services.Controllers.DeflateCompression]
+        [Route("api/deal/GetAllReserveAccountMaster")]
+        public IActionResult GetAllReserveAccountMaster()
+        {
+            GenericResult _authenticationResult = null;
+
+            var headerUserID = new Guid();
+            if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
+            {
+                headerUserID = new Guid(Request.Headers["TokenUId"]);
+            }
+            List<ReserveAccountMasterDataContract> lslist = new List<ReserveAccountMasterDataContract>();
+            DealLogic dealLogic = new DealLogic();
+
+            lslist = dealLogic.GetAllReserveAccountMaster(headerUserID);
+
+            try
+            {
+                _authenticationResult = new GenericResult()
+                {
+                    Succeeded = true,
+                    Message = "Authentication succeeded",
+                    lstReserveAccountMaster = lslist
+                };
+            }
+            catch (Exception ex)
+            {
+                _authenticationResult = new GenericResult()
+                {
+                    Succeeded = false,
+                    Message = ex.Message
+                };
+            }
+
+            return Ok(_authenticationResult);
+        }
+
+        [HttpPost]
+        [Services.Controllers.IsAuthenticate]
+        [Services.Controllers.DeflateCompression]
+        [Route("api/deal/UpdateReserveAccountFromBackshop")]
+        public IActionResult UpdateReserveAccountFromBackshop([FromBody] ReserveAccountSyncDataContract DealDC)
+        {
+            GenericResult _authenticationResult = null;
+
+            var headerUserID = new Guid();
+            if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
+            {
+                headerUserID = new Guid(Request.Headers["TokenUId"]);
+            }
+            DealLogic dealLogic = new DealLogic();
+            try
+            {
+                dealLogic.UpdateReserveAccountFromBackshop(DealDC, headerUserID.ToString());
+                _authenticationResult = new GenericResult()
+                {
+                    Succeeded = true,
+                    Message = "Authentication succeeded"
+                };
+            }
+            catch (Exception ex)
+            {
+                _authenticationResult = new GenericResult()
+                {
+                    Succeeded = false,
+                    Message = ex.Message
+                };
+            }
+
+            return Ok(_authenticationResult);
+        }
+
+
+
+        [HttpPost]
+        [Services.Controllers.IsAuthenticate]
+        [Route("api/deal/GetAccountingBasisByDealID")]
+        public IActionResult GetAccountingBasisByDealID([FromBody] string DealID)
+        {
+            GenericResult _authenticationResult = null;
+
+            var headerUserID = new Guid();
+            if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
+            {
+                headerUserID = new Guid(Request.Headers["TokenUId"]);
+            }
+            DealLogic dealLogic = new DealLogic();
+            try
+            {
+                DataTable dt = dealLogic.GetAccountingBasisByDealID(new Guid(DealID));
+
+                //if (dt != null )
+                //{
+
+                //    foreach (DataRow row in dt.Rows)
+                //    {
+                //        string noteId = row["NoteID"].ToString();
+
+                //        foreach (DataRow dtNetCapitalInvestedrow in dt.Rows)
+                //        {
+                //            string dtNetCapitalInvestedNoteId = dtNetCapitalInvestedrow["NoteID"].ToString();
+                //            if (noteId == dtNetCapitalInvestedNoteId)
+                //            {
+                //                decimal? NetCapitalInvested = CommonHelper.StringToDecimalWithNull(dtNetCapitalInvestedrow["NetCapitalInvested"]);
+
+                //                row["NetCapitalInvested"] = NetCapitalInvested.HasValue ? (object)NetCapitalInvested.Value : DBNull.Value;
+
+
+                //                break;
+                //            }
+                //        }
+                //    }
+
+                //}
+                _authenticationResult = new GenericResult()
+                {
+                    Succeeded = true,
+                    Message = "Authentication succeeded",
+                    dt = dt
+                };
+            }
+            catch (Exception ex)
+            {
+                _authenticationResult = new GenericResult()
+                {
+                    Succeeded = false,
+                    Message = ex.Message
+                };
+            }
+
+            return Ok(_authenticationResult);
+        }
+
+        private async Task<DataTable> GetCsvFromAzureBlobAsDataTable(string fileName)
+        {
+            GetConfigSetting();
+            var containerName = Sectionroot.GetSection("storage:container:name").Value;
+            var blobClient = BlobUtilities.GetBlobClient;
+            CloudBlobContainer container = blobClient.GetContainerReference(containerName);
+
+            // Reference the "CalcDebug" folder
+            CloudBlobDirectory blobDirectory = container.GetDirectoryReference("CalcDebug");
+            CloudBlockBlob blockBlob = blobDirectory.GetBlockBlobReference(fileName);
+
+            bool exists = await blockBlob.ExistsAsync();
+            if (!exists)
+            {
+                return null;
+            }
+
+            using (MemoryStream memStream = new MemoryStream())
+            {
+                await blockBlob.DownloadToStreamAsync(memStream);
+                memStream.Position = 0;
+
+                using (StreamReader reader = new StreamReader(memStream))
+                {
+                    DataTable dt = new DataTable();
+                    bool isHeader = true;
+
+                    while (!reader.EndOfStream)
+                    {
+                        string line = await reader.ReadLineAsync();
+                        string[] fields = line.Split(',');
+
+                        if (isHeader)
+                        {
+                            foreach (var header in fields)
+                                dt.Columns.Add(header.Trim());
+                            isHeader = false;
+                        }
+                        else
+                        {
+                            dt.Rows.Add(fields);
+                        }
+                    }
+
+                    return dt;
+                }
+            }
+        }
+
+        [HttpPost]
+        [Services.Controllers.IsAuthenticate]
+        [Services.Controllers.DeflateCompression]
+        [Route("api/deal/ImportDealFromBackshopByCREDealId")]
+        public IActionResult ImportDealFromBackshopByCREDealId([FromBody] DealDataContract DealDC)
+        {
+            GenericResult _authenticationResult = null;
+            string creDealID = DealDC.CREDealID;
+
+            DealLogic dealLogic = new DealLogic();
+
+            var headerUserID = new Guid();
+            if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
+            {
+                headerUserID = new Guid(Request.Headers["TokenUId"]);
+            }
+
+            try
+            {
+                DataTable dt = dealLogic.ImportDealFromBackshopByCREDealId(creDealID, headerUserID.ToString());
+                if (dt.Rows.Count > 0)
+                {
+                    DataRow dr = dt.Rows[0];
+                    _authenticationResult = new GenericResult()
+                    {
+                        Succeeded = true,
+                        Message = "Authentication succeeded",
+                        allowImport = Convert.ToInt32(dr[0]),
+                        Validationstring = Convert.ToString(dr[1])
+                    };
+                }
+                else
+                {
+                    _authenticationResult = new GenericResult()
+                    {
+                        Succeeded = false,
+                        Message = "Authentication failed"
+                    };
+                }
+            }
+            catch (Exception ex)
+            {
+                LoggerLogic Log = new LoggerLogic();
+                Log.WriteLogException(CRESEnums.Module.Deal.ToString(), "Error in searchnig deal: " + DealDC.CREDealID, DealDC.DealID.ToString(), headerUserID.ToString(), ex.TargetSite.Name.ToString(), "", ex);
+
+                _authenticationResult = new GenericResult()
+                {
+                    Succeeded = false,
+                    Message = ex.Message
+                };
+            }
+            return Ok(_authenticationResult);
+        }
+
+        [HttpPost]
+        [Services.Controllers.IsAuthenticate]
+        [Services.Controllers.DeflateCompression]
+        [Route("api/deal/GetFinancingCommitmentByDealID")]
+        public IActionResult GetFinancingCommitmentByDealID([FromBody] string DealId)
+        {
+            GenericResult _authenticationResult = null;
+            
+            DealLogic dealLogic = new DealLogic();
+            DataTable dt = dealLogic.GetFinancingCommitmentByDealID(DealId);
+
+            try
+            {
+                _authenticationResult = new GenericResult()
+                {
+                    Succeeded = true,
+                    Message = "Authentication succeeded",
+                    dt = dt
+                };
             }
             catch (Exception ex)
             {

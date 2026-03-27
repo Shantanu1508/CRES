@@ -18,7 +18,7 @@ BEGIN
    DECLARE @Result INt,@amount decimal(28,15), @AmountTobeCheck decimal(28,15),@AmountTobeCheckForPrimaryAM decimal(28,15),
    @CompletedByUser uniqueidentifier,@SecondApprovalByUser uniqueidentifier,@SecondApprovalByUserFromReject uniqueidentifier,@IsREODeal bit=0
    
-   SET @AmountTobeCheck = 1500000
+   SET @AmountTobeCheck = 5000000
    SET @AmountTobeCheckForPrimaryAM = 500000
       IF EXISTS(Select TaskID from cre.WFTaskDetail where TaskID = @TaskID and TaskTypeID = @TaskTypeID)
 	BEGIN
@@ -81,7 +81,14 @@ BEGIN
 		  END
 		  ELSE IF (@ReviewCompletedByUser IS NOT NULL AND (@ReviewCompletedByUser = @UserID and  @CurrentWFStatusMasterID=4 AND @SecondApprovalByUserFromReject IS NOT NULL))
 		  BEGIN
-			   SET @Result = 1;
+			   IF (@IsShowApprover IS NOT NULL and @IsShowApprover=0)
+					  BEGIN
+							SET @Result = 0;
+					  END
+				 ELSE  IF (@IsShowApprover IS NOT NULL and @IsShowApprover=1)
+					  BEGIN
+							SET @Result = 1;
+				 END
 			   RETURN @Result
 		  END
 		  ELSE 

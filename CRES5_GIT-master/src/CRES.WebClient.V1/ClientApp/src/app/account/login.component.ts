@@ -52,7 +52,7 @@ export class LoginComponent implements OnInit {
         localStorage.setItem('_IsShowMessage', JSON.stringify(false));
         localStorage.setItem('_SucessMsg', JSON.stringify(''));
         //}.bind(this), 5000);
-      }, 5000);
+      }, 7000);
     }
 
     // this.islogin= false;
@@ -121,6 +121,8 @@ export class LoginComponent implements OnInit {
           this._user.LoginSession = this.LoginSession;
           localStorage.setItem('user', JSON.stringify(this._user));
 
+          localStorage.setItem('dbloginfrom', 'main');
+
           localStorage.setItem('rolename', this._user.RoleName);
 
 
@@ -144,6 +146,8 @@ export class LoginComponent implements OnInit {
           //this.notificationService.printErrorMessage(_authenticationResult.Message);
           this._Showmessagediv = true;
           this.Messageerror = _authenticationResult.Message;
+       
+          
         }
       }),
       (error: string) => console.error('Error: ' + error)
@@ -155,6 +159,7 @@ export class LoginComponent implements OnInit {
 
     var _authenticationResult: OperationResult = new OperationResult(false, '', '', this._user);
     if (email != null || email != "undefined") {
+      
       this.membershipService.loginFromAzure(email)
         .subscribe(res => {
           _authenticationResult.Succeeded = res.Succeeded;
@@ -175,6 +180,9 @@ export class LoginComponent implements OnInit {
               this._Showmessagediv = true;
               this.isloginsuccess = false;
               this.Messageerror = _authenticationResult.Message;
+              localStorage.setItem('user', null);
+              window.localStorage.clear();
+              this._router.navigate(['unauthorized']);
             }, 2000);
             //window.location.href = "https://login.microsoftonline.com/b8267886-f0c8-4160-ab6f-6e97968fdc90/oauth2/logout?post_logout_redirect_uri=" + "" + AppSettings._azureADRedirectUrl + "";
 

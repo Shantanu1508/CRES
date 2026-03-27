@@ -204,14 +204,25 @@
     [HasOnlyRepayment]                                       NVARCHAR (256)   NULL,
     [HasFixedAmort]                                          NVARCHAR (256)   NULL,
     [OriginationFeePercentageRP]                             DECIMAL (28, 15) NULL,
+    [HasScheduledPrincipal]                                  NVARCHAR (100)   NULL,
+    [HasPIkPrincipalpaid]                                    NVARCHAR (100)   NULL,
+    [HasPIkInterestpaid]                                     NVARCHAR (100)   NULL,
+    [InitialFundingEquCommit]                                NVARCHAR (100)   NULL,
+    [HasDSMonthlyOverride]                                   NVARCHAR (100)   NULL,
+    [FixedPIK]                                               NVARCHAR (100)   NULL,
+    [FloatingPIK]                                            NVARCHAR (100)   NULL,
+    [FinancingSourceGroup]                                   NVARCHAR (256)   NULL,
+    [L_NoteBI_AutoID]                                        INT              IDENTITY (1, 1) NOT NULL,
+    [ImpactCommitmentCalc] INT NULL ,
+    [ImpactCommitmentCalcBI] nvarchar(10) NULL ,
+    FirstIndexDeterminationDateOverride date null,
 
-    HasScheduledPrincipal	nvarchar(100),
-    HasPIkPrincipalpaid	nvarchar(100),
-    HasPIkInterestpaid	nvarchar(100),
-    InitialFundingEquCommit	nvarchar(100),
-    HasDSMonthlyOverride	nvarchar(100),
-    FixedPIK	nvarchar(100),
-    FloatingPIK	nvarchar(100),
-    FinancingSourceGroup    NVARCHAR (256)   NULL
+     NoteType int,
+    EnableM61Calculations int,
+    NoteTypeBI nvarchar(256),
+    EnableM61CalculationsBI nvarchar(256),
+    RepaymentDayoftheMonth int
 );
+
+
 

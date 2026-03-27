@@ -152,20 +152,16 @@ From CRE.Property p
 inner join cre.deal d on d.dealid = p.Deal_DealID
 --left join core.lookup lPropertyType on lPropertyType.lookupid = p.PropertyType
 left join [CRE].[PropertyTypeMajor] lPropertyType on lPropertyType.PropertyTypeMajorCd = p.PropertyTypeMajorCd_F
-
 where  p.IsDeleted <> 1	
 	
-
- 
-
---WHERE p.Deal_DealID in 
---(
---	Select Distinct Deal_DealID From(
---		Select	Deal_DealID,[PropertyAutoID],[CreatedDate],[UpdatedDate]	From cre.Property
---		EXCEPT
---		Select	Deal_DealID,[PropertyAutoID],[CreatedDate],[UpdatedDate]	From DW.PropertyBI
---	)a
---)	
+and  p.Deal_DealID in 
+(
+	Select Distinct Deal_DealID From(
+		Select	Deal_DealID,[PropertyAutoID],[CreatedDate],[UpdatedDate]	From cre.Property where IsDeleted <> 1	
+		EXCEPT
+		Select	Deal_DealID,[PropertyAutoID],[CreatedDate],[UpdatedDate]	From DW.PropertyBI
+	)a
+)	
 	
 
 SET @RowCount = @@ROWCOUNT

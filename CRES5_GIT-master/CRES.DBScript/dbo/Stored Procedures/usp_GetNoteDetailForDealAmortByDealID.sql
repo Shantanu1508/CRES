@@ -67,7 +67,7 @@ SELECT n.NoteID
  +    
  ISNULL((select SUM((ISNULL(EndingBalance,0)))  
  from [CRE].[NotePeriodicCalc] np  
- where np.noteid = n.noteid and n.dealid = '''+convert(varchar(MAX),@DealID)+''' and PeriodEndDate = CAST(getdate() - 1 as Date) and AnalysisID = '''+convert(varchar(MAX),@AnalysisID)+'''),0)     
+ where np.AccountID = n.Account_AccountID and n.dealid = '''+convert(varchar(MAX),@DealID)+''' and PeriodEndDate = CAST(getdate() - 1 as Date) and AnalysisID = '''+convert(varchar(MAX),@AnalysisID)+'''),0)     
 ,0) EstBls  '
 SET @query2 = N' 
 ,n.AmortTerm

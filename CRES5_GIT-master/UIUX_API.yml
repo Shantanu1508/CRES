@@ -1,0 +1,44 @@
+# Starter pipeline
+# Start with a minimal pipeline that you can customize to build and deploy your code.
+# Add steps that build, run tests, deploy, and more:
+# https://aka.ms/yaml
+
+trigger:
+  branches: 
+    include:
+      - CRE_UIUX_QA
+  paths:
+    include:
+      - src/CRES.ServiceMVC/*
+
+pool:
+  vmImage: 'windows-2022'
+
+variables:
+  buildConfiguration: 'Release'
+
+steps:
+
+- script: echo Hello, world!
+  displayName: 'Run script for API'
+
+- task: DotNetCoreCLI@2
+  inputs:
+    command: 'build'
+    projects: 'src/CRES.ServiceMVC/CRES.ServiceMVC.csproj'
+    workingDirectory: 'src/CRES.ServiceMVC'
+
+- task: DotNetCoreCLI@2
+  inputs:
+    command: 'publish'
+    publishWebProjects: false
+    projects: 'src/CRES.ServiceMVC/CRES.ServiceMVC.csproj'
+    workingDirectory: 'src/CRES.ServiceMVC'
+
+- task: AzureRmWebAppDeployment@4
+  inputs:
+    ConnectionType: 'AzureRM'
+    azureSubscription: 'Microsoft Partner Network 3'
+    appType: 'webApp'
+    WebAppName: 'm61creapi'
+    packageForLinux: '$(System.DefaultWorkingDirectory)/**/*.zip'

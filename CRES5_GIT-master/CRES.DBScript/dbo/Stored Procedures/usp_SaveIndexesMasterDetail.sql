@@ -9,7 +9,8 @@ CREATE PROCEDURE [dbo].[usp_SaveIndexesMasterDetail]
 	@CreatedDate datetime ,
 	@UpdatedBy nvarchar(256) ,
 	@UpdatedDate datetime ,
-	@NewIndexesMasterGuid nvarchar(256) OUTPUT
+	@NewIndexesMasterGuid nvarchar(256) OUTPUT,
+	@Status int
 	)
   
 AS
@@ -26,7 +27,8 @@ INSERT INTO core.IndexesMaster
 				CreatedBy,
 				CreatedDate,
 				UpdatedBy,
-				UpdatedDate
+				UpdatedDate,
+				[Status]
 				)
 		OUTPUT inserted.IndexesMasterGuid INTO @tIndexesMaster(tNewIndexesMasterGuid)
 		
@@ -36,7 +38,8 @@ INSERT INTO core.IndexesMaster
 				@CreatedBy  ,
 				GETDATE(),
 			 	@UpdatedBy  ,
-				GETDATE()			
+				GETDATE()	,
+				@Status
 			)
 
 			  SELECT @NewIndexesMasterGuid = tNewIndexesMasterGuid FROM @tIndexesMaster;	
@@ -51,7 +54,8 @@ Update core.IndexesMaster
 				IndexesName=@IndexesName,
 				[Description]=@Description,
 				UpdatedBy=	@UpdatedBy,
-				UpdatedDate =GETDATE() 
+				UpdatedDate =GETDATE(),
+				[Status]=@Status
 				where IndexesMasterGuid=@IndexesMasterGuid;
 				
 				SELECT @NewIndexesMasterGuid = @IndexesMasterGuid 

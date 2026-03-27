@@ -1,5 +1,9 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
 
 namespace CRES.ServiceMVC.Controllers
 {
@@ -7,6 +11,7 @@ namespace CRES.ServiceMVC.Controllers
     [ApiController]
     public class TestController : ControllerBase
     {
+
         // GET: api/Test
         [HttpGet]
         [Route("api/account/getaccoutdetail")]
@@ -29,6 +34,6 @@ namespace CRES.ServiceMVC.Controllers
         {
         }
 
-
+       
     }
 }

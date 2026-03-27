@@ -1,9 +1,13 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
 
 namespace CRES.DataContract
 {
-    public class NoteUnderwritingAttributesDataContract
-    {
+   public class NoteUnderwritingAttributesDataContract
+   {
         public int NoteUnderwritingID { get; set; }
         public string NoteID { get; set; }
         public string NoteName { get; set; }

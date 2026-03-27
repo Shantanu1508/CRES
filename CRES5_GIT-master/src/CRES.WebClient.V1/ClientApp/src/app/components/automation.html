@@ -1,0 +1,172 @@
+﻿<form #f="ngForm">
+    <div class="col-sm-12">
+        <div class="head fixheaderdiv">
+            <h1 style="display: inline-block;margin-top: 10px;">Automation Manager</h1>
+
+            <button type="button" class="custombutton" style="width:150px !important" (click)="CancelAutomation()">Remove from Queue</button>
+            <button type="button" class="custombutton" style="width:100px !important" (click)="Save()">Save</button>
+
+
+            <div class="cssload-container" *ngIf="_isAutomationFetching">
+                <div class="cssload-whirlpool"></div>
+            </div>
+
+            <div id="sucessmessage" *ngIf="_ShowSuccessmessage" class="alert alert-success fade in">
+                <strong>{{_ShowmessagedivMsgWar }}</strong>
+            </div>
+
+           
+        </div>
+        <div class="fmst fixheadercontent">
+
+            <ul id="myTab" class="nav nav-tabs">
+                <li class="active"><a data-target="#AutomationManager" data-toggle="tab">Automation</a></li>
+                <li><a data-target="#AutomationLog" (click)="GetAutomationLog()" data-toggle="tab">Automation Log</a></li>
+
+            </ul>
+            <div class="tab-content" id="myTabContent">
+                <div class="tab-pane fade active in" id="AutomationManager">
+
+                    <div class="box1a">
+                        <h3>Automation</h3>
+                        <div class="form-group row pD10" *ngIf="lstAutomation">
+
+                            <div class="col-sm-12 customgridpadding">
+                                <wj-flex-grid id="flex" #flex [itemsSource]="lstAutomation" [allowResizing]="'Both'" allow-sorting="true" showFilterIcons="true" class="wijmogridcss" style="height: calc(99.8vh - 245px)">
+                                    <wj-flex-grid-filter #filter></wj-flex-grid-filter>
+                                    <wj-flex-grid-column [header]="'Select'" [binding]="'Active'" [width]="80" align="center">
+                                        <ng-template wjFlexGridCellTemplate [cellType]="'ColumnHeader'" let cell="cell">
+                                            <input (change)="SelectAll()" type="checkbox" id="chkSelectAll" /> Select
+                                        </ng-template>
+                                    </wj-flex-grid-column>
+                                    <wj-flex-grid-column [header]="'Deal Id'" [isReadOnly]="true" [width]="125">
+                                        <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
+                                            <div>
+                                                <a routerLink='/dealdetail/{{cell.item.dealid}}' (click)="clickeddeal()" routerLinkActive="active">{{cell.item.credealid}}</a>
+                                            </div>
+                                        </ng-template>
+                                    </wj-flex-grid-column>
+                                    <wj-flex-grid-column [header]="'Deal Name'" [binding]="'dealname'" [isReadOnly]="true" [width]="280" align="left"></wj-flex-grid-column>
+                                    <wj-flex-grid-column [header]="'Paid Off'" [binding]="'PaidOff'" [isReadOnly]="true" [width]="110" align="left"></wj-flex-grid-column>
+                                    <wj-flex-grid-column [header]="'AS Funding Enabled'" [binding]="'ASFundingEnabled'" [isReadOnly]="true" align="left" [width]="155"></wj-flex-grid-column>
+                                    <wj-flex-grid-column [header]="'AS Repayment Enabled'" [binding]="'ASRepaymentEnabled'" [isReadOnly]="true" align="left" [width]="180"></wj-flex-grid-column>
+                                    <wj-flex-grid-column [header]="'Deal Save Status'" [binding]="'DealSaveStatus'" [isReadOnly]="true" align="left" [width]="215"></wj-flex-grid-column>
+                                    <wj-flex-grid-column [header]="'Status'" [binding]="'AutomationStatus'" [isReadOnly]="true" align="left" [width]="160">
+                                        <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
+                                            <div [ngStyle]="{color: cell.item.AutomationStatus == 'Failed' ? 'red' : cell.item.AutomationStatus == 'Completed'?'green': cell.item.AutomationStatus == 'Running'? 'Orange':cell.item.AutomationStatus == 'Processing'? 'blue':cell.item.AutomationStatus == 'CalcSubmit'? 'blue':cell.item.AutomationStatus == 'Queued'? 'chocolate' :'White'}">
+                                                {{cell.item.AutomationStatus}}
+                                            </div>
+                                        </ng-template>
+                                    </wj-flex-grid-column>
+
+                                </wj-flex-grid>
+                            </div>
+
+                        </div>
+
+                    </div>
+                </div>
+
+
+                <div class="tab-pane fade in" id="AutomationLog">
+                    <div class="box1a" *ngIf="lstAutomationLog">
+                        <h3>Automation Log</h3>
+                        <div class="row MG0">
+                            <div class="form-group row pD10">
+                                <wj-flex-grid id="flexAutomationLog" #flexAutomationLog [itemsSource]="lstAutomationLog" [allowResizing]="'Both'" allow-sorting="true" showFilterIcons="true" class="gridSize">
+                                    <wj-flex-grid-filter #filter></wj-flex-grid-filter>
+                                    <wj-flex-grid-column [header]="'BatchID'" [binding]="'BatchID'" [isReadOnly]="true" [width]="'*'" align="left"></wj-flex-grid-column>
+                                    <wj-flex-grid-column [header]="'View History'" [isReadOnly]="true" align="left" [width]="'*'">
+                                        <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
+                                            <div>
+                                                <a (click)="ViewAutomationSubmittedDeals(cell.item.BatchID)" routerLinkActive="active">
+                                                    View Submitted Deals
+                                                </a>
+                                            </div>
+                                        </ng-template>
+                                    </wj-flex-grid-column>
+                                    <wj-flex-grid-column [header]="'Batch Type'" [binding]="'BatchType'" [isReadOnly]="true" [width]="'*'" align="right"></wj-flex-grid-column>
+                                    <wj-flex-grid-column [header]="'Total Deals'" [binding]="'TotalDeals'" [isReadOnly]="true" [width]="'*'" align="right"></wj-flex-grid-column>
+                                    <wj-flex-grid-column [header]="'Submitted By'" [binding]="'SubmittedBy'" [isReadOnly]="true" align="left" [width]="'*'"></wj-flex-grid-column>
+                                    <wj-flex-grid-column [header]="'Submitted Date'" [binding]="'SubmittedDate'" [isReadOnly]="true" align="right" [width]="'*'"></wj-flex-grid-column>
+                                    <wj-flex-grid-column [header]="'Status'" [binding]="'Status'" [isReadOnly]="true" align="left" [width]="'*'">
+                                        <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
+                                            <div [ngStyle]="{color: cell.item.Status == 'Failed' ? 'red' : cell.item.Status == 'Completed'?'green': cell.item.Status == 'Running'? 'Orange':cell.item.Status == 'Processing'? 'blue':cell.item.Status == 'CalcSubmit'? 'blue':cell.item.Status == 'Queued'? 'chocolate' :'White'}">
+                                                {{cell.item.Status}}
+                                            </div>
+                                        </ng-template>
+
+                                    </wj-flex-grid-column>
+                                    <wj-flex-grid-column [name]="'buttons'" [isReadOnly]="true" align="center" [width]="100">
+                                        <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
+                                            <a style="text-decoration: underline;" (click)="showDeleteDialog(cell.item.BatchID)">Delete</a>
+                                        </ng-template>
+                                    </wj-flex-grid-column>
+                                    <wj-flex-grid-column [name]="'buttons'" [isReadOnly]="true" align="center" [width]="100">
+                                        <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
+                                            <a style="text-decoration: underline;" (click)="DownloadAutomationExcel(cell.item.BatchID)">
+                                                <img style="height:25px;width:25px;" src="../../images/icon_xls.png" />
+                                            </a>
+                                        </ng-template>
+                                    </wj-flex-grid-column>
+                                </wj-flex-grid>
+                            </div>
+                            <div *ngIf="!lstAutomationLog">
+                                No Automation Log exist.
+                            </div>
+                        </div>
+
+                        <div id="myModalAutomation" class="modal">
+                            <div class="modal-dialog" id="myModalAutomation" style="min-height: 300px; width: 700px;">
+                                <div class="modal-content" style="padding:0px;border:0px;">
+                                    <div class="modal-header" style="background:#2196f3 !important">
+                                        <span class="customheading" style="color:white !important">Deals :</span>
+                                        <span class="close" (click)="CloseAutomationPopUp()">×</span>
+                                    </div>
+                                    <div class="modal-body">
+                                        <div class="form-group row pD10">
+                                            <div>
+                                                <wj-flex-grid #flexallTransactions [itemsSource]="lstAutoDeals" [allowResizing]="'Both'" [isReadOnly]="true">
+                                                    <wj-flex-grid-filter #filter></wj-flex-grid-filter>
+                                                    <wj-flex-grid-column [header]="'Deal ID'" align="center" [binding]="'CREDealID'" [width]="'*'"></wj-flex-grid-column>
+                                                    <wj-flex-grid-column [header]="'Deal Name'" align="center" [binding]="'DealName'" [width]="'*'"></wj-flex-grid-column>
+
+                                                </wj-flex-grid>
+                                            </div>
+
+                                        </div>
+                                    </div>
+                                    <div class="modal-footer" style="background-color:white !important;padding:5px;margin-top:10px;"> </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div id="myModalDelete" class="modal">
+                            <div class="modal-dialog" draggable="true" id="myModal-Delete" style="min-height:300px;width:500px">
+                                <!-- Modal content -->
+                                <div class="modal-content" style="padding:0px;border:0px;">
+                                    <div class="modal-header" style="background:#2196f3 !important">
+                                        <span class="customheading" style="color:white !important">Delete: {{modulename}}</span>
+                                        <span class="close" (click)="CloseDeletePopUp()">×</span>
+                                    </div>
+
+                                    <div class="modal-body">
+                                        <span class="customheading">Are you sure you want to delete it?</span>
+
+                                    </div>
+                                    <div class="modal-footer" style="background-color:white !important;">
+                                        <button type="button" (click)="CloseDeletePopUp()" class="custombutton" style="width:100px !important">Cancel</button>
+                                        <button type="button" (click)="DeleteAutomationlog()" class="custombutton" style="width:100px !important">Ok</button>
+                                    </div>
+
+
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</form>

@@ -1,4 +1,8 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
 
 namespace CRES.DataContract
 {
@@ -20,7 +24,10 @@ namespace CRES.DataContract
         public System.Guid? IndewxToGuid { get; set; }
         //1-replace,2-overwrite
         public int ImportType { get; set; }
-
+        public int? Status { get; set; }
+        public string StatusText { get; set; }
+        public bool? IsAssignedToScenario { get; set; }
+        public string ScenarioList { get; set; }
     }
 
     public class IndexesMasterSearchDataContract

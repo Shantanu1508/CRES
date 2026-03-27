@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 
 namespace CRES.DataContract
 {
@@ -40,6 +41,11 @@ namespace CRES.DataContract
         public DateTime? PayOffDate { get; set; }
         public Boolean? IsPaidOffDeal { get; set; }
         public int? CalcType { get; set; }
+        public int? CalcEngineType { get; set; }
+        public string CalcEngineTypeText { get; set; }
+        public DateTime? AccountingCloseDate { get; set; }
+
+         
 
     }
 }

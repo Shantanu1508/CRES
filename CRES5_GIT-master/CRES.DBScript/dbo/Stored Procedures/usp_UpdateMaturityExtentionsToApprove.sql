@@ -12,32 +12,36 @@ SET @UserID = (Select UserID from app.[user] where [Login] = 'Sys_Scheduler')
 
 Update [CORE].Maturity set Approved = 3,IsAutoApproved = 1,UpdatedBy = @UserID,UpdatedDate = getdate()
 Where MaturityID in (
-	Select mat.MaturityID  --n.noteid,mat.* 
-	from [CORE].Maturity mat  
-	INNER JOIN [CORE].[Event] e on e.EventID = mat.EventId  
-	INNER JOIN   
-	(         
-		Select   
-		(Select AccountID from [CORE].[Account] ac where ac.AccountID = n.Account_AccountID) AccountID ,  
-		MAX(EffectiveStartDate) EffectiveStartDate,EventTypeID from [CORE].[Event] eve  
-		INNER JOIN [CRE].[Note] n ON n.Account_AccountID = eve.AccountID  
-		INNER JOIN [CORE].[Account] acc ON acc.AccountID = n.Account_AccountID  
-		where EventTypeID = 11 and eve.StatusID = 1
-		--and n.NoteID = @NoteID  
-		and acc.IsDeleted = 0  
-		GROUP BY n.Account_AccountID,EventTypeID    
-	) sEvent    
-	ON sEvent.AccountID = e.AccountID and e.EffectiveStartDate = sEvent.EffectiveStartDate  and e.EventTypeID = sEvent.EventTypeID  and e.StatusID = 1
-	INNER JOIN [CORE].[Account] acc ON acc.AccountID = e.AccountID
-	INNER JOIN [CRE].[Note] n ON n.Account_AccountID = acc.AccountID    
+	Select Res.MaturityID 
+	from (
+		Select mat.MaturityID,mat.Approved  --,n.crenoteid,mat.maturitydate,mat.MaturityType,mat.Approved
+		,ROW_NUMBER() OVER (Partition By n.noteid ORDER BY n.noteid,mat.maturitydate) rno
+		from [CORE].Maturity mat  
+		INNER JOIN [CORE].[Event] e on e.EventID = mat.EventId  
+		INNER JOIN   
+		(         
+			Select   
+			(Select AccountID from [CORE].[Account] ac where ac.AccountID = n.Account_AccountID) AccountID ,  
+			MAX(EffectiveStartDate) EffectiveStartDate,EventTypeID from [CORE].[Event] eve  
+			INNER JOIN [CRE].[Note] n ON n.Account_AccountID = eve.AccountID  
+			INNER JOIN [CORE].[Account] acc ON acc.AccountID = n.Account_AccountID  
+			where EventTypeID = 11 and eve.StatusID = 1
+			--and n.NoteID = @NoteID  
+			and acc.IsDeleted = 0  
+			GROUP BY n.Account_AccountID,EventTypeID    
+		) sEvent    
+		ON sEvent.AccountID = e.AccountID and e.EffectiveStartDate = sEvent.EffectiveStartDate  and e.EventTypeID = sEvent.EventTypeID  and e.StatusID = 1
+		INNER JOIN [CORE].[Account] acc ON acc.AccountID = e.AccountID
+		INNER JOIN [CRE].[Note] n ON n.Account_AccountID = acc.AccountID    
 
-	where acc.isdeleted <> 1
-	and n.ActualPayOffDate is null
-	and mat.maturityType = 709  
+		where acc.isdeleted <> 1
+		and n.ActualPayOffDate is null
+		and mat.maturityType in (708, 709)  
+		--and ISNULL(Approved,4) <> 3
+		and MaturityDate >= dbo.Fn_GetnextWorkingDays(Cast(getdate() as Date),20,'PMT Date')   -----Cast(getdate() as Date)
+	) Res 
+	WHere rno=1
 	and ISNULL(Approved,4) <> 3
-	and MaturityDate <= dbo.Fn_GetnextWorkingDays(Cast(getdate() as Date),20,'PMT Date')   -----Cast(getdate() as Date)
-	--and n.crenoteid = '2567'
-
 )
 
 

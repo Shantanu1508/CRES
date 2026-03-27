@@ -1,4 +1,5 @@
 ﻿using AventStack.ExtentReports;
+using CRES.BusinessLogic;
 using CRES.DataContract;
 using CRES.TestAutoMation.ExecutionReports;
 using CRES.TestAutoMation.Pages;
@@ -17,6 +18,7 @@ using System.Data;
 //using java.nio.file;
 using System.IO;
 using System.Linq;
+using System.Threading;
 
 namespace CRES.TestAutoMation.TestCases
 {
@@ -86,11 +88,7 @@ namespace CRES.TestAutoMation.TestCases
         }
 
 
-
-
         List<PageLoadTest> listPageLoad = new List<PageLoadTest>();
-
-
         // bool DealDataVerificationStatus = false;
 
         [Test]
@@ -99,10 +97,10 @@ namespace CRES.TestAutoMation.TestCases
 
             Actions actions = new Actions(driver);
 
-            CRES_Login loginapp = new CRES_Login();
+            Login_Verification loginapp = new Login_Verification();
             Login login = new Login(driver);
             Deal deal = new Deal(driver);
-            CreateNewDeal createDeal = new CreateNewDeal(driver);
+            //CreateNewDeal createDeal = new CreateNewDeal(driver);
             Util util = new Util(driver);
             string dealfunding = BaseConfiguration.GetURL() + BaseConfiguration.DealFunding();
             // string username = BaseConfiguration.getusername();
@@ -2032,40 +2030,36 @@ namespace CRES.TestAutoMation.TestCases
                         transcAuditPage = false;
                         throw ex;
                     }
-                    //-------------------------Periodic Close-----------------------------------------//
+                    //-------------------------Accounting Close-----------------------------------------//
 
-                    String PeriodicloseUrl = BaseUrl + BaseConfiguration.periodicCloseUrl();
+                    String PeriodicloseUrl = BaseUrl + BaseConfiguration.accountingcloseUrl();
                     util.OpenUrl(PeriodicloseUrl);
                     System.Threading.Thread.Sleep(10000);
                     bool closePeriodBtn = false;
-                    bool periodicEndDate = false;
+                    bool AccCloseLogo = false;
                     try
                     {
-                        closePeriodBtn = driver.FindElement(deal.closePeriodBtn).Displayed;
+                        AccCloseLogo = driver.FindElement(deal.AccountingCloselogo).Displayed;
 
-                        Console.WriteLine("Periodic Close   = " + closePeriodBtn);
-                        addtolist("Periodic Close   ", " Periodic Close  ", closePeriodBtn);
+                        Console.WriteLine("Accounting Close   = " + AccCloseLogo);
+                        addtolist("Accounting Close   ", " Accounting Close  ", AccCloseLogo);
                         System.Threading.Thread.Sleep(10000);
-                        periodicEndDate = driver.FindElement(deal.periodicEndDate).Displayed;
 
-                        Console.WriteLine("Periodic Close   = " + periodicEndDate);
-                        addtolist("Periodic Close   ", " Periodic Close  ", periodicEndDate);
                         var printMessage = "<p><b>Test FAILED!</b></p>";
-                        if (closePeriodBtn == false || periodicEndDate == false)
+                        if (AccCloseLogo == false)
                         {
-                            printMessage += $"Message: <br>{"Periodic close Page Load Error"}<br>";
+                            printMessage += $"Message: <br>{"Accounting close Page Load Error"}<br>";
                             test.Fail(printMessage);
                         }
                         else
                         {
-                            test.Log(Status.Pass, "Periodic close loaded sucessfully");
+                            test.Log(Status.Pass, "Accounting close loaded sucessfully");
                         }
                     }
                     catch (Exception ex)
                     {
-                        Console.WriteLine("Periodic Close Exception " + ex);
-                        closePeriodBtn = false;
-                        periodicEndDate = false;
+                        Console.WriteLine("Accounting Close Exception " + ex);
+                        AccCloseLogo = false;
                         throw ex;
                     }
 
@@ -2175,6 +2169,69 @@ namespace CRES.TestAutoMation.TestCases
                         batchLogElmnt = false;
                         throw ex;
                     }
+
+                    //----------------------------------------Generate Automation----------------------------------//
+
+                    String GenerateAutomationUrl = BaseUrl + BaseConfiguration.GenerateAutomationUrl();
+                    util.OpenUrl(GenerateAutomationUrl);
+                    System.Threading.Thread.Sleep(8000);
+                    bool GenerateAutomationSave = false;
+                    try
+                    {
+                        GenerateAutomationSave = deal.GenerateAutomationSaveButton();
+                        //GenerateAutomationSave = driver.FindElement(dealPage.GenerateAutomationSave).Displayed;
+                        Console.WriteLine("Generate Automation Save button is displayed = " + GenerateAutomationSave);
+                        addtolist("Generate Automation Page  ", " Generate Automation Page ", GenerateAutomationSave);
+
+                        var printMessage = "<p><b>Test FAILED!</b></p>";
+                        if (GenerateAutomationSave = true)
+                        {
+                            Console.WriteLine(" Generate Automation Page loaded successfully");
+                            test.Log(Status.Pass, "Generate Automation page loaded sucessfully");
+                        }
+                        else
+                        {
+                            Console.WriteLine(" Generate Automation Page is Filed to load");
+                            printMessage += $"Message: <br>{"Generate Automation Page Load Error"}<br>";
+                            test.Fail(printMessage);
+                        }
+                    }
+                    catch (Exception e)
+                    {
+                        Console.WriteLine("Generate Automation Page load exception" + e.ToString());
+                    }
+
+                    Thread.Sleep(8000);
+
+                    // Automation Log Tab
+
+                    driver.FindElement(deal.AutomationLogTab).Click();
+                    bool AutomationLogText = false;
+                    try
+                    {
+                        AutomationLogText = deal.AutomationLogTextDisplay();
+                        //AutomationLogText = driver.FindElement(dealPage.AutomationLogText).Displayed;
+                        Console.WriteLine("Generate Automation Log text is displayed = " + AutomationLogText);
+                        addtolist("Generate Automation Log Tab  ", " Generate Automation Log Tab", AutomationLogText);
+
+                        var printMessage = "<p><b>Test FAILED!</b></p>";
+                        if (AutomationLogText = true)
+                        {
+                            Console.WriteLine(" Generate Automation Log Tab loaded successfully");
+                            test.Log(Status.Pass, "Generate Automation Log Tab loaded sucessfully");
+                        }
+                        else
+                        {
+                            Console.WriteLine(" Generate Automation Log Tab is Filed to load");
+                            printMessage += $"Message: <br>{"Generate Automation Page Load Error"}<br>";
+                            test.Fail(printMessage);
+                        }
+                    }
+                    catch (Exception e)
+                    {
+                        Console.WriteLine("Generate Automation Log Page load exception" + e.ToString());
+                    }
+
 
                     //----------------------------------------Reports----------------------------------//
                     // reports 
@@ -2543,7 +2600,7 @@ namespace CRES.TestAutoMation.TestCases
             test = extent.CreateTest("Note save testcase ").Info("Test started");
             Actions actions = new Actions(driver);
 
-            CRES_Login loginapp = new CRES_Login();
+            Login_Verification loginapp = new Login_Verification();
             Login login = new Login(driver);
             Deal deal = new Deal(driver);
             Util util = new Util(driver);
@@ -2637,7 +2694,7 @@ namespace CRES.TestAutoMation.TestCases
         {
             Actions actions = new Actions(driver);
 
-            CRES_Login loginapp = new CRES_Login();
+            Login_Verification loginapp = new Login_Verification();
             Login login = new Login(driver);
             Deal deal = new Deal(driver);
             Util util = new Util(driver);
@@ -2821,7 +2878,7 @@ namespace CRES.TestAutoMation.TestCases
             {
 
             }
-            /*   EmailDataContract emailDC = new EmailDataContract();
+           /*   EmailDataContract emailDC = new EmailDataContract();
                emailDC.To = "shantanu@hvantage.com,rsahu@hvantage.com,msingh@hvantage.com,sbanerjee@hvantage.com";
 
                //optional
@@ -2853,7 +2910,7 @@ namespace CRES.TestAutoMation.TestCases
                 test = extent.CreateTest("To verify search bar ").Info("Test started");
                 Actions actions = new Actions(driver);
 
-                CRES_Login loginapp = new CRES_Login();
+                Login_Verification loginapp = new Login_Verification();
                 Login login = new Login(driver);
                 Deal deal = new Deal(driver);
                 Util util = new Util(driver);
@@ -2961,7 +3018,7 @@ namespace CRES.TestAutoMation.TestCases
             test = extent.CreateTest("Comapre deal funding grid's data ").Info("Test started");
             Actions actions = new Actions(driver);
 
-            CRES_Login loginapp = new CRES_Login();
+            Login_Verification loginapp = new Login_Verification();
             Login login = new Login(driver);
             Deal deal = new Deal(driver);
             Util util = new Util(driver);

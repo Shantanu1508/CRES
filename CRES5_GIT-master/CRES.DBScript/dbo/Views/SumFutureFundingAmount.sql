@@ -1,4 +1,6 @@
 ﻿-- View
+-- View
+-- View
 Create view SumFutureFundingAmount
 As
 

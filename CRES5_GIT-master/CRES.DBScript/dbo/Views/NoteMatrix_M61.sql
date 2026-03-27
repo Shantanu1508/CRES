@@ -1,4 +1,5 @@
-﻿--Select count(*) from [dbo].[NoteMatrix_M61]
+﻿-- View
+--Select count(*) from [dbo].[NoteMatrix_M61]
 
 CREATE view [dbo].[NoteMatrix_M61]
 As
@@ -406,10 +407,13 @@ Left Join(
 	From(
 		Select noteid,PaymentDay,ROW_NUMBER() OVER (Partition by NoteID order by NoteID,PaymentDay desc) as Rno
 		From(
-			Select Distinct noteid,DAY(PaymentDateNotAdjustedforWorkingDay) PaymentDay
-			from cre.transactionEntry 
+			Select Distinct n.noteid,DAY(tr.PaymentDateNotAdjustedforWorkingDay) PaymentDay
+			from cre.transactionEntry tr
+			Inner Join cre.note n on n.account_accountid = tr.accountid
+
 			where [Type] = 'InterestPaid' and Analysisid  = 'C10F3372-0FC2-4861-A9F5-148F1F80804F'
 			and PaymentDateNotAdjustedforWorkingDay is not null		
+
 		)a
 	)z where z.Rno = 1
 )tblPaymentDay on tblPaymentDay.noteid = n.noteid

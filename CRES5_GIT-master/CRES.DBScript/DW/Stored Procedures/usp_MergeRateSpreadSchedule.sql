@@ -21,8 +21,7 @@ UPDATE [DW].BatchDetail
 IF EXISTS(Select top 1 [RateSpreadScheduleAutoID] from [DW].[L_RateSpreadScheduleBI])
 BEGIN
 
----Delete from [DW].[RateSpreadScheduleBI] where CRENoteID in (Select Distinct CRENoteID from [DW].[L_RateSpreadScheduleBI])
-Truncate table [DW].[RateSpreadScheduleBI]
+Delete from [DW].[RateSpreadScheduleBI] where CRENoteID in (Select Distinct CRENoteID from [DW].[L_RateSpreadScheduleBI])
 	
 	
 INSERT INTO [DW].[RateSpreadScheduleBI]

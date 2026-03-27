@@ -289,7 +289,7 @@ BEGIN
 			--updat phantom deal on draw wireconfirmed 
 		    EXEC [dbo].[usp_CopyDealFundingFromLegalToPhantom] @CREDealID
 			EXEC [dbo].[usp_UpdateWireConfirmedForPhantomDeal] @CREDealID
-			EXEC [dbo].[usp_ExportFutureFundingToBackshopByDealID] @dealid,@UserID
+			--EXEC [dbo].[usp_ExportFutureFundingToBackshopByDealID] @dealid,@UserID  --not needed as we are using API for export
 			END
 		
 
@@ -480,7 +480,7 @@ BEGIN
 		select @PurposeID = PurposeID from cre.DealFunding where DealFundingID=@TaskID
 		select top 1 @WFStatusPurposeMappingID= WFStatusPurposeMappingID from cre.WFStatusPurposeMapping where WFStatusMasterID=1 and PurposeTypeId=@PurposeID
 		
-		exec [dbo].[usp_InsertWorkflowDetailForTaskId] @TaskID,@WFStatusPurposeMappingID,@TaskTypeID,'Cancelled preliminary notification',496,@UserID,@AdditionalComments,@SpecialInstructions,@DelegatedUserID,@CheckListDetail			
+		exec [dbo].[usp_InsertWorkflowDetailForTaskId] @TaskID,@WFStatusPurposeMappingID,@TaskTypeID,'Canceled preliminary notification',496,@UserID,@AdditionalComments,@SpecialInstructions,@DelegatedUserID,@CheckListDetail			
 		--==============================
 
 		
@@ -532,7 +532,7 @@ BEGIN
 		--==================================
 		SET @NotificationTypeFlag = 'Final Cancelled'
 		
-		exec [dbo].[usp_InsertWorkflowDetailForTaskId] @TaskID,@WFStatusPurposeMappingID,@TaskTypeID,'Cancelled final notification',582,@UserID,@AdditionalComments,@SpecialInstructions,@DelegatedUserID,@CheckListDetail			
+		exec [dbo].[usp_InsertWorkflowDetailForTaskId] @TaskID,@WFStatusPurposeMappingID,@TaskTypeID,'Canceled final notification',582,@UserID,@AdditionalComments,@SpecialInstructions,@DelegatedUserID,@CheckListDetail			
 		--==============================
 		DECLARE @tfcWFNotification TABLE (tWFNotificationID int)
 		
@@ -747,7 +747,7 @@ BEGIN
 		--@CheckListDetail tblType_CheckListDetail readonly
 		--==================================
 		SET @NotificationTypeFlag = 'Reserve Final Cancelled'
-		exec [dbo].[usp_InsertWorkflowDetailForTaskId] @TaskID,@WFStatusPurposeMappingID,@TaskTypeID,'Cancelled reserve final notification',582,@UserID,@AdditionalComments,@SpecialInstructions,@DelegatedUserID,@CheckListDetail			
+		exec [dbo].[usp_InsertWorkflowDetailForTaskId] @TaskID,@WFStatusPurposeMappingID,@TaskTypeID,'Canceled reserve final notification',582,@UserID,@AdditionalComments,@SpecialInstructions,@DelegatedUserID,@CheckListDetail			
 		--==============================
 		
 		DECLARE @trfcWFNotification TABLE (tWFNotificationID int)

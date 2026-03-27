@@ -10,8 +10,12 @@
     [ScheduledPrincipalAmortizationPayment] NVARCHAR (256) NULL,
     [CurrentLoanBalance]                    NVARCHAR (256) NULL,
     [InterestPayment]                       NVARCHAR (256) NULL,
-    [FeeNameTrans]                          NVARCHAR (256) NULL
+    [FeeNameTrans]                          NVARCHAR (256) NULL,
+    [FeeBaseAmountDeterminationBI_AutoID]   INT            IDENTITY (1, 1) NOT NULL,
+    CONSTRAINT [PK_FeeBaseAmountDeterminationBI_AutoID] PRIMARY KEY CLUSTERED ([FeeBaseAmountDeterminationBI_AutoID] ASC)
 );
+
+
 
 
 GO

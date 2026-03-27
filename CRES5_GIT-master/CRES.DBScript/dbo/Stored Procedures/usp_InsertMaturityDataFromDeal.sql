@@ -35,12 +35,13 @@ BEGIN
 		OpenPrepaymentDate	  Date ,
 		CRENoteID nvarchar(256),
 		MaturityMethodID int null,
-		MaturityGroupName nvarchar(256)
+		MaturityGroupName nvarchar(256),
+		ExtensionType int
 	)
 
 	
-	INSERT INTO #tblMaturityData(NoteID,EffectiveDate,MaturityDate,MaturityType,Approved,IsDeleted,ActualPayoffDate,ExpectedMaturityDate,OpenPrepaymentDate,CRENoteID,MaturityMethodID,MaturityGroupName)  
-	SELECT n.NoteID,t.EffectiveDate,t.MaturityDate,t.MaturityType,t.Approved,t.IsDeleted,t.ActualPayoffDate,t.ExpectedMaturityDate,t.OpenPrepaymentDate,t.CRENoteID,ISNULL(n.MaturityMethodID,723) as MaturityMethodID,n.MaturityGroupName
+	INSERT INTO #tblMaturityData(NoteID,EffectiveDate,MaturityDate,MaturityType,Approved,IsDeleted,ActualPayoffDate,ExpectedMaturityDate,OpenPrepaymentDate,CRENoteID,MaturityMethodID,MaturityGroupName,ExtensionType)  
+	SELECT n.NoteID,t.EffectiveDate,t.MaturityDate,t.MaturityType,t.Approved,t.IsDeleted,t.ActualPayoffDate,t.ExpectedMaturityDate,t.OpenPrepaymentDate,t.CRENoteID,ISNULL(n.MaturityMethodID,723) as MaturityMethodID,n.MaturityGroupName,t.ExtensionType
 	From @tblTypeMaturityData t
 	left join cre.note n on n.crenoteid = t.crenoteid
 	where n.dealid = @DealID
@@ -51,8 +52,8 @@ BEGIN
 		-----Insert Maturity data for Note (having Maturity method - Most recent effective date/Note level)
 		DECLARE @tblMaturityDataForNote [TableTypeMaturityDataForNote]
 
-		INSERT INTO @tblMaturityDataForNote(NoteID,EffectiveDate,MaturityDate,MaturityType,Approved,IsDeleted,ActualPayoffDate,ExpectedMaturityDate,OpenPrepaymentDate)   
-		Select NoteID,EffectiveDate,MaturityDate,MaturityType,Approved,IsDeleted,ActualPayoffDate,ExpectedMaturityDate,OpenPrepaymentDate			 
+		INSERT INTO @tblMaturityDataForNote(NoteID,EffectiveDate,MaturityDate,MaturityType,Approved,IsDeleted,ActualPayoffDate,ExpectedMaturityDate,OpenPrepaymentDate,ExtensionType)   
+		Select NoteID,EffectiveDate,MaturityDate,MaturityType,Approved,IsDeleted,ActualPayoffDate,ExpectedMaturityDate,OpenPrepaymentDate,ExtensionType		 
 		From #tblMaturityData
 		Where MaturityMethodID in (721,723)	 --Most recent effective date,Note level
 
@@ -97,8 +98,8 @@ BEGIN
 	
 			Delete from @tblMaturityDataForNote_Alleffectivedate
 
-			INSERT INTO @tblMaturityDataForNote_Alleffectivedate(NoteID,EffectiveDate,MaturityDate,MaturityType,Approved,IsDeleted,ActualPayoffDate,ExpectedMaturityDate,OpenPrepaymentDate)   
-			Select NoteID,EffectiveDate,MaturityDate,MaturityType,Approved,IsDeleted,ActualPayoffDate,ExpectedMaturityDate,OpenPrepaymentDate			 
+			INSERT INTO @tblMaturityDataForNote_Alleffectivedate(NoteID,EffectiveDate,MaturityDate,MaturityType,Approved,IsDeleted,ActualPayoffDate,ExpectedMaturityDate,OpenPrepaymentDate,ExtensionType)   
+			Select NoteID,EffectiveDate,MaturityDate,MaturityType,Approved,IsDeleted,ActualPayoffDate,ExpectedMaturityDate,OpenPrepaymentDate,ExtensionType		 
 			From #tblMaturityData
 			Where MaturityMethodID in (722)	 --All effective date
 			and MaturityGroupName = @MatGroupname

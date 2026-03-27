@@ -17,8 +17,11 @@ BITableName = 'ExceptionsBI',
 BIStartTime = GETDATE()  
 WHERE BatchLogId = @BatchLogId and LandingTableName = 'L_ExceptionsBI'  
   
-  
-TRUNCATE TABLE  [DW].[ExceptionsBI]  
+IF EXISTS(Select top 1 Objectid from [DW].[L_ExceptionsBI])
+BEGIN
+
+
+Delete from  [DW].[ExceptionsBI]  where objectid in (Select Objectid from [DW].[L_ExceptionsBI])
   
 INSERT INTO [DW].[ExceptionsBI]  
  (  
@@ -39,63 +42,19 @@ INSERT INTO [DW].[ExceptionsBI]
   [ExceptionID],  
   [ObjectID],  
   [ObjectTypeID],  
-  LObjectTypeID.[Name] as [ObjectTypeBI],  
+  [ObjectTypeBI],  
   [FieldName],  
   [Summary],  
   [ActionLevelID],  
-  LActionLevelID.[Name] as [ActionLevelBI],  
-  ex.[CreatedBy],  
-  ex.[CreatedDate],  
-  ex.[UpdatedBy],  
-  ex.[UpdatedDate]  
- From CORE.Exceptions ex  
- left join Core.Lookup  LObjectTypeID ON ex.ObjectTypeID = LObjectTypeID .LookupID  
- left join Core.Lookup  LActionLevelID ON ex.ActionLevelID = LActionLevelID .LookupID  
- where ex.[ObjectID] not in (Select noteid from cre.note n inner join core.account acc on acc.accountid = n.account_accountid where acc.isdeleted = 1)
+  [ActionLevelBI],  
+  [CreatedBy],  
+  [CreatedDate],  
+  [UpdatedBy],  
+  [UpdatedDate] 
+  from [DW].[L_ExceptionsBI]
+  
+ END 
 
-  
-  
---IF EXISTS(Select * from [dw].[L_ExceptionsBI])  
---BEGIN  
-  
---Delete from [DW].[ExceptionsBI] where ObjectID in (Select Distinct ObjectID from [DW].[L_ExceptionsBI])  
-  
-  
---INSERT INTO [DW].[ExceptionsBI]  
--- (  
---  [ExceptionID],  
---  [ObjectID],  
---  [ObjectTypeID],  
---  [ObjectTypeBI],  
---  [FieldName],  
---  [Summary],  
---  [ActionLevelID],  
---  [ActionLevelBI],  
---  [CreatedBy],  
---  [CreatedDate],  
---  [UpdatedBy],  
---  [UpdatedDate]  
--- )  
--- Select  
---  [ExceptionID],  
---  [ObjectID],  
---  [ObjectTypeID],  
---  [ObjectTypeBI],  
---  [FieldName],  
---  [Summary],  
---  [ActionLevelID],  
---  [ActionLevelBI],  
---  [CreatedBy],  
---  [CreatedDate],  
---  [UpdatedBy],  
---  [UpdatedDate]  
--- From DW.[L_ExceptionsBI]  
-  
-  
-  
-  
-  
---END  
   
   
 DECLARE @RowCount int  

@@ -1,5 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
 
 namespace CRES.DataContract
 {
@@ -9,8 +12,8 @@ namespace CRES.DataContract
         public string ID { get; set; }
         public string AccountID { get; set; }
         public string CRENoteID { get; set; }
-        public string ClientNoteID { get; set; }
-
+        public string ClientNoteID { get; set; } 
+      
         public DateTime? InitialInterestAccrualEndDate { get; set; }
         public int? AccrualFrequency { get; set; }
         public int? DeterminationDateLeadDays { get; set; }
@@ -21,7 +24,7 @@ namespace CRES.DataContract
         public DateTime? FirstPaymentDate { get; set; }
         public DateTime? InitialMonthEndPMTDateBiWeekly { get; set; }
         public int? PaymentDateBusinessDayLag { get; set; }
-        public int? IOTerm { get; set; }
+        public int? IOTerm { get; set; }       
         public int? AmortTerm { get; set; }
         public int? PIKSeparateCompounding { get; set; }
         public Decimal? MonthlyDSOverridewhenAmortizing { get; set; }
@@ -29,7 +32,7 @@ namespace CRES.DataContract
         public Decimal? FirstPeriodInterestPaymentOverride { get; set; }
         public Decimal? FirstPeriodPrincipalPaymentOverride { get; set; }
         public DateTime? FinalInterestAccrualEndDateOverride { get; set; }
-
+  
         public int? InterestDueAtMaturity { get; set; }
         public Decimal? RateIndexResetFreq { get; set; }
         public DateTime? FirstRateIndexResetDate { get; set; }
@@ -44,9 +47,9 @@ namespace CRES.DataContract
         public DateTime? InitialMaturityDate { get; set; }
         public DateTime? ExpectedMaturityDate { get; set; }
         public DateTime? FullyExtendedMaturityDate { get; set; }
-        public DateTime? OpenPrepaymentDate { get; set; }
+        public DateTime? OpenPrepaymentDate { get; set; }      
         public Decimal? TotalToBeAmortized { get; set; }
-        public Decimal? StubPeriodInterest { get; set; }
+        public Decimal? StubPeriodInterest { get; set; }      
         public Decimal? PurchaseBalance { get; set; }
         public int? DaysofAccrued { get; set; }
         public Decimal? InterestRate { get; set; }
@@ -76,20 +79,20 @@ namespace CRES.DataContract
         public Decimal? DiscountRateMinus { get; set; }
         public Decimal? FairValueMinus { get; set; }
         public int? IncludeServicingPaymentOverrideinLevelYield { get; set; }
-        public string IncludeServicingPaymentOverrideinLevelYieldText { get; set; }
+        public string IncludeServicingPaymentOverrideinLevelYieldText { get; set; }      
         public string PIKSeparateCompoundingText { get; set; }
         public string LoanPurchaseYNText { get; set; }
         public string StubPaidinAdvanceYNText { get; set; }
-        public string ModelFinancingDrawsForFutureFundingsText { get; set; }
+        public string ModelFinancingDrawsForFutureFundingsText { get; set; }       
         public decimal? InitialIndexValueOverride { get; set; }
-        public int? StubInterestPaidonFutureAdvances { get; set; }
+        public int? StubInterestPaidonFutureAdvances { get; set; }       
         public int? RoundingMethod { get; set; }
         public string RoundingMethodText { get; set; }
         public int? IndexRoundingRule { get; set; }
         public string StubOnFFtext { get; set; }
         public int? StubOnFF { get; set; }
-        public decimal? StubInterestPurchased { get; set; }
-        public int? BaseCurrencyID { get; set; }
+        public decimal? StubInterestPurchased { get; set; }      
+        public int? BaseCurrencyID { get; set; }      
         public int? PayFrequency { get; set; }
         public string LoanCurrency { get; set; }
         public Decimal? StubIntOverride { get; set; }
@@ -111,12 +114,12 @@ namespace CRES.DataContract
         public DateTime? ExtendedMaturityScenario2 { get; set; }
         public DateTime? ExtendedMaturityScenario3 { get; set; }
         public DateTime? ActualPayoffDate { get; set; }
-        public Decimal? TotalCommitmentExtensionFeeisBasedOn { get; set; }
+        public Decimal? TotalCommitmentExtensionFeeisBasedOn { get; set; }        
         public string FullInterestAtPPayoffText { get; set; }
         public int? FullInterestAtPPayoff { get; set; }
         public int? NoofdaysrelPaymentDaterollnextpaymentcycle { get; set; }
         public Decimal? TotalCommitment { get; set; }
-        public string MaturityScenarioOverrideText { get; set; }
+        public string MaturityScenarioOverrideText { get; set; }  
         public List<PIKSchedule> NotePIKScheduleList { get; set; }
         public List<RateSpreadSchedule> RateSpreadScheduleList { get; set; }
         public List<MaturityScenariosDataContract> MaturityScenariosList { get; set; }
@@ -133,18 +136,20 @@ namespace CRES.DataContract
         public List<FinancingScheduleDataContract> NoteFinancingScheduleList { get; set; }
         public List<NotePeriodicOutputsDataContract> ListNotePeriodicOutputs { get; set; }
         public List<ServicingLogTab> ListServicingLogTab { get; set; }
-        public List<NoteServicingLogDataContract> lstNoteServicingLog { get; set; }
+        public List<NoteServicingLogDataContract> lstNoteServicingLog { get; set; }            
         public List<Transaction> ListTransaction { get; set; }
         public List<Transaction> ListCalcValues { get; set; }
         public List<TransactionEntry> ListCashflowTransactionEntry { get; set; }
-        public ScenarioParameterDataContract DefaultScenarioParameters { get; set; }
+        public ScenarioParameterDataContract DefaultScenarioParameters { get; set; }         
         public List<ServicingOneTimeFeesTableDataContract> ServicingOneTimeFeesTableList { get; set; }
         public List<FinancingFeeScheduleDataContract> ListFinancingFeeSchedule { get; set; }
-        public List<PIKInterestTab> ListPIKInterestTab { get; set; }
-        public List<PIKDistributionsDataContract> ListPIKDistribution { get; set; }
+        public List<PIKInterestTab> ListPIKInterestTab { get; set; }      
+        public List<PIKDistributionsDataContract> ListPIKDistribution { get; set; }    
 
         public string NoteRule { get; set; }
         public string FunctionName { get; set; }
+
+        public DateTime? FirstIndexDeterminationDateOverride { get; set; }
 
     }
 }

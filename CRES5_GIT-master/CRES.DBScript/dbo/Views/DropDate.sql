@@ -7,7 +7,7 @@
 		,X.Date
 		--, Y.date
 		----, z.date
-		, ActualPayoffDate
+		, N.ActualPayoffDate
 		, Amount
 			, Y.IntafterDropDate CurrentPeriodIntadj
 		--, NextPeriodIntAdj = Case when ActualPayoffdate = x.Date 

@@ -1,10 +1,14 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
 
 namespace CRES.DataContract
 {
     public class QBDCompanyDataContract
     {
-        public int QuickBookCompanyID { get; set; }
+        public int  QuickBookCompanyID { get; set; }
         public string Name { get; set; }
         public string EndPointID { get; set; }
         public string AutofyCompanyID { get; set; }

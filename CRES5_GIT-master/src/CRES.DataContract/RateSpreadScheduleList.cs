@@ -1,4 +1,8 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
 
 namespace CRES.DataContract
 {
@@ -7,7 +11,7 @@ namespace CRES.DataContract
         public RateSpreadSchedule()
         {
 
-        }
+        }      
 
         public Guid? NoteID { get; set; }
         public int? ModuleId { get; set; }
@@ -34,6 +38,8 @@ namespace CRES.DataContract
         public string IndexNameText { get; set; }
         public DateTime? StartDate { get; set; }
         public DateTime? EndDate { get; set; }
-
+        
+        public int? DeterminationDateHolidayList { get; set; }
+        public string DeterminationDateHolidayListText { get; set; }
     }
 }

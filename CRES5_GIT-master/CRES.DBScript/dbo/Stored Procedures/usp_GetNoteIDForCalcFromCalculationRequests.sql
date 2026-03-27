@@ -23,7 +23,9 @@ CREATE TABLE #tblNoteIDs (
 	[UserName] nvarchar(max),
 	[IsRealTime] bit,
 	AnalysisID UNIQUEIDENTIFIER,
-	CalculationModeID [int] 
+	CalculationModeID [int] ,
+	AccountID UNIQUEIDENTIFIER
+
 )
 --------------------------------------------
 
@@ -36,17 +38,17 @@ Declare @lookupidRealTime int = (SELECT LookupID from core.Lookup where Name='Re
 
 ----Update Status to 'Processing' if note running more than 180 min------------
 Update Core.CalculationRequests set [StatusID]=@lookupidProcessing ,  StartTime = getdate()
-where NoteID in (SELECT distinct NoteID FROM Core.CalculationRequests WHERE [StatusID] = @lookupidRunning and datediff(minute,StartTime, getdate()) > 180 and CalcType = 775 )
+where AccountId in (SELECT distinct AccountId FROM Core.CalculationRequests WHERE [StatusID] = @lookupidRunning and datediff(minute,StartTime, getdate()) > 180 and CalcType = 775 )
 and CalcType = 775
 
 ----Update Status to 'Processing' if note failure due to deadlocked or Timeout Expired------------
 Update Core.CalculationRequests set [StatusID]=@lookupidProcessing ,  StartTime = getdate()
-where NoteID in (SELECT distinct NoteID FROM Core.CalculationRequests WHERE [StatusID] = @lookupidFailed and (ErrorMessage like '%deadlocked%' or ErrorMessage like '%Timeout Expired%') and CalcType = 775 )
+where AccountId in (SELECT distinct AccountId FROM Core.CalculationRequests WHERE [StatusID] = @lookupidFailed and (ErrorMessage like '%deadlocked%' or ErrorMessage like '%Timeout Expired%') and CalcType = 775 )
 and CalcType = 775
 ------------------------------------------------------------------------------
 
 
-IF( (Select COUNT(NoteID) from Core.CalculationRequests with(nolock)  WHERE [StatusID]=@lookupidRunning and CalcType = 775) < 20)
+IF( (Select COUNT(AccountId) from Core.CalculationRequests with(nolock)  WHERE [StatusID]=@lookupidRunning and CalcType = 775) < 20)
 BEGIN
 
 
@@ -55,13 +57,20 @@ BEGIN
  TRUNCATE TABLE #tblNoteIDs
 
  INSERT INTO #tblNoteIDs
- SELECT NoteID,RequestTime,[CalculationRequestID],[UserName],1 as [IsRealTime],AnalysisID,ISNULL(CalculationModeID,507) CalculationModeID From Core.CalculationRequests
- WHERE [StatusID]=@lookupidProcessing and PriorityID = @lookupidRealTime and CalcType = 775
+ SELECT n.NoteID,RequestTime,[CalculationRequestID],[UserName],1 as [IsRealTime],AnalysisID,ISNULL(CalculationModeID,507) CalculationModeID,cr.AccountId
+ From Core.CalculationRequests cr
+ Inner Join Core.account acc on acc.AccountID = cr.AccountId
+ Inner Join cre.note n on n.Account_AccountID = acc.AccountID
+ WHERE cr.[StatusID]=@lookupidProcessing and PriorityID = @lookupidRealTime and CalcType = 775
+ and acc.AccountTypeID = 1
  ORDER BY RequestTime ASC
 
  INSERT INTO #tblNoteIDs
- SELECT TOP 30 NoteID,RequestTime,[CalculationRequestID],[UserName],0 as [IsRealTime],AnalysisID,ISNULL(CalculationModeID,507) CalculationModeID From Core.CalculationRequests
- WHERE [StatusID]=@lookupidProcessing and PriorityID <> @lookupidRealTime and CalcType = 775
+ SELECT TOP 30 n.NoteID,RequestTime,[CalculationRequestID],[UserName],0 as [IsRealTime],AnalysisID,ISNULL(CalculationModeID,507) CalculationModeID, cr.AccountId
+ From Core.CalculationRequests cr
+ Inner Join Core.account acc on acc.AccountID = cr.AccountId
+ Inner Join cre.note n on n.Account_AccountID = acc.AccountID
+ WHERE cr.[StatusID]=@lookupidProcessing and PriorityID <> @lookupidRealTime and CalcType = 775
  ORDER BY RequestTime ASC
 ---------------------------------------
 
@@ -84,9 +93,9 @@ From(
  Update Core.CalculationRequests  SET  Core.CalculationRequests.StatusID = @lookupidRunning , StartTime = getdate()
  from
  (
-	SELECT distinct NoteID,AnalysisID FROM #tblNoteIDs
+	SELECT distinct NoteID,AnalysisID,AccountID FROM #tblNoteIDs
  )T
- where Core.CalculationRequests.NoteID = T.NoteID and Core.CalculationRequests.AnalysisID = T.AnalysisID
+ where Core.CalculationRequests.AccountId = T.AccountID and Core.CalculationRequests.AnalysisID = T.AnalysisID
  and Core.CalculationRequests.CalcType = 775
 
 

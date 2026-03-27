@@ -10,7 +10,7 @@ BEGIN
 	 	 select * from Core.CalculationRequests  cr
 	inner join  Core.Lookup l on l.LookupID = cr.StatusID
 	where 
-	 noteid in (select noteid from cre.note where dealid =@DealID) 
+	 AccountId in (select Account_AccountID from cre.note where dealid =@DealID) 
 	and  AnalysisID ='C10F3372-0FC2-4861-A9F5-148F1F80804F'
 	and   cr.StatusID NOT IN (266,265,736)
 	and cr.CalcType = 775

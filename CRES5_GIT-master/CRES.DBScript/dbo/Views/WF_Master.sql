@@ -1,4 +1,4 @@
-﻿
+﻿-- View
 CREATE VIEW [dbo].[WF_Master] AS  
 select
 
@@ -50,7 +50,10 @@ tblInterestRate.allincouponrate as AnnuallPercentageRate,
  'N'  as PartialPayments  ,
 
 (Case when n.IOTerm > 0 then 0 
-when n.IOTerm = 0 then (Select SUM(tr.Amount) from cre.TransactionEntry tr where tr.[Date] = n.FirstPaymentDate and  tr.[Type] in ('InterestPaid','ScheduledPrincipalPaid') and tr.NoteID = n.NoteID) else null end ) PandIconstant,  
+when n.IOTerm = 0 then (Select SUM(tr.Amount) from cre.TransactionEntry tr where tr.[Date] = n.FirstPaymentDate and  tr.[Type] in ('InterestPaid','ScheduledPrincipalPaid') and tr.Accountid = n.Account_accountid) else null end ) PandIconstant,  
+
+
+
 
 
 
@@ -107,48 +110,50 @@ OddDaysIntAmount,
 
 n.TotalCommitment as OrigPrinBalOrLOC,--FirstPeriodPrincipalPaymentOverride as  OrigPrinBalOrLOC,  
 
-	(
-			Select  TOP 1  
-			RIGHT('00' + CONVERT(NVARCHAR, (DateDiff(MONTH,n.FirstPaymentDate,mat.[MaturityDate]) + (1* ISNULL(acc1.PayFrequency ,1))) / 12), 2) +  RIGHT('00' + CONVERT(NVARCHAR, (DateDiff(MONTH,n.FirstPaymentDate,mat.[MaturityDate]) + (1* ISNULL(acc1.PayFrequency ,1))) % 12), 2)
-			from [CORE].Maturity mat  
-			INNER JOIN [CORE].[Event] e on e.EventID = mat.EventId  
-			INNER JOIN   
-			(          
-				Select   
-				(Select AccountID from [CORE].[Account] ac where ac.AccountID = n.Account_AccountID) AccountID ,  
-				MAX(EffectiveStartDate) EffectiveStartDate,EventTypeID from [CORE].[Event] eve  
-				INNER JOIN [CRE].[Note] n ON n.Account_AccountID = eve.AccountID  
-				INNER JOIN [CORE].[Account] a ON a.AccountID = n.Account_AccountID  
-				where EventTypeID = 11  and eve.StatusID = 1
-				and a.IsDeleted = 0  	
-				and a.AccountID = acc.AccountID  		
-				GROUP BY n.Account_AccountID,EventTypeID    
-			) sEvent    
-			ON sEvent.AccountID = e.AccountID and e.EffectiveStartDate = sEvent.EffectiveStartDate  and e.EventTypeID = sEvent.EventTypeID and e.StatusID = 1 
-			INNER JOIN [CORE].[Account] acc1 ON acc1.AccountID = e.AccountID
-			INNER JOIN [CRE].[Note] n ON n.Account_AccountID = acc1.AccountID 	
-			where mat.maturityType = 708 
-			and	mat.Approved = 3
-			and acc1.AccountID = acc.AccountID  
+ (Select  TOP 1  
+RIGHT('00' + CONVERT(NVARCHAR, (DateDiff(MONTH,n.FirstPaymentDate,mat.[SelectedMaturityDate]) + (1* ISNULL(acc.PayFrequency ,1))) / 12), 2) +  RIGHT('00' + CONVERT(NVARCHAR, (DateDiff(MONTH,n.FirstPaymentDate,mat.[SelectedMaturityDate]) + (1* ISNULL(acc.PayFrequency ,1))) % 12), 2)
 
-			--Select  TOP 1  
-			--RIGHT('00' + CONVERT(NVARCHAR, (DateDiff(MONTH,n.FirstPaymentDate,mat.[SelectedMaturityDate]) + (1* ISNULL(acc.PayFrequency ,1))) / 12), 2) +  RIGHT('00' + CONVERT(NVARCHAR, (DateDiff(MONTH,n.FirstPaymentDate,mat.[SelectedMaturityDate]) + (1* ISNULL(acc.PayFrequency ,1))) % 12), 2)
-			--from [CORE].Maturity mat  
-			--INNER JOIN [CORE].[Event] e on e.EventID = mat.EventId  
-			--INNER JOIN   
-			--(         
-			--	Select   
-			--	(Select AccountID from [CORE].[Account] ac where ac.AccountID = n.Account_AccountID) AccountID ,  
-			--	MAX(EffectiveStartDate) EffectiveStartDate,EventTypeID from [CORE].[Event] eve  
-			--	INNER JOIN [CRE].[Note] n ON n.Account_AccountID = eve.AccountID  
-			--	INNER JOIN [CORE].[Account] a ON a.AccountID = n.Account_AccountID  
-			--	where EventTypeID = (Select LookupID from CORE.[Lookup] where Name = 'Maturity')  
-			--	and a.AccountID = acc.AccountID  
-			--	GROUP BY n.Account_AccountID,EventTypeID   
-			--) sEvent    
-			--ON sEvent.AccountID = e.AccountID and e.EffectiveStartDate = sEvent.EffectiveStartDate  and e.EventTypeID = sEvent.EventTypeID  
+from [CORE].Maturity mat  
+INNER JOIN [CORE].[Event] e on e.EventID = mat.EventId  
+INNER JOIN   
+   (  
+        
+    Select   
+     (Select AccountID from [CORE].[Account] ac where ac.AccountID = n.Account_AccountID) AccountID ,  
+     MAX(EffectiveStartDate) EffectiveStartDate,EventTypeID from [CORE].[Event] eve  
+     INNER JOIN [CRE].[Note] n ON n.Account_AccountID = eve.AccountID  
+     INNER JOIN [CORE].[Account] a ON a.AccountID = n.Account_AccountID  
+     where EventTypeID = (Select LookupID from CORE.[Lookup] where Name = 'Maturity')  
+
+     and a.AccountID = acc.AccountID  
+     GROUP BY n.Account_AccountID,EventTypeID  
   
-		) as TermOfLoan, 
+   ) sEvent  
+
+
+
+
+
+
+  
+ON sEvent.AccountID = e.AccountID and e.EffectiveStartDate = sEvent.EffectiveStartDate  and e.EventTypeID = sEvent.EventTypeID  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+) as TermOfLoan, 
 
  '0'  as OriginalLoantoValue  ,
  Cast(Format(ClosingDate ,'MMddyyyy') as nvarchar(256)) as OriginalLoanDate,
@@ -280,7 +285,9 @@ left join
 (
 	Select rno,Noteid,PeriodEndDate,(allincouponrate*100) as allincouponrate
 	From(
-		Select  ROW_NUMBER() OVER (PARTITION BY  Noteid  ORDER BY Noteid,PeriodEndDate) AS rno,Noteid,PeriodEndDate,allincouponrate from cre.noteperiodiccalc 
+		Select  ROW_NUMBER() OVER (PARTITION BY  n.Noteid  ORDER BY n.Noteid,PeriodEndDate) AS rno,n.Noteid,PeriodEndDate,allincouponrate 
+		from cre.noteperiodiccalc nc
+		Inner Join cre.note n on n.account_accountid = nc.accountid
 		where allincouponrate is not null
 	)a
 	where a.rno = 1

@@ -19,9 +19,9 @@ BEGIN
 
 	DECLARE @tblMaturityDataForNote [TableTypeMaturityDataForNote]
 
-	INSERT INTO @tblMaturityDataForNote(NoteID,EffectiveDate,MaturityDate,MaturityType,Approved,IsDeleted,ActualPayoffDate,ExpectedMaturityDate,OpenPrepaymentDate)  --ActualPayoffDate,ExpectedMaturityDate,OpenPrepaymentDate,
+	INSERT INTO @tblMaturityDataForNote(NoteID,EffectiveDate,MaturityDate,MaturityType,Approved,IsDeleted,ActualPayoffDate,ExpectedMaturityDate,OpenPrepaymentDate,ExtensionType)  --ActualPayoffDate,ExpectedMaturityDate,OpenPrepaymentDate,
 
-	Select NoteID,@EffectiveDate as EffectiveDate,MaturityDate,MaturityType,Approved,0 as IsDeleted,@ActualPayoffDate as ActualPayoffDate,@ExpectedMaturityDate as ExpectedMaturityDate,@OpenPrepaymentDate as OpenPrepaymentDate
+	Select NoteID,@EffectiveDate as EffectiveDate,MaturityDate,MaturityType,Approved,0 as IsDeleted,@ActualPayoffDate as ActualPayoffDate,@ExpectedMaturityDate as ExpectedMaturityDate,@OpenPrepaymentDate as OpenPrepaymentDate,null as ExtensionType
 	From(
 		Select @NoteID as NoteID,@InitialMaturityDate as MaturityDate,708 as MaturityType ,3 as Approved 
 			

@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { DataService } from './data.service';
-import { deals, DealFunding, AutoSpreadRule } from '../domain/deals.model';
+import { deals, DealFunding, AutoSpreadRule, DealLiabilityDataContract, PrincipalWriteoff } from '../domain/deals.model';
 import { Module } from '../domain/module.model';
 
 @Injectable()
@@ -55,13 +55,50 @@ export class dealService {
   private _addupdatedealruletypesetupAPI: string = 'api/deal/AddUpdateDealRuleTypeSetup';
   private _getallpropertytypeAPI: string = 'api/deal/GetAllPropertyType';
   private _getallloanstatusAPI: string = 'api/deal/GetAllLoanStatus';
+  private _getallreserveaccountmasterAPI: string = 'api/deal/GetAllReserveAccountMaster';
+
+  
   private GetDealCalculationStatusAPI: string = 'api/deal/GetDealCalculationStatus';
   private _addCalculaterrepay: string = 'api/deal/calculaterrepay';
-  private _GetPrepayCalcStatusMessageAPI: string = 'api/deal/GetPrepayCalcStatusMessage';
+ 
   private _getprepaycalculationstatusAPI: string = 'api/deal/GetPrepayCalculationStatus';
   private getdealprepayprojectionbydealidAPI: string = 'api/deal/getdealprepayprojectionbydealid';
   private getdealprepayallocationbydealidAPI: string = 'api/deal/getdealprepayallocationbydealid';
   private _GetEquitySummaryByDealID: string = 'api/deal/GetEquitySummaryByDealID'
+  private _downloadexcelfileFundingRuleAPI: string = 'api/excelupload/downloadexcelfileFundingRule';
+  private _getAccountingCloseByDealIdAPI: string = 'api/accounting/getaccountingclosebydealId';
+  private _savedealaccountingCloseAPI: string = 'api/accounting/savedealaccountingbyclosedate';
+  private _savedealaccountingOpenAPI: string = 'api/accounting/savedealaccountingbyopendate';
+  private _downloadexcelfileCommitmentAPI: string = 'api/excelupload/downloadexcelcommitment';
+  private _dealLiabilityByDealID: string = 'api/deal/getdealliabilitybydealid';
+  private _checkduplicateforliabilitesAPI: string = 'api/liabilityNote/checkduplicateforliabilities';
+
+  private _getServicingWatchListDatabyDealidAPI: string = 'api/deal/getServicingWatchListDatabyDealid';
+  private _getTransactionEntryLiabilityNoteByDealAccountIdAPI: string = 'api/liabilityNote/GetTransactionEntryLiabilityNoteByDealAccountId';
+  private _getAllTagNameXIRRAPI: string = 'api/deal/getAllTagNameXIRR';
+  private _getXIRROutputByObjectIDAPI: string = 'api/deal/getXIRROutputByObjectID';
+  private _getXIRRCalculationStatusByObjectIDAPI: string = 'api/deal/GetXIRRCalculationStatusByObjectID';
+
+  private _getDealLiabilityCashflowExportExcel: string = 'api/liabilityNote/getDealLiabilityCashflowsExportExcel';
+  private _getAutoDistributeWriteoffAPI: string = 'api/deal/GetAutoDistributeWriteoffByDealID';
+  private _principalWriteoffAPI: string = 'api/deal/autodistributePrincipalWriteoff';
+  private _downloadexcelfileServicingPotentialImpairmentAPI: string = 'api/excelupload/downloadexcelServicingPotentialImpairment';
+  private _getDealRelationshipAPI: string = 'api/deal/GetDealRelationshipByDealID';
+  private _getPrepaymentGroupAPI: string = 'api/deal/PrepaymentGroupByDealID';
+  private _getPayoffStatementFeesAPI: string = 'api/deal/getPayoffStatementFeesByDealID';
+  
+  private _getPrepaymentNoteSetupByDealID: string = 'api/deal/PrepaymentNoteSetupByDealID';
+  private _getPrepaymentNoteAllocationByDealID: string = 'api/deal/PrepaymentNoteAllocationSetup';
+  private _calcDealForAnalysisIDAPI: string = 'api/deal/CalcDealForAnalysisID';
+  private _updateReserveAccountFromBackshopAPI: string = 'api/deal/UpdateReserveAccountFromBackshop';
+  private _getGetAccountingBasisAPI: string = 'api/deal/GetAccountingBasisByDealID';
+  private _getAllLiabilityTypesDetailAPI: string = 'api/deal/getAllLiabilityTypesDetail';
+  private _downloadPayoffStatementExcelAPI: string = 'api/deal/downloadPayoffstatementexcel';
+  //private _generatePayOffStatementandSendEmail: string = 'api/deal/GeneratePayOffStatementandSendEmail';
+  private _UpdateDealForPayoffStatementConfigurationAPI: string = 'api/deal/UpdateDealForPayoffStatementConfiguration';
+  private _importDealFromBackshopByCREDealIdAPI: string = 'api/deal/ImportDealFromBackshopByCREDealId';
+  private _getFinancingCommitmentByDealID: string = 'api/deal/GetFinancingCommitmentByDealID'
+
   constructor(public accountService: DataService) { }
   //getAllDeals(_user:User) {
   //    this.accountService.set(this._accountGetAllDeal);
@@ -254,7 +291,7 @@ export class dealService {
 
   downloadObjectDocumentByStorageTypeAndLocation(id: string, storagetypeid: string, location: string) {
     this.accountService.set($.trim(this._accountingreportdownloadobjectfileAPI));
-    return this.accountService.getByIDStorageTypeAndLocationWithBlob(id, storagetypeid, location);
+    return this.accountService.getByIDStorageTypeAndLocationWithBlobGET(id, storagetypeid, location);
   }
 
   GetDealFundingByDealFundingID(deal: DealFunding) {
@@ -359,11 +396,7 @@ export class dealService {
     var s = JSON.stringify(dealid);
     return this.accountService.post(s);
   }
-  GetPrepayCalcStatusMessage(dealid) {
-    this.accountService.set(this._GetPrepayCalcStatusMessageAPI);
-    var s = JSON.stringify(dealid);
-    return this.accountService.post(s);
-  }
+  
   getdealprepayprojectionbydealid(DealId: string) {
     this.accountService.set(this.getdealprepayprojectionbydealidAPI);
     return this.accountService.post(JSON.stringify(DealId));
@@ -375,6 +408,157 @@ export class dealService {
   }
   GetEquitySummaryByDealID(dealid) {
     this.accountService.set(this._GetEquitySummaryByDealID);
+    var s = JSON.stringify(dealid);
+    return this.accountService.post(s);
+  }
+  downloadexcelfilefundingRule(fundingrule) {
+
+    this.accountService.set(this._downloadexcelfileFundingRuleAPI);
+    return this.accountService.PostByDataTable((fundingrule));
+  }
+
+  getAccountingClosebyDealid(DealId, pagesIndex, pagesSize) {
+    this.accountService.set(this._getAccountingCloseByDealIdAPI, pagesIndex, pagesSize);
+    return this.accountService.post(JSON.stringify(DealId));
+  }
+
+
+  savedealaccountingClose(str: string) {
+    this.accountService.set(this._savedealaccountingCloseAPI);
+    return this.accountService.post(JSON.stringify(str));
+  }
+
+  savedealaccountingOpen(str: string) {
+    this.accountService.set(this._savedealaccountingOpenAPI);
+    return this.accountService.post(JSON.stringify(str));
+  }
+
+
+  downloadexcelCommitment(commitment) {
+
+    this.accountService.set(this._downloadexcelfileCommitmentAPI);
+    return this.accountService.PostByDataTable((commitment));
+  }
+  //ServicingWatchlist
+  
+
+  GetServicingWatchListDatabyDealid(DealID: any) {
+    this.accountService.set(this._getServicingWatchListDatabyDealidAPI);
+    return this.accountService.post(JSON.stringify(DealID));
+  }
+  GetTransactionEntryLiabilityNoteByDealAccountId(DealAccountID: any) {
+    this.accountService.set(this._getTransactionEntryLiabilityNoteByDealAccountIdAPI);
+    return this.accountService.post(JSON.stringify(DealAccountID));
+  }
+
+  GetDealLiabilitybyDealid(DealAccountID: any) {
+    this.accountService.set(this._dealLiabilityByDealID);
+    return this.accountService.post(JSON.stringify(DealAccountID));
+  }
+  CheckDuplicateforLiabilities(dealLiability: DealLiabilityDataContract){
+    this.accountService.set(this._checkduplicateforliabilitesAPI);
+    return this.accountService.post(JSON.stringify(dealLiability));
+  }
+  GetAllTagsNameXIRR() {
+    this.accountService.set(this._getAllTagNameXIRRAPI);
+    return this.accountService.getAll();
+  }
+  GetXIRROutputByObjectID(DealAccountID: any) {
+    this.accountService.set(this._getXIRROutputByObjectIDAPI);
+    return this.accountService.post(JSON.stringify(DealAccountID));
+  }
+  GetXIRRCalculationStatusByObjectID(DealAccountID: any) {
+    this.accountService.set(this._getXIRRCalculationStatusByObjectIDAPI);
+    return this.accountService.post(JSON.stringify(DealAccountID));
+  }
+
+  //GetXIRRViewNotesByObjectID(requestdata: any) {
+  //  this.accountService.set(this._getXIRRViewNotesByObjectIDAPI);
+  //  return this.accountService.post(JSON.stringify(requestdata));
+  //}
+  GetDealLiabilityCashflowExportExcel(DealAccountID: any) {
+    this.accountService.set(this._getDealLiabilityCashflowExportExcel);
+    return this.accountService.postWithBlob(JSON.stringify(DealAccountID));
+  }
+
+  GetAutoDistributeWriteoffByDealID(deal: deals) {
+    this.accountService.set(this._getAutoDistributeWriteoffAPI);
+    return this.accountService.post(JSON.stringify(deal));
+  }
+
+  AutoDistributePrincipalWriteoff(principalwriteoff: PrincipalWriteoff) {
+    this.accountService.set(this._principalWriteoffAPI);
+    return this.accountService.post(JSON.stringify(principalwriteoff));
+  }
+
+  downloadexcelServicingPotentialImpairment(excPotentialImpairment) {
+
+    this.accountService.set(this._downloadexcelfileServicingPotentialImpairmentAPI);
+    return this.accountService.PostByDataTable((excPotentialImpairment));
+  }
+
+  GetDealRelationshipByDealID(dealID: string) {
+    this.accountService.set(this._getDealRelationshipAPI);
+    return this.accountService.post(JSON.stringify(dealID));
+  }
+  GetPrepaymentNoteSetupByDealID(dealID: string) {
+    this.accountService.set(this._getPrepaymentNoteSetupByDealID);
+    return this.accountService.post(JSON.stringify(dealID));
+  }
+  GetPrepaymentGroupByDealID(dealID: string) {
+    this.accountService.set(this._getPrepaymentGroupAPI);
+    return this.accountService.post(JSON.stringify(dealID));
+  }
+
+  GetPayoffStatementFeesByDealID(dealID: string) {
+    this.accountService.set(this._getPayoffStatementFeesAPI);
+    return this.accountService.post(JSON.stringify(dealID));
+  }
+
+  GetPrepaymentNoteAllocationSetup(dealID: string) {
+    this.accountService.set(this._getPrepaymentNoteAllocationByDealID);
+    return this.accountService.post(JSON.stringify(dealID));
+  }
+  CalcDealForAnalysisID(deal: any) {
+    this.accountService.set(this._calcDealForAnalysisIDAPI);
+    return this.accountService.post(JSON.stringify(deal));
+  }
+
+  getallreserveaccountmaster() {
+    this.accountService.set(this._getallreserveaccountmasterAPI);
+    return this.accountService.getAll();
+  }
+
+  updateReserveAccountFromBackshop(dealdc: any) {
+    this.accountService.set(this._updateReserveAccountFromBackshopAPI);
+    return this.accountService.post(JSON.stringify(dealdc));
+  }
+
+  GetAccountingBasisByDealID(dealID: string) {
+    this.accountService.set(this._getGetAccountingBasisAPI);
+    return this.accountService.post(JSON.stringify(dealID));
+  }
+  getAllLiabilityTypesDetail() {
+    this.accountService.set(this._getAllLiabilityTypesDetailAPI);
+    return this.accountService.getAll();
+  }
+  downloadPayoffStatementExcel(dealID: string, PayoffDate: any, actualPayoffDate: any) {
+    this.accountService.set(this._downloadPayoffStatementExcelAPI);
+    // return this.dataService.getByID(dealID);
+    return this.accountService.getByIDAndID1andID2WithBlob(dealID, PayoffDate, actualPayoffDate);
+  }
+  UpdateDealForPayoffStatementConfigurationAPI(deal: deals) {
+    this.accountService.set(this._UpdateDealForPayoffStatementConfigurationAPI);
+    return this.accountService.post(JSON.stringify(deal));
+  }  
+
+  ImportDealFromBackshopByCREDealId(deal: deals) {
+    this.accountService.set(this._importDealFromBackshopByCREDealIdAPI);
+    return this.accountService.post(JSON.stringify(deal));
+  }
+
+  GetFinancingCommitmentByDealID(dealid) {
+    this.accountService.set(this._getFinancingCommitmentByDealID);
     var s = JSON.stringify(dealid);
     return this.accountService.post(s);
   }

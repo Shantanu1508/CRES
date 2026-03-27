@@ -38,8 +38,8 @@ SEt @MaturityGroupName = (Select MaturityGroupName from @tblTopNote)
 ---=====Insert current maturity data to top 1 note========
 DECLARE @tblMaturityData_ForTopNote [TableTypeMaturityDataForNote]
 
-INSERT INTO @tblMaturityData_ForTopNote(NoteID,EffectiveDate,MaturityDate,MaturityType,Approved,IsDeleted,ActualPayoffDate,ExpectedMaturityDate,OpenPrepaymentDate)   
-Select NoteID,EffectiveDate,MaturityDate,MaturityType,Approved,IsDeleted,ActualPayoffDate,ExpectedMaturityDate,OpenPrepaymentDate			 
+INSERT INTO @tblMaturityData_ForTopNote(NoteID,EffectiveDate,MaturityDate,MaturityType,Approved,IsDeleted,ActualPayoffDate,ExpectedMaturityDate,OpenPrepaymentDate,ExtensionType)   
+Select NoteID,EffectiveDate,MaturityDate,MaturityType,Approved,IsDeleted,ActualPayoffDate,ExpectedMaturityDate,OpenPrepaymentDate,ExtensionType			 
 From @tblMaturityDataForNote
 Where NoteId = @Top_NoteId_OfThisGroup
 
@@ -129,7 +129,7 @@ BEGIN
   
   
  
-	INSERT INTO core.Maturity (EventId, MaturityDate,MaturityType,Approved,CreatedBy, CreatedDate,UpdatedBy,UpdatedDate)  
+	INSERT INTO core.Maturity (EventId, MaturityDate,MaturityType,Approved,CreatedBy, CreatedDate,UpdatedBy,UpdatedDate,ExtensionType)  
 	Select 
 	(SELECT TOP 1  
 	EventId  
@@ -139,7 +139,7 @@ BEGIN
 	AND se.AccountID = t.AccountID) EventID,
 	MaturityDate,
 	MaturityType,
-	Approved,CreatedBy,CreatedDate,UpdatedBy,UpdatedDate
+	Approved,CreatedBy,CreatedDate,UpdatedBy,UpdatedDate,ExtensionType
 	From(
 
 		SELECT   
@@ -151,7 +151,8 @@ BEGIN
 		e.CreatedBy,  
 		e.CreatedDate,  
 		e.UpdatedBy,  
-		e.UpdatedDate   
+		e.UpdatedDate,
+		mt.ExtensionType
 		FROM Core.Maturity mt  
 		inner join core.Event e on e.eventid =  mt.EventId  
 		inner join core.Account acc on acc.AccountID =  e.AccountID  

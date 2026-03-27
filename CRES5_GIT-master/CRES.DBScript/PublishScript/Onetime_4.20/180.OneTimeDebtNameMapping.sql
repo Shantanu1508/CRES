@@ -1,0 +1,111 @@
+﻿--/****** Object:  Table [dbo].[DebtNameMapping]    Script Date: 7/30/2025 3:23:16 PM ******/
+--IF  EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[DebtNameMapping]') AND type in (N'U'))
+--DROP TABLE [dbo].[DebtNameMapping]
+--GO
+--/****** Object:  Table [dbo].[DebtNameMapping]    Script Date: 7/30/2025 3:23:16 PM ******/
+--SET ANSI_NULLS ON
+--GO
+--SET QUOTED_IDENTIFIER ON
+--GO
+--CREATE TABLE [dbo].[DebtNameMapping](
+--	[AbbreviationName] [nvarchar](256) NULL,
+--	[DebtName_old] [nvarchar](256) NULL,
+--	[DebtName_New] [varchar](256) NULL
+--) ON [PRIMARY]
+--GO
+--INSERT [dbo].[DebtNameMapping] ([AbbreviationName], [DebtName_old], [DebtName_New]) VALUES (N'ACP II', N'Cap One 2022-01', N'ACPII-CONA-Subline')
+--GO
+--INSERT [dbo].[DebtNameMapping] ([AbbreviationName], [DebtName_old], [DebtName_New]) VALUES (N'ACP II', N'MS Repo', N'ACPII-MS-Repo')
+--GO
+--INSERT [dbo].[DebtNameMapping] ([AbbreviationName], [DebtName_old], [DebtName_New]) VALUES (N'ACP II', N'WF Repo', N'ACPII-WF-Repo')
+--GO
+--INSERT [dbo].[DebtNameMapping] ([AbbreviationName], [DebtName_old], [DebtName_New]) VALUES (N'ACP II', N'Customers', N'ACPII-Customers-NoN')
+--GO
+--INSERT [dbo].[DebtNameMapping] ([AbbreviationName], [DebtName_old], [DebtName_New]) VALUES (N'ACP II', N'Axos Bank', N'ACPII-Axos-NoN')
+--GO
+--INSERT [dbo].[DebtNameMapping] ([AbbreviationName], [DebtName_old], [DebtName_New]) VALUES (N'ACP II', N'TP Bank', N'ACPII-TP-Sale')
+--GO
+--INSERT [dbo].[DebtNameMapping] ([AbbreviationName], [DebtName_old], [DebtName_New]) VALUES (N'ACP II', N'Bank OZK', N'ACPII-OZK-Sale')
+--GO
+--INSERT [dbo].[DebtNameMapping] ([AbbreviationName], [DebtName_old], [DebtName_New]) VALUES (N'ACP II', N'TBD', N'ACPII-TBD-TBD')
+--GO
+--INSERT [dbo].[DebtNameMapping] ([AbbreviationName], [DebtName_old], [DebtName_New]) VALUES (N'ACP II', N'TBK Bank', N'ACPII-TBK-Sale')
+--GO
+--INSERT [dbo].[DebtNameMapping] ([AbbreviationName], [DebtName_old], [DebtName_New]) VALUES (N'ACP II', N'JP Morgan', N'ACPII-JPM-Sale')
+--GO
+--INSERT [dbo].[DebtNameMapping] ([AbbreviationName], [DebtName_old], [DebtName_New]) VALUES (N'ACP II', N'Blackstone', N'ACPII-BX-Sale')
+--GO
+--INSERT [dbo].[DebtNameMapping] ([AbbreviationName], [DebtName_old], [DebtName_New]) VALUES (N'ACP II', N'JPM Repo', N'ACPII-JPM-Repo')
+--GO
+--INSERT [dbo].[DebtNameMapping] ([AbbreviationName], [DebtName_old], [DebtName_New]) VALUES (N'ACP II', N'GS Repo', N'ACPII-GS-Repo')
+--GO
+--INSERT [dbo].[DebtNameMapping] ([AbbreviationName], [DebtName_old], [DebtName_New]) VALUES (N'ACP II', N'CONA Repo', N'ACP II-CONA-Repo')
+--GO
+--INSERT [dbo].[DebtNameMapping] ([AbbreviationName], [DebtName_old], [DebtName_New]) VALUES (N'AOC I', N'Aksia', N'AOCI-Aksia-Repo')
+--GO
+--INSERT [dbo].[DebtNameMapping] ([AbbreviationName], [DebtName_old], [DebtName_New]) VALUES (N'AOC I', N'Churchill', N'AOCI-Churchill-Repo')
+--GO
+--INSERT [dbo].[DebtNameMapping] ([AbbreviationName], [DebtName_old], [DebtName_New]) VALUES (N'AOC I', N'SB 2021-01', N'AOCI-Sunwest-Subline')
+--GO
+--INSERT [dbo].[DebtNameMapping] ([AbbreviationName], [DebtName_old], [DebtName_New]) VALUES (N'AOC II', N'SWB 2024-01', N'AOCII-Sunwest-Subline')
+--GO
+--INSERT [dbo].[DebtNameMapping] ([AbbreviationName], [DebtName_old], [DebtName_New]) VALUES (N'ACP II', N'CONA NoN', N'ACPII-CONA-NoN')
+--GO
+--INSERT [dbo].[DebtNameMapping] ([AbbreviationName], [DebtName_old], [DebtName_New]) VALUES (N'ACP I', N'MS Repo 2018-01', N'ACPI-MS-Repo')
+--GO
+--INSERT [dbo].[DebtNameMapping] ([AbbreviationName], [DebtName_old], [DebtName_New]) VALUES (N'ACP I', N'GS CLO 2018-01', N'ACPI-GS-CLO')
+--GO
+--INSERT [dbo].[DebtNameMapping] ([AbbreviationName], [DebtName_old], [DebtName_New]) VALUES (N'ACP I', N'Prime Finance', N'ACPI-Prime-Mortgage')
+--GO
+--INSERT [dbo].[DebtNameMapping] ([AbbreviationName], [DebtName_old], [DebtName_New]) VALUES (N'ACP I', N'3rd Party', N'ACPI-3rd Party-Sale')
+--GO
+--INSERT [dbo].[DebtNameMapping] ([AbbreviationName], [DebtName_old], [DebtName_New]) VALUES (N'ACP I', N'DB Repo 2019-01', N'ACPI-DB-Repo')
+--GO
+--INSERT [dbo].[DebtNameMapping] ([AbbreviationName], [DebtName_old], [DebtName_New]) VALUES (N'ACP I', N'AXOS 2021-01', N'ACPI-Axos-NoN')
+--GO
+--INSERT [dbo].[DebtNameMapping] ([AbbreviationName], [DebtName_old], [DebtName_New]) VALUES (N'ACP I', N'WF Repo 2020-01', N'ACPI-WF-Repo')
+--GO
+--INSERT [dbo].[DebtNameMapping] ([AbbreviationName], [DebtName_old], [DebtName_New]) VALUES (N'ACP I', N'Sunwest Bank', N'ACPI-Sunwest-NoN')
+--GO
+--INSERT [dbo].[DebtNameMapping] ([AbbreviationName], [DebtName_old], [DebtName_New]) VALUES (N'ACP I', N'Cap One 2017-SL', N'ACPI-CONA-Subline')
+--GO
+--INSERT [dbo].[DebtNameMapping] ([AbbreviationName], [DebtName_old], [DebtName_New]) VALUES (N'AOC I', N'3rd Party_New', N'AOCI-3rd Party-Sale')
+--GO
+--INSERT [dbo].[DebtNameMapping] ([AbbreviationName], [DebtName_old], [DebtName_New]) VALUES (N'AOC I', N'Axos Bank_New', N'AOCI-Axos-NoN')
+--GO
+--INSERT [dbo].[DebtNameMapping] ([AbbreviationName], [DebtName_old], [DebtName_New]) VALUES (N'AOC I', N'Customers_New', N'AOCI-Customers-NoN')
+--GO
+--INSERT [dbo].[DebtNameMapping] ([AbbreviationName], [DebtName_old], [DebtName_New]) VALUES (N'AOC II', N'GS Repo_New', N'AOCII-GS-Repo')
+--GO
+--INSERT [dbo].[DebtNameMapping] ([AbbreviationName], [DebtName_old], [DebtName_New]) VALUES (N'AOC II', N'JP Morgan_New', N'AOCII-JPM-Sale')
+--GO
+--INSERT [dbo].[DebtNameMapping] ([AbbreviationName], [DebtName_old], [DebtName_New]) VALUES (N'AOC II', N'PNC 2025-01_New', N'AOCII-PNC-Subline')
+--GO
+--INSERT [dbo].[DebtNameMapping] ([AbbreviationName], [DebtName_old], [DebtName_New]) VALUES (N'AOC I', N'Bank OZK_New', N'AOCI-OZK-Sale')
+--GO
+--INSERT [dbo].[DebtNameMapping] ([AbbreviationName], [DebtName_old], [DebtName_New]) VALUES (N'AOC I', N'TBD_New', N'AOCI-TBD-TBD')
+--GO
+--INSERT [dbo].[DebtNameMapping] ([AbbreviationName], [DebtName_old], [DebtName_New]) VALUES (N'AOC I', N'TBK Bank_New', N'AOCI-TBK-Sale')
+--GO
+--INSERT [dbo].[DebtNameMapping] ([AbbreviationName], [DebtName_old], [DebtName_New]) VALUES (N'ACP I', N'Bank OZK', N'ACPI-OZK-Sale')
+--GO
+--INSERT [dbo].[DebtNameMapping] ([AbbreviationName], [DebtName_old], [DebtName_New]) VALUES (N'ACP I', N'TBD', N'ACPI-TBD-TBD')
+--GO
+--INSERT [dbo].[DebtNameMapping] ([AbbreviationName], [DebtName_old], [DebtName_New]) VALUES (N'ACP I', N'TBK Bank', N'ACPI-TBK-Sale')
+--GO
+--INSERT [dbo].[DebtNameMapping] ([AbbreviationName], [DebtName_old], [DebtName_New]) VALUES (N'AOC I', N'SWB 2023-01', N'AOCI-SWB 2023-01-Subline')
+--GO
+--INSERT [dbo].[DebtNameMapping] ([AbbreviationName], [DebtName_old], [DebtName_New]) VALUES (N'AOC II', N'Bank OZK', N'AOCII-OZK-Sale')
+--GO
+--INSERT [dbo].[DebtNameMapping] ([AbbreviationName], [DebtName_old], [DebtName_New]) VALUES (N'ACP I', NULL, N'ACPI-Torchlight-Sale')
+--GO
+--INSERT [dbo].[DebtNameMapping] ([AbbreviationName], [DebtName_old], [DebtName_New]) VALUES (N'ACP I', NULL, N'ACPI-Hamburg-Sale')
+--GO
+--INSERT [dbo].[DebtNameMapping] ([AbbreviationName], [DebtName_old], [DebtName_New]) VALUES (N'ACP I', NULL, N'ACPI-HarborOne-Sale')
+--GO
+--INSERT [dbo].[DebtNameMapping] ([AbbreviationName], [DebtName_old], [DebtName_New]) VALUES (N'ACP I', NULL, N'ACPI-bcIMC-Sale')
+--GO
+--INSERT [dbo].[DebtNameMapping] ([AbbreviationName], [DebtName_old], [DebtName_New]) VALUES (N'ACP I', NULL, N'ACPI-C3-Sale')
+--GO
+--INSERT [dbo].[DebtNameMapping] ([AbbreviationName], [DebtName_old], [DebtName_New]) VALUES (N'ACP I', NULL, N'ACPI-Delphi-Sale')
+--GO

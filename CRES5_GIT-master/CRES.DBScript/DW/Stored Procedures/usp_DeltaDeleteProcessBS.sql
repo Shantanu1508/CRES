@@ -35,6 +35,42 @@ BEGIN
 	Delete From dw.NotePeriodicCalcByEntityBI where AnalysisID is null
 	Delete From dw.TransactionByEntityBI where AnalysisID is null
 
+	----==================================
+
+
+	
+	Delete from cre.transactionentry where AccountID in(
+		select n.account_accountid from cre.note n
+		inner join core.account acc on acc.accountid = n.account_accountid
+		where acc.isdeleted = 1
+	)
+
+
+	Delete from cre.noteperiodiccalc where AccountID in(
+		select n.Account_AccountID from cre.note n
+		inner join core.account acc on acc.accountid = n.account_accountid
+		where acc.isdeleted = 1
+	)
+
+
+	Delete from cre.DailyInterestAccruals where noteid in(
+		select n.noteid from cre.note n
+		inner join core.account acc on acc.accountid = n.account_accountid
+		where acc.isdeleted = 1
+	)
+
+
+	Delete from cre.DailyGAAPBasisComponents where noteid in(
+		select n.noteid from cre.note n
+		inner join core.account acc on acc.accountid = n.account_accountid
+		where acc.isdeleted = 1
+	)
+
+
+
+
+
+
 
 	UPDATE BatchLog
 	SET Status = 'DELETING'

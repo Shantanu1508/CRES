@@ -19,10 +19,10 @@ namespace CRES.BusinessLogic
             return _TaskManagementRespository.InsertTaskActivity(tasklist, username, taskid);
         }
 
-        public List<TaskManagementDataContract> GetAllTask(int status, Guid? userId, int? PageSize, int? PageIndex, out int? TotalCount)
+        public List<TaskManagementDataContract> GetAllTask(int status,Guid? userId, int? PageSize, int? PageIndex, out int? TotalCount)
 
         {
-            return _TaskManagementRespository.GetAllTask(status, userId, PageSize, PageIndex, out TotalCount);
+            return _TaskManagementRespository.GetAllTask(status,userId,PageSize, PageIndex, out TotalCount);
         }
 
         public TaskManagementDataContract GetTaskBYTaskID(string taskid)
@@ -35,9 +35,9 @@ namespace CRES.BusinessLogic
             return _TaskManagementRespository.InsertUpdateTaskComment(comments);
         }
 
-        public List<TaskCommentDataContract> GetTaskCommentsByTaskId(Guid UserID, string Taskid, string CurrentTime, string CommentType)
+        public List<TaskCommentDataContract> GetTaskCommentsByTaskId(Guid UserID,string Taskid, string CurrentTime, string CommentType)
         {
-            return _TaskManagementRespository.GetTaskCommentsByTaskId(UserID, Taskid, CurrentTime, CommentType);
+            return _TaskManagementRespository.GetTaskCommentsByTaskId(UserID,Taskid, CurrentTime, CommentType);
         }
 
         public string GetTaskDefaultConfigByTaskType(int? tasktype)
@@ -52,7 +52,7 @@ namespace CRES.BusinessLogic
 
         public string InsertSubscriptionData(List<TaskSubscriptionDataContract> data, string username)
         {
-            return _TaskManagementRespository.InsertSubscriptionData(data, username);
+          return  _TaskManagementRespository.InsertSubscriptionData(data,username);
         }
 
 

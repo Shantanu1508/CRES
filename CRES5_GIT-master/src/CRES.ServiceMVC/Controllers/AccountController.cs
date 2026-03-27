@@ -1,24 +1,31 @@
-﻿using CRES.BusinessLogic;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
 using CRES.DataContract;
-using CRES.Utilities;
+using CRES.BusinessLogic;
+using System.Globalization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
-using Microsoft.Graph;
-using Microsoft.Graph.Auth;
-using Microsoft.Identity.Client;
-using System;
-using System.Collections.Generic;
-using System.Data;
-using System.Globalization;
 using System.IO;
-using System.Linq;
+using CRES.Utilities;
+using System.Data;
+using Microsoft.Graph;
 using System.Threading.Tasks;
+using Microsoft.Identity.Client;
+using Microsoft.Graph.Auth;
+using System.Net.Http;
+using System.Text.Json.Serialization;
+using System.Text.Json;
+using Amazon.DirectoryService.Model.Internal.MarshallTransformations;
+using System.Web.Http.Results;
+using System.Text;
 
 namespace CRES.ServicesNew.Controllers
 {
 
     [Microsoft.AspNetCore.Cors.EnableCors("CRESPolicy")]
     //[EnableCors(origins: "*", headers: "*", methods: "*")]
+
     public class AccountController : ControllerBase
     {
 
@@ -29,7 +36,7 @@ namespace CRES.ServicesNew.Controllers
         }
 
         [HttpGet]
-        [Services.Controllers.IsAuthenticate]
+        // [Services.Controllers.IsAuthenticate]
         [Route("api/Account/GetTest")]
         public IActionResult GetTest()
         {
@@ -40,9 +47,64 @@ namespace CRES.ServicesNew.Controllers
                 Message = "Authentication succeeded",
             };
             //return Request.CreateResponse(HttpStatusCode.OK, _authenticationResult); ;
+
+            //string strResult = Encryptor.hashSH1("$%2glqLY14KN");
             return Ok(_authenticationResult);
         }
 
+
+        [HttpGet]
+        [Services.Controllers.IsAuthenticate]
+        [Route("api/Account/checkifuserislogedin")]
+        public IActionResult CheckifUserIsLogedIN()
+        {
+
+            bool islogediN = false;
+            bool isUserActive = false;
+            UserLogic userlogic = new UserLogic();
+            GenericResult _authenticationResult = null;
+            var headerUserID = string.Empty;
+            if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
+            {
+                headerUserID = Convert.ToString(Request.Headers["TokenUId"]);
+            }
+
+            isUserActive = userlogic.checkIsUserActive(headerUserID);
+
+
+            if (headerUserID != "")
+            {
+                islogediN = true;
+            }
+            else
+            {
+                islogediN = false;
+            }
+
+            try
+            {
+                if (isUserActive == true)
+                {
+                    _authenticationResult = new GenericResult()
+                    {
+                        Succeeded = true,
+                        Message = "Authentication succeeded"
+                    };
+                }
+                else
+                {
+                    _authenticationResult = new GenericResult()
+                    {
+                        Succeeded = false,
+                        Message = "Authentication failed"
+                    };
+                }
+            }
+            catch (Exception ex)
+            {
+            }
+            return Ok(_authenticationResult);
+        }
 
         /* Common methods */
         public string TokenGenerator(UserDataContract userDC)
@@ -57,17 +119,19 @@ namespace CRES.ServicesNew.Controllers
                 userDC.UserID + userDC.Password + userDC.UserToken);
         }
 
+        //GetUserCredentialByUserID
         public UserDataContract GetUserCredentialByUserID(Guid UserID, Guid? DelegatedUserID)
         {
             UserLogic userlogic = new UserLogic();
             UserDataContract userDC = new UserDataContract();
             userDC = userlogic.GetUserCredentialByUserID(UserID, DelegatedUserID);
-            if (userDC.Login != null && userDC.Password != null)
+            if (userDC.Login != null && userDC.Password != null && userDC.Password != "")
             {
                 userDC = userlogic.ValidateUser(userDC.Login, userDC.Password);
             }
             return userDC;
         }
+
 
 
         [HttpPost]
@@ -157,9 +221,7 @@ namespace CRES.ServicesNew.Controllers
         {
             GenericResult _authenticationResult = null;
 
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
 
             var headerUserID = new Guid();
 
@@ -226,9 +288,7 @@ namespace CRES.ServicesNew.Controllers
         {
             GenericResult _authenticationResult = null;
 
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
 
             var headerUserID = new Guid();
 
@@ -249,6 +309,19 @@ namespace CRES.ServicesNew.Controllers
             _systemConfigKeys = new SystemConfigKeys();
             _systemConfigKeys.Key = "API_Key";
             _systemConfigKeys.Value = Sectionroot.GetSection("API_Key").Value;
+
+            systemConfigKeyslist.Add(_systemConfigKeys);
+
+
+            _systemConfigKeys = new SystemConfigKeys();
+            _systemConfigKeys.Key = "CreGptAPIBaseUrl";
+            _systemConfigKeys.Value = Sectionroot.GetSection("CreGptAPIBaseUrl").Value;
+
+            systemConfigKeyslist.Add(_systemConfigKeys);
+
+            _systemConfigKeys = new SystemConfigKeys();
+            _systemConfigKeys.Key = "CreGptAPIKey";
+            _systemConfigKeys.Value = Sectionroot.GetSection("CreGptAPIKey").Value;
 
             systemConfigKeyslist.Add(_systemConfigKeys);
 
@@ -350,6 +423,54 @@ namespace CRES.ServicesNew.Controllers
             return Ok(_genericResult);
         }
 
+        [HttpPost]
+        [Services.Controllers.IsAuthenticate]
+        [Route("api/account/InsertUpdateBookMark")]
+        public IActionResult InsertUpdateBookMark([FromBody] DataTable BookmarkParam)
+        {
+            GenericResult _authenticationResult = null;
+            IEnumerable<string> headerValues;
+            DashBoardLogic dashboardlogic = new DashBoardLogic();
+            var headerUserID = string.Empty;
+            string AccountID = "";
+            string IsBookMark = "";
+
+            if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
+            {
+                headerUserID = Convert.ToString(Request.Headers["TokenUId"]);
+            }
+
+            if (BookmarkParam != null && BookmarkParam.Rows.Count > 0)
+            {
+                AccountID = BookmarkParam.Rows[0]["AccountID"].ToString();
+                IsBookMark = BookmarkParam.Rows[0]["IsBookMark"].ToString();
+            }
+
+            dashboardlogic.InsertUpdateBookMark(headerUserID, new Guid(AccountID), IsBookMark);
+
+            try
+            {
+                _authenticationResult = new GenericResult()
+                {
+                    Succeeded = true,
+                    Message = "Authentication succeeded"
+
+                };
+            }
+            catch (Exception ex)
+            {
+                LoggerLogic Log = new LoggerLogic();
+                Log.WriteLogException(CRESEnums.Module.Account.ToString(), "Error occurred in InsertUpdateBookMark", "", "", ex.TargetSite.Name.ToString(), "", ex);
+
+                _authenticationResult = new GenericResult()
+                {
+                    Succeeded = false,
+                    Message = ex.Message
+                };
+            }
+            return Ok(_authenticationResult);
+        }
+
 
         [HttpPost]
         [Services.Controllers.IsAuthenticate]
@@ -362,9 +483,7 @@ namespace CRES.ServicesNew.Controllers
             string EncruptOldPassword = Encryptor.MD5Hash(_userDataContract.OldPassword);
             string EncruptNewPassword = Encryptor.MD5Hash(_userDataContract.NewPassword);
 
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
             var headerUserID = string.Empty;
 
             if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
@@ -424,9 +543,7 @@ namespace CRES.ServicesNew.Controllers
             string authenticationKey = _userDataContract.AuthenticationKey; //Encryptor.MD5Hash(_userDataContract.OldPassword);
             string EncruptNewPassword = Encryptor.MD5Hash(_userDataContract.NewPassword);
 
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
             var headerUserID = string.Empty;
 
 
@@ -482,9 +599,7 @@ namespace CRES.ServicesNew.Controllers
             GenericResult _authenticationResult = null;
             UserDataContract _userdatacontract = new UserDataContract();
 
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
             var headerUserID = string.Empty;
 
             if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
@@ -540,7 +655,17 @@ namespace CRES.ServicesNew.Controllers
             GenericResult _authenticationResult = null;
             UserDataContract _userdatacontract = new UserDataContract();
             UserLogic userlogic = new UserLogic();
+            IEnumerable<string> headerValues;
+            var headerUserID = string.Empty;
 
+            if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
+            {
+                headerUserID = Convert.ToString(Request.Headers["TokenUId"]);
+            }
+            if (string.IsNullOrEmpty(headerUserID))
+            {
+                headerUserID = "335735a9-cdfe-4e22-9a3f-8adb3d9b931a";
+            }
             if (email != "undefined")
             {
                 _userdatacontract = userlogic.getUserpwdfromemail(email);
@@ -552,6 +677,8 @@ namespace CRES.ServicesNew.Controllers
                         _userdatacontract = userlogic.ValidateUser(_userdatacontract.Login, _userdatacontract.Password);//_userDataContract.Password
                         if (_userdatacontract != null)
                         {
+
+
                             _authenticationResult = new GenericResult()
                             {
                                 Succeeded = true,
@@ -559,15 +686,24 @@ namespace CRES.ServicesNew.Controllers
                                 Token = TokenGenerator(_userdatacontract),
                                 UserData = _userdatacontract
                             };
+
                         }
                         else
                         {
+
+                            string body = "User " + email + " tried to access m61 website but restricted to login as no role in M61 app is assigned ";
+                            //  EmailNotification emailNotification = new EmailNotification();
+                            _iEmailNotification.SendGenericNotificationEmail(email, "Unauthorized Access");
+
                             _authenticationResult = new GenericResult()
                             {
                                 Succeeded = false,
                                 Message = "Authentication failed:User is not authorized in the application."
 
                             };
+
+
+
                         }
                     }
                     else
@@ -575,10 +711,43 @@ namespace CRES.ServicesNew.Controllers
                         _authenticationResult = new GenericResult()
                         {
                             Succeeded = false,
+                            Status = "Unassigned",
                             Message = "Authentication failed:User is not authorized in the application."
 
                         };
+
+
                     }
+                   /* else
+                    {
+                        //New user create
+                        bool isusercreated = userlogic.AddNewUser(email, _userdatacontract.UserID.ToString());
+                        if (isusercreated == true)
+                        {
+                            _userdatacontract = userlogic.getUserpwdfromemail(email);
+                            if (_userdatacontract.RoleName == "")//User who don't have role
+                            {
+                                _authenticationResult = new GenericResult()
+                                {
+                                    Succeeded = false,
+                                    Status = "Unassigned",
+                                    Message = "Authentication failed:User is not authorized in the application."
+
+                                };
+
+                            }
+                            else
+                            {
+                                _authenticationResult = new GenericResult()
+                                {
+                                    Succeeded = false,
+                                    UserData = _userdatacontract,
+                                    Message = "User " + email + " created."
+
+                                };
+                            }
+                        }
+                    }*/
                 }
                 catch (Exception ex)
                 {
@@ -719,7 +888,7 @@ namespace CRES.ServicesNew.Controllers
         [HttpGet]
         [Services.Controllers.IsAuthenticate]
         [Route("api/account/GetAllUsers")]
-        public IActionResult GetAllUsers()
+        public async Task<IActionResult> GetAllUsersAsync()
         {
             GenericResult _genericResult = null;
 
@@ -729,7 +898,7 @@ namespace CRES.ServicesNew.Controllers
 
             _userdatacontractlst = _userlogic.GetAllUsers();
 
-
+            // var adduserinAzureAD=await AddUserInAzureAD();  one time for add use in azureAD
             try
             {
                 if (_userdatacontractlst != null && _userdatacontractlst.Count > 0)
@@ -767,6 +936,61 @@ namespace CRES.ServicesNew.Controllers
             return Ok(_genericResult);
 
         }
+
+
+        [HttpGet]
+        [Route("api/account/getdashboarddata")]
+        public IActionResult GetDashBoardData()
+
+        {
+            GenericResult _genericResult = null;
+            DashBoardLogic dashboardlogic = new DashBoardLogic();
+
+            var headerUserID = string.Empty;
+            if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
+            {
+                headerUserID = Convert.ToString(Request.Headers["TokenUId"]);
+            }
+            DataTable dt = dashboardlogic.GetDashBoardData();
+            DataTable dtBookMarkedDeal = dashboardlogic.GetBookMarkedDeals(headerUserID);
+
+            try
+            {
+                if (dt != null)
+                {
+                    _genericResult = new GenericResult()
+                    {
+                        Succeeded = true,
+                        Message = "Records found",
+                        dt = dt,
+                        dtBookMarkedDeal = dtBookMarkedDeal
+                    };
+                }
+                else
+                {
+                    _genericResult = new GenericResult()
+                    {
+                        Succeeded = false,
+                        Message = "No record found"
+                    };
+                }
+
+            }
+            catch (Exception ex)
+            {
+                LoggerLogic Log = new LoggerLogic();
+                Log.WriteLogException(CRESEnums.Module.Account.ToString(), "Error occurred in GetDashBoardByUserID", "", "", ex.TargetSite.Name.ToString(), "", ex);
+
+                _genericResult = new GenericResult()
+                {
+                    Succeeded = false,
+                    Message = ex.Message
+                };
+            }
+
+            return Ok(_genericResult);
+        }
+
 
 
         //[HttpPost]
@@ -898,8 +1122,6 @@ namespace CRES.ServicesNew.Controllers
                 LoggerLogic Log = new LoggerLogic();
                 Log.WriteLogException(CRESEnums.Module.Account.ToString(), "Error occurred in AddUpdateUser in AzureAD", "", "", ex.TargetSite.Name.ToString(), "", ex);
 
-
-
             }
 
             return true;
@@ -934,11 +1156,14 @@ namespace CRES.ServicesNew.Controllers
             {
                 if (result == 1)
                 {
+
+                    /* Removed code as per manish we not require this now
                     foreach (UserDataContract user in _userDataContractlst)
                     {
                         //Add User In Azure Active Directory;
                         await AddUpdateUserAD(user);
                     }
+                    */
                     //For Send Email to created User
                     if (newuserlist != null)
                     {
@@ -980,6 +1205,77 @@ namespace CRES.ServicesNew.Controllers
 
         }
 
+
+        /// <summary>
+        ///  only for one time for add user in azure AD
+        /// </summary>
+        /// <returns></returns>
+        [HttpGet]
+        [Route("api/account/AddUserInAzureAD")]
+        public async Task<IActionResult> AddUserInAzureAD()
+        {
+            GenericResult _authenticationResult = null;
+
+            // EmailNotification emailnotify = new EmailNotification();
+            UserLogic userlogic = new UserLogic();
+            List<UserDataContract> _userdatacontractlst = new List<UserDataContract>();
+
+
+            _userdatacontractlst = userlogic.GetUsersforAzureAD();
+
+            try
+            {
+                if (_userdatacontractlst.Count > 0)
+                {
+                    foreach (UserDataContract user in _userdatacontractlst)
+                    {
+                        //Add User In Azure Active Directory;
+
+                        await AddUpdateUserAD(user);
+
+                    }
+                    //For Send Email to created User
+                    //if (newuserlist != null)
+                    //{
+                    //    foreach (UserDataContract user in newuserlist)
+                    //    {
+                    //        _iEmailNotification.SendNewUserNotification(user.FirstName, user.SuperAdminName, user.Login, user.Email, user.NewPassword);
+
+                    //    }
+                    //}
+                    _authenticationResult = new GenericResult()
+                    {
+                        Succeeded = true,
+                        Message = "Email Send Successfully."
+
+                    };
+                }
+                else
+                {
+                    _authenticationResult = new GenericResult()
+                    {
+                        Succeeded = true,
+                        Message = "Authentication failed",
+                    };
+                }
+            }
+            catch (Exception ex)
+            {
+                LoggerLogic Log = new LoggerLogic();
+                Log.WriteLogException(CRESEnums.Module.Account.ToString(), "Error occurred in AddUpdateUser", "", "", ex.TargetSite.Name.ToString(), "", ex);
+
+                _authenticationResult = new GenericResult()
+                {
+                    Succeeded = false,
+                    Message = ex.Message
+                };
+            }
+
+            return Ok(_authenticationResult); ;
+
+        }
+
+
         [HttpGet]
         [Services.Controllers.IsAuthenticate]
         [Route("api/account/getallLookup")]
@@ -987,9 +1283,7 @@ namespace CRES.ServicesNew.Controllers
         {
             GenericResult _authenticationResult = null;
             List<LookupDataContract> lstlookupDC = new List<LookupDataContract>();
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
             var headerUserID = string.Empty;
 
             LookupLogic lookupLogic = new LookupLogic();
@@ -1088,9 +1382,7 @@ namespace CRES.ServicesNew.Controllers
         {
             GenericResult _authenticationResult = null;
 
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
 
             //Guid headerUserID = new Guid();
             var headerUserID = string.Empty;
@@ -1142,9 +1434,6 @@ namespace CRES.ServicesNew.Controllers
             return Ok(_authenticationResult);
         }
 
-
-
-
         [HttpGet]
         [Services.Controllers.IsAuthenticate]
         [Route("api/account/getallappconfig")]
@@ -1152,9 +1441,7 @@ namespace CRES.ServicesNew.Controllers
         {
             GenericResult _authenticationResult = null;
 
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
 
             //Guid headerUserID = new Guid();
             var headerUserID = string.Empty;
@@ -1215,9 +1502,7 @@ namespace CRES.ServicesNew.Controllers
             GenericResult _authenticationResult = null;
             // AppConfigDataContract _appconfigdatacontract = new AppConfigDataContract();
 
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
             var headerUserID = string.Empty;
 
             if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
@@ -1326,9 +1611,7 @@ namespace CRES.ServicesNew.Controllers
                 if (_userlogic.ForceLogout(_id))
                 {
                     /* Getting updated token for current user */
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
                     IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
                     var headerUserID = string.Empty;
                     //if (Request.Headers.TryGetValues("TokenUId", out headerValues))
                     //{
@@ -1391,9 +1674,7 @@ namespace CRES.ServicesNew.Controllers
             var newenddate = Enddate.ToString("MM/dd/yyyy", CultureInfo.CreateSpecificCulture("en-US"));
 
             UserDelegateLogic _udl = new UserDelegateLogic();
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
             var headerUserID = string.Empty;
             //if (Request.Headers.TryGetValues("TokenUId", out headerValues))
             //{
@@ -1458,9 +1739,7 @@ namespace CRES.ServicesNew.Controllers
         {
             GenericResult _authenticationResult = null;
             List<UserDelegationConfigDataContract> AllActiveDelegatedUser = new List<UserDelegationConfigDataContract>();
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
             var headerUserID = string.Empty;
 
             if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
@@ -1563,9 +1842,7 @@ namespace CRES.ServicesNew.Controllers
         {
             GenericResult _authenticationResult = null;
             UserDelegateLogic _udl = new UserDelegateLogic();
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
             var headerUserID = string.Empty;
 
             if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
@@ -1780,9 +2057,7 @@ namespace CRES.ServicesNew.Controllers
 
             UserLogic _userlogic = new UserLogic();
             List<AppTimeZoneDataContract> _lstAppTimeZone = new List<AppTimeZoneDataContract>();
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
             var headerUserID = new Guid();
 
             //if (Request.Headers.TryGetValues("TokenUId", out headerValues))
@@ -1840,9 +2115,7 @@ namespace CRES.ServicesNew.Controllers
         {
             GenericResult _authenticationResult = null;
 
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
 
             var headerUserID = new Guid();
 
@@ -1897,9 +2170,7 @@ namespace CRES.ServicesNew.Controllers
         {
             GenericResult _genericResult = null;
             List<UserDataContract> lstEmailNotificationFile = new List<UserDataContract>();
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
 
             UserPermissionLogic upl = new UserPermissionLogic();
             upl.InsertUpdateWFApprover(UserDC);
@@ -1981,9 +2252,7 @@ namespace CRES.ServicesNew.Controllers
 
             UserLogic _userlogic = new UserLogic();
             List<AppTimeZoneDataContract> _lstAppTimeZone = new List<AppTimeZoneDataContract>();
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
             var headerUserID = new Guid();
 
             if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
@@ -2038,9 +2307,7 @@ namespace CRES.ServicesNew.Controllers
         public IActionResult DeleteWFApproverByEmailNotificationID([FromBody] UserDataContract wfuser)
         {
             GenericResult _genericResult = null;
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
             var headerUserID = new Guid();
 
             if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
@@ -2082,9 +2349,7 @@ namespace CRES.ServicesNew.Controllers
         {
             GenericResult _authenticationResult = null;
 
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
 
             var headerUserID = new Guid();
 
@@ -2141,9 +2406,7 @@ namespace CRES.ServicesNew.Controllers
         public IActionResult UpdateServicerByServicerID([FromBody] ServicerDataContract servicerDC)
         {
             GenericResult _genericResult = null;
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
             var headerUserID = new Guid();
 
             if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
@@ -2185,9 +2448,7 @@ namespace CRES.ServicesNew.Controllers
         {
             GenericResult _authenticationResult = null;
             UserDelegateLogic _udl = new UserDelegateLogic();
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
             var headerUserID = new Guid();
             //if (Request.Headers.TryGetValues("TokenUId", out headerValues))
             //{
@@ -2240,9 +2501,7 @@ namespace CRES.ServicesNew.Controllers
         public IActionResult GetUserInfobyUserid()
         {
             GenericResult _authenticationResult = null;
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
             var headerUserID = new Guid();
             if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
             {
@@ -2398,9 +2657,7 @@ namespace CRES.ServicesNew.Controllers
         public IActionResult SaveTransactionTypes([FromBody] DataTable dt)
         {
             GenericResult _genericResult = null;
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
             var headerUserID = new Guid();
             if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
             {
@@ -2437,9 +2694,7 @@ namespace CRES.ServicesNew.Controllers
         public IActionResult DeleteTransactionTypes([FromBody] int? transactionTypeID)
         {
             GenericResult _genericResult = null;
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
             var headerUserID = new Guid();
             if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
             {
@@ -2531,9 +2786,7 @@ namespace CRES.ServicesNew.Controllers
         {
             GenericResult _authenticationResult = null;
 
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
             var headerUserID = string.Empty;
             if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
             {
@@ -2571,6 +2824,213 @@ namespace CRES.ServicesNew.Controllers
             }
             return Ok(_authenticationResult);
         }
+
+        [HttpGet]
+        [Services.Controllers.IsAuthenticate]
+        [Route("api/account/GetUsersInfoByRoleNameForDropDown")]
+        public IActionResult GetAssetMangerList(string ID)
+        {
+            GenericResult _genericResult = null;
+
+            UserLogic _userlogic = new UserLogic();
+            List<UserDataContract> _userdatacontractlst = new List<UserDataContract>();
+            _userdatacontractlst = _userlogic.GetUsersInfoByRoleNameForDropDown(ID);
+
+            try
+            {
+                if (_userdatacontractlst != null && _userdatacontractlst.Count > 0)
+                {
+                    _genericResult = new GenericResult()
+                    {
+                        Succeeded = true,
+                        Message = "record found",
+                        UserList = _userdatacontractlst
+                    };
+                }
+                else
+                {
+                    _genericResult = new GenericResult()
+                    {
+                        Succeeded = false,
+                        Message = "No record found",
+                        UserList = null
+                    };
+                }
+
+            }
+            catch (Exception ex)
+            {
+                LoggerLogic Log = new LoggerLogic();
+                Log.WriteLogException(CRESEnums.Module.Account.ToString(), "Error occurred in GetUsersByRoleName", "", "", ex.TargetSite.Name.ToString(), "", ex);
+
+                _genericResult = new GenericResult()
+                {
+                    Succeeded = false,
+                    Message = ex.Message
+                };
+            }
+
+            return Ok(_genericResult);
+        }
+
+
+        /*    
+
+
+              [HttpGet]
+              [Route("api/account/GetADAzureToken")]
+              public async Task<string> GetTokenAsync()
+              {
+                  string tenentid = "b8267886-f0c8-4160-ab6f-6e97968fdc90";
+                  var client_id = "cc9501b2-60d2-49e0-baa2-6d3fdcba02a8";
+                  var client_secret = "BZX8Q~FTmuHATsyjCGqp.HCc27RrsJGmN.iZ3bT~";
+
+
+                  var requestUrl = "https://login.microsoftonline.com/"+ tenentid;
+
+                  string[] scopes = new string[] { "https://management.azure.com/.default" }; // Accessing Azure Resource Manager API
+
+                  // Create a confidential client application (for non-interactive authentication)
+                  IConfidentialClientApplication app = ConfidentialClientApplicationBuilder.Create(client_id)
+                      .WithClientSecret(client_secret)
+                      .WithAuthority(new Uri(requestUrl))
+                      .Build();
+
+                  try
+                  {
+                      // Acquire a token for the given scopes
+                      AuthenticationResult result = await app.AcquireTokenForClient(scopes).ExecuteAsync();
+                      return result.AccessToken;
+
+                  }
+                  catch (MsalServiceException ex)
+                  {
+                      // Handle errors in acquiring the token
+                      Console.WriteLine($"Error acquiring token: {ex.Message}");
+                      return "";
+                  }
+
+
+              }
+
+
+              [HttpGet]
+              [Route("api/account/CreateDatabase")]
+              public string CreateDatabase()
+              {
+                  string result = "";
+                  string subscriptionId = "<your-subscription-id>"; // Azure Subscription ID
+                  string resourceGroupName = "<your-resource-group-name>"; // Resource group where the SQL server exists
+                  string sqlServerName = "<your-sql-server-name>"; // The SQL server where you want to create the database
+                  string databaseName = "MyNewDatabase"; // Name of the new SQL database
+                  string token = "<your-access-token>"; // Your Azure AD access token obtained via Client Credentials flow
+
+                  // Create a token-based credentials object
+                  var credentials = new AzureCredentialsFactory().FromAccessToken(token, AzureEnvironment.AzureGlobalCloud);
+
+                  // Authenticate and create a management client
+                  var azure = Microsoft.Azure.Management.Fluent.Azure
+                      .Authenticate(credentials, subscriptionId)
+                      .WithSubscription(subscriptionId);
+
+                  // Check if the SQL server exists (you can skip this if you know it exists)
+                  var sqlServer = await azure.SqlServers.GetByResourceGroupAsync(resourceGroupName, sqlServerName);
+
+                  if (sqlServer == null)
+                  {
+                      Console.WriteLine("SQL Server not found.");
+                      return;
+                  }
+
+                  // Create a SQL database
+                  var sqlDatabase = await sqlServer.Databases
+                      .Define(databaseName)
+                      .WithBasicEdition() // Or you can choose a different edition
+                      .CreateAsync();
+
+                  // Output the new database details
+                  Console.WriteLine($"SQL Database '{sqlDatabase.Name}' created successfully in server '{sqlServerName}'.");
+
+
+
+                  return result;
+              }
+
+      */
+
+
+
+        [HttpGet]
+        [Route("api/account/CreateDatabaseCopysql")]
+        public async void Createdatabasecopysql()
+        {
+            string clientId = "cc9501b2-60d2-49e0-baa2-6d3fdcba02a8";
+            string clientSecret = "IqE8Q~u8qRYKLoOzYWNLeNRPWa051W0cJTHhGaV2";
+            string tenantId = "b8267886-f0c8-4160-ab6f-6e97968fdc90";
+            string subscriptionId = "021c83fc-1e2a-4da6-92dd-8e1d74c0e1cb";
+
+
+            // Azure SQL server and database details
+            string resourceGroupName = "Default-Storage-SouthCentralUS";
+            string sqlServerName = "b0xesubcki1";
+
+
+            string sourceDatabaseName = "CRES4_QA";
+            string targetDatabaseName = "pushpcodeQAcopy77";
+
+            // Get Azure access token
+            string token = await GetAccessToken(clientId, clientSecret, tenantId);
+
+            // Define REST API URL for database creation
+            string url = $"https://management.azure.com/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.Sql/servers/{sqlServerName}/databases/{targetDatabaseName}?api-version=2017-10-01-preview";
+
+            using (var client = new HttpClient())
+            {
+                // Set up the request headers
+                client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+
+                // Define the request body
+                var jsonContent = $@"
+    {{
+        ""location"": ""SouthCentralUS"",
+        ""properties"": {{
+            ""sourceDatabaseId"": ""/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.Sql/servers/{sqlServerName}/databases/{sourceDatabaseName}"",
+            ""createMode"": ""Copy""
+        }}
+    }}";
+
+                var content = new StringContent(jsonContent, Encoding.UTF8, "application/json");
+
+                // Send the PUT request to create a copy of the database
+                var response = await client.PutAsync(url, content);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    Console.WriteLine("Database copy created successfully.");
+                }
+                else
+                {
+                    Console.WriteLine($"Failed to create database copy: {response.StatusCode}");
+                }
+            }
+        }
+
+        // Function to get an access token for Azure REST API
+        private static async Task<string> GetAccessToken(string clientId, string clientSecret, string tenantId)
+        {
+            var app = ConfidentialClientApplicationBuilder.Create(clientId)
+                .WithClientSecret(clientSecret)
+                .WithAuthority(new Uri($"https://login.microsoftonline.com/{tenantId}"))
+                .Build();
+
+            var result = await app.AcquireTokenForClient(new[] { "https://management.azure.com/.default" }).ExecuteAsync();
+
+            return result.AccessToken;
+
+
+        }
+
+
     }
 
 }

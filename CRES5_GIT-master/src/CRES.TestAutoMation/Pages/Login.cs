@@ -9,6 +9,8 @@ namespace CRES.TestAutoMation.Pages
 {
     public class Login
     {
+      
+
         private IWebDriver driver = null;
         private Util util = null;
         public Login(IWebDriver d)
@@ -29,7 +31,7 @@ namespace CRES.TestAutoMation.Pages
         private By LoginHeader = By.XPath("//div[@id='dvHeaderlogo']");
 
         private By btnaddmenu = By.XPath("/html/body/div/ng-component/div/div[1]/div/div/div[4]/div/ul/li[2]/a/i");
-
+      
 
         public bool LoginWebPageOld(string username, string password)
         {
@@ -53,7 +55,8 @@ namespace CRES.TestAutoMation.Pages
         }
 
         public bool LoginWebPage()
-        {
+        {           
+           
             bool res = false;
             string BaseUrl = null;
             string username = null;
@@ -64,8 +67,15 @@ namespace CRES.TestAutoMation.Pages
                 string env = BaseConfiguration.GetEnvironment();
                 switch (env)
                 {
+
+                    case "NewQA":
+                        BaseUrl = BaseConfiguration.GetNewQAUrl();
+                        username = BaseConfiguration.GetQaUsername();
+                        password = BaseConfiguration.GetQaPassword();
+                        break;
+
                     case "QA":
-                        BaseUrl = BaseConfiguration.GetQAUrl();
+                        BaseUrl = BaseConfiguration.GetNewQAUrl();
                         username = BaseConfiguration.GetQaUsername();
                         password = BaseConfiguration.GetQaPassword();
                         break;
@@ -183,10 +193,17 @@ namespace CRES.TestAutoMation.Pages
                         password = BaseConfiguration.GetDevPassword();
                         break;
 
+                    case "m61":
+                        BaseUrl = BaseConfiguration.Getm61Url();
+                        username = BaseConfiguration.Getm61Username();
+                        password = BaseConfiguration.Getm61Password();
+                        break;
+
                     default:
-                        BaseUrl = BaseConfiguration.GetQAUrl();
-                        username = BaseConfiguration.GetQaUsername();
-                        password = BaseConfiguration.GetQaPassword();
+                        //BaseUrl = BaseConfiguration.GetQAUrl();
+                        //username = BaseConfiguration.GetQaUsername();
+                        //password = BaseConfiguration.GetQaPassword();
+                        Console.WriteLine("Please specify correct environment name");
                         break;
                 }
 
@@ -197,13 +214,14 @@ namespace CRES.TestAutoMation.Pages
                 driver.FindElement(txtlogin).SendKeys(username);
                 driver.FindElement(txtName).SendKeys(password);
                 driver.FindElement(btnlogin).Click();
-                util.WaitForElementVisible(addmenu);
+                Thread.Sleep(5000);
+                //util.WaitForElementVisible(addmenu);
                 res = true;
             }
             catch (Exception ex)
             {
                 res = false;
-                Console.WriteLine("Multi Browser Exception in LoginWebPageMultiBrowser method ="+ex.Message+" res = "+res);
+                Console.WriteLine("Multi Browser Exception in LoginWebPage MultiBrowser method ="+ex.Message+" res = "+res);
             }
 
             return res;

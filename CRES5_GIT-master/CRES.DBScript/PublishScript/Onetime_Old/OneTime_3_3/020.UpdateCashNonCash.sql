@@ -1,0 +1,7 @@
+﻿Update cre.transactiontypes  set Cash_NonCash = 'Cash' Where  TransactionName = 'Balloon' 
+Update cre.transactiontypes  set Cash_NonCash = 'Cash' Where  TransactionName = 'InitialFunding' 
+Update cre.transactiontypes  set Cash_NonCash = 'Non-Cash' Where  TransactionName = 'PIKInterest' 
+Update cre.transactiontypes  set Cash_NonCash = 'Cash' Where  TransactionName = 'PIKInterestPaid' 
+Update cre.transactiontypes  set Cash_NonCash = 'Non-Cash' Where  TransactionName = 'PIKPrincipalFunding' 
+Update cre.transactiontypes  set Cash_NonCash = 'Cash' Where  TransactionName = 'ScheduledPrincipalPaid' 
+Update cre.transactiontypes  set Cash_NonCash = 'Cash' Where  TransactionName = 'PIKPrincipalPaid' 

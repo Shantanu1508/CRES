@@ -47,7 +47,10 @@ export class MembershipService {
   private _getsystemconfigkeysAPI: string = "api/account/getsystemconfigkeys";
   private _addupdateIPaddressbyuserIDAPI: string = "api/account/UpdateIPAddressByUserID";
   private checkduplicateIPaddressAPI: string = "api/account/CheckDuplicateIPAddress";
-
+  private _accountGetUsersInfoByRoleNameForDropDownAPI: string = "api/account/GetUsersInfoByRoleNameForDropDown";
+  
+  private _checkifuserislogedinAPI: string = "api/Account/checkifuserislogedin";
+  
   constructor(public accountService: DataService) { }
 
 
@@ -112,6 +115,10 @@ export class MembershipService {
     this.accountService.set(this._getsystemconfigkeysAPI);
     return this.accountService.getAll();
   }
+  CheckifUserIsLogedIN() {
+    this.accountService.set(this._checkifuserislogedinAPI);
+    return this.accountService.getAll();
+  } 
 
 
   getallTimezone(lstAppTimeZone: TimeZone, pagesIndex?: number, pagesSize?: number) {
@@ -183,6 +190,11 @@ export class MembershipService {
     this.accountService.set(this._accountGetUsersByRoleNameAPI);
     return this.accountService.getByID(rolename);
   }
+  getUsersInfoByRoleNameForDropDown(rolename: string) {
+    this.accountService.set(this._accountGetUsersInfoByRoleNameForDropDownAPI);
+    return this.accountService.getByID(rolename);
+  }
+  //GetUsersInfoByRoleNameForDropDown
 
   ForceLogout(ID: string) {
     this.accountService.set(this._forceLogoutAPI);

@@ -1,0 +1,1 @@
+﻿update cre.servicermaster set ServicerName='Trimont',ServicerDisplayName='Trimont' where ServicerName='Remittance'

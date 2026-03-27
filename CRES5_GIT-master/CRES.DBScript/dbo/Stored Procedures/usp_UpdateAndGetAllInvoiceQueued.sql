@@ -92,7 +92,8 @@ SELECT [InvoiceDetailID]
 		u4.LastName as SenderLastName,
 		u4.Email as SenderEmail,
 		df.Amount as FundingAmount,
-		InvoiceTypeID
+		InvoiceTypeID,
+		IsManualInvoice=case when i.AutoSendInvoice=572 then 1 else 0 end
 	  from [CRE].[InvoiceDetail] i 
 	  join Cre.Dealfunding df on i.ObjectID = df.DealFundingID
 	  join CRE.Deal d on d.DealID=df.DealID

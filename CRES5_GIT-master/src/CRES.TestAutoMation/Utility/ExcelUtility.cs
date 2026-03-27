@@ -29,6 +29,27 @@ namespace CRES.TestAutoMation.Utility
 
             return Path;
         }
+
+        public static String MergeAllExportToExcelFiles(string UniqueID)
+        {
+            Random _random = new Random();
+            string strPost = _random.Next().ToString();
+
+            DataTable dt = new DataTable();
+            string path = ProjectBaseConfiguration.ExcelReportsFolder;
+
+            DirectoryInfo hdDirectoryInWhichToSearch = new DirectoryInfo(path);
+            FileSystemInfo[] filesAndDirs = hdDirectoryInWhichToSearch.GetFileSystemInfos("*" + UniqueID + "*");
+
+            foreach (FileSystemInfo foundFile in filesAndDirs)
+            {
+                MergeData(foundFile.FullName, dt);
+            }
+            String FileName = "ExportToExcel_Validation_" + strPost;
+            String Path = GenerateExcelFile.CreateExcelDataTable(dt, FileName);
+
+            return Path;
+        }
         public class ExcelUtilityForNote
         {
 
@@ -52,9 +73,9 @@ namespace CRES.TestAutoMation.Utility
 
                 return Path;
             }
-        }   
+        }
 
-            private static void MergeData(string path, DataTable dt)
+        private static void MergeData(string path, DataTable dt)
         {
             XSSFWorkbook workbook = new XSSFWorkbook(path);
             XSSFSheet sheet = (XSSFSheet)workbook.GetSheetAt(0);
@@ -87,5 +108,23 @@ namespace CRES.TestAutoMation.Utility
             workbook = null;
             sheet = null;
         }
+
+
+        public static void ThrowIfExcelFileIsOpen(string filePath)
+        {
+            try
+            {
+                using (FileStream stream = File.Open(filePath, FileMode.Open, FileAccess.ReadWrite, FileShare.None))
+                {
+                    // File is not in use, safe to proceed
+                }
+            }
+            catch (IOException)
+            {
+                throw new InvalidOperationException($"The Excel file '{filePath}' is currently open or locked by another process.");
+            }
+        }
     }
-}
+        }
+    
+

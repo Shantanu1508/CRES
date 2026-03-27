@@ -10,7 +10,7 @@ namespace CRES.BusinessLogic
     {
         UserPermissionRespository _UserPermission = new UserPermissionRespository();
 
-        public List<UserPermissionDataContract> GetuserPermissionByUserIDAndPageName(string userID, string pagename, string ObjectID = "", int ObjectTypeID = 0)
+        public List<UserPermissionDataContract> GetuserPermissionByUserIDAndPageName(string userID, string pagename, string ObjectID = "", int ObjectTypeID =0 )
 
         {
             List<UserPermissionDataContract> list = _UserPermission.GetuserPermissionByUserIDAndPageName(userID, pagename, ObjectID, ObjectTypeID);
@@ -88,7 +88,7 @@ namespace CRES.BusinessLogic
         {
             _UserPermission.deleteTransactioType(transactiontypeId, UserID);
         }
-        public List<SchedulerConfigDataContract> GetALLSchedulerConfig(string UserID, SchedulerParamDataContract paramDC)
+        public List<SchedulerConfigDataContract> GetALLSchedulerConfig(string UserID, SchedulerParamDataContract paramDC )
         {
             return _UserPermission.GetALLSchedulerConfig(UserID, paramDC);
         }
@@ -123,7 +123,7 @@ namespace CRES.BusinessLogic
 
         public void InsertHolidayDates(DataTable dtHolidaydates, Guid UserID)
         {
-            _UserPermission.InsertHolidayDates(dtHolidaydates, UserID);
+            _UserPermission.InsertHolidayDates(dtHolidaydates,UserID);
         }
         public DataTable GetHolidayMaster(Guid? UserID)
         {
@@ -131,7 +131,7 @@ namespace CRES.BusinessLogic
         }
         public List<RuleTypeDataContract> GetAllRules()
         {
-            return _UserPermission.GetAllRules();
+            return _UserPermission.GetAllRules();           
         }
 
         public string GetContentByRuleTypeDetailID(int RuleTypeDetailID)
@@ -144,6 +144,12 @@ namespace CRES.BusinessLogic
             JsonTemplate list = _UserPermission.GetJsonTemplateByKey(key);
 
             return list;
+        }
+
+        public List<UserDataContract> GetFCApprover(Guid? UserID)
+        {
+            List<UserDataContract> userlist = _UserPermission.GetFCApprover(UserID);
+            return userlist;
         }
     }
 }

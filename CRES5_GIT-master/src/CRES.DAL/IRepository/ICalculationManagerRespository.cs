@@ -7,8 +7,8 @@ namespace CRES.DAL.IRepository
 {
     public interface ICalculationManagerRespository
     {
-        List<CalculationManagerDataContract> RefreshCalculationStatus(CalculationManagerDataContract DCcalc, Guid? UserID, string Enablem61Calculation);
-        bool QueueNotesForCalculation(List<CalculationManagerDataContract> noteslist, string username);
+        List<CalculationManagerDataContract> RefreshCalculationStatus(CalculationManagerDataContract DCcalc, Guid? UserID);
+        bool QueueNotesForCalculation(List<CalculationManagerDataContract> noteslist,string username, string RequestFrom = "");
 
         void UpdateCalculationStatusandTime(Guid calcid, string noteid, string statustext, string columnname, string errmsg);
 
@@ -25,6 +25,13 @@ namespace CRES.DAL.IRepository
         DataTable GetTransactionGroup(Guid? UserID);
         void InsertExceptionsOfCalculatorComponent(Guid? NoteId, Guid? AnalysisID, string UserID);
         DataTable CancelBatchRequestByAnalysisID(string AnalysisID);
+        void QueueNotesForCalculationForDuplicateTransaction();
+        void UpdateNoteCalculatedWeightedSpread(string NoteID, decimal? WeightedSpread);
+        void UpdateCalcStatusBYAnalysisIDAndType(string AnalysisID, string Type, Guid? UserID);
+        void UpdateBatchDetailWhenCancel(string AnalysisID);
+
+        void CalcNetCapitalInvestedbyNoteId(string NoteID);
+        void QueueNotesForCalculationIfDWoutofSync();
 
     }
 }

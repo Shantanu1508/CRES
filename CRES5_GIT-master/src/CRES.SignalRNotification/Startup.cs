@@ -1,7 +1,7 @@
 ﻿using Microsoft.AspNet.SignalR;
+using Owin;
 using Microsoft.Owin;
 using Microsoft.Owin.Cors;
-using Owin;
 [assembly: OwinStartup(typeof(CRES.SignalRNotification.Startup))]
 namespace CRES.SignalRNotification
 {

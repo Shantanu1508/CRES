@@ -1,0 +1,291 @@
+﻿{
+  "SheetName": "Export",
+  "LandingTableName": "IO.L_Remittance",
+  "ImportProcedureName": "usp_ImportIntoTranscationReconciliation",
+  "HeaderPosition": 5,
+  "Check2BlankRow": false,
+  "MappingColumns": [
+    {
+      "SheetColumnName": "Payee / Holder (Legal Entity)",
+      "SheetColumnDataType": "System.String",
+      "LandingColumnName": "PayeeHolder",
+      "IsMandatoryColumn": "Y",
+      "IsMandatoryValue": "N"
+    },
+    {
+      "SheetColumnName": "Investor ID",
+      "SheetColumnDataType": "System.String",
+      "LandingColumnName": "InvestorNo",
+      "IsMandatoryColumn": "Y",
+      "IsMandatoryValue": "N"
+    },
+    {
+      "SheetColumnName": "Loan ID",
+      "SheetColumnDataType": "System.String",
+      "LandingColumnName": "LoanNo",
+      "IsMandatoryColumn": "Y",
+      "IsMandatoryValue": "N"
+
+    },
+    {
+      "SheetColumnName": "Additional Loan ID",
+      "SheetColumnDataType": "System.String",
+      "LandingColumnName": "NoteID",
+      "IsMandatoryColumn": "Y",
+      "IsMandatoryValue": "Y"
+    },
+    {
+      "SheetColumnName": "Borrower Name",
+      "SheetColumnDataType": "System.String",
+      "LandingColumnName": "BorrowerName",
+      "IsMandatoryColumn": "Y",
+      "IsMandatoryValue": "N"
+    },
+    {
+      "SheetColumnName": "Asset Name",
+      "SheetColumnDataType": "System.String",
+      "LandingColumnName": "PropertyName",
+      "IsMandatoryColumn": "Y",
+      "IsMandatoryValue": "N"
+    },
+    {
+      "SheetColumnName": "Current Scheduled Due Date",
+      "SheetColumnDataType": "System.DateTime",
+      "LandingColumnName": "DueDate",
+      "IsMandatoryColumn": "Y",
+      "IsMandatoryValue": "N"
+    },
+    {
+      "SheetColumnName": "Paid Through Date",
+      "SheetColumnDataType": "System.DateTime",
+      "LandingColumnName": "PaidThroughDate",
+      "IsMandatoryColumn": "Y",
+      "IsMandatoryValue": "N"
+    },
+    {
+      "SheetColumnName": "Current Beginning Scheduled Balance",
+      "SheetColumnDataType": "System.Decimal",
+      "LandingColumnName": "BegBalance",
+      "IsMandatoryColumn": "Y",
+      "IsMandatoryValue": "N"
+    },
+    {
+      "SheetColumnName": "Scheduled Interest Amount",
+      "SheetColumnDataType": "System.Decimal",
+      "LandingColumnName": "ScheduledInterestAmount",
+      "IsMandatoryColumn": "Y",
+      "IsMandatoryValue": "N"
+    },
+    {
+      "SheetColumnName": "Scheduled Principal Amount",
+      "SheetColumnDataType": "System.Decimal",
+      "LandingColumnName": "ScheduledPrincipalAmount",
+      "IsMandatoryColumn": "Y",
+      "IsMandatoryValue": "N"
+    },
+    {
+      "SheetColumnName": "Total Scheduled P & I Due",
+      "SheetColumnDataType": "System.Decimal",
+      "LandingColumnName": "TotalScheduledPIDue",
+      "IsMandatoryColumn": "Y",
+      "IsMandatoryValue": "N"
+    },
+    {
+      "SheetColumnName": "Actual Interest Received",
+      "SheetColumnDataType": "System.Decimal",
+      "LandingColumnName": "Interest",
+      "IsMandatoryColumn": "Y",
+      "IsMandatoryValue": "N"
+    },
+    {
+      "SheetColumnName": "Actual Principal Received",
+      "SheetColumnDataType": "System.Decimal",
+      "LandingColumnName": "Principal",
+      "IsMandatoryColumn": "Y",
+      "IsMandatoryValue": "N"
+    },
+    {
+      "SheetColumnName": "Actual PI Received",
+      "SheetColumnDataType": "System.Decimal",
+      "LandingColumnName": "PIDue",
+      "IsMandatory": "Y",
+      "IsMandatoryValue": "N"
+    },
+    {
+      "SheetColumnName": "Current Interest Rate",
+      "SheetColumnDataType": "System.Decimal",
+      "LandingColumnName": "InterestRate",
+      "IsMandatoryColumn": "Y",
+      "IsMandatoryValue": "N"
+    },
+    {
+      "SheetColumnName": "Service Fee Rate",
+      "SheetColumnDataType": "System.Decimal",
+      "LandingColumnName": "ServiceFeeRate",
+      "IsMandatoryColumn": "Y",
+      "IsMandatoryValue": "N"
+    },
+    {
+      "SheetColumnName": "Net Yield",
+      "SheetColumnDataType": "System.Decimal",
+      "LandingColumnName": "NetYield",
+      "IsMandatoryColumn": "Y",
+      "IsMandatoryValue": "N"
+    },
+    {
+      "SheetColumnName": "Service Fee",
+      "SheetColumnDataType": "System.Decimal",
+      "LandingColumnName": "ServiceFee",
+      "IsMandatoryColumn": "Y",
+      "IsMandatoryValue": "N"
+    },
+    {
+      "SheetColumnName": "Additional Fees",
+      "SheetColumnDataType": "System.Decimal",
+      "LandingColumnName": "AdditionalFees",
+      "IsMandatoryColumn": "Y",
+      "IsMandatoryValue": "N"
+    },
+    {
+      "SheetColumnName": "Net Interest",
+      "SheetColumnDataType": "System.Decimal",
+      "LandingColumnName": "NetInterest",
+      "IsMandatoryColumn": "Y",
+      "IsMandatoryValue": "N"
+    },
+    {
+      "SheetColumnName": "Exit Fees",
+      "SheetColumnDataType": "System.Decimal",
+      "LandingColumnName": "ExitFees",
+      "IsMandatoryColumn": "Y",
+      "IsMandatoryValue": "N"
+    },
+    {
+      "SheetColumnName": "Extension Fees",
+      "SheetColumnDataType": "System.Decimal",
+      "LandingColumnName": "ExtensionFees",
+      "IsMandatoryColumn": "Y",
+      "IsMandatoryValue": "N"
+    },
+    {
+      "SheetColumnName": "Prepayment/YM Fees",
+      "SheetColumnDataType": "System.Decimal",
+      "LandingColumnName": "PrepaymentYMFees",
+      "IsMandatoryColumn": "Y",
+      "IsMandatoryValue": "N"
+    },
+    {
+      "SheetColumnName": "Other Fees",
+      "SheetColumnDataType": "System.Decimal",
+      "LandingColumnName": "OtherFees",
+      "IsMandatoryColumn": "Y",
+      "IsMandatoryValue": "N"
+    },
+    {
+      "SheetColumnName": "Other Interest Adjustment",
+      "SheetColumnDataType": "System.Decimal",
+      "LandingColumnName": "AddlInt",
+      "IsMandatoryColumn": "Y",
+      "IsMandatoryValue": "N"
+    },
+    {
+      "SheetColumnName": "Unscheduled Principal",
+      "SheetColumnDataType": "System.Decimal",
+      "LandingColumnName": "AddlPrincipal",
+      "IsMandatoryColumn": "Y",
+      "IsMandatoryValue": "N"
+    },
+    {
+      "SheetColumnName": "Remittance Amount",
+      "SheetColumnDataType": "System.Decimal",
+      "LandingColumnName": "TotalRemit",
+      "IsMandatoryColumn": "Y",
+      "IsMandatoryValue": "Y"
+    },
+    {
+      "SheetColumnName": "Other Principal Adjustments",
+      "SheetColumnDataType": "System.Decimal",
+      "LandingColumnName": "OtherPrincipalAdjustments",
+      "IsMandatoryColumn": "Y",
+      "IsMandatoryValue": "N"
+    },
+    {
+      "SheetColumnName": "Current Month Fundings",
+      "SheetColumnDataType": "System.Decimal",
+      "LandingColumnName": "CurrentMonthFundings",
+      "IsMandatoryColumn": "Y",
+      "IsMandatoryValue": "N"
+    },
+    {
+      "SheetColumnName": "Current Funding Date",
+      "SheetColumnDataType": "System.Decimal",
+      "LandingColumnName": "CurrentFundingDate",
+      "IsMandatoryColumn": "Y",
+      "IsMandatoryValue": "N"
+    },
+    {
+      "SheetColumnName": "NonCash Principal Adjustment",
+      "SheetColumnDataType": "System.Decimal",
+      "LandingColumnName": "PrincipalAdjNonCash",
+      "IsMandatoryColumn": "Y",
+      "IsMandatoryValue": "N"
+    },
+    {
+      "SheetColumnName": "Deferred Capitalized Amounts",
+      "SheetColumnDataType": "System.Decimal",
+      "LandingColumnName": "CurrentDIAL",
+      "IsMandatoryColumn": "Y",
+      "IsMandatoryValue": "N"
+    },
+    {
+      "SheetColumnName": "Current Ending Scheduled Balance",
+      "SheetColumnDataType": "System.Decimal",
+      "LandingColumnName": "EndingBalance",
+      "IsMandatoryColumn": "Y",
+      "IsMandatoryValue": "N"
+    },
+    {
+      "SheetColumnName": "Accrual Days",
+      "SheetColumnDataType": "System.Int32",
+      "LandingColumnName": "AccrualDays",
+      "IsMandatoryColumn": "Y",
+      "IsMandatoryValue": "N"
+    },
+    {
+      "SheetColumnName": "Note Date",
+      "SheetColumnDataType": "System.DateTime",
+      "LandingColumnName": "NOTEDATE",
+      "IsMandatoryColumn": "Y",
+      "IsMandatoryValue": "N"
+    },
+    {
+      "SheetColumnName": "Maturity Date",
+      "SheetColumnDataType": "System.DateTime",
+      "LandingColumnName": "MaturityDate",
+      "IsMandatoryColumn": "Y",
+      "IsMandatoryValue": "N"
+    },
+    {
+      "SheetColumnName": "Remit Date",
+      "SheetColumnDataType": "System.DateTime",
+      "LandingColumnName": "RemitDate",
+      "IsMandatoryColumn": "Y",
+      "IsMandatoryValue": "Y"
+    },
+    {
+      "SheetColumnName": "Date Received",
+      "SheetColumnDataType": "System.DateTime",
+      "LandingColumnName": "TranDate",
+      "IsMandatoryColumn": "Y",
+      "IsMandatoryValue": "Y"
+    },
+    {
+      "SheetColumnName": "Comments",
+      "SheetColumnDataType": "System.String",
+      "LandingColumnName": "Comments",
+      "IsMandatoryColumn": "Y",
+      "IsMandatoryValue": "N"
+    }
+
+  ]
+}

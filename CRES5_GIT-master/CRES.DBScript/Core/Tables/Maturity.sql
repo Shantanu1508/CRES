@@ -11,9 +11,16 @@
     [MaturityType]         INT              NULL,
     [Approved]             INT              NULL,
     [IsAutoApproved]       BIT              NULL,
+    [ExtensionType]        INT              NULL,
     CONSTRAINT [PK_MaturityAutoID] PRIMARY KEY CLUSTERED ([MaturityAutoID] ASC),
     CONSTRAINT [FK_MaturityID_EventId] FOREIGN KEY ([EventId]) REFERENCES [Core].[Event] ([EventID])
 );
+
+
+GO
+ALTER TABLE [Core].[Maturity] ENABLE CHANGE_TRACKING WITH (TRACK_COLUMNS_UPDATED = ON);
+
+
 
 
 --GO

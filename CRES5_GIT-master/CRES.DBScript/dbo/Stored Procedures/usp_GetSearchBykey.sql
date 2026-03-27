@@ -47,7 +47,7 @@ BEGIN
 		from App.SearchItem si
 		Inner join App.Object obj on si.Object_ObjectAutoID = obj.ObjectAutoID 
 		WHERE si.SearchText LIKE '%' + @SearchKey + '%'
-		and ObjectTypeID in (182,283)
+		and ObjectTypeID in (182,283,842,843,844)
 		and ObjectID not in 
 			(
 				Select DealID as Phtm_ObjectID from CRE.Deal where [Status] = @LID_Phantom
@@ -73,7 +73,7 @@ BEGIN
 		from App.SearchItem si
 		Inner join App.Object obj on si.Object_ObjectAutoID = obj.ObjectAutoID 
 		WHERE si.SearchText LIKE '%' + @SearchKey + '%'
-		and ObjectTypeID in (182,283)
+		and ObjectTypeID in (182,283,842,843,844)
 	) Search
 	ORDER BY Search.[Rank] DESC
 END

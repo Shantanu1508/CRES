@@ -33,8 +33,10 @@ and   (CASE WHEN @EndDate IS NULL or @EndDate='' THEN (select max(closingdate)FR
 union
 select crenoteid,name,periodenddate,-balloonpayment,'Balloon Payment' from cre.note n
       INNER JOIN [CORE].[Account] a ON a.AccountID = n.Account_AccountID 
-      LEFT JOIN [CRE].[NotePeriodicCalc] pc on pc.NoteID=n.NoteID 
-      where isnull(balloonpayment,0)<>0 and a.IsDeleted=0
+      LEFT JOIN [CRE].[NotePeriodicCalc] pc on pc.AccountID= a.AccountID
+	   
+
+      where isnull(balloonpayment,0)<>0 and a.IsDeleted=0 and a.AccounttypeID = 1
       and pc.PeriodEndDate between (CASE WHEN @StartDate IS NULL or @StartDate=''THEN (select min(PeriodEndDate) FROM cre.noteperiodiccalc) ELSE @StartDate END )
 and   (CASE WHEN @EndDate IS NULL or @EndDate='' THEN (select max(PeriodEndDate)FROM cre.noteperiodiccalc) ELSE @EndDate END )
 

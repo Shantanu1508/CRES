@@ -3,6 +3,7 @@ using CRES.Utilities;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net.Mail;
 
 namespace CRES.BusinessLogic
 {
@@ -61,11 +62,11 @@ namespace CRES.BusinessLogic
                     AssignToExceptionsList(Summary, "First Payment Date", noteobject.NoteId.ToString(), "Critical");
                 }
                 //Initial Funding Amount
-                res = NumericExtension.CheckNullOrEmpty<decimal>(Convert.ToDecimal(noteobject.InitialFundingAmount));
-                if (res == true)
-                {
-                    AssignToExceptionsList("The initial funding amount should be greater than 0", "Initial Funding Amount", noteobject.NoteId.ToString(), "Normal");
-                }
+                //res = NumericExtension.CheckNullOrEmpty<decimal>(Convert.ToDecimal(noteobject.InitialFundingAmount));
+                //if (res == true)
+                //{
+                //    AssignToExceptionsList("The initial funding amount should be greater than 0", "Initial Funding Amount", noteobject.NoteId.ToString(), "Normal");
+                //}
                 //Validate scenario list
 
                 Summary = ValidateNoteMaturityScenarios(noteobject.MaturityScenariosList);
@@ -80,23 +81,30 @@ namespace CRES.BusinessLogic
                     AssignToExceptionsList(Summary, "Rate Spread Schedule", noteobject.NoteId.ToString(), "Critical");
                 }
 
-                //Initial funding amount or origination fee
-                Summary = ValidateAmounts(noteobject);
-                if (Summary != "")
-                {
-                    AssignToExceptionsList(Summary, "Initial funding amount or origination fee", noteobject.NoteId.ToString(), "Critical");
-                }
+                ////Initial funding amount or origination fee
+                //Summary = ValidateAmounts(noteobject);
+                //if (Summary != "")
+                //{
+                //    AssignToExceptionsList(Summary, "Initial funding amount or origination fee", noteobject.NoteId.ToString(), "Critical");
+                //}
                 //Total funding greater than fees
                 Summary = ValidateInitialfunding(noteobject);
                 if (Summary != "")
                 {
                     AssignToExceptionsList(Summary, "Total funding should be greater than fees", noteobject.NoteId.ToString(), "Normal");
                 }
-                ValidateNonBusinessDay(noteobject.FirstRateIndexResetDate, noteobject.NoteId, "First rate index reset");
+                //ValidateNonBusinessDay(noteobject.FirstRateIndexResetDate, noteobject.NoteId, "First rate index reset");
+                ValidateNonBusinessDay(noteobject.FirstIndexDeterminationDateOverride, noteobject.NoteId, "First rate index reset");
                 Summary = ValidateRateSpreadSchedule(noteobject, "CalcMethod");
                 if (Summary != "")
                 {
                     AssignToExceptionsList(Summary, "Rate Spread Schedule", noteobject.NoteId.ToString(), "Critical");
+                }
+
+                Summary = ValidateNotePrepayAndAdditionalFeeScheduleList(noteobject, "EndDate");
+                if (Summary != "")
+                {
+                    AssignToExceptionsList(Summary, "Fee schedule", noteobject.NoteId.ToString(), "Critical");
                 }
 
                 Summary = ValidatePikSchedule(noteobject);
@@ -104,20 +112,12 @@ namespace CRES.BusinessLogic
                 {
                     AssignToExceptionsList(Summary, "PIK Schedule", noteobject.NoteId.ToString(), "Critical");
                 }
-                Summary = ValidateMaturityScenarios(noteobject.lstMaturity);
-                if (Summary != "")
-                {
-                    AssignToExceptionsList(Summary, "Maturity scenarios List", noteobject.NoteId.ToString(), "Critical");
-                }
-
-                //ValidateNonBusinessDay(noteobject.ExpectedMaturityDate, noteobject.NoteId, "Expected maturity date");
-                //ValidateNonBusinessDay(noteobject.ExtendedMaturityScenario1, noteobject.NoteId, "Extended Maturity Scenario 1");
-                // ValidateNonBusinessDay(noteobject.ExtendedMaturityScenario2, noteobject.NoteId, "Extended Maturity Scenario 2");
-                // ValidateNonBusinessDay(noteobject.ExtendedMaturityScenario3, noteobject.NoteId, "Extended Maturity Scenario 3");
                 if (noteobject.ClosingDate != null)
                 {
                     ValidatePaymentDate(noteobject);
                 }
+
+
                 return exceptionList;
             }
             catch (Exception)
@@ -270,27 +270,28 @@ namespace CRES.BusinessLogic
             bool intcalcnotfound = false;
             List<RateSpreadSchedule> listrate = new List<RateSpreadSchedule>();
 
-            if (noteobject.NotePIKScheduleList != null)
+            if (noteobject.PIKSeparateCompounding == 3)
             {
-                if (noteobject.NotePIKScheduleList.Count > 0)
+                if (noteobject.NotePIKScheduleList != null)
                 {
-                    foreach (var item in noteobject.NotePIKScheduleList)
+                    if (noteobject.NotePIKScheduleList.Count > 0)
                     {
-                        if (item.PIKIntCalcMethodID == null)
+                        foreach (var item in noteobject.NotePIKScheduleList)
                         {
-                            intcalcnotfound = true;
-                            break;
+                            if (item.PIKIntCalcMethodID == null)
+                            {
+                                intcalcnotfound = true;
+                                break;
+                            }
                         }
                     }
-                }
-                if (intcalcnotfound == true)
-                {
-                    msg = "Note should have value for PIK Interest Calc method in PIK schedule.";
-                }
+                    if (intcalcnotfound == true)
+                    {
+                        msg = "Note should have value for PIK Interest Calc method in PIK schedule.";
+                    }
 
+                }
             }
-
-
             return msg;
         }
         public string ValidateRateIndexResetFreq(decimal? amt)
@@ -469,33 +470,172 @@ namespace CRES.BusinessLogic
             return msg;
         }
 
-        public string ValidateMaturityScenarios(List<MaturityScenariosDataContract> list)
+        public string ValidateNotePrepayAndAdditionalFeeScheduleList(NoteDataContract noteobject, string validatcol)
         {
             string msg = "";
+            bool nullcalcmethod = false;
+            List<string> listname = new List<string>();
+            List<string> listnameID = new List<string>();
 
-            if (list != null && list.Count > 0)
+            if (validatcol == "EndDate")
             {
-                List<MaturityScenariosDataContract> listmat = new List<MaturityScenariosDataContract>();
-
-                listmat = list.FindAll(x => x.MaturityID == 708 && x.Date == null).ToList();
-                if (listmat.Count > 0)
+                foreach (var fee in noteobject.ListFeeSchedulesConfiguration)
                 {
-                    msg = "Initial Maturity Date cannot be empty";
+                    if (fee.FeePaymentFrequencyText.ToLower() == "transaction based" && fee.FeeCoveragePeriodText.ToLower() == "open period")
+                    {
+                        listname.Add(fee.FeeTypeNameText);
+                        listnameID.Add(fee.FeeTypeNameID.ToString());
+                    }
+                    else if (fee.FeePaymentFrequencyText.ToLower() == "payment period")
+                    {
+                        listname.Add(fee.FeeTypeNameText);
+                        listnameID.Add(fee.FeeTypeNameID.ToString());
+                    }
                 }
-                listmat = list.FindAll(x => x.MaturityID == 708).ToList();
-                if (listmat.Count == 0)
-                {
-                    msg = "Initial Maturity Date cannot be empty";
-                }
-
-
             }
-            else
+            String[] strarrayFeename = listname.ToArray();
+            String[] strarrayFeeID = listnameID.ToArray();
+            List<RateSpreadSchedule> listrate = new List<RateSpreadSchedule>();
+            if (noteobject.NotePrepayAndAdditionalFeeScheduleList.Count > 0)
             {
-                msg = "Maturity scenario cannot be empty";
-            }
+                //if (validatcol == "EndDate")
+                //{
+                //    foreach (var item in noteobject.NotePrepayAndAdditionalFeeScheduleList)
+                //    {
+                //        if (item.ScheduleEndDate == null || item.ScheduleEndDate == DateTime.MinValue)
+                //        {
+                //            int indexof = -1;
+                //            string useidortext = CheckToUseIDorText(item.ValueTypeText);
 
+                //            if (useidortext == "ID")
+                //            {
+                //                indexof = Array.IndexOf(strarrayFeeID, item.ValueTypeText);
+                //            }
+                //            else
+                //            {
+                //                indexof = Array.IndexOf(strarrayFeename, item.ValueTypeText);
+                //            }
+                //            if (indexof >= 0)
+                //            {
+                //                msg = msg + item.FeeName + ",";
+                //            }
+                //        }
+                //    }
+                //}
+            }
+            if (msg != "")
+            {
+                msg = msg.TrimEnd(',');
+                msg = "End date for fee " + msg + " cannot be blank.";
+            }
             return msg;
+        }
+
+        public string CheckToUseIDorText(string text)
+        {
+            string isnumber = "";
+            try
+            {
+
+                Convert.ToInt32(text);
+                isnumber = "ID";
+
+            }
+            catch (Exception)
+            {
+                isnumber = "Text";
+
+
+            }
+            return isnumber;
+        }
+
+        public string ValidateCurrenBalanceAndCommitment(List<NoteUsedInDealDataContract> notelist, List<IDValueDataContract> ListScheduledPrincipalPaid, List<PayruleTargetNoteFundingScheduleDataContract> NoteFunding)
+        {
+            string valmessage = "";
+            try
+            {
+                Decimal? balloon = 0;
+                Decimal? sumNotefunding = 0;
+                Decimal? ScheduledPrincipalPaid = 0;
+                Decimal? totRepayment = 0;
+                decimal? InitialFundingAmount = 0;
+                string noteswithissue = "";
+
+                DateTime cutoffdate = DateTime.Now.Date;
+
+                foreach (var note in notelist)
+                {
+                    balloon = 0;
+                    sumNotefunding = 0;
+                    balloon = 0;
+                    balloon = 0;
+                    InitialFundingAmount = 0;
+
+                    Guid currentnoteid = new Guid(note.NoteId);
+                    foreach (var schedule in ListScheduledPrincipalPaid)
+                    {
+                        if (currentnoteid.ToString() == schedule.NoteID)
+                        {
+                            ScheduledPrincipalPaid = ScheduledPrincipalPaid + schedule.Amount.GetValueOrDefault(0);
+                        }
+                    }
+                    if (ScheduledPrincipalPaid != 0)
+                    {
+                        ScheduledPrincipalPaid = ScheduledPrincipalPaid * -1;
+                    }
+
+                    if (note.NoteType != 901)
+                    {
+                        foreach (var item in NoteFunding)
+                        {
+                            if (item.Date <= cutoffdate && item.NoteID == currentnoteid)
+                            {
+                                if (item.AdjustmentType != 834 && item.AdjustmentType != 896)
+                                {
+                                    if (item.Value < 0)
+                                    {
+                                        totRepayment = totRepayment + item.Value.GetValueOrDefault(0);
+
+                                    }
+                                    else if (item.Value > 0)
+                                    {
+                                        sumNotefunding = sumNotefunding + item.Value.GetValueOrDefault(0);
+                                    }
+                                }
+                            }
+
+                        }
+                        InitialFundingAmount = note.InitialFundingAmount;
+                        if (InitialFundingAmount == 0.01m)
+                        {
+                            InitialFundingAmount = 0;
+                        }
+                        var subtotal = sumNotefunding + InitialFundingAmount + totRepayment + ScheduledPrincipalPaid;
+
+                        if (subtotal > note.AdjustedTotalCommitment)
+                        {
+                            var diffval = subtotal - note.AdjustedTotalCommitment;
+                            if (Math.Abs(diffval.Value) > 0)
+                            {
+                                noteswithissue = noteswithissue + note.CRENoteID + ", ";
+                            }
+                        }
+                    }
+                }
+                if (noteswithissue != "")
+                {
+                    noteswithissue = noteswithissue.Substring(0, noteswithissue.Length - 1);
+                    valmessage = "Sum of Future Funding and Current Balance should be less than or equal to Adjusted Commitment for Note(s) " + noteswithissue.Remove(noteswithissue.Length - 1);
+                }
+
+
+            }
+            catch (Exception)
+            {
+                valmessage = "";
+            }
+            return valmessage;
         }
     }
 }

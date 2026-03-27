@@ -6,10 +6,14 @@ using Microsoft.Extensions.Configuration;
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Configuration;
 using System.Data;
 using System.IO;
 using System.Linq;
+using System.Net;
+using System.Net.Http;
 using System.Threading;
+using System.Web;
 
 
 
@@ -17,7 +21,7 @@ namespace CRES.Services.Controllers
 {
     [Microsoft.AspNetCore.Cors.EnableCors("CRESPolicy")]
     //added authentication
-    public class HBOTController : ControllerBase
+    public class HBOTController : ControllerBase                     
     {
         IConfigurationSection Sectionroot = null;
         public void GetConfigSetting()
@@ -31,7 +35,7 @@ namespace CRES.Services.Controllers
             }
         }
 
-
+        
         [HttpGet]
         [Services.Controllers.IsAuthenticate]
         //[Services.Controllers.DeflateCompression]
@@ -40,9 +44,7 @@ namespace CRES.Services.Controllers
         {
             HBOTGenericResult _authenticationResult = new HBOTGenericResult();
 
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
             var headerUserID = new Guid();
 
             if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
@@ -62,7 +64,7 @@ namespace CRES.Services.Controllers
             DateTime Endtime = DateTime.Now;
 
             //insert start and end time 
-            Thread FirstThread = new Thread(() => dySizerLogic.InsertAIApiStartandEndTime(headerUserID, Starttime, Endtime, Intent));
+            Thread FirstThread = new Thread(()=> dySizerLogic.InsertAIApiStartandEndTime(headerUserID,Starttime,Endtime, Intent));
             FirstThread.Start();
 
             try
@@ -89,15 +91,13 @@ namespace CRES.Services.Controllers
 
         [HttpGet]
         [Services.Controllers.IsAuthenticate]
-        // [Services.Controllers.DeflateCompression]
+       // [Services.Controllers.DeflateCompression]
         [Route("api/HBOT/GetSingleEntityByIntentGeneric")]
         public IActionResult GetSingleEntityByIntentGeneric(string ObjectType, string ObjectNature, string ObjectValue, string Intent)
         {
             HBOTGenericResult _authenticationResult = new HBOTGenericResult();
 
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
             var headerUserID = new Guid();
             if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
             {
@@ -114,12 +114,12 @@ namespace CRES.Services.Controllers
 
             try
             {
-                _authenticationResult = new HBOTGenericResult()
-                {
-                    Succeeded = true,
-                    Message = "Authentication succeeded",
-                    SingleResult = result
-                };
+                    _authenticationResult = new HBOTGenericResult()
+                    {
+                        Succeeded = true,
+                        Message = "Authentication succeeded",
+                        SingleResult = result
+                    };
             }
             catch (Exception ex)
             {
@@ -136,16 +136,14 @@ namespace CRES.Services.Controllers
 
 
         [HttpGet]
-        // [Services.Controllers.DeflateCompression]
+       // [Services.Controllers.DeflateCompression]
         [Services.Controllers.IsAuthenticate]
         [Route("api/HBOT/getListEntityByIntent")]
         public IActionResult getListEntityByIntent(string ObjectType, string ObjectNature, string ObjectValue, string Intent)
         {
             HBOTGenericResult _authenticationResult = new HBOTGenericResult();
 
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
             var headerUserID = new Guid();
             if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
             {
@@ -162,13 +160,13 @@ namespace CRES.Services.Controllers
             FirstThread.Start();
             try
             {
-                _authenticationResult = new HBOTGenericResult()
-                {
-                    Succeeded = true,
-                    Message = "success",
-                    Listdt = dt
-                };
-
+                         _authenticationResult = new HBOTGenericResult()
+                        {
+                            Succeeded = true,
+                            Message = "success",
+                             Listdt = dt
+                        };
+                    
             }
             catch (Exception ex)
             {
@@ -181,18 +179,16 @@ namespace CRES.Services.Controllers
             return Ok(_authenticationResult);
         }
 
-
+        
         [HttpGet]
         [Services.Controllers.IsAuthenticate]
-        //  [Services.Controllers.DeflateCompression]
+      //  [Services.Controllers.DeflateCompression]
         [Route("api/HBOT/GetSingleEntityByIntentForNoteAndDeal")]
         public IActionResult GetSingleEntityByIntentForNoteAndDeal(string NoteNature, string NoteValue, string DealNature, string DealValue, string Intent)
         {
             HBOTGenericResult _authenticationResult = new HBOTGenericResult();
 
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
             var headerUserID = new Guid();
             if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
             {
@@ -247,17 +243,15 @@ namespace CRES.Services.Controllers
         }
 
         [HttpGet]
-        //  [Services.Controllers.DeflateCompression]
+      //  [Services.Controllers.DeflateCompression]
         [Services.Controllers.IsAuthenticate]
         [Route("api/HBOT/GetSingleEntityByIntentForNoteAndDealByDateRange")]
         public IActionResult GetSingleEntityByIntentForNoteAndDealByDateRange(string NoteNature, string NoteValue, string DealNature, string DealValue, string StartDate, string EndDate, string Intent)
-
+        
         {
             HBOTGenericResult _authenticationResult = new HBOTGenericResult();
             DataTable dt = new DataTable();
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
             var headerUserID = new Guid();
             if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
             {
@@ -266,11 +260,10 @@ namespace CRES.Services.Controllers
 
             DateTime Starttime = DateTime.Now;
             HBOTLogic hbotLogic = new HBOTLogic();
-            string Enddt = "";
+            string Enddt ="";
             string startdt = "";
-            if (EndDate != "null")
-            {
-                string[] splittedenddate = EndDate.Split(new char[] { ' ', 'T' });
+            if (EndDate != "null") {
+                string[] splittedenddate = EndDate.Split(new char[] { ' ','T' });
                 var Enddate = Convert.ToDateTime(splittedenddate[0]);
                 Enddt = Enddate.ToString("MM-dd-yyyy");
             }
@@ -317,15 +310,13 @@ namespace CRES.Services.Controllers
         }
 
         [HttpGet]
-        // [Services.Controllers.DeflateCompression]
+       // [Services.Controllers.DeflateCompression]
         [Services.Controllers.IsAuthenticate]
         [Route("api/HBOT/getListEntityByIntentForNoteAndDeal")]
         public IActionResult getListEntityByIntentForNoteAndDeal(string NoteNature, string NoteValue, string DealNature, string DealValue, string Intent)
         {
             HBOTGenericResult _authenticationResult = new HBOTGenericResult();
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
             var headerUserID = new Guid();
             if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
             {
@@ -363,16 +354,14 @@ namespace CRES.Services.Controllers
         }
 
         [HttpGet]
-        // [Services.Controllers.DeflateCompression]
-        // [Services.Controllers.IsAuthenticate]  //(second api for download cashflow, auth not required)
+       // [Services.Controllers.DeflateCompression]
+       // [Services.Controllers.IsAuthenticate]  //(second api for download cashflow, auth not required)
         [Route("api/HBOT/downloadDealcashflow")]
         public IActionResult downloadDealcashflow(string DealID)
         {
             HBOTGenericResult _authenticationResult = new HBOTGenericResult();
             DataTable dtfilename = new DataTable();
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
             var headerUserID = new Guid();
             if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
             {
@@ -410,17 +399,15 @@ namespace CRES.Services.Controllers
 
 
         [HttpGet]
-        //  [Services.Controllers.DeflateCompression]
+      //  [Services.Controllers.DeflateCompression]
         [Route("api/HBOT/GetListOfEntity")]
         public IActionResult GetListOfEntity()
         {
             HBOTGenericResult _auctionResult = null;
             List<HBOTEntityDataContract> lstEntityResult = new List<HBOTEntityDataContract>();
-
+           
             HBOTLogic _hbotLogic = new HBOTLogic();
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
 
             var headerUserID = new Guid();
 
@@ -459,7 +446,7 @@ namespace CRES.Services.Controllers
                 _entity.entity_names = myList;
                 _Result.Add(_entity);
             }
-
+            
 
             try
             {
@@ -492,26 +479,24 @@ namespace CRES.Services.Controllers
             return Ok(_auctionResult);
         }
 
-
+        
 
         [HttpPost]
         [Services.Controllers.IsAuthenticate]
-        //  [Services.Controllers.DeflateCompression]
+      //  [Services.Controllers.DeflateCompression]
         [Route("api/HBOT/getchatlogHistory")]
         public IActionResult GetChatLogHistory([FromBody] int pageindex, int pagesize)
         {
             HBOTGenericResult _authenticationResult = new HBOTGenericResult();
             DataTable dt = new DataTable();
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
             var headerUserID = new Guid();
             if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
             {
                 headerUserID = new Guid(Request.Headers["TokenUId"]);
             }
             HBOTLogic hbotLogic = new HBOTLogic();
-            // headerUserID = 'b0e6697b-3534-4c09-be0a-04473401ab93';
+           // headerUserID = 'b0e6697b-3534-4c09-be0a-04473401ab93';
             dt = hbotLogic.GetchatlogHistory(headerUserID, pageindex, pagesize);
 
             try
@@ -520,7 +505,7 @@ namespace CRES.Services.Controllers
                 {
                     Succeeded = true,
                     Message = "fetch successfully.",
-                    Listdt = dt
+                    Listdt=dt
                 };
             }
             catch (Exception ex)
@@ -536,16 +521,14 @@ namespace CRES.Services.Controllers
         }
 
         [HttpPost]
-        // [Services.Controllers.DeflateCompression]
+       // [Services.Controllers.DeflateCompression]
         [Services.Controllers.IsAuthenticate]
         [Route("api/HBOT/insertchatlogfordashboard")]
         public IActionResult InsertHBOTChatLogorDashboard([FromBody] DataTable dt)
         {
             HBOTGenericResult _authenticationResult = new HBOTGenericResult();
 
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
             var headerUserID = new Guid();
             if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
             {
@@ -557,7 +540,7 @@ namespace CRES.Services.Controllers
             var sentby = Convert.ToString(dt.Rows[0]["SentBy"]);
             var sessionId = Convert.ToString(dt.Rows[0]["LoginSession"]);
             HBOTLogic hbotLogic = new HBOTLogic();
-            Thread FirstThread = new Thread(() => hbotLogic.InsertHBOTChatLog(Status, Question, intentName, Convert.ToString(headerUserID), sentby, sessionId));
+            Thread FirstThread = new Thread(() => hbotLogic.InsertHBOTChatLog(Status, Question, intentName, Convert.ToString(headerUserID), sentby, sessionId)); 
             FirstThread.Start();
             try
             {
@@ -582,16 +565,14 @@ namespace CRES.Services.Controllers
         }
 
         [HttpGet]
-        // [Services.Controllers.DeflateCompression]
+       // [Services.Controllers.DeflateCompression]
         [Services.Controllers.IsAuthenticate]
         [Route("api/HBOT/GetListEntityByIntentForNoteAndDealByIntegerValue")]
         public IActionResult GetListEntityByIntentForNoteAndDealByIntegerValue(string NoteNature, string NoteValue, string DealNature, string DealValue, decimal IntValue, string Intent)
         {
             HBOTGenericResult _authenticationResult = new HBOTGenericResult();
             DataTable dt = new DataTable();
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
             var headerUserID = new Guid();
             if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
             {
@@ -600,7 +581,7 @@ namespace CRES.Services.Controllers
 
             DateTime Starttime = DateTime.Now;
             HBOTLogic hbotLogic = new HBOTLogic();
-            dt = hbotLogic.GetListEntityByIntentForNoteAndDealByIntegerValue(NoteNature, NoteValue, DealNature, DealValue, IntValue, Intent);
+            dt = hbotLogic.GetListEntityByIntentForNoteAndDealByIntegerValue( NoteNature, NoteValue, DealNature, DealValue, IntValue, Intent);
             DateTime Endtime = DateTime.Now;
             //insert start and end time 
             Thread FirstThread = new Thread(() => hbotLogic.InsertAIApiStartandEndTime(headerUserID, Starttime, Endtime, Intent));
@@ -631,7 +612,7 @@ namespace CRES.Services.Controllers
 
 
         [HttpGet]
-        // [Services.Controllers.DeflateCompression]
+       // [Services.Controllers.DeflateCompression]
         // [Services.Controllers.IsAuthenticate]
         [Route("api/HBOT/getautosuggestsearchdatabyKey")]
         public IActionResult GetAutosuggestSearchData(string search, int? pageIndex, int? pageSize)
@@ -639,9 +620,7 @@ namespace CRES.Services.Controllers
             HBOTGenericResult _auctionResult = null;
             List<SearchDataContract> lstSearchResult = new List<SearchDataContract>();
             SearchLogic _searchLogic = new SearchLogic();
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
 
             var headerUserID = new Guid();
 
@@ -685,22 +664,20 @@ namespace CRES.Services.Controllers
         }
 
         [HttpGet]
-        // [Services.Controllers.DeflateCompression]
+       // [Services.Controllers.DeflateCompression]
         [Route("api/HBOT/insertchatlog")]
         public IActionResult InsertHBOTChatLog(string Status, string Question)
         {
             HBOTGenericResult _authenticationResult = new HBOTGenericResult();
 
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
             var headerUserID = new Guid();
             if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
             {
                 headerUserID = new Guid(Request.Headers["TokenUId"]);
             }
             HBOTLogic hbotLogic = new HBOTLogic();
-            Thread FirstThread = new Thread(() => hbotLogic.InsertHBOTChatLog(Status, Question, null, Convert.ToString(headerUserID), null, null));
+            Thread FirstThread = new Thread(() => hbotLogic.InsertHBOTChatLog(Status, Question, null, Convert.ToString(headerUserID), null,null));
             FirstThread.Start();
 
             try

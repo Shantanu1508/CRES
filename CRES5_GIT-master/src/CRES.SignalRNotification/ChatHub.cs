@@ -1,5 +1,8 @@
-﻿using Microsoft.AspNet.SignalR;
+﻿using System;
+using System.Web;
+using Microsoft.AspNet.SignalR;
 using System.Threading.Tasks;
+using System.Collections.Generic;
 
 namespace CRES.SignalRNotification
 {

@@ -1,6 +1,6 @@
 
 import { Component, ViewChild, Input, Output, EventEmitter, ElementRef, HostListener } from "@angular/core";
-import { Router, ActivatedRoute} from '@angular/router';
+import { Router, ActivatedRoute } from '@angular/router';
 import { MembershipService } from '../core/services/membership.service';
 import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
@@ -16,14 +16,13 @@ import * as wjcCore from '@grapecity/wijmo';
 import { deals } from "../core/domain/deals.model";
 import { dealService } from '../core/services/deal.service';
 import { UtilityService } from '../core/services/utility.service';
+import { UtilsFunctions } from './../core/common/utilsfunctions';
 import { NoteService } from '../core/services/note.service';
 import { Note } from "../core/domain/note.model";
 import { Module } from "../core/domain/module.model";
-//import { Ng2FileInputModule, Ng2FileInputService } from 'ng2-file-input';
 import { FileUploadService } from '../core/services/fileUpload.service';
 import { Document } from "../core/domain/document.model";
 import appsettings from '../../../../appsettings.json';
-//import { _storageType, _environmentNamae } from '../../../../appsettings.json';
 import { Servicer } from "../core/domain/note.model";
 import { WjInputModule, WjMenu } from '@grapecity/wijmo.angular2.input';
 import { dndDirectiveModule } from '../directives/dnd.directive';
@@ -31,13 +30,16 @@ import { changepowerbipasswrd } from "../core/domain/changePassword.model";
 import { WjNavModule, WjTreeView } from '@grapecity/wijmo.angular2.nav';
 import * as WjNav from '@grapecity/wijmo.nav';
 import { ruletype } from "../core/domain/ruleType.model";
-//import { TreeViewModule } from '@syncfusion/ej2-angular-navigations';
+import { portfolioService } from '../core/services/portfolio.service'
+import * as wjNg2GridFilter from '@grapecity/wijmo.angular2.grid.filter';
+
+
 declare var $: any;
 
 
 @Component({
   selector: 'datamanagement',
-  providers: [NoteService, dealService, MembershipService, NotificationService, PermissionService, FileUploadService],
+  providers: [NoteService, dealService, MembershipService, NotificationService, PermissionService, FileUploadService, portfolioService, UtilsFunctions],
   templateUrl: './dataManagement.html'
 })
 export class DataManagement {
@@ -55,6 +57,8 @@ export class DataManagement {
   @ViewChild('flex') Userflex !: wjcGrid.FlexGrid;
   @ViewChild('transactionflex') transactionflex !: wjcGrid.FlexGrid;
   @ViewChild('holidaycalendarflex') holidaycalendarflex !: wjcGrid.FlexGrid;
+  @ViewChild('Archivesflex') Archivesflex !: wjcGrid.FlexGrid;
+  @ViewChild('filter') gridFilter: wjNg2GridFilter.WjFlexGridFilter;
   public _MsgText !: string;
   public _deal: deals;
   public _dealListFetching: boolean = false;
@@ -66,11 +70,14 @@ export class DataManagement {
   public _dvEmptyDealSearchMsg: boolean = false;
   public _ShowSuccessmessagediv: boolean = false;
   public _isShowNoteGrid: boolean = false;
+  public _isShowConfig: boolean = true;
+  public _isShowArchive: boolean = true;
   public _isShowDealGrid: boolean = false;
+  /*  public _isArchivesTabClicked: boolean = false;*/
   public _module: Module;
   public _isShowLoader: boolean = false;
   filename: any;
-  public fileList !: FileList|null;
+  public fileList !: FileList | null;
   public myFileInputIdentifier: string = "tHiS_Id_IS_sPeeCiAL";
   public actionLog: string = "";
   errors: Array<string> = [];
@@ -89,9 +96,9 @@ export class DataManagement {
   public environmentName = "";
   _envprod: boolean = true;
   public lstServicer: Array<Servicer> = [];
-  public servicerdropdate !: number |null;
-  public repaymentdropdate !: number |null;
-  public servicermasterid !: number|null;
+  public servicerdropdate !: number | null;
+  public repaymentdropdate !: number | null;
+  public servicermasterid !: number | null;
   public servicer: Servicer;
   public _errormessage: any;
   public JsonTemplateValue: any = '';
@@ -110,16 +117,23 @@ export class DataManagement {
   GenericDialogBody: string;
   uploadtype: any;
   listtransactiontype: any = [];
+  lstXIRRFiltersLookup: any = [];
   _transactiontypeslist !: wjcCore.CollectionView;
+
   lstCalculated: any;
   lstCashflowdownlaod: any;
   lstServicingRecocilliation: any;
+  lstuseinXIRRCalc: any;
   lstGAAPCalculations: any;
   lstAllowcalculationOverride: any;
+  lstIsSoftHoliday: any;
   AllRulesList: any;
   lstCashNonCash: any;
+  currentrownumber: any;
+  currentconfigid: any;
   public Dialogheader: any
   public _deltransactiontypeid: any;
+  //public _delTagMasterXIRRId: any;
   public deleteRowIndex !: number;
   public transactionerror: boolean = false;
   public lstHolidayCalendar: any = [];
@@ -137,6 +151,7 @@ export class DataManagement {
   public myDefault: any = {
     HolidayMasterID: 411
   };
+  public _isholidaycalendartabClicked: boolean = false;
   public _isSavedHolidayDate: boolean = false;
   public _issyncbtnClicked: boolean = false;
   public rolename: any = '';
@@ -152,10 +167,27 @@ export class DataManagement {
   private listruletype: ruletype;
   public paraselectedrule: any;
   public paraparentnode: any;
-  constructor(public notesvc: NoteService, public utilityService: UtilityService, public notificationService: NotificationService, public dealSrv: dealService, public membershipService: MembershipService,
+
+
+  ObjCategoryTrans = {};
+  public ListSelectedTransactionsType: any = [];
+  lstTransactionTypes: any;
+  arrTransTypes = [];
+  lstIsClubTransactionOnSameDate: any;
+  allowImport: any;
+  importValidationMessage: any;
+  public _ShowSuccessImportMessageDiv !: boolean;
+  public _ShowWarImportMessageDiv !: boolean;
+  public _ShowWarImportMessageContent: any;
+  public _ShowSuccessImportMessageContent: any;
+  lstfinancingsource: any;
+  lstFund: any;
+  constructor(public notesvc: NoteService, public utils: UtilsFunctions, public utilityService: UtilityService, public notificationService: NotificationService, public dealSrv: dealService, public membershipService: MembershipService,
     private router: Router,
     private _actrouting: ActivatedRoute,
-    public permissionService: PermissionService, public fileUploadService: FileUploadService, //private ng2FileInputService: Ng2FileInputService
+    public _portfolioService: portfolioService,
+    public permissionService: PermissionService, public fileUploadService: FileUploadService,//private ng2FileInputService: Ng2FileInputService
+
   ) {
     permissionService.GetUserPermissionBySuperAdmin();
 
@@ -164,14 +196,15 @@ export class DataManagement {
     ruletype
     this._note = new Note('');
     this._module = new Module('');
+
     this._changepowerbipassword = new changepowerbipasswrd();
     this.checkenv();
     this.servicer = new Servicer(null, null, null);
-
+    this.utilityService.setPageTitle("M61–Data Management");
     var _date = new Date();
     this._dtUTCHours = _date.getTimezoneOffset() / 60; //_date.getUTCHours();
     this._userOffset = _date.getTimezoneOffset() * 60 * 1000; // user's offset time
-
+    /*  this._scenariodc = new Scenario('');*/
     if (this._dtUTCHours < 6) {
       this._centralOffset = 6 * 60 * 60 * 1000; // 6 for central time - use whatever you need
     }
@@ -182,11 +215,9 @@ export class DataManagement {
     if (rolename != null) {
       this.rolename = rolename;
     }
-   
-   
 
     $.getScript("../../assets/js/editorfunction.js");
-   
+
     localStorage.setItem("EditorValueChanged", "false");
     this._actrouting.queryParams.subscribe(params => {
       if (params['tab'] == "rule") {
@@ -206,7 +237,10 @@ export class DataManagement {
       }
 
     });
+
+
   }
+
   redirectonItemClicked(selectedrule, parentnode) {
     try {
       this._isShowLoader = true;
@@ -282,7 +316,7 @@ export class DataManagement {
             else {
               this._isShowDealGrid = true;
             }
-            setTimeout(() =>{
+            setTimeout(() => {
               this.flex.invalidate();
               this.flex.autoSizeColumns(0, this.flex.columns.length, false, 20);
               this.flex.columns[0].width = 350; // for Note Id
@@ -338,7 +372,7 @@ export class DataManagement {
             this._dvEmptyDealSearchMsg = true;
             setTimeout(() => {
               this._dvEmptyDealSearchMsg = false;
-            },5000);
+            }, 5000);
             //this.utilityService.navigateToSignIn();
           }
         },
@@ -402,7 +436,7 @@ export class DataManagement {
       );
   }
   showDialog(deletetype: string, moduleID: string, dealID: string, credealornoteId: string, dealornoteName: string) {
-    var customdialogbox:any = document.getElementById('customdialogbox');
+    var customdialogbox: any = document.getElementById('customdialogbox');
     customdialogbox.style.display = "block";
     this._module.ModuleID = moduleID;
     this._module.ModuleName = 'Note';
@@ -416,12 +450,12 @@ export class DataManagement {
     $.getScript("/js/jsDrag.js");
   }
   ClosePopUp() {
-    var modal:any = document.getElementById('customdialogbox');
+    var modal: any = document.getElementById('customdialogbox');
     modal.style.display = "none";
     //this.isProcessComplete = false;
   }
   onFileDropped(files) {
-    this.onAction(files, this.filetype,'drop');
+    this.onAction(files, this.filetype, 'drop');
   }
   onClick(filetype) {
     this.filetype = filetype;
@@ -438,20 +472,20 @@ export class DataManagement {
     this.showWellsDialog();
   }
   showWellsDialog() {
-    var modaltrans:any = document.getElementById('myModal');
+    var modaltrans: any = document.getElementById('myModal');
     modaltrans.style.display = "block";
     $.getScript("/js/jsDrag.js");
   }
   CloseWellsPopUp() {
     //  this.isProcessComplete = false;
-    var modal:any = document.getElementById('myModal');
+    var modal: any = document.getElementById('myModal');
     modal.style.display = "none";
   }
   ImportFile() {
     this.CloseWellsPopUp();
     this.saveFiles();
   }
- saveFiles() {
+  saveFiles() {
     this._isShowLoader = true;
     let files = this.fileList;
     this.errors = []; // Clear error
@@ -473,7 +507,7 @@ export class DataManagement {
       for (var j = 0; j < files.length; j++) {
         formData.append("file[]", files[j], files[j].name);
       }
-      var userdata:any = localStorage.getItem('user');
+      var userdata: any = localStorage.getItem('user');
       var user = JSON.parse(userdata);
       var parameters = {
         userid: user.UserID,
@@ -515,7 +549,7 @@ export class DataManagement {
           })
     }
   }
-  private isValidFiles(files:any) {
+  private isValidFiles(files: any) {
     // Check Number of files
     if (files.length > this.maxFiles) {
       this.errors.push("At a time you can upload only " + this.maxFiles + " file <BR/>");
@@ -525,7 +559,7 @@ export class DataManagement {
     return this.errors.length === 0;
   }
 
-  private isValidFileExtension(files:any) {
+  private isValidFileExtension(files: any) {
     // Make array of file extensions
     var extensions = (this.fileExt.split(','))
       .map(function (x) { return x.toLocaleUpperCase().trim() });
@@ -541,17 +575,17 @@ export class DataManagement {
       this.isValidFileSize(files[i]);
     }
   }
-  private isValidFileSize(file:any) {
+  private isValidFileSize(file: any) {
     var fileSizeinMB = file.size / (1024 * 1000);
     var size = Math.round(fileSizeinMB * 100) / 100; // convert upto 2 decimal place
     if (size > this.maxSize)
       this.errors.push("<BR/>Selected: " + file.name + ": exceed file size limit of " + this.maxSize + "MB ( " + size + "MB )");
   }
-  CustomAlert(dialog:any): void {
+  CustomAlert(dialog: any): void {
     var winW = window.innerWidth;
     var winH = window.innerHeight;
-    var dialogoverlay:any = document.getElementById('dialogoverlay');
-    var dialogbox:any = document.getElementById('dialogbox');
+    var dialogoverlay: any = document.getElementById('dialogoverlay');
+    var dialogbox: any = document.getElementById('dialogbox');
     dialogoverlay.style.display = "block";
     dialogoverlay.style.height = winH + "px";
     dialogbox.style.left = (winW / 2) - (550 * .5) + "px";
@@ -732,7 +766,7 @@ export class DataManagement {
     }
   }
 
-  addFooterRow(flexGrid:any) { //: wjcGrid.FlexGrid
+  addFooterRow(flexGrid: any) { //: wjcGrid.FlexGrid
     var row = new wjcGrid.GroupRow(); // create a GroupRow to show aggregates
     flexGrid.columnFooters.rows.push(row); // add the row to the column footer panel
     flexGrid.bottomLeftCells.setCellData(0, 0, '\u03A3');
@@ -742,12 +776,15 @@ export class DataManagement {
   GetAllLookups(): void {
     this.dealSrv.getAllLookup().subscribe(res => {
       var data = res.lstLookups;
-      this.lstCalculated = data.filter((x:any)=> x.ParentID == "2");
+      this.lstCalculated = data.filter((x: any) => x.ParentID == "2");
       this.lstCashflowdownlaod = data.filter((x: any) => x.ParentID == "2");
       this.lstAllowcalculationOverride = data.filter((x: any) => x.ParentID == "2");
       this.lstGAAPCalculations = data.filter((x: any) => x.ParentID == "2");
       this.lstServicingRecocilliation = data.filter((x: any) => x.ParentID == "2");
+      this.lstuseinXIRRCalc = data.filter((x: any) => x.ParentID == "2");
+      this.lstIsSoftHoliday = data.filter((x: any) => x.ParentID == "2");
       this.lstCashNonCash = data.filter(x => x.ParentID == "121");
+      this.lstIsClubTransactionOnSameDate = data.filter((x: any) => x.ParentID == "2");
       this._bindGridDropdows();
     });
   }
@@ -755,6 +792,7 @@ export class DataManagement {
 
   private _bindGridDropdows() {
     var transflex = this.transactionflex;
+    var holidaycalflex = this.holidaycalendarflex;
     if (transflex) {
       var colCalculated = transflex.columns.getColumn('CalculatedText');
       var colCashflowdownlaod = transflex.columns.getColumn('IncludeCashflowDownloadText');
@@ -762,34 +800,49 @@ export class DataManagement {
       var colGAAPCalculations = transflex.columns.getColumn('IncludeGAAPCalculationsText');
       var colAllowcalculationOverride = transflex.columns.getColumn('AllowCalculationOverrideText');
       var colCashNonCash = transflex.columns.getColumn('Cash_NonCashText');
+      var ColUsedInXIRR = transflex.columns.getColumn('UsedInXIRRText');
+      var ColIsSoftHoliday = holidaycalflex.columns.getColumn('IsSoftHolidayText');
+      var ColIsClubTransactionOnSameDate = transflex.columns.getColumn('IsClubTransactionOnSameDateText');
+
       if (colCalculated) {
-        //colCalculated.showDropDown = true;
+
         colCalculated.dataMap = this._buildDataMap(this.lstCalculated);
       }
       if (colCashflowdownlaod) {
-        //colCashflowdownlaod.showDropDown = true;
+
         colCashflowdownlaod.dataMap = this._buildDataMap(this.lstCashflowdownlaod);
       }
       if (colServicingRecocilliation) {
-        //colServicingRecocilliation.showDropDown = true;
+
         colServicingRecocilliation.dataMap = this._buildDataMap(this.lstServicingRecocilliation);
       }
       if (colGAAPCalculations) {
-        //colGAAPCalculations.showDropDown = true;
+
         colGAAPCalculations.dataMap = this._buildDataMap(this.lstGAAPCalculations);
       }
       if (colAllowcalculationOverride) {
-       // colAllowcalculationOverride.showDropDown = true;
+
         colAllowcalculationOverride.dataMap = this._buildDataMap(this.lstAllowcalculationOverride);
       }
       if (colCashNonCash) {
-        colCashNonCash.showDropDown = true;
         colCashNonCash.dataMap = this._buildDataMap(this.lstCashNonCash);
+      }
+
+      if (ColUsedInXIRR) {
+
+        ColUsedInXIRR.dataMap = this._buildDataMap(this.lstuseinXIRRCalc);
+      }
+      if (ColIsSoftHoliday) {
+        ColIsSoftHoliday.dataMap = this._buildDataMap(this.lstIsSoftHoliday);
+      }
+      if (ColIsClubTransactionOnSameDate) {
+
+        ColIsClubTransactionOnSameDate.dataMap = this._buildDataMap(this.lstIsClubTransactionOnSameDate);
       }
     }
   }
 
-    // build a data map from a string array using the indices as keys
+  // build a data map from a string array using the indices as keys
   private _buildDataMap(items): wjcGrid.DataMap {
     var map = [];
 
@@ -800,7 +853,16 @@ export class DataManagement {
     return new wjcGrid.DataMap(map, 'key', 'value');
   }
 
-
+  private _buildDataMapXIRR(items: any, key: any, value: any): wjcGrid.DataMap {
+    var map = [];
+    if (items) {
+      for (var i = 0; i < items.length; i++) {
+        var obj = items[i];
+        map.push({ key: obj[key], value: obj[value] });
+      }
+    }
+    return new wjcGrid.DataMap(map, 'key', 'value');
+  }
 
 
   getTransactionTypes() {
@@ -810,15 +872,26 @@ export class DataManagement {
         this._isShowLoader = false;
         var data = res.dt;
         this.listtransactiontype = data;
-
         this._transactiontypeslist = new wjcCore.CollectionView(data);
         this._transactiontypeslist.trackChanges = true;
 
         this.GetAllLookups();
         this.transactionflex.invalidate();
-        //setTimeout(function(){
-        //    this.transactionflex.invalidate();
-        //}.bind(this),100);
+
+
+        //Grouping Transaction by Category
+        this.listtransactiontype.forEach(element => {
+          var TransactionCategoryKey = element.TransactionCategory;
+          if (!this.ObjCategoryTrans[TransactionCategoryKey]) {
+            this.ObjCategoryTrans[TransactionCategoryKey] = [];
+          }
+
+          this.ObjCategoryTrans[TransactionCategoryKey].push({
+            TransactionTypesID: element.TransactionTypesID,
+            TransactionName: element.TransactionName
+          });
+        });
+
       }
       else {
         this._isShowLoader = false;
@@ -830,7 +903,8 @@ export class DataManagement {
       }
     });
   }
-  AssignvaluestoTransactiontypeDropdown(data:any) {
+
+  AssignvaluestoTransactiontypeDropdown(data: any, e) {
     var datatext;
     if (data == 4 || data == "4") {
       datatext = "N";
@@ -848,7 +922,7 @@ export class DataManagement {
     for (var k = 0; k < this.transactionflex.rows.length - 1; k++) {
       if (!(Number(this.transactionflex.rows[k].dataItem["CalculatedText"]).toString() == "NaN" || Number(this.transactionflex.rows[k].dataItem["CalculatedText"]) == 0)) {
         this.transactionflex.rows[k].dataItem["Calculated"] = this.transactionflex.rows[k].dataItem["CalculatedText"];
-        this.transactionflex.rows[k].dataItem["CalculatedText"] = this.AssignvaluestoTransactiontypeDropdown(this.transactionflex.rows[k].dataItem["CalculatedText"]);
+        this.transactionflex.rows[k].dataItem["CalculatedText"] = this.AssignvaluestoTransactiontypeDropdown(this.transactionflex.rows[k].dataItem["CalculatedText"], k);
         var calculateddata = this.transactionflex.rows[k].dataItem["CalculatedText"];
         if (!(calculateddata == "Y" || calculateddata == "3")) {
           this.transactionflex.rows[k].dataItem["AllowCalculationOverrideText"] = null;
@@ -860,7 +934,7 @@ export class DataManagement {
       }
       if (!(Number(this.transactionflex.rows[k].dataItem["IncludeCashflowDownloadText"]).toString() == "NaN" || Number(this.transactionflex.rows[k].dataItem["IncludeCashflowDownloadText"]) == 0)) {
         this.transactionflex.rows[k].dataItem["IncludeCashflowDownload"] = this.transactionflex.rows[k].dataItem["IncludeCashflowDownloadText"];
-        this.transactionflex.rows[k].dataItem["IncludeCashflowDownloadText"] = this.AssignvaluestoTransactiontypeDropdown(this.transactionflex.rows[k].dataItem["IncludeCashflowDownloadText"]);
+        this.transactionflex.rows[k].dataItem["IncludeCashflowDownloadText"] = this.AssignvaluestoTransactiontypeDropdown(this.transactionflex.rows[k].dataItem["IncludeCashflowDownloadText"], k);
       }
       else {
         this.transactionflex.rows[k].dataItem["IncludeCashflowDownload"] = this.transactionflex.rows[k].dataItem["IncludeCashflowDownload"];
@@ -868,14 +942,22 @@ export class DataManagement {
 
       if (!(Number(this.transactionflex.rows[k].dataItem["IncludeServicingReconciliationText"]).toString() == "NaN" || Number(this.transactionflex.rows[k].dataItem["IncludeServicingReconciliationText"]) == 0)) {
         this.transactionflex.rows[k].dataItem["IncludeServicingReconciliation"] = this.transactionflex.rows[k].dataItem["IncludeServicingReconciliationText"];
-        this.transactionflex.rows[k].dataItem["IncludeServicingReconciliationText"] = this.AssignvaluestoTransactiontypeDropdown(this.transactionflex.rows[k].dataItem["IncludeServicingReconciliationText"]);
+        this.transactionflex.rows[k].dataItem["IncludeServicingReconciliationText"] = this.AssignvaluestoTransactiontypeDropdown(this.transactionflex.rows[k].dataItem["IncludeServicingReconciliationText"], k);
       }
       else {
         this.transactionflex.rows[k].dataItem["IncludeServicingReconciliation"] = this.transactionflex.rows[k].dataItem["IncludeServicingReconciliation"];
       }
+      //UsedInXIRRText
+      if (!(Number(this.transactionflex.rows[k].dataItem["UsedInXIRRText"]).toString() == "NaN" || Number(this.transactionflex.rows[k].dataItem["UsedInXIRRText"]) == 0)) {
+        this.transactionflex.rows[k].dataItem["UsedInXIRR"] = this.transactionflex.rows[k].dataItem["UsedInXIRRText"];
+        this.transactionflex.rows[k].dataItem["UsedInXIRRText"] = this.AssignvaluestoTransactiontypeDropdown(this.transactionflex.rows[k].dataItem["UsedInXIRRText"], k);
+      }
+      else {
+        this.transactionflex.rows[k].dataItem["UsedInXIRR"] = this.transactionflex.rows[k].dataItem["UsedInXIRR"];
+      }
       if (!(Number(this.transactionflex.rows[k].dataItem["IncludeGAAPCalculationsText"]).toString() == "NaN" || Number(this.transactionflex.rows[k].dataItem["IncludeGAAPCalculationsText"]) == 0)) {
         this.transactionflex.rows[k].dataItem["IncludeGAAPCalculations"] = this.transactionflex.rows[k].dataItem["IncludeGAAPCalculationsText"];
-        this.transactionflex.rows[k].dataItem["IncludeGAAPCalculationsText"] = this.AssignvaluestoTransactiontypeDropdown(this.transactionflex.rows[k].dataItem["IncludeGAAPCalculationsText"]);
+        this.transactionflex.rows[k].dataItem["IncludeGAAPCalculationsText"] = this.AssignvaluestoTransactiontypeDropdown(this.transactionflex.rows[k].dataItem["IncludeGAAPCalculationsText"], k);
       }
       else {
         this.transactionflex.rows[k].dataItem["IncludeGAAPCalculations"] = this.transactionflex.rows[k].dataItem["IncludeGAAPCalculations"];
@@ -883,11 +965,12 @@ export class DataManagement {
 
       if (!(Number(this.transactionflex.rows[k].dataItem["AllowCalculationOverrideText"]).toString() == "NaN" || Number(this.transactionflex.rows[k].dataItem["AllowCalculationOverrideText"]) == 0)) {
         this.transactionflex.rows[k].dataItem["AllowCalculationOverride"] = this.transactionflex.rows[k].dataItem["AllowCalculationOverrideText"];
-        this.transactionflex.rows[k].dataItem["AllowCalculationOverrideText"] = this.AssignvaluestoTransactiontypeDropdown(this.transactionflex.rows[k].dataItem["AllowCalculationOverrideText"]);
+        this.transactionflex.rows[k].dataItem["AllowCalculationOverrideText"] = this.AssignvaluestoTransactiontypeDropdown(this.transactionflex.rows[k].dataItem["AllowCalculationOverrideText"], k);
       }
       else {
         this.transactionflex.rows[k].dataItem["AllowCalculationOverride"] = this.transactionflex.rows[k].dataItem["AllowCalculationOverride"];
       }
+
       if (!(Number(this.transactionflex.rows[k].dataItem["Cash_NonCashText"]).toString() == "NaN" || Number(this.transactionflex.rows[k].dataItem["Cash_NonCashText"]) == 0)) {
         this.transactionflex.rows[k].dataItem["Cash_NonCashID"] = this.transactionflex.rows[k].dataItem["Cash_NonCashText"];
         this.transactionflex.rows[k].dataItem["Cash_NonCashText"] = this.lstCashNonCash.find(x => x.LookupID == this.transactionflex.rows[e.row].dataItem["Cash_NonCashID"]).Name;
@@ -896,15 +979,24 @@ export class DataManagement {
         this.transactionflex.rows[k].dataItem["Cash_NonCashID"] = this.transactionflex.rows[k].dataItem["Cash_NonCashID"];
         this.transactionflex.rows[k].dataItem["Cash_NonCashText"] = this.transactionflex.rows[k].dataItem["Cash_NonCashText"];
       }
+      //IsClubTransactionOnSameDateText
+      if (!(Number(this.transactionflex.rows[k].dataItem["IsClubTransactionOnSameDateText"]).toString() == "NaN" || Number(this.transactionflex.rows[k].dataItem["IsClubTransactionOnSameDateText"]) == 0)) {
+        this.transactionflex.rows[k].dataItem["IsClubTransactionOnSameDate"] = this.transactionflex.rows[k].dataItem["IsClubTransactionOnSameDateText"];
+        this.transactionflex.rows[k].dataItem["IsClubTransactionOnSameDateText"] = this.AssignvaluestoTransactiontypeDropdown(this.transactionflex.rows[k].dataItem["IsClubTransactionOnSameDateText"], k);
+      }
+      else {
+        this.transactionflex.rows[k].dataItem["IsClubTransactionOnSameDate"] = this.transactionflex.rows[k].dataItem["IsClubTransactionOnSameDate"];
+      }
     }
   }
 
 
+
   cellEditTransactionTypes(s: wjcGrid.FlexGrid, e: wjcGrid.CellEditEndingEventArgs) {
-    if (e.col == 3) {
+    if (e.col == 4) {
       if (!(Number(this.transactionflex.rows[e.row].dataItem["CalculatedText"]).toString() == "NaN" || Number(this.transactionflex.rows[e.row].dataItem["CalculatedText"]) == 0)) {
         this.transactionflex.rows[e.row].dataItem["Calculated"] = this.transactionflex.rows[e.row].dataItem["CalculatedText"];
-        this.transactionflex.rows[e.row].dataItem["CalculatedText"] = this.AssignvaluestoTransactiontypeDropdown(this.transactionflex.rows[e.row].dataItem["CalculatedText"]);
+        this.transactionflex.rows[e.row].dataItem["CalculatedText"] = this.AssignvaluestoTransactiontypeDropdown(this.transactionflex.rows[e.row].dataItem["CalculatedText"], e.row);
         var calculateddata = this.transactionflex.rows[e.row].dataItem["CalculatedText"];
         if (calculateddata == "N" || calculateddata == null || calculateddata == undefined || calculateddata == "" || calculateddata == "4") {
           this.transactionflex.rows[e.row].dataItem["AllowCalculationOverrideText"] = null;
@@ -912,34 +1004,48 @@ export class DataManagement {
         }
       }
     }
-    if (e.col == 4) {
+    if (e.col == 5) {
       if (!(Number(this.transactionflex.rows[e.row].dataItem["IncludeCashflowDownloadText"]).toString() == "NaN" || Number(this.transactionflex.rows[e.row].dataItem["IncludeCashflowDownloadText"]) == 0)) {
         this.transactionflex.rows[e.row].dataItem["IncludeCashflowDownload"] = this.transactionflex.rows[e.row].dataItem["IncludeCashflowDownloadText"];
-        this.transactionflex.rows[e.row].dataItem["IncludeCashflowDownloadText"] = this.AssignvaluestoTransactiontypeDropdown(this.transactionflex.rows[e.row].dataItem["IncludeCashflowDownloadText"]);
-      }
-    }
-    if (e.col == 5) {
-      if (!(Number(this.transactionflex.rows[e.row].dataItem["IncludeServicingReconciliationText"]).toString() == "NaN" || Number(this.transactionflex.rows[e.row].dataItem["IncludeServicingReconciliationText"]) == 0)) {
-        this.transactionflex.rows[e.row].dataItem["IncludeServicingReconciliation"] = this.transactionflex.rows[e.row].dataItem["IncludeServicingReconciliationText"];
-        this.transactionflex.rows[e.row].dataItem["IncludeServicingReconciliationText"] = this.AssignvaluestoTransactiontypeDropdown(this.transactionflex.rows[e.row].dataItem["IncludeServicingReconciliationText"]);
+        this.transactionflex.rows[e.row].dataItem["IncludeCashflowDownloadText"] = this.AssignvaluestoTransactiontypeDropdown(this.transactionflex.rows[e.row].dataItem["IncludeCashflowDownloadText"], e.row);
       }
     }
     if (e.col == 6) {
-      if (!(Number(this.transactionflex.rows[e.row].dataItem["IncludeGAAPCalculationsText"]).toString() == "NaN" || Number(this.transactionflex.rows[e.row].dataItem["IncludeGAAPCalculationsText"]) == 0)) {
-        this.transactionflex.rows[e.row].dataItem["IncludeGAAPCalculations"] = this.transactionflex.rows[e.row].dataItem["IncludeGAAPCalculationsText"];
-        this.transactionflex.rows[e.row].dataItem["IncludeGAAPCalculationsText"] = this.AssignvaluestoTransactiontypeDropdown(this.transactionflex.rows[e.row].dataItem["IncludeGAAPCalculationsText"]);
+      if (!(Number(this.transactionflex.rows[e.row].dataItem["IncludeServicingReconciliationText"]).toString() == "NaN" || Number(this.transactionflex.rows[e.row].dataItem["IncludeServicingReconciliationText"]) == 0)) {
+        this.transactionflex.rows[e.row].dataItem["IncludeServicingReconciliation"] = this.transactionflex.rows[e.row].dataItem["IncludeServicingReconciliationText"];
+        this.transactionflex.rows[e.row].dataItem["IncludeServicingReconciliationText"] = this.AssignvaluestoTransactiontypeDropdown(this.transactionflex.rows[e.row].dataItem["IncludeServicingReconciliationText"], e.row);
       }
     }
     if (e.col == 7) {
-      if (!(Number(this.transactionflex.rows[e.row].dataItem["AllowCalculationOverrideText"]).toString() == "NaN" || Number(this.transactionflex.rows[e.row].dataItem["AllowCalculationOverrideText"]) == 0)) {
-        this.transactionflex.rows[e.row].dataItem["AllowCalculationOverride"] = this.transactionflex.rows[e.row].dataItem["AllowCalculationOverrideText"];
-        this.transactionflex.rows[e.row].dataItem["AllowCalculationOverrideText"] = this.AssignvaluestoTransactiontypeDropdown(this.transactionflex.rows[e.row].dataItem["AllowCalculationOverrideText"]);
+      if (!(Number(this.transactionflex.rows[e.row].dataItem["IncludeGAAPCalculationsText"]).toString() == "NaN" || Number(this.transactionflex.rows[e.row].dataItem["IncludeGAAPCalculationsText"]) == 0)) {
+        this.transactionflex.rows[e.row].dataItem["IncludeGAAPCalculations"] = this.transactionflex.rows[e.row].dataItem["IncludeGAAPCalculationsText"];
+        this.transactionflex.rows[e.row].dataItem["IncludeGAAPCalculationsText"] = this.AssignvaluestoTransactiontypeDropdown(this.transactionflex.rows[e.row].dataItem["IncludeGAAPCalculationsText"], e.row);
       }
     }
     if (e.col == 8) {
+      if (!(Number(this.transactionflex.rows[e.row].dataItem["AllowCalculationOverrideText"]).toString() == "NaN" || Number(this.transactionflex.rows[e.row].dataItem["AllowCalculationOverrideText"]) == 0)) {
+        this.transactionflex.rows[e.row].dataItem["AllowCalculationOverride"] = this.transactionflex.rows[e.row].dataItem["AllowCalculationOverrideText"];
+        this.transactionflex.rows[e.row].dataItem["AllowCalculationOverrideText"] = this.AssignvaluestoTransactiontypeDropdown(this.transactionflex.rows[e.row].dataItem["AllowCalculationOverrideText"], e.row);
+      }
+    }
+    if (e.col == 9) {
       if (!(Number(this.transactionflex.rows[e.row].dataItem["Cash_NonCashText"]).toString() == "NaN" || Number(this.transactionflex.rows[e.row].dataItem["Cash_NonCashText"]) == 0)) {
         this.transactionflex.rows[e.row].dataItem["Cash_NonCashID"] = this.transactionflex.rows[e.row].dataItem["Cash_NonCashText"];
         this.transactionflex.rows[e.row].dataItem["Cash_NonCashText"] = this.lstCashNonCash.find(x => x.LookupID == this.transactionflex.rows[e.row].dataItem["Cash_NonCashID"]).Name;
+      }
+    }
+
+    if (e.col == 10) {
+      if (!(Number(this.transactionflex.rows[e.row].dataItem["UsedInXIRRText"]).toString() == "NaN" || Number(this.transactionflex.rows[e.row].dataItem["UsedInXIRRText"]) == 0)) {
+        this.transactionflex.rows[e.row].dataItem["UsedInXIRR"] = this.transactionflex.rows[e.row].dataItem["UsedInXIRRText"];
+        this.transactionflex.rows[e.row].dataItem["UsedInXIRRText"] = this.lstuseinXIRRCalc.find(x => x.LookupID == this.transactionflex.rows[e.row].dataItem["UsedInXIRR"]).Name;
+      }
+    }
+
+    if (e.col == 12) {
+      if (!(Number(this.transactionflex.rows[e.row].dataItem["IsClubTransactionOnSameDateText"]).toString() == "NaN" || Number(this.transactionflex.rows[e.row].dataItem["IsClubTransactionOnSameDateText"]) == 0)) {
+        this.transactionflex.rows[e.row].dataItem["IsClubTransactionOnSameDate"] = this.transactionflex.rows[e.row].dataItem["IsClubTransactionOnSameDateText"];
+        this.transactionflex.rows[e.row].dataItem["IsClubTransactionOnSameDateText"] = this.lstIsClubTransactionOnSameDate.find(x => x.LookupID == this.transactionflex.rows[e.row].dataItem["IsClubTransactionOnSameDate"]).Name;
       }
     }
   }
@@ -1022,6 +1128,11 @@ export class DataManagement {
         "CreatedDate": this.listtransactiontype[k].CreatedDate,
         "UpdatedBy": this.listtransactiontype[k].UpdatedBy,
         "UpdatedDate": this.listtransactiontype[k].UpdatedDate,
+        "Cash_NonCash": this.listtransactiontype[k].Cash_NonCashText,
+        "AccountName": this.listtransactiontype[k].AccountName,
+        "UsedInXIRR": this.listtransactiontype[k].UsedInXIRR,
+        "XIRRCategory": this.listtransactiontype[k].XIRRCategory,
+        "IsClubTransactionOnSameDate": this.listtransactiontype[k].IsClubTransactionOnSameDate
       });
     }
     this.permissionService.SaveTransactionTypes(dtlisttransactiontype).subscribe(res => {
@@ -1029,7 +1140,7 @@ export class DataManagement {
         this._isShowLoader = false;
         this._ShowSuccessmessage = "Transaction types updated successfully.";
         this._ShowSuccessmessagediv = true;
-        setTimeout(() =>{
+        setTimeout(() => {
           this._ShowSuccessmessagediv = false;
         }, 5000);
       }
@@ -1045,19 +1156,23 @@ export class DataManagement {
 
   }
 
+
   showDialogbox(Name: string, ID: number, deleteRowIndex: number) {
     this.deleteRowIndex = deleteRowIndex;
     this._deltransactiontypeid = ID;
-    var modaltrans:any = document.getElementById('custombox');
+    var modaltrans: any = document.getElementById('custombox');
     modaltrans.style.display = "block";
     this._MsgText = 'Are you sure you want to delete the ' + Name.toLowerCase() + '?';
     $.getScript("/js/jsDrag.js");
   }
 
+
+
   CloseTransactionPopUp() {
-    var modal:any = document.getElementById('custombox');
+    var modal: any = document.getElementById('custombox');
     modal.style.display = "none";
   }
+
 
   deleteTransactionType() {
     this._isShowLoader = true;
@@ -1076,14 +1191,16 @@ export class DataManagement {
         this._isShowLoader = false;
         this._ShowErrorMessage = "Something went wrong.Please try after some time.";
         this._dvEmptyDealSearchMsg = true;
-        setTimeout(()=> {
+        setTimeout(() => {
           this._dvEmptyDealSearchMsg = false;
         }, 5000);
       }
     });
   }
 
-  convertDateToBindable(data:any) {
+
+
+  convertDateToBindable(data: any) {
     for (var k = 0; k < data.length; k++) {
       if (this.lstHolidayCalendar[k].HoliDayDate != null) {
         this.lstHolidayCalendar[k].HoliDayDate = new Date(data[k].HoliDayDate.toString());
@@ -1093,7 +1210,9 @@ export class DataManagement {
 
 
   getHolidayCalendar() {
+
     this._isShowLoader = true;
+
     this.permissionService.GetHolidayCalendar().subscribe(res => {
       if (res.Succeeded == true) {
         this._isShowLoader = false;
@@ -1105,46 +1224,65 @@ export class DataManagement {
         this.lstCalendarName = calendarnamelist;
         this.lstHolidayCalendar = data;
         this.convertDateToBindable(this.lstHolidayCalendar);
-        for (var j = 0; j < this.lstHolidayCalendar.length; j++) {
-          if (this._isSavedHolidayDate == false) {
-            if (this.lstHolidayCalendar[j].CalendarName == 'US') {
-              if (this.lstHolidayCalendar[j].HoliDayDate != null) {
-                refreshlist.push({ "HoliDayDate": this.lstHolidayCalendar[j].HoliDayDate });
+        if (!this._isholidaycalendartabClicked) {
+          this._isholidaycalendartabClicked = true;
+          for (var j = 0; j < this.lstHolidayCalendar.length; j++) {
+            if (this._isSavedHolidayDate == false) {
+              if (this.lstHolidayCalendar[j].CalendarName == 'US') {
+                if (this.lstHolidayCalendar[j].HoliDayDate != null) {
+                  refreshlist.push({
+                    "HolidayMasterID": this.lstHolidayCalendar[j].HolidayMasterID,
+                    "HoliDayDate": this.lstHolidayCalendar[j].HoliDayDate,
+                    "IsSoftHoliday": this.lstHolidayCalendar[j].isSoftHoliday,
+                    "IsSoftHolidayText": this.lstHolidayCalendar[j].isSoftHolidayText
+                  });
+                }
+              }
+            }
+            else {
+              if (this.lstHolidayCalendar[j].HolidayMasterID.toString() == this.changedCalendarId.toString()) {
+                if (this.lstHolidayCalendar[j].HoliDayDate != null) {
+                  refreshlist.push({
+                    "HolidayMasterID": this.lstHolidayCalendar[j].HolidayMasterID,
+                    "HoliDayDate": this.lstHolidayCalendar[j].HoliDayDate,
+                    "IsSoftHoliday": this.lstHolidayCalendar[j].isSoftHoliday,
+                    "IsSoftHolidayText": this.lstHolidayCalendar[j].isSoftHolidayText
+                  });
+                }
               }
             }
           }
-          else {
-            if (this.lstHolidayCalendar[j].HolidayMasterID.toString() == this.changedCalendarId.toString()) {
-              if (this.lstHolidayCalendar[j].HoliDayDate != null) {
-                refreshlist.push({ "HoliDayDate": this.lstHolidayCalendar[j].HoliDayDate });
-              }
-            }
-          }
+          this._isSavedHolidayDate = false;
+          this.lstHolidaycalendardate = new wjcCore.CollectionView(refreshlist);
+          this.lstHolidaycalendardate.trackChanges = true;
+          this.GetAllLookups();
+          this.holidaycalendarflex.invalidate();
         }
-        this._isSavedHolidayDate = false;
-        this.lstHolidaycalendardate = new wjcCore.CollectionView(refreshlist);
-        this.lstHolidaycalendardate.trackChanges = true;
-        this.holidaycalendarflex.invalidate();
       }
       else {
         this._isShowLoader = false;
         var data = null;
         this.lstHolidaycalendardate = new wjcCore.CollectionView(data);
         this.lstHolidaycalendardate.trackChanges = true;
+        this.GetAllLookups();
         this.holidaycalendarflex.invalidate();
       }
     });
   }
 
-  CalendarNameChange(newvalue:any) {
+  CalendarNameChange(newvalue: any) {
     this.changedCalendarId = newvalue;
-    var calendarname = this.lstCalendarName.find((x:any) => x.HolidayMasterID.toString() == newvalue).CalendarName;
+    var calendarname = this.lstCalendarName.find((x: any) => x.HolidayMasterID.toString() == newvalue).CalendarName;
     this.newCalendarname = calendarname;
     var selectedval = [];
     for (var j = 0; j < this.lstHolidayCalendar.length; j++) {
       if (this.newCalendarname == this.lstHolidayCalendar[j].CalendarName) {
         if (this.lstHolidayCalendar[j].HoliDayDate != null) {
-          selectedval.push({ "HoliDayDate": this.lstHolidayCalendar[j].HoliDayDate });
+          selectedval.push({
+            "HoliDayDate": this.lstHolidayCalendar[j].HoliDayDate,
+            "IsSoftHoliday": this.lstHolidayCalendar[j].isSoftHoliday,
+            "IsSoftHolidayText": this.lstHolidayCalendar[j].isSoftHolidayText
+          });
         }
       }
     }
@@ -1155,13 +1293,13 @@ export class DataManagement {
 
   OpenCalendarNamepopup() {
     this.newCalendarname = '';
-    var modal:any = document.getElementById('AddCalendarNamedialogbox');
+    var modal: any = document.getElementById('AddCalendarNamedialogbox');
     modal.style.display = "block";
     $.getScript("/js/jsDrag.js");
   }
 
   CloseAddCalendarPopUp() {
-    var modal:any = document.getElementById('AddCalendarNamedialogbox');
+    var modal: any = document.getElementById('AddCalendarNamedialogbox');
     modal.style.display = "none";
   }
 
@@ -1181,7 +1319,17 @@ export class DataManagement {
       foundName = "Calendar name " + this.newCalendarname + " already exists.";
       this.CustomAlert(foundName);
     }
+    else if (this.newCalendarname == null || this.newCalendarname == "" || this.newCalendarname == undefined || this.newCalendarname.trim() == '') {
+      this._isShowLoader = false;
+      this.CloseAddCalendarPopUp();
+      this.CustomAlert("Calendar Name cannot be empty!");
+    }
     else {
+
+      if (this.newCalendarname != null) {
+        this.newCalendarname = this.newCalendarname.trim();
+      }
+
       this.permissionService.addHolidayCalendarName(this.newCalendarname).subscribe(res => {
         if (res.Succeeded) {
           this._isShowLoader = false;
@@ -1209,18 +1357,37 @@ export class DataManagement {
 
   cellEditHolidaysDate(s: wjcGrid.FlexGrid, e: wjcGrid.CellEditEndingEventArgs) {
     const items = s.collectionView.items;
+
+    if (e.col == 1) {
+      if (!(Number(this.holidaycalendarflex.rows[e.row].dataItem["IsSoftHolidayText"]).toString() == "NaN" || Number(this.holidaycalendarflex.rows[e.row].dataItem["IsSoftHolidayText"]) == 0)) {
+        this.holidaycalendarflex.rows[e.row].dataItem["IsSoftHoliday"] = this.holidaycalendarflex.rows[e.row].dataItem["IsSoftHolidayText"];
+        this.holidaycalendarflex.rows[e.row].dataItem["IsSoftHolidayText"] = this.lstIsSoftHoliday.find(x => x.LookupID == this.holidaycalendarflex.rows[e.row].dataItem["IsSoftHoliday"]).Name;
+      }
+    }
+
     this.checkDuplicateHolidayDates(items, 'edit');
     s.invalidate();
   }
 
   CopiedHolidaysDate(s: wjcGrid.FlexGrid, e: wjcGrid.CellEditEndingEventArgs) {
     const items = s.collectionView.items;
+
+    for (var k = 0; k < this.holidaycalendarflex.rows.length - 1; k++) {
+      if (!(Number(this.holidaycalendarflex.rows[k].dataItem["IsSoftHolidayText"]).toString() == "NaN" || Number(this.holidaycalendarflex.rows[k].dataItem["IsSoftHolidayText"]) == 0)) {
+        this.holidaycalendarflex.rows[k].dataItem["IsSoftHoliday"] = this.holidaycalendarflex.rows[k].dataItem["IsSoftHolidayText"];
+        this.holidaycalendarflex.rows[k].dataItem["IsSoftHolidayText"] = this.AssignvaluestoTransactiontypeDropdown(this.holidaycalendarflex.rows[k].dataItem["IsSoftHolidayText"], k);
+      }
+      else {
+        this.holidaycalendarflex.rows[k].dataItem["IsSoftHoliday"] = this.holidaycalendarflex.rows[k].dataItem["IsSoftHoliday"];
+      }
+    }
+
     this.checkDuplicateHolidayDates(items, 'copy');
     s.invalidate();
   }
 
 
-  checkDuplicateHolidayDates(data:any, mode:any) {
+  checkDuplicateHolidayDates(data: any, mode: any) {
     var founddates = '';
     var duplicatedateerror = '';
     for (var k = 0; k < data.length; k++) {
@@ -1259,29 +1426,53 @@ export class DataManagement {
 
   InsertHolidayDatesByID() {
     this._isShowLoader = true;
+    this.holidaycalendarflex.invalidate();
+
     var dtholidaydates = [];
     if (!this.changedCalendarId) {
       this.changedCalendarId = "411";
     }
-    for (var k = 0; k < this.holidaycalendarflex.rows.length - 1; k++) {
-      if (this.holidaycalendarflex.rows[k].dataItem.HoliDayDate) {
+
+    var griddata = this.lstHolidaycalendardate.sourceCollection;
+    for (var df = 0; df < griddata.length; df++) {
+      //if (griddata[df].HolidayMasterID == this.changedCalendarId)
+      {
+        var softholiday: any;
+        if (griddata[df].IsSoftHoliday) { softholiday = griddata[df].IsSoftHoliday; } else { softholiday = null; }
+
         dtholidaydates.push({
           "HolidayMasterId": this.changedCalendarId,
-          "HoliDayDate": this.convertDatetoGMT(this.holidaycalendarflex.rows[k].dataItem.HoliDayDate)
+          "HoliDayDate": this.convertDatetoGMT(griddata[df].HoliDayDate),
+          "IsSoftHoliday": softholiday
         });
       }
     }
+
+    //old code note used 
+    //for (var k = 0; k < this.holidaycalendarflex.rows.length - 1; k++)
+    //{
+    //  if (this.holidaycalendarflex.rows[k].dataItem.HoliDayDate)
+    //  {
+    //    dtholidaydates.push({
+    //      "HolidayMasterId": this.changedCalendarId,
+    //      "HoliDayDate": this.convertDatetoGMT(this.holidaycalendarflex.rows[k].dataItem.HoliDayDate),
+    //      "IsSoftHoliday": this.holidaycalendarflex.rows[k].dataItem.IsSoftHoliday
+    //    });
+    //  }
+    //}
+
     if (dtholidaydates.length == 0) {
       dtholidaydates.push({
         "HolidayMasterId": this.changedCalendarId,
-        "HoliDayDate": null
+        "HoliDayDate": null,
+        "isSoftHoliday": null
       });
     }
     this.checkDuplicateHolidayDates(dtholidaydates, 'save');
     this._isShowLoader = false;
   }
 
-  saveHolidayDate(dtholidaydates:any) {
+  saveHolidayDate(dtholidaydates: any) {
     this.permissionService.addHolidayDates(dtholidaydates).subscribe(res => {
       if (res.Succeeded) {
         this._isShowLoader = false;
@@ -1307,7 +1498,7 @@ export class DataManagement {
 
   showDeleteDialogbox(Name: string, rowval: string, deleteRowIndex: number) {
     this.deleteRowIndex = deleteRowIndex;
-    var modaltrans:any = document.getElementById('deletebox');
+    var modaltrans: any = document.getElementById('deletebox');
     modaltrans.style.display = "block";
     var month = new Date(rowval).getMonth() + 1;
     var mm = month < 10 ? '0' + month : month;
@@ -1318,7 +1509,7 @@ export class DataManagement {
   }
 
   CloseDeletePopUp() {
-    var modal:any = document.getElementById('deletebox');
+    var modal: any = document.getElementById('deletebox');
     modal.style.display = "none";
   }
 
@@ -1326,6 +1517,7 @@ export class DataManagement {
     if (moduleName == "HolidayCalendar") {
       this.CloseDeletePopUp();
       this.lstHolidaycalendardate.removeAt(this.deleteRowIndex);
+      this.holidaycalendarflex.invalidate();
     }
   }
 
@@ -1380,7 +1572,7 @@ export class DataManagement {
       this.permissionService.syncQuickbook().subscribe(res => {
         if (res.Succeeded) {
           this._isShowLoader = false;
-          setTimeout(()=> {
+          setTimeout(() => {
             this._issyncbtnClicked = false;
           }, 60000);
           this._ShowSuccessmessage = "Request sent successfully. It might take approx 15-20 minutes to sync the data.";
@@ -1397,7 +1589,7 @@ export class DataManagement {
           }, 5000);
         }
       });
-    } 
+    }
   }
 
   //showquickbook() {
@@ -1774,7 +1966,7 @@ export class DataManagement {
       }
     }
     this.TreeViewdata = Treedata;
-    
+
 
   }
 
@@ -1810,8 +2002,6 @@ export class DataManagement {
 
           }
         }
-
-
       } else {
         this.lstChangedTemplate.push({ FileName: newname, RuleTypeName: s.selectedPath[0], Content: this.JsonTemplateValue });
       }
@@ -1898,8 +2088,200 @@ export class DataManagement {
 
   }
 
+  convertDateWithoutSlash(date) {
+    var dateObj = null;
+    if (date) {
+      if (typeof (date) == "string") {
+        date = date.replace("Z", "");
+        dateObj = new Date(date);
+      }
+      else {
+        dateObj = date;
+      }
+      if (dateObj != null) {
+        return this.getTwoDigitString(dateObj.getMonth() + 1) + this.getTwoDigitString(dateObj.getDate()) + dateObj.getFullYear();
+      }
+    }
+  }
+  getTwoDigitString(number) {
+    if (number.toString().length === 1)
+      return "0" + number;
+    return number;
+  }
 
-    // dialog code end
+  ImportDeal() {
+    if (this._deal.CREDealID != '' && this._deal.CREDealID !== undefined) {
+      this._dealListFetching = true;
+      this._isShowLoader = true;
+      this._deal.DealID = this._deal.DealID.length != 36 ? '00000000-0000-0000-0000-000000000000' : this._deal.DealID;
+      this.dealSrv.ImportDealFromBackshopByCREDealId(this._deal).subscribe(res => {
+        if (res.Succeeded) {
+          this.allowImport = res.allowImport;
+          this.importValidationMessage = res.Validationstring;
+          this._dealListFetching = false;
+          if (this.allowImport == 0) {
+            this._ShowWarImportMessageDiv = true;
+            this._ShowWarImportMessageContent = this.importValidationMessage;
+          } else
+            if (this.allowImport == 1) {
+              this._ShowSuccessImportMessageDiv = true;
+              this._ShowSuccessImportMessageContent = "Deal imported successfully from backshop"; // this.importValidationMessage;
+            }
+          setTimeout(() => {
+            this._ShowSuccessImportMessageDiv = false;
+            this._ShowWarImportMessageDiv = false;
+            this._isShowLoader = false;
+          }, 5000);
+        }
+        else {
+          this._ShowWarImportMessageContent = "Something went wrong. Please try after some time";
+          this._ShowWarImportMessageDiv = true;
+          setTimeout(() => {
+            this._ShowWarImportMessageDiv = false;
+            this._isShowLoader = false;
+          }, 5000);
+          //this.utilityService.navigateToSignIn();
+        }
+      },
+        error => {
+          if (error.status == 401) {
+            this.notificationService.printErrorMessage('Authentication required');
+            this._isShowLoader = false;
+            this.utilityService.navigateToSignIn();
+          }
+        });
+    }
+  }
+
+  OpenDeal() {
+    if (this._deal.CREDealID != '' && this._deal.CREDealID !== undefined) {
+      this.router.navigate(["dealdetail/", this._deal.CREDealID]);
+    }
+  }
+
+  ClearDealID() {
+    this._deal.CREDealID = "";
+  }
+
+  GetFinancingSource(): void {
+    this._isShowLoader = true;
+    this.notesvc.GetFinancingSource().subscribe(res => {
+      if (res.Succeeded) {
+        this.lstfinancingsource = res.lstfinancingsource;
+        this.lstfinancingsource.sort((a, b) => a.ParentClient.localeCompare(b.ParentClient));
+        this._isShowLoader = false;
+      }
+    });
+  }
+  getAllFund(): void {
+    this._isShowLoader = true;
+    this.notesvc.getAllFund().subscribe(res => {
+      if (res.Succeeded) {
+        this.lstFund = res.lstFund;
+
+        this.lstFund.sort((a, b) => a.ParentFund.localeCompare(b.ParentFund));
+        this._isShowLoader = false;
+      }
+    });
+  }
+
+  saveFinancingSource() {
+    this._isShowLoader = true;
+    var dtlistFinancingSource = [];
+    var errortrans = "";
+    var financingsourceErr = false;
+    for (var k = 0; k < this.lstfinancingsource.length; k++) {
+
+      if (this.lstfinancingsource[k].ParentClient == null || this.lstfinancingsource[k].ParentClient == "" || this.lstfinancingsource[k].ParentClient == undefined) {
+       
+        financingsourceErr = true;
+        break;
+      }
+      dtlistFinancingSource.push({
+        "FinancingSourceMasterID": this.lstfinancingsource[k].FinancingSourceMasterID,
+        "ParentClient": this.lstfinancingsource[k].ParentClient,
+      });
+
+    }
+
+    if (financingsourceErr == true) {
+      errortrans = "Parent Client Name are required field(s)." + "</p>";
+      this.CustomAlert(errortrans);
+      this._isShowLoader = false;
+      dtlistFinancingSource = [];
+      financingsourceErr = false;
+    }
+    else {
+    this.notesvc.SaveParentClient(dtlistFinancingSource).subscribe(res => {
+      if (res.Succeeded) {
+        this._isShowLoader = false;
+        this._ShowSuccessmessage = "Parent Client updated successfully.";
+        this._ShowSuccessmessagediv = true;
+        setTimeout(() => {
+          this._ShowSuccessmessagediv = false;
+        }, 5000);
+      }
+      else {
+        this._isShowLoader = false;
+        this._ShowErrorMessage = "Something went wrong.Please try after some time.";
+        this._dvEmptyDealSearchMsg = true;
+        setTimeout(() => {
+          this._dvEmptyDealSearchMsg = false;
+        }, 5000);
+      }
+    });
+
+  }
+  }
+
+  saveParentFund() {
+    this._isShowLoader = true;
+    var dtlistFund = [];
+    var errortrans = "";
+    var fundErr = false;
+    for (var k = 0; k < this.lstFund.length; k++) {
+
+      if (this.lstFund[k].ParentFund == null || this.lstFund[k].ParentFund == "" || this.lstFund[k].ParentFund == undefined) {
+
+        fundErr = true;
+        break;
+      }
+      dtlistFund.push({
+        "FundD": this.lstFund[k].FundID,
+        "ParentFund": this.lstFund[k].ParentFund,
+      });
+
+    }
+
+    if (fundErr == true) {
+      errortrans = "Parent Fund Name are required field(s)." + "</p>";
+      this.CustomAlert(errortrans);
+      this._isShowLoader = false;
+      dtlistFund = [];
+      fundErr = false;
+    }
+    else {
+      this.notesvc.SaveParentFund(dtlistFund).subscribe(res => {
+        if (res.Succeeded) {
+          this._isShowLoader = false;
+          this._ShowSuccessmessage = "Parent Fund updated successfully.";
+          this._ShowSuccessmessagediv = true;
+          setTimeout(() => {
+            this._ShowSuccessmessagediv = false;
+          }, 5000);
+        }
+        else {
+          this._isShowLoader = false;
+          this._ShowErrorMessage = "Something went wrong.Please try after some time.";
+          this._dvEmptyDealSearchMsg = true;
+          setTimeout(() => {
+            this._dvEmptyDealSearchMsg = false;
+          }, 5000);
+        }
+      });
+
+    }
+  }
 }
 
 const routes: Routes = [

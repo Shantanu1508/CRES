@@ -1,5 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
 
 namespace CRES.DataContract
 {
@@ -71,7 +74,12 @@ namespace CRES.DataContract
         public decimal? PrepayPremium { get; set; }
         public string PropertyManagerEmail { get; set; }
         public string CREDealID { get; set; }
+        public string AdditionalEmail { get; set; }
         //public UserDataContract User { get; set; }
+        public string DealID { get; set; }
+        public bool IsDiscrepancyForCommitment { get; set; }
+        public int? OriginalWFStatusPurposeMappingID { get; set; }
+        public string AmOversightMsg { get; set; }
     }
 
 
@@ -81,5 +89,14 @@ namespace CRES.DataContract
 
         public string StatusName { get; set; }
         public string StatusDisplayName { get; set; }
+    }
+
+    public class WFConcurrencyParams
+    {
+        public string TaskID { get; set; }
+        public int? TaskTypeID { get; set; }
+        public int? WFStatusPurposeMappingID { get; set; }
+        public int? WFStatusMasterID { get; set; }
+
     }
 }

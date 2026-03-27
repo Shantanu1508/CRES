@@ -29,6 +29,11 @@ BEGIN
 	--Delete From dw.NotePeriodicCalcByEntityBI where AnalysisID is null
 	--Delete From dw.TransactionByEntityBI where AnalysisID is null
 
+	Delete from DW.transactionentryliabilityBI where analysisid = 'C10F3372-0FC2-4861-A9F5-148F1F80804F' 
+	and parentaccountid is not null 
+	and parentaccountid not in (Select accountid from cre.equity)
+
+
 
 	UPDATE BatchLog
 	SET Status = 'DELETING'

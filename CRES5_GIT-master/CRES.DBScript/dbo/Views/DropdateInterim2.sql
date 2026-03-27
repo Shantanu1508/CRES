@@ -59,17 +59,20 @@ outer apply (Select isholidayBi
 	Outer Apply (Select  ISNULL(Amount,0) LIBOR from Dw.TransactionEntryBI T
 					Where I.CRENoteID  = T.CRENoteID and X.Date1 = T.Date
 					and AnalysisID = 'C10F3372-0FC2-4861-A9F5-148F1F80804F' 
-					and Type = 'LIBORPercentage')y
+					and Type = 'LIBORPercentage'
+					and T.AccountTypeID = 1)y
 
 Outer Apply (Select  ISNULL(Amount,0) Spread from Dw.TransactionEntryBI T
 					Where I.CRENoteID  = T.CRENoteID and date1 = T.Date
 					and AnalysisID = 'C10F3372-0FC2-4861-A9F5-148F1F80804F' and Type = 'SpreadPercentage'
+					and T.AccountTypeID = 1
 					)z
 
 Outer Apply (
 				Select  ISNULL(Amount,0) Interest from Dw.TransactionEntryBI T 
 					Where I.CRENoteID  = T.CRENoteID and date1 = T.Date
 					and AnalysisID = 'C10F3372-0FC2-4861-A9F5-148F1F80804F' and Type = 'InterestPaid'
+					and T.AccountTypeID = 1
 
 
 

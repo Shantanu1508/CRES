@@ -18,7 +18,8 @@ export class Scenario {
   public ExcludedForcastedPrePaymentText !: string;
   public AutoCalcFreq !: number;
   public AutoCalcFreqText !: string;
-
+  public IncludeProjectedPrincipalWriteoff: number;
+  public IncludeProjectedPrincipalWriteoffText: string;
   public ScenarioColor !: string;
   public UserID !: string;
   public UseActuals !: number;
@@ -26,12 +27,38 @@ export class Scenario {
   public UseBusinessDayAdjustment !: number;
   public UseBusinessDayAdjustmentText !: string;
   public DisableBusinessDayAdjustment !: number;
-
-
+  public CalcEngineType: number;
+  public CalcEngineTypeText: string;
+  public CalculationFrequency: number;
+  public CalculationFrequencyText: string;
+  public AllowCalcOverride: number;
+  public AllowCalcAlongWithDefault: number;
+  public AccountingClose: number;
+  public CalculateLiability: number;
+  public CalculateLiabilityText: string;
+  public ScenarioStatus: number;
+  public ScenarioStatusText: string;
+  public UseFinancingMaturityDateOverride: number;
+  public UseFinancingMaturityDateOverrideText: string;
+  public UseMaturityAdjustmentMonths: number;
+  public UseMaturityAdjustmentMonthsText: string;
   LstScenarioUserMap: Array<ScenarioUserMap>;
 
-  public CalculationModeID !: number
+  public LastCalculatedDate: Date;
+  public IncludeInDiscrepancyText !: string;
+  public IncludeInDiscrepancy !: number;
 
+  public CalculationModeID !: number;
+  public jsonparam: string;
+
+  public OperationMode: string;
+  public EqDelayMonths !: number;
+  public FinDelayMonths !: number;
+  public MinEqBalForFinStart !: number;
+  public SublineEqApplyMonths !: number;
+  public SublineFinApplyMonths !: number;
+  public DebtCallDaysOfTheMonth !: number;
+  public CapitalCallDaysOfTheMonth !: number;
   constructor(AnalysisID: string) {
     this.AnalysisID = AnalysisID;
     this.LstScenarioUserMap = new Array<ScenarioUserMap>();

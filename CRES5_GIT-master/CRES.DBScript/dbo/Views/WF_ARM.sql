@@ -108,7 +108,12 @@ inner join  cre.deal d  on n.DealID=d.DealID
 (
 	Select rno,Noteid,PeriodEndDate,(allincouponrate*100) as allincouponrate
 	From(
-		Select  ROW_NUMBER() OVER (PARTITION BY  Noteid  ORDER BY Noteid,PeriodEndDate) AS rno,Noteid,PeriodEndDate,allincouponrate from cre.noteperiodiccalc 
+		Select  ROW_NUMBER() OVER (PARTITION BY  n.Noteid  ORDER BY n.Noteid,PeriodEndDate) AS rno,
+		n.Noteid,
+		PeriodEndDate,
+		allincouponrate 
+		from cre.noteperiodiccalc nc
+		Inner Join cre.note n on n.account_accountID = nc.AccountID
 	)a
 	where a.rno = 1
 )tblInterestRate on tblInterestRate.NoteId= n.NoteId

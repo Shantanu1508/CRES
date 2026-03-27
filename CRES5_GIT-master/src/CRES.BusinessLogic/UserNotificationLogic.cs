@@ -1,18 +1,20 @@
-﻿using CRES.DAL.Repository;
-using CRES.DataContract;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using CRES.DAL.Repository;
+using CRES.DataContract;
 
 namespace CRES.BusinessLogic
 {
     public class UserNotificationLogic
     {
 
-        UserNotificationRepository _userRepository = new UserNotificationRepository();
-        public List<UserNotificationDataContract> GetUserNotification(string userid, string dt, int pageindex)
+       UserNotificationRepository _userRepository = new UserNotificationRepository();
+        public List<UserNotificationDataContract> GetUserNotification(string userid,string dt,int pageindex)
         {
-            return _userRepository.GetUserNotification(userid, dt, pageindex);
+            return _userRepository.GetUserNotification(userid,dt,pageindex);
         }
 
 
@@ -54,7 +56,7 @@ namespace CRES.BusinessLogic
 
         public List<UserNotificationDataContract> GetAllUserNotification(string userid, string dt, int pageindex, int pageSize, out int? TotalCount)
         {
-            return _userRepository.GetAllUserNotification(userid, dt, pageindex, pageSize, out TotalCount);
+            return _userRepository.GetAllUserNotification(userid, dt, pageindex, pageSize,out TotalCount);
         }
 
 

@@ -30,7 +30,9 @@ CREATE TABLE [CRE].[TransactionReconciliationDetail] (
     [OverrideReason]   INT              NULL,
     [BerAddlint]       DECIMAL (28, 15) NULL,
     [InterestAdj]      DECIMAL (28, 15) NULL,
-    TransactionReconciliationDetail_AutoID int IDENTITY(1,1)
+    
+    TransactionReconciliationDetail_AutoID int IDENTITY(1,1),
+    WriteOffAmount      DECIMAL (28, 15) NULL,
 );
 
 go

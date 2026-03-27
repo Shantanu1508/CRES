@@ -11,7 +11,7 @@ AS
 BEGIN
 
 Select 
-Row_number() over (Partition by nc.noteid order by nc.periodenddate) [Period],
+Row_number() over (Partition by nc.AccountID order by nc.periodenddate) [Period],
 n.CRENoteID,
 nc.PeriodEndDate,
 nc.Month,
@@ -25,8 +25,11 @@ n.TotalCommitment as TotalCommitment,
 DateDiff(month,n.ClosingDate,ISNULL(n.ActualPayoffDate,n.FullyExtendedMaturityDate) ) as LoanDuration
 
 from cre.NotePeriodicCalc nc
-inner join cre.note n on n.noteid = nc.noteid
-inner join core.account acc on acc.accountid = n.account_accountid
+Inner join core.account acc on acc.accountid = nc.AccountID
+Inner join cre.note n on n.account_accountid = acc.accountid
+and acc.AccounttypeID = 1
+--inner join cre.note n on n.noteid = nc.noteid
+--inner join core.account acc on acc.accountid = n.account_accountid
 inner join cre.deal d on d.dealid = n.dealid
 where nc.analysisid = 'C10F3372-0FC2-4861-A9F5-148F1F80804F'
 and nc.[Month] is not null

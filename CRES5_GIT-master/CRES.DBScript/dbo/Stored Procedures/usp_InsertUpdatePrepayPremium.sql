@@ -13,7 +13,10 @@
 @tblSpreadMaintenanceSchedule [tblSpreadMaintenanceSchedule] READONLY,      
 @tblMinMultSchedule [tblMinMultSchedule] READONLY,      
 @tblFeeCredits [tblFeeCredits] READONLY ,
-@PrepayDate date
+@PrepayDate date,
+@OpenPaymentDate date,
+@MinimumMultipleDue decimal (28,15)
+
 AS          
 BEGIN      
 SET NOCOUNT ON;          
@@ -55,8 +58,8 @@ BEGIN
  INSERT INTO core.EventDeal (DealID,EventTypeID,EffectiveDate,StatusID)VALUES(@DealID,@EventTypeID,@EffectiveDate,1)    
  SET @L_EventDealID = @@IDENTITY    
     
- INSERT INTO [Core].[PrepaySchedule]([EventDealID],[CalcThru],[PrepaymentMethod],[BaseAmountType],[SpreadCalcMethod],[GreaterOfSMOrBaseAmtTimeSpread],[HasNoteLevelSMSchedule],[Includefeesincredits],[CreatedBy],[CreatedDate],[UpdatedBy],[UpdatedDate])    
- VALUES( @L_EventDealID,@CalcThru,@PrepaymentMethod,@BaseAmountType,@SpreadCalcMethod,@GreaterOfSMOrBaseAmtTimeSpread,@HasNoteLevelSMSchedule,@Includefeesincredits,@CreatedBy,getdate(),@CreatedBy,getdate())     
+ INSERT INTO [Core].[PrepaySchedule]([EventDealID],[CalcThru],[PrepaymentMethod],[BaseAmountType],[SpreadCalcMethod],[GreaterOfSMOrBaseAmtTimeSpread],[HasNoteLevelSMSchedule],[Includefeesincredits],[CreatedBy],[CreatedDate],[UpdatedBy],[UpdatedDate],[MinimumMultipleDue],[OpenPaymentDate])    
+ VALUES( @L_EventDealID,@CalcThru,@PrepaymentMethod,@BaseAmountType,@SpreadCalcMethod,@GreaterOfSMOrBaseAmtTimeSpread,@HasNoteLevelSMSchedule,@Includefeesincredits,@CreatedBy,getdate(),@CreatedBy,getdate(),@MinimumMultipleDue,@OpenPaymentDate)     
  SET @L_PrepayScheduleID = @@Identity    
     
     
@@ -109,7 +112,10 @@ BEGIN
   [HasNoteLevelSMSchedule] = @HasNoteLevelSMSchedule,    
   [Includefeesincredits] = @Includefeesincredits,    
   [UpdatedBy] = @CreatedBy,    
-  [UpdatedDate] = getdate()    
+  [UpdatedDate] = getdate(),
+  [OpenPaymentDate] = @OpenPaymentDate,
+  [MinimumMultipleDue] = @MinimumMultipleDue
+  
   Where EventDealID = @max_EventDealID    
       
   Update [Core].[PrepayAdjustment] SET [Core].[PrepayAdjustment].[Date] = a.date     
@@ -118,9 +124,10 @@ BEGIN
   ,[Core].[PrepayAdjustment].[UpdatedBy] = @CreatedBy    
   ,[Core].[PrepayAdjustment].[UpdatedDate] = getdate()    
   from (    
-   Select pa.PrepayAdjustmentId,pa.date,pa.PrepayAdjAmt,pa.Comment    
+   Select pa.PrepayAdjustmentId,pa.date,pa.PrepayAdjAmt,pa.Comment, pa.Isdeleted    
    From @tblPrepayAdjustment pa     
-   where PrepayAdjustmentId <> 0    
+   where PrepayAdjustmentId <> 0   
+		and ISNULL(pa.Isdeleted, 0) <> 1    
   )a    
   where [Core].[PrepayAdjustment].PrepayAdjustmentId = a.PrepayAdjustmentId    
   and [Core].[PrepayAdjustment].PrepayScheduleID = @max_PrepayScheduleID    
@@ -128,7 +135,13 @@ BEGIN
   INSERT INTO [Core].[PrepayAdjustment]([PrepayScheduleID],[Date],[PrepayAdjAmt],[Comment],[CreatedBy],[CreatedDate],[UpdatedBy],[UpdatedDate])    
   Select @max_PrepayScheduleID,pa.date,pa.PrepayAdjAmt,pa.Comment,@CreatedBy,getdate(),@CreatedBy,getdate()    
   From @tblPrepayAdjustment pa    
-  where PrepayAdjustmentId = 0    
+  where PrepayAdjustmentId = 0 and ISNULL(pa.Isdeleted, 0) <> 1
+
+  DELETE FROM [Core].[PrepayAdjustment]
+		WHERE PrepayAdjustmentId IN (
+		SELECT ts.PrepayAdjustmentId 
+		FROM @tblPrepayAdjustment ts
+		WHERE ISNULL(ts.Isdeleted, 0) = 1)
     
   IF EXISTS(select * from @tblSpreadMaintenanceSchedule)  
   BEGIN    
@@ -179,24 +192,28 @@ BEGIN
     [Core].FeeCredits.[UpdatedBy] = @CreatedBy,    
     [Core].FeeCredits.[UpdatedDate] = getdate()    
     from(    
-     Select FeeCreditsID,mf.FeeType,mf.UseActualFees,mf.FeeCreditOverride    
+     Select FeeCreditsID,mf.FeeType,mf.UseActualFees,mf.FeeCreditOverride,mf.Isdeleted
      from @tblFeeCredits mf    
-     where FeeCreditsID <>  0    
+     where FeeCreditsID <>  0     
+			and ISNULL(mf.Isdeleted, 0) <> 1      
     )a    
     Where [Core].FeeCredits.FeeCreditsID = a.FeeCreditsID    
-    and [Core].FeeCredits.PrepayScheduleID = @max_PrepayScheduleID    
+    and [Core].FeeCredits.PrepayScheduleID = @max_PrepayScheduleID  
     
     INSERT INTO Core.FeeCredits([PrepayScheduleID],FeeType,UseActualFees,FeeCreditOverride)    
     Select @max_PrepayScheduleID,mf.FeeType,mf.UseActualFees,mf.FeeCreditOverride    
     from @tblFeeCredits mf    
-    where FeeCreditsID =  0        
-   END    
-   ELSE    
-   BEGIN    
-    Update [Core].FeeCredits set Isdeleted = 1 where [PrepayScheduleID] = @max_PrepayScheduleID    
-   END    
-    
-     END    
+    where FeeCreditsID =  0 and ISNULL(mf.Isdeleted, 0) <> 1            
+      
+	DELETE FROM [Core].FeeCredits
+		WHERE FeeCreditsID IN (
+		SELECT ts.FeeCreditsID 
+		FROM @tblFeeCredits ts
+		WHERE ISNULL(ts.Isdeleted, 0) = 1)
+   END   
+   
+ END
+
  ELSE    
  BEGIN    
   IF(@EffectiveDate < @max_EffDate)    
@@ -207,8 +224,8 @@ BEGIN
   INSERT INTO core.EventDeal (DealID,EventTypeID,EffectiveDate,StatusID)VALUES(@DealID,@EventTypeID,@EffectiveDate,1)    
   SET @L_EventDealID = @@IDENTITY    
     
-  INSERT INTO [Core].[PrepaySchedule]([EventDealID],[CalcThru],[PrepaymentMethod],[BaseAmountType],[SpreadCalcMethod],[GreaterOfSMOrBaseAmtTimeSpread],[HasNoteLevelSMSchedule],[Includefeesincredits],[CreatedBy],[CreatedDate],[UpdatedBy],[UpdatedDate])    
-  VALUES( @L_EventDealID,@CalcThru,@PrepaymentMethod,@BaseAmountType,@SpreadCalcMethod,@GreaterOfSMOrBaseAmtTimeSpread,@HasNoteLevelSMSchedule,@Includefeesincredits,@CreatedBy,getdate(),@CreatedBy,getdate())     
+  INSERT INTO [Core].[PrepaySchedule]([EventDealID],[CalcThru],[PrepaymentMethod],[BaseAmountType],[SpreadCalcMethod],[GreaterOfSMOrBaseAmtTimeSpread],[HasNoteLevelSMSchedule],[Includefeesincredits],[CreatedBy],[CreatedDate],[UpdatedBy],[UpdatedDate],[MinimumMultipleDue],[OpenPaymentDate])    
+  VALUES( @L_EventDealID,@CalcThru,@PrepaymentMethod,@BaseAmountType,@SpreadCalcMethod,@GreaterOfSMOrBaseAmtTimeSpread,@HasNoteLevelSMSchedule,@Includefeesincredits,@CreatedBy,getdate(),@CreatedBy,getdate(),@MinimumMultipleDue,@OpenPaymentDate)     
   SET @L_PrepayScheduleID = @@Identity    
     
     

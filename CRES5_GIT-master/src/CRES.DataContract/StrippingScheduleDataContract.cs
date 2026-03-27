@@ -22,7 +22,7 @@ namespace CRES.DataContract
         //public string UpdatedBy { get; set; }
         //public DateTime? UpdatedDate { get; set; }
         ////End
-
+        
         public Guid? NoteID { get; set; }
 
         public Guid? AccountID { get; set; }
@@ -32,7 +32,7 @@ namespace CRES.DataContract
         public DateTime? EffectiveEndDate { get; set; }
         public int? EventTypeID { get; set; }
         public string EventTypeText { get; set; }
-        //   public Guid? StrippingScheduleID { get; set; }
+     //   public Guid? StrippingScheduleID { get; set; }
         public Guid? EventId { get; set; }
         public DateTime? StartDate { get; set; }
         public decimal? Value { get; set; }

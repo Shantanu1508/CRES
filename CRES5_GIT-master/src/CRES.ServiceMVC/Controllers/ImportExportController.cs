@@ -1,23 +1,34 @@
 ﻿
 using System;
 using System.Collections.Generic;
+using System.Configuration;
+using System.Data;
+using System.Data.SqlClient;
+using System.Linq;
 using System.Net;
+using System.Net.Http;
 using CRES.DataContract;
 using CRES.BusinessLogic;
+using System.Net.Http.Headers;
 using Microsoft.AspNetCore.Mvc;
-#pragma warning disable CS0105 // The using directive for 'CRES.BusinessLogic' appeared previously in this namespace
-#pragma warning restore CS0105 // The using directive for 'CRES.BusinessLogic' appeared previously in this namespace
+using CRES.BusinessLogic;
+using System.Text;
 using iTextSharp.text;
+using iTextSharp.text.html.simpleparser;
 using iTextSharp.text.pdf;
+using System.Diagnostics;
 using System.IO;
 
 using iTextSharp.tool.xml;
-#pragma warning disable CS0105 // The using directive for 'iTextSharp.text.html.simpleparser' appeared previously in this namespace
-#pragma warning restore CS0105 // The using directive for 'iTextSharp.text.html.simpleparser' appeared previously in this namespace
+using iTextSharp.text.html.simpleparser;
 using Microsoft.Extensions.Configuration;
 using Microsoft.WindowsAzure.Storage.Blob;
 using Microsoft.WindowsAzure.Storage;
 using Microsoft.WindowsAzure.Storage.Auth;
+using iTextSharp.tool.xml.pipeline.html;
+using iTextSharp.tool.xml.html;
+using Microsoft.AspNetCore.Html;
+using CRES.Utilities;
 using System.Net.Mail;
 using System.Net.Security;
 using System.Security.Cryptography.X509Certificates;
@@ -177,9 +188,7 @@ namespace CRES.Services.Controllers
             GenericResult _authenticationResult = null;
             bool result = false;
 
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
             var headerUserID = new Guid();
             if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
             {
@@ -268,9 +277,7 @@ namespace CRES.Services.Controllers
         {
             GenericResult _authenticationResult = null;
 
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
             var headerUserID = new Guid();
             if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
             {
@@ -327,9 +334,7 @@ namespace CRES.Services.Controllers
         {
             GenericResult _authenticationResult = null;
 
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
             var headerUserID = new Guid();
             if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
             {
@@ -386,9 +391,7 @@ namespace CRES.Services.Controllers
         {
             GenericResult _authenticationResult = null;
 
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
             var headerUserID = new Guid();
             if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
             {
@@ -446,9 +449,7 @@ namespace CRES.Services.Controllers
         {
             GenericResult _authenticationResult = null;
 
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
             var headerUserID = new Guid();
             if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
             {
@@ -505,9 +506,7 @@ namespace CRES.Services.Controllers
         {
             GenericResult _authenticationResult = null;
 
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
             var headerUserID = new Guid();
             if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
             {
@@ -565,9 +564,7 @@ namespace CRES.Services.Controllers
             GenericResult _authenticationResult = null;
             bool result = false;
 
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
             var headerUserID = new Guid();
             if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
             {
@@ -644,9 +641,7 @@ namespace CRES.Services.Controllers
             GenericResult _authenticationResult = null;
             bool result = false;
 
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
             var headerUserID = new Guid();
             if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
             {
@@ -723,9 +718,7 @@ namespace CRES.Services.Controllers
 
             GenericResult _authenticationResult = null;
 
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
             var headerUserID = new Guid();
             if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
             {
@@ -894,7 +887,7 @@ namespace CRES.Services.Controllers
             }
             else
             {
-
+               
                 DocumentDataContract _docDC = new DocumentDataContract();
                 _docDC.FolderName = "Invoice";
                 _docDC.FileName = "DrawFee.pdf";

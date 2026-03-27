@@ -1,4 +1,5 @@
-﻿  
+﻿-- Procedure
+  
 CREATE PROCEDURE [dbo].[usp_InsertTransactionEntryFromTransactionEntryManual]  
 
 @NoteId UNIQUEIDENTIFIER,  
@@ -22,16 +23,17 @@ END
 
 Declare @EnableM61Calculations int  = (Select EnableM61Calculations from cre.Note where noteid = @NoteId)
 
+Declare @AccountID UNIQUEIDENTIFIER = (Select Account_accountid  from cre.note where noteid = @NoteId)
 
 IF(@EnableM61Calculations = 4)
 BEGIN
 
-	DELETE FROM [CRE].[TransactionEntry] WHERE [NoteID]=@NoteId  
+	DELETE FROM [CRE].[TransactionEntry] WHERE AccountID=@AccountID  
   
 	INSERT INTO [CRE].[TransactionEntry]  
 	(  
-	NoteID  
-	,[Date]  
+	--NoteID  
+	[Date]  
 	,Amount  
 	,[Type]  
 	,CreatedBy  
@@ -42,10 +44,11 @@ BEGIN
 	,StrCreatedBy
 	,GeneratedBy
 	,[Cash_NonCash]
+	,AccountID
 	)  
 	Select  
-	@NoteId  
-	,[Date]  
+	--@NoteId  
+	[Date]  
 	,Amount  
 	,Type as TransactionType  
 	,@CreatedBy  
@@ -62,11 +65,11 @@ BEGIN
 	WHEN (tr.[Type] = 'FundingOrRepayment' and tr.Cash_NonCash is null and tr.Amount > 0) THEN 'Repayment'
 	ELSE tym.Cash_NonCash END
 	) [Cash_NonCash]
-
+	,@AccountID
 	FROM CRE.TransactionEntryManual tr
 	left join cre.transactiontypes tym on LOWER(tym.TransactionName) = LOWER(tr.Type)
 	,core.Analysis a	 
-	where Noteid = @NoteId
+	where AccountID = @AccountID
 
  END
 

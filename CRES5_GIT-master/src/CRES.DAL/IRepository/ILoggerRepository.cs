@@ -1,4 +1,7 @@
 ﻿using CRES.DataContract;
+using System;
+using System.Collections.Generic;
+using System.Text;
 
 namespace CRES.DAL.IRepository
 {

@@ -16,10 +16,9 @@ export class FileUploadService {
   private _fileuploadObjectByStorageTypeAPI: string = 'api/fileupload/uploadobjectfile';
   private _filedownloadObjectByStorageTypeAPI: string = 'api/fileupload/downloadobjectfile';
   private _importWellsDataByDealID: string = 'api/fileupload/downloadfilefromwells';
+  private _downloadPayoffStatementAPI: string = 'api/fileupload/downloadPayoffstatement';
 
   //private _downloadfilecalcoutputAPI: string = 'api/fileupload/downloadfilecalcoutput';
-
-
 
   constructor(public dataService: DataService) { }
 
@@ -88,6 +87,13 @@ export class FileUploadService {
   //    return this.dataService.post(JSON.stringify(_Calclist));
 
   //}
+  downloadPayoffStatement(dealID: string) {
+    this.dataService.set(this._downloadPayoffStatementAPI);
+    // return this.dataService.getByID(dealID);
+    return this.dataService.getByIDWithBlob(dealID);
+
+  }
+
 
 
 }

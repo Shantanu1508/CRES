@@ -1,7 +1,11 @@
-﻿using CRES.DAL.Repository;
-using CRES.DataContract;
-using System;
+﻿using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using CRES.DAL;
+using CRES.DAL.Repository;
+using CRES.DataContract;
 
 namespace CRES.BusinessLogic
 {
@@ -23,9 +27,9 @@ namespace CRES.BusinessLogic
         }
 
 
-        public int AddUpdateFinancingWarehouseDetails(List<FinancingWarehouseDetailDataContract> lstfinancingWarehousedetailsDc)
+        public int AddUpdateFinancingWarehouseDetails(List<FinancingWarehouseDetailDataContract> lstfinancingWarehousedetailsDc,string headerUserID)
         {
-            return _financingRepository.AddUpdateFinancingWarehouseDetails(lstfinancingWarehousedetailsDc);
+            return _financingRepository.AddUpdateFinancingWarehouseDetails(lstfinancingWarehousedetailsDc, headerUserID);
         }
 
         public FinancingWarehouseDataContract GetFinancingWarehouseByid(string financingWarehouseID)

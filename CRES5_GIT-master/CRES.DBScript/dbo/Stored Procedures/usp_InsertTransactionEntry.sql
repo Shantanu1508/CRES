@@ -1,9 +1,11 @@
-﻿  
+﻿-- Procedure
+  
 CREATE PROCEDURE [dbo].[usp_InsertTransactionEntry]  
   
 @TableTypeTransactionEntry [TableTypeTransactionEntry] READONLY,  
 @NoteId UNIQUEIDENTIFIER,  
-@CreatedBy  nvarchar(256)  
+@CreatedBy  nvarchar(256) ,
+@MaturityUsedInCalc Date
   
 AS  
 BEGIN  
@@ -32,10 +34,10 @@ DECLARE @UseActuals int;
 SET @UseActuals = (Select UseActuals from core.AnalysisParameter where AnalysisID = @AnalysisID)
 
 --===============================
-Declare @feeName nvarchar(256);
-Declare @Comment nvarchar(256);
+--Declare @feeName nvarchar(256);
+--Declare @Comment nvarchar(256);
 
-Select top 1 @feeName = NULLIF(FeeName,''),@Comment = NULLIF(Comment,'') FROM @TableTypeTransactionEntry  where FeeName is not null  and TransactionType like 'PIK%'
+--Select top 1 @feeName = NULLIF(FeeName,''),@Comment = NULLIF(Comment,'') FROM @TableTypeTransactionEntry  where FeeName is not null  and TransactionType like 'PIK%'
 --========================================
 
 
@@ -62,7 +64,16 @@ CREATE TABLE [#TableTypeTransactionEntry_g](
 	PurposeType NVARCHAR (256)   NULL,    
 	TransactionDateByRule   DATE             NULL,	
 	TransactionDateServicingLog DATE             NULL,
-	RemittanceDate  DATE             NULL
+	RemittanceDate  DATE             NULL,
+	AdjustmentType NVARCHAR (256)   NULL,
+	AllInCouponRate decimal(28,15),
+	IndexDeterminationDate DATE NULL,
+	AccountID UNIQUEIDENTIFIER,
+	BalloonRepayAmount decimal(28,15),
+	IndexValue  decimal(28,15),
+	SpreadValue  decimal(28,15),
+	OriginalIndex  decimal(28,15),
+	LiborPercentage decimal(28,15)
 )
 INSERT INTO [#TableTypeTransactionEntry_g]
 (
@@ -84,7 +95,16 @@ INSERT INTO [#TableTypeTransactionEntry_g]
 	PurposeType,    
 	TransactionDateByRule,	
 	TransactionDateServicingLog,
-	RemittanceDate
+	RemittanceDate,
+	AdjustmentType,
+	AllInCouponRate,
+	IndexDeterminationDate,
+	AccountID,
+	BalloonRepayAmount,
+	IndexValue ,
+	SpreadValue ,
+	OriginalIndex,
+	LiborPercentage
 )
 Select  
 @NoteId  
@@ -103,11 +123,21 @@ Select
 ,NULLIF(Comment,'')
 ,PaymentDateNotAdjustedforWorkingDay
 ,PurposeType
-
 ,TransactionDateByRule
 ,TransactionDateServicingLog
 ,RemittanceDate
+,AdjustmentType
+,AllInCouponRate
+,IndexDeterminationDate
+,@AccountID
+,BalloonRepayAmount
+,IndexValue 
+,SpreadValue 
+,OriginalIndex 
+,LiborPercentage
 FROM @TableTypeTransactionEntry  
+Where [Date] is not null
+
 --=================================
 
 
@@ -116,11 +146,12 @@ BEGIN
   
 	Declare @ID uniqueidentifier;  
   
-	DELETE FROM [CRE].[TransactionEntry] WHERE [NoteID]=@NoteId  and AnalysisID = @AnalysisID
+	DELETE FROM [CRE].[TransactionEntry] WHERE AccountID=@AccountID  and AnalysisID = @AnalysisID
   
 	INSERT INTO [CRE].[TransactionEntry]  
 	(  
-		NoteID  
+		--NoteID  
+		AccountID
 		,[Date]  
 		,Amount  
 		,[Type]  
@@ -139,10 +170,20 @@ BEGIN
 		,TransactionDateByRule
 		,TransactionDateServicingLog
 		,RemitDate
+		,AdjustmentType
+		,AllInCouponRate
+		,IndexDeterminationDate
 		--,Cash_NonCash
+		,BalloonRepayAmount
+		,IndexValue 
+	,SpreadValue 
+	,OriginalIndex 
+	,LiborPercentage
+
 	)  
 	Select  
-	te.NoteID,
+	---te.NoteID,
+	te.AccountID,
 	te.[Date],
 	te.[Amount],
 	te.[TransactionType],
@@ -160,7 +201,15 @@ BEGIN
 	te.PurposeType,    
 	te.TransactionDateByRule,
 	te.TransactionDateServicingLog,
-	te.RemittanceDate
+	te.RemittanceDate,
+	te.AdjustmentType,
+	te.AllInCouponRate,
+	te.IndexDeterminationDate,
+	te.BalloonRepayAmount,
+	te.IndexValue ,
+	te.SpreadValue ,
+	te.OriginalIndex,
+	te.LiborPercentage
 	--(CASE WHEN n.EnableM61Calculations = 3 THEN 
 	--	(CASE WHEN te.[TransactionType] = 'FundingOrRepayment' and ISNULL(te.PurposeType,'') in ('Capitalized Interest','Note Transfer') THEN 'Non-Cash'
 	--	WHEN te.[TransactionType] = 'FundingOrRepayment' and ISNULL(te.PurposeType,'') not in ('Capitalized Interest','Note Transfer') and te.Amount < 0 THEN 'Funding'
@@ -176,6 +225,7 @@ BEGIN
 	--END
 	--) as Cash_NonCash
 
+
 	FROM [#TableTypeTransactionEntry_g]  te
 	--inner join Cre.Note n on n.NoteID=te.NoteID	
 	--left join cre.transactiontypes tym on LOWER(tym.TransactionName) = LOWER(te.TransactionType)
@@ -186,7 +236,7 @@ BEGIN
 	BEGIN
 		IF EXISTS(Select top 1 noteid from cre.noteTransactionDetail where noteid = @NoteId)
 		BEGIN
-			EXEC [dbo].[usp_InsertTransactionEntryOfServicingLogData]  @NoteId,@AnalysisID,@CreatedBy
+			EXEC [dbo].[usp_InsertTransactionEntryOfServicingLogData]  @NoteId,@AnalysisID,@CreatedBy,@MaturityUsedInCalc
 		END
 	END
 
@@ -194,120 +244,122 @@ BEGIN
 	BEGIN
 		IF EXISTS(Select top 1 noteid from cre.noteTransactionDetail where noteid = @NoteId)
 		BEGIN
-			EXEC [dbo].[usp_InsertTransactionEntryOfServicingLogDataUseActualsN]  @NoteId,@AnalysisID,@CreatedBy
+			EXEC [dbo].[usp_InsertTransactionEntryOfServicingLogDataUseActualsN]  @NoteId,@AnalysisID,@CreatedBy,@MaturityUsedInCalc
 		END
 	END
 
-	--======================================================================
-	Declare @TranType nvarchar(256);
-	Select top 1 @TranType = TransactionType FROM [#TableTypeTransactionEntry_g]  where TransactionType like 'PIK%'
+	----===========================handeled from calculator code===========================================
+	--Declare @TranType nvarchar(256);
+	--Select top 1 @TranType = TransactionType FROM [#TableTypeTransactionEntry_g]  where TransactionType like 'PIK%'
 
-	IF(@TranType like 'PIK%')
-	BEGIN
-		IF(@feeName is null)
-		BEGIN
-			--Temp solution (11736,9242,9653)
-			Select @feeName = LPIKReasonCode.name,@Comment = pik.PIKComments
-			from [CORE].PikSchedule pik
-			left JOIN [CORE].[Account] accsource ON accsource.AccountID = pik.SourceAccountID
-			left JOIN [CORE].[Account] accDest ON accDest.AccountID = pik.TargetAccountID
-			INNER JOIN [CORE].[Event] e on e.EventID = pik.EventId
-			LEFT JOIN [CORE].[Lookup] LPIKReasonCode ON LPIKReasonCode.LookupID = pik.PIKReasonCodeID
-			INNER JOIN (						
-				Select 
-				(Select AccountID from [CORE].[Account] ac where ac.AccountID = n.Account_AccountID) AccountID ,
-				MAX(EffectiveStartDate) EffectiveStartDate,EventTypeID from [CORE].[Event] eve
-				INNER JOIN [CRE].[Note] n ON n.Account_AccountID = eve.AccountID
-				INNER JOIN [CORE].[Account] acc ON acc.AccountID = n.Account_AccountID
-				where EventTypeID = 12
-				and n.NoteID = @NoteId
-				and acc.IsDeleted = 0
-				GROUP BY n.Account_AccountID,EventTypeID
-			) sEvent
-			ON sEvent.AccountID = e.AccountID and e.EffectiveStartDate = sEvent.EffectiveStartDate  and e.EventTypeID = sEvent.EventTypeID
-		END
-	END
+	--IF(@TranType like 'PIK%')
+	--BEGIN
+	--	IF(@feeName is null)
+	--	BEGIN
+	--		--Temp solution (11736,9242,9653)
+	--		Select @feeName = LPIKReasonCode.name,@Comment = pik.PIKComments
+	--		from [CORE].PikSchedule pik
+	--		left JOIN [CORE].[Account] accsource ON accsource.AccountID = pik.SourceAccountID
+	--		left JOIN [CORE].[Account] accDest ON accDest.AccountID = pik.TargetAccountID
+	--		INNER JOIN [CORE].[Event] e on e.EventID = pik.EventId
+	--		LEFT JOIN [CORE].[Lookup] LPIKReasonCode ON LPIKReasonCode.LookupID = pik.PIKReasonCodeID
+	--		INNER JOIN (						
+	--			Select 
+	--			(Select AccountID from [CORE].[Account] ac where ac.AccountID = n.Account_AccountID) AccountID ,
+	--			MAX(EffectiveStartDate) EffectiveStartDate,EventTypeID from [CORE].[Event] eve
+	--			INNER JOIN [CRE].[Note] n ON n.Account_AccountID = eve.AccountID
+	--			INNER JOIN [CORE].[Account] acc ON acc.AccountID = n.Account_AccountID
+	--			where EventTypeID = 12
+	--			and n.NoteID = @NoteId
+	--			and acc.IsDeleted = 0
+	--			GROUP BY n.Account_AccountID,EventTypeID
+	--		) sEvent
+	--		ON sEvent.AccountID = e.AccountID and e.EffectiveStartDate = sEvent.EffectiveStartDate  and e.EventTypeID = sEvent.EventTypeID
+	--	END
+	--END
 
-	Update [CRE].[TransactionEntry]   set FeeName = @feeName,Comment =@Comment where NoteID = @NoteId and AnalysisID = @AnalysisID and [type] like 'PIK%'
+	--Update [CRE].[TransactionEntry]   set FeeName = @feeName,Comment =@Comment where AccountID = @AccountID and AnalysisID = @AnalysisID and [type] like 'PIK%'
 	
-	--=======================================================================
-	----Update for Reference Rate
-	IF OBJECT_ID('tempdb..[#tblSpreadRefRate]') IS NOT NULL                                         
-	 DROP TABLE [#tblSpreadRefRate]
+	----=======================================================================
 
-	CREATE TABLE [#tblSpreadRefRate](
-		NoteID UNIQUEIDENTIFIER null,
-		[date] Date null,
-		ValueTypeID int null,
-		Value decimal(28,15) null,
-		TrType nvarchar(256) null,
-		cnt int null
-	)
-	INSERT INTO [#tblSpreadRefRate](NoteID,[date],ValueTypeID,Value,TrType,cnt)
-	Select b.NoteID,b.date,b.ValueTypeID,b.Value,b.TrType,b.cnt 
-	from(
-		Select n1.NoteID, rs.date,rs.ValueTypeID,rs.Value,
-		(CASE when LValueTypeID.name ='Reference Rate' THen 'LIBORPercentage'
-		when LValueTypeID.name ='Spread' THen 'SpreadPercentage' END)as TrType,
-		count(rs.date) over (partition by n1.noteid,rs.date order by n1.noteid,rs.date) as cnt
-		from [CORE].RateSpreadSchedule rs
-		INNER JOIN [CORE].[Event] e on e.EventID = rs.EventId
-		LEFT JOIN [CORE].[Lookup] LValueTypeID ON LValueTypeID.LookupID = rs.ValueTypeID
-		INNER JOIN(					
-						Select 
-							(Select AccountID from [CORE].[Account] ac where ac.AccountID = n.Account_AccountID) AccountID ,
-							MAX(EffectiveStartDate) EffectiveStartDate,EventTypeID from [CORE].[Event] eve
-							INNER JOIN [CRE].[Note] n ON n.Account_AccountID = eve.AccountID
-							INNER JOIN [CORE].[Account] acc ON acc.AccountID = n.Account_AccountID
-							where EventTypeID = (Select LookupID from CORE.[Lookup] where Name = 'RateSpreadSchedule')
-							and eve.StatusID = (Select LookupID from Core.Lookup where name = 'Active' and parentid = 1)
-							and n.NoteID = @NoteId
-							and acc.IsDeleted = 0
-							GROUP BY n.Account_AccountID,EventTypeID
-					) sEvent
-		ON sEvent.AccountID = e.AccountID and e.EffectiveStartDate = sEvent.EffectiveStartDate  and e.EventTypeID = sEvent.EventTypeID
-		inner join core.Account ac on ac.AccountID =e.AccountID
-		inner join cre.Note n1 on n1.Account_AccountID = ac.AccountID
-		where e.StatusID = 1
-		and n1.RateType = 139
-		and rs.ValueTypeID in (151,596)		
-	)b
-	where b.cnt = 2
-	order by b.date
+	-------handeled in usp_UpdateTransactionEntry_ReferenceRateNote
+	------Update for Reference Rate
+	--IF OBJECT_ID('tempdb..[#tblSpreadRefRate]') IS NOT NULL                                         
+	-- DROP TABLE [#tblSpreadRefRate]
 
-	IF EXISTS(SELECT NoteID FROM [#tblSpreadRefRate])
-	BEGIN
-	Declare @Liborpercentage decimal(28,15) = (select top 1 Value from [#tblSpreadRefRate] where TrType = 'LIBORPercentage'  order by date asc);
-	Declare @Spreadpercentage decimal(28,15) = (select top 1 Value from [#tblSpreadRefRate]  where TrType = 'SpreadPercentage'  order by date asc);
+	--CREATE TABLE [#tblSpreadRefRate](
+	--	NoteID UNIQUEIDENTIFIER null,
+	--	[date] Date null,
+	--	ValueTypeID int null,
+	--	Value decimal(28,15) null,
+	--	TrType nvarchar(256) null,
+	--	cnt int null
+	--)
+	--INSERT INTO [#tblSpreadRefRate](NoteID,[date],ValueTypeID,Value,TrType,cnt)
+	--Select b.NoteID,b.date,b.ValueTypeID,b.Value,b.TrType,b.cnt 
+	--from(
+	--	Select n1.NoteID, rs.date,rs.ValueTypeID,rs.Value,
+	--	(CASE when LValueTypeID.name ='Reference Rate' THen 'LIBORPercentage'
+	--	when LValueTypeID.name ='Spread' THen 'SpreadPercentage' END)as TrType,
+	--	count(rs.date) over (partition by n1.noteid,rs.date order by n1.noteid,rs.date) as cnt
+	--	from [CORE].RateSpreadSchedule rs
+	--	INNER JOIN [CORE].[Event] e on e.EventID = rs.EventId
+	--	LEFT JOIN [CORE].[Lookup] LValueTypeID ON LValueTypeID.LookupID = rs.ValueTypeID
+	--	INNER JOIN(					
+	--					Select 
+	--						(Select AccountID from [CORE].[Account] ac where ac.AccountID = n.Account_AccountID) AccountID ,
+	--						MAX(EffectiveStartDate) EffectiveStartDate,EventTypeID from [CORE].[Event] eve
+	--						INNER JOIN [CRE].[Note] n ON n.Account_AccountID = eve.AccountID
+	--						INNER JOIN [CORE].[Account] acc ON acc.AccountID = n.Account_AccountID
+	--						where EventTypeID = (Select LookupID from CORE.[Lookup] where Name = 'RateSpreadSchedule')
+	--						and eve.StatusID = (Select LookupID from Core.Lookup where name = 'Active' and parentid = 1)
+	--						and n.NoteID = @NoteId
+	--						and acc.IsDeleted = 0
+	--						GROUP BY n.Account_AccountID,EventTypeID
+	--				) sEvent
+	--	ON sEvent.AccountID = e.AccountID and e.EffectiveStartDate = sEvent.EffectiveStartDate  and e.EventTypeID = sEvent.EventTypeID
+	--	inner join core.Account ac on ac.AccountID =e.AccountID
+	--	inner join cre.Note n1 on n1.Account_AccountID = ac.AccountID
+	--	where e.StatusID = 1
+	--	and n1.RateType = 139
+	--	and rs.ValueTypeID in (151,596)		
+	--)b
+	--where b.cnt = 2
+	--order by b.date
 
-	UPDATE CRe.TransactionEntry SET cre.TransactionEntry.Amount = z.Value
-	FROM(
-			select tr.TransactionEntryID,tr.NoteID,x.date,
-			ISNULL(x.Value,(CASE WHEN Type = 'SpreadPercentage' THEN @Spreadpercentage	ELSE @Liborpercentage END)) as Value
-			,tr.Type from cre.TransactionEntry tr
-			outer apply(
-						select top 1 sp.Date,sp.Value from [#tblSpreadRefRate] sp where sp.TrType=tr.Type and sp.NoteID = tr.NoteID and sp.Date < tr.Date 
-						order by date desc
-					) as x
-			where 
-			analysisid = @AnalysisID
-			and tr.noteid=@NoteId
-			and tr.Type in ('SpreadPercentage','LIBORPercentage')
-		)z
-	WHERE z.TransactionEntryID= CRe.TransactionEntry.TransactionEntryID
-	END
+	--IF EXISTS(SELECT NoteID FROM [#tblSpreadRefRate])
+	--BEGIN
+	--Declare @Liborpercentage decimal(28,15) = (select top 1 Value from [#tblSpreadRefRate] where TrType = 'LIBORPercentage'  order by date asc);
+	--Declare @Spreadpercentage decimal(28,15) = (select top 1 Value from [#tblSpreadRefRate]  where TrType = 'SpreadPercentage'  order by date asc);
+
+	--UPDATE CRe.TransactionEntry SET cre.TransactionEntry.Amount = z.Value
+	--FROM(
+	--		select tr.TransactionEntryID,n.NoteID,x.date,
+	--		ISNULL(x.Value,(CASE WHEN Type = 'SpreadPercentage' THEN @Spreadpercentage	ELSE @Liborpercentage END)) as Value
+	--		,tr.Type 
+	--		from cre.TransactionEntry tr
+	--		Inner Join cre.note n on n.account_accountid = tr.AccountID
+	--		outer apply(
+	--					select top 1 sp.Date,sp.Value from [#tblSpreadRefRate] sp where sp.TrType=tr.Type and sp.NoteID = n.NoteID and sp.Date < tr.Date 
+	--					order by date desc
+	--				) as x
+	--		where 
+	--		analysisid = @AnalysisID
+	--		and tr.AccountID=@AccountID
+	--		and tr.Type in ('SpreadPercentage','LIBORPercentage')
+
+
+	--	)z
+	--WHERE z.TransactionEntryID= CRe.TransactionEntry.TransactionEntryID
+
+
+	--END
 	
-	--Update cre.TransactionEntry set cre.TransactionEntry.Amount = a.Value
-	--From(	
-	--	Select NoteID,[date],ValueTypeID,Value,TrType,cnt from [#tblSpreadRefRate]
-	--)a
-	--where cre.TransactionEntry.noteid = a.noteid
-	--and cre.TransactionEntry.analysisid = @AnalysisID
-	--and cre.TransactionEntry.[type] = a.TrType
-	--and cre.TransactionEntry.Date >= a.Date
+
+	
 	
 
-	DELETE FROM [CRE].[TransactionEntry] WHERE [NoteID]=@NoteId  and AnalysisID = @AnalysisID and Amount = 0 
+	DELETE FROM [CRE].[TransactionEntry] WHERE AccountID=@AccountID  and AnalysisID = @AnalysisID and Amount = 0 
 	--=======================================================================
 
 	---Update cash non cash column
@@ -322,12 +374,18 @@ BEGIN
 			Declare @L_Crenoteid nvarchar(256)
 			SET @L_Crenoteid = (Select crenoteid from cre.note where noteid = @NoteId)
 
-			exec [dbo].[usp_ExportPIKPrincipalFromCRES]  @L_Crenoteid,@CreatedBy,@CreatedBy
+			--exec [dbo].[usp_ExportPIKPrincipalFromCRES]  @L_Crenoteid,@CreatedBy,@CreatedBy
+
+			exec [dbo].[usp_ExportPIKPrincipalFromCRES_API]  @L_Crenoteid,@CreatedBy,@CreatedBy
 		--END	
 	END
 	---===============================
 
+	--=====================Managing Note and Analysis wise calculator fields
+	Delete From [CRE].[NoteExtentionCalcField] Where AccountID = @AccountID AND AnalysisID = @AnalysisID;
 
+	INSERT INTO [CRE].[NoteExtentionCalcField] (AccountID,AnalysisID, SelectedMaturityDate,CreatedBy,CreatedDate,UpdatedBy,UpdatedDate) 
+	Values (@AccountID, @AnalysisID, @MaturityUsedInCalc, @CreatedBy, GETDATE(), @CreatedBy, GETDATE());
 END
  
   

@@ -1,9 +1,4 @@
-﻿
-
--- [dbo].[usp_GetNotesFromDealDetailByDealID] 'B59B1166-CF70-41F4-A53E-F9228DB01F35', '80E27BC4-B933-4724-9DB2-EF3CDB8ADB6B',1,10,''
--- [dbo].[usp_GetNotesFromDealDetailByDealID]'D1E11F7E-5EFF-4E70-87AF-5BACAB7D9C3D', '80E27BC4-B933-4724-9DB2-EF3CDB8ADB6B',1,10,''
-
-CREATE PROCEDURE [dbo].[usp_GetNotesFromDealDetailByDealID] --'7BF82434-8D5C-4738-892C-76785EC83142', '80E27BC4-B933-4724-9DB2-EF3CDB8ADB6B',1,10,''
+﻿CREATE PROCEDURE [dbo].[usp_GetNotesFromDealDetailByDealID]  --'9de73d71-b4b2-4cd8-b885-6f9817ad812b', '80E27BC4-B933-4724-9DB2-EF3CDB8ADB6B',1,20,''
 (
     @DealId Varchar(500),
 	@UserID UNIQUEIDENTIFIER,
@@ -25,7 +20,7 @@ set @Active=(select LookupID from core.lookup where name ='Active' and ParentID=
 
 SELECT @totalCount = COUNT(NoteID) FROM CRE.Note  WITH (ROWLOCK, HOLDLOCK);
 	
-Select NoteID,Account_AccountID,DealID,CRENoteID,ClosingDate,TotalCommitment,InitialMaturityDate,UseRuletoDetermineNoteFunding,UseRuletoDetermineNoteFundingText,NoteFundingRule,NoteFundingRuleText,FundingPriority,NoteBalanceCap,RepaymentPriority,InitialFundingAmount,CreatedBy,CreatedDate,UpdatedBy,UpdatedDate,StatusID,Name,ActualPayoffDate,FullyExtendedMaturityDate,ExpectedMaturityDate,cntCritialException,lienposition,lienpositionText,priority,NoteRule,AdjustedTotalCommitment,OriginalTotalCommitment,AggregatedTotal,InitialRequiredEquity,InitialAdditionalEquity,CommitmentUsedinFFDistribution, ExtendedMaturityCurrent,MaturityGroupName,MaturityMethodID,MaturityMethodIDText,
+Select NoteID,Account_AccountID,DealID,CRENoteID,ClosingDate,TotalCommitment,InitialMaturityDate,UseRuletoDetermineNoteFunding,UseRuletoDetermineNoteFundingText,NoteFundingRule,NoteFundingRuleText,FundingPriority,NoteBalanceCap,RepaymentPriority,InitialFundingAmount,CreatedBy,CreatedDate,UpdatedBy,UpdatedDate,StatusID,Name,ActualPayoffDate,FullyExtendedMaturityDate,ExpectedMaturityDate,cntCritialException,lienposition,lienpositionText,priority,NoteRule,AdjustedTotalCommitment,OriginalTotalCommitment,AggregatedTotal,InitialRequiredEquity,InitialAdditionalEquity,CommitmentUsedinFFDistribution, ExtendedMaturityCurrent,MaturityGroupName,MaturityMethodID,MaturityMethodIDText,NoteType,NoteTypeText,
         NoteSequenceNumber
 From(																																																																																																																																																										   
 	 
@@ -119,21 +114,27 @@ and ObjectTypeID=(SELECT LookupID FROM Core.Lookup WHERE ParentId=27 AND NAME='N
  and fs.Date = Cast(getdate() AS DATE))    
  +    
  ISNULL((select SUM((ISNULL(EndingBalance,0)))  
- from [CRE].[NotePeriodicCalc] np  
- where PeriodEndDate = CAST(getdate() - 1 as Date)
+ from [CRE].[NotePeriodicCalc] np
+	Inner join core.account acc on acc.accountid = np.AccountID
+	Inner join cre.note n on n.account_accountid = acc.accountid
+	
+ where PeriodEndDate = CAST(getdate() - 1 as Date) and acc.AccounttypeID = 1
  and AnalysisID = 'C10F3372-0FC2-4861-A9F5-148F1F80804F'
- and np.noteid = n.noteid 
+ and np.AccountID = n.noteid 
  --and n.dealid = '7BF82434-8D5C-4738-892C-76785EC83142'
  ) ,0)    
 ,0) EstBls  
 ,n.AdjustedTotalCommitment
 ,n.AggregatedTotal
 ,n.OriginalTotalCommitment
-,n.CommitmentUsedinFFDistribution
+, ISNULL((Case When isnulL(n.CommitmentUsedInFFDistribution,0) = 0 THEN n.originaltotalcommitment ELSE n.CommitmentUsedInFFDistribution END),0) CommitmentUsedInFFDistribution  
 ,n.ExtendedMaturityCurrent
 ,n.MaturityGroupName
 ,n.MaturityMethodID
 ,lmaturitymethod.Name as MaturityMethodIDText
+,n.NoteType
+,lNoteType.Name as NoteTypeText
+
 ,ROW_NUMBER() OVER (order by ISNULL(n.lienposition,99999), n.Priority,n.InitialFundingAmount desc, a.Name) as NoteSequenceNumber
 
 FROM CRE.Note n inner join Core.Account a on Account_AccountID=a.AccountID
@@ -143,6 +144,7 @@ left join Core.Lookup lUseRuletoDetermineNoteFunding ON (case when isnull(a.Stat
 left join Core.Lookup lNoteFundingRule ON n.NoteFundingRule=lNoteFundingRule.LookupID
 left join Core.Lookup llienposition ON n.lienposition=llienposition.LookupID
 left join Core.Lookup lmaturitymethod on n.MaturityMethodID = lmaturitymethod.LookupID
+left join Core.Lookup lNoteType on n.NoteType = lNoteType.LookupID
 left join( Select n.noteid,mat.MaturityDate as MaturityDate
 			from [CORE].Maturity mat  
 			INNER JOIN [CORE].[Event] e on e.EventID = mat.EventId  

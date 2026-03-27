@@ -16,6 +16,15 @@ SET @id = (SELECT @@IDENTITY)
 
 		Truncate table [DW].[L_WFCheckListDetailBI]
 
+
+Declare @tbltaskid as Table(TaskID UNIQUEIDENTIFIER)
+
+INSERT INTO @tbltaskid(TaskID)
+Select TaskID from [DW].[L_WFTaskDetailBI]
+
+
+IF EXISTS(Select TaskID from @tbltaskid)
+BEGIN
 		INSERT INTO [DW].[L_WFCheckListDetailBI]
 			( WFCheckListDetailID	
 			 ,TaskId	
@@ -53,15 +62,17 @@ SET @id = (SELECT @@IDENTITY)
 			LEFT JOIN CORE.Lookup l ON l.LookupID = wfchklstdetail.CheckListStatus	
        )a
         WHERE a.TaskId in(
-		 SELECT DISTINCT TaskID FROM 
-		 (
-			SELECT wfcld.TaskID, wfcld.CreatedDate, wfcld.UpdatedDate FROM CRE.WFChecklistDetail wfcld
-			EXCEPT 
-			SELECT dwtd.TaskID, dwtd.CreatedDate, dwtd.UpdatedDate FROM [DW].[WFChecklistDetailBI] dwtd
-		 )b
+			Select TaskID from [DW].[L_WFTaskDetailBI]
+
+		 --SELECT DISTINCT TaskID FROM 
+		 --(
+			--SELECT wfcld.TaskID, wfcld.CreatedDate, wfcld.UpdatedDate FROM CRE.WFChecklistDetail wfcld
+			--EXCEPT 
+			--SELECT dwtd.TaskID, dwtd.CreatedDate, dwtd.UpdatedDate FROM [DW].[WFChecklistDetailBI] dwtd
+		 --)b
 	)
 
-
+eND
 
 SET @RowCount = @@ROWCOUNT
 Print(char(9) +char(9)+'usp_ImportWFCheckListDetail - ROWCOUNT = '+cast(@RowCount  as varchar(100)));

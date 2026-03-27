@@ -20,7 +20,7 @@ INSERT INTO @TableTypeCalculationRequests(NoteId,StatusText,UserName,PriorityTex
 			 and ISNULL(ac.StatusID,1) = (select LookupID from Core.Lookup where  ParentID=1 and Name='active')
 
 --que all loans for calculation
-exec [dbo].[usp_QueueNotesForCalculation] @TableTypeCalculationRequests,@UpdatedBy,@UpdatedBy
+exec [dbo].[usp_QueueNotesForCalculation] @TableTypeCalculationRequests,@UpdatedBy,@UpdatedBy, NULL, NULL, 'Scenario'
 
 	 
 End

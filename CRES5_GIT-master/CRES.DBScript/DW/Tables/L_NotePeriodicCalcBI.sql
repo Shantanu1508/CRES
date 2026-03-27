@@ -6,9 +6,6 @@
     [ActualCashFlows]                              DECIMAL (28, 15) NULL,
     [GAAPCashFlows]                                DECIMAL (28, 15) NULL,
     [EndingGAAPBookValue]                          DECIMAL (28, 15) NULL,
-    [TotalGAAPIncomeforthePeriod]                  DECIMAL (28, 15) NULL,
-    [InterestAccrualforthePeriod]                  DECIMAL (28, 15) NULL,
-    [PIKInterestAccrualforthePeriod]               DECIMAL (28, 15) NULL,
     [TotalAmortAccrualForPeriod]                   DECIMAL (28, 15) NULL,
     [AccumulatedAmort]                             DECIMAL (28, 15) NULL,
     [BeginningBalance]                             DECIMAL (28, 15) NULL,
@@ -115,6 +112,24 @@
     [EndingAccumSLAmort]                           DECIMAL (28, 15) NULL,
     [EndingPreCapGAAPBasis]                        DECIMAL (28, 15) NULL,
     [PIKPrincipalPaidForThePeriod]                 DECIMAL (28, 15) NULL,
-    [EndingBalanceBI_RP]                                DECIMAL (28, 15) NULL,
+    [EndingBalanceBI_RP]                           DECIMAL (28, 15) NULL,
+    [L_NotePeriodicCalcBI_AutoID]                  INT              IDENTITY (1, 1) NOT NULL,
+    [RemainingUnfundedCommitment]                  DECIMAL (28, 15) NULL,
+    [CurrentPeriodPIKInterestAccrual]              DECIMAL (28, 15) NULL,
+    [AccountID]                                    UNIQUEIDENTIFIER NULL,
+    [AccountTypeID]                                INT              NULL,
+    [AccountTypeBI]                                NVARCHAR (256)   NULL,
+    [CapitalizedCostAccumulatedAmort]              DECIMAL (28, 15) NULL,
+    [DiscountPremiumAccumulatedAmort]              DECIMAL (28, 15) NULL,
+     [PrincipalWriteoff]                            DECIMAL (28, 15) NULL,
+    [NetPIKAmountForThePeriod]                      DECIMAL (28, 15) NULL,
+    ParentAccountID	      UNIQUEIDENTIFIER,
+CashInterest		  decimal(28,15),
+CapitalizedInterest	  decimal(28,15)
+    CONSTRAINT [PK_L_NotePeriodicCalcBI_AutoID] PRIMARY KEY CLUSTERED ([L_NotePeriodicCalcBI_AutoID] ASC)
 );
+
+
+
+
 

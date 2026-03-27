@@ -58,6 +58,7 @@ From Paydown_PaymentDate P
 								 Where Type = 'LIBORPercentage' 
 								and AnalysisID = 'C10F3372-0FC2-4861-A9F5-148F1F80804F'
 								and   T.NoteID = P.Noteid and T.Date = X.Date1
+								and T.AccountTypeID = 1
 								)Y
 
 					
@@ -65,6 +66,7 @@ From Paydown_PaymentDate P
 								 Where Type = 'SpreadPercentage' 
 								and AnalysisID = 'C10F3372-0FC2-4861-A9F5-148F1F80804F'
 								and T.NoteID = P.Noteid and T.Date = X.Date1
+								and T.AccountTypeID = 1
 								)Z
 				Where Day(FirstPaymentDate) = 8 
 

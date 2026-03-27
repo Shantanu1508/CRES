@@ -1,0 +1,13 @@
+CREATE PROCEDURE [dbo].[usp_GetXIRRFiltersByXIRRConfigID] 
+ @XIRRConfigID int  
+AS  
+BEGIN  
+  
+SET NOCOUNT ON;  
+SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED  
+
+ Select RowNumber, XIRRConfigID, XIRRFilterSetupID, FilterDropDownValue from [CRE].[XIRRConfigFilter] where XIRRConfigID =@XIRRConfigID
+
+SET TRANSACTION ISOLATION LEVEL READ COMMITTED  
+END 
+

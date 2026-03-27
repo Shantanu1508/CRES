@@ -1,4 +1,5 @@
-﻿
+﻿-- Procedure
+
 CREATE PROCEDURE [DW].[usp_MergeInterestCalculator]
 @BatchLogId int
 AS
@@ -7,7 +8,15 @@ BEGIN
 
 SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED 
 
+UPDATE [DW].BatchDetail
+SET
+BITableName = 'InterestCalculatorBI',
+BIStartTime = GETDATE()
+WHERE BatchLogId = @BatchLogId and LandingTableName = 'L_InterestCalculatorBI'
 
+
+IF EXISTS(Select top 1 NoteID from [DW].[L_InterestCalculatorBI])
+BEGIN
 	Delete ncBI from [DW].[InterestCalculatorBI] ncBI
 	inner join 
 	(
@@ -39,7 +48,7 @@ INSERT INTO [#Note_TrPivot](NoteID,AnalysisID,Crenoteid,Date,Funding,Repayment,S
 Select NoteID,AnalysisID,Crenoteid,Date,Funding,Repayment,ScheduledPrincipalPaid,PIKInterest,LIBORPercentage,SpreadPercentage,(ISNULL(LIBORPercentage,0) + ISNULL(SpreadPercentage,0)) as AllInOneCoupon
 	From(
 		Select 	
-		tr.NoteID	
+		n.NoteID	
 		,tr.AnalysisID
 		,n.Crenoteid
 		,tr.Date	
@@ -52,10 +61,14 @@ Select NoteID,AnalysisID,Crenoteid,Date,Funding,Repayment,ScheduledPrincipalPaid
 		) as [Type]		
 		
 		from cre.transactionentry tr
-		inner join cre.note n on n.noteid = tr.noteid
+		 Inner join core.account acc on acc.accountid = tr.AccountID
+         Inner join cre.note n on n.account_accountid = acc.accountid
+ 
+		--inner join cre.note n on n.noteid = tr.noteid
 		where tr.[type] in ('LIBORPercentage','SpreadPercentage','FundingOrRepayment','ScheduledPrincipalPaid','PIKInterest')
 		and tr.AnalysisID = 'C10F3372-0FC2-4861-A9F5-148F1F80804F'
 		and n.noteid in (Select distinct noteid from [DW].[L_InterestCalculatorBI])
+		and acc.AccounttypeID = 1
 	)AS SourceTable 
 	PIVOT  
 	(  
@@ -224,9 +237,20 @@ From(
 
 	)a
 )b
-	
 
 
+END
+
+DECLARE @RowCount int
+SET @RowCount = @@ROWCOUNT
+
+UPDATE [DW].BatchDetail
+SET
+BIEndTime = GETDATE(),
+BIRecordCount = @RowCount
+WHERE BatchLogId = @BatchLogId and LandingTableName = 'L_InterestCalculatorBI'
+
+Print(char(9) +'usp_MergeInterestCalculatorBI - ROWCOUNT = '+cast(@RowCount  as varchar(100)));
 
 
 truncate table DW.L_InterestCalculatorBI

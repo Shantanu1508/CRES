@@ -1,0 +1,73 @@
+{
+  "SheetName": "LiabilityTransactions",
+  "LandingTableName": "IO.L_ManualTransactionLiability",
+  "ImportProcedureName": "usp_ImportManualTransLiabilityIntoTranscationReconciliation",
+  "HeaderPosition": 4,
+  "Check2BlankRow": true,
+  "ReconType": "Liability",
+  "MappingColumns": [
+    {
+      "SheetColumnName": "Liability Name",
+      "SheetColumnDataType": "System.String",
+      "LandingColumnName": "LiabilityName",
+      "IsMandatoryColumn": "Y",
+      "IsMandatoryValue": "Y"
+    },
+    {
+      "SheetColumnName": "Transaction Mode",
+      "SheetColumnDataType": "System.String",
+      "LandingColumnName": "TransactionMode",
+      "IsMandatoryColumn": "Y",
+      "IsMandatoryValue": "Y"
+    },
+    {
+      "SheetColumnName": "Deal ID",
+      "SheetColumnDataType": "System.String",
+      "LandingColumnName": "CREDealID",
+      "IsMandatoryColumn": "Y",
+      "IsMandatoryValue": "N"
+    },
+    {
+      "SheetColumnName": "Deal Name",
+      "SheetColumnDataType": "System.String",
+      "LandingColumnName": "DealName",
+      "IsMandatoryColumn": "Y",
+      "IsMandatoryValue": "N"
+    },
+    {
+      "SheetColumnName": "Note ID",
+      "SheetColumnDataType": "System.String",
+      "LandingColumnName": "CRENoteID",
+      "IsMandatoryColumn": "N",
+      "IsMandatoryValue": "N"
+    },
+    {
+      "SheetColumnName": "Due Date",
+      "SheetColumnDataType": "System.DateTime",
+      "LandingColumnName": "DueDate",
+      "IsMandatoryColumn": "Y",
+      "IsMandatoryValue": "N"
+    },
+    {
+      "SheetColumnName": "Remit Date",
+      "SheetColumnDataType": "System.String",
+      "LandingColumnName": "RemitDate",
+      "IsMandatoryColumn": "Y",
+      "IsMandatoryValue": "Y"
+    },
+    {
+      "SheetColumnName": "Transaction Type",
+      "SheetColumnDataType": "System.String",
+      "LandingColumnName": "ValueType",
+      "IsMandatoryColumn": "Y",
+      "IsMandatoryValue": "Y"
+    },
+    {
+      "SheetColumnName": "Amount",
+      "SheetColumnDataType": "System.Decimal",
+      "LandingColumnName": "Value",
+      "IsMandatoryColumn": "Y",
+      "IsMandatoryValue": "Y"
+    }
+  ]
+}

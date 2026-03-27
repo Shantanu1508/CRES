@@ -194,23 +194,25 @@
     [InterestCalculationRuleForPaydownsBI]                   NVARCHAR (256)   NULL,
     [PIKInterestAddedToBalanceBasedOnBusinessAdjustedDate]   INT              NULL,
     [PIKInterestAddedToBalanceBasedOnBusinessAdjustedDateBI] NVARCHAR (256)   NULL,
-
-    Pik_NonPIK	nvarchar(100),
-    HasFundingRepayment	nvarchar(100),
-    FullAccrualHasRepayment	nvarchar(100),
-    HasAmortTerm_Or_FixedAmort	nvarchar(100),
-    HasAmortTerm	nvarchar(100),
-    HasOnlyRepayment	nvarchar(100),
-    HasFixedAmort	nvarchar(100),
-    HasScheduledPrincipal	nvarchar(100),
-    HasPIkPrincipalpaid	nvarchar(100),
-    HasPIkInterestpaid	nvarchar(100),
-
-    InitialFundingEquCommit	nvarchar(100),
-    HasDSMonthlyOverride	nvarchar(100),
-    FixedPIK	nvarchar(100),
-    FloatingPIK	nvarchar(100),
-    [ColumnDayBaseDelta] [decimal] (18, 0) NULL
-
+    [Pik_NonPIK]                                             NVARCHAR (100)   NULL,
+    [HasFundingRepayment]                                    NVARCHAR (100)   NULL,
+    [FullAccrualHasRepayment]                                NVARCHAR (100)   NULL,
+    [HasAmortTerm_Or_FixedAmort]                             NVARCHAR (100)   NULL,
+    [HasAmortTerm]                                           NVARCHAR (100)   NULL,
+    [HasOnlyRepayment]                                       NVARCHAR (100)   NULL,
+    [HasFixedAmort]                                          NVARCHAR (100)   NULL,
+    [HasScheduledPrincipal]                                  NVARCHAR (100)   NULL,
+    [HasPIkPrincipalpaid]                                    NVARCHAR (100)   NULL,
+    [HasPIkInterestpaid]                                     NVARCHAR (100)   NULL,
+    [InitialFundingEquCommit]                                NVARCHAR (100)   NULL,
+    [HasDSMonthlyOverride]                                   NVARCHAR (100)   NULL,
+    [FixedPIK]                                               NVARCHAR (100)   NULL,
+    [FloatingPIK]                                            NVARCHAR (100)   NULL,
+    [ColumnDayBaseDelta]                                     DECIMAL (18)     NULL,
+    [Staging_Note_AutoID]                                    INT              IDENTITY (1, 1) NOT NULL,
+    [FirstIndexDeterminationDateOverride]                    DATE             NULL,
+    CONSTRAINT [PK_Staging_Note_AutoID] PRIMARY KEY CLUSTERED ([Staging_Note_AutoID] ASC)
 );
+
+
 

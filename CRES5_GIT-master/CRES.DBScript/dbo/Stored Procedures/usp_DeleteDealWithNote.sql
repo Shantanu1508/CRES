@@ -15,6 +15,8 @@ SET @dealid = (Select DealID from CRE.DEAL where credealid = @CreDealID)
 
 --============================================================================
 Declare @noteid UNIQUEIDENTIFIER 
+Declare @accountid UNIQUEIDENTIFIER
+
 IF CURSOR_STATUS('global','CursorDeleteNote')>=-1
 BEGIN
 	DEALLOCATE CursorDeleteNote
@@ -23,14 +25,14 @@ END
 DECLARE CursorDeleteNote CURSOR 
 for
 (
-	Select noteid from CRE.note where dealid IN (Select DealID from CRE.DEAL where credealid = @CreDealID)
+	Select noteid,account_accountid from CRE.note where dealid IN (Select DealID from CRE.DEAL where credealid = @CreDealID)
 )
 
 
 OPEN CursorDeleteNote 
 
 FETCH NEXT FROM CursorDeleteNote
-INTO @noteid
+INTO @noteid,@accountid
 
 WHILE @@FETCH_STATUS = 0
 BEGIN
@@ -58,16 +60,17 @@ Delete from CORE.Exceptions where ObjectID = @noteid
 
 
 
-Delete from Core.CalculationRequests  where NoteID = @noteid
+Delete from Core.CalculationRequests  where AccountId = @accountid
 
 Delete from CRE.FundingRepaymentSequence where NoteID = @noteid
 
 
 Delete from CRE.NoteTransactionDetail where NoteID = @noteid
 
-Delete from CRE.NotePeriodicCalc where   NoteID = @noteid
+Delete from CRE.NotePeriodicCalc where   AccountID = @accountid
 Delete from CRE.OutputNPVdata where   NoteID = @noteid
-Delete from CRE.TransactionEntry where NoteID=@noteid
+
+Delete from CRE.TransactionEntry where Accountid =@accountid -- NoteID=@noteid
 
 
 Delete from CRE.Note  where NoteID = @noteid
@@ -108,7 +111,7 @@ Delete from Core.Account where AccountID in (Select Account_AccountID from cre.N
 
 					 
 FETCH NEXT FROM CursorDeleteNote
-INTO @noteid
+INTO @noteid,@accountid
 END
 CLOSE CursorDeleteNote   
 DEALLOCATE CursorDeleteNote

@@ -36,6 +36,7 @@ select crenoteid,
 						and Tr.[Date] <= EOMONTH(DateAdd(month,2,EOMONTH(n.ClosingDate)))  
 						and InitialFundingAmount < 1
 						and Tr.AnalysisID = 'C10F3372-0FC2-4861-A9F5-148F1F80804F'
+						and tr.AccountTypeID = 1
 						 ---Unfunded Loans
 Union All
 Select CreNoteid, 2--'Capitalized Cost' LoanFeature

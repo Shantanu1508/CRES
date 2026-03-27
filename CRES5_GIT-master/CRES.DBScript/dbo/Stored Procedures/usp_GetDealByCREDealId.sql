@@ -1,5 +1,7 @@
-﻿
-Create PROCEDURE [dbo].[usp_GetDealByCREDealId] --'18-0866'
+﻿-- Procedure
+-- Procedure
+
+CREATE PROCEDURE [dbo].[usp_GetDealByCREDealId] --'18-0866'
 (
 	@CREDealId varchar(50)
 )
@@ -12,7 +14,7 @@ AS
 										left join cre.deal d on d.DealID = n.DealID
 										where d.CREDealID = @CREDealId);
 	Declare @AllowFundingFlag bit = (SELECT [Value] from [App].[AppConfig] where [key]='AllowFundingDevData'); 									
- SELECT DealID
+ SELECT d.DealID
 		,DealName
 		,DealType
 		,l1.name DealTypeText
@@ -83,7 +85,10 @@ AS
 		,@MinAccrualFrequency as MinAccrualFrequency
 		,@AllowFundingFlag as AllowFundingFlag
 		,d.DealLevelMaturity
-		
+		,d.EnableAutoDistributePrincipalWriteoff
+		,d.PrepaymentGroupSize
+		,d.PrepaymentAllocationMethod
+		,b.Bookmark
   FROM CRE.Deal d
     Left Join Core.Lookup l1 on d.DealType=l1.LookupID
     Left Join Core.Lookup l2 on d.LoanProgram=l2.LookupID
@@ -97,7 +102,21 @@ AS
 	Left Join Core.Lookup lBusinessDayAdjustmentForAmort on d.BusinessDayAdjustmentForAmort=lBusinessDayAdjustmentForAmort.LookupID
 	Left Join Core.Lookup lNoteDistributionMethod on d.NoteDistributionMethod=lNoteDistributionMethod.LookupID
 	Left Join Core.Lookup lRepaymentAutoSpreadMethod on d.RepaymentAutoSpreadMethodID = lRepaymentAutoSpreadMethod.Lookupid
+	Left Join(
+	SELECT 
+	dd.DealID,
+	CASE
+		WHEN b.AccountID IS NOT NULL THEN 'Pin' 
+		ELSE 'Unpin'
+	END AS Bookmark
+	FROM [CRE].[BookMark] b        
+		left join [CRE].[Deal] dd on dd.AccountID=b.AccountID        
+		WHERE dd.CREDealID = @CREDealId   
+	)b ON b.DealID = d.DealID 
+
 	where d.CREDealID=@CREDealId and d.IsDeleted = 0
 
 	SET TRANSACTION ISOLATION LEVEL READ COMMITTED
  END
+GO
+

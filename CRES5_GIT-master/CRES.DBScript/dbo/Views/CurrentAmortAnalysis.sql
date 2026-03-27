@@ -24,6 +24,7 @@ Inner join deal d on d.dealkey = n.dealkey
 where Type = 'ScheduledPrincipalpaid' 
 
 And Scenario = 'Default'
+and T.AccountTypeID = 1
 group by T.Noteid,t.Dealname, IOterm, MonthlyDSoverridewhenamortizing, Initialinterestaccrualenddate
 ,HasFixedAmort,AmortTerm,ActualPayoffdate,Fullyextendedmaturitydate,Status
 

@@ -2,7 +2,7 @@
     [LoggerID]           INT           IDENTITY (1, 1) NOT NULL,
     [Severity]           NVARCHAR (50) NOT NULL,
     [Module]             VARCHAR (50)  NOT NULL,
-    [Message]            VARCHAR (256) NULL,
+    [Message]            VARCHAR (max) NULL,
     [Message_StackTrace] VARCHAR (MAX) NULL,
     [Priority]           VARCHAR (50)  NULL,
     [ExceptionSource]    VARCHAR (50)  NULL,

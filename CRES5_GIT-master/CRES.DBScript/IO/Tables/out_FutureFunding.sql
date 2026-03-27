@@ -16,7 +16,12 @@
     [DealFundingID]       UNIQUEIDENTIFIER NULL, 
     [IsProjectedPaydown] BIT NULL DEFAULT 0, 
     [GeneratedBy] INT NULL,
-    [GeneratedByText] NVARCHAR (256)   NULL
+    [GeneratedByText] NVARCHAR (256)   NULL,
+    DealID UNIQUEIDENTIFIER null,
+    IsDeleted bit,
+    FF_BlankJson bit null,
+    AdjustmentType  NVARCHAR (256)   NULL,
+    FundingAdjustmentTypeCd_F nvarchar(256)
 );
 go
 ALTER TABLE [IO].[out_FutureFunding]

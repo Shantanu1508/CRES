@@ -3,5 +3,5 @@ AS
 BEGIN
 	SET NOCOUNT ON;
 
-	SELECT [FundID],[FundName] FROM [CRE].[Fund] order by [FundName]
+	SELECT [FundID],[FundName],ParentFund FROM [CRE].[Fund] order by [FundName]
 End

@@ -23,7 +23,7 @@ BEGIN
 	cr.ErrorMessage,@EmailIds as EmailIds 
 	FROM CRE.NOTE n 
 	INNER JOIN CORE.Account ac ON ac.AccountID = n.Account_AccountID
-	INNER JOIN Core.CalculationRequests cr ON cr.NoteId= n.NoteID
+	INNER JOIN Core.CalculationRequests cr ON cr.AccountId= n.Account_AccountID
 	INNER JOIN CRE.Deal d ON d.DealID = n.DealID
 	LEFT JOIN App.[User] u ON u.UserID=cr.UserName
 	WHERE cr.statusid = 265 AND CONVERT(DATE, cr.RequestTime) = CONVERT(DATE, GETDATE()) and ac.IsDeleted=0

@@ -15,7 +15,7 @@ Begin
 			SELECT 
 			  Distinct n.[NoteId]	
 			  from  CRE.Note n
-			  left join Core.CalculationRequests cr on n.NoteId=cr.NoteId and cr.AnalysisID=@AnalysisID
+			  left join Core.CalculationRequests cr on n.Account_AccountID=cr.AccountId and cr.AnalysisID=@AnalysisID
 			  left JOIN core.Account ac ON ac.AccountID = n.Account_AccountID
 			  inner join cre.Deal d on n.DealId = d.DealId	
 			  left join Core.Lookup lstaus on lstaus.LookupID = ac.StatusID and ac.IsDeleted=0 
@@ -32,7 +32,7 @@ Begin
 	Select Noteid,'Processing',@UpdatedBy,'Real Time', @AnalysisID ,@CalcType From @tmpCalcNotes
 	--Select NoteId,'Processing',@UpdatedBy,'Real Time',@AnalysisID From Cre.Note where dealid=@DealID
 	
-	exec [dbo].[usp_QueueNotesForCalculation] @TableTypeCalculationRequests,@UpdatedBy,@UpdatedBy 
+	exec [dbo].[usp_QueueNotesForCalculation] @TableTypeCalculationRequests,@UpdatedBy,@UpdatedBy, NULL, NULL, 'Deal'
 
 END
 

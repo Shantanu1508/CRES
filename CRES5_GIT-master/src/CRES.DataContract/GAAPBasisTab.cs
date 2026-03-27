@@ -35,7 +35,7 @@ namespace CRES.DataContract
         public Decimal? TotalPeriodGAAPIncome { get; set; }
         public Decimal? ActualBasis { get; set; }
         public Decimal? TotalStrippedCashFlow { get; set; }
-        public Decimal? AllInBasis { get; set; }
+        public Decimal? AllInBasis { get; set; }        
         public Decimal? NetPrincipalInflowOutflow { get; set; }
         public Decimal? ParBasis { get; set; }
         public Decimal? DeferredFeeAccrualBasis { get; set; }

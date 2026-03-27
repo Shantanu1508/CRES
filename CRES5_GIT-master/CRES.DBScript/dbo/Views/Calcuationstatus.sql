@@ -24,7 +24,7 @@ Select D.DealKey
 
 , ClosingDate from [Core].[CalculationRequests] C
 Inner join Core. LookUP L on C.StatusID = L.Lookupid
-Inner join dbo.Note N on N.Notekey = C.Noteid
+Inner join dbo.Note N on N.AccountID = C.AccountId
 Inner join dbo.Deal D on N.dealKey = D.dealKey
 
 

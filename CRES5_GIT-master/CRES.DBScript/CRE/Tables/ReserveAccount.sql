@@ -13,7 +13,9 @@ CREATE TABLE [CRE].[ReserveAccount] (
     [CreatedDate]     DATETIME         NULL,
     [UpdatedBy]       NVARCHAR (256)   NULL,
     [UpdatedDate]     DATETIME         NULL,
-	[FloatInterestRate]  DECIMAL (28, 15) NULL
+	[FloatInterestRate]  DECIMAL (28, 15) NULL,
+	[AsofDate] [date] NULL,
+	[ReserveAccountMasterID] INT,
 	CONSTRAINT [PK_ReserveAccount_ReserveAccountID] PRIMARY KEY CLUSTERED  ([ReserveAccountID] ASC)
 
 );

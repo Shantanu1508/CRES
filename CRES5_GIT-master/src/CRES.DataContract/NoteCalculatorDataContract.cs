@@ -1,5 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
 
 namespace CRES.DataContract
 {
@@ -183,6 +186,8 @@ namespace CRES.DataContract
         public string SaveWithoutCalc { get; set; }
 
         public int? NoofdaysrelPaymentDaterollnextpaymentcycle { get; set; }
+
+        public DateTime? FirstIndexDeterminationDateOverride { get; set; }
 
     }
 }

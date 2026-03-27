@@ -1,18 +1,26 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Data;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
 
 namespace CRES.DataContract
 {
     public class DealDataContract
     {
+        public string DealAccountID { get; set; }
         public System.Guid DealID { get; set; }
         public string DealName { get; set; }
+        public string CRENoteID { get; set; }
         public string NoteId { get; set; }
+        public string NoteName { get; set; }
         public string NoteHref { get; set; }
         public int? DealType { get; set; }
         public int BatchID { get; set; }
         public int? LoanProgram { get; set; }
+        public int? AllowGaapComponentInCashflowDownload { get; set; }
+        public string AllowGaapComponentInCashflowDownloadText { get; set; }
         public int? LoanPurpose { get; set; }
         public string DealTypeText { get; set; }
         public string LoanProgramText { get; set; }
@@ -42,6 +50,8 @@ namespace CRES.DataContract
         public string AssetManagerComment { get; set; }
         public string AssetManager { get; set; }
         public string AnalysisID { get; set; }
+        public string ScenarioIdPrepay { get; set; }
+        
         public Guid? AssetManagerID { get; set; }
         public Guid? AMTeamLeadUserID { get; set; }
         public Guid? AMSecondUserID { get; set; }
@@ -64,6 +74,8 @@ namespace CRES.DataContract
         public string DealComment { get; set; }
         public int? ServicerDropDate { get; set; }
         public int? ServicereDayAjustement { get; set; }
+        public string currentUserName { get; set; }
+        public string currentUserID { get; set; }
         public List<PayruleNoteDetailFundingDataContract> PayruleNoteDetailFundingList { get; set; }
         public List<AutoSpreadRuleDataContract> AutoSpreadRuleList { get; set; }
         public List<PayruleNoteAMSequenceDataContract> PayruleNoteAMSequenceList { get; set; }
@@ -96,11 +108,14 @@ namespace CRES.DataContract
         public DateTime MaxWireConfirmRecord { get; set; }
         public DateTime maxWiredDatecalculated { get; set; }
 
+        public List<MaturityScenariosDataContract> ListMaturityScenrio { get; set; }
+        public string SendEmailAfterCalc { get; set; }
         public bool EnableAutospreadUseRuleN { get; set; }
         public bool? ApplyNoteLevelPaydowns { get; set; }
         public List<PayruleTargetNoteFundingScheduleDataContract> PayruleDeletedTargetNoteFundingScheduleList { get; set; }
         public List<CalculatedNoteRepaymentDataContract> ListCalculatedNoteRepayment { get; set; }
         public List<AutoRepaymentNoteBalancesDataContract> ListNoteRepaymentBalances { get; set; }
+
 
         //public int? AmortizationMethod { get; set; }
         //public string AmortizationMethodText { get; set; }
@@ -171,8 +186,11 @@ namespace CRES.DataContract
         public Boolean? AllowFundingDevDataFlag { get; set; }
         public Boolean? AllowFFSaveJsonIntoBlob { get; set; }
         public DataTable ListFeeInvoice { get; set; }
+        public DataTable dtPayoffStatementFees { get; set; }
+
         public Boolean? DealLevelMaturity { get; set; }
         public DataTable MaturityList { get; set; }
+        public List<string> Listnoteid { get; set; }
 
         public DataTable ReserveAccountList { get; set; }
         public bool? IsREODeal { get; set; }
@@ -187,10 +205,84 @@ namespace CRES.DataContract
 
         public int? PropertyTypeID { get; set; }
         public int? LoanStatusID { get; set; }
+        public int? CalcEngineType { get; set; }
+        public string CalcEngineTypeText { get; set; }
 
         public DateTime? PrePayDate { get; set; }
         public decimal? ICMFullyFundedEquity { get; set; }
         public decimal? EquityatClosing { get; set; }
+        public decimal? SumTotalRepayments { get; set; }
+        public decimal? TotalRepaymentSequences { get; set; }
+        public decimal? RepayTobeAdjusted { get; set; }
+        public DateTime? LastAccountingclosedate { get; set; }
+
+        //ServicingWatchlist   
+        public string WatchlistStatus { get; set; }
+        public Boolean? IsServicingWatchlisttabClicked { get; set; }
+        public List<ServicingWatchlistDataContract> ServicingWatchlistLegal { get; set; }
+        public List<ServicingWatchlistDataContract> ServicingWatchlistAccounting { get; set; }
+        public List<ServicingWatchlistDataContract> ServicingPotentialImpairment { get; set; }
+
+        public DataTable ServicingPotentialImpairmentList { get; set; }
+        public DataTable DeleteServicingPotentialImpairment { get; set; }
+
+
+        //for 
+        public List<PayruleDealFundingDataContract> PayruleDealFundingList_AdjustmentType { get; set; }
+        public List<PayruleTargetNoteFundingScheduleDataContract> PayruleTargetNoteFundingScheduleList_AdjustmentType { get; set; }
+
+        public List<PayruleDealFundingDataContract> DealFundingListAdjustmentTypeAutoSpread { get; set; }
+        public List<PayruleTargetNoteFundingScheduleDataContract> NoteFundingScheduleListAdjustmentTypeAutoSpread { get; set; }
+
+
+        //Principal Writeoff
+
+        public List<PayruleDealFundingDataContract> PayruleDealFundingList_Pwriteoff { get; set; }
+        public List<PayruleTargetNoteFundingScheduleDataContract> PayruleTargetNoteFundingScheduleList_Pwriteoff { get; set; }
+
+        //Liability
+        public bool isLiabilityTabCLicked { get; set; }
+
+        public List<LiabilityNoteDataContract> ListDealLiability { get; set; }
+        public List<LiabilityNoteDataContract> ListDealLiabilityDupliateCheck { get; set; }
+
+        public List<LiabilityFundingScheduleDataContract> ListLiabilityFundingSchedule { get; set; }
+        public List<LiabilityNoteAssetMapping> ListLiabilityNoteAssetMapping { get; set; }
+
+        public List<TagMasterXIRRDataContract> ListSelectedXIRRTags { get; set; }
+        public decimal? XIRRValue { get; set; }
+
+        public List<AutoDistributeWriteoffDataContract> AutoDistributeWriteoffList { get; set; }
+        public DataTable XIRROverride { get; set; }
+        public bool? EnableAutoDistributePrincipalWriteoff { get; set; }
+        public List<PayruleDealFundingDataContract> ListRevolverDealFunding { get; set; }
+        public List<PayruleTargetNoteFundingScheduleDataContract> ListRevolverNoteFunding { get; set; }
+        public List<DealRelationshipDataContract> DealRelationshipList { get; set; }
+
+        public int? PrepaymentGroupSize { get; set; }
+        public int? PrepaymentAllocationMethod { get; set; }
+        public DataTable dtPrepaymentGroup { get; set; }
+        public DataTable dtPrepaymentNote { get; set; }
+        public DataTable dtPrepaymentNoteAlloc { get; set; }
+        public string Bookmark { get; set; }
+        public int? MaturityAdjMonthsOverride { get; set; }
+        public bool? ExcludeDealFromLiability { get; set; }
+        public int? LiabilitySource { get; set; }
+        public string LiabilitySourceText { get; set; }
+
+        public string InternalRefiText { get; set; }
+        public string PortfolioLoanText { get; set; }
+        public string AssigningLoanToTakeoutLenderText { get; set; }
+        public string NettingofReservesEscrowsText { get; set; }
+        public int? InternalRefi { get; set; }
+        public int? PortfolioLoan { get; set; }
+        public int? AssigningLoanToTakeoutLender { get; set; }
+        public int? NettingofReservesEscrows { get; set; }
+
+        public string isPipeline { get; set; }
+        public string DealStackTrace { get; set; }
+        public string DealErrorMessage { get; set; }
+        
     }
     public class PrepayDataContract
     {
@@ -213,7 +305,7 @@ namespace CRES.DataContract
         public bool? GreaterOfSMOrBaseAmtTimeSpread { get; set; }
         public bool? HasNoteLevelSMSchedule { get; set; }
         public bool? Includefeesincredits { get; set; }
-        public decimal MinimumMultipleDue { get; set; }
+        public decimal? MinimumMultipleDue { get; set; }
         public DateTime? OpenPaymentDate { get; set; }
         public string CreatedBy { get; set; }
         public DateTime? CreatedDate { get; set; }
@@ -232,90 +324,141 @@ namespace CRES.DataContract
         public List<SpreadMaintenanceScheduleDataContract> SpreadMaintenanceScheduleDeallevel { get; set; }
         public List<MinMultScheduleDataContract> MinMultSchedule { get; set; }
         public List<FeeCreditsDataContract> FeeCredits { get; set; }
+
     }
-}
-public class PrepayAdjustmentDataContract
-{
-    public int PrepayAdjustmentId { get; set; }
-    public DateTime? Date { get; set; }
-    public decimal? PrepayAdjAmt { get; set; }
-    public string Comment { get; set; }
-}
-public class SpreadMaintenanceScheduleDataContract
-{
-    public int SpreadMaintenanceScheduleId { get; set; }
-    public DateTime? SpreadDate { get; set; }
-    public string NoteId { get; set; }
-    public string CRENoteID { get; set; }
-    public decimal? Spread { get; set; }
-    public bool? CalcAfterPayoff { get; set; }
-}
-public class MinMultScheduleDataContract
-{
-    public int MinMultScheduleID { get; set; }
-    public DateTime? MiniSpreadDate { get; set; }
-    public decimal? MinMultAmount { get; set; }
-}
-public class FeeCreditsDataContract
-{
-    public int FeeCreditsID { get; set; }
-    public bool? UseActualFees { get; set; }
-    public decimal? FeeCreditOverride { get; set; }
-    public int? FeeTypeNameText { get; set; }
+
+    public class DealDashDataContract
+    {
+        public System.Guid DealID { get; set; }
+        public string CREDealID { get; set; }
+        public string DealName { get; set; }
+        public string AssetManager { get; set; }
+        public decimal? TotalCommitment { get; set; }
+        public decimal? AdjustedTotalCommitment { get; set; }
+        public decimal? XIRRValue { get; set; }
+        public string FileName { get; set; }
+        public decimal? FullyFundedEquity { get; set; }
+        public decimal? EquityContributedToDate { get; set; }
+        public decimal? BorrowerEquity { get; set; }
+        public DateTime? NextFundingDate { get; set; }
+        public DateTime? NextPaydownDate { get; set; }
+        public string UseRules { get; set; }
+        public string Banker { get; set; }
+        public DateTime? UpdatedDate { get; set; }
+        public decimal? FundedPercentage { get; set; }
+
+    }
 
 
-}
-public class PrepayProjectionDataContract
-{
-    public int DealPrepayProjectionID { get; set; }
-    public string DealID { get; set; }
-    public DateTime? PrepayDate { get; set; }
-    public decimal? PrepayPremium_RemainingSpread { get; set; }
-    public decimal? UPB { get; set; }
-    public DateTime? OpenPrepaymentDate { get; set; }
-    public decimal? TotalPayoff { get; set; }
-    public DateTime? prepaylastUpdatedFF { get; set; }
-    public string prepaylastUpdatedByFF { get; set; }
-}
+    public class PrepayAdjustmentDataContract
+    {
+        public int PrepayAdjustmentId { get; set; }
+        public DateTime? Date { get; set; }
+        public decimal? PrepayAdjAmt { get; set; }
+        public string Comment { get; set; }
+        public int? IsDeleted { get; set; }
+    }
+    public class SpreadMaintenanceScheduleDataContract
+    {
+        public int SpreadMaintenanceScheduleId { get; set; }
+        public DateTime? SpreadDate { get; set; }
+        public string NoteId { get; set; }
+        public string CRENoteID { get; set; }
+        public decimal? Spread { get; set; }
+        public bool? CalcAfterPayoff { get; set; }
+    }
+    public class MinMultScheduleDataContract
+    {
+        public int MinMultScheduleID { get; set; }
+        public DateTime? MiniSpreadDate { get; set; }
+        public decimal? MinMultAmount { get; set; }
+    }
+    public class FeeCreditsDataContract
+    {
+        public int FeeCreditsID { get; set; }
+        public bool? UseActualFees { get; set; }
+        public decimal? FeeCreditOverride { get; set; }
+        public int? FeeTypeNameText { get; set; }
+        public int ? IsDeleted { get; set; }
+    }
+    public class PrepayProjectionDataContract
+    {
+        public int DealPrepayProjectionID { get; set; }
+        public string DealID { get; set; }
+        public DateTime? PrepayDate { get; set; }
+        public decimal? PrepayPremium_RemainingSpread { get; set; }
+        public decimal? UPB { get; set; }
+        public DateTime? OpenPrepaymentDate { get; set; }
+        public decimal? TotalPayoff { get; set; }
+        public DateTime? prepaylastUpdatedFF { get; set; }
+        public string prepaylastUpdatedByFF { get; set; }
+        public int? PrepaymentMethodID { get; set; }
+        public string PrepaymentMethodText { get; set; }
+        public DateTime? UpdatedDate { get; set; }
+    }
 
-public class PrepayAllocationsDataContract
-{
-    public int DealPrepayAllocationsID { get; set; }
-    public string DealID { get; set; }
-    public string NoteID { get; set; }
-    public string CRENoteID { get; set; }
-    public DateTime? PrepayDate { get; set; }
-    public decimal? MinmultDue { get; set; }
-}
+    public class PrepayAllocationsDataContract
+    {
+        public int DealPrepayAllocationsID { get; set; }
+        public string DealID { get; set; }
+        public string NoteID { get; set; }
+        public string CRENoteID { get; set; }
+        public DateTime? PrepayDate { get; set; }
+        public decimal? MinmultDue { get; set; }
+    }
 
-public class PropertyTypeDataContract
-{
-    public int? PropertyTypeID { get; set; }
-    public string PropertyTypeMajorDesc { get; set; }
-}
+    public class PropertyTypeDataContract
+    {
+        public int? PropertyTypeID { get; set; }
+        public string PropertyTypeMajorDesc { get; set; }
+    }
 
-public class LoanStatusDataContract
-{
-    public int? LoanStatusID { get; set; }
-    public string LoanStatusDesc { get; set; }
-}
+    public class LoanStatusDataContract
+    {
+        public int? LoanStatusID { get; set; }
+        public string LoanStatusDesc { get; set; }
+    }
 
-public class PrepayCalcStatusDataContract
-{
-    public string Status { get; set; }
+    public class PrepayCalcStatusDataContract
+    {
+        public string Status { get; set; }
 
-    public string ErrorMessage { get; set; }
-    public string Message { get; set; }
-    public string Message_StackTrace { get; set; }
-    public string RequestID { get; set; }
-}
+        public string ErrorMessage { get; set; }
+        public string Message { get; set; }
+        public string Message_StackTrace { get; set; }
+        public string RequestID { get; set; }
+    }
 
-public class EquitySummaryDataContract
-{
-    public string Dealid { get; set; }
-    public string Type { get; set; }
-    public decimal ExpectedEquity { get; set; }
-    public decimal EquityContributedToDate { get; set; }
-    public decimal RemainingEquity { get; set; }
-    public decimal Per_ContributedToDate { get; set; }
+    public class EquitySummaryDataContract
+    {
+        public string Dealid { get; set; }
+        public string Type { get; set; }
+        public decimal ExpectedEquity { get; set; }
+        public decimal EquityContributedToDate { get; set; }
+        public decimal RemainingEquity { get; set; }
+        public decimal Per_ContributedToDate { get; set; }
+    }
+
+    public class LiabilityNoteAssetMapping
+    {
+        public string LiabilityNoteId { get; set; }
+        public string DealAccountId { get; set; }
+        public string LiabilityNoteAccountId { get; set; }
+        public string AssetAccountId { get; set; }
+    }
+
+    public class DealRelationshipDataContract
+    {
+        public Guid? DealID { get; set; }
+        public string LinkedDealID { get; set; }
+        public string RelationshipText { get; set; }
+        public int? RelationshipID { get; set; }
+    }
+
+    public class ReserveAccountSyncDataContract
+    {
+        public string DealID { get; set; }
+
+    }
+
 }

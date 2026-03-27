@@ -61,6 +61,10 @@
     [Comment]                   NVARCHAR (MAX)   NULL,
     [HighlightComment]          NVARCHAR (MAX)   NULL,
     [PropertyAutoID]            INT              NOT NULL,
-    [PropertyTypeMajorCd_F]     NVARCHAR (50)    NULL
+    [PropertyTypeMajorCd_F]     NVARCHAR (50)    NULL,
+    [L_PropertyBI_AutoID]       INT              IDENTITY (1, 1) NOT NULL,
+    CONSTRAINT [PK_L_PropertyBI_AutoID] PRIMARY KEY CLUSTERED ([L_PropertyBI_AutoID] ASC)
 );
+
+
 

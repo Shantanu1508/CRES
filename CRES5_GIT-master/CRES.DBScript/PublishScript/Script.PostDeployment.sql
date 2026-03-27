@@ -11,10 +11,53 @@ Post-Deployment Script Template
 */
 Print('Start Post Deployment Script')
 
-:r .\Lookup\Lookup.sql
+--:r .\Lookup\Lookup.sql
+
+--:r .\OneTime_4_2\010.OneTimeForModuleTabMaster.sql
 
 
-:r .\OneTime_2_19_1\010.UpdateParentClientAndNotificationEmail.sql
+
+
+--:r .\OneTime_3_8\010.Onetime_AppConfig.sql
+--:r .\OneTime_3_8\020.Onetimejsonformatcalcv1.sql
+
+
+--:r .\OneTime_3_7\010.OnetimeForRateSpreadSchedule.sql
+--:r .\OneTime_3_7\020.Onetimejsonformatcalcv1.sql
+--:r .\OneTime_3_7\030.Onetime_ExcelReport_PIPE.sql
+
+
+--:r .\OneTime_3_6\010.OnetimeForModuleTypeMaster.sql
+--:r .\OneTime_3_6\020.UpdateDecodeInTransactionType.sql
+--:r .\OneTime_3_6\030.OnetimeForFirstRateINdexResetDate.sql
+--:r .\OneTime_3_6\040.OnetimeForFirstRateINdexResetDate.sql
+
+
+--:r .\OneTime_3_5\010.AddInEmailNotification.sql
+
+--:r .\OneTime_3_4\010.AddInEmailNotification.sql
+--:r .\OneTime_3_4\020.OnetimeForNoteBI.sql
+
+---:r .\OneTime_3_2\010.AddInEmailNotification.sql
+
+--:r .\OneTime_2_22\000.OnetimeforAppConfig.sql
+--:r .\OneTime_2_22\010.Onetime_UpdateBalanceAware.sql
+--:r .\OneTime_2_22\020.ONetime_JsonTemplateMaster.sql
+--:r .\OneTime_2_22\030.Onetime_JsonTemplate.sql
+--:r .\OneTime_2_22\040.Onetime_RootV1Calc.sql
+--:r .\OneTime_2_22\050.Onetime_JsonFormatCalcV1.sql
+--:r .\OneTime_2_22\060.Onetime_UpdateRateSpreadSchedule.sql
+--:r .\OneTime_2_22\070.Onetime_RuleTypeTables.sql
+--:r .\OneTime_2_22\080.Onetime_AnalysisTables.sql
+--:r .\OneTime_2_22\090.UpdateAnalysisParameterColumn.sql
+--:r .\OneTime_2_22\100.SetPagePermission.sql
+--:r .\OneTime_2_22\110.OnetimeScenarioSetup.sql
+
+
+
+--:r .\OneTime_2_19_1\010.UpdateParentClientAndNotificationEmail.sql
+--:r .\OneTime_2_19_1\020.OnetimeEmailNotificationForMissingParentClient.sql
+
 
 --:r .\OneTime_2_19\000_Onetime_AppConfig.sql
 --:r .\OneTime_2_19\010.Onetime_UpdateBalanceAware.sql
@@ -161,6 +204,9 @@ Print('Start Post Deployment Script')
 --:r .\OneTime_2_16\25.Onetime_UpdateFinancingSourceMaster_ClientAbbr.sql
 --:r .\OneTime_2_16\26.Onetime_DrawApprovalChecklist_AutoSendInvoice_YES.sql
 --:r .\OneTime_2_16\27.Onetime_InvoiceDetail_Add_DealID_Update_DealID.sql
+
+
+
 
 
 

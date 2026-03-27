@@ -1,11 +1,12 @@
-﻿using CRES.DataContract;
-using System;
+﻿using System;
 using System.Collections.Generic;
+using System.Text;
+using CRES.DataContract;
 using System.Data;
 
 namespace CRES.DAL.IRepository
 {
-    public interface IAccountingReportRepository
+   public interface IAccountingReportRepository
     {
         List<ReportFileDataContract> GetAllReportFiles(Guid? userId, int? pageSize, int? pageIndex, out int? TotalCount);
         ReportFileDataContract GetReportFileByGUID(Guid? ReportFileGUID, Guid? UserID);
@@ -16,6 +17,7 @@ namespace CRES.DAL.IRepository
 
         //===================Added Getwarehouse====================================//
         List<DWStatusDataContract> GetwarehouseStatus(string btnname);
+        List<ReportFileDataContract> GetAllReportFilesByReportType(Guid? UserID, string ReportType, string TenantId, string GroupId, int? pageSize, int? pageIndex, out int? TotalCount);
     }
 }
 

@@ -35,3 +35,4 @@ and AnalysisID = 'C10F3372-0FC2-4861-A9F5-148F1F80804F'
   
   
 and Type = 'AdditionalFeesIncludedFromLevelYield'  
+and T.AccountTypeID = 1  

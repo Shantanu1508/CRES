@@ -1,4 +1,5 @@
-﻿
+﻿-- Procedure
+
 
 CREATE PROCEDURE [dbo].[usp_InsertTransactionEntryManual]  
 @BatchLogGenericID int,
@@ -31,9 +32,9 @@ BEGIN
 	
 	
 
-	DELETE FROM [CRE].[TransactionEntryManual] WHERE [NoteID] in (
+	DELETE FROM [CRE].[TransactionEntryManual] WHERE AccountID in (
 
-		Select Distinct n.noteid from [IO].[L_M61AddinLanding] mch
+		Select Distinct n.Account_AccountID from [IO].[L_M61AddinLanding] mch
 		inner join cre.note n on n.crenoteid = mch.Noteid
 		where TableName = 'M61.Tables.ManualCashflows' 
 		and BatchLogGenericID = @BatchLogGenericID 
@@ -44,7 +45,7 @@ BEGIN
 
 	INSERT INTO [CRE].[TransactionEntryManual]  
 	(  
-		NoteID  
+		AccountID  
 		,[Date]  
 		,Amount  
 		,[Type]  
@@ -58,7 +59,7 @@ BEGIN
 		,[Cash_NonCash]
 	) 
 	Select 
-	 n.NoteId  
+	 n.Account_AccountID  
 	 ,mch.DueDate
 	 ,mch.Value as Amount  
 	 ,ty.TransactionName as TransactionType  
@@ -88,8 +89,8 @@ BEGIN
   
 	
 	----Insert into Transaction entry table
-	DELETE FROM [CRE].[TransactionEntry] WHERE [NoteID] in (
-			Select Distinct n.NoteID 
+	DELETE FROM [CRE].[TransactionEntry] WHERE AccountID in (
+			Select Distinct n.Account_AccountID 
 			from [IO].[L_M61AddinLanding] l 
 			inner join cre.Note n on n.crenoteid = l.NoteID
 			where TableName = 'M61.Tables.ManualCashflows' and BatchLogGenericID = @BatchLogGenericID and [Status] = 'Imported'
@@ -98,8 +99,8 @@ BEGIN
   
 	INSERT INTO [CRE].[TransactionEntry]  
 	(  
-	NoteID  
-	,[Date]  
+	--NoteID  
+	[Date]  
 	,Amount  
 	,[Type]  
 	,CreatedBy  
@@ -110,10 +111,11 @@ BEGIN
 	,StrCreatedBy
 	,GeneratedBy
 	,[Cash_NonCash]
+	,AccountID
 	)  
 	Select  
-	NoteId  
-	,[Date]  
+	--tr.NoteId  
+	[Date]  
 	,Amount  
 	,Type as TransactionType  
 	,@CreatedBy  
@@ -131,12 +133,14 @@ BEGIN
 	ELSE tym.Cash_NonCash END
 	) [Cash_NonCash]
 
+	,n.Account_AccountID
 
 	FROM CRE.TransactionEntryManual tr
+	Inner join cre.note n on n.Account_AccountID = tr.AccountID
 	left join cre.transactiontypes tym on LOWER(tym.TransactionName) = LOWER(tr.Type)
 	,core.Analysis a	 
-	where Noteid in (
-			Select Distinct n.NoteID 
+	where tr.AccountID in (
+			Select Distinct n.Account_AccountID 
 			from [IO].[L_M61AddinLanding] l 
 			inner join cre.Note n on n.crenoteid = l.NoteID
 			where TableName = 'M61.Tables.ManualCashflows' and BatchLogGenericID = @BatchLogGenericID and [Status] = 'Imported'

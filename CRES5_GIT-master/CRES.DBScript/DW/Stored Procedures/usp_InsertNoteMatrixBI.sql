@@ -1,13 +1,11 @@
-﻿  
-  
-  
-CREATE PROCEDURE [DW].[usp_InsertNoteMatrixBI]  
-
-  
+﻿CREATE PROCEDURE [DW].[usp_InsertNoteMatrixBI]  
 AS  
 BEGIN  
      SET NOCOUNT ON;  
+
 	Truncate Table  [DW].[NoteMatrixBI]
+	Truncate Table  [DW].[NoteMatrixBI_FeeTab]
+
 
 	update [DW].[L_NoteMatrixBI] set IndexforStub=0,
 								SeniorLoanSpread=0,
@@ -84,7 +82,8 @@ INSERT INTO [DW].[NoteMatrixBI]
 		DealType,  
 		[InquiryYear],  
 		[Location],  
-		[UnderwrittenReturn])  
+		[UnderwrittenReturn],
+		SheetName)  
 	SELECT 
 				DealID ,  
 				DealGroupID ,  
@@ -104,10 +103,10 @@ INSERT INTO [DW].[NoteMatrixBI]
 				CapStack ,  
 				BillingNote ,  
 				CAST(REPLACE(Commitment ,'N/A',0) AS DECIMAL(28, 15))  ,  
-				Spread ,  
-				CAST(REPLACE(IndexforStub ,'N/A',0) AS DECIMAL(28, 15))  , 	 
-				CAST(REPLACE([Floor] ,'N/A',0) AS DECIMAL(28, 15))  , 	  
-				CAST(REPLACE(AllInRate ,'N/A',0) AS DECIMAL(28, 15))  ,  
+				CAST(	REPLACE(REPLACE(Spread	,'N/A',0),'NA',0)		AS DECIMAL(28, 15)) ,  
+				CAST(REPLACE(REPLACE(IndexforStub ,'N/A',0),'NA',0) AS DECIMAL(28, 15))   , 	 
+				CAST(REPLACE(REPLACE([Floor] ,'N/A',0) ,'NA',0) AS DECIMAL(28, 15))  , 	  
+				CAST(REPLACE(REPLACE(REPLACE(AllInRate,' ',null),'N/A',0),'NA',0) AS DECIMAL(28, 15))   ,  
 				[Type] ,  
 				CONVERT(DATE,InitialFunding) ,  
 				CONVERT(DATE,InitialMaturity) ,  	 				
@@ -120,15 +119,15 @@ INSERT INTO [DW].[NoteMatrixBI]
 				CurrentMaturity,    
 				CONVERT(DATE,PaidOffSold) ,  
 				FeesStart ,  
-				CAST(REPLACE(RSLIC ,'N/A',0) AS DECIMAL(28, 15))  ,   
-				CAST(REPLACE(SNCC ,'N/A',0) AS DECIMAL(28, 15))  ,  
-				CAST(REPLACE(PIIC ,'N/A',0) AS DECIMAL(28, 15))  ,   
-				CAST(REPLACE(TMR ,'N/A',0) AS DECIMAL(28, 15))  ,  
-				CAST(REPLACE(HCC ,'N/A',0) AS DECIMAL(28, 15))  ,  
-				CAST(REPLACE(USSIC ,'N/A',0) AS DECIMAL(28, 15))  ,  
-				CAST(REPLACE(TMNF ,'N/A',0) AS DECIMAL(28, 15))  ,  
-				CAST(REPLACE(HAIH ,'N/A',0) AS DECIMAL(28, 15))  ,   
-				CAST(REPLACE( [Check] ,'N/A',0) AS DECIMAL(28, 15))  , 
+				CAST(	REPLACE(REPLACE(RSLIC	,'N/A',0),'NA',0)		AS DECIMAL(28, 15))  ,   
+				CAST(	REPLACE(REPLACE(SNCC	,'N/A',0),'NA',0)		AS DECIMAL(28, 15))  ,  
+				CAST(	REPLACE(REPLACE(PIIC	,'N/A',0),'NA',0)		AS DECIMAL(28, 15))  ,   
+				CAST(	REPLACE(REPLACE(TMR		,'N/A',0),'NA',0)		AS DECIMAL(28, 15))  ,  
+				CAST(	REPLACE(REPLACE(HCC		,'N/A',0),'NA',0)		AS DECIMAL(28, 15))  ,  
+				CAST(	REPLACE(REPLACE(USSIC	,'N/A',0),'NA',0)		AS DECIMAL(28, 15))  ,  
+				CAST(	REPLACE(REPLACE(TMNF	,'N/A',0),'NA',0)		AS DECIMAL(28, 15))  ,  
+				CAST(	REPLACE(REPLACE(HAIH	,'N/A',0),'NA',0)		AS DECIMAL(28, 15))  ,   
+				CAST(	REPLACE(REPLACE([Check]	,'N/A',0),'NA',0)		AS DECIMAL(28, 15))  ,
 				CAMRA ,  
 				Servicer ,  
 				ServicerID ,  
@@ -152,10 +151,12 @@ INSERT INTO [DW].[NoteMatrixBI]
 				DealType,  
 				CONVERT(INT, InquiryYear) ,  
 				[Location],  
-				UnderwrittenReturn 
+				UnderwrittenReturn ,
+				SheetName
 				 FROM [DW].[L_NoteMatrixBI]
-				WHERE SheetName='Delphi - Note Matrix';
-
+				--WHERE SheetName='Delphi - Note Matrix';
+				WHERE SheetName in ('Delphi','ACP II','ACSS','AHIP','Delaware Life','Harel','SILAC','Equitrust')
+				and DealID is not null
   ------------------------------------END --Delphi - Note Matrix-----------------------------------
   -------------------TRE ACR - Note Matrix-----------------------------------
 
@@ -227,7 +228,8 @@ INSERT INTO [DW].[NoteMatrixBI]
 		DealType,  
 		[InquiryYear],  
 		[Location],  
-		[UnderwrittenReturn])  
+		[UnderwrittenReturn],
+		SheetName)  
 	SELECT 
 				DealID ,  
 				DealGroupID1 ,  
@@ -295,149 +297,188 @@ INSERT INTO [DW].[NoteMatrixBI]
 				DealType,  
 				CONVERT(INT, InquiryYear) ,  
 				[Location],  
-				CAST(REPLACE( UnderwrittenReturn ,'N/A',0) AS DECIMAL(28, 15))  	 
+				CAST(REPLACE( UnderwrittenReturn ,'N/A',0) AS DECIMAL(28, 15)) ,
+				SheetName 	 
 				 FROM [DW].[L_NoteMatrixBI]
-				WHERE SheetName='TRE ACR - Note Matrix'
+				--WHERE SheetName='TRE ACR - Note Matrix'
+				WHERE SheetName='TRE ACR'
 
 
 
 				----------------------------	ACORE Credit IV - Note Matrix-----------------------------------------------
 
 	INSERT INTO [DW].[NoteMatrixBI]  
-			(  
-			[DealID],  
-			[DealGroupID],  
-			[NoteID],  
-			[Pri],  
-			[DealName],  
-			[NoteName],  
-			[LoanStatus],  
-			[Client],  
-			[Fund],  
-			[AssetManager],  
-			[Banker],  
-			[Credit],  
-			[Pool],  
-			[FinancingSource],  
-			CurrentEntity,  
-			[CapStack],  
-			[BillingNote],  
-			[Commitment],  
-			[Spread],  
-			IndexforStub,  
-			[Floor],  
-			[Type],  
-			[InitialFunding],  
-			[InitialMaturity],  
-			ExtendedMaturity1,  
-			ExtendedMaturity2,  
-			ExtendedMaturity3,  
-			ExtendedMaturity4,  
-			FullyExtendedMaturity,  
-			CurrentMaturityDate,  
-			CurrentMaturity,  
-			[PaidOffSold],  
-			[FeesStart],  
-			[RSLIC],  
-			[SNCC],  
-			[PIIC],  
-			[TMR],  
-			[HCC],  
-			[USSIC],  
-			[TMNF],  
-			[HAIH],  
-			[Check],  
-			[CAMRA],  
-			[Servicer],  
-			[ServicerID],  
-			[PremDisc],  
-			OriginationFee,  
-			ExitFee,  
-			PaydownPayoffConvention,  
-			PaymentDate,  
-			WholeLoanSpread,  
-			ExtensionFee1,  
-			ExtensionFee2,  
-			ExtensionFee3,  
-			ExtensionFee4,  
-			ProductType,  
-			MSA,  
-			[State],   
-			DealType,  
-			[InquiryYear],  
-			[Location],  
-			[UnderwrittenReturn]    
-			)  
+	(  
+	[DealID],  
+	[DealGroupID],  
+	[NoteID],  
+	[Pri],  
+	[DealName],  
+	[NoteName],  
+	[LoanStatus],  
+	[Client],  
+	[Fund],  
+	[AssetManager],  
+	[Banker],  
+	[Credit],  
+	[Pool],  
+	[FinancingSource],  
+	CurrentEntity,  
+	[CapStack],  
+	[BillingNote],  
+	[Commitment],  
+	[Spread],  
+	IndexforStub,  
+	[Floor],  
+	[Type],  
+	[InitialFunding],  
+	[InitialMaturity],  
+	ExtendedMaturity1,  
+	ExtendedMaturity2,  
+	ExtendedMaturity3,  
+	ExtendedMaturity4,  
+	FullyExtendedMaturity,  
+	CurrentMaturityDate,  
+	CurrentMaturity,  
+	[PaidOffSold],  
+	[FeesStart],  
+	[RSLIC],  
+	[SNCC],  
+	[PIIC],  
+	[TMR],  
+	[HCC],  
+	[USSIC],  
+	[TMNF],  
+	[HAIH],  
+	[Check],  
+	[CAMRA],  
+	[Servicer],  
+	[ServicerID],  
+	[PremDisc],  
+	OriginationFee,  
+	ExitFee,  
+	PaydownPayoffConvention,  
+	PaymentDate,  
+	WholeLoanSpread,  
+	ExtensionFee1,  
+	ExtensionFee2,  
+	ExtensionFee3,  
+	ExtensionFee4,  
+	ProductType,  
+	MSA,  
+	[State],   
+	DealType,  
+	[InquiryYear],  
+	[Location],  
+	[UnderwrittenReturn],
+	SheetName   
+	)  
   
-			SELECT
-				DealID ,  
-				DealGroupID1 ,  
-				ACOREID ,  
-				CONVERT(INT, Pri)	 ,    
-				DealName ,  
-				NoteName ,  
-				LoanStatus1 ,  
-				Client ,  
-				Fund ,  
-				AssetManager1,  
-				Banker1 ,  
-				Credit1 ,  
-				Pool ,  
-				FinancingSource1 , 
-				CurrentEntity,  
-				CapStack ,  
-				BillingNote ,  
-				CAST(REPLACE(Commitment ,'N/A',0) AS DECIMAL(28, 15))  ,  
-				CAST(REPLACE(Spread ,'N/A',0) AS DECIMAL(28, 15)) ,  
-				CAST(REPLACE(IndexforStub ,'N/A',0) AS DECIMAL(28, 15))  ,   
-				CAST(REPLACE([Floor] ,'N/A',0) AS DECIMAL(28, 15))  ,   
-				Type ,  
-				CONVERT(DATE,InitialFunding) , 
-				CONVERT(DATE,InitialMaturity) ,  	 				
-				CONVERT(DATE,ExtendedMaturity1) ,  	
-				CONVERT(DATE,ExtendedMaturity2) ,  	
-				CONVERT(DATE,ExtendedMaturity3) ,  	
-				CONVERT(DATE,ExtendedMaturity4) ,  	
-				CONVERT(DATE,FullyExtendedMaturity) ,  	
-				CONVERT(DATE,CurrentMaturityDate) ,   				  
-				CurrentMaturity,    
-				CONVERT(DATE,PaidOffSold) ,  
+	SELECT
+	DealID ,  
+	DealGroupID1 ,  
+	ACOREID ,  
+	CONVERT(INT, Pri)	 ,    
+	DealName ,  
+	NoteName ,  
+	LoanStatus1 ,  
+	Client ,  
+	Fund ,  
+	AssetManager1,  
+	Banker1 ,  
+	Credit1 ,  
+	Pool ,  
+	FinancingSource1 , 
+	CurrentEntity,  
+	CapStack ,  
+	BillingNote ,  
+	CAST(REPLACE(Commitment ,'N/A',0) AS DECIMAL(28, 15))  ,  
+	CAST(REPLACE(Spread ,'N/A',0) AS DECIMAL(28, 15)) ,  
+	CAST(REPLACE(IndexforStub ,'N/A',0) AS DECIMAL(28, 15))  ,   
+	CAST(REPLACE([Floor] ,'N/A',0) AS DECIMAL(28, 15))  ,   
+	Type ,  
+	CONVERT(DATE,InitialFunding) , 
+	CONVERT(DATE,InitialMaturity) ,  	 				
+	CONVERT(DATE,ExtendedMaturity1) ,  	
+	CONVERT(DATE,ExtendedMaturity2) ,  	
+	CONVERT(DATE,ExtendedMaturity3) ,  	
+	CONVERT(DATE,ExtendedMaturity4) ,  	
+	CONVERT(DATE,FullyExtendedMaturity) ,  	
+	CONVERT(DATE,CurrentMaturityDate) ,   				  
+	CurrentMaturity,    
+	CONVERT(DATE,PaidOffSold) ,  
   
-				FeesStart ,  
-				CAST(REPLACE(RSLIC ,'N/A',0) AS DECIMAL(28, 15))  ,
-				CAST(REPLACE(SNCC ,'N/A',0) AS DECIMAL(28, 15))  ,   
-				CAST(REPLACE(PIIC ,'N/A',0) AS DECIMAL(28, 15))  ,  
-				CAST(REPLACE(TMR ,'N/A',0) AS DECIMAL(28, 15))  ,   
-				CAST(REPLACE(HCC ,'N/A',0) AS DECIMAL(28, 15))  ,  
-				CAST(REPLACE(USSIC ,'N/A',0) AS DECIMAL(28, 15))  ,  
-				CAST(REPLACE(TMNF ,'N/A',0) AS DECIMAL(28, 15))  ,
-				CAST(REPLACE(HAIH ,'N/A',0) AS DECIMAL(28, 15))  ,   
-				CAST(REPLACE( [Check] ,'N/A',0) AS DECIMAL(28, 15))  ,   
-				CAMRA ,  
-				Servicer ,  
-				ServicerID ,  
-				CAST(REPLACE( PremDisc ,'N/A',0) AS DECIMAL(28, 15)) ,
-				OriginationFee,  
-				ExitFee,  
-				CONVERT(INT, PaydownPayoffConvention) ,    
-				CONVERT(INT, PaymentDate) ,
-				CAST(REPLACE( WholeLoanSpread ,'N/A',0) AS DECIMAL(28, 15))  ,
-				CAST(REPLACE( ExtensionFee1 ,'N/A',0) AS DECIMAL(28, 15))  ,
-				CAST(REPLACE( ExtensionFee2 ,'N/A',0) AS DECIMAL(28, 15))  , 
-				CAST(REPLACE( ExtensionFee3 ,'N/A',0) AS DECIMAL(28, 15))  , 
-				CAST(REPLACE( ExtensionFee4 ,'N/A',0) AS DECIMAL(28, 15))  , 
-				ProductType,  
-				MSA,  
-				State,   
-				DealType,  
-				CONVERT(INT, InquiryYear) ,  
-				Location,  
-				UnderwrittenReturn    
-				 FROM [DW].[L_NoteMatrixBI]
-				WHERE SheetName='ACORE Credit IV - Note Matrix'
+	FeesStart ,  
+	CAST(REPLACE(RSLIC ,'N/A',0) AS DECIMAL(28, 15))  ,
+	CAST(REPLACE(SNCC ,'N/A',0) AS DECIMAL(28, 15))  ,   
+	CAST(REPLACE(PIIC ,'N/A',0) AS DECIMAL(28, 15))  ,  
+	CAST(REPLACE(TMR ,'N/A',0) AS DECIMAL(28, 15))  ,   
+	CAST(REPLACE(HCC ,'N/A',0) AS DECIMAL(28, 15))  ,  
+	CAST(REPLACE(USSIC ,'N/A',0) AS DECIMAL(28, 15))  ,  
+	CAST(REPLACE(TMNF ,'N/A',0) AS DECIMAL(28, 15))  ,
+	CAST(REPLACE(HAIH ,'N/A',0) AS DECIMAL(28, 15))  ,   
+	CAST(REPLACE( [Check] ,'N/A',0) AS DECIMAL(28, 15))  ,   
+	CAMRA ,  
+	Servicer ,  
+	ServicerID ,  
+	CAST(REPLACE( PremDisc ,'N/A',0) AS DECIMAL(28, 15)) ,
+	OriginationFee,  
+	ExitFee,  
+	CONVERT(INT, PaydownPayoffConvention) ,    
+	CONVERT(INT, PaymentDate) ,
+	CAST(REPLACE( WholeLoanSpread ,'N/A',0) AS DECIMAL(28, 15))  ,
+	CAST(REPLACE( ExtensionFee1 ,'N/A',0) AS DECIMAL(28, 15))  ,
+	CAST(REPLACE( ExtensionFee2 ,'N/A',0) AS DECIMAL(28, 15))  , 
+	CAST(REPLACE( ExtensionFee3 ,'N/A',0) AS DECIMAL(28, 15))  , 
+	CAST(REPLACE( ExtensionFee4 ,'N/A',0) AS DECIMAL(28, 15))  , 
+	ProductType,  
+	MSA,  
+	State,   
+	DealType,  
+	CONVERT(INT, InquiryYear) ,  
+	Location,  
+	UnderwrittenReturn ,
+	SheetName   
+	FROM [DW].[L_NoteMatrixBI]
+	--WHERE SheetName='ACORE Credit IV - Note Matrix'
+	WHERE SheetName='ACORE Credit IV'
 				 
 
+
+INSERT INTO [DW].[NoteMatrixBI_FeeTab]([DealID],[DealGroupID],[NoteID],[Pri],[DealName],[NoteName],[ExitFee1],[CreatedDate],SheetName)
+SELECT
+DealID ,  
+DealGroupID1 ,  
+NoteID ,  
+CONVERT(INT, Pri)	 ,    
+DealName ,  
+NoteName ,  
+[ExitFee1] ,  
+getdate() ,  	
+SheetName   
+FROM [DW].[L_NoteMatrixBI]
+WHERE SheetName='Fee'
+
+
+	Update [DW].[NoteMatrixBI] SET [createdDate] = Getdate()
+
     
+
+
+
 	Truncate Table [DW].[L_NoteMatrixBI]
   
+
+	Delete from dw.NoteMatrixBI	where NoteMatrix_AutoID in (
+		Select NoteMatrix_AutoID
+		from dw.NoteMatrixBI 
+		where noteid in (
+			Select noteid
+			from dw.NoteMatrixBI
+			group by noteid
+			having count(noteid) > 1
+		)
+		and debttype is null
+	)
+
 END  

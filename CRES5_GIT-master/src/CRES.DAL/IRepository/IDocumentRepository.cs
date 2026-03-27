@@ -1,6 +1,11 @@
-﻿using CRES.DataContract;
-using System;
+﻿using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+using CRES.DataContract;
+
 using System.Data;
 
 namespace CRES.DAL.IRepository
@@ -11,6 +16,6 @@ namespace CRES.DAL.IRepository
         string InsertUploadedDocumentLog(DocumentDataContract _docDC);
         void UpdateDocumentStatus(List<DocumentDataContract> _docDC, Guid? userID);
         //void SyncBoxDocument(List<DocumentDataContract> _docDC, Guid? userID, string CREDealID);
-        string BulkInsert(DataTable dt, string DestTableName, List<FileImportColumnMappingDataContract> columnMapping, bool IsTruncateRequired);
+        string BulkInsert(DataTable dt, string DestTableName, List<FileImportColumnMappingDataContract> columnMapping, bool IsTruncateRequired, bool IsExecuteProc, List<string> ProcName);
     }
 }

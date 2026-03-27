@@ -5,8 +5,25 @@ BEGIN
 	SET NOCOUNT ON;
 	
 
-	----=========Kill Process If running more than 2 hour's	IF ((Select top 1 Status2 from dw.batchlog where BatchName = 'Delta Refresh Process' order by batchlogid desc) = 'Process Running')  	BEGIN  		--Print('Process is Running.');  		Declare @BSDate Datetime		Declare @BLID Int		Select top 1 @BSDate = BatchStartTime ,@BLID = batchlogid		from dw.batchlog where BatchName = 'Delta Refresh Process' and Status2 = 'Process Running' order by batchlogid desc				IF(ABS(DateDiff(hour,getdate(),@BSDate)) >= 1)		BEGIN			--Print('Process is Running too long.');  			--Delete from dw.BatchDetail where batchlogid = @BLID			--Delete from dw.BatchLog where batchlogid = @BLID			Delete from dw.batchDetail where batchlogid in (Select batchlogID from dw.batchlog where BatchName = 'Delta Refresh Process' and Status2 = 'Process Running')
-			Delete from dw.batchlog where BatchName = 'Delta Refresh Process' and Status2 = 'Process Running'		END	END
+	----=========Kill Process If running more than 2 hour's
+	IF ((Select top 1 Status2 from dw.batchlog where BatchName = 'Delta Refresh Process' order by batchlogid desc) = 'Process Running')  
+	BEGIN  
+		--Print('Process is Running.');  
+		Declare @BSDate Datetime
+		Declare @BLID Int
+		Select top 1 @BSDate = BatchStartTime ,@BLID = batchlogid
+		from dw.batchlog where BatchName = 'Delta Refresh Process' and Status2 = 'Process Running' order by batchlogid desc	
+	
+		IF(ABS(DateDiff(hour,getdate(),@BSDate)) >= 1)
+		BEGIN
+			--Print('Process is Running too long.');  
+			--Delete from dw.BatchDetail where batchlogid = @BLID
+			--Delete from dw.BatchLog where batchlogid = @BLID
+			Delete from dw.batchDetail where batchlogid in (Select batchlogID from dw.batchlog where BatchName = 'Delta Refresh Process' and Status2 = 'Process Running')
+			Delete from dw.batchlog where BatchName = 'Delta Refresh Process' and Status2 = 'Process Running'
+		END
+
+	END
 	----================================
 
 
@@ -46,16 +63,22 @@ BEGIN
 
 			EXEC [DW].usp_ImportExceptionsBI @id,NULL,NULL
 			
-			EXEC [DW].[usp_MergeNoteFunding]  @id,NULL,NULL
-			EXEC [DW].[usp_MergeBSNoteFunding]  @id,NULL,NULL
+			EXEC [DW].usp_ImportLiabilityNote @id,NULL,NULL
+			EXEC [DW].usp_ImportLiabilityNoteAssetMapping @id,NULL,NULL
+			EXEC [DW].usp_ImportGeneralSetupDetailsLiabilityNote @id,NULL,NULL
+			EXEC [DW].usp_ImportTransactionEntryLiability @id,NULL,NULL
 
-			EXEC [DW].[usp_MergeDealFundingSchdule] @id,NULL,NULL
-			EXEC [DW].[usp_MergeNoteFundingSchedule] @id,NULL,NULL
-			EXEC [DW].[usp_MergeFundingSequences] @id,NULL,NULL
 
-			EXEC [DW].[usp_MergeBackshopCurrentBalance] @id,NULL,NULL
+			EXEC [DW].[usp_MergeNoteFunding]  @id
+			EXEC [DW].[usp_MergeBSNoteFunding]  @id
 
-			EXEC [DW].[usp_MergeWorkFlow] @id,NULL,NULL
+			EXEC [DW].[usp_MergeDealFundingSchdule] @id
+			EXEC [DW].[usp_MergeNoteFundingSchedule] @id
+			EXEC [DW].[usp_MergeFundingSequences] @id
+
+			EXEC [DW].[usp_MergeBackshopCurrentBalance] @id
+
+			EXEC [DW].[usp_MergeWorkFlow] @id
 
 
 			----UPDATE [DW].BatchLog
@@ -84,6 +107,11 @@ BEGIN
 			
 			UPDATE [DW].BatchDetail SET LastCreatedDate = (SELECT MAX(UpdatedDate) FROM [DW].WorkFlowBI) WHERE BatchLogId = @id and LandingTableName = 'L_WorkFlowBI'
 
+			UPDATE [DW].BatchDetail SET LastCreatedDate = (SELECT MAX(CreatedDate) FROM [DW].[LiabilityNoteBI]) WHERE BatchLogId = @id and LandingTableName = 'L_LiabilityNoteBI'
+			UPDATE [DW].BatchDetail SET LastCreatedDate = (SELECT MAX(CreatedDate) FROM [DW].[LiabilityNoteAssetMappingBI]) WHERE BatchLogId = @id and LandingTableName = 'L_LiabilityNoteAssetMappingBI'
+			UPDATE [DW].BatchDetail SET LastCreatedDate = (SELECT MAX(CreatedDate) FROM [DW].[GeneralSetupDetailsLiabilityNoteBI]) WHERE BatchLogId = @id and LandingTableName = 'L_GeneralSetupDetailsLiabilityNoteBI'
+			UPDATE [DW].BatchDetail SET LastCreatedDate = (SELECT MAX(CreatedDate) FROM [DW].[TransactionEntryLiabilityBI]) WHERE BatchLogId = @id and LandingTableName = 'L_TransactionEntryLiabilityBI'
+
 		END
 		ELSE
 		BEGIN
@@ -92,8 +120,7 @@ BEGIN
 		END
 
 
-		/*Delete*/
-		EXEC [DW].usp_DeltaDeleteProcess @id
+		
 
 		/*Calculation before merge*/
 		EXEC [DW].usp_Calculations_BeforeMerge @id
@@ -104,6 +131,8 @@ BEGIN
 		/*Calculation after merge*/
 		EXEC [DW].usp_Calculations_AfterMerge @id
 
+		/*Delete*/
+		EXEC [DW].usp_DeltaDeleteProcess @id
 
 		UPDATE [DW].BatchLog
 		SET Status = 'SUCCESS',BatchEndTime = GETDATE(),Status2 = 'Process Complete'
@@ -136,3 +165,5 @@ BEGIN
 	END CATCH
 		
 END
+GO
+

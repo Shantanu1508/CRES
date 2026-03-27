@@ -1,4 +1,5 @@
-﻿Create View [dbo].FullAccrualInterestRecon
+﻿-- View
+CREATE View [dbo].FullAccrualInterestRecon
 As
 
 Select T.Noteid
@@ -10,6 +11,7 @@ Select T.Noteid
 ,  ISNULL(Int_Interest,0) - ISNULL(T.Amount,0) ActualDifference
 , ISNULL(ExpectedInterestDiff,0)ExpectedInterestDiff
 from Staging_TransactionEntry T
+Inner JOin cre.note n on n.NoteID = T.NoteKey
 Outer apply (Select ExpectedInterestDiff, RepaymentAmount
 					
 					from Interim2FullAccrual I
@@ -20,7 +22,10 @@ Outer apply (Select ExpectedInterestDiff, RepaymentAmount
 				
 
 Outer apply (Select Amount Int_Interest from Transactionentry T1
-				Where T1.NoteID = T.Noteid and T.Date =  T1.Date and
+
+
+
+				Where T1.AccountID = n.Account_AccountID and T.Date =  T1.Date and
 				T.Type = T1.Type and T.AnalysisID =  T1.AnalysisID
 				
 				)Y

@@ -2,7 +2,7 @@
 (   
         @Severity nvarchar(50),
 		@Module varchar(50), 
-		@Message varchar(256) ,
+		@Message varchar(max) ,
 		@Message_StackTrace varchar(max) ,
 		@Priority varchar(50), 
 		@ExceptionSource varchar(50), 

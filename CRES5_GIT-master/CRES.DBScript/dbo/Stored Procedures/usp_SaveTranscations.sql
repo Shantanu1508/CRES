@@ -19,7 +19,10 @@ BEGIN
 	UpdatedBy=@CreatedBy,
 	Adjustment=tr.Adjustment,
 	ActualDelta=tr.ActualDelta,
-	OverrideReason=tr.OverrideReason
+	OverrideReason=tr.OverrideReason,
+	WriteOffAmount = tr.WriteOffAmount,
+	AddlInterest = tr.AddlInterest,
+	TotalInterest = tr.TotalInterest
     from @TmpTrans tr
     Where cre.TranscationReconciliation.Transcationid = tr.Transcationid
 

@@ -1,0 +1,4 @@
+﻿CREATE VIEW dbo.vw_FinancingSourceMaster
+AS
+Select FinancingSourceName,FinancingSourceGroup from cre.FinancingSourceMaster
+

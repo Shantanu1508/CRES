@@ -1,10 +1,12 @@
 ﻿using CRES.BusinessLogic;
-#pragma warning disable CS0105 // The using directive for 'CRES.BusinessLogic' appeared previously in this namespace
-#pragma warning restore CS0105 // The using directive for 'CRES.BusinessLogic' appeared previously in this namespace
+using CRES.BusinessLogic;
 using CRES.DataContract;
 using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Net;
+using System.Net.Http;
 
 namespace CRES.Services.Controllers
 {
@@ -20,16 +22,14 @@ namespace CRES.Services.Controllers
             GenericResult _authenticationResult = null;
             List<FinancingWarehouseDataContract> _lstFinancingWarehouseDataContract = new List<FinancingWarehouseDataContract>();
 
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
             var headerUserID = string.Empty;
 
             if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
             {
                 headerUserID = Convert.ToString(Request.Headers["TokenUId"]);
             }
-            int? totalCount = 0;
+            int? totalCount=0;
 
             UserPermissionLogic upl = new UserPermissionLogic();
             //to get user
@@ -78,13 +78,11 @@ namespace CRES.Services.Controllers
         [Services.Controllers.DeflateCompression]
         [Services.Controllers.IsAuthenticate]
         [Route("api/note/addUpdateFinancingWarehouse")]
-        public IActionResult AddUpdateFinancingWarehouse([FromBody] FinancingWarehouseDataContract FinancingWarehousedc)
+        public IActionResult AddUpdateFinancingWarehouse([FromBody]FinancingWarehouseDataContract FinancingWarehousedc)
         {
             GenericResult _actionResult = null;
 
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
             var headerUserID = string.Empty;
 
             if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
@@ -132,13 +130,11 @@ namespace CRES.Services.Controllers
         [Services.Controllers.DeflateCompression]
         [Services.Controllers.IsAuthenticate]
         [Route("api/note/addUpdateFinancingWarehouseDetails")]
-        public IActionResult AddUpdateFinancingWarehouseDetails([FromBody] FinancingWarehouseDataContract FinancingWarehousedc)
+        public IActionResult AddUpdateFinancingWarehouseDetails([FromBody]List<FinancingWarehouseDetailDataContract> warehouseDetailDataContracts)
         {
             GenericResult _actionResult = null;
 
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
             var headerUserID = string.Empty;
 
             if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
@@ -148,7 +144,7 @@ namespace CRES.Services.Controllers
 
             FinancingLogic financingLogic = new FinancingLogic();
 
-            string result = financingLogic.AddUpdateFinancingWarehouseDetails(FinancingWarehousedc.lstFinancingWarehouseDetail).ToString();
+            string result = financingLogic.AddUpdateFinancingWarehouseDetails(warehouseDetailDataContracts, headerUserID).ToString();
             try
             {
                 if (result != "")
@@ -185,13 +181,11 @@ namespace CRES.Services.Controllers
         [Services.Controllers.IsAuthenticate]
         [Services.Controllers.DeflateCompression]
         [Route("api/note/getFinancingWarehouseById")]
-        public IActionResult GetFinancingWarehouseByid([FromBody] FinancingWarehouseDataContract FinancingWarehousedc)
+        public IActionResult GetFinancingWarehouseByid([FromBody]FinancingWarehouseDataContract FinancingWarehousedc)
         {
             GenericResult _actionResult = null;
             FinancingWarehouseDataContract FinancingWarehousedatacontract = new FinancingWarehouseDataContract();
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
             var headerUserID = string.Empty;
 
             if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))

@@ -1,4 +1,5 @@
-﻿
+﻿-- Procedure
+
 CREATE procedure [dbo].DeleteNote 
 	@CreNoteID varchar(256)
 as
@@ -17,7 +18,7 @@ delete from [Core].[FeeCouponSchedule] where eventid in (select eventid from cor
 delete from [Core].[LIBORSchedule] where eventid in (select eventid from core.event where accountid=@accountid)
 delete from [Core].[DefaultSchedule] where eventid in (select eventid from core.event where accountid=@accountid)
 delete from [Core].[AmortSchedule] where eventid in (select eventid from core.event where accountid=@accountid)
-delete from [Core].[BalanceTransactionSchedule]where eventid in (select eventid from core.event where accountid=@accountid)
+delete from [Core].[BalanceTransactionSchedule] where eventid in (select eventid from core.event where accountid=@accountid)
 delete from [Core].[Maturity] where eventid in (select eventid from core.event where accountid=@accountid)
 delete from [Core].[PIKSchedule] where eventid in (select eventid from core.event where accountid=@accountid)
 delete from [Core].[FundingSchedule] where eventid in (select eventid from core.event where accountid=@accountid)
@@ -35,7 +36,7 @@ delete from [CRE].[PayruleDistributions] where [ReceiverNoteID]=@noteid or [Sour
 delete from [CRE].[OutputNPVdata] where noteid=@noteid
 delete from [CRE].[NoteTransactionDetail] where noteid=@noteid
 delete from [CRE].[NoteTransaction] where [Note_NoteID]=@noteid
-delete from [CRE].[NotePeriodicCalc] where noteid=@noteid
+delete from [CRE].[NotePeriodicCalc] where AccountID=@accountid
 delete from [CRE].[NotePeriodic] where [Note_NoteID]=@noteid
 delete from [CRE].[Note] where noteid=@noteid
 delete from [Core].[Account] where accountid=@accountid --noteid=@noteid

@@ -108,7 +108,7 @@ WHERE n.CRENoteID=@creNoteID
 
 
 UPDATE [Core].[Account]
-   SET [AccountTypeID] = (Select LookupID from CORE.Lookup where name = 'Note')      
+   SET [AccountTypeID] = 1 --(Select LookupID from CORE.Lookup where name = 'Note')      
       ,[Name] = @name      
 	  ,BaseCurrencyID=@BaseCurrencyID	  
 	  ,PayFrequency=@PayFrequency
@@ -155,7 +155,7 @@ UPDATE [Core].[Account]
    StubPaidInArrears    =@StubPaidInArrears   ,
    SettleWithAccrualFlag    =@SettleWithAccrualFlag   ,
    RateIndexResetFreq    =@RateIndexResetFreq   ,
-   FirstRateIndexResetDate    =@FirstRateIndexResetDate   ,
+   FirstIndexDeterminationDateOverride    =@FirstRateIndexResetDate   ,
    LoanPurchase    =@LoanPurchase   ,
    AmortIntCalcDayCount    =@AmortIntCalcDayCount   ,
    StubPaidinAdvanceYN    =@StubPaidinAdvanceYN   ,
@@ -211,7 +211,8 @@ UPDATE [Core].[Account]
    TotalCommitment=@TotalCommitment,
    IndexNameID=@IndexNameID,
    UpdatedBy    =@UpdatedBy   ,
-   UpdatedDate    =getdate()   
+   UpdatedDate    =getdate()   ,
+   EnableM61Calculations = 3
    where CRENoteID =@CRENoteID
 
  IF @@ROWCOUNT =0 
@@ -245,7 +246,7 @@ BEGIN
       @CRENoteID,
       @BaseCurrencyID,   	
       @PayFrequency,
-      182,
+      1, ---182,
       @UpdatedBy,
       GETDATE(),
       @UpdatedBy,
@@ -293,7 +294,8 @@ BEGIN
       	,[StubPaidInArrears]      	 
       	,[SettleWithAccrualFlag]      	 
       	,[RateIndexResetFreq]
-      	,[FirstRateIndexResetDate]
+      	--,[FirstRateIndexResetDate]
+		,FirstIndexDeterminationDateOverride
       	,[LoanPurchase]
       	,[AmortIntCalcDayCount]
       	,[StubPaidinAdvanceYN]
@@ -353,7 +355,7 @@ BEGIN
       	,[UpdatedBy]
       	,[UpdatedDate]
 		,GeneratedBy
-
+		,EnableM61Calculations
       	)
           
    	 VALUES
@@ -456,7 +458,7 @@ BEGIN
       ,@UpdatedBy
       ,GETDATE()
 	  ,(select lookupid from Core.Lookup where ParentID= 36 and name ='By Sizer')
-
+	  ,3
    )  
     
 
@@ -480,6 +482,15 @@ END
 
 	UPDATE CRE.Note SET CommitmentUsedInFFDistribution = InitialFundingAmount
 	WHERE NoteID = @NoteID	and CommitmentUsedInFFDistribution is null
+
+
+	----Assign tag for XIRR
+	declare @L_AccountID UNIQUEIDENTIFIER;
+	set @L_AccountID =(select Account_AccountID from CRE.Note where CRENoteID = @CRENoteID)
+
+	Declare @TagMasterXIRRID int = (Select top 1 TagMasterXIRRID from cre.TagMasterXIRR where [Name] = 'Portfolio Whole Loan')
+
+	EXEC [dbo].[usp_InsertUpdateTagAccountMappingXIRR] @L_AccountID,@TagMasterXIRRID,@UpdatedBy
 
 END
 

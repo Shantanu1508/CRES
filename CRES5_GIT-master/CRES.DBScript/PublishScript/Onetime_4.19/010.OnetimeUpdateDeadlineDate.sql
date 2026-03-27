@@ -1,0 +1,14 @@
+﻿
+--update cre.DealFunding set cre.DealFunding.DeadLineDate=tblmain.newdate
+--from
+--(
+--	select DealFundingID,Date,deadlinedate,newdate,status from
+--	(
+--	select Date,status=(case when deadlinedate=newdate then 'same' else 'Diff' end),newdate,deadlinedate,DealFundingID from
+--	(
+--	select DealFundingID,[Date],deadlinedate,[dbo].[Fn_GetnextWorkingDays]([Date],-2,'PMT Date') newdate from cre.DealFunding
+--	where Applied=0
+--	) tbl
+--	)tblout
+--	where status='diff' and date is not null
+--) tblmain where tblmain.DealFundingID=cre.DealFunding.DealFundingID

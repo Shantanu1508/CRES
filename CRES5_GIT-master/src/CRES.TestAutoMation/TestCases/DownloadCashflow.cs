@@ -23,7 +23,7 @@ namespace CRES.TestAutoMation.TestCases
 
             Actions actions = new Actions(driver);
 
-            CRES_Login loginapp = new CRES_Login();
+            Login_Verification loginapp = new Login_Verification();
             Login login = new Login(driver);
             Deal deal = new Deal(driver);
             Util util = new Util(driver);
@@ -60,7 +60,7 @@ namespace CRES.TestAutoMation.TestCases
 
                     try
                     {                       
-                            Console.WriteLine(" Fron Scenaios page, cashflow download");
+                            Console.WriteLine(" From Scenaios page, cashflow download");
                             driver.Navigate().GoToUrl(BaseUrl + "#/scenarios");
                             Thread.Sleep(10000);
 
@@ -68,7 +68,7 @@ namespace CRES.TestAutoMation.TestCases
                             downloadCashflow.Click();
 
                             Thread.Sleep(150000);
-                            Console.WriteLine(" Fron Scenaios page, cashflow downloaded = " + downloadCashflow.Text);
+                            Console.WriteLine(" From Scenaios page, cashflow downloaded = " + downloadCashflow.Text);
                                           
                     }
                     catch (Exception e)

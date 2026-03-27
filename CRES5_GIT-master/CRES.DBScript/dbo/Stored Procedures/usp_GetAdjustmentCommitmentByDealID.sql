@@ -1,7 +1,7 @@
-﻿-- C848F020-2EE5-4BD4-9939-2E4B50C59744
--- 50F46CE5-B3FA-4C48-A390-3190A3B87D71
---  [dbo].[usp_GetAdjustmentCommitmentByDealID]'b0e6697b-3534-4c09-be0a-04473401ab93','C7F38B99-BC29-4433-946C-A606E516BB15'
-CREATE  PROCEDURE [dbo].[usp_GetAdjustmentCommitmentByDealID]  
+﻿-- Procedure
+
+--  [dbo].[usp_GetAdjustmentCommitmentByDealID]'b0e6697b-3534-4c09-be0a-04473401ab93','1D3AF6F9-818D-4CB5-BAF5-C41870A802DF'
+CREATE PROCEDURE [dbo].[usp_GetAdjustmentCommitmentByDealID]  
 (
     @UserID UNIQUEIDENTIFIER,
     @DealID UNIQUEIDENTIFIER
@@ -124,7 +124,7 @@ Select max(ISNULL(n1.ActualPayOffDate,ISNULL(currMat.MaturityDate,n1.FullyExtend
 										TotalAdditionalEquity decimal(28,15) null,
 									    Amount decimal(28,15),
 										CommitmentType nvarchar(256),
-										ExcludeFromCommitmentCalculation bit null,
+										--ExcludeFromCommitmentCalculation bit null,
 										TotalEquityatClosing decimal(28,15) null,
 									)
 
@@ -151,7 +151,7 @@ Select max(ISNULL(n1.ActualPayOffDate,ISNULL(currMat.MaturityDate,n1.FullyExtend
 											TotalAdditionalEquity decimal(28,15) NULL,
 											Amount decimal(28,15),
 											CommitmentType nvarchar(256),
-											ExcludeFromCommitmentCalculation bit null,
+											--ExcludeFromCommitmentCalculation bit null,
 											TotalEquityatClosing decimal(28,15) NULL,
 										 )
 
@@ -205,9 +205,10 @@ Select max(ISNULL(n1.ActualPayOffDate,ISNULL(currMat.MaturityDate,n1.FullyExtend
 												 FundingAmount decimal(28,15) null,
 												 PurposeID int null,
 												 PurposeText nvarchar(256) null,
-												 Applied int null
+												 Applied int null,
+												 ActualPayoffdate Date
 												)
-		INSERT INTO #TempFutureFudningDataTable (DealID,NoteID,CRENoteID,NoteName,EffectiveStartDate,FundingDate,FundingAmount,PurposeID,PurposeText, Applied)
+		INSERT INTO #TempFutureFudningDataTable (DealID,NoteID,CRENoteID,NoteName,EffectiveStartDate,FundingDate,FundingAmount,PurposeID,PurposeText, Applied,ActualPayoffdate)
 		Select
 				d.dealid,
 				n.noteid,
@@ -218,7 +219,8 @@ Select max(ISNULL(n1.ActualPayOffDate,ISNULL(currMat.MaturityDate,n1.FullyExtend
 				fs.value as FundingAmount,
 				fs.PurposeID,
 				LPurposeID.Name as PurposeText,
-				fs.Applied
+				fs.Applied,
+				n.ActualPayoffdate
 				from [CORE].FundingSchedule fs
 				INNER JOIN [CORE].[Event] e on e.EventID = fs.EventId
 				INNER JOIN(						
@@ -241,11 +243,11 @@ Select max(ISNULL(n1.ActualPayOffDate,ISNULL(currMat.MaturityDate,n1.FullyExtend
 				INNER JOIN [CRE].[Note] n ON n.Account_AccountID = acc.AccountID
 				Inner join cre.deal d on d.dealid = n.dealid
 				where sEvent.StatusID = e.StatusID  and acc.IsDeleted = 0
-
+				and ISNULL(fs.AdjustmentType,836) not in (834,835,896)
 
 		---=========================ClosingDate Query==============================------------
 		INSERT INTO #TempDataTable(NoteAdjustedCommitmentMasterID,CRENoteID,NoteID,[Type],[Date],TypeText,DealAdjustmentHistory,AdjustedCommitment,TotalCommitment,
-		AggregatedCommitment,NoteAdjustedCommitment,NoteTotalCommitment,NoteAggregatedCommitment,Comments,lienposition,[priority],InitialFundingAmount,NoteName,TotalRequiredEquity,TotalAdditionalEquity, Amount,CommitmentType,ExcludeFromCommitmentCalculation,TotalEquityatClosing)
+		AggregatedCommitment,NoteAdjustedCommitment,NoteTotalCommitment,NoteAggregatedCommitment,Comments,lienposition,[priority],InitialFundingAmount,NoteName,TotalRequiredEquity,TotalAdditionalEquity, Amount,CommitmentType,TotalEquityatClosing)
 																																								
 		SELECT  0,
 				n.CRENoteID,
@@ -269,7 +271,7 @@ Select max(ISNULL(n1.ActualPayOffDate,ISNULL(currMat.MaturityDate,n1.FullyExtend
 				(SELECT top 1 ISNULL(TotalAdditionalEquity,0) from cre.NoteAdjustedCommitmentMaster where dealid=@DealID and Date = c.ClosingDate and Type = '637'),
 				ISNULL(c.OriginalTotalCommitment,0) as Amount,
 				'Closing' as CommitmentType,
-				(SELECT top 1 ISNULL(ExcludeFromCommitmentCalculation,0) from cre.NoteAdjustedCommitmentMaster where dealid=@DealID and Date = c.ClosingDate and Type = '637'),
+				--(SELECT top 1 ISNULL(ExcludeFromCommitmentCalculation,0) from cre.NoteAdjustedCommitmentMaster where dealid=@DealID and Date = c.ClosingDate and Type = '637'),
 				(SELECT top 1 ISNULL(TotalEquityatClosing,0) from cre.NoteAdjustedCommitmentMaster where dealid=@DealID and Date = c.ClosingDate and Type = '637')
 
 		FROM CRE.Note n 
@@ -289,13 +291,14 @@ Select max(ISNULL(n1.ActualPayOffDate,ISNULL(currMat.MaturityDate,n1.FullyExtend
 		
 		----===========PrePaymentQuery=====================--------
 		INSERT INTO #TempDataTable(NoteAdjustedCommitmentMasterID,CRENoteID,NoteID,[Type],[Date],TypeText,DealAdjustmentHistory,AdjustedCommitment,
-		TotalCommitment,AggregatedCommitment,NoteAdjustedCommitment,NoteTotalCommitment,NoteAggregatedCommitment,Comments,lienposition,[priority],InitialFundingAmount,NoteName,TotalRequiredEquity,TotalAdditionalEquity,Amount,CommitmentType,ExcludeFromCommitmentCalculation,TotalEquityatClosing)
+		TotalCommitment,AggregatedCommitment,NoteAdjustedCommitment,NoteTotalCommitment,NoteAggregatedCommitment,Comments,lienposition,[priority],InitialFundingAmount,NoteName,TotalRequiredEquity,TotalAdditionalEquity,Amount,CommitmentType,TotalEquityatClosing)
+
 		SELECT  0,
 				n.CRENoteID, 
 				n.NoteID,
-				'638' as Type,
+				(CASE WHEN t.PurposeID = 840 THEN '876' ELSE '638' END) as Type,
 				CAST(t.FundingDate as Date),
-				'Prepayment' as Typetext,
+				(CASE WHEN t.PurposeID = 840 THEN 'Principal Writeoff Curtailment' ELSE 'Prepayment' END)  as Typetext,
 				0,
 				0,
 				0,
@@ -311,8 +314,8 @@ Select max(ISNULL(n1.ActualPayOffDate,ISNULL(currMat.MaturityDate,n1.FullyExtend
 				(SELECT top 1 ISNULL(TotalRequiredEquity,0) from cre.NoteAdjustedCommitmentMaster where dealid=@DealID and Date = t.FundingDate and Type = '638'),
 				(SELECT top 1 ISNULL(TotalAdditionalEquity,0) from cre.NoteAdjustedCommitmentMaster where dealid=@DealID and Date = t.FundingDate and Type = '638'),
 				SUM(ISNULL(t.FundingAmount,0)) as Amount,
-				'Prepayment' as CommitmentType,
-				(SELECT top 1 ISNULL(ExcludeFromCommitmentCalculation,0) from cre.NoteAdjustedCommitmentMaster where dealid=@DealID and Date = t.FundingDate and Type = '638'),
+				(CASE WHEN t.PurposeID = 840 THEN 'Principal Writeoff Curtailment' ELSE 'Prepayment' END) as CommitmentType,
+				--(SELECT top 1 ISNULL(ExcludeFromCommitmentCalculation,0) from cre.NoteAdjustedCommitmentMaster where dealid=@DealID and Date = t.FundingDate and Type = '638'),
 				0 as TotalEquityatClosing
 		FROM CRE.Note n 
 		inner join cre.deal d1 on d1.dealid = n.dealid
@@ -323,61 +326,80 @@ Select max(ISNULL(n1.ActualPayOffDate,ISNULL(currMat.MaturityDate,n1.FullyExtend
 		and t.FundingDate <= (SELECT Maturity FROM #tempMaturityTable)
 		and t.FundingDate <= @userdate
 		--and t.Applied = 1
-		and t.PurposeID in (315,630,631)
+		and t.PurposeID in (315,630,631,840)
 		and t.FundingAmount < 0
-		group by n.CRENoteID, t.FundingDate,n.NoteID,n.lienposition,n.priority,n.InitialFundingAmount,acc.name
+		group by n.CRENoteID, t.FundingDate,n.NoteID,n.lienposition,n.priority,n.InitialFundingAmount,acc.name,t.PurposeID
 		order by t.FundingDate asc
 
 		-------==============Prepayment Query for Balloon Payment======------------
-		INSERT INTO #TempDataTable(NoteAdjustedCommitmentMasterID,CRENoteID,NoteID,[Type],[Date],TypeText,DealAdjustmentHistory,AdjustedCommitment,
-		TotalCommitment,AggregatedCommitment,NoteAdjustedCommitment,NoteTotalCommitment,NoteAggregatedCommitment,Comments,lienposition,[priority],InitialFundingAmount,NoteName,TotalRequiredEquity,TotalAdditionalEquity,Amount,CommitmentType,ExcludeFromCommitmentCalculation,TotalEquityatClosing)
+		INSERT INTO #TempDataTable(NoteAdjustedCommitmentMasterID,CRENoteID,NoteID,[Type],[Date],TypeText,DealAdjustmentHistory,AdjustedCommitment,TotalCommitment,AggregatedCommitment,NoteAdjustedCommitment,NoteTotalCommitment,NoteAggregatedCommitment,Comments,lienposition,[priority],InitialFundingAmount,NoteName,TotalRequiredEquity,TotalAdditionalEquity,Amount,CommitmentType,TotalEquityatClosing)
+
 		SELECT  0,
-				n.CRENoteID, 
-				n.NoteID,
-				'638' as Type,
-				CAST(Date as Date),
-				'Prepayment' as Typetext,
-				0,
-				0,
-				0,
-				0,
-				0,
-				0,
-				0,
-				null,
-				n.lienposition,
-				n.priority,
-				n.InitialFundingAmount,
-				acc.name,
-				(SELECT top 1 ISNULL(TotalRequiredEquity,0) from cre.NoteAdjustedCommitmentMaster where dealid=@DealID and Date = a.Date and Type = '638'),
-				(SELECT top 1 ISNULL(TotalAdditionalEquity,0) from cre.NoteAdjustedCommitmentMaster where dealid=@DealID and Date = a.Date and Type = '638'),
-				ISNULL(-1 * a.BalloonPayment,0) as Amount,
-				'BalloonPayment' as CommitmentType,
-				(SELECT top 1 ISNULL(ExcludeFromCommitmentCalculation,0) from cre.NoteAdjustedCommitmentMaster where dealid=@DealID and Date = a.Date and Type = '638'),
-				0  as TotalEquityatClosing
+		n.CRENoteID, 
+		n.NoteID,
+		'638' as Type,
+		CAST(Date as Date),
+		'Prepayment' as Typetext,
+		0,
+		0,
+		0,
+		0,
+		0,
+		0,
+		0,
+		null,
+		n.lienposition,
+		n.priority,
+		n.InitialFundingAmount,
+		acc.name,
+		(SELECT top 1 ISNULL(TotalRequiredEquity,0) from cre.NoteAdjustedCommitmentMaster where dealid=@DealID and Date = a.Date and Type = '638'),
+		(SELECT top 1 ISNULL(TotalAdditionalEquity,0) from cre.NoteAdjustedCommitmentMaster where dealid=@DealID and Date = a.Date and Type = '638'),
+		
+		ISNULL(-1 * (a.BalloonPayment - ISNULL(BalloonRepayAmount,0)),0) as Amount,
+		--(CASE WHEN a.Remitdate is not null THEN (-1 * ISNULL(a.BalloonPayment,0)) ELSE ISNULL(-1 * (a.BalloonPayment - ISNULL(BalloonRepayAmount,0)),0) END) as Amount,
+		
+		
+		'BalloonPayment' as CommitmentType,
+		--(SELECT top 1 ISNULL(ExcludeFromCommitmentCalculation,0) from cre.NoteAdjustedCommitmentMaster where dealid=@DealID and Date = a.Date and Type = '638'),
+		0  as TotalEquityatClosing
 		FROM CRE.Note n 
 		left join core.account acc on acc.AccountID = n.Account_AccountID
 		inner join (
-						select Distinct np.noteid,Date,ISNULL(Amount,0) BalloonPayment
-						from [CRE].[TransactionEntry] np
-						Inner join cre.note nn on nn.NoteID = np.NoteID
-						where nn.dealid = @DealID
-						and type='Balloon'
-						and Date <= getdate()
-						and Amount <> 0.01
-						and AnalysisID = @Analysisid
-						)a on a.NoteID = n.NoteID
-		--inner join (Select noteid,(-1 * BalloonPayment) as BalloonPayment,PeriodEndDate from(
-		--			select Distinct np.noteid,PeriodEndDate,ISNULL(BalloonPayment,0) BalloonPayment,
-		--			ROW_NUMBER() Over (Partition by np.noteid Order by np.noteid,np.PeriodEndDate desc) as rno
-		--			from [CRE].[NotePeriodicCalc] np
-		--			Inner join cre.note nn on nn.NoteID = np.NoteID
-		--			where nn.dealid = @DealID
-		--			and BalloonPayment<>0
-		--			--and PeriodEndDate <= CAST(@todaysDate as Date) 
-		--			and PeriodEndDate <= ([dbo].[ufn_GetTimeByTimeZone] (@todaysDate,@UserID))
-		--			and AnalysisID = @Analysisid and np.[Month] is not null
-		--			)a where a.rno = 1)bp on bp.NoteId = n.NoteID
+			select Distinct nn.noteid,Date
+			,(CASE WHEN nn.InitialFundingAmount = 0.01 THEN (ISNULL(Amount,0) - 0.01) ELSE ISNULL(Amount,0) END )  BalloonPayment
+			,BalloonRepayAmount
+			,np.Remitdate
+			from [CRE].[TransactionEntry] np
+			Inner join cre.note nn on nn.Account_Accountid = np.Accountid
+			where nn.dealid = @DealID
+			and type='Balloon'
+			and Date <= getdate()
+			and Amount <> 0.01
+			and AnalysisID = @Analysisid
+		)a on a.NoteID = n.NoteID
+		--Left join(
+		--	Select NoteID,FundingDate,SUM(FundingAmount) as FFRepay_OnActualPayOff
+		--	from [#TempFutureFudningDataTable] t
+		--	where FundingDate = ActualPayoffdate 		
+		--	and t.FundingDate <= (SELECT Maturity FROM #tempMaturityTable)
+		--	and t.FundingDate <= @userdate
+		--	and t.PurposeID in (315,630,631)
+		--	and t.FundingAmount < 0
+		--	Group By NoteID,FundingDate
+		--)ff on ff.NoteID = n.NoteID
+
+		--inner join (
+			--Select noteid,(-1 * BalloonPayment) as BalloonPayment,PeriodEndDate from(
+			--select Distinct np.noteid,PeriodEndDate,ISNULL(BalloonPayment,0) BalloonPayment,
+			--ROW_NUMBER() Over (Partition by np.noteid Order by np.noteid,np.PeriodEndDate desc) as rno
+			--from [CRE].[NotePeriodicCalc] np
+			--Inner join cre.note nn on nn.NoteID = np.NoteID
+			--where nn.dealid = @DealID
+			--and BalloonPayment<>0
+			----and PeriodEndDate <= CAST(@todaysDate as Date) 
+			--and PeriodEndDate <= ([dbo].[ufn_GetTimeByTimeZone] (@todaysDate,@UserID))
+			--and AnalysisID = @Analysisid and np.[Month] is not null
+		--)a where a.rno = 1)bp on bp.NoteId = n.NoteID
 		where n.DealID = @DealID
 		
 
@@ -385,7 +407,8 @@ Select max(ISNULL(n1.ActualPayOffDate,ISNULL(currMat.MaturityDate,n1.FullyExtend
 		
 		
 		INSERT INTO #TempDataTable(NoteAdjustedCommitmentMasterID,CRENoteID,NoteID,[Type],[Date],TypeText,DealAdjustmentHistory,AdjustedCommitment,
-		TotalCommitment,AggregatedCommitment,NoteAdjustedCommitment,NoteTotalCommitment,NoteAggregatedCommitment,Comments,lienposition,[priority],InitialFundingAmount,NoteName,TotalRequiredEquity,TotalAdditionalEquity,Amount,CommitmentType,ExcludeFromCommitmentCalculation,TotalEquityatClosing)
+		TotalCommitment,AggregatedCommitment,NoteAdjustedCommitment,NoteTotalCommitment,NoteAggregatedCommitment,Comments,lienposition,[priority],InitialFundingAmount,NoteName,TotalRequiredEquity,TotalAdditionalEquity,Amount,CommitmentType,TotalEquityatClosing)
+
 		SELECT  0,
 				n.CRENoteID, 
 				n.NoteID,
@@ -408,15 +431,17 @@ Select max(ISNULL(n1.ActualPayOffDate,ISNULL(currMat.MaturityDate,n1.FullyExtend
 				(SELECT top 1 ISNULL(TotalAdditionalEquity,0) from cre.NoteAdjustedCommitmentMaster where dealid=@DealID and Date = a.Date and Type = '638'),
 				ISNULL(-1 * a.BalloonPayment,0) as Amount,
 				'PIKPrincipalFunding' as CommitmentType,
-				(SELECT top 1 ISNULL(ExcludeFromCommitmentCalculation,0) from cre.NoteAdjustedCommitmentMaster where dealid=@DealID and Date = a.Date and Type = '638'),
+				--(SELECT top 1 ISNULL(ExcludeFromCommitmentCalculation,0) from cre.NoteAdjustedCommitmentMaster where dealid=@DealID and Date = a.Date and Type = '638'),
 				0 as TotalEquityatClosing
 		FROM CRE.Note n 
 		left join core.account acc on acc.AccountID = n.Account_AccountID
 		inner join (
-						select Distinct np.noteid,Date,ISNULL(Amount,0) BalloonPayment
+						select Distinct nn.noteid,Date,ISNULL(Amount,0) BalloonPayment
 						from [CRE].[TransactionEntry] np
-						Inner join cre.note nn on nn.NoteID = np.NoteID
+						Inner join cre.note nn on nn.Account_accountid = np.Accountid
 						where nn.dealid = @DealID
+
+
 						and type='PIKPrincipalFunding'
 						and Date <= getdate()
 						and Amount <> 0.01
@@ -428,7 +453,8 @@ Select max(ISNULL(n1.ActualPayOffDate,ISNULL(currMat.MaturityDate,n1.FullyExtend
 		---=====================================PIKPrincipalPaid====================================
 
 		INSERT INTO #TempDataTable(NoteAdjustedCommitmentMasterID,CRENoteID,NoteID,[Type],[Date],TypeText,DealAdjustmentHistory,AdjustedCommitment,
-		TotalCommitment,AggregatedCommitment,NoteAdjustedCommitment,NoteTotalCommitment,NoteAggregatedCommitment,Comments,lienposition,[priority],InitialFundingAmount,NoteName,TotalRequiredEquity,TotalAdditionalEquity,Amount,CommitmentType,ExcludeFromCommitmentCalculation,TotalEquityatClosing)
+		TotalCommitment,AggregatedCommitment,NoteAdjustedCommitment,NoteTotalCommitment,NoteAggregatedCommitment,Comments,lienposition,[priority],InitialFundingAmount,NoteName,TotalRequiredEquity,TotalAdditionalEquity,Amount,CommitmentType,TotalEquityatClosing)
+
 		SELECT  0,
 				n.CRENoteID, 
 				n.NoteID,
@@ -451,15 +477,17 @@ Select max(ISNULL(n1.ActualPayOffDate,ISNULL(currMat.MaturityDate,n1.FullyExtend
 				(SELECT top 1 ISNULL(TotalAdditionalEquity,0) from cre.NoteAdjustedCommitmentMaster where dealid=@DealID and Date = a.Date and Type = '638'),
 				ISNULL(-1 * a.BalloonPayment,0) as Amount,
 				'PIKPrincipalPaid' as CommitmentType,
-				(SELECT top 1 ISNULL(ExcludeFromCommitmentCalculation,0) from cre.NoteAdjustedCommitmentMaster where dealid=@DealID and Date = a.Date and Type = '638'),
+				--(SELECT top 1 ISNULL(ExcludeFromCommitmentCalculation,0) from cre.NoteAdjustedCommitmentMaster where dealid=@DealID and Date = a.Date and Type = '638'),
 				0 as TotalEquityatClosing
 		FROM CRE.Note n 
 		left join core.account acc on acc.AccountID = n.Account_AccountID
 		inner join (
-						select Distinct np.noteid,Date,ISNULL(Amount,0) BalloonPayment
+						select Distinct nn.noteid,Date,ISNULL(Amount,0) BalloonPayment
 						from [CRE].[TransactionEntry] np
-						Inner join cre.note nn on nn.NoteID = np.NoteID
+						Inner join cre.note nn on nn.Account_accountid = np.Accountid
 						where nn.dealid = @DealID
+
+
 						and type='PIKPrincipalPaid'
 						and Date <= getdate()
 						and Amount <> 0.01
@@ -470,7 +498,8 @@ Select max(ISNULL(n1.ActualPayOffDate,ISNULL(currMat.MaturityDate,n1.FullyExtend
 
 		----===========Scheduled Principal Query=====================--------
 		INSERT INTO #TempDataTable(NoteAdjustedCommitmentMasterID,CRENoteID,NoteID,[Type],[Date],TypeText,DealAdjustmentHistory,AdjustedCommitment,
-		TotalCommitment,AggregatedCommitment,NoteAdjustedCommitment,NoteTotalCommitment,NoteAggregatedCommitment,Comments,lienposition,[priority],InitialFundingAmount,NoteName,TotalRequiredEquity,TotalAdditionalEquity,Amount,CommitmentType,ExcludeFromCommitmentCalculation,TotalEquityatClosing)
+		TotalCommitment,AggregatedCommitment,NoteAdjustedCommitment,NoteTotalCommitment,NoteAggregatedCommitment,Comments,lienposition,[priority],InitialFundingAmount,NoteName,TotalRequiredEquity,TotalAdditionalEquity,Amount,CommitmentType,TotalEquityatClosing)
+
 		SELECT  0,
 				n.CRENoteID, 
 				n.NoteID,
@@ -493,7 +522,7 @@ Select max(ISNULL(n1.ActualPayOffDate,ISNULL(currMat.MaturityDate,n1.FullyExtend
 				(SELECT top 1 ISNULL(TotalAdditionalEquity,0) from cre.NoteAdjustedCommitmentMaster where dealid=@DealID and Date = t.FundingDate and Type = '691'),
 				(SUM(ISNULL(t.FundingAmount,0))) as Amount,
 				'ScheduledPrincipal' as CommitmentType,
-				(SELECT top 1 ISNULL(ExcludeFromCommitmentCalculation,0) from cre.NoteAdjustedCommitmentMaster where dealid=@DealID and Date = t.FundingDate and Type = '691'),
+				--(SELECT top 1 ISNULL(ExcludeFromCommitmentCalculation,0) from cre.NoteAdjustedCommitmentMaster where dealid=@DealID and Date = t.FundingDate and Type = '691'),
 				0 as TotalEquityatClosing
 		--FROM CRE.Note n 
 		--inner join cre.deal d1 on d1.dealid = n.dealid
@@ -557,7 +586,7 @@ Select max(ISNULL(n1.ActualPayOffDate,ISNULL(currMat.MaturityDate,n1.FullyExtend
 				
 		----=======================Upsize/Mod ,NoteTranser and Curtailment Query======================-------
 		INSERT INTO #TempDataTable(NoteAdjustedCommitmentMasterID,CRENoteID,NoteID,[Type],[Date],TypeText,DealAdjustmentHistory,AdjustedCommitment,TotalCommitment,
-		AggregatedCommitment,NoteAdjustedCommitment,NoteTotalCommitment,NoteAggregatedCommitment,Comments,lienposition,[priority],InitialFundingAmount,NoteName,TotalRequiredEquity,TotalAdditionalEquity,Amount,CommitmentType,ExcludeFromCommitmentCalculation,TotalEquityatClosing)
+		AggregatedCommitment,NoteAdjustedCommitment,NoteTotalCommitment,NoteAggregatedCommitment,Comments,lienposition,[priority],InitialFundingAmount,NoteName,TotalRequiredEquity,TotalAdditionalEquity,Amount,CommitmentType,TotalEquityatClosing)
 		SELECT   nac.NoteAdjustedCommitmentMasterID,
 				 n.CRENoteID,
 				 n.NoteID,
@@ -580,7 +609,7 @@ Select max(ISNULL(n1.ActualPayOffDate,ISNULL(currMat.MaturityDate,n1.FullyExtend
 				ISNULL(nac.TotalAdditionalEquity,0),
 				nacd.[Value] as Amount,
 				'Others' as CommitmentType,
-				ISNULL(nac.ExcludeFromCommitmentCalculation,0),
+				--ISNULL(nac.ExcludeFromCommitmentCalculation,0),
 				0 as TotalEquityatClosing
 		FROM CRE.NoteAdjustedCommitmentMaster nac
 		left join CRE.NoteAdjustedCommitmentDetail nacd on nacd.NoteAdjustedCommitmentMasterID = nac.NoteAdjustedCommitmentMasterID
@@ -609,26 +638,29 @@ Select max(ISNULL(n1.ActualPayOffDate,ISNULL(currMat.MaturityDate,n1.FullyExtend
 	-----------==================================-------------------
 --	END
 
-	INSERT INTO #TempDataPivotTable(CRENoteID,NoteAdjustedCommitmentMasterID,[Type],[Date],[TypeText],DealAdjustmentHistory,AdjustedCommitment,TotalCommitment,AggregatedCommitment,Comments,lienposition,[priority],InitialFundingAmount,NoteName,SortOrder,TotalRequiredEquity,TotalAdditionalEquity,Amount,CommitmentType,ExcludeFromCommitmentCalculation,TotalEquityatClosing)   --
+	INSERT INTO #TempDataPivotTable(CRENoteID,NoteAdjustedCommitmentMasterID,[Type],[Date],[TypeText],DealAdjustmentHistory,AdjustedCommitment,TotalCommitment,AggregatedCommitment,Comments,lienposition,[priority],InitialFundingAmount,NoteName,SortOrder,TotalRequiredEquity,TotalAdditionalEquity,Amount,CommitmentType,TotalEquityatClosing)   --
 
 	
-	SELECT DISTINCT CRENoteID+'_Noteid',NoteAdjustedCommitmentMasterID,[Type],[Date],[TypeText],DealAdjustmentHistory,AdjustedCommitment,TotalCommitment,AggregatedCommitment,Comments,lienposition,[priority],InitialFundingAmount,NoteName,1,TotalRequiredEquity,TotalAdditionalEquity,Amount,CommitmentType,isnull(ExcludeFromCommitmentCalculation,0),ISNULL(TotalEquityatClosing,0)
+	SELECT DISTINCT CRENoteID+'_Noteid',NoteAdjustedCommitmentMasterID,[Type],[Date],[TypeText],DealAdjustmentHistory,AdjustedCommitment,TotalCommitment,AggregatedCommitment,Comments,lienposition,[priority],InitialFundingAmount,NoteName,1,TotalRequiredEquity,TotalAdditionalEquity,Amount,CommitmentType,ISNULL(TotalEquityatClosing,0)
+
 	FROM #TempDataTable	 		
 	
 	UNION ALL
 
-	SELECT DISTINCT CRENoteID +'_AdjustedCommitment' as CRENoteID, NoteAdjustedCommitmentMasterID,[Type],[Date],[TypeText],DealAdjustmentHistory,AdjustedCommitment,TotalCommitment,AggregatedCommitment,Comments,lienposition,[priority],InitialFundingAmount,NoteName,2,TotalRequiredEquity,TotalAdditionalEquity,NoteAdjustedCommitment as Amount,CommitmentType,isnull(ExcludeFromCommitmentCalculation,0),ISNULL(TotalEquityatClosing,0)
+	SELECT DISTINCT CRENoteID +'_AdjustedCommitment' as CRENoteID, NoteAdjustedCommitmentMasterID,[Type],[Date],[TypeText],DealAdjustmentHistory,AdjustedCommitment,TotalCommitment,AggregatedCommitment,Comments,lienposition,[priority],InitialFundingAmount,NoteName,2,TotalRequiredEquity,TotalAdditionalEquity,NoteAdjustedCommitment as Amount,CommitmentType,ISNULL(TotalEquityatClosing,0)
 	FROM #TempDataTable
 	
 
 	UNION ALL
 
-	SELECT DISTINCT CRENoteID +'_AggregateCommitment' as CRENoteID, NoteAdjustedCommitmentMasterID,[Type],[Date],[TypeText],DealAdjustmentHistory,AdjustedCommitment,TotalCommitment,AggregatedCommitment,Comments,lienposition,[priority],InitialFundingAmount,NoteName,3,TotalRequiredEquity,TotalAdditionalEquity,NoteAggregatedCommitment as Amount,CommitmentType,isnull(ExcludeFromCommitmentCalculation,0),ISNULL(TotalEquityatClosing,0)
+	SELECT DISTINCT CRENoteID +'_AggregateCommitment' as CRENoteID, NoteAdjustedCommitmentMasterID,[Type],[Date],[TypeText],DealAdjustmentHistory,AdjustedCommitment,TotalCommitment,AggregatedCommitment,Comments,lienposition,[priority],InitialFundingAmount,NoteName,3,TotalRequiredEquity,TotalAdditionalEquity,NoteAggregatedCommitment as Amount,CommitmentType,ISNULL(TotalEquityatClosing,0)
+
 	FROM #TempDataTable
 	
 
 	UNION ALL
-	SELECT  DISTINCT CRENoteID +'_TotalCommitment' as CRENoteID,NoteAdjustedCommitmentMasterID,[Type],[Date],[TypeText],DealAdjustmentHistory,AdjustedCommitment,TotalCommitment,AggregatedCommitment,Comments,lienposition,[priority],InitialFundingAmount,NoteName,4,TotalRequiredEquity,TotalAdditionalEquity,NoteTotalCommitment as Amount,CommitmentType,ExcludeFromCommitmentCalculation,ISNULL(TotalEquityatClosing,0)
+	SELECT  DISTINCT CRENoteID +'_TotalCommitment' as CRENoteID,NoteAdjustedCommitmentMasterID,[Type],[Date],[TypeText],DealAdjustmentHistory,AdjustedCommitment,TotalCommitment,AggregatedCommitment,Comments,lienposition,[priority],InitialFundingAmount,NoteName,4,TotalRequiredEquity,TotalAdditionalEquity,NoteTotalCommitment as Amount,CommitmentType,ISNULL(TotalEquityatClosing,0)
+
 	FROM #TempDataTable 
 
 	
@@ -651,10 +683,10 @@ Select max(ISNULL(n1.ActualPayOffDate,ISNULL(currMat.MaturityDate,n1.FullyExtend
 		
 								
 		SET @query =N'
-					SELECT NoteAdjustedCommitmentMasterID,Type,Date,TypeText,DealAdjustmentHistory,AdjustedCommitment,TotalCommitment,AggregatedCommitment,TotalRequiredEquity,TotalAdditionalEquity,Comments,' + @ColPivot1 + ',CommitmentType,ExcludeFromCommitmentCalculation,TotalEquityatClosing
+					SELECT NoteAdjustedCommitmentMasterID,Type,Date,TypeText,DealAdjustmentHistory,AdjustedCommitment,TotalCommitment,AggregatedCommitment,TotalRequiredEquity,TotalAdditionalEquity,Comments,' + @ColPivot1 + ',CommitmentType,TotalEquityatClosing
 					FROM (
 					SELECT CRENoteID,NoteAdjustedCommitmentMasterID,[Type],[Date],TypeText,DealAdjustmentHistory,AdjustedCommitment,TotalCommitment,AggregatedCommitment,TotalRequiredEquity,TotalAdditionalEquity,Comments,
-					ISNULL(Amount,0) as Amount,CommitmentType,ISNULL(ExcludeFromCommitmentCalculation,0) as ExcludeFromCommitmentCalculation,TotalEquityatClosing
+					ISNULL(Amount,0) as Amount,CommitmentType,TotalEquityatClosing
 					FROM #TempDataPivotTable
 					) temptable
 					PIVOT(SUM(Amount) For CRENoteID IN(' + @ColPivot + ')) as tab
@@ -667,5 +699,3 @@ Select max(ISNULL(n1.ActualPayOffDate,ISNULL(currMat.MaturityDate,n1.FullyExtend
 
 		SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 END
-GO
-

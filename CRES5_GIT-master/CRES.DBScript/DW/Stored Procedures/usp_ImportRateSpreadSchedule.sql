@@ -18,6 +18,9 @@ BEGIN
 
 Truncate table [DW].[L_RateSpreadScheduleBI]
 
+IF EXISTS(Select top 1 noteid from [DW].[L_NoteBI])
+BEGIN
+		
 INSERT INTO [DW].[L_RateSpreadScheduleBI](
 RateSpreadScheduleID,
 EventId,
@@ -88,6 +91,9 @@ Left Join(
 )tblLatest on tblLatest.accountid = n.account_accountid
 where e.StatusID = 1
 and acc.Isdeleted <> 1
+and n.noteid in (Select Distinct noteid from [DW].[L_NoteBI])
+
+END
 
 --and n.crenoteid in (
 --	Select Distinct n.crenoteid from [CORE].RateSpreadSchedule rs

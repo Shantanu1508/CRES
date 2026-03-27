@@ -1,6 +1,4 @@
-﻿
-
--- exec [dbo].[usp_IndexesBydates] 'b0e6697b-3534-4c09-be0a-04473401ab93','852224d0-0532-4ea7-9ef4-cb47c68b8833',null,'2015-02-01',0
+﻿-- exec [dbo].[usp_IndexesBydates] 'b0e6697b-3534-4c09-be0a-04473401ab93','852224d0-0532-4ea7-9ef4-cb47c68b8833',null,'2015-02-01',0
 
 CREATE PROCEDURE [dbo].[usp_GetIndexListByDates] --'0ffb2916-876a-4e3c-ae6d-86672aa1508d','0ffb2916-876a-4e3c-ae6d-86672aa1508d',null,'2017-01-10',0
 (
@@ -20,7 +18,7 @@ DECLARE @cols1 AS NVARCHAR(MAX),
 @query  AS NVARCHAR(MAX),
 @indexLookUPId int,
 @rowcount INT,
-@daysinterval int=30
+@daysinterval int=180
 
 Declare @MinDate Date;
 Declare @MaxDate Date;
@@ -208,7 +206,5 @@ END
 END
 SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 END
-
-
- 
+GO
 

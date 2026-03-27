@@ -31,7 +31,7 @@ BEGIN
 	From(
 		Select 
 	
-		tr.NoteID	
+		n.NoteID	
 		,tr.AnalysisID
 		,n.Crenoteid
 		,tr.Date	
@@ -45,12 +45,14 @@ BEGIN
 		,tr.FeeName
 		,an.Name as AnalysisName
 		from cre.transactionentry tr
-		inner join cre.note n on n.noteid = tr.noteid
+		Inner join core.account acc on acc.accountid = tr.AccountID
+       Inner join cre.note n on n.account_accountid = acc.accountid
+		--inner join cre.note n on n.noteid = tr.noteid
 		inner join core.analysis an on an.AnalysisID = tr.AnalysisID
 
 		inner join(
 			Select Distinct NoteID from [DW].[L_TransactionEntryBI]
-		)ltr on ltr.noteid = tr.noteid
+		)ltr on ltr.noteid = n.noteid
 
 		where tr.[type] in ('ScheduledPrincipalPaid','ExitFeeExcludedFromLevelYield','Balloon','FundingOrRepayment')	
 

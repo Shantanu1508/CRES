@@ -1,29 +1,44 @@
 ﻿CREATE TABLE [Core].[PIKSchedule] (
-    [PIKScheduleID]        UNIQUEIDENTIFIER DEFAULT (newid()) NOT NULL,
-    [EventID]              UNIQUEIDENTIFIER NOT NULL,
-    [SourceAccountID]      UNIQUEIDENTIFIER NULL,
-    [TargetAccountID]      UNIQUEIDENTIFIER NULL,
-    [AdditionalIntRate]    DECIMAL (28, 15) NULL,
-    [AdditionalSpread]     DECIMAL (28, 15) NULL,
-    [IndexFloor]           DECIMAL (28, 15) NULL,
-    [IntCompoundingRate]   DECIMAL (28, 15) NULL,
-    [IntCompoundingSpread] DECIMAL (28, 15) NULL,
-    [StartDate]            DATE             NULL,
-    [EndDate]              DATE             NULL,
-    [IntCapAmt]            DECIMAL (28, 15) NULL,
-    [PurBal]               DECIMAL (28, 15) NULL,
-    [AccCapBal]            DECIMAL (28, 15) NULL,
-    [CreatedBy]            NVARCHAR (256)   NULL,
-    [CreatedDate]          DATETIME         NULL,
-    [UpdatedBy]            NVARCHAR (256)   NULL,
-    [UpdatedDate]          DATETIME         NULL,
-    [PIKScheduleAutoID]    INT              IDENTITY (1, 1) NOT NULL,
-    [PIKReasonCodeID]      INT              NULL,
-    [PIKComments]          NVARCHAR (MAX)   NULL,
-    [PIKIntCalcMethodID]          INT              NULL,
+    [PIKScheduleID]          UNIQUEIDENTIFIER DEFAULT (newid()) NOT NULL,
+    [EventID]                UNIQUEIDENTIFIER NOT NULL,
+    [SourceAccountID]        UNIQUEIDENTIFIER NULL,
+    [TargetAccountID]        UNIQUEIDENTIFIER NULL,
+    [AdditionalIntRate]      DECIMAL (28, 15) NULL,
+    [AdditionalSpread]       DECIMAL (28, 15) NULL,
+    [IndexFloor]             DECIMAL (28, 15) NULL,
+    [IntCompoundingRate]     DECIMAL (28, 15) NULL,
+    [IntCompoundingSpread]   DECIMAL (28, 15) NULL,
+    [StartDate]              DATE             NULL,
+    [EndDate]                DATE             NULL,
+    [IntCapAmt]              DECIMAL (28, 15) NULL,
+    [PurBal]                 DECIMAL (28, 15) NULL,
+    [AccCapBal]              DECIMAL (28, 15) NULL,
+    [CreatedBy]              NVARCHAR (256)   NULL,
+    [CreatedDate]            DATETIME         NULL,
+    [UpdatedBy]              NVARCHAR (256)   NULL,
+    [UpdatedDate]            DATETIME         NULL,
+    [PIKScheduleAutoID]      INT              IDENTITY (1, 1) NOT NULL,
+    [PIKReasonCodeID]        INT              NULL,
+    [PIKComments]            NVARCHAR (MAX)   NULL,
+    [PIKIntCalcMethodID]     INT              NULL,
+    [PeriodicRateCapAmount]  DECIMAL (28, 15) NULL,
+    [PeriodicRateCapPercent] DECIMAL (28, 15) NULL,
+    [PIKPercentage]          DECIMAL (28, 15) NULL,
+    [PIKSetUp]               INT              NULL,
+    [IsDeleted]              BIT              NULL,
+    [PIKCurrentPayRate]      DECIMAL (28, 15) NULL,
+    [PIKSeparateCompounding] INT              NULL,
     CONSTRAINT [PK_PIKScheduleAutoID] PRIMARY KEY CLUSTERED ([PIKScheduleAutoID] ASC),
     CONSTRAINT [FK_PIKSchedule_EventID] FOREIGN KEY ([EventID]) REFERENCES [Core].[Event] ([EventID]),
     CONSTRAINT [FK_PIKSchedule_SourceAccountID] FOREIGN KEY ([SourceAccountID]) REFERENCES [Core].[Account] ([AccountID]),
     CONSTRAINT [FK_PIKSchedule_TargetAccountID] FOREIGN KEY ([TargetAccountID]) REFERENCES [Core].[Account] ([AccountID])
 );
 
+
+GO
+ALTER TABLE [Core].[PIKSchedule] ENABLE CHANGE_TRACKING WITH (TRACK_COLUMNS_UPDATED = ON);
+
+
+
+
+ 

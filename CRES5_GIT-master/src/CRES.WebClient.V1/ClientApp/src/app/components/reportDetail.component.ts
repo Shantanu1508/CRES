@@ -1,14 +1,16 @@
-import { Component } from "@angular/core";
-import { ActivatedRoute, Params} from '@angular/router';
+import { Component, ElementRef } from "@angular/core";
+import { ActivatedRoute, Params } from '@angular/router';
 import { ReportService } from './../core/services/report.service'
 import { SearchService } from '../core/services/search.service';
-import {  NgModule } from '@angular/core';
+import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule, Routes } from '@angular/router';
 import { UtilityService } from '../core/services/utility.service';
 import { Search } from "../core/domain/search.model";
 import * as pbi from 'powerbi-client';
+import appsettings from '../../../../appsettings.json';
+
 
 @Component({
 
@@ -31,21 +33,56 @@ export class ReportDetailComponent {
   public _pageSizeSearch: number = 10;
   public _pageIndexSearch: number = 1;
   public _MsgText: string = '';
+  public _isFetching: boolean = false;
+  public _dvEmptyReportMsg: boolean = false;
+  public _Showmessagediv: boolean = false;
+  public _ShowmessagedivMsg: string = '';
+  public powerbitenantid: string;
+  public iframurl: string;
+  public _IsRefreshVisible: boolean = false;
 
-  constructor(private activatedRoute: ActivatedRoute, public reportService: ReportService, public utilityService: UtilityService, public searchService: SearchService) {
+
+
+  constructor(private activatedRoute: ActivatedRoute, public reportService: ReportService, public utilityService: UtilityService, public searchService: SearchService, public hostElement: ElementRef) {
     this.activatedRoute.params.forEach((params: Params) => {
       this.activatedRoute.params.forEach((params: Params) => {
         if (params['id'] !== undefined) {
           this.powerbiReportId = params['id'];
         }
+        if (params['tenantid'] !== undefined) {
+          this.powerbitenantid = params['tenantid'];
+        }
       });
     });
 
-    this.showReport('reportContainer', this.powerbiReportId, '', true);
+    //this.showReport('reportContainer', this.powerbiReportId, '', true);
     this.utilityService.setPageTitle("M61-Reports");
     localStorage.setItem('powerbiReportId', this.powerbiReportId);
 
+    if (this.powerbiReportId.toLowerCase() == "12e682bc-12ec-455d-80e3-292636ab98c1" || this.powerbiReportId.toLowerCase() == '7ade1f57-80f3-4180-b01d-031b3b64094c') {
+
+      this._IsRefreshVisible = true;
+    }
+    else {
+      this._IsRefreshVisible = false;
+    }
+
   }
+  //ngOnInit() {
+  //  this.iframurl = "https://app.powerbi.com/reportEmbed?reportId=" + this.powerbiReportId + "&autoAuth=true&ctid=" + this.powerbitenantid;
+
+  //  this.safeUrl = this.sanitizer.bypassSecurityTrustHtml(this.iframurl);
+  //}
+
+  // ngOnInit
+
+  ngOnInit() {
+    this.iframurl = "https://app.powerbi.com/reportEmbed?reportId=" + this.powerbiReportId + "&autoAuth=true&ctid=" + this.powerbitenantid;
+    const iframe = this.hostElement.nativeElement.querySelector('iframe');
+    iframe.src = this.iframurl;
+  }
+
+
 
   getReport() {
     this.reportService.GetReportByID(this.powerbiReportId).subscribe(res => {
@@ -130,6 +167,32 @@ export class ReportDetailComponent {
       this.report.on("commandTriggered", command => {
         this.setCommandTriggered(command);
       });
+      this.report.off("visualClicked");
+      this.report.on("visualClicked", e => {
+        data = e.detail;
+        if (data.report.displayName == 'Additional Loan Calcs report') {
+
+          //if (data.visual.type == 'actionButton' && data.visual.name == 'bfd1860ea51071480b87') {
+          if (data.visual.type == 'actionButton') {
+            this.refreshReport();
+
+          }
+          console.log(data.report);
+
+        }
+        else if (data.report.displayName == 'Discrepancy Report') {
+
+          //if (data.visual.type == 'actionButton' && data.visual.name == 'bfd1860ea51071480b87') {
+          if (data.visual.type == 'actionButton') {
+            this.importBackshopTableForDiscrepancy();
+
+          }
+
+        }
+
+
+
+      });
 
     });
 
@@ -172,12 +235,12 @@ export class ReportDetailComponent {
     return extensions;
   }
 
+
   setCommandTriggered(command) {
     //Setting commands to be triggered when user click on extension method
-
     switch (command.detail.command) {
       case "DealID":
-        let Deal = command.detail.dataPoints[0].identity.filter(x => x.target.column == "DealID");
+        let Deal = command.detail.dataPoints[0].identity.filter(x => (x.target.column == "DealID" || x.target.column == "CREDealID"));
         if (Deal.length > 0) {
           window.open(window.location.origin + '/#/dealdetail/' + Deal[0].equals, '_blank');
         }
@@ -187,7 +250,7 @@ export class ReportDetailComponent {
         }
         break;
       case "NoteID":
-        let Note = command.detail.dataPoints[0].identity.filter(x => x.target.column == "NoteID");
+        let Note = command.detail.dataPoints[0].identity.filter(x => (x.target.column == "NoteID" || x.target.column == "CRENoteID"));
         if (Note.length > 0) {
           this._searchObj = new Search(Note[0].equals);
           this.searchService.getAutosuggestSearchData(this._searchObj, this._pageIndexSearch, this._pageSizeSearch).subscribe(res => {
@@ -207,6 +270,79 @@ export class ReportDetailComponent {
 
   public HideDialog(): void {
     $('#customdialogbox').hide();
+  }
+  //refreshReport
+  refreshReport() {
+
+    //var datasetID = '520a5f04-0f3f-4db5-af5d-cef13a10808d';
+    //var datasetID = '5fdfdeda-f61f-403b-a726-fbdb5f21bf2e';
+    var datasetID = appsettings._addLoanCalcDatasetID;
+
+    this._isFetching = true;
+    this.reportService.updatePowerBIReportDataset(datasetID).subscribe(res => {
+      this._isFetching = false;
+      document.getElementById("dvReportContainer").style.zIndex = "9";
+      this._Showmessagediv = true;
+      this._ShowmessagedivMsg = 'Report refreshed successfully.Please reload the report after 5 minutes to get the latest data.';
+      setTimeout(function () {
+        this._Showmessagediv = false;
+        this._ShowmessagedivMsg = '';
+        document.getElementById("dvReportContainer").style.zIndex = "0";
+      }.bind(this), 10000);
+    });
+    error => console.error('Error: ' + error)
+  }
+
+  importBackshopTableForDiscrepancy() {
+
+    //var datasetID = '520a5f04-0f3f-4db5-af5d-cef13a10808d';
+    //var datasetID = '5fdfdeda-f61f-403b-a726-fbdb5f21bf2e';
+    var datasetID = appsettings._addLoanCalcDatasetID;
+
+    this._isFetching = true;
+    this.reportService.importBackshopTableForDiscrepancy().subscribe(res => {
+
+      if (res.Succeeded) {
+        this._isFetching = false;
+        document.getElementById("dvReportContainer").style.zIndex = "9";
+        this._Showmessagediv = true;
+        this._ShowmessagedivMsg = 'Request sent successfully. Please reload the report after 3 to 5 minutes..';
+        setTimeout(function () {
+          this._Showmessagediv = false;
+          this._ShowmessagedivMsg = '';
+          document.getElementById("dvReportContainer").style.zIndex = "0";
+          //$('#reportContainer').empty();
+          //this.showReport('reportContainer', this.powerbiReportId, '', true);
+        }.bind(this), 10000);
+      }
+      else {
+
+        this._isFetching = false;
+        document.getElementById("dvReportContainer").style.zIndex = "9";
+        this._Showmessagediv = true;
+        this._ShowmessagedivMsg = 'Something went wrong.Please try after sometime.';
+        setTimeout(function () {
+          this._Showmessagediv = false;
+          this._ShowmessagedivMsg = '';
+          document.getElementById("dvReportContainer").style.zIndex = "0";
+          //$('#reportContainer').empty();
+          //this.showReport('reportContainer', this.powerbiReportId, '', true);
+        }.bind(this), 10000);
+      }
+
+    });
+    error => console.error('Error: ' + error)
+  }
+
+  refreshPBIReport() {
+
+    if (this.powerbiReportId.toLowerCase() == "12e682bc-12ec-455d-80e3-292636ab98c1") {
+
+      this.importBackshopTableForDiscrepancy();
+    }
+    else if (this.powerbiReportId.toLowerCase() == '7ade1f57-80f3-4180-b01d-031b3b64094c') {
+      this.refreshReport();
+    }
   }
 }
 

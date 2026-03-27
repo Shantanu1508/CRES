@@ -1,6 +1,4 @@
-﻿  
-    
-     
+﻿---- Procedure
 CREATE PROCEDURE [dbo].[usp_InsertUpdateNotePeriodicCalcByNoteIDUpdateColumn]     
  @noteAdditinallist tempNotePeriodicCalc READONLY,    
  @CreatedBy nvarchar(256),    
@@ -10,7 +8,7 @@ BEGIN
 SET NOCOUNT ON;    
     
 Declare @noteid UNIQUEIDENTIFIER= (Select top 1 NoteID from @noteAdditinallist)    
-    
+Declare @AccountId UNIQUEIDENTIFIER= (Select Account_Accountid from cre.note where noteid = @noteid)     
     
     
 IF(@ListName = 'gaap' )    
@@ -21,16 +19,18 @@ BEGIN
  from    
  (    
   Select     
-  [NoteID]    
+  nt.[NoteID]    
   ,[PeriodEndDate]     
   ,InvestmentBasis    
   ,EndingGAAPBookValue     
   ,@CreatedBy as UpdatedBy    
   ,GETDATE()  as UpdatedDate    
-  ,AnalysisID    
-  From  @noteAdditinallist    
+  ,AnalysisID  
+  ,n.Account_AccountID
+  From  @noteAdditinallist  nt
+  Inner Join cre.note n on n.NoteID = nt.NoteID
  )tblInvestmentBasis    
- where [CRE].[NotePeriodicCalc].NoteID = tblInvestmentBasis.NoteID and    
+ where [CRE].[NotePeriodicCalc].AccountID = tblInvestmentBasis.Account_AccountID and    
  [CRE].[NotePeriodicCalc].PeriodEndDate = tblInvestmentBasis.PeriodEndDate and    
  [CRE].[NotePeriodicCalc].AnalysisID = tblInvestmentBasis.AnalysisID     
     
@@ -38,7 +38,8 @@ BEGIN
     
  INSERT INTO [CRE].[NotePeriodicCalc]    
  (    
-  [NoteID]    
+  --[NoteID]    
+  AccountID
   ,[PeriodEndDate]    
   ,InvestmentBasis    
   ,EndingGAAPBookValue    
@@ -49,7 +50,8 @@ BEGIN
   ,AnalysisID    
  )    
  Select     
- [NoteID]    
+ --[NoteID]    
+ n.Account_AccountID
  ,[PeriodEndDate]    
  ,InvestmentBasis    
  ,EndingGAAPBookValue    
@@ -58,7 +60,9 @@ BEGIN
  ,@CreatedBy    
  ,GETDATE()    
  ,AnalysisID    
- From  @noteAdditinallist where PeriodEndDate not in (Select PeriodEndDate from cre.NotePeriodicCalc where NoteID = @noteid)    
+ From  @noteAdditinallist nt
+ Inner Join cre.note n on n.NoteID = nt.NoteID
+ where PeriodEndDate not in (Select PeriodEndDate from cre.NotePeriodicCalc where AccountID = @AccountId)    
     
 END    
     
@@ -70,16 +74,18 @@ BEGIN
  from    
  (    
   Select     
-  [NoteID]    
+  nt.[NoteID]    
   ,[PeriodEndDate]     
   ,LIBORPercentage    
   ,SpreadPercentage     
   ,@CreatedBy as UpdatedBy    
   ,GETDATE()  as UpdatedDate    
   ,AnalysisID    
-  From  @noteAdditinallist    
+  ,n.Account_AccountID
+  From  @noteAdditinallist    nt
+  Inner Join cre.note n on n.NoteID = nt.NoteID
  )tblInvestmentBasis    
- where [CRE].[NotePeriodicCalc].NoteID = tblInvestmentBasis.NoteID and    
+ where [CRE].[NotePeriodicCalc].AccountID = tblInvestmentBasis.Account_AccountID and    
  [CRE].[NotePeriodicCalc].PeriodEndDate = tblInvestmentBasis.PeriodEndDate and     
  [CRE].[NotePeriodicCalc].AnalysisID = tblInvestmentBasis.AnalysisID    
     
@@ -87,7 +93,8 @@ BEGIN
     
  INSERT INTO [CRE].[NotePeriodicCalc]    
  (    
-  [NoteID]    
+  --[NoteID]    
+  AccountID
   ,[PeriodEndDate]    
   ,LIBORPercentage    
   ,SpreadPercentage     
@@ -98,7 +105,8 @@ BEGIN
   ,AnalysisID    
  )    
  Select     
- [NoteID]    
+ --[NoteID]    
+ n.Account_AccountID
  ,[PeriodEndDate]    
  ,LIBORPercentage    
  ,SpreadPercentage     
@@ -107,7 +115,9 @@ BEGIN
  ,@CreatedBy    
  ,GETDATE()    
  ,AnalysisID    
- From  @noteAdditinallist where PeriodEndDate not in (Select PeriodEndDate from cre.NotePeriodicCalc where NoteID = @noteid)    
+ From  @noteAdditinallist nt
+ Inner Join cre.note n on n.NoteID = nt.NoteID
+ where PeriodEndDate not in (Select PeriodEndDate from cre.NotePeriodicCalc where AccountID = @AccountId)    
     
 END    
     

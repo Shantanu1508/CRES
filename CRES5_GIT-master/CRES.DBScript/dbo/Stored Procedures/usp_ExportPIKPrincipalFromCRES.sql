@@ -1,4 +1,5 @@
-﻿
+﻿-- Procedure
+
 CREATE PROCEDURE [dbo].[usp_ExportPIKPrincipalFromCRES] 
 (
 	@NoteID nvarchar(256),
@@ -7,6 +8,8 @@ CREATE PROCEDURE [dbo].[usp_ExportPIKPrincipalFromCRES]
 )
 AS
 BEGIN
+
+Declare @Cutoffdate date = CAST((select [Value] from app.appconfig where [key] = 'CutOffDate_BackshopExport') as date)
 
 
 Declare @NoteIDGuid UNIQUEIDENTIFIER
@@ -78,11 +81,13 @@ BEGIN
 		
 
 		from cre.transactionentry tr
-		inner join cre.note n on n.noteid = tr.noteid
+		Inner Join core.account acc on acc.accountid = tr.accountid
+		inner join cre.note n on n.account_accountid = acc.AccountID
 		where tr.AnalysisID = 'C10F3372-0FC2-4861-A9F5-148F1F80804F'
 		and [type] in ('PIKPrincipalFunding','PIKPrincipalPaid') 
 		and n.crenoteid = @NoteId
-		and tr.[Date] > '12/31/2019'
+		and acc.AccountTypeID = 1
+		and tr.[Date] > @Cutoffdate
 
 		--============Export FF to Backshop==============
 		IF EXISTS (SELECT routine_name  FROM   information_schema.routines WHERE  routine_name = 'sp_NoteFundingsDeleteByNoteIdPIK')

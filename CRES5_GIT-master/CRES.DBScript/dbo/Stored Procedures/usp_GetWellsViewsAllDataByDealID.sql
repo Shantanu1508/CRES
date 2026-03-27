@@ -76,8 +76,16 @@ BEGIN
   'v90'  as PmtAppString  ,                              
   'N'  as PartialPayments  ,                            
                             
-  (Case when n.IOTerm > 0 then 0                             
-  when n.IOTerm = 0 then (Select SUM(tr.Amount) from cre.TransactionEntry tr where tr.AnalysisID = @AnalysisID and tr.[Date] = n.FirstPaymentDate and  tr.[Type] in ('InterestPaid','ScheduledPrincipalPaid') and tr.NoteID = n.NoteID) else null end ) PandIconstant,                              
+  (Case when n.IOTerm > 0 then 0  when n.IOTerm = 0 then (
+		Select SUM(tr.Amount) 
+		from cre.TransactionEntry tr 
+		Inner Join core.account acc on acc.accountid = tr.accountid
+		inner join cre.note n on n.account_accountid = acc.AccountID
+		where tr.AnalysisID = @AnalysisID 
+		and tr.[Date] = n.FirstPaymentDate and  tr.[Type] in ('InterestPaid','ScheduledPrincipalPaid') 
+		and n.NoteID = n.NoteID
+	  ) else null end 
+  ) PandIconstant,                              
                             
                             
                             
@@ -316,8 +324,10 @@ BEGIN
   (                            
    Select rno,Noteid,PeriodEndDate,(allincouponrate*100) as allincouponrate                            
    From(                            
-   Select  ROW_NUMBER() OVER (PARTITION BY  Noteid  ORDER BY Noteid,PeriodEndDate) AS rno,Noteid,PeriodEndDate,allincouponrate from cre.noteperiodiccalc                             
-   where allincouponrate is not null   and AnalysisID = @AnalysisID                        
+       Select  ROW_NUMBER() OVER (PARTITION BY  n.Noteid  ORDER BY n.Noteid,PeriodEndDate) AS rno,n.Noteid,PeriodEndDate,allincouponrate 
+       from cre.noteperiodiccalc nc
+       Inner Join cre.note n on n.Account_AccountID = nc.AccountID      
+       where allincouponrate is not null   and AnalysisID = @AnalysisID                        
    )a                            
    where a.rno = 1                            
   )tblInterestRate on tblInterestRate.NoteId= n.NoteId                        
@@ -467,8 +477,10 @@ n.InitialFundingAmount,
   (                            
    Select rno,Noteid,PeriodEndDate,(allincouponrate*100) as allincouponrate                            
    From(                            
-   Select  ROW_NUMBER() OVER (PARTITION BY  Noteid  ORDER BY Noteid,PeriodEndDate) AS rno,Noteid,PeriodEndDate,allincouponrate from cre.noteperiodiccalc                             
-   where allincouponrate is not null      and AnalysisID = @AnalysisID                     
+        Select  ROW_NUMBER() OVER (PARTITION BY  n.Noteid  ORDER BY n.Noteid,PeriodEndDate) AS rno,n.Noteid,PeriodEndDate,allincouponrate 
+        from cre.noteperiodiccalc nc
+        Inner Join cre.note n on n.Account_AccountID = nc.AccountID      
+        where allincouponrate is not null      and AnalysisID = @AnalysisID                     
    )a                            
    where a.rno = 1             
   )tblInterestRate on tblInterestRate.NoteId= n.NoteId                          
@@ -848,7 +860,9 @@ n.InitialFundingAmount,
   (                            
   Select rno,Noteid,PeriodEndDate,(allincouponrate*100) as allincouponrate                            
   From(                            
-  Select  ROW_NUMBER() OVER (PARTITION BY  Noteid  ORDER BY Noteid,PeriodEndDate) AS rno,Noteid,PeriodEndDate,allincouponrate from cre.noteperiodiccalc                            
+  Select  ROW_NUMBER() OVER (PARTITION BY  n.Noteid  ORDER BY n.Noteid,PeriodEndDate) AS rno,n.Noteid,PeriodEndDate,allincouponrate 
+  from cre.noteperiodiccalc nc
+  Inner Join cre.note n on n.Account_AccountID = nc.AccountID
   where allincouponrate is not null  and AnalysisID = @AnalysisID                   
   )a                            
   where a.rno = 1                            

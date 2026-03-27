@@ -1,6 +1,4 @@
-﻿
-
-CREATE PROCEDURE [DW].[usp_MergeDeal]
+﻿CREATE PROCEDURE [DW].[usp_MergeDeal]
 
 @BatchLogId int
 
@@ -52,8 +50,8 @@ WHEN MATCHED THEN
 	DB.[DealState] = LDB.[DealState],
 	DB.[DealPropertyType] = LDB.[DealPropertyType],
 	DB.[FullyExtMaturityDate] = LDB.[FullyExtMaturityDate],
-	DB.[UnderwritingStatus]= LDB.[UnderwritingStatus],
-	
+	DB.[UnderwritingStatus]= LDB.[UnderwritingStatus],	
+
 	DB.[DealTypeBI] = LDB.[DealTypeBI],
 	DB.[LoanProgramBI] = LDB.[LoanProgramBI],
 	DB.[LoanPurposeBI] = LDB.[LoanPurposeBI],
@@ -84,7 +82,15 @@ WHEN MATCHED THEN
 	DB.BSState = LDB.BSState,
 	DB.MSA_NAME = LDB.MSA_NAME,
 	DB.LoanStatusID = LDB.LoanStatusID,
-	DB.LoanStatusBI = LDB.LoanStatusBI
+	DB.LoanStatusBI = LDB.LoanStatusBI,
+	DB.WatchlistStatus = LDB.WatchlistStatus,
+	DB.LiabilitySource = LDB.LiabilitySource,
+	DB.[LinkedDealID] = LDB.[LinkedDealID],
+	DB.[EnableAutoSpread] = LDB.[EnableAutoSpread],
+	DB.[EnableAutoSpreadRepayments] = LDB.[EnableAutoSpreadRepayments],
+	DB.[ApplyNoteLevelPaydowns] = LDB.[ApplyNoteLevelPaydowns],
+	DB.[CalcEngineType]  = LDB.[CalcEngineType],
+	DB.[CalcEngineTypeBI]  = LDB.[CalcEngineTypeBI]
 
 WHEN NOT MATCHED THEN
 	
@@ -149,7 +155,15 @@ WHEN NOT MATCHED THEN
 ,BSState
 ,MSA_NAME
 ,LoanStatusID
-,LoanStatusBI)
+,LoanStatusBI
+,WatchlistStatus
+,LiabilitySource
+,[LinkedDealID]              
+,[EnableAutoSpread]          
+,[EnableAutoSpreadRepayments]
+,[ApplyNoteLevelPaydowns]    
+,[CalcEngineType]            
+,[CalcEngineTypeBI] )
 
 VALUES (LDB.[DealID],
 LDB.[DealName],
@@ -211,7 +225,15 @@ LDB.BSCity,
 LDB.BSState,
 LDB.MSA_NAME,
 LDB.LoanStatusID,
-LDB.LoanStatusBI
+LDB.LoanStatusBI,
+LDB.WatchlistStatus,
+LDB.LiabilitySource,
+LDB.[LinkedDealID]  ,            
+LDB.[EnableAutoSpread]    ,      
+LDB.[EnableAutoSpreadRepayments],
+LDB.[ApplyNoteLevelPaydowns]   , 
+LDB.[CalcEngineType]       ,     
+LDB.[CalcEngineTypeBI] 
 );
 
 DECLARE @RowCount int
@@ -227,4 +249,5 @@ Print(char(9) +'usp_MergeDeal - ROWCOUNT = '+cast(@RowCount  as varchar(100)));
 
 
 END
+GO
 

@@ -1,4 +1,8 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
 
 namespace CRES.DataContract
 {
@@ -32,8 +36,8 @@ namespace CRES.DataContract
         public string Name { get; set; }
         public bool IsUsedInCalc { get; set; }
         public int? FeeNameTransID { get; set; }
-        public string FeeNameTransText { get; set; }
-
+        public string FeeNameTransText { get; set; }     
+        
 
         public int? ID { get; set; }
         public string NameText { get; set; }
@@ -41,9 +45,20 @@ namespace CRES.DataContract
         public bool? ExcludeFromCashflowDownload { get; set; }
         public int? InitialFundingID { get; set; }
         public string InitialFundingText { get; set; }
-
+       
         public int? M61AdjustedCommitmentID { get; set; }
         public string M61AdjustedCommitmentText { get; set; }
+
+        public int? PIKFundingID { get; set; }
+        public string PIKFundingText { get; set; }
+        public int? PIKPrincipalPaymentID { get; set; }
+        public string PIKPrincipalPaymentText { get; set; }
+        public int? CurtailmentID { get; set; }
+        public string CurtailmentText { get; set; }
+        public int? UpsizeAmountID { get; set; }
+        public string UpsizeAmountText { get; set; }
+        public int? UnfundedCommitmentID { get; set; }
+        public string UnfundedCommitmentText { get; set; }
 
     }
 }

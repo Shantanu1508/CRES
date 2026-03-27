@@ -1,10 +1,14 @@
 ﻿using CRES.DAL.IRepository;
+using CRES.DAL.Helper;
 using CRES.DataContract;
 using CRES.Utilities;
 using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Data.SqlClient;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
 
 namespace CRES.DAL.Repository
 {
@@ -43,13 +47,38 @@ namespace CRES.DAL.Repository
             {
                 RefreshLookupDataContract lookup = new RefreshLookupDataContract();
                 lookup.Name = Convert.ToString(dr["Name"]);
-                lookup.LookupID = Convert.ToInt32(dr["LookupID"]);
+                lookup.LookupID = Convert.ToString(dr["LookupID"]);
                 lookup.DisplayValues = Convert.ToString(dr["DisplayValues"]);
                 lookup.ParentID = Convert.ToInt32(dr["ParentId"]);
 
                 _lookuplist.Add(lookup);
             }
             return _lookuplist;
+
+        }
+
+        public List<RefreshTagXIRRDataContract> RefreshTagXIRR()
+        {
+            List<RefreshTagXIRRDataContract> _lsttagXIRR = new List<RefreshTagXIRRDataContract>();
+            Helper.Helper hp = new Helper.Helper();
+            DataTable dt = new DataTable();
+            dt = hp.ExecDataTable("usp_RefreshTagXIRR");
+            foreach (DataRow dr in dt.Rows)
+            {
+                RefreshTagXIRRDataContract tags = new RefreshTagXIRRDataContract();
+                tags.TableName = Convert.ToString(dr["TableName"]);
+                tags.TagName = Convert.ToString(dr["TagName"]);
+                tags.ObjectID = Convert.ToString(dr["ObjectID"]);
+                tags.NoteName = Convert.ToString(dr["NoteName"]);
+                tags.CREDealID = Convert.ToString(dr["CREDealID"]);
+                tags.DealName = Convert.ToString(dr["DealName"]);
+                tags.Location = Convert.ToString(dr["Location"]);
+                tags.PropertyType = Convert.ToString(dr["PropertyType"]);
+                tags.FinancingSourceType = Convert.ToString(dr["FinancingSourceType"]);
+
+                _lsttagXIRR.Add(tags);
+            }
+            return _lsttagXIRR;
 
         }
 
@@ -78,10 +107,13 @@ namespace CRES.DAL.Repository
                 SqlParameter p8 = new SqlParameter { ParameterName = "@DealPropertyType", Value = _dealDC.DealPropertyType };
                 SqlParameter p9 = new SqlParameter { ParameterName = "@TotalCommitment", Value = _dealDC.TotalCommitment.GetValueOrDefault(0) };
                 SqlParameter p10 = new SqlParameter { ParameterName = "@CreatedBy", Value = UserID };
+                SqlParameter p12 = new SqlParameter { ParameterName = "@EnableAutoSpread", Value = _dealDC.EnableAutoSpread };
+
                 SqlParameter p11 = new SqlParameter { ParameterName = "@NewDealID", Direction = ParameterDirection.Output, Size = int.MaxValue };
-                SqlParameter[] sqlparam = new SqlParameter[] { p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11 };
+                SqlParameter[] sqlparam = new SqlParameter[] { p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12 };
                 dt = hp.ExecDataTable("dbo.usp_SaveDealSizer", sqlparam);
                 var NewDealID = string.IsNullOrEmpty(Convert.ToString(p11.Value)) ? null : Convert.ToString(p11.Value);
+                _dealDC.DealID = new Guid(NewDealID);
 
                 foreach (var item in _dealDC.PayruleDealFundingList)
                 {
@@ -105,13 +137,11 @@ namespace CRES.DAL.Repository
                     SqlParameter q6 = new SqlParameter { ParameterName = "@IsCapitalized", Value = item.IsCapitalized };
                     SqlParameter q7 = new SqlParameter { ParameterName = "@LoanType", Value = item.LoanType };
                     SqlParameter q8 = new SqlParameter { ParameterName = "@PayFrequency", Value = item.PayFrequency };
-                    // SqlParameter q9 = new SqlParameter { ParameterName = "@InitialMaturityDate", Value = item.InitialMaturityDate == null ? (Object)DBNull.Value : item.InitialMaturityDate };
-                    // SqlParameter q10 = new SqlParameter { ParameterName = "@FullyExtendedMaturityDate", Value = item.FullyExtendedMaturityDate == null ? (Object)DBNull.Value : item.FullyExtendedMaturityDate };
+                    SqlParameter q9 = new SqlParameter { ParameterName = "@InitialMaturityDate", Value = item.InitialMaturityDate == null ? (Object)DBNull.Value : item.InitialMaturityDate };
+                    SqlParameter q10 = new SqlParameter { ParameterName = "@FullyExtendedMaturityDate", Value = item.FullyExtendedMaturityDate == null ? (Object)DBNull.Value : item.FullyExtendedMaturityDate };
                     SqlParameter q11 = new SqlParameter { ParameterName = "@ExpectedMaturityDate", Value = item.ExpectedMaturityDate == null ? (Object)DBNull.Value : item.ExpectedMaturityDate };
                     SqlParameter q12 = new SqlParameter { ParameterName = "@OpenPrepaymentDate", Value = item.OpenPrepaymentDate == null ? (Object)DBNull.Value : item.OpenPrepaymentDate };
-                    // SqlParameter q13 = new SqlParameter { ParameterName = "@ExtendedMaturityScenario1", Value = item.ExtendedMaturityScenario1 == null ? (Object)DBNull.Value : item.ExtendedMaturityScenario1 };
-                    // SqlParameter q14 = new SqlParameter { ParameterName = "@ExtendedMaturityScenario2", Value = item.ExtendedMaturityScenario2 == null ? (Object)DBNull.Value : item.ExtendedMaturityScenario2 };
-                    // SqlParameter q15 = new SqlParameter { ParameterName = "@ExtendedMaturityScenario3", Value = item.ExtendedMaturityScenario3 == null ? (Object)DBNull.Value : item.ExtendedMaturityScenario3 };
+
                     SqlParameter q16 = new SqlParameter { ParameterName = "@ActualPayoffDate", Value = item.ActualPayoffDate == null ? (Object)DBNull.Value : item.ActualPayoffDate };
                     SqlParameter q17 = new SqlParameter { ParameterName = "@InitialInterestAccrualEndDate", Value = item.InitialInterestAccrualEndDate == null ? (Object)DBNull.Value : item.InitialInterestAccrualEndDate };
                     SqlParameter q18 = new SqlParameter { ParameterName = "@AccrualFrequency", Value = item.AccrualFrequency };
@@ -197,14 +227,23 @@ namespace CRES.DAL.Repository
                     SqlParameter q99 = new SqlParameter { ParameterName = "@InterestCalculationRuleForPaydowns", Value = item.InterestCalculationRuleForPaydowns };
                     SqlParameter q100 = new SqlParameter { ParameterName = "@DebtTypeID", Value = item.DebtTypeID };
                     SqlParameter q101 = new SqlParameter { ParameterName = "@CapStack", Value = item.CapStack };
+                    SqlParameter q103 = new SqlParameter { ParameterName = "@LienPosition", Value = item.LienPosition };
+
+                    SqlParameter q104 = new SqlParameter { ParameterName = "@InterestCalculationRuleForPaydownsAmort ", Value = item.InterestCalculationRuleForPaydownsAmort };
+                    SqlParameter q105 = new SqlParameter { ParameterName = "@DayoftheMonth  ", Value = item.DayoftheMonth };
+                    SqlParameter q106 = new SqlParameter { ParameterName = "@RepaymentDayoftheMonth ", Value = item.RepaymentDayoftheMonth };
+                    SqlParameter q107 = new SqlParameter { ParameterName = "@FinancingSourceID ", Value = item.FinancingSourceID };
+                    SqlParameter q108 = new SqlParameter { ParameterName = "@ServicerNameID", Value = item.ServicerNameID };
+
                     SqlParameter q102 = new SqlParameter { ParameterName = "@NoteID", Direction = ParameterDirection.Output, Size = int.MaxValue };
-                    SqlParameter[] sqlparam1 = new SqlParameter[] { q1,q2,q3,q4,q5,q6,q7,q8,q11,q12,q16,q17,q18,q19,q20,q21,q22,q23,q24,q25,q26,q27,q28,q29,q30,q31,q32
+                    SqlParameter[] sqlparam1 = new SqlParameter[] { q1,q2,q3,q4,q5,q6,q7,q8,q9,q10,q11,q12,q16,q17,q18,q19,q20,q21,q22,q23,q24,q25,q26,q27,q28,q29,q30,q31,q32
                                                            ,q33,q34,q35,q36,q37,q38,q39,q40,q41,q42,q43,q44,q45,q46,q47,q48,q49,q50,q51,q52,q53,q54,q55,q56,q57,q58,q59,q60,q61,q62
                                                            ,q63,q64,q65,q66,q67,q68,q69,q70,q71,q72,q73,q74,q75,q76,q77,q78,q79,q80,q81,q82,q83,q84,q85,q86,q87,q89,q90,q91,q92
-                                                           ,q93,q94,q95,q96,q97,q98,q99,q100,q101, q102 };
+                                                           ,q93,q94,q95,q96,q97,q98,q99,q100,q101, q103, q104, q105, q106,q107,q108,q102 };
                     hp.ExecNonquery("dbo.usp_InsertNoteSizerForVSTO", sqlparam1);
                     var noteid = string.IsNullOrEmpty(Convert.ToString(q102.Value)) ? null : Convert.ToString(q102.Value);
                     arrayList.Add(noteid);
+                    item.NoteId = noteid;
 
                     //Delete NoteData of Sizer
                     SqlParameter r1 = new SqlParameter { ParameterName = "@CRENoteID", Value = item.CRENoteID };
@@ -238,7 +277,7 @@ namespace CRES.DAL.Repository
                         SqlParameter t9 = new SqlParameter { ParameterName = "@FeeAmountOverride", Value = prepayandadditionalfeeschedule.FeeAmountOverride };
                         SqlParameter t10 = new SqlParameter { ParameterName = "@BaseAmountOverride", Value = prepayandadditionalfeeschedule.BaseAmountOverride };
                         SqlParameter t11 = new SqlParameter { ParameterName = "@ApplyTrueUpFeature", Value = prepayandadditionalfeeschedule.ApplyTrueUpFeatureID };
-                        SqlParameter t12 = new SqlParameter { ParameterName = "@FeetobeStripped", Value = prepayandadditionalfeeschedule.FeeToBeStripped };
+                        SqlParameter t12 = new SqlParameter { ParameterName = "@FeetobeStripped", Value = prepayandadditionalfeeschedule.PercentageOfFeeToBeStripped };
                         SqlParameter t13 = new SqlParameter { ParameterName = "@UpdatedBy", Value = UserID };
                         SqlParameter[] sqlparam4 = new SqlParameter[] { t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11, t12, t13 };
                         hp.ExecNonquery("dbo.usp_InsertPrepayAndAdditionalFeeScheduleSizer", sqlparam4);
@@ -342,6 +381,7 @@ namespace CRES.DAL.Repository
                     }
                 }
                 _dealDC.Listnewnoteids = arrayList;
+                _dealDC.notelist = _dealDC.notelist;
                 return _dealDC;
             }
             catch (Exception ex)
@@ -456,6 +496,23 @@ namespace CRES.DAL.Repository
             return batchid;
         }
 
+        public int? AddTagXIRREntity(List<TagXIRREntityDataContract> dcTagXIRREntity, string UserID)
+        {
+            int? batchid = 0;
+
+            Helper.Helper hp = new Helper.Helper();
+            SqlParameter p1 = new SqlParameter { ParameterName = "@UserID", Value = UserID };
+            SqlParameter p2 = new SqlParameter { ParameterName = "@XMLGenericEntity", Value = dcTagXIRREntity.ToXML().Replace(" xsi:nil=\"true\"", "") };
+            SqlParameter[] sqlparam = new SqlParameter[] { p1, p2 };
+            DataTable dt = hp.ExecDataTable("dbo.usp_InsertIntoM61AddinLandingTagXIRR", sqlparam);
+
+            if (dt != null)
+            {
+                batchid = CommonHelper.ToInt32(dt.Rows[0].ItemArray[0]);
+            }
+            return batchid;
+        }
+
         public DataTable GetBatchUploadSummary(int? batchid)
         {
 
@@ -464,6 +521,28 @@ namespace CRES.DAL.Repository
             SqlParameter[] sqlparam = new SqlParameter[] { p1 };
             DataTable dt = hp.ExecDataTable("dbo.usp_GetBatchUploadSummary", sqlparam);
             return dt;
+        }
+
+        public DataTable GetBatchUploadSummaryTagXIRR(int? batchId)
+        {
+
+            Helper.Helper hp = new Helper.Helper();
+            SqlParameter p1 = new SqlParameter { ParameterName = "@BatchLog", Value = batchId };
+            SqlParameter[] sqlparam = new SqlParameter[] { p1 };
+            DataTable dt = hp.ExecDataTable("dbo.usp_GetBatchUploadSummaryTagXIRR", sqlparam);
+            return dt;
+        }
+
+
+        public void OpenClosePeriodForManualTransaction(int? batchid, string UserID)
+        {
+
+            Helper.Helper hp = new Helper.Helper();
+            SqlParameter p1 = new SqlParameter { ParameterName = "@BatchLogID", Value = batchid };
+            SqlParameter p2 = new SqlParameter { ParameterName = "@UserID", Value = UserID };
+            SqlParameter[] sqlparam = new SqlParameter[] { p1,p2 };
+            hp.ExecNonquery("dbo.usp_OpenClosePeriodForManualTransaction", sqlparam);
+            
         }
 
         public DataTable GetBatchUploadSummaryInvoices(int? batchid)
@@ -509,7 +588,6 @@ namespace CRES.DAL.Repository
         public List<string> GetNamedRangeUsedInBatchUpload()
         {
             List<string> rangelist = new List<string>();
-#pragma warning disable CS0168 // The variable 'ex' is declared but never used
             try
             {
                 Helper.Helper hp = new Helper.Helper();
@@ -524,7 +602,6 @@ namespace CRES.DAL.Repository
             catch (Exception ex)
             {
             }
-#pragma warning restore CS0168 // The variable 'ex' is declared but never used
             return rangelist;
         }
 
@@ -743,9 +820,7 @@ namespace CRES.DAL.Repository
         public GenericVSTOResult CheckCalculationStatus(int batchid)
         {
             GenericVSTOResult result = new GenericVSTOResult();
-#pragma warning disable CS0219 // The variable 'res' is assigned but its value is never used
             String res = "";
-#pragma warning restore CS0219 // The variable 'res' is assigned but its value is never used
             Helper.Helper hp = new Helper.Helper();
             DataTable dt = new DataTable();
             SqlParameter a1 = new SqlParameter { ParameterName = "@BatchLogID", Value = batchid };
@@ -760,6 +835,65 @@ namespace CRES.DAL.Repository
         }
 
         //CheckCalculationStatus
+
+        public string CheckDuplicateDealSettlement(String Credealid, string DealName, string Username, string Password)
+        {
+            
+            string res = "";
+            Helper.Helper hp = new Helper.Helper();
+            DataTable dt = new DataTable();
+            SqlParameter a1 = new SqlParameter { ParameterName = "@CREDealID", Value = Credealid };
+            SqlParameter a2 = new SqlParameter { ParameterName = "@DealName", Value = DealName };
+            SqlParameter a3 = new SqlParameter { ParameterName = "@Username", Value = Username };
+            SqlParameter a4 = new SqlParameter { ParameterName = "@Password", Value = Password };
+
+            SqlParameter[] sqlparam = new SqlParameter[] { a1, a2, a3, a4 };
+            dt = hp.ExecDataTable("dbo.usp_CheckDuplicateDealSettlement", sqlparam);
+
+            foreach (DataRow dr in dt.Rows)
+            {
+                res = Convert.ToString( dr[0]);                
+                           
+            }
+            return res;
+        }
+
+        public string CheckDuplicateNoteSettlement(String Credealid, string CRENoteID)
+        {
+
+            string res = "";
+            Helper.Helper hp = new Helper.Helper();
+            DataTable dt = new DataTable();
+            SqlParameter a1 = new SqlParameter { ParameterName = "@CREDealID", Value = Credealid };
+            SqlParameter a2 = new SqlParameter { ParameterName = "@CRENoteID", Value = CRENoteID };
+             
+            SqlParameter[] sqlparam = new SqlParameter[] { a1, a2 };
+            dt = hp.ExecDataTable("dbo.usp_CheckDuplicateNoteSettlement", sqlparam);
+
+            foreach (DataRow dr in dt.Rows)
+            {
+                res = Convert.ToString(dr[0]);
+
+            }
+            return res;
+        }
+        public DataTable CalculateXIRRAfterDealSave_FromSizer(String Credealid, string username)
+        {
+
+           
+            Helper.Helper hp = new Helper.Helper();
+            DataTable dt = new DataTable();
+            SqlParameter a1 = new SqlParameter { ParameterName = "@CREDealID", Value = Credealid };
+            SqlParameter a2 = new SqlParameter { ParameterName = "@UserId", Value = username };
+
+            SqlParameter[] sqlparam = new SqlParameter[] { a1, a2 };
+            dt = hp.ExecDataTable("dbo.usp_CalculateXIRRAfterDealSave_FromSizer", sqlparam);
+
+            
+            return dt;
+        }
+
+        //
 
         public List<TransactionEntryVSTO> GetTransactionEntryByBatchID(int batchID)
         {

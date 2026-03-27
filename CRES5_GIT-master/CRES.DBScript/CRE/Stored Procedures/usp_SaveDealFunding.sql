@@ -38,6 +38,7 @@ BEGIN
 	@Comment nvarchar(max),
 	@PurposeID int,
 	@Applied bit,
+	@NonCommitmentAdj bit,
 	@DrawFundingId nvarchar(256) ,
 	@DealFundingRowno int,
 	@EquityAmount decimal(28, 15) ,		
@@ -48,8 +49,9 @@ BEGIN
 
 	@RequiredEquity decimal(28, 15) ,
 	@AdditionalEquity decimal(28, 15) ,
-	@GeneratedBy  int 
-	
+	@GeneratedBy  int ,
+	@GeneratedByUserID  nvarchar(256) ,
+	@AdjustmentType int
 		
 	declare @TempDealFunding table
 	(
@@ -61,13 +63,16 @@ BEGIN
 	Comment nvarchar(max),
 	PurposeID int,
 	Applied bit,
+	NonCommitmentAdj bit,
 	DrawFundingId nvarchar(256) ,
 	DealFundingRowno int,
 	EquityAmount decimal(28, 15) ,	
 	CreatedBy nvarchar(256),
 	RequiredEquity decimal(28, 15) ,	
 	AdditionalEquity  decimal(28, 15) ,
-	GeneratedBy  int
+	GeneratedBy  int,
+    GeneratedByUserID nvarchar(256) ,
+	AdjustmentType int
 	)
 
 	INSERT INTO @TempDealFunding
@@ -80,18 +85,70 @@ BEGIN
 	nullif(Pers.value('(Comment)[1]', 'nvarchar(max)'), ''),
 	Pers.value('(PurposeID)[1]', 'INT'),
 	Pers.value('(Applied)[1]', 'bit'),
+	Pers.value('(NonCommitmentAdj)[1]', 'bit'),
 	nullif(Pers.value('(DrawFundingId)[1]', 'nvarchar(256)'), ''),
 	Pers.value('(DealFundingRowno)[1]', 'int'),	
 	Pers.value('(EquityAmount)[1]', 'decimal(28, 15)'),	
 	nullif(Pers.value('(CreatedBy)[1]', 'nvarchar(256)'), ''),
 	Pers.value('(RequiredEquity)[1]', 'decimal(28, 15)'),
 	Pers.value('(AdditionalEquity)[1]', 'decimal(28, 15)'),
-	Pers.value('(GeneratedBy)[1]', 'INT')	
+	Pers.value('(GeneratedBy)[1]', 'INT')	,
+	Pers.value('(GeneratedByUserID)[1]', 'nvarchar(256)')	,
+	Pers.value('(AdjustmentType)[1]', 'INT')	
 	FROM @XMLDealFunding.nodes('/ArrayOfPayruleDealFundingDataContract/PayruleDealFundingDataContract') as t(Pers)
 	WHERE Pers.value('(Value)[1]', 'varchar(256)') != ''
-
+	and Pers.value('(PurposeID)[1]', 'INT') <> 840
 
 	SET @DealID = (select top 1 DealID from @TempDealFunding)
+
+	------Principal writeoff temp table-----------
+	declare @TempDealFunding_PrincipalWriteOff table
+	(
+	ID int identity,
+	DealFundingID  uniqueidentifier,
+	DealID varchar(256),    
+	[Date] datetime,
+	Amount decimal(28, 15) ,	 
+	Comment nvarchar(max),
+	PurposeID int,
+	Applied bit,
+	NonCommitmentAdj bit,
+	DrawFundingId nvarchar(256) ,
+	DealFundingRowno int,
+	EquityAmount decimal(28, 15) ,	
+	CreatedBy nvarchar(256),
+	RequiredEquity decimal(28, 15) ,	
+	AdditionalEquity  decimal(28, 15) ,
+	GeneratedBy  int,
+    GeneratedByUserID nvarchar(256) ,
+	AdjustmentType int
+	)
+
+	INSERT INTO @TempDealFunding_PrincipalWriteOff
+	select 
+	ISNULL(nullif(Pers.value('(DealFundingID)[1]', 'varchar(256)'), ''),'00000000-0000-0000-0000-000000000000'),  
+	nullif(Pers.value('(DealID)[1]', 'varchar(256)'), ''),
+	Pers.value('(Date)[1]', 'datetime'),
+	Pers.value('(Value)[1]', 'decimal(28, 15)'),
+	nullif(Pers.value('(Comment)[1]', 'nvarchar(max)'), ''),
+	Pers.value('(PurposeID)[1]', 'INT'),
+	Pers.value('(Applied)[1]', 'bit'),
+	Pers.value('(NonCommitmentAdj)[1]', 'bit'),
+	nullif(Pers.value('(DrawFundingId)[1]', 'nvarchar(256)'), ''),
+	Pers.value('(DealFundingRowno)[1]', 'int'),	
+	Pers.value('(EquityAmount)[1]', 'decimal(28, 15)'),	
+	nullif(Pers.value('(CreatedBy)[1]', 'nvarchar(256)'), ''),
+	Pers.value('(RequiredEquity)[1]', 'decimal(28, 15)'),
+	Pers.value('(AdditionalEquity)[1]', 'decimal(28, 15)'),
+	Pers.value('(GeneratedBy)[1]', 'INT')	,
+	Pers.value('(GeneratedByUserID)[1]', 'nvarchar(256)')	,
+	Pers.value('(AdjustmentType)[1]', 'INT')	
+	FROM @XMLDealFunding.nodes('/ArrayOfPayruleDealFundingDataContract/PayruleDealFundingDataContract') as t(Pers)
+	WHERE Pers.value('(Value)[1]', 'varchar(256)') != ''
+	and Pers.value('(PurposeID)[1]', 'INT') = 840
+	---===============================
+
+	
 
 	declare @IsLegalDeal bit = 0;
 	
@@ -144,6 +201,7 @@ BEGIN
 		@Comment  = Comment,
 		@PurposeID =PurposeID,
 		@Applied = Applied,
+		@NonCommitmentAdj=NonCommitmentAdj,
 		@DrawFundingId = DrawFundingId,
 		@DealFundingRowno = DealFundingRowno,
 		@EquityAmount=EquityAmount,
@@ -151,7 +209,9 @@ BEGIN
 		@UpdatedBy = CreatedBy,
 		@RequiredEquity = RequiredEquity ,
 		@AdditionalEquity  =AdditionalEquity,
-		@GeneratedBy = GeneratedBy
+		@GeneratedBy = GeneratedBy,
+		@GeneratedByUserID=GeneratedByUserID,
+		@AdjustmentType= AdjustmentType
 		from @TempDealFunding where ID = @currcount
 
 		Declare @wfDeleteFlag int = 0;
@@ -161,11 +221,12 @@ BEGIN
 
 		Declare @SavedPurpose int ;
 		Declare @SavedAmount decimal(28, 15)
-		Declare @SavedDate date
+		Declare @SavedDate date,@SavedApplied bit
 
 		Select @SavedPurpose = PurposeID,
 		@SavedAmount=Amount ,
-		@SavedDate = [Date]
+		@SavedDate = [Date],
+		@SavedApplied =Applied
 		from cre.DealFunding where DealID = @DealID and  DealFundingID = @DealFundingID
 
 
@@ -225,13 +286,30 @@ BEGIN
 			)		   
 
 			exec dbo.usp_InsertActivityLog @DealID,283,@DealID,416,'Updated',@CreatedBy		
+			--if doing wireconfirm and making debt amount as zero than change workflow status back to Projected
+			IF(@Applied = 1 and @SavedApplied=0 and @Amount=0 ) 
+			BEGIN
+					DECLARE @tWFStatusPurposeMappingID INT
+					SET @tWFStatusPurposeMappingID = (SELECT WFStatusPurposeMappingID FROM [CRE].[WFStatusPurposeMapping] WHERE PurposeTypeID= @PurposeID AND OrderIndex =10)
+					Declare @fundingMsgZero NVARCHAR(256)
+								SET @fundingMsgZero = 'Rejected to Projected because of debt amount as zero';
+
+					INSERT INTO @tblWorkflowDetail(TaskID,WFStatusPurposeMappingID,TaskTypeID,Comment,SubmitType,CreatedBy,AdditionalComments,SpecialInstructions,DelegatedUserID)
+					VALUES(@DealFundingID,@tWFStatusPurposeMappingID,502,@fundingMsgZero,496,@CreatedBy,null,null,@DelegatedUserID)
+			END
 
 		END
 		---------------------------------
 		   
 		---Deal Funding Insert Update
+
+		if(@AdjustmentType=0) 
+		BEGIN
+		set @AdjustmentType=null
+		END 
 		Declare @VDealFundingID uniqueidentifier;
 		SET @VDealFundingID = @DealFundingID;
+		
 
 		Update CRE.DealFunding 
 		set 
@@ -243,6 +321,7 @@ BEGIN
 		UpdatedDate =GETDATE() ,				
 		DealID=@DealID,
 		Applied=@Applied,
+		NonCommitmentAdj=@NonCommitmentAdj,
 		Issaved=@Applied,
 		DrawFundingId=@DrawFundingId,
 		DealFundingRowno=@DealFundingRowno,
@@ -250,16 +329,18 @@ BEGIN
 		DeadLineDate = dbo.Fn_GetnextWorkingDays(@Date,-2,'PMT Date'),
 		RequiredEquity = @RequiredEquity ,
 		AdditionalEquity = @AdditionalEquity,
-		GeneratedBy = @GeneratedBy
+		GeneratedBy = @GeneratedBy,
+		GeneratedByUserID=@GeneratedByUserID,
+		AdjustmentType=@AdjustmentType
 		where DealFundingID =@DealFundingID;	
 
 		IF @@ROWCOUNT = 0 
 		BEGIN
 			DECLARE @tDealFunding TABLE (tDealFundingId UNIQUEIDENTIFIER)
 
-			INSERT INTO CRE.DealFunding	(DealID,[Date],Amount,Comment,PurposeID,Applied,Issaved,DrawFundingId,DealFundingRowno,EquityAmount,CreatedBy,CreatedDate,UpdatedBy,UpdatedDate,DeadLineDate,RequiredEquity,AdditionalEquity,GeneratedBy)		 
+			INSERT INTO CRE.DealFunding	(DealID,[Date],Amount,Comment,PurposeID,Applied,NonCommitmentAdj,Issaved,DrawFundingId,DealFundingRowno,EquityAmount,CreatedBy,CreatedDate,UpdatedBy,UpdatedDate,DeadLineDate,RequiredEquity,AdditionalEquity,GeneratedBy,GeneratedByUserID,AdjustmentType)		 
 			OUTPUT inserted.DealFundingID INTO @tDealFunding(tDealFundingId)
-			VALUES(@DealID,@Date,@Amount,@Comment,@PurposeID,@Applied,@Applied,@DrawFundingId,@DealFundingRowno,@EquityAmount,@CreatedBy,GETDATE(),@UpdatedBy,GETDATE(),dbo.Fn_GetnextWorkingDays(@Date,-2,'PMT Date'),@RequiredEquity ,@AdditionalEquity,@GeneratedBy)
+			VALUES(@DealID,@Date,@Amount,@Comment,@PurposeID,@Applied,@NonCommitmentAdj,@Applied,@DrawFundingId,@DealFundingRowno,@EquityAmount,@CreatedBy,GETDATE(),@UpdatedBy,GETDATE(),dbo.Fn_GetnextWorkingDays(@Date,-2,'PMT Date'),@RequiredEquity ,@AdditionalEquity,@GeneratedBy,@GeneratedByUserID,@AdjustmentType)
 	
 
 			SELECT @VDealFundingID = tDealFundingId FROM @tDealFunding;			
@@ -364,8 +445,18 @@ BEGIN
 
 				IF(@WF_CurrentStatusID > @WF_ReviewStatusID)
 				BEGIN
-					--	DECLARE @WFStatusPurposeMappingID INT
 					SET @WFStatusPurposeMappingID = (SELECT WFStatusPurposeMappingID FROM [CRE].[WFStatusPurposeMapping] WHERE PurposeTypeID= @PurposeID AND OrderIndex =20)
+				END
+				ELSE
+				BEGIN
+					SET @WFStatusPurposeMappingID =  (Select WFStatusPurposeMappingID from @WFCurrentStatus WHERE TaskId = @DealFundingID)
+				END
+				
+				
+				--IF(@WF_CurrentStatusID > @WF_ReviewStatusID)
+				--BEGIN
+					--	DECLARE @WFStatusPurposeMappingID INT
+					--SET @WFStatusPurposeMappingID = (SELECT WFStatusPurposeMappingID FROM [CRE].[WFStatusPurposeMapping] WHERE PurposeTypeID= @PurposeID AND OrderIndex =20)
 					IF (@WFStatusPurposeMappingID is not NULL)
 					BEGIN
 						-- ====Parameter==============================
@@ -408,7 +499,7 @@ BEGIN
 						VALUES(@VDealFundingID,@WFStatusPurposeMappingID,502,@fundingMsg,497,@CreatedBy,null,null,@DelegatedUserID)
 					
 					END
-				END
+				--END
 
 
 
@@ -601,6 +692,8 @@ BEGIN
 
 		 END
 	END
+
+	
 	END
 
 	SET @currcount+=1
@@ -649,7 +742,7 @@ END
 
 					AND wc.WFCheckListMasterID IS NOT NULL 
 					--dont copy the checlist status from latest draw for Draw approval checklist
-					AND wc.WFCheckListMasterID <> 9 
+					AND wc.WFCheckListMasterID not in (9,21,6) 
 				) as tblInCLD
 				--where [CRE].[WFCheckListDetail].TaskId = tblInCLD.TaskId
 				--and 
@@ -667,6 +760,18 @@ END
 
 
 	  --===================================---
+
+
+	---Principal write off-----------
+	Delete From CRE.DealFunding where DealID = @DealID and PurposeID = 840
+	INSERT INTO CRE.DealFunding	(DealID,[Date],Amount,Comment,PurposeID,Applied,NonCommitmentAdj,Issaved,DrawFundingId,DealFundingRowno,EquityAmount,CreatedBy,CreatedDate,UpdatedBy,UpdatedDate,DeadLineDate,RequiredEquity,AdditionalEquity,GeneratedBy,GeneratedByUserID,AdjustmentType)		 
+	Select @DealID,Date,Amount,Comment,PurposeID,Applied,NonCommitmentAdj,Applied,DrawFundingId,DealFundingRowno,EquityAmount,CreatedBy,GETDATE(),CreatedBy,GETDATE(),dbo.Fn_GetnextWorkingDays(Date,-2,'PMT Date'),RequiredEquity ,AdditionalEquity,GeneratedBy,GeneratedByUserID,AdjustmentType
+	From @TempDealFunding_PrincipalWriteOff
+	---------------------------------
+
+	---update workflow checklist item 'Outstanding Draw Fees'---
+	 exec [usp_UpdateWFCheckListForOutstandingDrawFees] 502,@DealID,''
+	--------------------------------
 END
 GO
 

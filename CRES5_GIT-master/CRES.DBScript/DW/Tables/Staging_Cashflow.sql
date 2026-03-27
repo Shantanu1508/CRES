@@ -111,7 +111,43 @@
     [SLAmortOfCapCost]                             DECIMAL (28, 15) NULL,
     [EndingAccumSLAmort]                           DECIMAL (28, 15) NULL,
     [EndingPreCapGAAPBasis]                        DECIMAL (28, 15) NULL,
-    [PIKPrincipalPaidForThePeriod]                 DECIMAL (28, 15) NULL
+    [PIKPrincipalPaidForThePeriod]                 DECIMAL (28, 15) NULL,
+
+    RemainingUnfundedCommitment	decimal(28,15)	 ,
+CalcEngineType	int	 ,
+levyld	decimal(28,15)	 ,
+cum_dailypikint	decimal(28,15)	 ,
+cum_baladdon_am	decimal(28,15)	 ,
+cum_baladdon_nonam	decimal(28,15)	 ,
+cum_dailyint	decimal(28,15)	 ,
+cum_ddbaladdon	decimal(28,15)	 ,
+cum_ddintdelta	decimal(28,15)	 ,
+initbal	decimal(28,15)	 ,
+cum_fee_levyld	decimal(28,15)	 ,
+period_ddintdelta_shifted	decimal(28,15)	 ,
+intdeltabal	decimal(28,15)	 ,
+cum_exit_fee_excl_lv_yield	decimal(28,15)	 ,
+accountingclosedate	date	 ,
+CurrentPeriodPIKInterestAccrual	decimal(28,15)	 ,
+AccPeriodEnd	date	 ,
+AccPeriodStart	date	 ,
+pmtdtnotadj	date	 ,
+pmtdt	date	 ,
+periodpikint	decimal(28,15)	 ,
+DropDateInterestDeltaBalance	decimal(28,15)	 ,
+AverageDailyBalance	decimal(28,15)	 ,
+DeferredFeeGAAPBasis	decimal(28,15)	 ,
+CapitalizedCostLevelYield	decimal(28,15)	 ,
+CapitalizedCostGAAPBasis	decimal(28,15)	 ,
+CapitalizedCostAccumulatedAmort	decimal(28,15)	 ,
+DiscountPremiumLevelYield	decimal(28,15)	 ,
+DiscountPremiumGAAPBasis	decimal(28,15)	 ,
+DiscountPremiumAccumulatedAmort	decimal(28,15)	 ,
+InterestPastDue	decimal(28,15)	 ,
+AccountId	UNIQUEIDENTIFIER	 ,
+
+	--CurrentPeriodPIKInterestAccrual  DECIMAL (28, 15) NULL
+
     CONSTRAINT [PK_NotePeriodicCalcIDStaging] PRIMARY KEY CLUSTERED ([NotePeriodicCalcID] ASC)
 );
 

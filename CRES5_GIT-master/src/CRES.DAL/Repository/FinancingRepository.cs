@@ -1,10 +1,12 @@
-﻿using CRES.DAL.IRepository;
-using CRES.DataContract;
-using CRES.Utilities;
-using System;
+﻿using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using CRES.DataContract;
+using CRES.DAL.IRepository;
 using System.Data;
 using System.Data.SqlClient;
+using CRES.Utilities;
 
 namespace CRES.DAL.Repository
 {
@@ -18,7 +20,7 @@ namespace CRES.DAL.Repository
             List<FinancingWarehouseDataContract> lstFinancingWarehouseDC = new List<FinancingWarehouseDataContract>();
 
             DataTable dt = new DataTable();
-
+            
             Helper.Helper hp = new Helper.Helper();
             SqlParameter p1 = new SqlParameter { ParameterName = "@UserID", Value = userid };
             SqlParameter p2 = new SqlParameter { ParameterName = "@PageIndex", Value = PageIndex };
@@ -64,9 +66,7 @@ namespace CRES.DAL.Repository
 
         public string AddUpdateFinancingWarehouse(FinancingWarehouseDataContract _financingWarehouseDc)
         {
-#pragma warning disable CS0219 // The variable 'result' is assigned but its value is never used
             int result = 0;
-#pragma warning restore CS0219 // The variable 'result' is assigned but its value is never used
             string NewFinancingWhouseid = "";
             //   ObjectParameter NewFinancingWarehouseid = new ObjectParameter("NewFinancingWarehouseid", typeof(string));
             if (_financingWarehouseDc.FinancingWarehouseID == null)
@@ -77,7 +77,7 @@ namespace CRES.DAL.Repository
 
 
             Helper.Helper hp = new Helper.Helper();
-            SqlParameter p1 = new SqlParameter { ParameterName = "@UserID", Value = _financingWarehouseDc.FinancingWarehouseID };
+            SqlParameter p1 = new SqlParameter { ParameterName = "@FinancingWarehouseid", Value = _financingWarehouseDc.FinancingWarehouseID };
             SqlParameter p2 = new SqlParameter { ParameterName = "@AccountId", Value = _financingWarehouseDc.AccountID };
             SqlParameter p3 = new SqlParameter { ParameterName = "@Name", Value = _financingWarehouseDc.Name };
             SqlParameter p4 = new SqlParameter { ParameterName = "@StatusId", Value = _financingWarehouseDc.StatusID };
@@ -90,7 +90,7 @@ namespace CRES.DAL.Repository
             SqlParameter p11 = new SqlParameter { ParameterName = "@CreatedDate", Value = _financingWarehouseDc.CreatedDate };
             SqlParameter p12 = new SqlParameter { ParameterName = "@UpdatedBy", Value = _financingWarehouseDc.UpdatedBy };
             SqlParameter p13 = new SqlParameter { ParameterName = "@UpdatedDate", Value = _financingWarehouseDc.UpdatedDate };
-            SqlParameter p14 = new SqlParameter { ParameterName = "@NewFinancingWarehouseid", Direction = ParameterDirection.Output, Size = 25 };
+            SqlParameter p14 = new SqlParameter { ParameterName = "@NewFinancingWarehouseid", Direction = ParameterDirection.Output, Size = int.MaxValue };
             SqlParameter[] sqlparam = new SqlParameter[] { p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14 };
             hp.ExecNonquery("dbo.usp_InsertUpdateFinancingWarehouse", sqlparam);
 
@@ -110,11 +110,12 @@ namespace CRES.DAL.Repository
             //    _financingWarehouseDc.UpdatedDate,
             //    NewFinancingWarehouseid);
             NewFinancingWhouseid = Convert.ToString(p14.Value);
+           // AddUpdateFinancingWarehouseDetails(_financingWarehouseDc.lstFinancingWarehouseDetail, NewFinancingWhouseid);
             return NewFinancingWhouseid;
         }
 
 
-        public int AddUpdateFinancingWarehouseDetails(List<FinancingWarehouseDetailDataContract> lstfinancingWarehousedetailsDc)
+        public int AddUpdateFinancingWarehouseDetails(List<FinancingWarehouseDetailDataContract> lstfinancingWarehousedetailsDc,string headerUserID)
         {
             int result = 0;
             foreach (FinancingWarehouseDetailDataContract financingWarehousedetailsDc in lstfinancingWarehousedetailsDc)
@@ -122,6 +123,7 @@ namespace CRES.DAL.Repository
 
                 if (financingWarehousedetailsDc.FinancingWarehouseID == null)
                     financingWarehousedetailsDc.FinancingWarehouseID = new Guid("00000000-0000-0000-0000-000000000000");
+                
                 if (financingWarehousedetailsDc.FinancingWarehouseDetailID == null)
                     financingWarehousedetailsDc.FinancingWarehouseDetailID = new Guid("00000000-0000-0000-0000-000000000000");
 
@@ -132,9 +134,9 @@ namespace CRES.DAL.Repository
                 SqlParameter p3 = new SqlParameter { ParameterName = "@StartDate", Value = financingWarehousedetailsDc.StartDate };
                 SqlParameter p4 = new SqlParameter { ParameterName = "@EndDate", Value = financingWarehousedetailsDc.EndDate };
                 SqlParameter p5 = new SqlParameter { ParameterName = "@Value", Value = financingWarehousedetailsDc.Value };
-                SqlParameter p6 = new SqlParameter { ParameterName = "@CreatedBy", Value = financingWarehousedetailsDc.CreatedBy };
+                SqlParameter p6 = new SqlParameter { ParameterName = "@CreatedBy", Value = headerUserID };
                 SqlParameter p7 = new SqlParameter { ParameterName = "@CreatedDate", Value = financingWarehousedetailsDc.CreatedDate };
-                SqlParameter p8 = new SqlParameter { ParameterName = "@UpdatedBy", Value = financingWarehousedetailsDc.UpdatedBy };
+                SqlParameter p8 = new SqlParameter { ParameterName = "@UpdatedBy", Value = headerUserID };
                 SqlParameter p9 = new SqlParameter { ParameterName = "@UpdatedDate", Value = financingWarehousedetailsDc.UpdatedDate };
 
                 SqlParameter[] sqlparam = new SqlParameter[] { p1, p2, p3, p4, p5, p6, p7, p8, p9 };
@@ -166,6 +168,8 @@ namespace CRES.DAL.Repository
             dt = hp.ExecDataTable("dbo.usp_GetFinancingWarehouseById", sqlparam);
             // var resFinWhouse = _dbContext.usp_GetFinancingWarehouseById(financingWarehouseID).FirstOrDefault();
             FinancingWarehouseDataContract FinancingWarehousedc = new FinancingWarehouseDataContract();
+            FinancingWarehousedc.lstFinancingWarehouseDetail = new List<FinancingWarehouseDetailDataContract>();
+            List<FinancingWarehouseDetailDataContract> lstfinancingWarehouseDetails = new List<FinancingWarehouseDetailDataContract>();
             if (dt.Rows.Count > 0)
             {
                 if (Convert.ToString(dt.Rows[0]["FinancingWarehouseID"]) != "")
@@ -204,7 +208,8 @@ namespace CRES.DAL.Repository
                 foreach (DataRow dr in dtFin.Rows)
                 {
                     FinancingWarehouseDetailDataContract finwhouDetail = new FinancingWarehouseDetailDataContract();
-                    finwhouDetail.FinancingWarehouseDetailID = new Guid(Convert.ToString(dr["FinancingWarehouseDetailID"]));
+                    finwhouDetail.FinancingWarehouseDetailID =new Guid(Convert.ToString(dr["FinancingWarehouseDetailID"]));
+                    finwhouDetail.FinancingWarehouseID = new Guid(Convert.ToString(dr["FinancingWarehouse_FinancingWarehouseID"]));
                     finwhouDetail.StartDate = CommonHelper.ToDateTime(dr["StartDate"]);
                     finwhouDetail.EndDate = CommonHelper.ToDateTime(dr["EndDate"]);
                     finwhouDetail.Value = CommonHelper.ToDecimal(dr["Value"]);
@@ -212,9 +217,10 @@ namespace CRES.DAL.Repository
                     finwhouDetail.CreatedDate = CommonHelper.ToDateTime(dr["CreatedDate"]);
                     finwhouDetail.UpdatedBy = Convert.ToString(dr["UpdatedBy"]);
                     finwhouDetail.UpdatedDate = CommonHelper.ToDateTime(dr["UpdatedDate"]);
-
-                    FinancingWarehousedc.lstFinancingWarehouseDetail.Add(finwhouDetail);
+                    lstfinancingWarehouseDetails.Add(finwhouDetail);
+                    //FinancingWarehousedc.lstFinancingWarehouseDetail.Add(finwhouDetail);
                 }
+                FinancingWarehousedc.lstFinancingWarehouseDetail = lstfinancingWarehouseDetails;
             }
             return FinancingWarehousedc;
         }

@@ -1,14 +1,18 @@
-﻿using CRES.DAL.IRepository;
-using CRES.DataContract;
-using CRES.Utilities;
-using System;
+﻿using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+using CRES.DataContract;
+using CRES.DAL.IRepository;
 using System.Data;
 using System.Data.SqlClient;
+using CRES.Utilities;
 
 namespace CRES.DAL.Repository
 {
-    public class PropertyRepository : IPropertyRepository
+  public  class PropertyRepository :  IPropertyRepository
     {
         public List<PropertyDataContract> GetAllProperty(String dealID, Guid? userID, int? pageIndex, int? pageSize, out int? TotalCount)
         {
@@ -23,11 +27,11 @@ namespace CRES.DAL.Repository
             SqlParameter p5 = new SqlParameter { ParameterName = "@TotalCount", Direction = ParameterDirection.Output, Size = int.MaxValue };
             SqlParameter[] sqlparam = new SqlParameter[] { p1, p2, p3, p4, p5 };
             dt = hp.ExecDataTable("dbo.usp_GetAllPropertyByUserId", sqlparam);
-
-            // var lstpropertyResult = db.usp_GetAllPropertyByUserId(dealID, userID, pageIndex, pageSize, totalCount);
+            
+           // var lstpropertyResult = db.usp_GetAllPropertyByUserId(dealID, userID, pageIndex, pageSize, totalCount);
 
             // Forcing procedure execution
-            // var lstproperty = lstpropertyResult.ToList();
+           // var lstproperty = lstpropertyResult.ToList();
             TotalCount = string.IsNullOrEmpty(Convert.ToString(p5.Value)) ? 0 : Convert.ToInt32(p5.Value);
 
             foreach (DataRow dr in dt.Rows)
@@ -61,7 +65,7 @@ namespace CRES.DAL.Repository
                 propertyDC.CreatedBy = Convert.ToString(dr["CreatedBy"]);
                 propertyDC.CreatedDate = CommonHelper.ToDateTime(dr["CreatedDate"]);
                 propertyDC.UpdatedBy = Convert.ToString(dr["UpdatedBy"]);
-                propertyDC.UpdatedDate = CommonHelper.ToDateTime(dr["UpdatedDate"]);
+                propertyDC.UpdatedDate = CommonHelper.ToDateTime(dr["UpdatedDate"]); 
                 lstPropertyDC.Add(propertyDC);
             }
             return lstPropertyDC;
@@ -101,7 +105,7 @@ namespace CRES.DAL.Repository
                 SqlParameter p22 = new SqlParameter { ParameterName = "@CreatedDate", Value = ProItem.CreatedDate };
                 SqlParameter p23 = new SqlParameter { ParameterName = "@UpdatedBy", Value = UpdatedBy };
                 SqlParameter p24 = new SqlParameter { ParameterName = "@UpdatedDate", Value = ProItem.UpdatedDate };
-                SqlParameter p25 = new SqlParameter { ParameterName = "@NewPropertyID", Direction = ParameterDirection.Output, Size = int.MaxValue };
+                SqlParameter p25 = new SqlParameter { ParameterName = "@NewPropertyID", Direction = ParameterDirection.Output , Size = int.MaxValue };
                 SqlParameter[] sqlparam = new SqlParameter[] { p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11,
                                                            p12, p13, p14, p15, p16, p17, p18, p19, p20, p21,
                                                            p22, p23, p24, p25};
@@ -133,10 +137,10 @@ namespace CRES.DAL.Repository
 
 
                 if (result != 0)
-                {
-                    retValue = true;
-                }
+            {
+                retValue = true;
             }
+        }
             return retValue;
         }
 
@@ -154,12 +158,12 @@ namespace CRES.DAL.Repository
             {
                 propertyDC.PropertyID = new Guid(Convert.ToString("PropertyID"));
             }
-
+            
             propertyDC.DealID = Convert.ToString("Deal_DealID");
             propertyDC.PropertyName = Convert.ToString("PropertyName");
             propertyDC.Address = Convert.ToString("Address");
             propertyDC.City = Convert.ToString("City");
-            propertyDC.State = CommonHelper.ToInt32("State");
+            propertyDC.State =CommonHelper.ToInt32("State");
             propertyDC.Zip = CommonHelper.ToInt32("Zip");
             propertyDC.UWNCF = CommonHelper.ToDecimal("UWNCF");
             propertyDC.SQFT = CommonHelper.ToDecimal("SQFT");
@@ -178,7 +182,7 @@ namespace CRES.DAL.Repository
             propertyDC.CreatedBy = Convert.ToString("CreatedBy");
             propertyDC.CreatedDate = CommonHelper.ToDateTime("CreatedDate");
             propertyDC.UpdatedBy = Convert.ToString("UpdatedBy");
-            propertyDC.UpdatedDate = CommonHelper.ToDateTime("UpdatedDate");
+            propertyDC.UpdatedDate = CommonHelper.ToDateTime("UpdatedDate"); 
             return propertyDC;
         }
     }

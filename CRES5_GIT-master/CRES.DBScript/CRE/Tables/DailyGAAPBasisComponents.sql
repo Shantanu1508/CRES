@@ -17,6 +17,10 @@
 		[CreatedDate]                       DATETIME         NULL,
 		[UpdatedBy]                         NVARCHAR (256)   NULL,
 		[UpdatedDate]                       DATETIME         NULL,
+
+		CurrentPeriodInterestAccrual   DECIMAL (28, 15) NULL,
+		CurrentPeriodPIKInterestAccrual DECIMAL (28, 15) NULL
+
     CONSTRAINT [FK_DailyGAAPBasisComponents_Note_NoteID] FOREIGN KEY ([NoteID]) REFERENCES [CRE].[Note] ([NoteID])
 );
 

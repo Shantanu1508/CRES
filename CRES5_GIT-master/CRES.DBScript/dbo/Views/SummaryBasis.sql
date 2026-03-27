@@ -46,4 +46,4 @@ Group By N.Noteid
   
 )z  
 )  
-Select * from GAAPBasis
+Select * from GAAPBasis    

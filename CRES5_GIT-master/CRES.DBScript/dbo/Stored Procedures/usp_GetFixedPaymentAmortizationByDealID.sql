@@ -68,24 +68,28 @@ From(
 	from(
 		Select d.dealid,tr.date,tr.amount ,acc.name
 		from cre.transactionEntry tr
-		left join cre.note n on n.noteid = tr.noteid
-		INNER JOIN [CORE].[Account] acc ON acc.AccountID = n.Account_AccountID
+		Inner JOIN [CORE].[Account] acc ON acc.AccountID = tr.AccountID
+		Inner join cre.note n on n.Account_AccountID = acc.AccountID
+		
 		inner join cre.deal d on d.dealid = n.dealid
 		where AnalysisID = '''+ Cast(@AnalysisID as nvarchar(256)) + ''' 
 		and tr.[type] = ''InterestPaid''
 		and d.dealid = '''+ Cast(@DealID as nvarchar(256)) + '''
 		and n.CRENoteID in (Select CRENoteID from #tblListNotes)
+		and acc.AccounttypeID = 1
 
 		UNION ALL
 
 		Select d.dealid,tr.date,Sum(tr.amount) amount ,''Total'' as [name]
 		from cre.transactionEntry tr
-		left join cre.note n on n.noteid = tr.noteid
+		Inner JOIN [CORE].[Account] acc ON acc.AccountID = tr.AccountID
+		Inner join cre.note n on n.Account_AccountID = acc.AccountID
 		inner join cre.deal d on d.dealid = n.dealid
 		where AnalysisID = '''+ Cast(@AnalysisID as nvarchar(256)) + '''
 		and tr.[type] = ''InterestPaid''
 		and d.dealid = '''+ Cast(@DealID as nvarchar(256)) + '''
 		and n.CRENoteID in (Select CRENoteID from #tblListNotes)
+		and acc.AccounttypeID = 1
 		group by tr.date,d.dealid
 	)a	
 ) x    

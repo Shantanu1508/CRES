@@ -1,17 +1,8 @@
 <form #f="ngForm">
+
+
   <div class="col-sm-12">
     <div class="head fixheaderdiv">
-      <h1 style="display: inline-block;margin-top: 10px;">
-        Scenarios
-      </h1>
-      <span>
-        <button class="custombutton" style="margin-right:22px !important;" (click)="AddNewScenario()">
-          Add Scenario
-        </button>
-        <!--<button class="custombutton" style="width:200px !important;" (click)="ResetDefaultToActiveScenario()">
-            Reset to Default Scenario & Calc
-        </button>-->
-      </span>
 
       <div *ngIf="_ShowSuccessmessagediv" class="alert alert-success fade in">
         <strong>{{_ShowSuccessmessage}}</strong>
@@ -19,81 +10,125 @@
       <div *ngIf="_Showmessagediv" class="alert alert-danger fade in">
         <strong>{{Message}}</strong>
       </div>
+      <h1 style="display: inline-block;margin-top: 10px;">
+        Scenarios
+      </h1>
+      <span>
+        <button class="custombutton" style="margin-right:22px !important;" (click)="AddNewScenario()">
+          Add Scenario
+        </button>
 
-
+      </span>
       <div class="cssload-container" *ngIf="_isScenarioListFetching">
         <div class="cssload-whirlpool"></div>
       </div>
 
     </div>
 
-    <!--<svg *ngIf="_isNoteListFetching" class="spinner" width="25px" height="25px" viewBox="0 0 66 66"><circle class="circle" fill="none" stroke-width="6" stroke-linecap="round" cx="33" cy="33" r="30"></circle></svg>-->
 
-
-    <div class="fmst fixheadercontent">
-
-      <div class="">
+    <div class="fmst fixheadercontent">    
         <div class="form-group row pD10 scenariostopdiv">
           <div class="col-sm-12">
-            <wj-flex-grid id="flexscenario" #flexscenario [itemsSource]="lstScenarioData" [allowResizing]="'Both'" auto-generate-columns="true" allow-add-new="true" allow-sorting="true" showFilterIcons="true" class="scenariosgrid">
+            <span class="customheading" style="margin-bottom:10px;">
+              Show all scenarios
+              <input #ShowAllActiveInactiveScenarios type="checkbox" id="ShowAllActiveInactiveScenarios" name="ShowAllActiveInactiveScenarios" [checked]="_chkShowAllActiveInactiveScenarios" (change)="onChangeShowAllActiveInactiveScenarios(ShowAllActiveInactiveScenarios.checked)" />
+            </span>
+
+            <wj-flex-grid id="flexscenario" #flexscenario [itemsSource]="data" [allowResizing]="'Both'"
+                          auto-generate-columns="true"
+                          allow-sorting="true"
+                          showFilterIcons="true"
+                          class="scenariosgrid"
+                          [frozenColumns]="1" keyActionTab="Cycle" [selectionMode]="'Row'">
               <wj-flex-grid-filter #filter></wj-flex-grid-filter>
-              <wj-flex-grid-column [header]="'Scenario name'" [isReadOnly]="true" [width]="'*'">
+
+              <wj-flex-grid-column [header]="'Scenario Name'" [isReadOnly]="true" [width]="335">
                 <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
                   <div>
                     <a href='/#/scenariodetail/{{cell.item.AnalysisID}}' routerLinkActive="active">{{cell.item.ScenarioName}}</a>
                   </div>
                 </ng-template>
               </wj-flex-grid-column>
-              <wj-flex-grid-column [header]="'Description'" [binding]="'Description'" [isReadOnly]="true" [width]="'*'"></wj-flex-grid-column>
-              <!--<wj-flex-grid-column [header]="'Active?'" [binding]="'StatusIDText'" [isReadOnly]="true" [width]="'*'"></wj-flex-grid-column>-->
+              <wj-flex-grid-column [header]="'Maturity Scenario Override'" [binding]="'MaturityScenarioOverrideText'" [isReadOnly]="true" [width]="190"></wj-flex-grid-column>
+              <wj-flex-grid-column [header]="'Index Scenario Override'" [binding]="'IndexScenarioOverrideText'" [isReadOnly]="true" [width]="182"></wj-flex-grid-column>
+              <wj-flex-grid-column [header]="'Exclude Forecasted Prepayment'" [binding]="'ExcludedForcastedPrePaymentText'" [isReadOnly]="true" [width]="230"></wj-flex-grid-column>
+              <wj-flex-grid-column [header]="'Use Servicing Data'" [binding]="'UseActualsText'" [isReadOnly]="true" [width]="143"></wj-flex-grid-column>
+              <wj-flex-grid-column [header]="'Calc Engine Type'" [binding]="'CalcEngineTypeText'" [isReadOnly]="true" [width]="129"></wj-flex-grid-column>
+              <wj-flex-grid-column [header]="'Calc Along with Default'" [binding]="'AllowCalcAlongWithDefaultText'" [isReadOnly]="true" [width]="172"></wj-flex-grid-column>
+              <wj-flex-grid-column [header]="'Status'" [binding]="'ScenarioStatusText'" [isReadOnly]="true" [width]="112"></wj-flex-grid-column>
+              <wj-flex-grid-column [header]="'Allow Calc Engine Type Override'" [binding]="'AllowCalcOverrideText'" [isReadOnly]="true" [width]="200"></wj-flex-grid-column>
+              <wj-flex-grid-column [header]="'Include Projected Principal Writeoff'" [binding]="'IncludeProjectedPrincipalWriteoffText'" [isReadOnly]="true" [width]="200"></wj-flex-grid-column>
+              <wj-flex-grid-column [header]="'Include In Discrepancy'" [binding]="'IncludeInDiscrepancyText'" [isReadOnly]="true" [width]="200"></wj-flex-grid-column>
+              <wj-flex-grid-column [header]="'Description'" [binding]="'Description'" [isReadOnly]="true" [width]="112" show-filter="true">
+                <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
+                  <div data-toggle="tooltip" data-placement="top" title={{cell.item.Description}}>
+                    {{cell.item.Description}}
+                  </div>
+                </ng-template>
+              </wj-flex-grid-column>
 
-                            <wj-flex-grid-column [name]="'buttons'" [header]="'Download Cashflow'" [isReadOnly]="true" align="left" [width]="'*'">
-                                <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
-                                    <a style="cursor: pointer;" (click)="DownloadScenario(cell.item)">Download</a>
-                                </ng-template>
-                            </wj-flex-grid-column>
-                            <wj-flex-grid-column [name]="'buttons'" [header]="'Delete'" [isReadOnly]="true" align="left" [width]="100">
 
-                                <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
-                                    <div *ngIf="cell.item.ScenarioName!= 'Default' && cell.item.ScenarioName!= 'Current Maturity Date'">
-                                        <a style="cursor: pointer;" (click)="DeleteSce(cell.item)">Delete</a>
-                                    </div>
-                                </ng-template>
+              <wj-flex-grid-column [header]="'Last Calculated Date'" [binding]="'LastCalculatedDate'" type="datetime" format="MM/dd/yyyy hh:mm:ss tt" [isReadOnly]="true" [width]="160" align="right"></wj-flex-grid-column>
 
-                            </wj-flex-grid-column>
+              <wj-flex-grid-column [name]="'buttons'" [header]="'Download o/p'" [isReadOnly]="true" align="left" [width]="100">
+                <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
+                  <!--<a style="cursor: pointer;" (click)="DownloadScenario(cell.item)">Download</a>-->
+                  <a class="cur-pointer" (click)="CheckDuplicateTransactionCashflow(cell.item)" title="Click to download" routerLinkActive="active"><img style="height:20px;width:20px;margin-left:40px;" src="../../assets/images/icon_xls.png" /></a>
+                </ng-template>
+              </wj-flex-grid-column>
 
-                        </wj-flex-grid>
-                    </div>
-                </div>
-            </div>
+
+              <wj-flex-grid-column [name]="'buttons'" [header]="'Delete'" [isReadOnly]="true" align="left" [width]="70">
+                <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
+                  <div *ngIf="cell.item.ScenarioName!= 'Default' && cell.item.ScenarioName!= 'Fully Extended (with Prepay, Index Flat)' && cell.item.ScenarioName!= 'Current Maturity Date'">
+                    <a style="cursor: pointer;" (click)="DeleteSce(cell.item)">Delete</a>
+                  </div>
+                </ng-template>
+
+              </wj-flex-grid-column>
+
+            </wj-flex-grid>
+          </div>
         </div>
-        <div class="cssload-container" *ngIf="_isShowLoader">
-            <div class="cssload-whirlpool"></div>
-        </div>
+      
     </div>
-    <div id="Deletedialogbox" class="modal">
-        <div class="modal-dialog" draggable="true" id="myModal-Delete" style="min-height:300px;width:500px">
-            <!-- Modal content -->
-            <div class="modal-content" style="padding:0px;border:0px;">
-                <div class="modal-header" style="background:#2196f3 !important">
-                    <span class="customheading" style="color:white !important">Delete Scenario</span>
-                    <span class="close" (click)="ClosePopUp()">×</span>
-                </div>
-
-                <div class="modal-body">
-                    <span class="customheading">
-
-                        {{ _DeleteMsgText }}
-                    </span>
-
-                </div>
-                <div class="modal-footer" style="background-color:white !important;">
-                    <button type="button" (click)="ClosePopUp()" class="custombutton" style="width:100px !important">Cancel</button>
-                    <button type="button" class="custombutton" style="width:100px !important" (click)="DeleteScenario()">Ok</button>
-                </div>
-
-
-            </div>
-        </div>
+    <div class="cssload-container" *ngIf="_isShowLoader">
+      <div class="cssload-whirlpool"></div>
     </div>
+  </div>
+  <div id="dialogbox" style="overflow-wrap: break-word;">
+
+    <div>
+      <div class="modal-header" style="background:#2196f3 !important">
+        <span class="customheading" style="color:white !important">CRES - Validation Error</span>
+        <span class="close" (click)="ok()">×</span>
+      </div>
+      <div id="dialogboxbody"></div>
+      <div id="dialogboxfoot"><span class="btn custombutton" (click)="ok()">Ok</span></div>
+    </div>
+  </div>
+
+  <div id="Deletedialogbox" class="modal">
+    <div class="modal-dialog" draggable="true" id="myModal-Delete" style="min-height:300px;width:500px">
+      <!-- Modal content -->
+      <div class="modal-content" style="padding:0px;border:0px;">
+        <div class="modal-header" style="background:#2196f3 !important">
+          <span class="customheading" style="color:white !important">Delete Scenario</span>
+          <span class="close" (click)="ClosePopUp()">×</span>
+        </div>
+
+        <div class="modal-body">
+          <span class="customheading">
+
+            {{ _DeleteMsgText }}
+          </span>
+
+        </div>
+        <div class="modal-footer" style="background-color:white !important;">
+          <button type="button" (click)="ClosePopUp()" class="custombutton" style="width:100px !important">Cancel</button>
+          <button type="button" class="custombutton" style="width:100px !important" (click)="DeleteScenario()">Ok</button>
+        </div>
+      </div>
+    </div>
+  </div>
 </form>

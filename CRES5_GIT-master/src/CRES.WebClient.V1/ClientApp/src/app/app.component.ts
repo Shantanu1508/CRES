@@ -17,6 +17,8 @@ import { scenarioService } from './core/services/scenario.service';
 import { SearchService } from './core/services/search.service';
 import { UtilityService } from './core/services/utility.service';
 import { AzureADAuthService } from './ngAuth/authenticators/azureADAuth.service';
+import { AzureADAuthServiceInternal } from './ngAuth/authenticators/azureADAuthInternal.service';
+
 import { PushNotificationComponent } from './Notification/notification.component';
 import { SignalRService } from './Notification/signalR.service';
 import { LoggingService } from './core/services/logging.service';
@@ -27,6 +29,7 @@ declare var $: any;
 import { ChangeDetectorRef } from '@angular/core';
 import { Observable } from 'rxjs';
 import { User } from './core/domain/user.model';
+import { Console } from 'console';
 
 @Component({
   selector: 'app-root',
@@ -44,7 +47,7 @@ import { User } from './core/domain/user.model';
 //@Injectable()
 //@Directive({ selector: '[PushNotificationComponent]' })
 
-export class AppComponent implements OnInit{
+export class AppComponent implements OnInit {
   public _searchObj !: Search;
   public _searchData !: Search;
   public _result: any;
@@ -91,12 +94,13 @@ export class AppComponent implements OnInit{
   public _lstScenario: any;
   public _isShowDynamicPortfolio: boolean = true;
 
-  public _isShowPeriodicCloseMenu: boolean = true;
+
   public _selectedColor!: string;
   public _isShowScenario: boolean = true;
   public _isShowFeeConfiguration: boolean = true;
   public _isShowTransactionReconciliation: boolean = true;
-
+  public _isShowAccountingClose: boolean = true;
+  public _isShowXIRR: boolean = true;
   public userNameList: any;
   public _isShowImpersonate: boolean = false;
   public _isShowReturntoimpersonator: boolean = false;
@@ -140,8 +144,9 @@ export class AppComponent implements OnInit{
   public messages: Observable<Message[]>;
   public isAnsReceived: boolean = false;
   public isAPICalled: boolean = false;
+  public _isShowAutomationMenu: boolean = false;
 
-  constructor(@Inject(AzureADAuthService) private _authService: AzureADAuthService,
+  constructor(@Inject(AzureADAuthService) private _authService: AzureADAuthService, private _authServiceInternal:AzureADAuthServiceInternal,
     public membershipService: MembershipService,
     private _router: Router,
     private activatedRoute: ActivatedRoute,
@@ -159,6 +164,7 @@ export class AppComponent implements OnInit{
     public chatservice: ChatService,
     private cdref: ChangeDetectorRef
   ) {
+   // this.CheckifUserIsLogedIN();
     this.isUserLoggedIn();
     this._scenariodc = new Scenario('');
     this._lstScenario = this._scenariodc.LstScenarioUserMap;
@@ -181,6 +187,19 @@ export class AppComponent implements OnInit{
     }
     localStorage.setItem('IsChatmsgBind', 'false');
     this.dataService.getIPAddress();
+
+    var logoutFrom = localStorage.getItem("logoutFrom");
+
+    if (logoutFrom == "Internal") {
+      window.localStorage.removeItem("logoutFrom");
+      window.localStorage.clear();
+      this._router.navigate(['logininternal']);
+    }
+    else if (logoutFrom == "Main") {
+      window.localStorage.removeItem("logoutFrom");
+      window.localStorage.clear();
+      this._router.navigate(['login']);
+    }
   }
 
   ngOnInit() {
@@ -403,7 +422,9 @@ export class AppComponent implements OnInit{
         this._isShowScenario = false;
         this._isShowFeeConfiguration = false;
         this._isShowTransactionReconciliation = false;
-        this._isShowPeriodicCloseMenu = false;
+        this._isShowAccountingClose = false;
+        this._isShowXIRR = false;
+
         this._isShowTagMasterMenu = false;
         this.GetMenuPermission();
         //  this.GetUsersToImpersonate();
@@ -444,8 +465,10 @@ export class AppComponent implements OnInit{
         this._isShowScenario = false;
         this._isShowFeeConfiguration = false;
         this._isShowTransactionReconciliation = false;
-        this._isShowPeriodicCloseMenu = false;
+        this._isShowAccountingClose = false;
         this._isShowTagMasterMenu = false;
+        this._isShowXIRR = false;
+        
         this.GetMenuPermission();
         //  this.GetUsersToImpersonate();
 
@@ -473,6 +496,9 @@ export class AppComponent implements OnInit{
   }
 
 
+  
+
+
   logout(state = "/"): void {
     var useremil: any = window.localStorage.getItem("useremail");
 
@@ -480,19 +506,33 @@ export class AppComponent implements OnInit{
       var link = window.location.href;
       link = link.substr(0, link.lastIndexOf("/"));
       // window.location.href = "https://login.microsoftonline.com/b8267886-f0c8-4160-ab6f-6e97968fdc90/oauth2/logout?post_logout_redirect_uri=" + "http://acore.azurewebsites.net/"
-      this._authService.LogOutall();
+      //this._authService.LogOutall();
+      this._authServiceInternal.LogOutall();
+
       localStorage.removeItem('user');
       localStorage.removeItem('useremail');
       window.localStorage.removeItem("id_token");
       window.localStorage.removeItem("access_token");
       window.localStorage.removeItem("allowbasiclogin");
-      window.localStorage.clear();
+      //window.localStorage.clear();
+
     }
     else {
       this.membershipService.logout()
         .subscribe(res => {
-          let link = ['login'];
-          this._router.navigate(link);
+
+          var dbloginfrom = localStorage.getItem('dbloginfrom');
+          localStorage.removeItem('dbloginfrom');
+          if (dbloginfrom == 'main') {
+            let link = ['login'];
+            this._router.navigate(link);
+          }
+          else {
+            let link = ['logininternal'];
+            this._router.navigate(link);
+          }
+
+         
           this._callmenupermisisoncode = false;
         },
           error => console.error('Error' + error),
@@ -662,6 +702,30 @@ export class AppComponent implements OnInit{
       else {
         this._pagePath = ['notedetail/a', ac.selectedValue]
       }
+    } else if (obj.ValueType == 844) {
+      //LiabilityNote
+      if (window.location.href.indexOf("liabilityNote/n") > -1) {
+        this._pagePath = ['liabilityNote/u', ac.selectedValue]
+      }
+      else {
+        this._pagePath = ['liabilityNote/n', ac.selectedValue]
+      }
+    } else if (obj.ValueType == 842) {
+      //LiabilityNote
+      if (window.location.href.indexOf("debt/n") > -1) {
+        this._pagePath = ['debt/u', ac.selectedValue]
+      }
+      else {
+        this._pagePath = ['debt/n', ac.selectedValue]
+      }
+    } else if (obj.ValueType == 843) {
+      //LiabilityNote
+      if (window.location.href.indexOf("equity/n") > -1) {
+        this._pagePath = ['equity/u', ac.selectedValue]
+      }
+      else {
+        this._pagePath = ['equity/n', ac.selectedValue]
+      }
     }
   }
 
@@ -747,7 +811,15 @@ export class AppComponent implements OnInit{
               }
               else if (c.ValueType == 182) { //Note
                 _valueType = '<img src="../assets/images/Letter-N-blue-icon.png" /> ';
+              } else if (c.ValueType == 844) {
+                _valueType = '<img src="../assets/images/liquidity_note.png" /> ';
               }
+              else if (c.ValueType == 842) {
+                _valueType = '<img src="../assets/images/Letter-Debt-blue-icon.png" /> ';
+              }
+              else if (c.ValueType == 843) {
+                _valueType = '<img src="../assets/images/Letter-Equity-blue-icon.png" /> ';
+              }              
               c.DisplayName = _valueType + c.Valuekey;
             }
             callback(this._result);
@@ -823,16 +895,22 @@ export class AppComponent implements OnInit{
               if (_object[i].ChildModule == 'Transaction_Reconciliation') {
                 this._isShowTransactionReconciliation = true;
               }
-              if (_object[i].ChildModule == 'Periodic_Close') {
-                this._isShowPeriodicCloseMenu = true;
+              if (_object[i].ChildModule == 'Accounting_Close') {
+                this._isShowAccountingClose = true;
               }
+              if (_object[i].ChildModule == 'XIRR') {
+                this._isShowXIRR = true;
+              }
+
               if (_object[i].ChildModule == 'Tag_Master') {
                 this._isShowTagMasterMenu = true;
               }
-              //if (_object[i].ChildModule == 'btnChatBox') {
-              //    this._isShowChatBox = true;
-              //    this.createHBOTApi();
-              //}
+              if (_object[i].ChildModule == 'GenerateAutomation') {
+                this._isShowAutomationMenu = true;
+              }
+            //  this._isShowXIRR = true;
+              
+
             }
           }
 
@@ -928,6 +1006,18 @@ export class AppComponent implements OnInit{
     else if (module == 'taskdetail') {
       this._pagePath = ['taskdetail/a', '00000000-0000-0000-0000-000000000000']
 
+    }
+    else if (module == 'debt') {
+      this._pagePath = ['debt'];
+    }
+    else if (module == 'equity') {
+      this._pagePath = ['equity'];
+    }
+    else if (module == 'investors') {
+      this._pagePath = ['investors'];
+    }
+    else if (module == 'journalLedger') {
+      this._pagePath = ['journalLedger'];
     }
 
     this._router.navigate(this._pagePath)
@@ -1113,7 +1203,7 @@ export class AppComponent implements OnInit{
     });
   }
 
- 
+
   sendMessage(sender: wjNg2Input.WjAutoComplete) {
     if (this._isAIEnable == "true") {
       this.isChatEnabled = true;
@@ -1149,8 +1239,8 @@ export class AppComponent implements OnInit{
       if (this.formValue != "") {
         var formval = this.formValue;
         this.formValue = formval.charAt(0).toUpperCase() + formval.slice(1).replace(/\\/g, '').replace('@', '');
+        this.chatservice.converse(this.formValue, this._isShowchatpopup);
         if (this._isShowchatpopup == true) {
-          this.chatservice.converse(this.formValue, this._isShowchatpopup);
           this.isAPICalled = true;
           if (this._isShowchatpopup == true) {
             this.messages.subscribe((val) => {
@@ -1169,9 +1259,9 @@ export class AppComponent implements OnInit{
       }
       setTimeout(() => {
         this.isAnsReceived = false;
-      },3800);
+      }, 3800);
 
-     this.formValue = "";
+      this.formValue = "";
     }
   }
 
@@ -1194,73 +1284,73 @@ export class AppComponent implements OnInit{
       var founddiff: boolean = false;
 
       if (parentid == "Continue" && intentname != msg[0].content.intentName) {
-          localStorage.setItem("appParentId", 'End');
-          founddiff = true;
-        }
-        else {
-          founddiff = false;
-        }
-
-        if (founddiff == true) {
-          parentid = localStorage.getItem("appParentId");
-          intentname = localStorage.getItem('appIntentName');
-        }
-
-        //create div
-        var _appiDiv = document.createElement('div');
-        var _appdateDiv = document.createElement('span');
-       _appdateDiv.className = 'divtimeai';
-        if (parentid == "null" || parentid == "End") {
-          var _appinnerDiv = document.createElement('p');
-          _appiDiv.id = 'showChatDiv';
-          _appiDiv.className = 'innerpagequestion';
-          _appiDiv.innerHTML = '';
-          _appiDiv.innerHTML = this.userspeech;
-          var displaytime = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
-          _appdateDiv.innerHTML = displaytime;
-          _appiDiv.appendChild(_appdateDiv);
-
-          //create innerdiv
-          _appinnerDiv.className = 'divAnswers';
-          _appinnerDiv.id = 'innerdiv';
-          _appinnerDiv.innerHTML = '';
-          _appinnerDiv.innerHTML = '<p>' + msg[0].content.Speech + '</p>';
-          _appiDiv.appendChild(_appinnerDiv);
-        }
-
-        if (parentid == "Continue" && intentname == msg[0].content.intentName) {
-          if (document.getElementById("innerdiv")) {
-            var firstresponse = '';
-            var firstinnerdiv: any = document.getElementById("innerdiv");
-            var firstresponse = '<p>' + firstinnerdiv.innerHTML.toString() + '</p>';
-            firstinnerdiv.innerHTML = '';
-            firstresponse = firstresponse + '<p>' + this.userspeech + '</p>';
-            firstresponse = firstresponse + '<p>' + msg[0].content.Speech + '</p>';
-            firstinnerdiv.innerHTML = '';
-            firstinnerdiv.innerHTML = firstresponse;
-          }
-        }
-
-        if (document.getElementsByClassName("chatDivactivity").length > 0) {
-          var item = document.getElementsByClassName("chatDivactivity")[0].appendChild(_appiDiv);
-          $("#showChatDiv").prepend(item);
-        }
         localStorage.setItem("appParentId", 'End');
-        localStorage.setItem("appIntentName", botintentname);
-        if (botstatus != "0") {
-          localStorage.setItem("appParentId", 'End');
+        founddiff = true;
+      }
+      else {
+        founddiff = false;
+      }
+
+      if (founddiff == true) {
+        parentid = localStorage.getItem("appParentId");
+        intentname = localStorage.getItem('appIntentName');
+      }
+
+      //create div
+      var _appiDiv = document.createElement('div');
+      var _appdateDiv = document.createElement('span');
+      _appdateDiv.className = 'divtimeai';
+      if (parentid == "null" || parentid == "End") {
+        var _appinnerDiv = document.createElement('p');
+        _appiDiv.id = 'showChatDiv';
+        _appiDiv.className = 'innerpagequestion';
+        _appiDiv.innerHTML = '';
+        _appiDiv.innerHTML = this.userspeech;
+        var displaytime = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+        _appdateDiv.innerHTML = displaytime;
+        _appiDiv.appendChild(_appdateDiv);
+
+        //create innerdiv
+        _appinnerDiv.className = 'divAnswers';
+        _appinnerDiv.id = 'innerdiv';
+        _appinnerDiv.innerHTML = '';
+        _appinnerDiv.innerHTML = '<p>' + msg[0].content.Speech + '</p>';
+        _appiDiv.appendChild(_appinnerDiv);
+      }
+
+      if (parentid == "Continue" && intentname == msg[0].content.intentName) {
+        if (document.getElementById("innerdiv")) {
+          var firstresponse = '';
+          var firstinnerdiv: any = document.getElementById("innerdiv");
+          var firstresponse = '<p>' + firstinnerdiv.innerHTML.toString() + '</p>';
+          firstinnerdiv.innerHTML = '';
+          firstresponse = firstresponse + '<p>' + this.userspeech + '</p>';
+          firstresponse = firstresponse + '<p>' + msg[0].content.Speech + '</p>';
+          firstinnerdiv.innerHTML = '';
+          firstinnerdiv.innerHTML = firstresponse;
         }
-        else {
-          if (botstatus == "0") {
-            localStorage.setItem("appParentId", 'Continue');
-          }
+      }
+
+      if (document.getElementsByClassName("chatDivactivity").length > 0) {
+        var item = document.getElementsByClassName("chatDivactivity")[0].appendChild(_appiDiv);
+        $("#showChatDiv").prepend(item);
+      }
+      localStorage.setItem("appParentId", 'End');
+      localStorage.setItem("appIntentName", botintentname);
+      if (botstatus != "0") {
+        localStorage.setItem("appParentId", 'End');
+      }
+      else {
+        if (botstatus == "0") {
+          localStorage.setItem("appParentId", 'Continue');
+        }
       }
     } else {
       this.userspeech = msg[0].content.Speech;
     }
   }
 
-  
+
   errorHandler(error: any): void {
     console.log(error);
   }

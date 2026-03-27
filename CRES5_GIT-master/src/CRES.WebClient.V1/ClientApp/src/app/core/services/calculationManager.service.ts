@@ -6,11 +6,16 @@ import { BatchCalculationMaster } from "../domain/batchCalculationMaster.model";
 @Injectable()
 export class CalculationManagerService {
   private _noteloadcalculationstatusAPI: string = 'api/calculation/loadcalculationstatus'
+  
+  
   private _insertcalculateonserverrequestAPI: string = 'api/calculation/insertcalculateonserverrequest'
   private _singlenotecalculateonserverRequestAPI: string = 'api/calculation/singlenotecalculateonserverRequest'
   private _getcalculationstatusAPI: string = 'api/calculation/getcalculationstatus'
   private _deleteBatchCalculationRequestByAnalysisIDAPI: string = 'api/calculation/deletebatchcalculationrequestbyanalysisid'
   private _calcstatusAPI: string = 'api/calculation/getallcalcstatus'
+  private _calculationsummaryAPI: string = 'api/calculation/getcalculationsummary'
+  private _UpdateReconStatusByScenrioIDAPI: string = 'api/calculation/UpdateReconStatusByScenrioID'
+
   private _Getallexceptions = "api/calculation/getallexceptions";
   private _RunTestCases = "api/testcase/runtestcase";
   private _getbatchcalculationLogAPI: string = 'api/calculation/getbatchcalculationLog';
@@ -69,11 +74,21 @@ export class CalculationManagerService {
     this.datasrv.set(this._getbatchcalculationLogAPI);
     //return this.datasrv.getAll();
     return this.datasrv.post(JSON.stringify(_batchManager));
+  }  
+   
+  GetCalculationSummary() {
+    this.datasrv.set(this._calculationsummaryAPI);
+    return this.datasrv.getAll();  
+  }
+
+  UpdateReconStatusByScenrioID(_calculationManager: CalculationManagerList) {
+    this.datasrv.set(this._UpdateReconStatusByScenrioIDAPI);   
+    return this.datasrv.post(JSON.stringify(_calculationManager));
   }
 
   downloadfilecalcoutput(_Calclist: CalculationManagerList) {
     this.datasrv.set(this._downloadfilecalcoutputAPI);
-    return this.datasrv.post(JSON.stringify(_Calclist));
+    return this.datasrv.postWithBlob(JSON.stringify(_Calclist));
   }
 
   GettimezoneCurrentOffset() {

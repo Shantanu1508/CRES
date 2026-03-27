@@ -1,4 +1,8 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
 
 namespace CRES.DataContract
 {
@@ -10,8 +14,11 @@ namespace CRES.DataContract
         }
 
         public DateTime? rateDate { get; set; }
+        public string IndexName { get; set; }
+        public string DeterminationDateHolidayList { get; set; }
         public int? InterestAccrualPeriodEndDateTag { get; set; }
         public Decimal? IndexValueusingFloatingRateIndexReferenceDate { get; set; }
+        public Decimal? IndexValueWithoutRounding { get; set; }
         public Decimal? DIndexValueusingFloatingRateIndexReferenceDate { get; set; }
         public Decimal? IndexFloor { get; set; }
         public Decimal? IndexCap { get; set; }
@@ -44,5 +51,7 @@ namespace CRES.DataContract
         public Decimal? FinancingAdvanceRate { get; set; }
 
         public string RateType { get; set; }
+        public string PIKReasonCodeText { get; set; }
+        public string PIKComments { get; set; }
     }
 }

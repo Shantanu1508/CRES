@@ -1,4 +1,10 @@
-﻿namespace CRES.DataContract
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace CRES.DataContract
 {
     public class NoteAdditionalList
     {
@@ -73,6 +79,14 @@
         public string PIKComments { get; set; }
         public string PIKIntCalcMethodID { get; set; }
         public string IndexNameID { get; set; }
+        public string PeriodicRateCapAmount { get; set; }
+        public string PeriodicRateCapPercent { get; set; }
+        public string DeterminationDateHolidayList { get; set; }
+        public string PIKSetUp { get; set; }
+        public string PIKPercentage { get; set; }
+        public string PIKCurrentPayRate { get; set; }
+        public string PIKSeparateCompounding { get; set; }
+
 
     }
 }

@@ -1,4 +1,7 @@
-﻿
+﻿-- Procedure
+-- Procedure
+-- Procedure
+
 CREATE PROCEDURE [DW].[usp_ImportTransactionEntry]
 	@BatchLogId int,@LastBatchStart datetime, @CurrentBatchStart datetime
 AS
@@ -28,7 +31,6 @@ BEGIN
 	UpdatedBy ,
 	UpdatedDate ,
 	TransactionEntryAutoID,
-
 	AnalysisID,
 	AnalysisName,
 	FeeName,
@@ -37,14 +39,29 @@ BEGIN
 	RemitDate,
 	PaymentDateNotAdjustedforWorkingDay,
 	[PurposeType],
-	[Cash_NonCash]
+	[Cash_NonCash],
+	AccountID,
+	AccountTypeID,
+	AccountTypeBI,
+	AllInCouponRate,
+	accountingclosedate,
+	AdjustmentType,
+	IndexDeterminationDate,
+	EndingBalance,
+	DecodeName,
+	Flag,
+	ParentAccountId,
+	BalloonRepayAmount,
+	IndexValue,
+	SpreadValue,
+	OriginalIndex
 		)
 	Select
 		TransactionEntryID,
-		te.NoteID,
+		n.NoteID,
 		Date ,
 		Amount, 
-		Type,
+		te.Type,
 		te.CreatedBy ,
 		te.CreatedDate, 
 		te.UpdatedBy ,
@@ -58,7 +75,22 @@ BEGIN
 		te.RemitDate,
 		te.PaymentDateNotAdjustedforWorkingDay,
 		te.[PurposeType],
-		te.[Cash_NonCash]
+		te.[Cash_NonCash],
+		te.AccountID,
+		acc.AccountTypeID,
+		ac.name as AccountTypeBI,
+		te.AllInCouponRate,
+		te.accountingclosedate,
+		te.AdjustmentType,
+		te.IndexDeterminationDate,
+		te.EndingBalance,
+		te.DecodeName,
+		te.Flag,
+		te.ParentAccountId,
+		te.BalloonRepayAmount,
+		te.IndexValue,
+		te.SpreadValue,
+		te.OriginalIndex
 		
 		--,		
 		--(CASE WHEN EnableM61Calculations = 3 THEN 
@@ -77,13 +109,15 @@ BEGIN
 		--) as [Cash_NonCash_BI]
 
 		From cre.TransactionEntry te
+		inner join core.account acc on acc.accountid = te.AccountID
+		inner join cre.Note n on n.Account_AccountID = acc.AccountID
 		left join core.Analysis an on an.AnalysisID = te.AnalysisID
-		where TransactionEntryAutoID > (Select ISNULL(MAX(TransactionEntryAutoID),0) from [DW].[TransactionEntryBI])		
+		Left Join core.AccountCategory ac on ac.AccountCategoryID = acc.AccounttypeID
+		where acc.isdeleted <> 1
+		and TransactionEntryAutoID > (Select ISNULL(MAX(TransactionEntryAutoID),0) from [DW].[TransactionEntryBI])		
 
 
-		--inner join Cre.Note n on n.NoteID=te.NoteID
-		--left join cre.transactiontypes tym on LOWER(tym.TransactionName) = LOWER(te.[Type])
-		
+	 
 
 
 SET @RowCount = @@ROWCOUNT
@@ -98,5 +132,4 @@ SET @RowCount = @@ROWCOUNT
 SET TRANSACTION ISOLATION LEVEL READ COMMITTED 
 
 END
-
-
+GO

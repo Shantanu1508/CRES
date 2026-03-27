@@ -1,17 +1,23 @@
 ﻿using CRES.BusinessLogic;
-#pragma warning disable CS0105 // The using directive for 'CRES.BusinessLogic' appeared previously in this namespace
-#pragma warning restore CS0105 // The using directive for 'CRES.BusinessLogic' appeared previously in this namespace
+using CRES.BusinessLogic;
 using CRES.DataContract;
 using CRES.Utilities;
 using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Clients.ActiveDirectory;
+using Microsoft.WindowsAzure.Storage;
 using Newtonsoft.Json.Linq;
 using System;
+using System.Collections.Generic;
+using System.Configuration;
 using System.Data.SqlClient;
 using System.IO;
+using System.Linq;
 using System.Net;
 using System.Net.Http;
+using System.Net.Http.Headers;
+using System.Runtime.Serialization;
 using System.Threading;
+using System.Web;
 
 namespace CRES.Services
 {
@@ -20,34 +26,16 @@ namespace CRES.Services
         string tenantId = "b8267886-f0c8-4160-ab6f-6e97968fdc90";
         string clientId = "3c50164d-80e6-40c8-bab3-561f5f740027"; // Application ID
         string clientSecret = "V06yv6TPVHkNR4+AJWWgDQjUg2gLga4RN3t8DTWbKYs=";
-#pragma warning disable CS0414 // The field 'AzureStorageImportExportDatabases.YourSubscriptionId' is assigned but its value is never used
         string YourSubscriptionId = "021c83fc-1e2a-4da6-92dd-8e1d74c0e1cb";
-#pragma warning restore CS0414 // The field 'AzureStorageImportExportDatabases.YourSubscriptionId' is assigned but its value is never used
-#pragma warning disable CS0414 // The field 'AzureStorageImportExportDatabases.YourResourceGroupName' is assigned but its value is never used
         string YourResourceGroupName = "DevEnvironment";
-#pragma warning restore CS0414 // The field 'AzureStorageImportExportDatabases.YourResourceGroupName' is assigned but its value is never used
-#pragma warning disable CS0414 // The field 'AzureStorageImportExportDatabases.YourServerName' is assigned but its value is never used
         string YourServerName = "b0xesubcki.database.windows.net";
-#pragma warning restore CS0414 // The field 'AzureStorageImportExportDatabases.YourServerName' is assigned but its value is never used
-#pragma warning disable CS0414 // The field 'AzureStorageImportExportDatabases.YourDatabaseName' is assigned but its value is never used
         string YourDatabaseName = "CRES4_Test";
-#pragma warning restore CS0414 // The field 'AzureStorageImportExportDatabases.YourDatabaseName' is assigned but its value is never used
         //string StorageAccessKey = "?sv=2018-03-28&ss=bfqt&srt=sco&sp=rwdlacup&se=2019-01-09T21:50:08Z&st=2019-01-09T13:50:08Z&spr=https&sig=B7SX%2Bn5Nx%2FEqHyHQOqypN6lUWr2xOs5YmXOpEi%2BbcVk%3D";
-#pragma warning disable CS0414 // The field 'AzureStorageImportExportDatabases.StorageAccessKey' is assigned but its value is never used
         string StorageAccessKey = "cjHDvVrAJFOuqV/6JVAJnrOCym9B0JW0jAMuo8pZASelw4wYwQ3sQCmCiKwhqvQIaQ+V9d8x4qH9h6CzVQwvuA==";
-#pragma warning restore CS0414 // The field 'AzureStorageImportExportDatabases.StorageAccessKey' is assigned but its value is never used
-#pragma warning disable CS0414 // The field 'AzureStorageImportExportDatabases.YourBlobStorageKey' is assigned but its value is never used
         string YourBlobStorageKey = "cjHDvVrAJFOuqV/6JVAJnrOCym9B0JW0jAMuo8pZASelw4wYwQ3sQCmCiKwhqvQIaQ+V9d8x4qH9h6CzVQwvuA==";
-#pragma warning restore CS0414 // The field 'AzureStorageImportExportDatabases.YourBlobStorageKey' is assigned but its value is never used
-#pragma warning disable CS0414 // The field 'AzureStorageImportExportDatabases.YourStorageUri' is assigned but its value is never used
         string YourStorageUri = "https://cres5appbackup.blob.core.windows.net/dbcontainer/";
-#pragma warning restore CS0414 // The field 'AzureStorageImportExportDatabases.YourStorageUri' is assigned but its value is never used
-#pragma warning disable CS0414 // The field 'AzureStorageImportExportDatabases.YourSqlServerUsername' is assigned but its value is never used
         string YourSqlServerUsername = "CREAdmin";
-#pragma warning restore CS0414 // The field 'AzureStorageImportExportDatabases.YourSqlServerUsername' is assigned but its value is never used
-#pragma warning disable CS0414 // The field 'AzureStorageImportExportDatabases.YourSqlServerPassword' is assigned but its value is never used
         string YourSqlServerPassword = "Indore2016#";
-#pragma warning restore CS0414 // The field 'AzureStorageImportExportDatabases.YourSqlServerPassword' is assigned but its value is never used
         private string connstring = "";
         SqlConnection connection = new SqlConnection();
 

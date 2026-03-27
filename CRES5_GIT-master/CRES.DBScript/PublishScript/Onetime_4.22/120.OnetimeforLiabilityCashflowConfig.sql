@@ -1,0 +1,1 @@
+﻿Update cre.[LiabilityCashflowConfig] set RebalanceMethod = 1

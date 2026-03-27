@@ -1,15 +1,17 @@
-﻿using Amazon;
-using Amazon.Lambda;
-using Amazon.Lambda.Model;
-using Amazon.Runtime;
+﻿using System;
+using System.Collections.Generic;
+using System.IO;
+using Amazon;
 using Amazon.S3;
 using Amazon.S3.IO;
 using Amazon.S3.Model;
+using Amazon.Runtime;
+using Amazon.CognitoIdentity;
+using Amazon.EC2;
 using Ionic.Zip;
 using Newtonsoft.Json;
-using System;
-using System.Collections.Generic;
-using System.IO;
+using Amazon.Lambda.Model;
+using Amazon.Lambda;
 using System.Threading.Tasks;
 
 namespace CRES.Services.Infrastructure
@@ -248,7 +250,7 @@ namespace CRES.Services.Infrastructure
                 {
                     S3DirectoryInfo source = new S3DirectoryInfo(_s3Client, bucketName, folderName);
                     response = source.GetFiles();
-
+                    
                 }
 
                 foreach (var entry in response)
@@ -284,7 +286,6 @@ namespace CRES.Services.Infrastructure
         /// <returns></returns>
         public S3DirectoryInfo CopyTo(string sourcekeyName, string destinationKeyName)
         {
-#pragma warning disable CS0168 // The variable 'ex' is declared but never used
             try
             {
                 using (IAmazonS3 _s3Client = GetAmazonS3Client())
@@ -315,7 +316,6 @@ namespace CRES.Services.Infrastructure
             {
                 return null;
             }
-#pragma warning restore CS0168 // The variable 'ex' is declared but never used
 
         }
 
@@ -331,7 +331,7 @@ namespace CRES.Services.Infrastructure
             {
                 var request = new GetObjectRequest
                 {
-                    BucketName = _bucketName,
+                    BucketName =  _bucketName,
                     Key = keyName
                 };
                 using (var response = _s3Client.GetObject(request))
@@ -384,7 +384,7 @@ namespace CRES.Services.Infrastructure
 
         public string zip(string folderName)
         {
-            string zipFilename = "", destZipName = "";
+            string zipFilename = "",destZipName = "";
 
             try
             {
@@ -412,12 +412,11 @@ namespace CRES.Services.Infrastructure
             {
                 return ex.Message;
             }
-
+            
         }
 
         public Boolean CreateFunction(string folderName, string zipfile)
         {
-#pragma warning disable CS0168 // The variable 'ex' is declared but never used
             try
             {
                 using (AmazonLambdaClient client = new AmazonLambdaClient(AWSConfig.GetCredentials(), AWSConfig.GetRegion()))
@@ -427,7 +426,7 @@ namespace CRES.Services.Infrastructure
                         FunctionName = folderName,
                         Handler = "FastCREDeal.Main",
                         MemorySize = 128,
-                        Timeout = 20,
+                        Timeout =20,
                         Publish = true,
                         Description = "",
                         Code = new FunctionCode() { S3Bucket = _bucketName, S3Key = zipfile },
@@ -446,14 +445,12 @@ namespace CRES.Services.Infrastructure
 
                 return false;
             }
-#pragma warning restore CS0168 // The variable 'ex' is declared but never used
 
         }
 
 
-        public Boolean UpdateFunction(string folderName, string zipfile)
+        public Boolean UpdateFunction( string folderName, string zipfile)
         {
-#pragma warning disable CS0168 // The variable 'ex' is declared but never used
             try
             {
                 AmazonLambdaClient client = new AmazonLambdaClient(AWSConfig.GetCredentials(), AWSConfig.GetRegion());
@@ -474,15 +471,13 @@ namespace CRES.Services.Infrastructure
             {
                 return false;
             }
-#pragma warning restore CS0168 // The variable 'ex' is declared but never used
         }
 
-        public string InvokeFunction(string folderName, string file, string payLoad)
+        public string InvokeFunction(string folderName, string file,string payLoad)
         {
-#pragma warning disable CS0168 // The variable 'ex' is declared but never used
             try
             {
-
+                
                 AmazonLambdaClient client = new AmazonLambdaClient(AWSConfig.GetCredentials(), AWSConfig.GetRegion());
 
                 InvokeRequest ir = new InvokeRequest();
@@ -490,7 +485,7 @@ namespace CRES.Services.Infrastructure
                 ir.InvocationType = InvocationType.RequestResponse;
                 ir.Payload = payLoad;
 
-
+                
                 if (string.IsNullOrEmpty(payLoad))
                 {
                     ir = new InvokeRequest();
@@ -519,14 +514,12 @@ namespace CRES.Services.Infrastructure
             {
                 return "";
             }
-#pragma warning restore CS0168 // The variable 'ex' is declared but never used
         }
 
         public Task DeleteAllZipFile(string folderName)
         {
             return Task.Run(() =>
             {
-#pragma warning disable CS0168 // The variable 'ex' is declared but never used
                 try
                 {
                     S3FileInfo[] response;
@@ -548,14 +541,12 @@ namespace CRES.Services.Infrastructure
                 {
 
                 }
-#pragma warning restore CS0168 // The variable 'ex' is declared but never used
             });
 
         }
 
         public string GetZipFileByFolder(string folderName)
         {
-#pragma warning disable CS0168 // The variable 'ex' is declared but never used
             try
             {
                 string zipFileName = "";
@@ -570,7 +561,7 @@ namespace CRES.Services.Infrastructure
                 {
                     if (entry.Extension == "zip")
                     {
-                        zipFileName = folderName + "/" + entry.Name;
+                        zipFileName = folderName+"/"+entry.Name;
                     }
                 }
 
@@ -580,7 +571,6 @@ namespace CRES.Services.Infrastructure
             {
                 return "";
             }
-#pragma warning restore CS0168 // The variable 'ex' is declared but never used
 
         }
 
@@ -618,7 +608,7 @@ namespace CRES.Services.Infrastructure
             //return credentials;
             var key = "AKIAJMRB6FF5LA4CJHEQ";
             var secret = "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";
-            return new BasicAWSCredentials(key, secret);
+            return new  BasicAWSCredentials(key, secret);
         }
         public static RegionEndpoint GetRegion()
         {

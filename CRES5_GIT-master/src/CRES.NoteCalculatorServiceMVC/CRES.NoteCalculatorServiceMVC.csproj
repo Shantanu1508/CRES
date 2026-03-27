@@ -5,13 +5,25 @@
     <AspNetCoreHostingModel>InProcess</AspNetCoreHostingModel>
   </PropertyGroup>
 
+  <ItemGroup>
+    <None Remove="ValuationTemplate\Release2.0.0\~%24Valuation_Module_v1.0.0.xlsb" />
+  </ItemGroup>
 
   <ItemGroup>
+    <None Include="wwwroot\SharedResources\RSAKey.txt" />
+  </ItemGroup>
+
+
+  <ItemGroup>
+    <PackageReference Include="Azure.Storage.Queues" Version="12.21.0" />
+    <PackageReference Include="ExcelDataReader" Version="3.4.0" />
+    <PackageReference Include="ExcelDataReader.DataSet" Version="3.4.0" />
     <PackageReference Include="Ionic.Zip" Version="1.9.1.8" />
     <PackageReference Include="Microsoft.AspNet.WebApi.Core" Version="5.2.9" />
     <PackageReference Include="Microsoft.AspNetCore.App" />
     <PackageReference Include="Microsoft.AspNetCore.Mvc.NewtonsoftJson" Version="3.1.4" />
     <PackageReference Include="Microsoft.WindowsAzure.ConfigurationManager" Version="3.0.0" />
+    <PackageReference Include="Snowflake.Data" Version="4.3.0" />
     <PackageReference Include="System.Web.Http" Version="4.0.0" />
     <PackageReference Include="WindowsAzure.Storage" Version="6.2.0" />
   </ItemGroup>

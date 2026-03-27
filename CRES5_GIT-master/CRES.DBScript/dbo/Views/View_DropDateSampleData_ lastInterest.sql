@@ -37,7 +37,7 @@ Outer Apply(
 	and MONTH(t.Date) = MONTH(dd.MonthYear) and YEAR(t.Date) = YEAR(dd.MonthYear) 
 	and ABS(Datediff( d, isnull(ActualPayoffDate,'') , isnull(Date,'')) ) < 3
 	--or isnull(Date,'') = isnull(FullyExtendedMaturityDate,''))
-	
+	and t.AccountTypeID = 1
 	group by t.crenoteid, Date
 	Having Date = Max(Date)
 

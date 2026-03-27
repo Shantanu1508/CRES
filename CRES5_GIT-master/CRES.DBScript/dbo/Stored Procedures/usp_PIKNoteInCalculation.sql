@@ -8,13 +8,19 @@ BEGIN
 DECLARE @PIK_Source_Target_Note TABLE
 	(
 		SourceNoteID UNIQUEIDENTIFIER,
-		TargetNoteID UNIQUEIDENTIFIER
+		TargetNoteID UNIQUEIDENTIFIER,
+
+		SourceAccountID UNIQUEIDENTIFIER,
+		TargetAccountID UNIQUEIDENTIFIER
 	)
 
-	INSERT INTO @PIK_Source_Target_Note(SourceNoteID,TargetNoteID)
+	INSERT INTO @PIK_Source_Target_Note(SourceNoteID,TargetNoteID,SourceAccountID,TargetAccountID)
 	Select 
 	sourceNote.NoteID as SourceNoteID,
-	DestNote.NoteID as TargetNoteID
+	DestNote.NoteID as TargetNoteID,
+
+	sourceNote.Account_AccountID as SourceAccountID,
+	DestNote.Account_AccountID as TargetAccountID
 
 	--MainNote.NoteID as MainNoteID,
 	--sourceNote.NoteID as SourceNoteID,
@@ -63,7 +69,7 @@ Declare @lookupidProcessing int = (SELECT LookupID from core.Lookup where Name='
 Declare @cnt int;
 SELECT @cnt = COUNT(n.[NoteId])
 			  from  CRE.Note n
-			  left join Core.CalculationRequests cr on n.NoteId=cr.NoteId
+			  left join Core.CalculationRequests cr on n.Account_AccountID=cr.AccountId
 			  left JOIN core.Account ac ON ac.AccountID = n.Account_AccountID
 			  inner join cre.Deal d on n.DealId = d.DealId
 			  left join Core.Lookup l ON cr.[StatusID]=l.LookupID
@@ -83,15 +89,17 @@ BEGIN
 	---update status of child note as Dependent in CalculationRequests table if it inserted before parent
 	update Core.CalculationRequests
 	set StatusID=(SELECT LookupID FROM Core.Lookup WHERE ParentId=40 AND NAME ='Dependents') 
-	where NoteId in (Select TargetNoteID from @PIK_Source_Target_Note)
+	where AccountId in (Select TargetAccountID from @PIK_Source_Target_Note)
 	and CalcType = 775
 
 END
 ELSE
 BEGIN
 	
-	DECLARE @NoteId UNIQUEIDENTIFIER, 
-	@existingId UNIQUEIDENTIFIER;
+	DECLARE @NoteId UNIQUEIDENTIFIER
+	DECLARE @AccountID UNIQUEIDENTIFIER
+
+	DECLARE @existingId UNIQUEIDENTIFIER;
 
 	IF CURSOR_STATUS('global','CursorNoteCR')>=-1    
 	BEGIN    
@@ -101,28 +109,28 @@ BEGIN
 	DECLARE CursorNoteCR CURSOR     
 	FOR    
 	(    
-		Select Distinct SourceNoteID from @PIK_Source_Target_Note
+		Select Distinct SourceNoteID,SourceAccountID from @PIK_Source_Target_Note
 	)
 	OPEN CursorNoteCR     
 	FETCH NEXT FROM CursorNoteCR    
-	INTO @NoteId
+	INTO @NoteId,@AccountID
 	WHILE @@FETCH_STATUS = 0    
 	BEGIN 
 
-	SET @existingId = (SELECT top 1 CalculationRequestID FROM Core.CalculationRequests WHERE NoteID = @NoteID AND StatusID not in (SELECT LookupID FROM Core.Lookup WHERE ParentId=40 AND NAME in('Failed','Completed')) and CalcType = 775)
+	SET @existingId = (SELECT top 1 CalculationRequestID FROM Core.CalculationRequests WHERE AccountId = @AccountID AND StatusID not in (SELECT LookupID FROM Core.Lookup WHERE ParentId=40 AND NAME in('Failed','Completed')) and CalcType = 775)
 
 	IF @existingId IS NULL 
 	BEGIN
 	--IF not is 'Failed'/'Completed'
 
 	--Delete note as well as its child note
-	Delete from Core.CalculationRequests where NoteId= @NoteId and StatusID in (SELECT LookupID FROM Core.Lookup WHERE ParentId=40 AND NAME in('Failed','Completed')) and CalcType = 775
-	Delete from Core.CalculationRequests where NoteId in (Select TargetNoteID from @PIK_Source_Target_Note where SourceNoteID = @NoteID) and CalcType = 775
+	Delete from Core.CalculationRequests where AccountId= @AccountId and StatusID in (SELECT LookupID FROM Core.Lookup WHERE ParentId=40 AND NAME in('Failed','Completed')) and CalcType = 775
+	Delete from Core.CalculationRequests where AccountId in (Select TargetAccountID from @PIK_Source_Target_Note where SourceNoteID = @NoteID) and CalcType = 775
 
 
 	--Insert parent note
-	INSERT INTO Core.CalculationRequests(NoteId,RequestTime,StatusID,UserName,ApplicationID,PriorityID,CalcType) 
-	select @NoteId as SourceNoteID,getdate(),@lookupidProcessing as StatusID,@CreatedBy,null as ApplicationID,null as PriorityID  ,775
+	INSERT INTO Core.CalculationRequests(AccountId,RequestTime,StatusID,UserName,ApplicationID,PriorityID,CalcType) 
+	select @AccountID as SourceNoteID,getdate(),@lookupidProcessing as StatusID,@CreatedBy,null as ApplicationID,null as PriorityID  ,775
 	
 	UNION
 
@@ -135,20 +143,20 @@ BEGIN
 	,null
 	,775
 	from @PIK_Source_Target_Note where SourceNoteID= @NoteId 
-	and TargetNoteID not in (select NoteID from Core.CalculationRequests where StatusID not in (SELECT LookupID FROM Core.Lookup WHERE ParentId=40 AND NAME in('Running')) and CalcType = 775)
+	and TargetAccountID not in (select AccountId from Core.CalculationRequests where StatusID not in (SELECT LookupID FROM Core.Lookup WHERE ParentId=40 AND NAME in('Running')) and CalcType = 775)
 
 
 	---update status of child note as Dependent in CalculationRequests table if it inserted before parent
 	update Core.CalculationRequests
 	set StatusID=(SELECT LookupID FROM Core.Lookup WHERE ParentId=40 AND NAME ='Dependents') 
-	where NoteId in (Select TargetNoteID from @PIK_Source_Target_Note where SourceNoteID = @NoteID)
+	where AccountId in (Select TargetAccountID from @PIK_Source_Target_Note where SourceNoteID = @NoteID)
 	and CalcType = 775
 
 
 	END
 
 	FETCH NEXT FROM CursorNoteCR    
-	INTO @NoteId
+	INTO @NoteId,@AccountID
 
 	END  
 END

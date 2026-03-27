@@ -1,10 +1,13 @@
-﻿using CRES.BusinessLogic;
-using CRES.DataContract;
-using Microsoft.AspNetCore.Mvc;
-using System;
+﻿using System.Data;
 using System.Collections.Generic;
-#pragma warning disable CS0105 // The using directive for 'CRES.BusinessLogic' appeared previously in this namespace
-#pragma warning restore CS0105 // The using directive for 'CRES.BusinessLogic' appeared previously in this namespace
+using System.Linq;
+using System.Net;
+using System.Net.Http;
+using CRES.BusinessLogic;
+using CRES.DataContract;
+using System;
+using Microsoft.AspNetCore.Mvc;
+using CRES.BusinessLogic;
 
 namespace CRES.Services.Controllers
 {
@@ -29,7 +32,7 @@ namespace CRES.Services.Controllers
         //    {
         //        headerUserID = new Guid(headerValues.FirstOrDefault());
         //    }
-
+            
         //   _lstUserNotification = _userNotifilogic.GetUserNotification(headerUserID.ToString(),dt, pageindex);
 
 
@@ -42,12 +45,12 @@ namespace CRES.Services.Controllers
         //            Succeeded = true,
         //            Message = "succeeded",
         //            lstUserNotification = _lstUserNotification
-
+                   
         //        };
         //    }
         //    return Ok(_authenticationResult);
         //}
-
+        
 
         [HttpPost]
         [Services.Controllers.IsAuthenticate]
@@ -61,9 +64,7 @@ namespace CRES.Services.Controllers
 
             UserNotificationLogic _userNotifilogic = new UserNotificationLogic();
 
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
             var headerUserID = new Guid();
             if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
             {
@@ -103,9 +104,7 @@ namespace CRES.Services.Controllers
 
             UserNotificationLogic _userNotifilogic = new UserNotificationLogic();
 
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
             var headerUserID = new Guid();
             if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
             {
@@ -144,9 +143,7 @@ namespace CRES.Services.Controllers
 
             UserNotificationLogic _userNotifilogic = new UserNotificationLogic();
 
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
             var headerUserID = new Guid();
             if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
             {
@@ -184,15 +181,13 @@ namespace CRES.Services.Controllers
         public IActionResult GetUserNotificationCount()
         {
             GenericResult _authenticationResult = null;
-
+           
             List<UserNotificationDataContract> _lstUserNotification = new List<UserNotificationDataContract>();
 
             UserNotificationDataContract UserNotifiDC = new UserNotificationDataContract();
             UserNotificationLogic _userNotifilogic = new UserNotificationLogic();
-            // int result = 0;
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
+           // int result = 0;
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
             var headerUserID = new Guid();
             if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
             {
@@ -203,17 +198,17 @@ namespace CRES.Services.Controllers
             //  _lstUserNotification = _userNotifilogic.GetUserNotification(headerUserID.ToString());
 
             UserNotifiDC = _userNotifilogic.GetUserNotificationCount(headerUserID.ToString());
-            // var notificount = _lstUserNotification.Where(x => x.ViewedTime == null).Count();
+           // var notificount = _lstUserNotification.Where(x => x.ViewedTime == null).Count();
             if (_lstUserNotification != null)
             {
                 _authenticationResult = new GenericResult()
                 {
                     Succeeded = true,
-                    TotalCount = UserNotifiDC.TotalCount,
+                    TotalCount= UserNotifiDC.TotalCount,
                     exceptioncount = UserNotifiDC.CurrentCount
                 };
             }
-
+            
             return Ok(_authenticationResult);
         }
 
@@ -225,9 +220,7 @@ namespace CRES.Services.Controllers
         {
             GenericResult _authenticationResult = null;
             List<NotificationSubscriptionDataContract> lstSubscription = new List<NotificationSubscriptionDataContract>();
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
             var headerUserID = new Guid();
             if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
             {
@@ -284,9 +277,7 @@ namespace CRES.Services.Controllers
             List<NotificationSubscriptionDataContract> _lstNotificationSubscription = new List<NotificationSubscriptionDataContract>();
 
 
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
             var headerUserID = string.Empty;
 
             if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
@@ -329,20 +320,18 @@ namespace CRES.Services.Controllers
             return Ok(_actionResult);
         }
 
-
+        
         [HttpGet]
         [Services.Controllers.IsAuthenticate]
         [Services.Controllers.DeflateCompression]
         [Route("api/notification/allnotification")]
         public IActionResult GetAllNotification(int pageIndx, int pageSize, string gId)
-        //  public IActionResult GetAllNotification(string dt)
+      //  public IActionResult GetAllNotification(string dt)
         {
             GenericResult _authenticationResult = null;
-            //  int pageIndx = 1, pageSize = 30;
+          //  int pageIndx = 1, pageSize = 30;
             List<UserNotificationDataContract> _lstUserNotification = new List<UserNotificationDataContract>();
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
             int? totalCount = 0;
             var headerUserID = new Guid();
             if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
@@ -354,7 +343,7 @@ namespace CRES.Services.Controllers
 
             if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
             {
-                _lstUserNotification = notificationLogic.GetAllUserNotification(headerUserID.ToString(), gId, pageIndx, pageSize, out totalCount);
+                _lstUserNotification = notificationLogic.GetAllUserNotification(headerUserID.ToString(), gId, pageIndx, pageSize,out totalCount);
             }
             try
             {

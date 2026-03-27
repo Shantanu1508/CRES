@@ -5,7 +5,7 @@ CREATE PROCEDURE [dbo].[usp_InsertHolidaysDate]
 	 @CreatedBy uniqueidentifier
 	)
 
-AS
+	AS
 BEGIN
 	SET NOCOUNT ON;
 
@@ -16,8 +16,8 @@ BEGIN
  -----------=============================------------------------
  IF EXISTS(SELECT 1 from @TableHolidays WHERE HolidayDate is not null)
  BEGIN
-	 INSERT INTO App.Holidays (HolidayDate,HolidayTypeId,CreatedBy,CreatedDate,UpdatedBy,UpdatedDate)
-	 SELECT HolidayDate,@HolidayID,@CreatedBy,getdate(),@CreatedBy,getdate()
+	 INSERT INTO App.Holidays (HolidayDate,HolidayTypeId,isSoftHoliday,CreatedBy,CreatedDate,UpdatedBy,UpdatedDate)
+	 SELECT HolidayDate,@HolidayID,isSoftHoliday,@CreatedBy,getdate(),@CreatedBy,getdate()
 	 From @TableHolidays
  END
 

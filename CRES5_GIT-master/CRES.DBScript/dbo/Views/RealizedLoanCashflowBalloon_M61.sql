@@ -62,6 +62,7 @@ From(
 			Select T.TransactionEntryID,T.CreNoteID,T.type,T.Date,T.Amount 
 			From [DW].[TransactionEntryBI] T      
 			where AnalysisName = 'Default' and type ='Balloon'
+			and T.AccountTypeID = 1
 
 			UNION ALL
 
@@ -69,9 +70,10 @@ From(
 			From [DW].[TransactionEntryBI] TF 	
 			INNER JOIN(
 				Select TransactionEntryID,CreNoteID,Date,Amount From [DW].[TransactionEntryBI] T      
-				where AnalysisName = 'Default' and type ='Balloon'
+				where AnalysisName = 'Default' and type ='Balloon' and T.AccountTypeID = 1
 			)TB on TF.CreNoteID = TB.CreNoteID and TF.Date = TB.Date
 			where TF.AnalysisName = 'Default' and TF.type ='FundingOrRepayment'  and TF.Amount > 0
+			and TF.AccountTypeID = 1
 
 			UNION ALL
 
@@ -79,6 +81,7 @@ From(
 			From [DW].[TransactionEntryBI] T      
 			left join DW.NoteBI N on N.Noteid = T.NoteID
 			where AnalysisName = 'Default' and type ='FundingOrRepayment' and T.Date = N.ActualPayOffDate
+			and T.AccountTypeID = 1
 		)b	
 	)
 

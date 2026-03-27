@@ -10,7 +10,8 @@
 	ExpectedMaturityDate  Date ,
 	OpenPrepaymentDate	  Date ,
 	CRENoteID nvarchar(256),
-	MaturityMethodID int null
+	MaturityMethodID int null,
+	ExtensionType int
 );
 
 

@@ -1,8 +1,10 @@
-﻿using CRES.TestAutoMationApp.ExecutionReports;
-using NPOI.XSSF.UserModel;
-using System;
+﻿using System;
+using System.Collections.Generic;
+using System.Text;
 using System.Data;
+using NPOI.XSSF.UserModel;
 using System.IO;
+using CRES.TestAutoMationApp.ExecutionReports;
 
 namespace CRES.TestAutoMationApp.Utility
 {
@@ -21,12 +23,12 @@ namespace CRES.TestAutoMationApp.Utility
             FileSystemInfo[] filesAndDirs = hdDirectoryInWhichToSearch.GetFileSystemInfos("*" + UniqueID + "*");
 
             foreach (FileSystemInfo foundFile in filesAndDirs)
-            {
+            {               
                 MergeData(foundFile.FullName, dt);
             }
             String FileName = "Deal_Funding_Validation_" + strPost;
             String Path = GenerateExcelFile.CreateExcelDataTable(dt, FileName);
-
+            
             return Path;
         }
 

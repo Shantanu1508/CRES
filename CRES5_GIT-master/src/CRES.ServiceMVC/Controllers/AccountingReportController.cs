@@ -1,9 +1,9 @@
 ﻿using CRES.BusinessLogic;
 using CRES.DataContract;
 using CRES.Utilities;
-using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Collections.Generic;
+using Microsoft.AspNetCore.Mvc;
 
 namespace CRES.Services.Controllers
 {
@@ -28,19 +28,19 @@ namespace CRES.Services.Controllers
 
             try
             {
-                AccountingReportLogic accountingReportLogic = new AccountingReportLogic();
-                int? totalCount = 0;
+            AccountingReportLogic accountingReportLogic = new AccountingReportLogic();
+            int? totalCount = 0;
 
-                //UserPermissionLogic upl = new UserPermissionLogic();
-                //List<UserPermissionDataContract> permissionlist = upl.GetuserPermissionByUserIDAndPageName(headerUserID.ToString(), "AccountingReportlist");
+            //UserPermissionLogic upl = new UserPermissionLogic();
+            //List<UserPermissionDataContract> permissionlist = upl.GetuserPermissionByUserIDAndPageName(headerUserID.ToString(), "AccountingReportlist");
 
-                //if (permissionlist.Count > 0)
-                //{
-                //    _lstReportFiles = accountingReportLogic.GetAllReportFiles(headerUserID, pageSize, pageIndex, out totalCount);
-                //}
-                _lstReportFiles = accountingReportLogic.GetAllReportFiles(headerUserID, pageSize, pageIndex, out totalCount);
+            //if (permissionlist.Count > 0)
+            //{
+            //    _lstReportFiles = accountingReportLogic.GetAllReportFiles(headerUserID, pageSize, pageIndex, out totalCount);
+            //}
+            _lstReportFiles = accountingReportLogic.GetAllReportFiles(headerUserID, pageSize, pageIndex, out totalCount);
 
-
+           
                 if (_lstReportFiles != null)
                 {
                     Logger.Write("Report list loaded successfully", MessageLevel.Info, headerUserID.ToString());
@@ -50,7 +50,7 @@ namespace CRES.Services.Controllers
                         Message = "Authentication succeeded",
                         TotalCount = Convert.ToInt32(totalCount),
                         ReportFileList = _lstReportFiles,
-
+                        
                     };
                 }
                 else
@@ -90,11 +90,11 @@ namespace CRES.Services.Controllers
             }
             try
             {
-                int? totalCount = 0;
-                AccountingReportLogic accountingReportLogic = new AccountingReportLogic();
-                lstDocuments = accountingReportLogic.GetAllReportFileLogByObjectId(_documentDC, headerUserID, pageIndex, pageSize, out totalCount);
+            int? totalCount = 0;
+            AccountingReportLogic accountingReportLogic = new AccountingReportLogic();
+            lstDocuments = accountingReportLogic.GetAllReportFileLogByObjectId(_documentDC, headerUserID, pageIndex, pageSize, out totalCount);
 
-
+            
                 if (lstDocuments != null)
                 {
                     _authenticationResult = new GenericResult()
@@ -126,7 +126,7 @@ namespace CRES.Services.Controllers
             }
             return Ok(_authenticationResult);
         }
-
+        
         [HttpPost]
         [Route("api/accountingreport/updatereportlogstatus")]
         public IActionResult UpdateReportLogStatus([FromBody] List<ReportFileLogDataContract> _docDC)
@@ -171,7 +171,7 @@ namespace CRES.Services.Controllers
         [Services.Controllers.IsAuthenticate]
         [Services.Controllers.DeflateCompression]
         [Route("api/accountingreport/getwarehouseStatus")]
-
+        
         public IActionResult GetwarehouseStatus([FromBody] string btnname)
         {
 
@@ -198,8 +198,8 @@ namespace CRES.Services.Controllers
                         Succeeded = true,
                         Message = "Authentication succeeded",
                         lstDWStatus = lstStatus,
-                        Status2 = lstStatus[0].Status2,
-                        BatchEndTime = CommonHelper.ToDateTime(lstStatus[0].BatchEndTime),
+                        Status2= lstStatus[0].Status2,
+                        BatchEndTime=CommonHelper.ToDateTime(lstStatus[0].BatchEndTime),
                     };
                 }
                 else

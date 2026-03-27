@@ -432,8 +432,12 @@
     [DealAQR]                                  FLOAT (53)       NULL,
     [OriginalLoanTerm]                         NVARCHAR (50)    NULL,
     [DebtYieldStabilization]                   NVARCHAR (100)   NULL,
-    [AMTeamLeader_UserId_F]                    INT              NULL
+    [AMTeamLeader_UserId_F]                    INT              NULL,
+    [UwDealBI_AutoID]                          INT              IDENTITY (1, 1) NOT NULL,
+    CONSTRAINT [PK_UwDealBI_AutoID] PRIMARY KEY CLUSTERED ([UwDealBI_AutoID] ASC)
 );
+
+
 
 
 GO

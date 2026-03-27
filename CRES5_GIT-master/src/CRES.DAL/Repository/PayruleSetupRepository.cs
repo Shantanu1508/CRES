@@ -1,4 +1,5 @@
 ﻿using CRES.DAL.IRepository;
+using CRES.DAL.Helper;
 using CRES.DataContract;
 using CRES.Utilities;
 using System;
@@ -70,7 +71,6 @@ namespace CRES.DAL.Repository
 
             DataTable dt = new DataTable();
 
-#pragma warning disable CS0168 // The variable 'ex' is declared but never used
             try
             {
                 Helper.Helper hp = new Helper.Helper();
@@ -81,7 +81,6 @@ namespace CRES.DAL.Repository
             catch (Exception ex)
             {
             }
-#pragma warning restore CS0168 // The variable 'ex' is declared but never used
 
             return dt;
         }
@@ -89,7 +88,6 @@ namespace CRES.DAL.Repository
         public void InsertIntoPayruleSetup(List<PayruleSetupDataContract> list, string username, string DealID)
         {
 
-#pragma warning disable CS0168 // The variable 'ex' is declared but never used
             try
             {
                 Helper.Helper hp = new Helper.Helper();
@@ -118,7 +116,6 @@ namespace CRES.DAL.Repository
                 throw;
 
             }
-#pragma warning restore CS0168 // The variable 'ex' is declared but never used
 
 
         }

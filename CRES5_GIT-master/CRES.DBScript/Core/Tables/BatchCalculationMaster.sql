@@ -10,7 +10,8 @@
     [BatchType]                  VARCHAR (50)     NULL,
     [UserID]                     UNIQUEIDENTIFIER NULL,
     [Status]                     VARCHAR (50)     NULL,
-    [PortfolioMasterID]          INT              NULL
+    [PortfolioMasterID]          INT              NULL,
+	[TotalCanceled] INT  null
 );
 
 go
@@ -18,3 +19,6 @@ go
 
 ALTER TABLE [Core].[BatchCalculationMaster]
 ADD CONSTRAINT PK_BatchCalculationMaster_BatchCalculationMasterID PRIMARY KEY ([BatchCalculationMasterID]);
+
+
+  

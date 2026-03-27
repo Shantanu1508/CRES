@@ -41,7 +41,7 @@ export class Note {
   public ProspectiveAccountingMode: number;
   public IsCapitalized: number;
   public SelectedMaturityDateScenario: number;
-  //public SelectedMaturityDate: Date;
+  public SelectedMaturityDate: Date;
   //public InitialMaturityDate: Date;
   public ExpectedMaturityDate: Date;
   public OpenPrepaymentDate: Date;
@@ -120,6 +120,9 @@ export class Note {
   public NoofdaysrelPaymentDaterollnextpaymentcycle: number;
   public ClientNoteID: string;
   public lastCalcDateTime: Date;
+  public AccountingCloseDate: Date;
+  public LastAccountingCloseDate: Date;
+
   public CopyCRENoteId: string;
   public CopyName: string;
   public CopyDealID: string;
@@ -135,7 +138,6 @@ export class Note {
   public Tag2: string;
   public Tag3: string;
   public Tag4: string;
-  public BalanceAware: boolean;
   //public ExtendedMaturityScenario1: Date;
   //public ExtendedMaturityScenario2: Date;
   //public ExtendedMaturityScenario3: Date;
@@ -161,6 +163,7 @@ export class Note {
   public CapStack: number;
   public PoolID: number;
   public AnalysisID: string;
+  public AnalysisIDNew: string;
   public CalculationModeID: number
   public CalculationModeText: number
   public IsSingleNoteClac: boolean = false
@@ -173,11 +176,17 @@ export class Note {
   public PIKInterestAddedToBalanceBasedOnBusinessAdjustedDate: number;
   public PIKInterestAddedToBalanceBasedOnBusinessAdjustedDateText: string;
   public InterestCalculationRuleForPaydowns: number;
+  public InterestCalculationRuleForPIKPaydowns: number;
   public InterestCalculationRuleForPaydownsText: string;
   public InterestCalculationRuleForPaydownsAmort: number;
   public InterestCalculationRuleForPaydownsAmortText: string;
   public ListEffectiveDateCount: any;
+  public OriginationFeePercentageRP: number;
+  public AccrualPeriodType: number;
+  public AccrualPeriodTypeText: string;
 
+  public AccrualPeriodBusinessDayAdj: number;
+  public AccrualPeriodBusinessDayAdjText: string;
 
   public RoundingNote: number;
   public RoundingNoteText: string;
@@ -185,19 +194,41 @@ export class Note {
 
   public AdjustedTotalCommitment: number;
   public AggregatedTotal: number;
-
+  public UPBAtForeclosure: number;
+  
   public RepaymentDayoftheMonth: number;
   public NoteTransferDate: Date;
   public OriginalTotalCommitment: number;
   public EnableM61Calculations: number;
   public MaturityMethodID: number;
   public MultipleNoteids: string;
+  public CalcEngineTypeText: string;
+  public ErrorMessage: string;
   public ListNoteMarketPrice: Array<NoteMarketPrice>;
+  public ImpactCommitmentCalc: number;
+  public BalanceAware: boolean;
+  public FirstIndexDeterminationDateOverride: Date;
+  public PurposeType: string;
+  public FullIOTermFlag: number;
+  public ListSelectedXIRRTags: Array<TagMasterXIRR>;
+  public NoteType: number;
+  public InterestOnlyNote: number;
+  public ConstantPaymentMethod: number;
+  public PaymentDateAccrualPeriod: number;
+  public PaymentDateAccrualPeriodText: number;
   constructor(DealID: string) {
     this.DealID = DealID;
   }
 }
 
+export class TagMasterXIRR {
+  TagMasterXIRRID: number;
+  Name: string;
+  CreatedBy: string;      
+  CreatedDate: Date;     
+  UpdatedBy: string;      
+  UpdatedDate: Date;
+}
 
 export class ServicingLog {
   TransactionDate: Date;
@@ -223,7 +254,6 @@ export class DownloadCashFlow {
   TransactionCategoryName: string;
   Pagename: string;
 }
-
 export class Servicer {
   ServicerMasterID: number;
   ServicerDisplayName: string;
@@ -242,3 +272,16 @@ export class NoteMarketPrice {
   Value: number;
 }
 
+export class JsonTemplate {
+  public JsonTemplateID: string;
+  public JsonTemplateName: string;
+  public keyname: string;
+  public Value: string;
+
+}
+
+export class TemplateName {
+  public JsonTemplateMasterID: number;
+  public TemplateName: string;
+  public NewTemplateName: string;
+}

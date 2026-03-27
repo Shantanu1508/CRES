@@ -421,7 +421,7 @@ WHILE @@FETCH_STATUS = 0
 	   )
 OUTPUT inserted.AccountID INTO @tAccount(tAccountID)
  SELECT
-       '182'
+       '1'  ---'182'
       ,acct.[StatusID]
       ,acct.[Name] + '_'+ @NewCREDealID as [Name]
       ,acct.[StartDate]
@@ -459,7 +459,7 @@ INSERT INTO [CRE].[Note]
 ,[PaymentDateBusinessDayLag]
 ,[IOTerm]
 ,[AmortTerm]
-,[PIKSeparateCompounding]
+--,[PIKSeparateCompounding]
 ,[MonthlyDSOverridewhenAmortizing]
 ,[AccrualPeriodPaymentDayWhenNotEOMonth]
 ,[FirstPeriodInterestPaymentOverride]
@@ -620,6 +620,7 @@ INSERT INTO [CRE].[Note]
 ,[PIKInterestAddedToBalanceBasedOnBusinessAdjustedDate]
 ,[FundedAndOwnedByThirdParty]
 ,[InterestCalculationRuleForPaydownsAmort]
+,FirstIndexDeterminationDateOverride
 )
 
 OUTPUT inserted.NoteID INTO @tNote(tNewNoteId)
@@ -640,7 +641,7 @@ select	 @insertedAccountID
 		,n.[PaymentDateBusinessDayLag]
 		,n.[IOTerm]
 		,[AmortTerm]
-		,[PIKSeparateCompounding]
+		--,[PIKSeparateCompounding]
 		,[MonthlyDSOverridewhenAmortizing]
 		,[AccrualPeriodPaymentDayWhenNotEOMonth]
 		,[FirstPeriodInterestPaymentOverride]
@@ -801,6 +802,7 @@ select	 @insertedAccountID
 		,[PIKInterestAddedToBalanceBasedOnBusinessAdjustedDate]
 		,[FundedAndOwnedByThirdParty]
 		,[InterestCalculationRuleForPaydownsAmort]
+		,FirstIndexDeterminationDateOverride
 		from ##tblNote n 
 		inner join ##tblAccount acc on n.Account_AccountID=acc.AccountID
 		where [Account_AccountID]=@c_accountid and acc.isdeleted=0
@@ -1099,7 +1101,8 @@ BEGIN
       ,[CreatedBy]
       ,[CreatedDate]
       ,[UpdatedBy]
-      ,[UpdatedDate])
+      ,[UpdatedDate]
+	  ,PIKSeparateCompounding)
 
 	  	SELECT (SELECT TOP 1
              EventId
@@ -1122,7 +1125,8 @@ BEGIN
 		 PIK.CreatedBy,
 		 PIK.CreatedDate,
 		@UpdatedBy as Updatedby,
-          getdate() as UpdatedDate
+          getdate() as UpdatedDate,
+		  PIK.PIKSeparateCompounding
     FROM ##tblPIKSchedule PIK  with (NOLOCK)
 	inner join ##tblEvent e  with (NOLOCK) on e.eventid =  PIK.EventId
 	inner join ##tblAccount acc  with (NOLOCK) on acc.AccountID =  e.AccountID
@@ -1407,9 +1411,11 @@ select
 	  ,nc.CreatedDate
 	  ,@UpdatedBy as Updatedby
       ,getdate() as UpdatedDate
-	 from CRE.NotePeriodicCalc nc
-	 inner join CRE.PayruleSetup ps on ps.StripTransferFrom=nc.NoteID
-	 where nc.NoteID=@c_NoteId
+    from CRE.NotePeriodicCalc nc
+    Inner join core.account acc on acc.accountid = nc.AccountID
+    Inner join cre.note n on n.account_accountid = acc.accountid
+    inner join CRE.PayruleSetup ps on ps.StripTransferFrom=nc.AccountID
+    where n.NoteID=@c_NoteId  and acc.AccounttypeID = 1
 
 
  update [CRE].[PayruleSetup] set striptransferfrom=@insertedNoteID where DealID=@NewDealID and striptransferfrom=@c_NoteId

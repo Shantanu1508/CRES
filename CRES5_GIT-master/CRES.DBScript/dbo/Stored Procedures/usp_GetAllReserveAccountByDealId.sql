@@ -13,13 +13,15 @@ AS
 	ReserveAccountGUID,
 	ReserveAccountID,
 	CREReserveAccountID,
-	[ReserveAccountName] ,
+	rm.ReserveAccountMasterID,
+    rm.[ReserveAccountName] ,
 	[InitialBalanceDate] ,
 	[InitialFundingAmount] ,
 	[EstimatedReserveBalance],
+	[EstimatedReserveBalance] as [EstimatedReserveBalanceOrg],
 	FloatInterestRate,
 	'true' as IsValidateHoliday
 	from
-	[CRE].[ReserveAccount]
+[CRE].[ReserveAccount] r left join cre.ReserveAccountMaster rm on r.ReserveAccountMasterID=rm.ReserveAccountMasterID
 	where DealID=@DealID
  END

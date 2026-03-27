@@ -1,6 +1,6 @@
 ﻿-- Procedure
 
-CREATE procedure [dbo].[usp_insertupdateServicingLog]
+Create procedure [dbo].[usp_insertupdateServicingLog]
 (
 	  @NoteTransactionDetailID uniqueidentifier
       ,@NoteID uniqueidentifier
@@ -124,6 +124,9 @@ BEGIN
 	  ,ServicerMasterID=@ServicerMasterID
 		WHERE [NoteTransactionDetailID] = @NoteTransactionDetailID and noteid = @noteid
 		END
+
+Delete from [CRE].[NoteTransactionDetail] WHERE [NoteTransactionDetailID] = @NoteTransactionDetailID and noteid = @noteid and ServicerMasterID=99
+
 END
 
 

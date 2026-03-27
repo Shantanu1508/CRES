@@ -86,11 +86,12 @@ CREATE TAble [dbo].[#tblMaturityDataForNote](
 	MaturityType int null,
 	Approved int null,
 	IsDeleted bit null,
+	ExtensionType int
 	--Old_ActualPayOffDate date null,
 );
 
-INSERT INTO [dbo].[#tblMaturityDataForNote](NoteID,EffectiveDate,MaturityDate,MaturityType,Approved,IsDeleted)  --,Old_ActualPayOffDate
-Select t.NoteID,t.EffectiveDate,t.MaturityDate,t.MaturityType,t.Approved,t.IsDeleted  ---,n.ActualPayoffDate as Old_ActualPayOffDate
+INSERT INTO [dbo].[#tblMaturityDataForNote](NoteID,EffectiveDate,MaturityDate,MaturityType,Approved,IsDeleted,ExtensionType)  --,Old_ActualPayOffDate
+Select t.NoteID,t.EffectiveDate,t.MaturityDate,t.MaturityType,t.Approved,t.IsDeleted,t.ExtensionType  ---,n.ActualPayoffDate as Old_ActualPayOffDate
 From @tblMaturityDataForNote t
 inner join cre.Note n on n.noteid = t.NoteID
 where (t.MaturityType not in (711,712,713) and NULLIF(t.MaturityType,'') is not null)
@@ -184,8 +185,8 @@ BEGIN
 			
 		SELECT @EveID = tEventID FROM @tEvent;  
 
-		INSERT INTO core.Maturity (EventId,MaturityDate,MaturityType,Approved, CreatedBy, CreatedDate,UpdatedBy,UpdatedDate)    --ActualPayoffDate,ExpectedMaturityDate,OpenPrepaymentDate,
-		SELECT @EveID,MaturityDate,MaturityType,Approved,@UserID,getdate(),@UserID,getdate()   		--ActualPayoffDate,ExpectedMaturityDate,OpenPrepaymentDate,
+		INSERT INTO core.Maturity (EventId,MaturityDate,MaturityType,Approved, CreatedBy, CreatedDate,UpdatedBy,UpdatedDate,ExtensionType)    --ActualPayoffDate,ExpectedMaturityDate,OpenPrepaymentDate,
+		SELECT @EveID,MaturityDate,MaturityType,Approved,@UserID,getdate(),@UserID,getdate(),ExtensionType   		--ActualPayoffDate,ExpectedMaturityDate,OpenPrepaymentDate,
 		FROM [dbo].[#tblMaturityDataForNote]
 		where NoteId = @NoteId
 		and IsDeleted <> 1
@@ -199,8 +200,8 @@ BEGIN
 			DECLARE @eventid UNIQUEIDENTIFIER = (Select top 1 eventid from CORE.Event where eventtypeid = @maturity and EffectiveStartDate = @EffectiveDate and accountid = @AccountId and StatusID = 1  );   --and StatusID = @Active   
 			Delete from CORE.Maturity where eventid = @eventid
 
-			INSERT INTO core.Maturity (EventId,MaturityDate,MaturityType,Approved, CreatedBy, CreatedDate,UpdatedBy,UpdatedDate)		--ActualPayoffDate,ExpectedMaturityDate,OpenPrepaymentDate,
-			SELECT @eventid,MaturityDate,MaturityType,Approved,@UserID,getdate(),@UserID,getdate()   				--ActualPayoffDate,ExpectedMaturityDate,OpenPrepaymentDate,
+			INSERT INTO core.Maturity (EventId,MaturityDate,MaturityType,Approved, CreatedBy, CreatedDate,UpdatedBy,UpdatedDate,ExtensionType)		--ActualPayoffDate,ExpectedMaturityDate,OpenPrepaymentDate,
+			SELECT @eventid,MaturityDate,MaturityType,Approved,@UserID,getdate(),@UserID,getdate() ,ExtensionType  				--ActualPayoffDate,ExpectedMaturityDate,OpenPrepaymentDate,
 			FROM [dbo].[#tblMaturityDataForNote]
 			where NoteId = @NoteId
 			and IsDeleted <> 1
@@ -225,8 +226,8 @@ BEGIN
 			
 			SELECT @EveID1 = tEventID1 FROM @tEvent1;  
 
-			INSERT INTO core.Maturity (EventId,MaturityDate,MaturityType,Approved, CreatedBy, CreatedDate,UpdatedBy,UpdatedDate)		--ActualPayoffDate,ExpectedMaturityDate,OpenPrepaymentDate,
-			SELECT @EveID1,MaturityDate,MaturityType,Approved,@UserID,getdate(),@UserID,getdate()   					--ActualPayoffDate,ExpectedMaturityDate,OpenPrepaymentDate,
+			INSERT INTO core.Maturity (EventId,MaturityDate,MaturityType,Approved, CreatedBy, CreatedDate,UpdatedBy,UpdatedDate,ExtensionType)		--ActualPayoffDate,ExpectedMaturityDate,OpenPrepaymentDate,
+			SELECT @EveID1,MaturityDate,MaturityType,Approved,@UserID,getdate(),@UserID,getdate()   ,ExtensionType					--ActualPayoffDate,ExpectedMaturityDate,OpenPrepaymentDate,
 			FROM [dbo].[#tblMaturityDataForNote]
 			where NoteId = @NoteId
 			and IsDeleted <> 1	

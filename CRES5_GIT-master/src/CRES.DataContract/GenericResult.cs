@@ -9,6 +9,8 @@ namespace CRES.DataContract
     public class GenericResult
     {
         public object query;
+        public List<XIRRArchiveDataContract> lstArchivesXIRR;
+
         public string Status2 { get; set; }
         public DateTime? BatchEndTime { get; set; }
 
@@ -24,14 +26,13 @@ namespace CRES.DataContract
         public string RuleContent { get; set; }
         public int? TotalCount { get; set; }
         public UserDataContract UserData { get; set; }
-
         public string Trace { get; set; }
 
         public string Validationstring { get; set; }
 
         public int exceptioncount { get; set; }
         public int Criticalerror { get; set; }
-
+        public dynamic v1json { get; set; }
         public PrepayDataContract ListPrePaySchedule { get; set; }
         public List<IDValueDataContract> ListScheduledPrincipalPaid { get; set; }
         public List<PowerBIDataSet> lstPowerBIDataSet { get; set; }
@@ -102,6 +103,7 @@ namespace CRES.DataContract
         public DataTable lstFeeCouponStripReceivable { get; set; }
         public DataTable lstFundingRepaymentSequenceHistory { get; set; }
         public DataTable lstNoteDealFunding { get; set; }
+        public DataTable lstNoteDealFundingBlank { get; set; }
         public DataTable lstNoteAllocationPercentage { get; set; }
         public DataTable lstNoteAllocationAmount { get; set; }
 
@@ -242,6 +244,7 @@ namespace CRES.DataContract
         public List<DevDashBoardDataContract> CalculationStatus { get; set; }
         public List<DevDashBoardDataContract> UserRequestCount { get; set; }
         public List<DevDashBoardDataContract> ResultList { get; set; }
+        public DataTable CalcSummary { get; set; }
         public List<DevDashBoardDataContract> FastestandSlowest { get; set; }
         public DevDashBoardDataContract dwstatus { get; set; }
         public DataTable dttagWiseCashflow { get; set; }
@@ -272,8 +275,6 @@ namespace CRES.DataContract
 
         public DataTable dtFutureFundingScheduleTab { get; set; }
         public DataTable dtMaturityList { get; set; }
-
-
         public string CalcDebugFileName { get; set; }
         public string Enablem61Calculation { get; set; }
 
@@ -281,6 +282,8 @@ namespace CRES.DataContract
         public DataTable dtGroup { get; set; }
         public DataTable dtholidaymaster { get; set; }
 
+        public EquityDataContract EquityData { get; set; }
+        public string LiabilityTypeID { get; set; }
 
         //========================
 
@@ -364,7 +367,90 @@ namespace CRES.DataContract
 
         public List<EquitySummaryDataContract> equitySummaryDatas { get; set; }
 
+        public List<WFDashboardDataContract> lstWFDashboard { get; set; }
+
+        public int? WFStatusPurposeMappingID { get; set; }
+
+        public List<ServicingWatchlistDataContract> ListServicingWatchlistLegal { get; set; }
+        public List<ServicingWatchlistDataContract> ListServicingWatchlistAccounting { get; set; }
+        public List<ServicingWatchlistDataContract> ListServicingPotentialImpairment { get; set; }
+
+        public List<(string TableName, DataTable Table, int RowCount)> DataTablesList { get; set; }
+        public List<(string TableName, DataTable Table, int RowCount)> DataTablesList2 { get; set; }
+        public LiabilityNoteDataContract lstLiabilityNote { get; set; }
+        public List<LiabilityNoteDataContract> ListDealLiability { get; set; }
+        public List<LiabilityNoteDataContract> lstDebtNote { get; set; }
+        public DataTable FirstHalfData { get; set; }
+        public DataTable SecondHalfData { get; set; }
+        public DataTable lstDealFundingImpairment { get; set; }
+        public List<LiabilityNoteDataContract> lstNote { get; set; }
+        public List<LiabilityFundingScheduleDataContract> ListLiabilityFundingSchedule { get; set; }
+        public List<LookupDataContract> AssetList { get; set; }
+        public DebtDataContract Debtdc { get; set; }
+        public DataTable DealInfo { get; set; }
+        public List<LookupDataContract> ListAccountCategory { get; set; }
+        public List<AdditionalTransactionDataContract> ListAddTrans { get; set; }
+        public List<FeeScheduleDataContract> ListFeeSchedule { get; set; }
+        public List<JournalLedgerDataContract> ListjournalLedger { get; set; }
+        public List<LiabilityRateSpreadDataContract> ListLiabilityRate { get; set; }
+        public JournalLedgerDataContract journalLedger { get; set; }
+        public List<ScheduleEffectiveDateLiabilityDataContract> ListEffectiveDateCount { get; set; }
+        public DataTable lstGeneralSetupDetailsLiabilityNote { get; set; }
+        public DataTable lstGeneralSetupDetails { get; set; }
+        public List<LiabilityNoteAssetMapping> LNoteAssetMap { get; set; }
+        public string JournalEntryMasterGUID { get; set; }
+        public DataTable LiabilityCashFlow { get; set; }
+        public EquityDataContract eqstatus { get; set; }
+        public List<TransactionTypesDataContract> TTList { get; set; }
+        public List<XIRRConfigDataContract> lstXirrConfig { get; set; }
+        public DataTable CheckDuplicateData { get; set; }
+        public int RowCount { get; set; }
+        public List<XIRRFiltersLookupDataContract> XIRRFiltersLookup { get; set; }
+        public List<XIRRConfigFilterDataContract> ListXirrFilters { get; set; }
+        public List<XIRRConfigFilterDataContract> ListXirrConfigFilterDropDown { get; set; }       
+        public NoteAdditinalListDataContract NoteList_RSSFEE { get; set; }
+        public XIRRReturnGroupDataContract XIRRReturnGroupDC { get; set; }
+        public List<LookupDataContract> lstReferencingDealLevelLookup { get; set; }
+        public List<DevDashBoardDataContract> XIRRStatusSummary { get; set; }
+        public List<AutoDistributeWriteoffDataContract> _autodistributewriteoff { get; set; }
+
+        public PrincipalWriteoffDataContract PrincipalWriteoffData { get; set; }
+        public List<EnvConfigDataContract> lstEnvConfig { get; set; }
+        public decimal? CalcWeightedSpread { get; set; }
+        public decimal? CalcWeightedEffectiveRate { get; set; }
+
+        //used in autospreading
+        public List<PayruleDealFundingDataContract> ListRevolverDealFunding { get; set; }
+        public List<PayruleTargetNoteFundingScheduleDataContract> ListRevolverNoteFunding { get; set; }
+        public List<DealRelationshipDataContract> _dealRelationship { get; set; }
+        public List<CashAccountDataContract> _lstCashAccount { get; set; }
+        public DataTable lstCurrentSpread { get; set; }
+        public List<ReserveAccountMasterDataContract> lstReserveAccountMaster { get; set; }
+        public DealDashDataContract DealDashData { get; set; }
+        public DataTable UserPreferenceLogs { get; set; }
+        public DataTable dtLastUpdatedforTabs { get; set; }
+        public DataTable dtBookMarkedDeal { get; set; }
+        public DataTable dtnotedashboarddata { get; set; }
+        public DataTable dtAssociatedDebt { get; set; }
+        public List<FeeScheduleDataContract> FacilityFeeSchedule { get; set; }
+        public List<LiabilityRateSpreadDataContract> FacilityRateSpreadSchedule { get; set; }
+        public DataTable lstFacilityFeeHistory { get; set; }
+        public DataTable lstFacilityRateSpreadHistory { get; set; }
+        public List<ScheduleEffectiveDateLiabilityDataContract> ListFacilityEffectiveDateCounts { get; set; }
+        public List<DebtDataContract> ListDebtExtInterest { get; set; }
+        public List<LookupDataContract> lstDebtEquityType { get; set; }
+        public List<LookupDataContract> listAssociatedDeals { get; set; }
+        public List<LookupDataContract> lstTransactionType { get; set; }
+        public List<InterestExpenseScheduleDataContract> lstInterestExpenseSchedule { get; set; }
+        public List<LiabilityCalcDataContract> LiabilityCalculationStatus { get; set; }
+        public DataTable lstInterestExpenseScheduleHistory { get; set; }
+        public List<LookupDataContract> ListofFundName { get; set; }
+        public List<PrepayAndAdditionalFeeScheduleLiabilityDetailDataContract> ListPrepayAndAdditionalFeeScheduleLiabilityDetail { get; set; }
+
+        public int allowImport;
     }
+
+
 
     public class GenericResultResponce
     {

@@ -1,9 +1,12 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Data;
 using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Text;
+using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 
 namespace CRES.Utilities
 {
@@ -36,7 +39,7 @@ namespace CRES.Utilities
             //put a breakpoint here and check datatable
             return dataTable;
         }
-
+         
         public static DataTable ConvertToDataTable<T>(List<T> items)
         {
             DataTable dataTable = new DataTable(typeof(T).Name);
@@ -105,6 +108,57 @@ namespace CRES.Utilities
                     }
                 }
 
+            }
+            return dtCsv;
+        }
+
+        public static DataTable ConvertStringToDataTableToSave(string data)
+        {
+            int loopindex = 0;
+            DataTable dtCsv = new DataTable();
+            // convert string to stream
+            byte[] byteArray = Encoding.UTF8.GetBytes(data);
+            MemoryStream Stream = new MemoryStream(byteArray);
+            Regex regx = new Regex("," + "(?=(?:[^\"]*\"[^\"]*\")*(?![^\"]*\"))");
+            try
+            {
+                using (StreamReader sr = new StreamReader(Stream))
+                {
+                    while (!sr.EndOfStream)
+                    {
+                        var Fulltext = sr.ReadToEnd().ToString(); //read full file text  
+                        string[] rows = Fulltext.Split('\n'); //split full file text into rows  
+                        for (int i = 0; i < rows.Count() - 1; i++)
+                        {
+                            string[] rowValues = regx.Split(rows[i]); //split each row with comma to get individual values  
+                            {
+                                if (i == 0)
+                                {
+                                    for (int j = 0; j < rowValues.Count(); j++)
+                                    {
+                                        dtCsv.Columns.Add(rowValues[j]); //add headers  
+                                    }
+                                }
+                                else
+                                {
+                                    DataRow dr = dtCsv.NewRow();
+                                    for (int k = 0; k < rowValues.Count(); k++)
+                                    {
+                                        // remove the double quotes from the strings
+                                        //dr[k] = rowValues[k].ToString();
+                                        dr[k] = rowValues[k].Replace("\"", "").ToString();
+                                    }
+                                    dtCsv.Rows.Add(dr); //add other rows  
+                                }
+                            }
+                            loopindex = loopindex + 1;
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                throw ex;
             }
             return dtCsv;
         }

@@ -17,6 +17,7 @@ SELECT [DealFundingID] as DealFundingKey
 , ([PurposeBI]+Comment) MAsterPurposecomments  
 ,[Projected]  
 ,GeneratedByBI as GeneratedBy
+,(select [Value]+'#/dealdetail/'+[CREDealID] from app.appconfig where [key]='M61BaseUrl')  as DealUrl
 FROM [DW].[DealFundingSchduleBI]  
   
   

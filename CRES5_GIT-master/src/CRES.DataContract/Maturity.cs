@@ -1,4 +1,8 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
 
 namespace CRES.DataContract
 {
@@ -7,9 +11,9 @@ namespace CRES.DataContract
         public Maturity()
         {
         }
-
+            
         public DateTime? EffectiveDate { get; set; }
-        //  public string MaturityID { get; set; }
+      //  public string MaturityID { get; set; }
         public Guid? EventId { get; set; }
         public DateTime? Date { get; set; }
         public string CreatedBy { get; set; }

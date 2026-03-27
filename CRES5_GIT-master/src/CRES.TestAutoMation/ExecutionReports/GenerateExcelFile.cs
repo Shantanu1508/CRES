@@ -1,12 +1,17 @@
 ﻿using CRES.DataContract;
 using CRES.TestAutoMation.Utility;
+using DocumentFormat.OpenXml.Spreadsheet;
+using DocumentFormat.OpenXml.Wordprocessing;
 using Newtonsoft.Json;
 using NPOI.SS.UserModel;
+using NPOI.SS.Util;
 using NPOI.XSSF.UserModel;
 using System;
 using System.Collections.Generic;
 using System.Data;
+using System.Drawing;
 using System.IO;
+using System.Linq.Expressions;
 
 namespace CRES.TestAutoMation.ExecutionReports
 {
@@ -34,7 +39,10 @@ namespace CRES.TestAutoMation.ExecutionReports
 
                     List<String> columns = new List<string>();
                     IRow row = excelSheet.CreateRow(0);
+
                     int columnIndex = 0;
+                    int widthInUnits = 50 * 256; // Excel uses 1/256th units
+                    excelSheet.SetColumnWidth(columnIndex, widthInUnits);
 
                     foreach (System.Data.DataColumn column in table.Columns)
                     {
@@ -90,6 +98,7 @@ namespace CRES.TestAutoMation.ExecutionReports
                     List<String> columns = new List<string>();
                     IRow row = excelSheet.CreateRow(0);
                     int columnIndex = 0;
+                    
 
                     foreach (System.Data.DataColumn column in table.Columns)
                     {
@@ -111,7 +120,9 @@ namespace CRES.TestAutoMation.ExecutionReports
 
                         rowIndex++;
                     }
+                    FormatExcel(excelSheet, workbook);
                     workbook.Write(fs);
+                    
                     return path;
                 }
             }
@@ -122,5 +133,68 @@ namespace CRES.TestAutoMation.ExecutionReports
             }
         }
 
+        private static void FormatExcel(ISheet excelSheet, IWorkbook workbook)
+        {
+            
+            excelSheet.SetColumnWidth(0, 2560);   // Excel uses 1/256th units
+            excelSheet.SetColumnWidth(1, 7680);
+            excelSheet.SetColumnWidth(2, 7680);
+            excelSheet.SetColumnWidth(3, 9216);
+            excelSheet.SetColumnWidth(4, 12800);
+            excelSheet.SetColumnWidth(5, 12800);
+            excelSheet.SetColumnWidth(6, 12800);
+            excelSheet.SetColumnWidth(7, 12800);
+
+            excelSheet.CreateFreezePane(0, 1);    // Freeze first row
+             
+            try
+            {
+
+                IRow headerRow = excelSheet.GetRow(0);
+               int lastcellNumber =  headerRow.LastCellNum;
+                if (headerRow != null && headerRow.LastCellNum > 0)
+                {
+
+                    CellRangeAddress filterRange = new CellRangeAddress(0, 0, 0, lastcellNumber-1);
+                    excelSheet.SetAutoFilter(filterRange);
+
+                    // Convert HTML color to RGB
+                    var bgColor = ColorTranslator.FromHtml("#215C98"); // Background (Blue)
+                    var fontColor = ColorTranslator.FromHtml("#FFFFFF"); // Font (white)
+
+                    // Create XSSF colors
+                    XSSFColor xssfBgColor = new XSSFColor(bgColor);
+                    XSSFColor xssfFontColor = new XSSFColor(fontColor);
+
+                    // Create cell style with custom background
+                    XSSFCellStyle style = (XSSFCellStyle)workbook.CreateCellStyle();
+                    style.FillForegroundColorColor = xssfBgColor;
+                    style.FillPattern = FillPattern.SolidForeground;
+
+                    style.Alignment = HorizontalAlignment.Center;
+                    style.VerticalAlignment = VerticalAlignment.Center;
+
+                    excelSheet.SetZoom(90);
+
+                    // Create font with custom color
+                    XSSFFont font = (XSSFFont)workbook.CreateFont();
+                    font.SetColor(xssfFontColor);
+                    font.IsBold = true;
+                    style.SetFont(font);
+
+                    // Apply to each header cell
+                    for (int i = 0; i <= lastcellNumber-1; i++)
+                    {
+                        ICell cell = headerRow.GetCell(i) ?? headerRow.CreateCell(i);
+                        cell.CellStyle = style;
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e);
+
+            }
+        }
     }
 }

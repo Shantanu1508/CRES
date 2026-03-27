@@ -14,7 +14,10 @@ BEGIN
 	Declare @LookupIDPending int = (Select LookupID from core.Lookup where ParentID = 78 and [Name] = 'Pending')
 	--Declare @DealID nvarchar(256)=(Select top 1 DealID from CRE.DealFunding where  DealFundingID=@TaskID)
 	declare @PrevvCheckListStatus int,@PrevCheckListStatusText nvarchar(256),@NewTaskID nvarchar(256),@IsDrawExist bit=1,
-	@PrevvCheckListComment nvarchar(max)
+	@IsDrawSaved bit=1,
+	@PrevvCheckListComment nvarchar(max),
+	@PrevvCheckListStatusFS int,@PrevCheckListStatusTextFS nvarchar(256),@PrevvCheckListCommentFS nvarchar(max),@PurposeID int
+
 	declare @countInWftaskDetail int  = (Select count(TaskID) from Cre.WFTaskDetail where TaskID=@TaskID and TaskTypeID=@TaskTypeID 
 	    and isnull(Comment,'') not like '%Changed the funding date%'
 		and isnull(Comment,'') not like '%Changed the funding amount%')
@@ -25,7 +28,7 @@ BEGIN
 	BEGIN
 	
 	--update the logic for the Draw Fee Applicable field in the checklist to carry over the status and the comment from the previous draw workflow for that loan
-	select @dealID = dealid from cre.DealFunding where DealFundingID=@TaskID
+	select @dealID = dealid,@PurposeID=PurposeID from cre.DealFunding where DealFundingID=@TaskID
 	IF NOT EXISTS(SELECT InvoiceDetailID FROM CRE.[InvoiceDetail] WHERE ObjectTypeID=698 and ObjectID=@TaskID and InvoiceTypeID=558)
 	AND NOT EXISTS(Select 1 from Cre.WFTaskDetailArchive where TaskID=@TaskID and isnull(Comment,'') not like '%Changed the funding date%'
 		and isnull(Comment,'') not like '%Changed the funding amount%')
@@ -34,7 +37,7 @@ BEGIN
 	    set @IsDrawExist = 0
 
 		--get most recent draw detail
-		 select top 1 @NewTaskID=w.TaskID from cre.WFTaskDetail w join cre.DealFunding df on w.TaskID=df.DealFundingID
+			select top 1 @NewTaskID=w.TaskID from cre.WFTaskDetail w join cre.DealFunding df on w.TaskID=df.DealFundingID
 			join cre.WFTaskDetailArchive wa on wa.TaskID=w.TaskID
 			where dealid=@dealID
 			and isnull(w.Comment,'') not like 'Draw Fee%'
@@ -43,16 +46,50 @@ BEGIN
 			and w.TaskTypeID=502
 			order by w.CreatedDate desc
 
-		Select 
-		@PrevvCheckListStatus=CheckListStatus,
-		@PrevCheckListStatusText=lCheckListStatus.Name,
-		@PrevvCheckListComment = cld.Comment
-		from cre.WFCheckListDetail cld 
-		left join core.Lookup lCheckListStatus on lCheckListStatus.LookupID = cld.CheckListStatus and lCheckListStatus.ParentID = 78	
-		Where cld.TaskID = @NewTaskID and cld.WFCheckListMasterID is not null and cld.WFCheckListMasterID=9
+			Select 
+			@PrevvCheckListStatus=CheckListStatus,
+			@PrevCheckListStatusText=lCheckListStatus.Name,
+			@PrevvCheckListComment = cld.Comment
+			from cre.WFCheckListDetail cld 
+			left join core.Lookup lCheckListStatus on lCheckListStatus.LookupID = cld.CheckListStatus and lCheckListStatus.ParentID = 78	
+			Where cld.TaskID = @NewTaskID and cld.WFCheckListMasterID is not null and cld.WFCheckListMasterID=9
+
+
+		--Select 
+		--@PrevvCheckListStatusFS=CheckListStatus,
+		--@PrevCheckListStatusTextFS=lCheckListStatus.Name,
+		--@PrevvCheckListCommentFS = cld.Comment
+		--from cre.WFCheckListDetail cld 
+		--left join core.Lookup lCheckListStatus on lCheckListStatus.LookupID = cld.CheckListStatus and lCheckListStatus.ParentID = 78	
+		--Where cld.TaskID = @NewTaskID and cld.WFCheckListMasterID is not null and cld.WFCheckListMasterID=21
 		 
 	END
 
+
+	--get most recent draw detail
+		 IF NOT EXISTS(Select 1 from Cre.WFTaskDetailArchive where TaskID=@TaskID and isnull(Comment,'') not like '%Changed the funding date%'
+		and isnull(Comment,'') not like '%Changed the funding amount%')
+	and @countInWftaskDetail is not null and @countInWftaskDetail = 1
+	BEGIN
+		 set @NewTaskID=''
+		 set @IsDrawSaved=0
+		 select top 1 @NewTaskID=w.TaskID from cre.WFTaskDetail w join cre.DealFunding df on w.TaskID=df.DealFundingID
+			join cre.WFTaskDetailArchive wa on wa.TaskID=w.TaskID
+			where dealid=@dealID
+			and isnull(w.Comment,'') not like 'Draw Fee%'
+			and isnull(w.Comment,'') not like '%Changed the funding date%'
+			and isnull(w.Comment,'') not like '%Changed the funding amount%'
+			and w.TaskTypeID=502 and df.PurposeID=@PurposeID
+			order by w.CreatedDate desc
+
+		Select 
+		@PrevvCheckListStatusFS=CheckListStatus,
+		@PrevCheckListStatusTextFS=lCheckListStatus.Name,
+		@PrevvCheckListCommentFS = cld.Comment
+		from cre.WFCheckListDetail cld 
+		left join core.Lookup lCheckListStatus on lCheckListStatus.LookupID = cld.CheckListStatus and lCheckListStatus.ParentID = 78	
+		Where cld.TaskID = @NewTaskID and cld.WFCheckListMasterID is not null and cld.WFCheckListMasterID=21
+	END
 	
 Select
 WFTaskDetailID,
@@ -60,9 +97,17 @@ TaskID,
 WFCheckListDetailID,
 WFCheckListMasterID,
 CheckListName,
-CheckListStatus = case when (@PrevvCheckListStatus is not null and @PrevvCheckListStatus<>0 and WFCheckListMasterID=9) then @PrevvCheckListStatus else CheckListStatus end,
-CheckListStatusText = case when (@PrevvCheckListStatus is not null and @PrevvCheckListStatus<>0 and WFCheckListMasterID=9) then @PrevCheckListStatusText else CheckListStatusText end,
-Comment = case when (isnull(@PrevvCheckListComment,'') <>'' and WFCheckListMasterID=9) then @PrevvCheckListComment else Comment end,
+CheckListStatus = case when (@PrevvCheckListStatus is not null and @PrevvCheckListStatus<>0 and WFCheckListMasterID=9) then @PrevvCheckListStatus 
+when (@PrevvCheckListStatusFS is not null and @PrevvCheckListStatusFS<>0 and WFCheckListMasterID=21) then @PrevvCheckListStatusFS
+when ((@PrevvCheckListStatusFS is null or @PrevvCheckListStatusFS=0) and WFCheckListMasterID=21 and @IsDrawSaved=0) then null
+else CheckListStatus end,
+CheckListStatusText = case when (@PrevvCheckListStatus is not null and @PrevvCheckListStatus<>0 and WFCheckListMasterID=9) then @PrevCheckListStatusText
+when (@PrevvCheckListStatusFS is not null and @PrevvCheckListStatusFS<>0 and WFCheckListMasterID=21) then @PrevCheckListStatusTextFS
+when ((@PrevvCheckListStatusFS is null or @PrevvCheckListStatusFS=0) and WFCheckListMasterID=21 and @IsDrawSaved=0) then null
+else CheckListStatusText end,
+Comment = case when (isnull(@PrevvCheckListComment,'') <>'' and WFCheckListMasterID=9) then @PrevvCheckListComment
+when (isnull(@PrevvCheckListCommentFS,'') <>'' and WFCheckListMasterID=21) then @PrevvCheckListCommentFS
+else Comment end,
 IsMandatory from
 (
 	Select 

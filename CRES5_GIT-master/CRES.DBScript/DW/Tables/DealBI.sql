@@ -65,7 +65,16 @@
     BSState	nvarchar(256) null,
     MSA_NAME	nvarchar(256) null,
     LoanStatusID int null,
-    LoanStatusBI nvarchar(256) null
+    LoanStatusBI nvarchar(256) null,
+    WatchlistStatus nvarchar(256),
+    [LiabilitySource] NVarchar(255) NULL,
+
+    [LinkedDealID]                         NVARCHAR (256)   NULL,
+    [EnableAutoSpread]                     BIT              NULL,
+    [EnableAutoSpreadRepayments]           BIT              NULL,
+    [ApplyNoteLevelPaydowns]               BIT              NULL,
+    [CalcEngineType]                       INT              NULL,
+    [CalcEngineTypeBI]                     NVARCHAR (256)   NULL
     CONSTRAINT [PK_DealID] PRIMARY KEY CLUSTERED ([DealID] ASC)
 );
 

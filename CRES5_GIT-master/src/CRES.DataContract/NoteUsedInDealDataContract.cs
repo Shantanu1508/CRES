@@ -1,10 +1,14 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
 
 namespace CRES.DataContract
 {
-    public class NoteUsedInDealDataContract
+ public   class NoteUsedInDealDataContract
     {
-        public string NoteId { get; set; }
+        public string NoteId { get; set; }         
         public string AccountID { get; set; }
         public string DealID { get; set; }
         public string CRENoteID { get; set; }
@@ -23,7 +27,7 @@ namespace CRES.DataContract
         public Decimal? NoteBalanceCap { get; set; }
         public int? FundingPriority { get; set; }
         public int? RepaymentPriority { get; set; }
-        public DateTime? ExtendedMaturityCurrent { get; set; }
+        public DateTime? ExtendedMaturityCurrent { get; set; }       
         public DateTime? InitialMaturityDate { get; set; }
         public DateTime? ExpectedMaturityDate { get; set; }
         public DateTime? FullyExtendedMaturityDate { get; set; }
@@ -51,7 +55,10 @@ namespace CRES.DataContract
         public int? UseRuletoDetermineAmortization { get; set; }
         public string MaturityGroupName { get; set; }
         public int? MaturityMethodID { get; set; }
-        public string MaturityMethodIDText { get; set; }
+        public string MaturityMethodIDText { get; set; }   
+        public int? NoteType { get; set; }
+        public string NoteTypeText { get; set; }
         public int? NoteSequenceNumber { get; set; }
+        public decimal? InitialFundingAmount { get; set; }        
     }
 }

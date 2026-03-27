@@ -15,12 +15,13 @@ import { RouterModule, Routes } from '@angular/router';
 import { WjCoreModule } from '@grapecity/wijmo.angular2.core';
 import { WjGridModule} from '@grapecity/wijmo.angular2.grid';
 import { WjGridFilterModule } from '@grapecity/wijmo.angular2.grid.filter';
-import { functionService } from '../core/services/function.service';
+import { scenarioService } from '../core/services/scenario.service';
+
 declare var $: any;
 @Component({
   selector: "indexesdetail",
   templateUrl: "./indexesdetail.html",
-  providers: [indexesService, NotificationService, UtilityService, functionService],
+  providers: [scenarioService, indexesService, NotificationService, UtilityService],
 })
 
 export class IndexesDetailComponent extends Paginated {
@@ -37,6 +38,7 @@ export class IndexesDetailComponent extends Paginated {
   public indexesindexdata !: Array<any>;
   public Message: any = '';
   public _Showmessagediv: boolean = false;
+  public _ShowmessagedivMsg: any;
   public _isIndexesDetailFetching: boolean = true;
   public _isScrolled: boolean = true;
   public _FirstDate !: Date;
@@ -47,6 +49,8 @@ export class IndexesDetailComponent extends Paginated {
   public _isIndexLoad: boolean = true;
   public _IndexFromSelected: boolean = true;
   public _isShowImportIndexes: boolean = false;
+  public _isshowsaveindexes: boolean = false;
+  public _isShowrefreshindexes: boolean = false;
   public _isNoteSaving !: boolean;
   columns !: {
     binding?: string, header?: string, width?: any, format?: string
@@ -57,13 +61,19 @@ export class IndexesDetailComponent extends Paginated {
   lstIndexesData: any;
   @ViewChild('flexIndexesDetail') flexIndexesDetail !: wjcGrid.FlexGrid;
   public prevDateBeforeEdit !: Date|null;
+  public _disableStatus: boolean = false;
+  public _disableIndexesName: boolean = false;
+  lstStatus: any;
+  public ScenarioList: any;
+  public _isScenarioList: boolean = false;
 
   constructor(private activatedRoute: ActivatedRoute,
     private _router: Router,
+    public scenarioService: scenarioService,
     public indexesService: indexesService,
     public utilityService: UtilityService,
-    public notificationService: NotificationService,
-    public functionServiceSrv: functionService) {
+    public notificationService: NotificationService
+     ) {
     super(30, 0, 0);
     this.activatedRoute.params.forEach((params: Params) => {
       if (params['id'] !== undefined) {
@@ -80,39 +90,54 @@ export class IndexesDetailComponent extends Paginated {
           this.GetIndexsListByIndexesMasterGuid(this.IndexesMasterGuid);
         }
         this.GetAllIndexes();
+        this.GetAllLookups();
       }
     });
     this.utilityService.setPageTitle("M61 – Index Details");
   }
 
+  GetAllLookups(): void {
+    try {
+      this.scenarioService.getAllLookup().subscribe(res => {
+        if (res.Succeeded) {
+          var data = res.lstLookups;
+          this.lstStatus = data.filter(x => x.ParentID == "1");
+        }
+        else {
+          this._router.navigate(['login']);
+        }
+      });
+    } catch (err) {
+    }
+  }
 
 
   ngAfterViewInit() {
     // commit row changes when scrolling the grid
+   
 
+    //this.flexIndexesDetail.scrollPositionChanged.addHandler(() => {
+    //  var myDiv = $('#flexIndexesDetail').find('div[wj-part="root"]');
+    //  if (myDiv.prop('offsetHeight') + myDiv.scrollTop() >= myDiv.prop('scrollHeight')) {
 
-    this.flexIndexesDetail.scrollPositionChanged.addHandler(() => {
-      var myDiv = $('#flexIndexesDetail').find('div[wj-part="root"]');
-      if (myDiv.prop('offsetHeight') + myDiv.scrollTop() >= myDiv.prop('scrollHeight')) {
-
-        if (this.flexIndexesDetail.rows.length < this.TotalCount) {
-          this._isIndexesDetailFetching = true;
-          this._indexessearch.IndexesMasterGuid = this.IndexesMasterGuid;
-          this._indexessearch.Fromdate = this._lastDate;
-          this._indexessearch.Todate = null;
-          this.GetIndexBetweenDates(this._indexessearch, "after");
-        }
-      }
-      else if (myDiv.scrollTop() == 0) {
-        if (this.flexIndexesDetail.rows.length < this.TotalCount) {
-          this._indexessearch.IndexesMasterGuid = this.IndexesMasterGuid;
-          this._isIndexesDetailFetching = true;
-          this._indexessearch.Fromdate = null;
-          this._indexessearch.Todate = this._FirstDate;
-          this.GetIndexBetweenDates(this._indexessearch, "before");
-        }
-      }
-    });
+    //    if (this.flexIndexesDetail.rows.length < this.TotalCount) {
+    //      this._isIndexesDetailFetching = true;
+    //      this._indexessearch.IndexesMasterGuid = this.IndexesMasterGuid;
+    //      this._indexessearch.Fromdate = this._lastDate;
+    //      this._indexessearch.Todate = null;
+    //      this.GetIndexBetweenDates(this._indexessearch, "after");
+    //    }
+    //  }
+    //  else if (myDiv.scrollTop() < myDiv.prop('offsetHeight') ) {
+    //    if (this.flexIndexesDetail.rows.length < this.TotalCount) {
+    //      this._indexessearch.IndexesMasterGuid = this.IndexesMasterGuid;
+    //      this._isIndexesDetailFetching = true;
+    //      this._indexessearch.Fromdate = null;
+    //      this._indexessearch.Todate = this._FirstDate;
+    //      this.GetIndexBetweenDates(this._indexessearch, "before");
+    //    }
+    //  }
+    //});
   }
 
 
@@ -216,6 +241,21 @@ export class IndexesDetailComponent extends Paginated {
           if (typeof res.UserPermissionList !== 'undefined' && res.UserPermissionList.length > 0) {
             this._indexesdc = res.indexesMaster;
             this.GetIndexsListByIndexesMasterGuid(_indexesGUID);
+            if (this._indexesdc.IndexesName == "Default Index") {
+              this._disableStatus = true;
+              this._disableIndexesName = true;
+            }
+            else {
+              this._disableStatus = this._indexesdc.IsAssignedToScenario;
+            }
+            if (this._indexesdc.ScenarioList != null && this._indexesdc.ScenarioList != "" && this._indexesdc.ScenarioList != '')
+              this._isScenarioList = true;
+            else
+              this._isScenarioList = false;
+
+            this.ScenarioList = this._indexesdc.ScenarioList;
+            this.ApplyPermissions(res.UserPermissionList);
+
           } else {
             localStorage.setItem('showWarningMsgdashboard', JSON.stringify(true));
             localStorage.setItem('WarmsgdashBoad', JSON.stringify('Sorry, you do not have permissions to access this page'));
@@ -235,7 +275,7 @@ export class IndexesDetailComponent extends Paginated {
   }
 
 
-  GetIndexsListByIndexesMasterGuid(_indexesGUID:any): void {
+  GetIndexsListByIndexesMasterGuid(_indexesGUID: any): void {
     this.indexesService.GetIndexListByIndexesMasterID(_indexesGUID, this._pageIndex, this._pageSize).subscribe(res => {
       if (res.Succeeded) {
         this.TotalCount = res.TotalCount
@@ -290,7 +330,7 @@ export class IndexesDetailComponent extends Paginated {
       }
 
     });
-    (error:string) => console.error('Error: ' + error)
+    (error: string) => console.error('Error: ' + error)
   }
 
   Addcolumn(header:any, binding:any) {
@@ -306,6 +346,12 @@ export class IndexesDetailComponent extends Paginated {
 
       this._indexesdc.IndexesMasterGuid = this.IndexesMasterGuid;
       //this._indexesdc.ActionStatus = Actionstatus;
+
+      if (this._indexesdc.IndexesName.trim() == '') {
+        this.CustomAlert("Index Name cannot be saved with blank space")
+        this._isIndexesDetailFetching = false;
+        return;
+      }
 
       if (this._indexesdc.IndexesName != "" && this._indexesdc.IndexesName != null) {
         this.indexesService.CheckDuplicateIndexesName(this._indexesdc).subscribe(res => {
@@ -328,8 +374,9 @@ export class IndexesDetailComponent extends Paginated {
           }
         });
 
-      } else {
+      }
 
+      else {
         this._ShowmessagedivWar = true;
         this._ShowmessagedivMsgWar = "Please fill Index name."
         this._isIndexesDetailFetching = false;
@@ -434,10 +481,12 @@ export class IndexesDetailComponent extends Paginated {
               this.indexesDetaildata[tprow].Date = '';
             }
           }
-          if (datearr.indexOf("GMT") == -1)
-            this.CustomAlert("Date " + datearr.slice(3) + " already in list");
-          // alert("Date " + datearr.slice(3) + " already in list");
-          else
+          //if (datearr.indexOf("GMT") == -1)
+          //  this.CustomAlert("Date " + datearr.slice(3) + " already in list");
+
+          //else
+          //  this.CustomAlert("Date " + datearr.slice(3) + " already in list");
+          if (datearr !== '')
             this.CustomAlert("Date " + datearr.slice(3) + " already in list");
       }
     }
@@ -450,9 +499,10 @@ export class IndexesDetailComponent extends Paginated {
     var indexlen: boolean = false;
     try {
       var i;
-      for (i = 0; i < this.indexesDetaildata.length; i++)
+      for (i = 0; i < this.indexesDetaildata.length; i++) {
         if (rwNum != i && this.indexesDetaildata[rwNum].Date.toString() == this.indexesDetaildata[i].Date.toString())
           break;
+      }
       if (i == this.indexesDetaildata.length)
         indexlen =  false;
       else
@@ -637,9 +687,9 @@ export class IndexesDetailComponent extends Paginated {
         if (res.Succeeded) {
           var data: any = res.lstIndexesMaster;
           this.lstIndexesData = data.filter((x:any) => x.IndexesMasterGuid != this.IndexesMasterGuid);
-          if (this.lstIndexesData.length > 0) {
-            this._isShowImportIndexes = true;
-          }
+          //if (this.lstIndexesData.length > 0) {
+          //  this._isShowImportIndexes = true;
+          //}
         }
       }
       );
@@ -707,11 +757,11 @@ export class IndexesDetailComponent extends Paginated {
     this.indexesService.importindexbyapi(this._indextype, 1, 100).subscribe(res => {
       if (res.Succeeded == true) {
         this._isIndexesDetailFetching = false;
-        this._ShowmessagedivWar = true;
-        this._ShowmessagedivMsgWar = "Libor refresh successfully!";
+        this._Showmessagediv = true;
+        this._ShowmessagedivMsg = "Index refreshed successfully!";
         setTimeout(() => {
-          this._ShowmessagedivWar = false;
-          this._ShowmessagedivMsgWar = "";
+          this._Showmessagediv = false;
+          this._ShowmessagedivMsg = "";
         }, 3000);
       }
     });
@@ -740,6 +790,38 @@ export class IndexesDetailComponent extends Paginated {
     dialogoverlay.style.display = "none";
     dialogbox.style.display = "none";
   }
+
+  ApplyPermissions(_object): void {
+    try {
+
+      //apply control permission
+      var controlsarry = _object.filter(function (item) { return item.ModuleType === 'Control' && item.RightsName === 'View'; });
+
+      for (var i = 0; i < controlsarry.length; i++) {
+        document.getElementById(controlsarry[i].ModuleTabName).removeAttribute('disabled');
+      }
+
+      var controlarrayedit = _object.filter(function (item) { return item.ModuleType === 'Control' && item.RightsName === 'Edit'; });
+
+      for (var i = 0; i < controlarrayedit.length; i++) {
+
+        if (controlarrayedit[i].ChildModule == 'Indexes_btnSave') {
+          this._isshowsaveindexes = true;
+        }
+        if (controlarrayedit[i].ChildModule == 'Indexes_btnRefresh') {
+          this._isShowrefreshindexes = true;
+        }
+
+        if (controlarrayedit[i].ChildModule == 'Indexes_btnImport') {
+          this._isShowImportIndexes = true;
+        }
+      }
+    }
+    catch (err) {
+      console.log(err);
+    }
+  }
+
 }
 
 const routes: Routes = [

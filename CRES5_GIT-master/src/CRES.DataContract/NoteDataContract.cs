@@ -18,6 +18,7 @@ namespace CRES.DataContract
         public string Comments { get; set; }
         public bool? EnableTrace { get; set; }
         public DateTime? InitialInterestAccrualEndDate { get; set; }
+        public DateTime? PrepayDate { get; set; }
         public int? AccrualFrequency { get; set; }
         public int? DeterminationDateLeadDays { get; set; }
         public int? DeterminationDateReferenceDayoftheMonth { get; set; }
@@ -150,6 +151,7 @@ namespace CRES.DataContract
         public Decimal? NoteBalanceCap { get; set; }
         public int? FundingPriority { get; set; }
         public int? RepaymentPriority { get; set; }
+        public Decimal? WeightedSpread { get; set; }
         public bool? UseIndexOverrides { get; set; }
         public int? IndexNameID { get; set; }
         public string IndexNameText { get; set; }
@@ -161,11 +163,12 @@ namespace CRES.DataContract
         public string Tag2 { get; set; }
         public string Tag3 { get; set; }
         public string Tag4 { get; set; }
+        public string CalcEngineTypeText { get; set; }
+        public int? AccrualPeriodType { get; set; }
+        public string AccrualPeriodTypetext { get; set; }
+        public int? AccrualPeriodBusinessDayAdj { get; set; }
+        public string AccrualPeriodBusinessDayAdjText { get; set; }
         public DateTime? ExtendedMaturityCurrent { get; set; }
-
-        //public DateTime? ExtendedMaturityScenario1 { get; set; }
-        //public DateTime? ExtendedMaturityScenario2 { get; set; }
-        //public DateTime? ExtendedMaturityScenario3 { get; set; }
         public DateTime? ActualPayoffDate { get; set; }
         public Decimal? TotalCommitmentExtensionFeeisBasedOn { get; set; }
         public int? Servicer { get; set; }
@@ -173,11 +176,7 @@ namespace CRES.DataContract
         public string FullInterestAtPPayoffText { get; set; }
         public int? FullInterestAtPPayoff { get; set; }
         public string CRENewNoteID { get; set; }
-        // public string OldCRENoteID { get; set; }
-        //public string NewNoteName { get; set; }
-        //public Boolean Isexclude { get; set; }
         public Boolean? CollectCalculatorLogs { get; set; }
-
         public string MaturityScenarioOverrideText { get; set; }
         public int? CalculationModeID { get; set; }
         public string CalculationModeText { get; set; }
@@ -189,17 +188,18 @@ namespace CRES.DataContract
         public String PIKInterestAddedToBalanceBasedOnBusinessAdjustedDateText { get; set; }
         public int? InterestCalculationRuleForPaydowns { get; set; }
         public String InterestCalculationRuleForPaydownsText { get; set; }
-
+        public int? InterestCalculationRuleForPIKPaydowns { get; set; }
+        public String InterestCalculationRuleForPIKPaydownsText { get; set; }
+        public DataTable maturityList { get; set; }
         public DateTime? NoteTransferDate { get; set; }
-
+        public DateTime? LastAccountingCloseDate { get; set; }
         public List<PIKSchedule> NotePIKScheduleList { get; set; }
         public List<RateSpreadSchedule> RateSpreadScheduleList { get; set; }
         public List<MaturityScenariosDataContract> MaturityScenariosList { get; set; }
-
         public List<MaturityScenariosDataContract> lstMaturity { get; set; }
         public List<MaturityScenariosDataContract> MaturityScenariosListFromDatabase { get; set; }
-
         public List<StrippingScheduleDataContract> NoteStrippingList { get; set; }
+        public List<NoteCommitmentEquityDataContract> NoteCommitmentNoteData { get; set; }
         public List<DefaultScheduleDataContract> NoteDefaultScheduleList { get; set; }
         public List<PrepayAndAdditionalFeeScheduleDataContract> NotePrepayAndAdditionalFeeScheduleList { get; set; }
         public List<EffectiveDateList> EffectiveDateList { get; set; }
@@ -208,25 +208,18 @@ namespace CRES.DataContract
         public List<PIKfromPIKSourceNoteTab> ListPIKfromPIKSourceNoteTab { get; set; }
         public List<FeeCouponStripReceivableTab> ListFeeCouponStripReceivable { get; set; }
         public List<LiborScheduleTab> ListLiborScheduleTab { get; set; }
-        public List<LiborScheduleTab> ListLiborScheduleTabFromDB { get; set; }
         public List<FixedAmortScheduleTab> ListFixedAmortScheduleTab { get; set; }
         public List<NoteServicingFeeScheduleDataContract> NoteServicingFeeScheduleList { get; set; }
         public List<FinancingScheduleDataContract> NoteFinancingScheduleList { get; set; }
         public List<NotePeriodicOutputsDataContract> ListNotePeriodicOutputs { get; set; }
-
         public List<DailyGAAPBasisComponentsDataContract> ListDailyGAAPBasisComponents { get; set; }
-
-
         public List<ServicingLogTab> ListServicingLogTab { get; set; }
-        // public List<NoteServicingLogDataContract> lstNoteServicingLog { get; set; }
         public List<OutputNPVdata> ListOutputNPVdata { get; set; }
         public List<OutputAllTabData> ListOutputAllTabData { get; set; }
         public List<Transaction> ListTransaction { get; set; }
         public List<Transaction> ListCalcValues { get; set; }
         public List<TransactionEntry> ListCashflowTransactionEntry { get; set; }
         public ScenarioParameterDataContract DefaultScenarioParameters { get; set; }
-        //public List<LiborScheduleTab> ListLiborScheduleTab { get; set; }
-        //public List<EffectiveDateList> EffectiveDateList { get; set; }
         public List<ServicingOneTimeFeesTableDataContract> ServicingOneTimeFeesTableList { get; set; }
         public List<FinancingFeeScheduleDataContract> ListFinancingFeeSchedule { get; set; }
         public List<PIKInterestTab> ListPIKInterestTab { get; set; }
@@ -235,7 +228,6 @@ namespace CRES.DataContract
         public List<HistoricalAccrualDataContract> ListHistoricalAccrual { get; set; }
         public List<FeeSchedulesConfigDataContract> ListFeeSchedules { get; set; }
         public List<InterestCalculatorDataContract> ListInterestCalculator { get; set; }
-        //public List<FeeFunctionsConfigDataContract> ListFeeFnctions { get; set; }
 
         public int? pageIndex { get; set; }
         public int? pageSize { get; set; }
@@ -251,7 +243,6 @@ namespace CRES.DataContract
         public string CopyName;
         public string CopyDealID;
         public string CopyDealName;
-
         public string CalcJSONRequest;
         public int NumberofDaysinPast { get; set; }
         public int NumberofDaysinFuture { get; set; }
@@ -263,7 +254,7 @@ namespace CRES.DataContract
         public int StatusCode { get; set; }
         //public int cntCritialException { get; set; }
         public int? Priority { get; set; }
-        // public int? LienPosition { get; set; }
+        public int? LienPosition { get; set; }
         //public string LienPositionText { get; set; }
         public string FFLastUpdatedDate_String { get; set; }
         public string UpdatedByFF { get; set; }
@@ -288,25 +279,14 @@ namespace CRES.DataContract
         public CalculatorDebugData CalculatorDebugData { get; set; }
         public int? InterestCalculationRuleForPaydownsAmort { get; set; }
         public String InterestCalculationRuleForPaydownsAmortText { get; set; }
-        //  public bool? isAllowDebugInCalc { get; set; }
-        //public DateTime? LiborDataAsofDate { get; set; }
         public List<ScheduleEffectiveDateDataContract> ListEffectiveDateCount { get; set; }
         public decimal? AdjustedTotalCommitment { get; set; }
         public decimal? AggregatedTotal { get; set; }
-
-
         public int? RoundingNote { get; set; }
         public string RoundingNoteText { get; set; }
         public decimal? StraightLineAmortOverride { get; set; }
-
-        //  public DateTime? MaturityDate { get; set; }
-        //public decimal? EstimatedCurrentBalance { get; set; }
-
         public int? RepaymentDayoftheMonth { get; set; }
-
         public int? UseRuletoDetermineAmortization { get; set; }
-        //public string UseRuletoDetermineAmortizationText { get; set; }
-        // public decimal? AmortRate { get; set; }
         public int? FutureFundingBillingCutoffDay { get; set; }
         public int? CurtailmentBillingCutoffDay { get; set; }
 
@@ -342,6 +322,7 @@ namespace CRES.DataContract
         public Decimal? OriginationFeePercentageRP { get; set; }
         public List<NoteCommitmentDataContract> ListNoteCommitment { get; set; }
         public Boolean? AllowYieldConfigData { get; set; }
+        public string AllowDailyGAAPBasisComponents { get; set; }
         public List<YieldCalcInputDataContract> ListYieldCalcInput { get; set; }
         public Boolean? CalcByNewMaturitySetup { get; set; }
         public DataTable NoteMaturityList { get; set; }
@@ -350,8 +331,30 @@ namespace CRES.DataContract
         public string MultipleNoteids { get; set; }
         public int? ImpactCommitmentCalc { get; set; }
         public Boolean? BalanceAware { get; set; }
-    }
 
+        public DateTime? FirstIndexDeterminationDateOverride { get; set; }
+
+        public IndexDataContract ListIndices { get; set; }
+
+        public int? AccountingClose { get; set; }
+        public string AccountingCloseText { get; set; }
+
+        public List<ServicingWatchListCalcDataContract> ListServicingWatchProjected { get; set; }
+
+        public List<TagMasterXIRRDataContract> ListSelectedXIRRTags { get; set; }
+        public Decimal? UPBAtForeclosure { get; set; }
+
+        public int? FullIOTermFlag { get; set; }
+        public string FullIOTermFlagText { get; set; }
+        public Decimal? NetCapitalInvested { get; set; }
+        public int? NoteType { get; set; }
+        public DateTime? MaturityUsedInCalc;
+        public int? MaturityAdjMonthsOverride;
+        public int? InterestOnlyNote { get; set; }
+        public int? ConstantPaymentMethod { get; set; }
+        public int? PaymentDateAccrualPeriod { get; set; }
+        public string PaymentDateAccrualPeriodText { get; set;}
+    }
     public class DownloadCashFlowDataContract
     {
         public string NoteId { get; set; }
@@ -374,5 +377,25 @@ namespace CRES.DataContract
         public string ScheduleName { get; set; }
     }
 
+    public class UserPreferenceDataContract
+    {
+        public string userid { get; set; }
+        public string ParentModuleName { get; set; }
+        public string ModuleType { get; set; }
+        public string ModuleName { get; set; }
+        public string HTMLTagID { get; set; }
+        public bool IsActive { get; set; }
+        public string UpdatedBy { get; set; }
+    }
+
+    public class NoteSheet
+    {
+        public int SrNo { get; set; }
+        public string Note_ID { get; set; }
+        public string Note_Name { get; set; }
+        public string Status { get; set; }
+        public string Exception { get; set; }
+    }
+    
 
 }

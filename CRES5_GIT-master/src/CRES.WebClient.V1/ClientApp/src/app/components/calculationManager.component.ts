@@ -1,4 +1,4 @@
-import { Component, OnInit, AfterViewInit, ViewChild, OnDestroy } from '@angular/core';
+import { Component, OnInit, AfterViewInit, ViewChild, OnDestroy, HostListener } from '@angular/core';
 import { Router } from '@angular/router';
 import * as wjcGrid from '@grapecity/wijmo.grid';
 import { CalculationManagerService } from '../core/services/calculationManager.service'
@@ -32,11 +32,12 @@ import { DomSanitizer } from '@angular/platform-browser';
 import { WjInputModule } from '@grapecity/wijmo.angular2.input';
 import { WjCoreModule } from '@grapecity/wijmo.angular2.core';
 import { AppSettings } from '../core/common/appsettings';
+import { DevDashBoardService } from '../core/services/devDashBoard.service';
 declare var XLSX: any;
 
 @Component({
   templateUrl: "./calculationManager.html",
-  providers: [CalculationManagerService, NoteService, PermissionService, portfolioService, scenarioService, FileUploadService]
+  providers: [CalculationManagerService, NoteService, PermissionService, portfolioService, scenarioService, FileUploadService, DevDashBoardService]
 })
 
 export class CalculationManagerComponent extends Paginated {
@@ -50,6 +51,10 @@ export class CalculationManagerComponent extends Paginated {
   public _Showmessagediv: boolean = false;
   public _ShowSuccessmessagediv: boolean = false;
   private _ShowSuccessmessage: any;
+
+  public _ShowSuccessmessagedivclose: boolean = false;
+  private _ShowSuccessmessageclose: any;
+
   public _isCalcListFetching: boolean = false;
   _chkSelectAll: boolean = false;
   private subscriptionLoad: Subscription;
@@ -65,13 +70,25 @@ export class CalculationManagerComponent extends Paginated {
   @ViewChild('flextestcase') flextestcase: wjcGrid.FlexGrid;
   @ViewChild('filter') gridFilter: wjNg2GridFilter.WjFlexGridFilter;
   @ViewChild('flexbatch') flexbatch: wjcGrid.FlexGrid;
+  @ViewChild('flexCalculationSummary') flexCalculationSummary: wjcGrid.FlexGrid;
 
   //@ViewChild('flexNoteCashflowsExportDataList') flexNoteCashflowsExportDataList: wijmo.grid.FlexGrid;
+
+
+  processing: number = 0;
+  Running: number = 0;
+  Completed: number = 0;
+  Failed: number = 0;
+  Dependents: number = 0;
+  Remainingnotes: number = 0;
+  CalcSubmit: number = 0;
   private arrnew: any = [];
   totalcount: number = 0;
   private refreshcount: number = 0;
   private finalCall: number = 0;
   public _isExceptionListFetching: boolean = false;
+  public _fetchingDownloadstatus: boolean = false;
+
   public _ExceptionListCount: number = 1;
   private _testcasecount: number = 0;
   private _noteCashflowsExportDataList: NoteCashflowsExportDataList;
@@ -97,7 +114,9 @@ export class CalculationManagerComponent extends Paginated {
   ScenarioName: string;
   _lstcalculationlistCountOnDropDownFilter: number = 0;
   _lstcalculationlistCountOnGridFilter: number = 0;
-  lstbatchlog: any;
+  lstbatchlog: any
+  lstCalculationSummary: any;
+  _CalculationSummary: CalculationManagerList = new CalculationManagerList("");
   _batchcalc: BatchCalculationMaster = new BatchCalculationMaster("");
   public _lstlstbatchlogCount: number = 1;
   private NoteCountOnFirstLoad: number = 0;
@@ -114,7 +133,8 @@ export class CalculationManagerComponent extends Paginated {
   _chkSelectdownloadAll: boolean = false;
   @ViewChild('multiseltransactioncategory') multiseltransactioncategory: wjNg2Input.WjMultiSelect
   public flexchecked: boolean = false;
-
+  lstCheckDuplicateTransactionCashflow: any;
+  lastUrl: any;
   constructor(private _router: Router,
     public notesvc: NoteService,
     public calculationsvc: CalculationManagerService,
@@ -124,6 +144,7 @@ export class CalculationManagerComponent extends Paginated {
     public _portfolioService: portfolioService,
     public scenarioService: scenarioService,
     public fileUploadService: FileUploadService,
+    public devDashBoardService: DevDashBoardService,
     private sani: DomSanitizer,
 
   ) {
@@ -139,15 +160,44 @@ export class CalculationManagerComponent extends Paginated {
     // this.notelist = new CalculationManagerList("");
     this._noteCashflowsExportDataList = new NoteCashflowsExportDataList();
     this.GettimezoneCurrentOffset();
-    this.RefreshCalculationStatus();
+    //this.RefreshCalculationStatus();
     this.finalCall = 1;
     this.utilityService.setPageTitle("M61–Calculation");
     this.GetUserPermission();
     this.GetTransactionCategory();
+  }
+  @HostListener('window:beforeunload', ['$event'])
+  public beforeunloadHandler($event) {
+    if (this._fetchingDownloadstatus == true) {
+      $event.returnValue = "Download is in progress, Are you sure want to refresh the page ?";
+    }
 
   }
 
+
+  @HostListener('window:popstate', ['$event'])
+  public onPopState($event) {
+    if (this._fetchingDownloadstatus == true) {
+      const confirmLeave = window.confirm('Download is in progress, Are you sure want to leave this page ?');
+
+      //if (!confirmLeave) {
+      //  history.pushState(null, '', window.location.href); // Prevent the back navigation
+      //}
+    }
+  }
+
+  @HostListener('window:pushstate', ['$event'])
+  public onPushState($event) {
+    if (this._fetchingDownloadstatus == true) {
+      const confirmLeave = window.confirm('Download is in progress, Are you sure want to leave this page ?');
+
+      //if (!confirmLeave) {
+      //  history.pushState(null, '', window.location.href); // Prevent the back navigation
+      //}
+    }
+  }
   ngOnInit() {
+   
     this.CalculationModeID = parseInt(window.localStorage.getItem("CalculationModeID"));
 
     this._scenariodc.CalculationModeID = this.CalculationModeID;
@@ -201,11 +251,12 @@ export class CalculationManagerComponent extends Paginated {
 
     if (this.lstcalculationlist) {
       this.gridFilter.filterApplied.addHandler(() => {
-        for (var i = 0; i < this.lstcalculationlist.length; i++) {
-          this.lstcalculationlist[i].Active = false;
-          this.lstcalculationlist[i].downloadnote = false;
+        if (this.lstcalculationlist) {
+          for (var i = 0; i < this.lstcalculationlist.length; i++) {
+            this.lstcalculationlist[i].Active = false;
+            this.lstcalculationlist[i].downloadnote = false;
+          }
         }
-
         // this.RefreshCalcStatus();
       });
     }
@@ -228,6 +279,7 @@ export class CalculationManagerComponent extends Paginated {
 
   public RefreshCalculationStatus(): void {
     this._isCalcListFetching = true;
+    this._calculationManager.AnalysisID = this.ScenarioId;
     this.calculationsvc.refreshCalculation(this._calculationManager).subscribe(res => {
       if (res.Succeeded) {
         if (typeof res.UserPermissionList !== 'undefined' && res.UserPermissionList.length > 0) {
@@ -248,7 +300,7 @@ export class CalculationManagerComponent extends Paginated {
                 if (panel.cellType != wjcGrid.CellType.Cell) {
                   return;
                 }
-                var item = panel.getCellData(r, calctextcolindex,false);
+                var item = panel.getCellData(r, calctextcolindex, false);
                 if (item == 'N') {
                   if (calccheckboxcol == panel.columns[c].index) {
                     cell.style.backgroundColor = '#cfcfcf';
@@ -267,9 +319,14 @@ export class CalculationManagerComponent extends Paginated {
             this.ConvertToBindableDate(this.lstcalculationlist, "", "en-US");
 
             setTimeout(function () {
-              //this.flex.autoSizeColumns(0, this.flex.columns.length - 1, false, 30);
+              this.flex.autoSizeColumns(0, this.flex.columns.length - 1, false, 30);
 
               this._isCalcListFetching = false;
+
+              //set filter maxValues
+              this.gridFilter.getColumnFilter('DealName').valueFilter.maxValues = 1000;
+              this.gridFilter.getColumnFilter('NoteName').valueFilter.maxValues = 3000;
+
             }.bind(this), 1);
           }
           else {
@@ -334,8 +391,6 @@ export class CalculationManagerComponent extends Paginated {
       if (res.Succeeded) {
         this._ShowSuccessmessage = "Last batch calculation request reset successfully for " + this.ScenarioName + " scenario .";
         this._ShowSuccessmessagediv = true;
-
-
 
         setTimeout(function () {
           this._ShowSuccessmessagediv = false;
@@ -499,6 +554,19 @@ export class CalculationManagerComponent extends Paginated {
       this.notelist[0].PortfolioMasterGuid = this._calculationManager.PortfolioMasterGuid;
 
       this.finalCall = 1;
+      for (var i = 0; i < this.lstcalculationlist.length; i++) {
+        try {
+          if (this.lstcalculationlist[i].EnableM61CalculationsText == 'Y') {
+            if (typeof this.lstcalculationlist[i].Active !== null) {
+              if (this.lstcalculationlist[i].Active == true) {
+                this.lstcalculationlist[i].StatusText = "Processing";
+
+              }
+            }
+          }
+        }
+        catch (err) { console.log(err); }
+      }
       this.calculationsvc.sendnoteforcalculation(this.notelist).subscribe(res => {
         if (res.Succeeded) {
 
@@ -574,6 +642,11 @@ export class CalculationManagerComponent extends Paginated {
         this.lstcalculationlist[i].PayOffDate = new Date(this.convertDateToBindable(this.lstcalculationlist[i].PayOffDate));
       }
 
+      if (this.lstcalculationlist[i].AccountingCloseDate != null) {
+        this.lstcalculationlist[i].AccountingCloseDate = new Date(this.convertDateToBindable(this.lstcalculationlist[i].AccountingCloseDate));
+      }
+
+
       //if (this.lstcalculationlist[i].StartTime != null) {
       //    this.lstcalculationlist[i].StartTime = new Date(this.lstcalculationlist[i].StartTime.toString());
       //}
@@ -637,6 +710,60 @@ export class CalculationManagerComponent extends Paginated {
     this.flex.invalidate();
   }
 
+  RefreshStatusandGrid() {
+    this._isCalcListFetching = true;
+    this.getCalculationStatus();
+    this.RefreshCalcStatus();
+    if (this.flex) {
+      setTimeout(() => {
+        this.flex.invalidate();
+      }, 1000);
+    }
+  }
+
+  getCalculationStatus(): void {
+    try {
+      this.devDashBoardService.getCalculationStatus(this.ScenarioId).subscribe(res => {
+        if (res.Succeeded) {
+          
+          this.Completed = 0;
+          this.processing = 0;
+          this.Running = 0;
+          this.Failed = 0;
+          this.Dependents = 0;
+          this.CalcSubmit = 0;
+
+          var result = res.CalculationStatus;
+
+          for (var i = 0; i < result.length; i++) {
+            if (result[i].Name == "Failed") {
+              this.Failed = result[i].value;
+            }
+            if (result[i].Name == "Completed") {
+              this.Completed = result[i].value;
+            }
+            if (result[i].Name == "Running") {
+              this.Running = result[i].value;
+            }
+            if (result[i].Name == "Processing") {
+              this.processing = result[i].value;
+            }
+            if (result[i].Name == "Dependents") {
+              this.Dependents = result[i].value;
+            }
+            if (result[i].Name == "CalcSubmit") {
+              this.CalcSubmit = result[i].value;
+            }
+          }
+          this.Remainingnotes = this.processing + this.Dependents + this.CalcSubmit;
+        }
+        else {
+        }
+      });
+    } catch (err) {
+    }
+  }
+
   GetCalcStatus(): void {
     // var num: number = 1;
     if (this.iscancelCal == false) {
@@ -647,25 +774,24 @@ export class CalculationManagerComponent extends Paginated {
             this.refreshcount = res.TotalCount;
             if (this.refreshcount > 0) {
               // this.RefreshCalcStatus();
-              setTimeout(() => {
-                this.RefreshCalcStatus();
-              }, 20000);
-
-
-
-              setTimeout(() => {
-                this.GetCalcStatus();
-              }, 30000);
+              this.getCalculationStatus();
+              //setTimeout(() => {
+              //  this.RefreshCalcStatus();
+              //}, 20000);
+              
+              //setTimeout(() => {
+              //  this.GetCalcStatus();
+              //}, 30000);
               // alert('setTimeout');
             }
             else if (this.refreshcount == 0 && this.finalCall == 1)//For call once again after complete all process.
             {
-
               this.finalCall = 0;
+              this.getCalculationStatus();
               //alert("this.subscription.unsubscribe()");
-              if (this.iscancelCal == false) {
-                this.RefreshCalcStatus();
-              }
+              //if (this.iscancelCal == false) {
+              //  this.RefreshCalcStatus();
+              //}
               //this.subscription.unsubscribe();
               //this.subscriptionLoad.unsubscribe();
 
@@ -709,7 +835,7 @@ export class CalculationManagerComponent extends Paginated {
                     this.flex.rows[j].dataItem.ErrorMessage = data[i].ErrorMessage;
                     this.flex.rows[j].dataItem.FileName = data[i].FileName;
                     this.flex.rows[j].dataItem.EnableM61Calculations = data[i].EnableM61Calculations;
-                    this.flex.rows[j].dataItem.EnableM61CalculationsText = data[i].EnableM61CalculationsText;
+                    this.flex.rows[j].dataItem.CalcEngineTypeText = data[i].CalcEngineTypeText;
 
 
                   }
@@ -731,6 +857,10 @@ export class CalculationManagerComponent extends Paginated {
             this.flex.columnHeaders.rows[0].height = 25;
             setTimeout(() => {
               this.flex.invalidate(true);
+
+              // set filter maxValues
+              this.gridFilter.getColumnFilter('DealName').valueFilter.maxValues = 1000;
+              this.gridFilter.getColumnFilter('NoteName').valueFilter.maxValues = 3000;
             }, 200);
 
           }
@@ -844,6 +974,8 @@ export class CalculationManagerComponent extends Paginated {
   }
 
   invlaidatecalculationManagergrid() {
+    this.getCalculationStatus();
+    this.RefreshCalculationStatus();
     if (this.flex) {
       setTimeout(() => {
         this.flex.invalidate();
@@ -863,8 +995,26 @@ export class CalculationManagerComponent extends Paginated {
   }
 
 
+  CheckDuplicateTransactionCashflow(): void {
+    this._isCalcListFetching = true;
+    var downloadCashFlow = new DownloadCashFlow();
+    downloadCashFlow.Pagename = "Calc";
+    downloadCashFlow.AnalysisID = this.ScenarioId;
+    this.notesvc.CheckDuplicateTransactionCashflow(downloadCashFlow).subscribe(res => {
+      this.lstCheckDuplicateTransactionCashflow = res.CheckDuplicateData
+      if (this.lstCheckDuplicateTransactionCashflow != null) {
+        this.CustomAlert("There is a duplicate transaction we found in cashflow download, please try after some time.");
+      }
+      else {
+        this.downloadNoteCashflowsExportData();
+      }
+      this._isCalcListFetching = false;
+    });
+  }
+
   downloadNoteCashflowsExportData(): void {
     //var _note: Note;
+    this._fetchingDownloadstatus = true;
     this._isCalcListFetching = true;
     var transactioncategoryname = '';
     this._note = new Note('');
@@ -896,8 +1046,7 @@ export class CalculationManagerComponent extends Paginated {
       downloadCashFlow.CountOnGridFilter = this._lstcalculationlistCountOnGridFilter;
 
       //if (downloadnotescnt == this.flex.rows.length)
-      if (downloadnotescnt == this.totalcount)
-      {
+      if (downloadnotescnt == this.totalcount) {
         if (downloadCashFlow.PortfolioMasterGuid == "00000000-0000-0000-0000-000000000000") {
           downloadCashFlow.MutipleNoteId = '';
         }
@@ -931,30 +1080,56 @@ export class CalculationManagerComponent extends Paginated {
       var fileName = "CalcMgr" + "_" + this.ScenarioName + filterednames + "_Cashflow_" + displayDate + "_" + displayTime + ".xlsx";
 
       this.notesvc.getNoteCashflowsExportData(downloadCashFlow).subscribe(res => {
-        let b: any = new Blob([res]);
-        let dwldLink = document.createElement("a");
-        let url = URL.createObjectURL(b);
-        let isSafariBrowser = navigator.userAgent.indexOf('Safari') != -1 && navigator.userAgent.indexOf('Chrome') == -1;
-        if (isSafariBrowser) {  //if Safari open in new window to save file with random filename.
-          dwldLink.setAttribute("target", "_blank");
+        if (res) {
+          this._fetchingDownloadstatus = false;
+          if (res.size > 6153)
+          {
+            let b: any = new Blob([res]);
+            let dwldLink = document.createElement("a");
+            let url = URL.createObjectURL(b);
+            let isSafariBrowser = navigator.userAgent.indexOf('Safari') != -1 && navigator.userAgent.indexOf('Chrome') == -1;
+            if (isSafariBrowser) {  //if Safari open in new window to save file with random filename.
+              dwldLink.setAttribute("target", "_blank");
+            }
+            dwldLink.setAttribute("href", url);
+            dwldLink.setAttribute("download", fileName);
+            dwldLink.style.visibility = "hidden";
+            document.body.appendChild(dwldLink);
+            dwldLink.click();
+            document.body.removeChild(dwldLink);
+
+            this._ShowSuccessmessageclose = fileName + " downloaded successfully in your download location.";
+            this._ShowSuccessmessagedivclose = true;
+
+
+            this._isCalcListFetching = false;
+          } else {
+            this.ShowErrorMessageFiledDownload();
+
+          }
+        } else {
+          this.ShowErrorMessageFiledDownload();
         }
-        dwldLink.setAttribute("href", url);
-        dwldLink.setAttribute("download", fileName);
-        dwldLink.style.visibility = "hidden";
-        document.body.appendChild(dwldLink);
-        dwldLink.click();
-        document.body.removeChild(dwldLink);
-        this._isCalcListFetching = false;
+
       });
 
 
     }
     else {
+      this._fetchingDownloadstatus = false;
       this.CustomAlert('Please select note(s) for download.');
       this._isCalcListFetching = false;
     }
   }
 
+  ShowErrorMessageFiledDownload() {
+    this._isCalcListFetching = false;
+    this._Showmessagediv = true;
+    this.Message = "An error occurred while downloading cashflow output. Please contact m61 support.";
+    setTimeout(function () {
+      this._Showmessagediv = false;
+    }.bind(this), 5000);
+  }
   fetchXML(stores) {
     var wrkbookXML = '';
     for (var i = 0; i < stores.length; i++) {
@@ -1139,6 +1314,7 @@ export class CalculationManagerComponent extends Paginated {
           this._scenariodc.AnalysisID = this.ScenarioId;
           this._calculationManager.AnalysisID = this.ScenarioId;
           this.isAllowDebugInCalc = this._lstScenario[0].AllowDebugInCalc;
+          this.RefreshCalculationStatus();
           this.flex.invalidate();
         }
       }
@@ -1151,6 +1327,7 @@ export class CalculationManagerComponent extends Paginated {
     this._scenariodc.AnalysisID = this.ScenarioId;
     this._calculationManager.AnalysisID = this.ScenarioId;
     this.ScenarioName = this._lstScenario.filter(x => x.AnalysisID == value)[0].ScenarioName;
+    this.GetCalcStatus();
     this.RefreshCalculationStatus();
   }
 
@@ -1184,6 +1361,72 @@ export class CalculationManagerComponent extends Paginated {
     });
   }
 
+  public GetCalculationSummary(): void {
+    this._isCalcListFetching = true;
+
+    this.calculationsvc.GetCalculationSummary().subscribe(res => {
+      if (res.Succeeded) {
+        setTimeout(() => {
+          this.flexCalculationSummary.invalidate(true);
+        }, 200); 
+        if (res.dt.length > 0) {
+          this.lstCalculationSummary = res.dt;
+
+          for (var i = 0; i < this.lstCalculationSummary.length; i++) {
+            this.processing = 0;
+            this.Running = 0;
+
+            if (this.lstCalculationSummary[i].Processing !== undefined && this.lstCalculationSummary[i].Processing !== null) {
+              this.processing = this.lstCalculationSummary[i].Processing;
+            }
+            if (this.lstCalculationSummary[i].Running !== undefined && this.lstCalculationSummary[i].Running !== null) {
+              this.Running = this.lstCalculationSummary[i].Running;
+            }
+            this.lstCalculationSummary[i].Vcount = this.processing + this.Running;
+          }
+        }
+      }
+      this._isCalcListFetching = false;
+    });
+  }
+  addFooterRow(flexCalculationSummary: wjcGrid.FlexGrid) {
+    var row = new wjcGrid.GroupRow();
+    flexCalculationSummary.columnFooters.rows.push(row);
+    flexCalculationSummary.bottomLeftCells.setCellData(0, 0, '\u03A3');
+
+  }
+
+  UpdateReconStatusByScenrioID(rowitem, actiontype) {
+    this._isCalcListFetching = true;
+    var action = "";
+    action = actiontype;
+    try {
+      var AnalysisID = this._lstScenario.filter(x => x.ScenarioName == rowitem.ScenarioName)[0].AnalysisID;
+      this._CalculationSummary.AnalysisID = AnalysisID;
+      this._CalculationSummary.StatusText = action;
+
+      this.calculationsvc.UpdateReconStatusByScenrioID(this._CalculationSummary).subscribe(res => {
+        if (res.Succeeded) {
+          this._ShowSuccessmessagediv = true;
+          if (action == "Cancel") {
+            this._ShowSuccessmessage = "Scenario execution has been Canceled.";
+          } else {
+            this._ShowSuccessmessage = "Scenario execution has been " + action + "d.";
+          }
+          setTimeout(function () {
+            this._ShowSuccessmessagediv = false;
+            this._isCalcListFetching = false;
+          }.bind(this), 5000);
+          this.GetCalculationSummary();
+
+
+        } else { this._isCalcListFetching = false; }
+
+      });
+    } catch (e) {
+      this._isCalcListFetching = false;
+    }
+  }
   private ConvertToBindableBatchLog(Data, modulename, locale: string) {
     var options = { year: "numeric", month: "numeric", day: "numeric" };
     for (var i = 0; i < Data.length; i++) {
@@ -1205,29 +1448,43 @@ export class CalculationManagerComponent extends Paginated {
   }
 
   calcObjForDownload: CalculationManagerList = new CalculationManagerList("");
-  DownloadCalcOutputExcel(FileName): void {
+  DownloadCalcOutputExcel(obj): void {
     this._isCalcListFetching = true;
-    this.calcObjForDownload.FileName = FileName
+    //this.calcObjForDownload.FileName = FileName
+
+    this.calcObjForDownload.FileName = obj.FileName
+    this.calcObjForDownload.CalcEngineType = obj.CalcEngineType
 
     this.calculationsvc.downloadfilecalcoutput(this.calcObjForDownload).subscribe(res => {
-      if (res.Succeeded) {
-        this._ShowSuccessmessagediv = true;
-        this._ShowSuccessmessage = "Downloading the output excel.";
-        setTimeout(function () {
-          this._ShowSuccessmessagediv = false;
-          this._isCalcListFetching = false;
-        }.bind(this), 5000);
-        if (res.Enablem61Calculation == "true") {
-          this.exportToExcel(res.CalcDebugFileName, [res.dtNotePeriodicOutputsDataContract], ['V1_Output']);
-        } else {
-          this.exportToExcel(res.CalcDebugFileName, [res.dtNotePeriodicOutputsDataContract, res.dtDatesTab, res.dtRateTab, res.dtFeesTab, res.dtFeeOutputDataContract, res.dtBalanceTab, res.dtCouponTab, res.dtPIKInterestTab, res.dtGAAPBasisTab, res.dtFutureFundingScheduleTab, res.dtMaturityList], ['Output_Periodic', 'Dates', 'Rates', 'Fees', 'FeeOutput', 'BalanceTab', 'Coupon', 'PIK_Interest', 'GAAP_Basis', 'Future_Funding_Schedule', 'Maturity_Dates']);
-        }
-
-
-
+      this._ShowSuccessmessagediv = true;
+      this._ShowSuccessmessage = "Downloading the output excel.";
+      setTimeout(function () {
+        this._ShowSuccessmessagediv = false;
         this._isCalcListFetching = false;
+      }.bind(this), 5000);
+
+      var displayDate = new Date().toLocaleDateString("en-US").replace(/\//g, '_');
+      var displayTime = new Date().toLocaleTimeString("en-US").replace(/\:/g, '_');
+
+      var fileName = obj.CRENoteID + "_" + this.ScenarioName + "_" + obj.CalcEngineTypeText + "_Cashflow_" + displayDate + "_" + displayTime + ".xlsx";
+
+      let b: any = new Blob([res]);
+      let dwldLink = document.createElement("a");
+      let url = URL.createObjectURL(b);
+      let isSafariBrowser = navigator.userAgent.indexOf('Safari') != -1 && navigator.userAgent.indexOf('Chrome') == -1;
+      if (isSafariBrowser) {  //if Safari open in new window to save file with random filename.
+        dwldLink.setAttribute("target", "_blank");
       }
-      else {
+      dwldLink.setAttribute("href", url);
+      dwldLink.setAttribute("download", fileName);
+      dwldLink.style.visibility = "hidden";
+      document.body.appendChild(dwldLink);
+      dwldLink.click();
+      document.body.removeChild(dwldLink);
+
+      this._isCalcListFetching = false;
+
+      error => {
         this._Showmessagediv = true;
         this.Message = "Some error occurred while downloading.";
         setTimeout(function () {
@@ -1235,35 +1492,7 @@ export class CalculationManagerComponent extends Paginated {
           this._isCalcListFetching = false;
         }.bind(this), 5000);
       }
-      error => console.error('Error: ' + error)
     });
-
-    ////this._isListFetching = true;
-    //this.fileUploadService.downloadfilecalcoutput(this.calcObjForDownload).subscribe(fileData => {
-    //    let b: any = new Blob([fileData]);
-    //    //var url = window.URL.createObjectURL(b);
-    //    //window.open(url);
-    //    var displayDate = new Date().toLocaleDateString("en-US");
-    //    var fileName = "M61_Wells_Export_";//+ this._deal.CREDealID + "_" + displayDate + ".xlsx";
-    //    let dwldLink = document.createElement("a");
-    //    let url = URL.createObjectURL(b);
-    //    let isSafariBrowser = navigator.userAgent.indexOf('Safari') != -1 && navigator.userAgent.indexOf('Chrome') == -1;
-    //    if (isSafariBrowser) {  //if Safari open in new window to save file with random filename.
-    //        dwldLink.setAttribute("target", "_blank");
-    //    }
-    //    dwldLink.setAttribute("href", url);
-    //    dwldLink.setAttribute("download", fileName);
-    //    dwldLink.style.visibility = "hidden";
-    //    document.body.appendChild(dwldLink);
-    //    dwldLink.click();
-    //    document.body.removeChild(dwldLink);
-    //    //this._isListFetching = false;
-    //},
-    //    error => {
-    //        alert('Something went wrong');
-    //        //this._isListFetching = false;;
-    //    }
-    //);
   }
 
   exportToExcel(filename, arr, sheets) {
@@ -1312,11 +1541,11 @@ export class CalculationManagerComponent extends Paginated {
         var seconds = d.getSeconds();
         if (hour < 0) {
           hour = 12 + (hour);
-          dt = d.getDate() - 1;
+          //  dt = d.getDate() - 1;
         }
         else {
           hour = hour;
-          dt = d.getDate();
+          // dt = d.getDate();
         }
         if (seconds > 60) {
           seconds = seconds - 60;
@@ -1326,7 +1555,12 @@ export class CalculationManagerComponent extends Paginated {
           minutes = minutes - 60;
           hour = hour + 1;
         }
-        var dat = (dt < 10) ? '0' + dt : dt;
+
+        dt = d.getDate();
+        //var dat = (dt < 10) ? '0' + dt : dt;
+
+        var dat = dt;
+
         var month = d.getMonth() + 1;
         var mth = (month < 10) ? '0' + month : month;
         var year = d.getFullYear();
@@ -1343,12 +1577,14 @@ export class CalculationManagerComponent extends Paginated {
         var seconds = d.getSeconds();
         if (hour < 0) {
           hour = 12 + (hour);
-          dt = d.getDate() - 1
+          //dt = d.getDate() - 1
         }
         else {
           hour = hour;
-          dt = d.getDate();
+          // dt = d.getDate();
         }
+
+        dt = d.getDate();
         if (seconds > 60) {
           seconds = seconds - 60;
           minutes = minutes + seconds;
@@ -1357,7 +1593,8 @@ export class CalculationManagerComponent extends Paginated {
           minutes = minutes - 60;
           hour = hour + 1;
         }
-        var dat = (dt < 10) ? '0' + dt : dt;
+        //var dat = (dt < 10) ? '0' + dt : dt;
+        var dat = dt;
         var month = d.getMonth() + 1;
         var mth = (month < 10) ? '0' + month : month;
         var year = d.getFullYear();
@@ -1374,7 +1611,7 @@ export class CalculationManagerComponent extends Paginated {
       if (res.Succeeded) {
         var data = res.dt;
         this.listtransactioncategory = data;
-        
+
       }
     });
   }

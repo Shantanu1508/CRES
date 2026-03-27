@@ -1,7 +1,15 @@
 ﻿using CRES.BusinessLogic;
 using CRES.DataContract;
+using CRES.NoteCalculator;
+using CRES.Utilities;
 using Microsoft.AspNetCore.Mvc;
 using System;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.Net;
+using System.Net.Http;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace CRES.NoteCalculatorService.Controllers
 {
@@ -82,7 +90,7 @@ namespace CRES.NoteCalculatorService.Controllers
 
 
 
-        [Route("api/Scheduler/getExecuteProcedureInADay")]
+         [Route("api/Scheduler/getExecuteProcedureInADay")]
         public IActionResult getExecuteProcedureInADay()
         {
             GenericResult _authenticationResult = null;

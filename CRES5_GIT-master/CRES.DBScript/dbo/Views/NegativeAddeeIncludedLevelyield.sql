@@ -8,4 +8,5 @@ where T.Noteid in ('RXR_B','1275','3844','3841','Vill_B','4463','2723','3843','1
 							'1673','Tuscon Phtm A','RXR_Mezz','3428' ) --Negative Additional Fee 100 included in levele yield
 and Type = 'EndingGAAPBookValue'
 and AnalysisID = 'C10F3372-0FC2-4861-A9F5-148F1F80804F'
+and T.AccountTypeID = 1
 

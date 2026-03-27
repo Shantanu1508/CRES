@@ -1,4 +1,4 @@
-﻿Create View [dbo].[IntgrationBillingInterest]
+﻿CREATE View [dbo].[IntgrationBillingInterest]
 as
 select 
 NoteID as NoteKey,
@@ -25,3 +25,4 @@ From [DW].[TransactionEntryBI] T
 
 Where AnalysisName = 'Default' 
 and Type = 'BillingInterestPaid' 
+and T.AccountTypeID = 1 

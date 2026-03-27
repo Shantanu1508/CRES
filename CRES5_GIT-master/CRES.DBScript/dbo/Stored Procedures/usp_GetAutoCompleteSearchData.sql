@@ -1,5 +1,4 @@
-﻿
-CREATE PROCEDURE [dbo].[usp_GetAutoCompleteSearchData] 
+﻿CREATE PROCEDURE [dbo].[usp_GetAutoCompleteSearchData] ---'Note A1'
     @SearchBy nvarchar(256)
 AS
 BEGIN
@@ -10,12 +9,12 @@ BEGIN
 		
 
  
-
+ ---178
 
 set @Query='
 		select
-		AccountID,[Name],''Note'' as AccountType
-		from [Core].[Account] acc where acc.IsDeleted = 0 and AccountTypeID=178 and [Name] like ''%'+CONVERT(VARCHAR(256),@SearchBy)+'%'' 
+		AccountID,[Name],''CRE Loan (Note)'' as AccountType
+		from [Core].[Account] acc where acc.IsDeleted = 0 and AccountTypeID= 1 and [Name] like ''%'+CONVERT(VARCHAR(256),@SearchBy)+'%''  
 		
 		union
 		

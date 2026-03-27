@@ -1,4 +1,7 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace CRES.NoteCalculator
 {
@@ -25,6 +28,51 @@ namespace CRES.NoteCalculator
             "PurchasedInterest",
             "StubInterest",
             "FloatInterest"
+        };
+
+        public static List<string> ListCoreInterestTransactions = new List<string>()
+        {
+            "InterestPaid",
+            "PurchasedInterest",
+            "StubInterest"
+        };
+
+        public static List<string> ListLookUpTypes = new List<string>()
+        {
+            "TransactionDate",
+            "PaymentDate",
+            "AccrualPeriodEndDate"
+        };
+
+        public static List<string> IndexNames = new List<string>()
+        {
+            "1M LIBOR",
+            "1M Term SOFR"
+        };
+
+        public static List<string> LiabilityOpModesText = new List<string>()
+        {
+            "GenTransactionDates",
+            "DrawUptoFullFundBalance",
+            "MonthsToHold",
+            "ScheduledDraws"
+        };
+
+        public static List<string> AccountCategoriesText = new List<string>()
+        {
+            "Fund",
+            "Repo",
+            "Subline",
+            "Note-on-Note",
+            "A-Note Buyer"
+        };
+
+        public static List<string> FundingSourceText = new List<string>()
+        {
+            "Fund",
+            "Repo",
+            "Note-on-Note",
+            "A-Note Buyer"
         };
     }
 
@@ -79,7 +127,8 @@ namespace CRES.NoteCalculator
         Amort_Rate,
         Amort_Spread,
         Amort_Rate_Cap,
-        Amort_Rate_Floor
+        Amort_Rate_Floor,
+        Index_Name
     }
 
     public enum EnmRoundMethodType
@@ -120,4 +169,39 @@ namespace CRES.NoteCalculator
         UnusedFeeExcludedFromLevelYield = 10
     }
 
+    public enum ServicingLogLookUpType
+    {
+        TransactionDate = 0,
+        PaymentDate = 1,
+        AccrualPeriodEndDate = 2
+    }
+
+    public enum EnmIndexName
+    {
+        Libor1M = 0,
+        Sofr1M = 1
+    }
+
+    public enum LiabilityOpModes
+    {
+        GenTransactionDates = 0,
+        DrawUptoFullFundBalance = 1,
+        MonthsToHold = 2,
+        ScheduledDraws = 3
+    }
+    public enum AccountTypes
+    {
+        Fund = 0,
+        Repo = 1,
+        Subline = 2,
+        NoteOnNote = 3,
+        ANoteBuyer = 4
+    }
+    public enum FundingSources
+    {
+        Fund = 0,
+        Repo = 1,
+        NoteonNote = 2,
+        ANoteBuyer = 3
+    }
 }

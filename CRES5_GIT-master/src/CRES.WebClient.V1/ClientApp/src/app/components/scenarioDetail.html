@@ -5,168 +5,293 @@
       <h1 style="display: inline-block; margin-top: 10px;">
         Scenarios Details : {{_scenariodc.ScenarioName}}
       </h1>
-
+      <span style="font-weight:bold">Calculated on: {{_scenariodc.LastCalculatedDate | date: 'EEEE, MMMM d, y h:mm a'}}&nbsp;{{_timezoneAbbreviation}}</span>
       <span>
         <button class="custombutton" style="margin-right:22px !important;" (click)="DiscardChanges()">
           Cancel
         </button>
-        <button class="custombutton" style="width:200px!important;" (click)="ValidateScenarioAndSave('CalcAndSave')">
+        <button class="custombutton" *ngIf="_isshowCalcAndSave" style="width:200px!important;" (click)="CheckAndSaveScenario('CalcAndSave')">
           Save & Calc
         </button>
-        <button class="custombutton" (click)="ValidateScenarioAndSave('Save')">
+        <button class="custombutton" (click)="CheckAndSaveScenario('Save')">
           Save
         </button>
-
       </span>
-
-
-
       <div *ngIf="_ShowmessagedivWar" class="alert alert-warning fade in">
         <strong>{{_ShowmessagedivMsgWar}}</strong>
       </div>
 
     </div>
-
-
     <div class="fmst fixheadercontent">
       <div class="cssload-container" *ngIf="_isScenarioDetailFetching">
         <div class="cssload-whirlpool"></div>
       </div>
-            <div class="cssload-container" *ngIf="_isShowLoader">
-                <div class="cssload-whirlpool"></div>
-            </div>
-
-      <div class="box1a">
-        <div class="form-group row pD10 scenariosdetailtopdiv">
-
-          <div class="col-sm-3">
-            <label class="lab1">Scenario Name</label>
-            <input class="ibox1" required type="text" [(ngModel)]="_scenariodc.ScenarioName" name="ScenarioName" ngControl="ScenarioName" #ScenarioName="ngModel" id="ScenarioName">
-          </div>
-          <div class="col-sm-3">
-            <label class="lab1">Maturity Scenario Override</label>
-            <select [(ngModel)]="_scenariodc.MaturityScenarioOverrideID" name="MaturityScenarioOverrideID" #MaturityScenarioOverrideID="ngModel" class="ibox1">
-              <option *ngFor="let status of lstMaturityScenarioOverride" value={{status.LookupID}}>
-                {{status.Name}}
-              </option>
-            </select>
-          </div>
-
-          <div class="col-sm-3">
-            <label class="lab1">Maturity Adjustment Months</label>
-            <input class="ibox1" type="number" [(ngModel)]="_scenariodc.MaturityAdjustment" name="MaturityAdjustment" ngControl="MaturityAdjustment" #MaturityAdjustment="ngModel" id="MaturityAdjustment">
-          </div>
-
-
-          <!--<div class="col-sm-3">
-            <label class="lab1">Function Name</label>
-            <select [(ngModel)]="foldername" id="foldername" name="foldername" class="ibox1" (change)="ChangeFolder($event.target.value)"
-                <option *ngFor="let item of lstFolders" value={{item.FunctionName}}>
-                    {{item.FunctionName}}
-                </option>
-            </select>
-        </div>-->
-
-          <div class="col-sm-3">
-            <label class="lab1">Index Scenario Override</label>
-            <select [(ngModel)]="_scenariodc.IndexScenarioOverride" name="IndexScenarioOverride" #IndexScenarioOverride="ngModel" class="ibox1">
-              <option *ngFor="let Lindex of lstIndexesMaster" value={{Lindex.IndexesMasterID}}>
-                {{Lindex.IndexesName}}
-              </option>
-            </select>
-          </div>
-
-          <div class="col-sm-3">
-            <label class="lab1">Calculation Mode</label>
-            <select [(ngModel)]="_scenariodc.CalculationMode" name="CalculationMode" #CalculationMode="ngModel" class="ibox1">
-              <option *ngFor="let Lcal of lstCalculationMode" value={{Lcal.LookupID}}>
-                {{Lcal.Name}}
-              </option>
-            </select>
-          </div>
-
-          <div class="col-sm-3">
-            <label class="lab1">Excluded Forecasted Pre Payment</label>
-            <select [(ngModel)]="_scenariodc.ExcludedForcastedPrePayment" name="ExcludedForcastedPrePayment" #ExcludedForcastedPrePayment="ngModel" class="ibox1">
-              <option *ngFor="let Lcal of lstExcludedForcastedPrePayment" value={{Lcal.LookupID}}>
-                {{Lcal.Name}}
-              </option>
-            </select>
-          </div>
-          <div class="col-sm-3">
-            <label class="lab1">Automate Calculation Frequency</label>
-            <select [(ngModel)]="_scenariodc.AutoCalcFreq" name="AutCalcFreq" #AutCalcFreq="ngModel" class="ibox1">
-              <option *ngFor="let CalcFreq of lstAutoCalcFreq" value={{CalcFreq.LookupID}}>
-                {{CalcFreq.Name}}
-              </option>
-            </select>
-          </div>
-          <div class="col-sm-3">
-            <label class="lab1">Use Servcing Data</label>
-            <select [(ngModel)]="_scenariodc.UseActuals" name="UseActuals" #UseActuals="ngModel" class="ibox1">
-              <option *ngFor="let _useactuals of lstUseActuals" value={{_useactuals.LookupID}}>
-                {{_useactuals.Name}}
-              </option>
-            </select>
-          </div>
-          <div class="col-sm-3">
-            <label class="lab1">Disable Business Day Adjustment</label>
-            <select [(ngModel)]="_scenariodc.DisableBusinessDayAdjustment" name="UseBusinessDayAdjustment" #UseBusinessDayAdjustment="ngModel" class="ibox1">
-              <option *ngFor="let _usebusinessdayadjustment of lstBusinessDayAdjustment" value={{_usebusinessdayadjustment.LookupID}}>
-                {{_usebusinessdayadjustment.Name}}
-              </option>
-            </select>
-          </div>
-
-          <div class="col-sm-12">
-            <label class="lab1">Description</label>
-            <textarea style="font-family: inherit;font-size: inherit;" (keyup)="adjustdescrtiptionheight()" class="ibox1 input-lg" rows="5" cols="60" [(ngModel)]="_scenariodc.Description" name="Description" #Description="ngModel" id="Description"></textarea>
-          </div>
-
-          <div class="col-sm-12">
-            <label class="lab1">
-            </label>
-          </div>
-          <div style="width:40%;float:left;" class="col-sm-12" *ngIf="_isShowScenarioRuleType">
-            <wj-flex-grid id="RuleTypeList" #RuleTypeList [itemsSource]="_lstruletype"
-                          (beginningEdit)="cellRuleTypeEditHandler(RuleTypeList,$event)"
-                          
-                           [allowResizing]="'Both'" class="gridSize grid">
-              <wj-flex-grid-column [header]="'Ruleset Type'" [binding]="'RuleTypeName'" [isReadOnly]="_isReadOnlyRuleTypeName" [width]="205"></wj-flex-grid-column>
-              <wj-flex-grid-column [header]="'Ruleset File'" [binding]="'FileName'" [showDropDown]="true"
-                                   [isRequired]="true" [width]="500"></wj-flex-grid-column>
-
-            </wj-flex-grid>
-          </div>
-
-
-        </div>
+      <div class="cssload-container" *ngIf="_isShowLoader">
+        <div class="cssload-whirlpool"></div>
       </div>
 
-      <!--<div class="box1a">
-        <h3>Index Rate Scenario</h3>
-        <div class="form-group row pD10">
-            <div class="col-sm-12">
-                <span>
-                    <button type="button" id="btnDownloadIndexsExportData" *ngIf="_isIndexLoad" class="custombutton_150px" (click)="downloadIndexsExportData()">Download Index Rates</button>
-               </span>
+      <ul id="myTab" class="nav nav-tabs nav-tabs">
+        <li class="active"><a data-target="#ScenarioAsset" data-toggle="tab">Asset</a></li>
+        <li><a data-target="#ScenarioLiability"  data-toggle="tab">Liability</a></li>
+      </ul>
+
+      <div class="tab-content" id="myTabContent">
+        <div class="tab-pane fade active in" id="ScenarioAsset">
+          <div class="box1a">
+            <div class="form-group row pD10 scenariosdetailtopdiv">
+
+              <div class="col-sm-3">
+                <label class="lab1">Scenario Name</label>
+                <input class="ibox1" required type="text" tabindex="1" [(ngModel)]="_scenariodc.ScenarioName" name="ScenarioName" ngControl="ScenarioName" #ScenarioName="ngModel" id="ScenarioName" [disabled]="_disableEditingSName == true" (ngModelChange)="trackFieldChange('Scenario','Scenario Detail',_scenariodc.AnalysisID,'Scenario Name',_scenariodc.ScenarioName)">
+              </div>
+              <div class="col-sm-3">
+                <label class="lab1">Maturity Scenario Override</label>
+                <select [(ngModel)]="_scenariodc.MaturityScenarioOverrideID" tabindex="2" name="MaturityScenarioOverrideID" #MaturityScenarioOverrideID="ngModel" class="ibox1" (ngModelChange)="trackFieldChange('Scenario','Scenario Detail',_scenariodc.AnalysisID,'Maturity Scenario Override', _scenariodc.MaturityScenarioOverrideID)">
+                  <option *ngFor="let status of lstMaturityScenarioOverride" value={{status.LookupID}}>
+                    {{status.Name}}
+                  </option>
+                </select>
+              </div>
+
+              <div class="col-sm-3">
+                <label class="lab1">Maturity Adjustment Months</label>
+                <input class="ibox1" type="number" tabindex="3" [(ngModel)]="_scenariodc.MaturityAdjustment" name="MaturityAdjustment" ngControl="MaturityAdjustment" #MaturityAdjustment="ngModel" id="MaturityAdjustment" (ngModelChange)="trackFieldChange('Scenario','Scenario Detail',_scenariodc.AnalysisID,'Maturity Adjustment Months', _scenariodc.MaturityAdjustment)">
+              </div>
 
 
-                <wj-flex-grid id="flexScenarioDetail" #flexScenarioDetail [itemsSource]="cvScenarioDetaildata" [allowAddNew]="true"  [allowResizing]="'Both'" class="gridSize"
-                                (selectionChanged)="ScenarioDetailselectionChanged()" selection-mode="Row" (beginningEdit)="beginningEdit('ScenarioDetail')" (rowEditEnded)="rowEditEnded('ScenarioDetail')" (pasted)="CopiedDataValidate('ScenarioDetail')" style="height:280px">
+              <div class="col-sm-3">
+                <label class="lab1">Index Scenario Override</label>
+                <select [(ngModel)]="_scenariodc.IndexScenarioOverride" name="IndexScenarioOverride" tabindex="4" #IndexScenarioOverride="ngModel" class="ibox1" (ngModelChange)="trackFieldChange('Scenario','Scenario Detail',_scenariodc.AnalysisID,'Index Scenario Override', _scenariodc.IndexScenarioOverride)">
+                  <option *ngFor="let Lindex of lstIndexesMaster" value={{Lindex.IndexesMasterID}}>
+                    {{Lindex.IndexesName}}
+                  </option>
+                </select>
+              </div>
+
+              <div class="col-sm-3">
+                <label class="lab1">Calculation Mode</label>
+                <select [(ngModel)]="_scenariodc.CalculationMode" name="CalculationMode" tabindex="5" #CalculationMode="ngModel" class="ibox1" (ngModelChange)="trackFieldChange('Scenario','Scenario Detail',_scenariodc.AnalysisID,'Calculation Mode', _scenariodc.CalculationMode)">
+                  <option *ngFor="let Lcal of lstCalculationMode" value={{Lcal.LookupID}}>
+                    {{Lcal.Name}}
+                  </option>
+                </select>
+              </div>
+
+              <div class="col-sm-3">
+                <label class="lab1">Exclude Forecasted Prepayment</label>
+                <select [(ngModel)]="_scenariodc.ExcludedForcastedPrePayment" tabindex="6" name="ExcludedForcastedPrePayment" #ExcludedForcastedPrePayment="ngModel" class="ibox1" (ngModelChange)="trackFieldChange('Scenario','Scenario Detail',_scenariodc.AnalysisID,'Excluded Forcasted Pre Payment', _scenariodc.ExcludedForcastedPrePayment)">
+                  <option *ngFor="let Lcal of lstExcludedForcastedPrePayment" value={{Lcal.LookupID}}>
+                    {{Lcal.Name}}
+                  </option>
+                </select>
+              </div>
+              <div class="col-sm-3">
+                <label class="lab1">Automate Calculation Frequency</label>
+                <select [(ngModel)]="_scenariodc.AutoCalcFreq" name="AutCalcFreq" tabindex="7" #AutCalcFreq="ngModel" class="ibox1" (ngModelChange)="trackFieldChange('Scenario','Scenario Detail',_scenariodc.AnalysisID,'Automate Calculation Frequency', _scenariodc.AutoCalcFreq)">
+                  <option *ngFor="let CalcFreq of lstAutoCalcFreq" value={{CalcFreq.LookupID}}>
+                    {{CalcFreq.Name}}
+                  </option>
+                </select>
+              </div>
+              <div class="col-sm-3">
+                <label class="lab1">Use Servicing Data</label>
+                <select [(ngModel)]="_scenariodc.UseActuals" name="UseActuals" #UseActuals="ngModel" tabindex="8" class="ibox1" (ngModelChange)="trackFieldChange('Scenario','Scenario Detail',_scenariodc.AnalysisID,'Use Servicing Data', _scenariodc.UseActuals)">
+                  <option *ngFor="let _useactuals of lstUseActuals" value={{_useactuals.LookupID}}>
+                    {{_useactuals.Name}}
+                  </option>
+                </select>
+              </div>
+              <div class="col-sm-3">
+                <label class="lab1">Disable Business Day Adjustment</label>
+                <select [(ngModel)]="_scenariodc.DisableBusinessDayAdjustment" tabindex="9" name="UseBusinessDayAdjustment" #UseBusinessDayAdjustment="ngModel" class="ibox1" (ngModelChange)="trackFieldChange('Scenario','Scenario Detail',_scenariodc.AnalysisID,'Disable Business Day Adjustment', _scenariodc.DisableBusinessDayAdjustment)">
+                  <option *ngFor="let _usebusinessdayadjustment of lstBusinessDayAdjustment" value={{_usebusinessdayadjustment.LookupID}}>
+                    {{_usebusinessdayadjustment.Name}}
+                  </option>
+                </select>
+              </div>
+              <div class="col-sm-3">
+                <label class="lab1">Calculation Frequency</label>
+                <select [(ngModel)]="_scenariodc.CalculationFrequency" name="CalculationFrequency" tabindex="10" #CalculationFrequency="ngModel" class="ibox1" (ngModelChange)="trackFieldChange('Scenario','Scenario Detail',_scenariodc.AnalysisID,'Calculation Frequency', _scenariodc.CalculationFrequency)">
+                  <option *ngFor="let status of lstCalculationFrequency" value={{status.LookupID}}>
+                    {{status.Name}}
+                  </option>
+                </select>
+              </div>
+              <div class="col-sm-3">
+                <label class="lab1">Calc Engine Type</label>
+                <select [(ngModel)]="_scenariodc.CalcEngineType" name="CalcEngineType" #CalcEngineType="ngModel" tabindex="11" class="ibox1" (change)="OnChangeCalcEngineType($event.target.value)" (ngModelChange)="trackFieldChange('Scenario','Scenario Detail',_scenariodc.AnalysisID,'Calc Engine Type', _scenariodc.CalcEngineType)">
+                  <option *ngFor="let status of lstCalcEngineType" value={{status.LookupID}}>
+                    {{status.Name}}
+                  </option>
+                </select>
+              </div>
+              <div class="col-sm-3">
+                <label class="lab1">Allow Calc Engine Type Override</label>
+                <select [(ngModel)]="_scenariodc.AllowCalcOverride" name="AllowCalcOverride" #AllowCalcOverride="ngModel" class="ibox1" (ngModelChange)="trackFieldChange('Scenario','Scenario Detail',_scenariodc.AnalysisID,'Allow Calc Engine Type Override', _scenariodc.AllowCalcOverride)">
+                  <option *ngFor="let _AllowCalcOverride of lstAllowCalcOverride" value={{_AllowCalcOverride.LookupID}}>
+                    {{_AllowCalcOverride.Name}}
+                  </option>
+                </select>
+              </div>
+              <div class="col-sm-3" *ngIf="_isShowOtherScenario">
+                <label class="lab1">Calc Along with Default</label>
+                <select [(ngModel)]="_scenariodc.AllowCalcAlongWithDefault" name="AllowCalcAlongWithDefault" #AllowCalcAlongWithDefault="ngModel" class="ibox1" (ngModelChange)="trackFieldChange('Scenario','Scenario Detail',_scenariodc.AnalysisID,'Calc Along with Default', _scenariodc.AllowCalcAlongWithDefault)">
+                  <option *ngFor="let _AllowCalcAlongWithDefault of lstAllowCalcAlongWithDefault" value={{_AllowCalcAlongWithDefault.LookupID}}>
+                    {{_AllowCalcAlongWithDefault.Name}}
+                  </option>
+                </select>
+              </div>
+              <div class="col-sm-3">
+                <label class="lab1">Use Financing Maturity Date Override</label>
+                <select [(ngModel)]="_scenariodc.UseFinancingMaturityDateOverride" tabindex="6" name="UseFinancingMaturityDateOverride" #UseFinancingMaturityDateOverride="ngModel" class="ibox1" (ngModelChange)="trackFieldChange('Scenario','Scenario Detail',_scenariodc.AnalysisID,'Use Financing Maturity Date Override', _scenariodc.UseFinancingMaturityDateOverride)">
+                  <option *ngFor="let Lcal of lstUseFinancingMaturityDateOverride" value={{Lcal.LookupID}}>
+                    {{Lcal.Name}}
+                  </option>
+                </select>
+              </div>
+
+              <div class="col-sm-3">
+                <label class="lab1"> Include Projected Principal Writeoff </label>
+                <select [(ngModel)]="_scenariodc.IncludeProjectedPrincipalWriteoff" tabindex="6" name="IncludeProjectedPrincipalWriteoff" #IncludeProjectedPrincipalWriteoff="ngModel" class="ibox1" (ngModelChange)="trackFieldChange('Scenario','Scenario Detail',_scenariodc.AnalysisID,'Include Projected Principal Writeoff', _scenariodc.IncludeProjectedPrincipalWriteoff)">
+                  <option *ngFor="let _IncludeProjected of lstIncludeProjectedPrincipalWriteoff" value={{_IncludeProjected.LookupID}}>
+                    {{_IncludeProjected.Name}}
+                  </option>
+                </select>
+              </div>
+
+              <div class="col-sm-3">
+                <label class="lab1"> Calculate Liability </label>
+                <select [(ngModel)]="_scenariodc.CalculateLiability" tabindex="6" name="CalculateLiability" #CalculateLiability="ngModel" class="ibox1" (ngModelChange)="trackFieldChange('Scenario','Scenario Detail',_scenariodc.AnalysisID,'Calculate Liability', _scenariodc.CalculateLiability)">
+                  <option *ngFor="let _CalcLiabilityRes of lstCalculateLiability" value={{_CalcLiabilityRes.LookupID}}>
+                    {{_CalcLiabilityRes.Name}}
+                  </option>
+                </select>
+              </div>
+
+              <div class="col-sm-3">
+                <label class="lab1"> Scenario Status </label>
+                <select [disabled]="_disableScenarioStatus == true" [(ngModel)]="_scenariodc.ScenarioStatus" tabindex="6" name="ScenarioStatus" #ScenarioStatus="ngModel" class="ibox1" (change)="OnChangeScenarioStatus($event.target.value)" (ngModelChange)="trackFieldChange('Scenario','Scenario Detail',_scenariodc.AnalysisID,'Scenario Status', _scenariodc.ScenarioStatus)">
+                  <option *ngFor="let _ScenarioStatusRes of lstScenarioStatus" value={{_ScenarioStatusRes.LookupID}}>
+                    {{_ScenarioStatusRes.Name}}
+                  </option>
+                </select>
+              </div>
+
+              <div class="col-sm-3">
+                <label class="lab1"> Use Maturity Adjustment Months </label>
+                <select [(ngModel)]="_scenariodc.UseMaturityAdjustmentMonths" tabindex="6" name="UseMaturityAdjustmentMonths" #UseMaturityAdjustmentMonths="ngModel" class="ibox1" (ngModelChange)="trackFieldChange('Scenario','Scenario Detail',_scenariodc.AnalysisID,'Use Maturity Adjustment Months', _scenariodc.UseMaturityAdjustmentMonths)">
+                  <option *ngFor="let item of lstUseFinancingMaturityDateOverride" value={{item.LookupID}}>
+                    {{item.Name}}
+                  </option>
+                </select>
+              </div>
+
+              <div class="col-sm-3">
+                <label class="lab1">Include In Discrepancy</label>
+                <select [(ngModel)]="_scenariodc.IncludeInDiscrepancy" tabindex="6" name="IncludeInDiscrepancy" #IncludeInDiscrepancy="ngModel" class="ibox1" (ngModelChange)="trackFieldChange('Scenario','Scenario Detail',_scenariodc.AnalysisID,'Include In Discrepancy', _scenariodc.IncludeInDiscrepancy)">
+                  <option *ngFor="let item of lstIncludeInDiscrepancy" value={{item.LookupID}}>
+                    {{item.Name}}
+                  </option>
+                </select>
+              </div>
+
+              <div class="col-sm-9">
+                <label class="lab1">Description</label>
+                <textarea style="font-family: inherit;font-size: inherit;" (keyup)="adjustdescrtiptionheight()" tabindex="12" class="ibox1 input-lg" rows="5" cols="60" [(ngModel)]="_scenariodc.Description" name="Description" #Description="ngModel" id="Description" (ngModelChange)="trackFieldChange('Scenario','Scenario Detail',_scenariodc.AnalysisID,'Description', _scenariodc.Description)"></textarea>
+              </div>
+
+              <div class="col-sm-12">
+                <label class="lab1">
+                </label>
+              </div>
+              <div style="width:40%;float:left;" class="col-sm-12" *ngIf="_isShowScenarioRuleType">
+                <wj-flex-grid id="RuleTypeList" #RuleTypeList [itemsSource]="_lstruletype" tabindex="13"
+                              (beginningEdit)="cellRuleTypeEditHandler(RuleTypeList,$event)"
+                              (cellEditEnded)="onCellEditEnded($event, RuleTypeList)"
+                              [allowResizing]="'Both'" class="gridSize grid" keyActionTab="Cycle">
+                  <wj-flex-grid-column [header]="'Ruleset Type'" [binding]="'RuleTypeName'" [isReadOnly]="_isReadOnlyRuleTypeName" [width]="205"></wj-flex-grid-column>
+                  <wj-flex-grid-column [header]="'Ruleset File'" [binding]="'FileName'" [showDropDown]="true"
+                                       [isRequired]="true" [width]="500"></wj-flex-grid-column>
 
                 </wj-flex-grid>
-            </div>
-        </div>
-    </div>-->
+              </div>
 
-    </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="tab-pane fade in" id="ScenarioLiability">
+          <div class="box1a">
+            <div class="form-group row pD10 scenariosdetailtopdiv">
+
+              <div class="col-sm-3">
+                <label class="lab1">Operation Mode</label>
+                <input class="ibox1" required type="text" tabindex="1" [(ngModel)]="_scenariodc.OperationMode" name="OperationMode" ngControl="OperationMode" #OperationMode="ngModel" id="OperationMode" [disabled]="_disableEditingSName == true" (ngModelChange)="trackFieldChange('Scenario','Scenario Detail',_scenariodc.AnalysisID,'OperationMode',_scenariodc.OperationMode)">
+              </div>
+              <div class="col-sm-3">
+                <label class="lab1">Eq Delay Months</label>
+                <input class="ibox1" type="number" tabindex="3" [(ngModel)]="_scenariodc.EqDelayMonths" name="EqDelayMonths" ngControl="EqDelayMonths" #EqDelayMonths="ngModel" id="EqDelayMonths" (ngModelChange)="trackFieldChange('Scenario','Scenario Detail',_scenariodc.AnalysisID,'EqDelayMonths', _scenariodc.EqDelayMonths)">
+              </div>
+              <div class="col-sm-3">
+                <label class="lab1">Fin Delay Months</label>
+                <input class="ibox1" type="number" tabindex="3" [(ngModel)]="_scenariodc.FinDelayMonths" name="FinDelayMonths" ngControl="FinDelayMonths" #FinDelayMonths="ngModel" id="FinDelayMonths" (ngModelChange)="trackFieldChange('Scenario','Scenario Detail',_scenariodc.AnalysisID,'FinDelayMonths', _scenariodc.FinDelayMonths)">
+              </div>
+              <div class="col-sm-3">
+                <label class="lab1">Min Eq Bal For Fin Start</label>
+                <input class="ibox1" type="number" tabindex="3" [(ngModel)]="_scenariodc.MinEqBalForFinStart" name="MinEqBalForFinStart" ngControl="MinEqBalForFinStart" #MinEqBalForFinStart="ngModel" id="MinEqBalForFinStart" (ngModelChange)="trackFieldChange('Scenario','Scenario Detail',_scenariodc.AnalysisID,'MinEqBalForFinStart', _scenariodc.MinEqBalForFinStart)">
+              </div>
+              <div class="col-sm-3">
+                <label class="lab1">Subline Eq Apply Months</label>
+                <input class="ibox1" type="number" tabindex="3" [(ngModel)]="_scenariodc.SublineEqApplyMonths" name="SublineEqApplyMonths" ngControl="SublineEqApplyMonths" #SublineEqApplyMonths="ngModel" id="SublineEqApplyMonths" (ngModelChange)="trackFieldChange('Scenario','Scenario Detail',_scenariodc.AnalysisID,'SublineEqApplyMonths', _scenariodc.SublineEqApplyMonths)">
+              </div>
+              <div class="col-sm-3">
+                <label class="lab1">Subline Fin Apply Months</label>
+                <input class="ibox1" type="number" tabindex="3" [(ngModel)]="_scenariodc.SublineFinApplyMonths" name="SublineFinApplyMonths" ngControl="SublineFinApplyMonths" #SublineFinApplyMonths="ngModel" id="SublineFinApplyMonths" (ngModelChange)="trackFieldChange('Scenario','Scenario Detail',_scenariodc.AnalysisID,'SublineFinApplyMonths', _scenariodc.SublineFinApplyMonths)">
+              </div>
+              <div class="col-sm-3">
+                <label class="lab1">Debt Call Days Of The Month</label>
+                <input class="ibox1" type="number" tabindex="3" [(ngModel)]="_scenariodc.DebtCallDaysOfTheMonth" name="DebtCallDaysOfTheMonth" ngControl="DebtCallDaysOfTheMonth" #DebtCallDaysOfTheMonth="ngModel" id="DebtCallDaysOfTheMonth" (ngModelChange)="trackFieldChange('Scenario','Scenario Detail',_scenariodc.AnalysisID,'DebtCallDaysOfTheMonth', _scenariodc.DebtCallDaysOfTheMonth)">
+              </div>
+              <div class="col-sm-3">
+                <label class="lab1">Capital Call Days Of The Month</label>
+                <input class="ibox1" type="number" tabindex="3" [(ngModel)]="_scenariodc.CapitalCallDaysOfTheMonth" name="CapitalCallDaysOfTheMonth" ngControl="CapitalCallDaysOfTheMonth" #CapitalCallDaysOfTheMonth="ngModel" id="CapitalCallDaysOfTheMonth" (ngModelChange)="trackFieldChange('Scenario','Scenario Detail',_scenariodc.AnalysisID,'CapitalCallDaysOfTheMonth', _scenariodc.CapitalCallDaysOfTheMonth)">
+              </div>
+
+            </div>
+          </div>
+        </div>
+
+      </div>
+      </div>
     <div id="dialogoverlay"></div>
     <div id="dialogbox">
       <div>
         <div id="dialogboxhead"></div>
         <div id="dialogboxbody"></div>
         <div id="dialogboxfoot"><span class="btn custombutton" (click)="ok()">Ok</span></div>
+      </div>
+    </div>
+
+    <div id="Genericdialogbox" class="modal">
+      <div class="modal-dialog" draggable="true" id="myModalgen" style="min-height:300px;width:500px">
+        <!-- Modal content -->
+        <div class="modal-content" style="padding:0px;border:0px;">
+          <div class="modal-header" style="background:#2196f3 !important">
+            <span class="customheading" style="color:white !important">CRES - Validation</span>
+            <span class="close" (click)="ClosePopUpDialog()">×</span>
+          </div>
+
+          <div class="modal-body" id="savedialogmessage">
+
+          </div>
+          <div class="modal-footer" style="background-color:white !important;">
+            <button type="button" id="btnCRESvalcancel" (click)="ClosePopUpDialog()" class="custombutton" style="width:100px !important">Cancel</button>
+            <button type="button" id="btnCRESvalOk" class="custombutton" style="width:100px !important" (click)="InsertUpdateData()">Ok</button>
+
+          </div>
+
+
+        </div>
       </div>
     </div>
   </div>

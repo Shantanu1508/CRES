@@ -1,9 +1,12 @@
-﻿using CRES.DataContract;
-using CRES.Utilities;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Data.SqlClient;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using CRES.DataContract;
+using CRES.Utilities;
 
 namespace CRES.DAL.Repository
 {
@@ -11,7 +14,7 @@ namespace CRES.DAL.Repository
     {
 
         //usp_ImportBackShopInLandingtable
-        public void ImportBackShopInUnderwritingtable(string dealname, string username, Guid? BatchLogID)
+        public void ImportBackShopInUnderwritingtable(string dealname, string username,Guid? BatchLogID)
         {
             Helper.Helper hp = new Helper.Helper();
             SqlParameter p1 = new SqlParameter { ParameterName = "@DealID", Value = dealname };
@@ -19,19 +22,19 @@ namespace CRES.DAL.Repository
             SqlParameter p3 = new SqlParameter { ParameterName = "@BatchLogID", Value = BatchLogID };
             SqlParameter[] sqlparam = new SqlParameter[] { p1, p2, p3 };
             hp.ExecNonquery("dbo.usp_ImportBackShopInLandingtable", sqlparam);
-            // int cnt = dbContext.usp_ImportBackShopInLandingtable(dealname, username, BatchLogID);
+           // int cnt = dbContext.usp_ImportBackShopInLandingtable(dealname, username, BatchLogID);
         }
 
 
-        public void ImportLandingtableToMainDB(string dealname, string username, Guid? BatchLogID)
+        public void ImportLandingtableToMainDB(string dealname, string username,Guid? BatchLogID)
         {
             Helper.Helper hp = new Helper.Helper();
             SqlParameter p1 = new SqlParameter { ParameterName = "@DealID", Value = dealname };
             SqlParameter p2 = new SqlParameter { ParameterName = "@UserName", Value = username };
             SqlParameter p3 = new SqlParameter { ParameterName = "@BatchLogID", Value = BatchLogID };
             SqlParameter[] sqlparam = new SqlParameter[] { p1, p2, p3 };
-            var res = hp.ExecNonquery("dbo.usp_ImportLandingtableToMainDB", sqlparam);
-
+             var res = hp.ExecNonquery("dbo.usp_ImportLandingtableToMainDB", sqlparam);         
+           
         }
 
 
@@ -41,8 +44,8 @@ namespace CRES.DAL.Repository
             SqlParameter p1 = new SqlParameter { ParameterName = "@DealID", Value = dealid };
             SqlParameter p2 = new SqlParameter { ParameterName = "@UserID", Value = userid };
             SqlParameter[] sqlparam = new SqlParameter[] { p1, p2 };
-            hp.ExecNonquery("dbo.usp_DeleteINUnderwritingDealDataByDealID", sqlparam);
-            //  int cnt = dbContext.usp_DeleteINUnderwritingDealDataByDealID(dealid, userid);
+           hp.ExecNonquery("dbo.usp_DeleteINUnderwritingDealDataByDealID", sqlparam);
+          //  int cnt = dbContext.usp_DeleteINUnderwritingDealDataByDealID(dealid, userid);
         }
 
         public List<IN_UnderwritingNoteDataContract> GetInUnderwritingNotesByDealID(string dealName, Guid? userid)
@@ -70,28 +73,28 @@ namespace CRES.DAL.Repository
                 {
                     _iN_UnderwritingNoteDataContract.IN_UnderwritingDealID = new Guid(Convert.ToString(dr["IN_UnderwritingDealID"]));
                 }
-                _iN_UnderwritingNoteDataContract.Name = Convert.ToString(dr["FeeTypeNameText"]);
-                _iN_UnderwritingNoteDataContract.PayFrequency = CommonHelper.ToInt32(dr["PayFrequency"]);
+                _iN_UnderwritingNoteDataContract.Name = Convert.ToString(dr["FeeTypeNameText"]); 
+                _iN_UnderwritingNoteDataContract.PayFrequency = CommonHelper.ToInt32(dr["PayFrequency"]); 
                 _iN_UnderwritingNoteDataContract.PayFrequencyText = Convert.ToString(dr["PayFrequencyText"]);
-                _iN_UnderwritingNoteDataContract.ClientNoteID = Convert.ToString(dr["ClientNoteID"]);
+                _iN_UnderwritingNoteDataContract.ClientNoteID = Convert.ToString(dr["ClientNoteID"]); 
                 _iN_UnderwritingNoteDataContract.ClosingDate = CommonHelper.ToDateTime(dr["ClosingDate"]);
-                _iN_UnderwritingNoteDataContract.FirstPaymentDate = CommonHelper.ToDateTime(dr["FirstPaymentDate"]);
-                _iN_UnderwritingNoteDataContract.SelectedMaturityDate = CommonHelper.ToDateTime(dr["SelectedMaturityDate"]);
+                _iN_UnderwritingNoteDataContract.FirstPaymentDate = CommonHelper.ToDateTime(dr["FirstPaymentDate"]); 
+                _iN_UnderwritingNoteDataContract.SelectedMaturityDate = CommonHelper.ToDateTime(dr["SelectedMaturityDate"]); 
                 _iN_UnderwritingNoteDataContract.InitialFundingAmount = CommonHelper.ToDecimal(dr["InitialFundingAmount"]);
-                _iN_UnderwritingNoteDataContract.OriginationFee = CommonHelper.ToDecimal(dr["OriginationFee"]);
+                _iN_UnderwritingNoteDataContract.OriginationFee = CommonHelper.ToDecimal(dr["OriginationFee"]); 
                 _iN_UnderwritingNoteDataContract.IOTerm = CommonHelper.ToInt32(dr["IOTerm"]);
-                _iN_UnderwritingNoteDataContract.AmortTerm = CommonHelper.ToInt32(dr["AmortTerm"]);
-                _iN_UnderwritingNoteDataContract.DeterminationDateLeadDays = CommonHelper.ToInt32(dr["DeterminationDateLeadDays"]);
-                _iN_UnderwritingNoteDataContract.DeterminationDateReferenceDayoftheMonth = CommonHelper.ToInt32(dr["DeterminationDateReferenceDayoftheMonth"]);
-                _iN_UnderwritingNoteDataContract.RoundingMethod = CommonHelper.ToInt32(dr["RoundingMethod"]);
-                _iN_UnderwritingNoteDataContract.RoundingMethodText = Convert.ToString(dr["RoundingMethodText"]);
+                _iN_UnderwritingNoteDataContract.AmortTerm = CommonHelper.ToInt32(dr["AmortTerm"]); 
+                _iN_UnderwritingNoteDataContract.DeterminationDateLeadDays = CommonHelper.ToInt32(dr["DeterminationDateLeadDays"]); 
+                _iN_UnderwritingNoteDataContract.DeterminationDateReferenceDayoftheMonth = CommonHelper.ToInt32(dr["DeterminationDateReferenceDayoftheMonth"]); 
+                _iN_UnderwritingNoteDataContract.RoundingMethod = CommonHelper.ToInt32(dr["RoundingMethod"]); 
+                _iN_UnderwritingNoteDataContract.RoundingMethodText = Convert.ToString(dr["RoundingMethodText"]); 
                 _iN_UnderwritingNoteDataContract.IndexRoundingRule = CommonHelper.ToInt32(dr["IndexRoundingRule"]);
-                _iN_UnderwritingNoteDataContract.StatusID = CommonHelper.ToInt32(dr["StatusID"]);
-                _iN_UnderwritingNoteDataContract.StatusIDText = Convert.ToString(dr["StatusIDText"]);
-                _iN_UnderwritingNoteDataContract.ExpectedMaturityDate = CommonHelper.ToDateTime(dr["ExpectedMaturityDate"]);
-                _iN_UnderwritingNoteDataContract.ExtendedMaturityScenario1 = CommonHelper.ToDateTime(dr["ExtendedMaturityScenario1"]);
-                _iN_UnderwritingNoteDataContract.ExtendedMaturityScenario2 = CommonHelper.ToDateTime(dr["ExtendedMaturityScenario2"]);
-                _iN_UnderwritingNoteDataContract.ExtendedMaturityScenario3 = CommonHelper.ToDateTime(dr["ExtendedMaturityScenario3"]);
+                _iN_UnderwritingNoteDataContract.StatusID = CommonHelper.ToInt32(dr["StatusID"]); 
+                _iN_UnderwritingNoteDataContract.StatusIDText = Convert.ToString(dr["StatusIDText"]); 
+                 _iN_UnderwritingNoteDataContract.ExpectedMaturityDate = CommonHelper.ToDateTime(dr["ExpectedMaturityDate"]); 
+                _iN_UnderwritingNoteDataContract.ExtendedMaturityScenario1 = CommonHelper.ToDateTime(dr["ExtendedMaturityScenario1"]); 
+                _iN_UnderwritingNoteDataContract.ExtendedMaturityScenario2 = CommonHelper.ToDateTime(dr["ExtendedMaturityScenario2"]); 
+                _iN_UnderwritingNoteDataContract.ExtendedMaturityScenario3 = CommonHelper.ToDateTime(dr["ExtendedMaturityScenario3"]); 
 
                 _iN_UnderwritingNoteDataContract.InitialMaturityDate = CommonHelper.ToDateTime(dr["InitialMaturityDate"]);
 
@@ -122,8 +125,8 @@ namespace CRES.DAL.Repository
             // var backshopdealList = dbContext.usp_GetBackshopDealByDealName(dealname);
             foreach (DataRow dr in dt.Rows)
             {
-                _backShopImportDataContract.DealName = Convert.ToString(dr["DealName"]);
-                _backShopImportDataContract.DealID = Convert.ToString(dr["DealID"]);
+                _backShopImportDataContract.DealName = Convert.ToString(dr["DealName"]); 
+                _backShopImportDataContract.DealID = Convert.ToString(dr["DealID"]); 
             }
 
             return _backShopImportDataContract;
@@ -180,7 +183,7 @@ namespace CRES.DAL.Repository
             SqlParameter[] sqlparam = new SqlParameter[] { p1, p2 };
             dt = hp.ExecDataTable("dbo.usp_GetINUnderwritingRateSpreadScheduleByNoteID", sqlparam);
 
-            // var in_UnderwritingRSList = dbContext.usp_GetINUnderwritingRateSpreadScheduleByNoteID(noteid, userid);
+           // var in_UnderwritingRSList = dbContext.usp_GetINUnderwritingRateSpreadScheduleByNoteID(noteid, userid);
 
             foreach (DataRow dr in dt.Rows)
             {
@@ -199,17 +202,17 @@ namespace CRES.DAL.Repository
                 }
                 if (Convert.ToString(dr["IN_UnderwritingEventID"]) != "")
                 {
-                    _in_UnderwritingRateSpreadScheduleDataContract.IN_UnderwritingEventID = new Guid(Convert.ToString(dr["IN_UnderwritingEventID"]));
+                    _in_UnderwritingRateSpreadScheduleDataContract.IN_UnderwritingEventID = new Guid(Convert.ToString(dr["IN_UnderwritingEventID"])); 
                 }
                 _in_UnderwritingRateSpreadScheduleDataContract.Date = CommonHelper.ToDateTime(dr["Date"]);
                 _in_UnderwritingRateSpreadScheduleDataContract.ValueTypeID = CommonHelper.ToInt32(dr["ValueTypeID"]);
-                _in_UnderwritingRateSpreadScheduleDataContract.ValueTypeIDText = Convert.ToString(dr["ValueTypeIDText"]);
+                _in_UnderwritingRateSpreadScheduleDataContract.ValueTypeIDText = Convert.ToString(dr["ValueTypeIDText"]); 
                 _in_UnderwritingRateSpreadScheduleDataContract.Value = CommonHelper.ToDecimal(dr["Value"]);
                 _in_UnderwritingRateSpreadScheduleDataContract.IntCalcMethodID = CommonHelper.ToInt32(dr["IntCalcMethodID"]);
                 _in_UnderwritingRateSpreadScheduleDataContract.IntCalcMethodIDText = Convert.ToString(dr["IntCalcMethodIDText"]);
-                _in_UnderwritingRateSpreadScheduleDataContract.CreatedBy = Convert.ToString(dr["CreatedBy"]);
+                _in_UnderwritingRateSpreadScheduleDataContract.CreatedBy = Convert.ToString(dr["CreatedBy"]); 
                 _in_UnderwritingRateSpreadScheduleDataContract.CreatedDate = CommonHelper.ToDateTime(dr["CreatedDate"]);
-                _in_UnderwritingRateSpreadScheduleDataContract.UpdatedBy = Convert.ToString(dr["UpdatedBy"]);
+                _in_UnderwritingRateSpreadScheduleDataContract.UpdatedBy = Convert.ToString(dr["UpdatedBy"]); 
                 _in_UnderwritingRateSpreadScheduleDataContract.UpdatedDate = CommonHelper.ToDateTime(dr["UpdatedDate"]);
 
                 _iN_UnderwritingRateSpreadScheduleDataContractList.Add(_in_UnderwritingRateSpreadScheduleDataContract);
@@ -219,22 +222,22 @@ namespace CRES.DAL.Repository
             return _iN_UnderwritingRateSpreadScheduleDataContractList;
         }
 
-
+        
         public List<IN_UnderwritingStrippingScheduleDataContract> GetINUnderwritingStrippingScheduleByNoteID(Guid? noteid, Guid? userid)
         {
 
-            DataTable dt = new DataTable();
-            List<IN_UnderwritingStrippingScheduleDataContract> _in_UnderwritingStrippingScheduleDataContractList = new List<IN_UnderwritingStrippingScheduleDataContract>();
-            Helper.Helper hp = new Helper.Helper();
-            SqlParameter p1 = new SqlParameter { ParameterName = "@NoteID", Value = noteid };
-            SqlParameter p2 = new SqlParameter { ParameterName = "@UserID", Value = userid };
-            SqlParameter[] sqlparam = new SqlParameter[] { p1, p2 };
-            dt = hp.ExecDataTable("dbo.usp_GetINUnderwritingStrippingScheduleByNoteID", sqlparam);
+                DataTable dt = new DataTable();
+                List<IN_UnderwritingStrippingScheduleDataContract> _in_UnderwritingStrippingScheduleDataContractList = new List<IN_UnderwritingStrippingScheduleDataContract>();
+                Helper.Helper hp = new Helper.Helper();
+                SqlParameter p1 = new SqlParameter { ParameterName = "@NoteID", Value = noteid };
+                SqlParameter p2 = new SqlParameter { ParameterName = "@UserID", Value = userid };
+                SqlParameter[] sqlparam = new SqlParameter[] { p1, p2 };
+                dt = hp.ExecDataTable("dbo.usp_GetINUnderwritingStrippingScheduleByNoteID", sqlparam);
 
-            // var in_UnderwritingSSList = dbContext.usp_GetINUnderwritingStrippingScheduleByNoteID(noteid, userid);
+               // var in_UnderwritingSSList = dbContext.usp_GetINUnderwritingStrippingScheduleByNoteID(noteid, userid);
             foreach (DataRow dr in dt.Rows)
             {
-                IN_UnderwritingStrippingScheduleDataContract _in_UnderwritingStrippingScheduleDataContract = new IN_UnderwritingStrippingScheduleDataContract();
+                IN_UnderwritingStrippingScheduleDataContract _in_UnderwritingStrippingScheduleDataContract= new IN_UnderwritingStrippingScheduleDataContract();
                 if (Convert.ToString(dr["IN_UnderwritingNoteID"]) != "")
                 {
                     _in_UnderwritingStrippingScheduleDataContract.IN_UnderwritingNoteID = new Guid(Convert.ToString(dr["IN_UnderwritingNoteID"]));
@@ -251,7 +254,7 @@ namespace CRES.DAL.Repository
                 {
                     _in_UnderwritingStrippingScheduleDataContract.IN_UnderwritingEventID = new Guid(Convert.ToString(dr["IN_UnderwritingEventID"]));
                 }
-
+               
                 _in_UnderwritingStrippingScheduleDataContract.StartDate = CommonHelper.ToDateTime(dr["StartDate"]);
                 _in_UnderwritingStrippingScheduleDataContract.ValueTypeID = CommonHelper.ToInt32(dr["ValueTypeID"]);
                 _in_UnderwritingStrippingScheduleDataContract.ValueTypeIDText = Convert.ToString(dr["ValueTypeIDText"]);
@@ -364,13 +367,13 @@ namespace CRES.DAL.Repository
 
 
 
-        public int InsertBatchLog(BatchLogDataContract _batchLogDataContract, out Guid? outBatchLogID, string username)
+        public int InsertBatchLog(BatchLogDataContract _batchLogDataContract, out Guid? outBatchLogID,string username)
         {
             // ObjectParameter PoutBatchLogID = new ObjectParameter("outBatchLogID", typeof(Guid));
             DataTable dt = new DataTable();
             Helper.Helper hp = new Helper.Helper();
             SqlParameter p1 = new SqlParameter { ParameterName = "@BatchTypeID", Value = _batchLogDataContract.BatchTypeID };
-            SqlParameter p2 = new SqlParameter { ParameterName = "@StartedByUserID", Value = _batchLogDataContract.StartedByUserID };
+            SqlParameter p2 = new SqlParameter { ParameterName = "@StartedByUserID", Value = _batchLogDataContract.StartedByUserID};
             SqlParameter p3 = new SqlParameter { ParameterName = "@UserName", Value = username };
             SqlParameter p4 = new SqlParameter { ParameterName = "@outBatchLogID", Direction = ParameterDirection.Output, Size = int.MaxValue };
             SqlParameter[] sqlparam = new SqlParameter[] { p1, p2, p3, p4 };
@@ -384,9 +387,9 @@ namespace CRES.DAL.Repository
             //);
 
 
-            // outBatchLogID = new Guid(PoutBatchLogID.Value.ToString());
+           // outBatchLogID = new Guid(PoutBatchLogID.Value.ToString());
 
-            // return res;
+           // return res;
 
             outBatchLogID = new Guid(p4.Value.ToString());
             return result;
@@ -399,8 +402,8 @@ namespace CRES.DAL.Repository
             Helper.Helper hp = new Helper.Helper();
             SqlParameter p1 = new SqlParameter { ParameterName = "@BatchLogID", Value = BatchLogID };
             SqlParameter[] sqlparam = new SqlParameter[] { p1 };
-            hp.ExecNonquery("IO.usp_DeleteBatchLogByBatchLogID", sqlparam);
-            // int cnt = dbContext.usp_DeleteBatchLogByBatchLogID(BatchLogID);
+             hp.ExecNonquery("IO.usp_DeleteBatchLogByBatchLogID", sqlparam);
+           // int cnt = dbContext.usp_DeleteBatchLogByBatchLogID(BatchLogID);
         }
 
 
@@ -421,21 +424,21 @@ namespace CRES.DAL.Repository
                 {
                     _iN_UnderwritingDealDataContract.IN_UnderwritingDealID = new Guid(Convert.ToString(dr["IN_UnderwritingDealID"]));
                 }
-
+               
                 _iN_UnderwritingDealDataContract.ClientDealID = Convert.ToString(dr["ClientDealID"]);
-                _iN_UnderwritingDealDataContract.DealName = Convert.ToString(dr["DealName"]);
+                _iN_UnderwritingDealDataContract.DealName = Convert.ToString(dr["DealName"]); 
                 _iN_UnderwritingDealDataContract.StatusID = CommonHelper.ToInt32(dr["StatusID"]);
-                _iN_UnderwritingDealDataContract.CreatedBy = Convert.ToString(dr["CreatedBy"]);
-                _iN_UnderwritingDealDataContract.CreatedDate = CommonHelper.ToDateTime(dr["CreatedDate"]);
-                _iN_UnderwritingDealDataContract.UpdatedBy = Convert.ToString(dr["UpdatedBy"]);
-                _iN_UnderwritingDealDataContract.UpdatedDate = CommonHelper.ToDateTime(dr["UpdatedDate"]);
+                _iN_UnderwritingDealDataContract.CreatedBy = Convert.ToString(dr["CreatedBy"]); 
+                _iN_UnderwritingDealDataContract.CreatedDate = CommonHelper.ToDateTime(dr["CreatedDate"]); 
+                _iN_UnderwritingDealDataContract.UpdatedBy = Convert.ToString(dr["UpdatedBy"]); 
+                _iN_UnderwritingDealDataContract.UpdatedDate = CommonHelper.ToDateTime(dr["UpdatedDate"]); 
 
-                _iN_UnderwritingDealDataContract.AssetManager = Convert.ToString(dr["AssetManager"]);
-                _iN_UnderwritingDealDataContract.DealCity = Convert.ToString(dr["DealCity"]);
-                _iN_UnderwritingDealDataContract.DealState = Convert.ToString(dr["DealState"]);
-                _iN_UnderwritingDealDataContract.DealPropertyType = Convert.ToString(dr["DealPropertyType"]);
+                _iN_UnderwritingDealDataContract.AssetManager = Convert.ToString(dr["AssetManager"]); 
+                _iN_UnderwritingDealDataContract.DealCity = Convert.ToString(dr["DealCity"]); 
+                _iN_UnderwritingDealDataContract.DealState = Convert.ToString(dr["DealState"]); 
+                _iN_UnderwritingDealDataContract.DealPropertyType = Convert.ToString(dr["DealPropertyType"]); 
                 _iN_UnderwritingDealDataContract.TotalCommitment = CommonHelper.ToDecimal(dr["TotalCommitment"]);
-                _iN_UnderwritingDealDataContract.FullyExtMaturityDate = CommonHelper.ToDateTime(dr["FullyExtMaturityDate"]);
+                _iN_UnderwritingDealDataContract.FullyExtMaturityDate = CommonHelper.ToDateTime(dr["FullyExtMaturityDate"]); 
             }
             return _iN_UnderwritingDealDataContract;
         }
@@ -491,13 +494,27 @@ namespace CRES.DAL.Repository
             return hp.ExecDataTablewithparams("dbo.usp_InsertBerkadiaDataTap", sqlparam);
         }
 
-        public int InsertWellsDataTap(DataTable dtWells, string CreatedBy)
+        public void ImportServicerBalance()
         {
-            Helper.Helper hp = new Helper.Helper();
-            SqlParameter p1 = new SqlParameter { ParameterName = "@TableTypeWellsDataTap", Value = dtWells };
-            SqlParameter p2 = new SqlParameter { ParameterName = "@CreatedBy", Value = CreatedBy };
-            SqlParameter[] sqlparam = new SqlParameter[] { p1, p2 };
-            return hp.ExecDataTablewithparams("dbo.usp_InsertWellsDataTap", sqlparam);
+            try
+            {
+                Helper.Helper hp = new Helper.Helper();
+                hp.ExecDataTablewithparams("dw.usp_ImportServicerBalance");
+            }
+            catch (Exception ex)
+            {
+
+                throw;
+            }
         }
+
+        //public int InsertWellsDataTap(DataTable dtWells, string CreatedBy)
+        //{
+        //    Helper.Helper hp = new Helper.Helper();
+        //    SqlParameter p1 = new SqlParameter { ParameterName = "@TableTypeWellsDataTap", Value = dtWells };
+        //    SqlParameter p2 = new SqlParameter { ParameterName = "@CreatedBy", Value = CreatedBy };
+        //    SqlParameter[] sqlparam = new SqlParameter[] { p1, p2 };
+        //    return hp.ExecDataTablewithparams("dbo.usp_InsertWellsDataTap", sqlparam);
+        //}
     }
 }

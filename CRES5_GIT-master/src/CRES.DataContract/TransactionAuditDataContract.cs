@@ -1,8 +1,12 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
 
 namespace CRES.DataContract
 {
-    public class TransactionAuditDataContract
+  public class TransactionAuditDataContract
     {
         public string OrigFileName { get; set; }
         public string BlobFileName { get; set; }

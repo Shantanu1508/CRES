@@ -1,7 +1,11 @@
-﻿using CRES.DAL.IRepository;
-using System;
-using System.Data;
+﻿using System;
+using System.Collections.Generic;
+using System.Text;
+using CRES.DataContract;
+using CRES.DAL.IRepository;
 using System.Data.SqlClient;
+using System.Data;
+using CRES.Utilities;
 namespace CRES.DAL.Repository
 {
     public class V1RulesRepository : IV1RulesRepository

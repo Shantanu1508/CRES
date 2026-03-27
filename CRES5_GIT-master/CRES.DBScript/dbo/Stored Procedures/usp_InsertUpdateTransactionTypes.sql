@@ -1,4 +1,6 @@
-﻿
+﻿--drop PROCEDURE [dbo].[usp_InsertUpdateTransactionTypes] 
+--drop TYPE [dbo].[TableTypetransactionTypes]
+
 CREATE PROCEDURE [dbo].[usp_InsertUpdateTransactionTypes]   
 	@Tabletransactiontypes [TableTypetransactionTypes] READONLY,
 	@UserID uniqueidentifier
@@ -22,7 +24,10 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 		 CRE.TransactionTypes.UpdatedDate = getdate(),
 		 CRE.TransactionTypes.TransactionGroup = a.TransactionGroup,
 		 CRE.TransactionTypes.[Cash_NonCash] = a.[Cash_NonCash],
-		 CRE.TransactionTypes.[AccountName] = a.[AccountName]
+		 CRE.TransactionTypes.[AccountName] = a.[AccountName],
+		CRE.TransactionTypes.UsedInXIRR=a.UsedInXIRR,
+		CRE.TransactionTypes.XIRRCategory=a.XIRRCategory,
+		CRE.TransactionTypes.IsClubTransactionOnSameDate = a.IsClubTransactionOnSameDate
 
 	 FROM   (SELECT  TransactionName
 					,TransactionTypesID
@@ -35,7 +40,9 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 					,TransactionGroup
 					,[Cash_NonCash]
 					,AccountName
-
+					,UsedInXIRR
+					,XIRRCategory
+					,IsClubTransactionOnSameDate
 			 FROM 	@Tabletransactiontypes
 			 WHERE TransactionTypesID <> 0) a
 WHERE CRE.TransactionTypes.TransactionTypesID = a.TransactionTypesID
@@ -54,7 +61,10 @@ WHERE CRE.TransactionTypes.TransactionTypesID = a.TransactionTypesID
 					UpdatedDate,
 					TransactionGroup,
 					[Cash_NonCash],
-					AccountName
+					AccountName,
+					UsedInXIRR,
+					XIRRCategory,
+					IsClubTransactionOnSameDate
 				)
 	SELECT		t.TransactionName
 				,t.TransactionCategory
@@ -70,7 +80,9 @@ WHERE CRE.TransactionTypes.TransactionTypesID = a.TransactionTypesID
 				,t.TransactionGroup
 				,t.[Cash_NonCash]
 				,t.AccountName
-
+				,t.UsedInXIRR
+				,t.XIRRCategory
+				,t.IsClubTransactionOnSameDate
 	FROM @Tabletransactiontypes t 
 	WHERE t.TransactionTypesID = 0
 

@@ -11,6 +11,15 @@ export class feeconfigurationService {
   private _deletefeefunctionsconfigAPI: string = 'api/feeconfiguration/deletefeefunctionsconfig';
 
   private _getpayruledropdownfeeschedulesAPI: string = 'api/feeconfiguration/getpayruledropdownfeeschedules';
+  private _getallfeefunctionsconfigliabilityAPI: string = 'api/feeconfiguration/getallfeefunctionsconfigliability';
+  private _getallfeeschedulesconfigliabilityAPI: string = 'api/feeconfiguration/getallfeeschedulesconfigliability';
+  private _addupdatefeeconfigliabilityAPI: string = 'api/feeconfiguration/addupdatefeeconfigliability';
+  private _deletefeefunctionsconfigliabilityAPI: string = 'api/feeconfiguration/deletefeefunctionsconfigliability';
+  private _deletefeeschedulesconfigliabilityAPI: string = 'api/feeconfiguration/deletefeeschedulesconfigliability';
+
+
+
+
 
   constructor(public accountService: DataService) { }
 
@@ -20,13 +29,26 @@ export class feeconfigurationService {
     return this.accountService.getAll();
   }
 
+  GetAllFeeFunctionLiability() {
+    this.accountService.set(this._getallfeefunctionsconfigliabilityAPI);
+    return this.accountService.getAll();
+  }
+
   GetAllFeeAmount() {
     this.accountService.set(this._getallfeeschedulesconfigAPI);
+    return this.accountService.getAll();
+  }
+  GetAllFeeAmountLiability() {
+    this.accountService.set(this._getallfeeschedulesconfigliabilityAPI);
     return this.accountService.getAll();
   }
 
   SaveFeeConfig(feeconfig: any) {
     this.accountService.set(this._addupdatefeeconfigAPI);
+    return this.accountService.post(JSON.stringify(feeconfig));
+  }
+  SaveFeeConfigLiability(feeconfig: any) {
+    this.accountService.set(this._addupdatefeeconfigliabilityAPI);
     return this.accountService.post(JSON.stringify(feeconfig));
   }
 
@@ -35,8 +57,17 @@ export class feeconfigurationService {
     return this.accountService.post(JSON.stringify(FeeTypeGuID));
   }
 
+  DeleteScheduleConfigLiability(FeeTypeGuID: string) {
+    this.accountService.set(this._deletefeeschedulesconfigliabilityAPI);
+    return this.accountService.post(JSON.stringify(FeeTypeGuID));
+  }
+
   DeleteFunctionConfig(FunctionGuID: string) {
     this.accountService.set(this._deletefeefunctionsconfigAPI);
+    return this.accountService.post(JSON.stringify(FunctionGuID));
+  }
+  DeleteFunctionConfigLiability(FunctionGuID: string) {
+    this.accountService.set(this._deletefeefunctionsconfigliabilityAPI);
     return this.accountService.post(JSON.stringify(FunctionGuID));
   }
 

@@ -208,7 +208,7 @@ namespace CRES.TestAutoMation.Practice
         {
             test = extent.CreateTest("Parallel Notes Calculation Verification").Info("Test started");
             BrowserHelper helper = new BrowserHelper();
-            helper.DeleteChromeDriverInstances();
+            helper.DeleteBrowserDriverInstances();
 
             string randomstring = DateTime.Now.ToString("MMddyyyyhhmmss");
             AutomationLogic autologic = new AutomationLogic();
@@ -245,7 +245,7 @@ namespace CRES.TestAutoMation.Practice
             driver = new ChromeDriver();
             Actions actions = new Actions(driver);
 
-            CRES_Login loginapp = new CRES_Login();
+            Login_Verification loginapp = new Login_Verification();
             Login login = new Login(driver);
             deal = new Deal(driver);
             // CreateNewDeal createDeal = new CreateNewDeal(driver);

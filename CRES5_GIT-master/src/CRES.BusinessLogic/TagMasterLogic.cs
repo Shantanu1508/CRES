@@ -1,8 +1,12 @@
-﻿using CRES.DAL.Repository;
+﻿using CRES.DAL;
+using CRES.DAL.Repository;
 using CRES.DataContract;
 using System;
 using System.Collections.Generic;
 using System.Data;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
 namespace CRES.BusinessLogic
 {
     public class TagMasterLogic
@@ -27,7 +31,7 @@ namespace CRES.BusinessLogic
 
         public void DeleteTagByTagID(string UserID, Guid? AnalysisID, Guid? tagMasterID)
         {
-            tagrepo.DeleteTagByTagID(UserID, AnalysisID, tagMasterID);
+            tagrepo.DeleteTagByTagID(UserID,AnalysisID, tagMasterID);
         }
 
         public List<TagMasterDataContract> GetTagFileNameForAzureUpload()
@@ -42,7 +46,7 @@ namespace CRES.BusinessLogic
 
         public void ImportIntoTransactionEntryCloseArchive(Guid? TagMasterID, Guid? AnalysisID)
         {
-            tagrepo.ImportIntoTransactionEntryCloseArchive(TagMasterID, AnalysisID);
+            tagrepo.ImportIntoTransactionEntryCloseArchive(TagMasterID,AnalysisID);
 
         }
     }

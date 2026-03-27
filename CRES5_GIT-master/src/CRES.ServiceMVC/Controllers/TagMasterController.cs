@@ -1,13 +1,16 @@
 ﻿using System.Collections.Generic;
 using CRES.DataContract;
 using CRES.BusinessLogic;
+using System.Net.Http;
+using System.Linq;
 using System;
+using System.Net;
+using System.Net.Http.Headers;
 using System.Threading;
 using System.Data;
 using System.IO;
 using Microsoft.AspNetCore.Mvc;
-#pragma warning disable CS0105 // The using directive for 'CRES.BusinessLogic' appeared previously in this namespace
-#pragma warning restore CS0105 // The using directive for 'CRES.BusinessLogic' appeared previously in this namespace
+using CRES.BusinessLogic;
 using Microsoft.Extensions.Configuration;
 
 namespace CRES.Services.Controllers
@@ -26,9 +29,7 @@ namespace CRES.Services.Controllers
 
             GenericResult _authenticationResult = null;
             List<TagMasterDataContract> lstTagMaster = new List<TagMasterDataContract>();
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
             var headerUserID = string.Empty;
             if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
             {
@@ -43,7 +44,7 @@ namespace CRES.Services.Controllers
                 lstTagMaster = _TagMasterLogic.GetTagMaster(headerUserID, new Guid("00000000-0000-0000-0000-000000000000"));
             }
 
-
+            
 
             try
             {
@@ -89,9 +90,7 @@ namespace CRES.Services.Controllers
 
             GenericResult _authenticationResult = null;
 
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
             var headerUserID = string.Empty;
             if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
             {
@@ -158,9 +157,7 @@ namespace CRES.Services.Controllers
         {
             GenericResult _authenticationResult = null;
             DataTable tagdatatable = new DataTable();
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
             var headerUserID = string.Empty;
             if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
             {
@@ -213,9 +210,7 @@ namespace CRES.Services.Controllers
             List<TagFileDataContract> lstTagFile = new List<TagFileDataContract>();
             GenericResult _authenticationResult = null;
             DataTable tagdatatable = new DataTable();
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
             var headerUserID = string.Empty;
             if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
             {
@@ -223,29 +218,29 @@ namespace CRES.Services.Controllers
             }
             TagMasterLogic tagLogic = new TagMasterLogic();
 
-            try
+         try
             {
-                if (string.IsNullOrEmpty(tmdc.TagFileName))
+            if (string.IsNullOrEmpty(tmdc.TagFileName))
+            {
+                tagdatatable = tagLogic.GetNoteCashflowsExportDataFromTransactionClose(tmdc.AnalysisID.ToString(), tmdc.TagMasterID.ToString());
+               
+                isSuccess = UploadDataTableToAzureblob(tagdatatable, tmdc.NewTagFileName);
+                if (isSuccess)
                 {
-                    tagdatatable = tagLogic.GetNoteCashflowsExportDataFromTransactionClose(tmdc.AnalysisID.ToString(), tmdc.TagMasterID.ToString());
-
-                    isSuccess = UploadDataTableToAzureblob(tagdatatable, tmdc.NewTagFileName);
-                    if (isSuccess)
-                    {
-                        lstTagFile.Add(new TagFileDataContract { TagMasterID = new Guid(tmdc.TagMasterID.ToString()), TagFileName = tmdc.NewTagFileName });
-                        _TagMasterLogic.UpdateTagFileName(lstTagFile);
-                        lstTagFile.Clear();
-                        Thread SecondThread = new Thread(() => ImportIntoTransactionEntryCloseArchive(tmdc.TagMasterID, tmdc.AnalysisID));
-                        SecondThread.Start();
+                    lstTagFile.Add(new TagFileDataContract { TagMasterID = new Guid(tmdc.TagMasterID.ToString()), TagFileName = tmdc.NewTagFileName });
+                    _TagMasterLogic.UpdateTagFileName(lstTagFile);
+                    lstTagFile.Clear();
+                    Thread SecondThread = new Thread(() => ImportIntoTransactionEntryCloseArchive(tmdc.TagMasterID, tmdc.AnalysisID));
+                    SecondThread.Start();
                     }
-                }
-                _authenticationResult = new GenericResult()
-                {
-                    TotalCount = 0,
-                    Succeeded = true,
-                    Message = "Authentication succeeded"
-                };
-
+            }
+            _authenticationResult = new GenericResult()
+            {
+                TotalCount = 0,
+                Succeeded = true,
+                Message = "Authentication succeeded"
+            };
+              
             }
             catch (Exception ex)
             {
@@ -265,7 +260,6 @@ namespace CRES.Services.Controllers
 
             MemoryStream ms1 = new MemoryStream();
 
-#pragma warning disable CS0168 // The variable 'ex' is declared but never used
             try
             {
                 using (MemoryStream ms = new MemoryStream())
@@ -324,7 +318,6 @@ namespace CRES.Services.Controllers
             {
                 return true;
             }
-#pragma warning restore CS0168 // The variable 'ex' is declared but never used
 
         }
 
@@ -339,9 +332,7 @@ namespace CRES.Services.Controllers
 
             GenericResult _authenticationResult = null;
 
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
             var headerUserID = string.Empty;
             if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
             {

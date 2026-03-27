@@ -30,16 +30,16 @@ declare var $: any;
 
 export class WorkflowListComponent extends Paginated {
 
-  dealMessage: string;
-  userid: number;
-  lstworkflow: any;
-  alllstworkflow: any;
-  lstworkflowDetail: any;
-  _lstworkflowDetail: any;
+  public dealMessage: string;
+  public userid: number;
+  public lstworkflow: any;
+  public alllstworkflow: any;
+  public lstworkflowDetail: any;
+  public _lstworkflowDetail: any;
   public _workflow: Array<Workflow>;
   public _workflowObj: Workflow;
   public userobj: User;
-  dealaddpath: any;
+  public dealaddpath: any;
   public _workflowListFetching: boolean = false;
   public _ShowmessagedivMsgWar: boolean = false;
   public _dvEmptyWFSearchMsg: boolean = false;
@@ -51,11 +51,15 @@ export class WorkflowListComponent extends Paginated {
   public _fundingCache = {};
   public _dealFunding: DealFunding;
   public lststatus: any = [];
+  public lstWFDashBoard: any = [];
+
   detailMode = wjcGridDetail.DetailVisibilityMode[wjcGridDetail.DetailVisibilityMode.ExpandSingle];
   _fundings = new wjcCore.CollectionView();
   @ViewChild('multiselStatus') multiselStatus: wjNg2Input.WjMultiSelect
   public _isChecked: boolean = true;
   @ViewChild('flex') flex: wjcGrid.FlexGrid;
+  public lstapprover: any;
+  cvDashBoardList: wjcCore.CollectionView;
 
   constructor(public WFSrv: WFService,
     public utilityService: UtilityService,
@@ -65,27 +69,28 @@ export class WorkflowListComponent extends Paginated {
 
     this._isshowDealbutton = false;
     this._workflowObj = new Workflow(0);
-    this._workflowObj.filterType = 'respective';
+    this._workflowObj.filterType = 'all';
     this.getWorkflow(this._workflowObj);
     this.utilityService.setPageTitle("M61–Workflow");
+    
   }
 
   // Component views are initialized
-  ngAfterViewInit() {
-    // commit row changes when scrolling the grid
+  //ngAfterViewInit() {
+  //  // commit row changes when scrolling the grid
 
-    this.flex.scrollPositionChanged.addHandler(() => {
-      var myDiv = $('#flex').find('div[wj-part="root"]');
+  //  this.flex.scrollPositionChanged.addHandler(() => {
+  //    var myDiv = $('#flex').find('div[wj-part="root"]');
 
-      if (myDiv.prop('offsetHeight') + myDiv.scrollTop() >= myDiv.prop('scrollHeight')) {
-        if (this.flex.rows.length < this._totalCount) {
-          this._pageIndex = this.pagePlus(1);
-          //this._workflowObj.filterType = filterType;
-          this.getWorkflow(this._workflowObj);
-        }
-      }
-    });
-  }
+  //    if (myDiv.prop('offsetHeight') + myDiv.scrollTop() >= myDiv.prop('scrollHeight')) {
+  //      if (this.flex.rows.length < this._totalCount) {
+  //        this._pageIndex = this.pagePlus(1);
+  //        //this._workflowObj.filterType = filterType;
+  //        this.getWorkflow(this._workflowObj);
+  //      }
+  //    }
+  //  });
+  //}
 
   FetchAllTask(valuechecked) {
     //this._isCalcListFetching = true;
@@ -136,30 +141,33 @@ export class WorkflowListComponent extends Paginated {
           if (typeof res.UserPermissionList !== 'undefined' && res.UserPermissionList.length > 0) {
 
             var data: any = res.lstWorkflow;
+            this.lstapprover = res.UserList
             this._totalCount = res.TotalCount;
+            this.lstworkflow = data;
+            this.cvDashBoardList = new wjcCore.CollectionView(this.lstworkflow);
+            this.cvDashBoardList.trackChanges = true;
+            this.alllstworkflow = this.lstworkflow;
+            ////if (this._pageIndex == 1) {
+            //  this.lstworkflow = data;
+            //  this.alllstworkflow = this.lstworkflow;
+            //  //remove first cell selection
+            //  //   this.flex.selectionMode = wjcGrid.SelectionMode.None;
+
+            //  if (res.TotalCount == 0) {
+            //    this._dvEmptyWFSearchMsg = true;
+            //    this._workflowListFetching = false;
+            //  } else {
+            //    this._dvEmptyWFSearchMsg = false;
+            //    //setTimeout(() => {
+            //    //    this._dvEmptyWFSearchMsg = false;
+            //    //    this._workflowListFetching = false;
+            //    //}, 500);
+            //  }
 
 
-            if (this._pageIndex == 1) {
-              this.lstworkflow = data;
-              this.alllstworkflow = this.lstworkflow;
-              //remove first cell selection
-              //   this.flex.selectionMode = wjcGrid.SelectionMode.None;
-
-              if (res.TotalCount == 0) {
-                this._dvEmptyWFSearchMsg = true;
-                this._workflowListFetching = false;
-              } else {
-                this._dvEmptyWFSearchMsg = false;
-                //setTimeout(() => {
-                //    this._dvEmptyWFSearchMsg = false;
-                //    this._workflowListFetching = false;
-                //}, 500);
-              }
-
-
-              setTimeout(() => {
-                this.ApplyPermissions(res.UserPermissionList);
-              }, 2000);
+            //  setTimeout(() => {
+            //    this.ApplyPermissions(res.UserPermissionList);
+            //  }, 2000);
 
 
               //format date
@@ -171,7 +179,8 @@ export class WorkflowListComponent extends Paginated {
                 }
                 if (this.lstworkflow[i].Fundingdate != '0001-01-01T00:00:00') {
                   if (this.lstworkflow[i].Fundingdate != null) {
-                    this.lstworkflow[i].Fundingdate = new Date(this.lstworkflow[i].Fundingdate.toString()).toLocaleDateString("en-US", { year: "numeric", month: "numeric", day: "numeric" });
+                    this.lstworkflow[i].Fundingdate = this.convertDateToBindable(this.lstworkflow[i].Fundingdate);
+
                   }
                 }
                 else {
@@ -180,7 +189,7 @@ export class WorkflowListComponent extends Paginated {
                 if (this.lstworkflow[i].Deadline != 'N/A') {
                   if (this.lstworkflow[i].Deadline != '0001-01-01T00:00:00') {
                     if (this.lstworkflow[i].Deadline != null) {
-                      this.lstworkflow[i].Deadline = new Date(this.lstworkflow[i].Deadline.toString()).toLocaleDateString("en-US", { year: "numeric", month: "numeric", day: "numeric" });
+                      this.lstworkflow[i].Deadline = this.convertDateToBindable(this.lstworkflow[i].Deadline);
                     }
                   }
                   else {
@@ -189,51 +198,53 @@ export class WorkflowListComponent extends Paginated {
                 }
               }
 
-            }
-            else {
+            //}
+            //else {
 
-              data.forEach((obj, i) => { // FETCH ALL DATA AND PUSH IN FLEX GRID!!!
-                //format date
+            //  data.forEach((obj, i) => { // FETCH ALL DATA AND PUSH IN FLEX GRID!!!
+            //    //format date
 
-                if (obj.Fundingdate != '0001-01-01T00:00:00') {
-                  if (obj.Fundingdate == null) {
-                    obj.Fundingdate = null;
-                  } else {
-                    obj.Fundingdate = new Date(obj.Fundingdate.toString()).toLocaleDateString("en-US", { year: "numeric", month: "numeric", day: "numeric" });
-                  }
-                }
-                else {
-                  obj.Fundingdate = null;
-                }
-                if (obj.Deadline != 'N/A') {
-                  if (obj.Deadline != '0001-01-01T00:00:00') {
-                    if (obj.Deadline != null) {
-                      obj.Deadline = new Date(obj.Deadline.toString()).toLocaleDateString("en-US", { year: "numeric", month: "numeric", day: "numeric" });
-                    }
-                  }
-                  else {
-                    obj.Deadline = null;
-                  }
-                }
-                //this.flex.rows.push(new wjcGrid.Row(obj));
-              });
+            //    if (obj.Fundingdate != '0001-01-01T00:00:00') {
+            //      if (obj.Fundingdate == null) {
+            //        obj.Fundingdate = null;
+            //      } else {
+            //        obj.Fundingdate = new Date(obj.Fundingdate.toString()).toLocaleDateString("en-US", { year: "numeric", month: "numeric", day: "numeric" });
+            //      }
+            //    }
+            //    else {
+            //      obj.Fundingdate = null;
+            //    }
+            //    if (obj.Deadline != 'N/A') {
+            //      if (obj.Deadline != '0001-01-01T00:00:00') {
+            //        if (obj.Deadline != null) {
+            //          obj.Deadline = new Date(obj.Deadline.toString()).toLocaleDateString("en-US", { year: "numeric", month: "numeric", day: "numeric" });
+            //        }
+            //      }
+            //      else {
+            //        obj.Deadline = null;
+            //      }
+            //    }
+            //    //this.flex.rows.push(new wjcGrid.Row(obj));
+            //  });
 
-              this.lstworkflow = this.lstworkflow.concat(data);
-              this.alllstworkflow = this.lstworkflow;
-            }
+            //  this.lstworkflow = this.lstworkflow.concat(data);
+            //  this.alllstworkflow = this.lstworkflow;
+            //}
 
             this._workflowListFetching = false;
 
 
-            setTimeout(function () {
-              if (!this._dvEmptyWFSearchMsg)
-                this.flex.invalidate();
-              this.getAllWorkflowdetail();
+            //setTimeout(function () {
+            //  if (!this._dvEmptyWFSearchMsg)
+            //    this.flex.invalidate();
+            //  this.getAllWorkflowdetail();
 
-              //this._initDetailProvider(this.flex);
-              //this.flex.autoSizeColumns(0, this.flex.columns.length, false, 20);
-              //this.flex.columns[0].width = 350; // for Note Id
-            }.bind(this), 1);
+            //  //this._initDetailProvider(this.flex);
+            //  //this.flex.autoSizeColumns(0, this.flex.columns.length, false, 20);
+            //  //this.flex.columns[0].width = 350; // for Note Id
+            //}.bind(this), 1);
+           
+            this._bindGridDropdows();
 
           } else {
 
@@ -305,6 +316,7 @@ export class WorkflowListComponent extends Paginated {
         this.WFSrv.getWorkflowStatus().subscribe(res => {
           if (res.Succeeded) {
             var data = res.dt;
+            data = data.filter(x => x.StatusName != "Projected" && x.StatusName != "Completed");
             data.find(x => x.StatusName == "Under Review").StatusName = "Under Review/Requested";
             var lststatusName = data.map(x => x.StatusName);
 
@@ -360,21 +372,90 @@ export class WorkflowListComponent extends Paginated {
     this.lstworkflow = this.alllstworkflow.filter(function (itm) {
       return lstchecked.indexOf(itm.StatusName) > -1;
     });
+    this.cvDashBoardList = new wjcCore.CollectionView(this.lstworkflow);
+    this.cvDashBoardList.trackChanges = true;
 
 
-
-    var lstpayoff = this.alllstworkflow.filter(x => x.PurposeID == 316);
-    if (lstpayoff) {
-      for (var i = 0; i < lstpayoff.length; i++) {
-        this.lstworkflow.push(lstpayoff[i]);
-      }
-    }
+    //var lstpayoff = this.alllstworkflow.filter(x => x.PurposeID == 316);
+    //if (lstpayoff) {
+    //  for (var i = 0; i < lstpayoff.length; i++) {
+    //    this.lstworkflow.push(lstpayoff[i]);
+    //  }
+    //}
 
     //   }
 
   }
 
+  private _bindGridDropdows() {
 
+    var wfflexapprover = this.flex;
+
+    if (wfflexapprover) {
+      var colFirstName = wfflexapprover.columns.getColumn('UserID');
+      if (colFirstName) {
+        //colFirstName.showDropDown = true;
+        //this.lstapprover = this.lstApproverUser.filter(x => x.ModuleId);
+        colFirstName.dataMap = this._buildDataMap(this.lstapprover, 'UserID', 'FirstName');
+      }
+    }
+
+  }
+  private _buildDataMap(items: any, key: any, value: any): wjcGrid.DataMap {
+    var map = [];
+    if (items) {
+      for (var i = 0; i < items.length; i++) {
+        var obj = items[i];
+        map.push({ key: obj[key], value: obj[value] });
+      }
+    }
+    return new wjcGrid.DataMap(map, 'key', 'value');
+  }
+
+  SaveWFDashboard() {
+    var approvertype: string;
+    this._workflowListFetching = true;
+    var  lst_WFDashBoard: any = [];
+    this.lstworkflow.forEach(function (arrayItem) {
+      lst_WFDashBoard.push({
+        "UserID": arrayItem.UserID, "TaskID": arrayItem.TaskID, "TaskTypeID": arrayItem.TaskTypeID
+      });
+    });
+
+    this.WFSrv.SaveWFDashboard(lst_WFDashBoard).subscribe(res => {
+          if (res.Succeeded == true) {
+            this._workflowListFetching = true;
+            this._ShowmessagedivMsg = "FC Approver Updated successfully";
+            this._Showmessagediv = true;
+            setTimeout(() => {
+              this._Showmessagediv = false;
+            }, 2000);
+            
+      }
+      this._workflowListFetching = false;
+        });
+  }
+  convertDateToBindable(date) {
+    var dateObj = null;
+    if (date) {
+      if (typeof (date) == "string") {
+        date = date.replace("Z", "");
+        dateObj = new Date(date);
+      }
+      else {
+        dateObj = date;
+      }
+      if (dateObj != null) {
+        return this.getTwoDigitString(dateObj.getMonth() + 1) + "/" + this.getTwoDigitString(dateObj.getDate()) + "/" + dateObj.getFullYear();
+      }
+    }
+  }
+  getTwoDigitString(number) {
+    if (number.toString().length === 1)
+      return "0" + number;
+    return number;
+  }
+  
 }
 
 

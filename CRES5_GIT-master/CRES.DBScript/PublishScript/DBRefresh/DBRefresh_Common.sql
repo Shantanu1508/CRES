@@ -10,7 +10,7 @@ Declare @DBName_PIKMode nvarchar(256)
 Declare @DBName_Demo nvarchar(256)
 
 SET @CurrentDBName = (SELECT DB_NAME())
-SET @DBName_QA  = 'CRES4_QA'
+SET @DBName_QA  = 'CRES4_QA_New'
 SET @DBName_Integration = 'CRES4_Integration_New'
 SET @DBName_Staging= 'CRES4_Staging'
 SET @DBName_Dev= 'CRES4_DEV_New'
@@ -76,6 +76,19 @@ BEGIN
 
 	--======================================
 
+	IF EXISTS (SELECT [name] FROM [sys].[database_principals] WHERE [type] = N'S' AND [name] = N'CresReader_temp_user')
+	DROP USER CresReader_temp_user 
+	IF EXISTS (SELECT [name] FROM [sys].[database_principals] WHERE [type] = N'R' AND [name] = N'CresReader_temp_role')
+		DROP ROLE  CresReader_temp_role
+
+	CREATE USER CresReader_temp_user FROM LOGIN CresReader_temp;
+	CREATE ROLE  CresReader_temp_role AUTHORIZATION [dbo]
+	EXEC sp_addrolemember 'CresReader_temp_role', 'CresReader_temp_user';
+	ALTER ROLE db_datareader Add Member CresReader_temp_role
+
+	--======================================
+
+
 	IF EXISTS (SELECT [name] FROM [sys].[database_principals] WHERE [type] = N'S' AND [name] = N'ReadScriptUser')
 		DROP USER ReadScriptUser
 
@@ -99,6 +112,63 @@ BEGIN
 	CREATE USER sizerUserQA FROM LOGIN SizerQA;
 	CREATE ROLE  sizer_ModifyQA AUTHORIZATION [dbo]
 	EXEC sp_addrolemember 'sizer_ModifyQA', 'sizerUserQA';
+	ALTER ROLE db_owner Add Member sizer_ModifyQA
+	--===========================================================
+		
+	IF EXISTS (SELECT [name] FROM [sys].[database_principals] WHERE [type] = N'S' AND [name] = N'RohitAdmin_user')
+		DROP USER RohitAdmin_user
+	IF EXISTS (SELECT [name] FROM [sys].[database_principals] WHERE [type] = N'R' AND [name] = N'RohitAdmin_role')
+		DROP ROLE  RohitAdmin_role
+
+	CREATE USER RohitAdmin_user FROM LOGIN RohitAdmin;
+	CREATE ROLE  RohitAdmin_role AUTHORIZATION [dbo]
+	EXEC sp_addrolemember 'RohitAdmin_role', 'RohitAdmin_user';
+	ALTER ROLE db_owner Add Member RohitAdmin_role
+	---========================================================================================================================
+	IF EXISTS (SELECT [name] FROM [sys].[database_principals] WHERE [type] = N'S' AND [name] = N'VishalAdmin_user')
+		DROP USER VishalAdmin_user
+	IF EXISTS (SELECT [name] FROM [sys].[database_principals] WHERE [type] = N'R' AND [name] = N'VishalAdmin_role')
+		DROP ROLE  VishalAdmin_role
+
+
+	CREATE USER VishalAdmin_user FROM LOGIN VishalAdmin;
+	CREATE ROLE  VishalAdmin_role AUTHORIZATION [dbo]
+	EXEC sp_addrolemember 'VishalAdmin_role', 'VishalAdmin_user';
+	ALTER ROLE db_owner Add Member VishalAdmin_role
+	---========================================================================================================================
+	IF EXISTS (SELECT [name] FROM [sys].[database_principals] WHERE [type] = N'S' AND [name] = N'KrishnaAdmin_user')
+		DROP USER KrishnaAdmin_user
+	IF EXISTS (SELECT [name] FROM [sys].[database_principals] WHERE [type] = N'R' AND [name] = N'KrishnaAdmin_role')
+		DROP ROLE  KrishnaAdmin_role
+
+
+	CREATE USER KrishnaAdmin_user FROM LOGIN KrishnaAdmin;
+	CREATE ROLE  KrishnaAdmin_role AUTHORIZATION [dbo]
+	EXEC sp_addrolemember 'KrishnaAdmin_role', 'KrishnaAdmin_user';
+	ALTER ROLE db_owner Add Member KrishnaAdmin_role
+
+	---========================================================================================================================
+	IF EXISTS (SELECT [name] FROM [sys].[database_principals] WHERE [type] = N'S' AND [name] = N'ValuationQA_User')
+		DROP USER ValuationQA_User 
+	IF EXISTS (SELECT [name] FROM [sys].[database_principals] WHERE [type] = N'R' AND [name] = N'ValuationQA_role')
+		DROP ROLE  ValuationQA_role
+
+	CREATE USER ValuationQA_User FROM LOGIN ValuationQA;
+	CREATE ROLE  ValuationQA_role AUTHORIZATION [dbo]
+	EXEC sp_addrolemember 'ValuationQA_role', 'ValuationQA_User';
+	ALTER ROLE db_owner Add Member ValuationQA_role
+
+	---========================================================================================================================
+	IF EXISTS (SELECT [name] FROM [sys].[database_principals] WHERE [type] = N'S' AND [name] = N'CRES4_Reader_Swapna_user')
+		DROP USER CRES4_Reader_Swapna_user 
+	IF EXISTS (SELECT [name] FROM [sys].[database_principals] WHERE [type] = N'R' AND [name] = N'CRES4_Reader_Swapna_role')
+		DROP ROLE  CRES4_Reader_Swapna_role
+
+	CREATE USER CRES4_Reader_Swapna_user FROM LOGIN CRES4_Reader_Swapna;
+	CREATE ROLE  CRES4_Reader_Swapna_role AUTHORIZATION [dbo]
+	EXEC sp_addrolemember 'CRES4_Reader_Swapna_role', 'CRES4_Reader_Swapna_user';
+	ALTER ROLE db_datareader Add Member CRES4_Reader_Swapna_role
+
 END
 
 IF(@CurrentDBName = @DBName_Integration)
@@ -161,6 +231,7 @@ BEGIN
 	CREATE USER sizerUserIntegration FROM LOGIN SizerIntegration;
 	CREATE ROLE  sizer_ModifyIntegration AUTHORIZATION [dbo]
 	EXEC sp_addrolemember 'sizer_ModifyIntegration', 'sizerUserIntegration';
+	ALTER ROLE db_owner Add Member sizer_ModifyIntegration
 	--======================================
 
 	IF EXISTS (SELECT [name] FROM [sys].[database_principals] WHERE [type] = N'S' AND [name] = N'CresBsViewer_User')
@@ -174,6 +245,88 @@ BEGIN
 
 	GRANT SELECT ON [dbo].[View_NoteDetail]  TO CresBsViewer_role
 	GRANT SELECT ON [dbo].[View_NoteInterest] TO CresBsViewer_role
+
+	---==========================================================
+
+	IF EXISTS (SELECT [name] FROM [sys].[database_principals] WHERE [type] = N'S' AND [name] = N'RohitAdmin_user')
+		DROP USER RohitAdmin_user
+	IF EXISTS (SELECT [name] FROM [sys].[database_principals] WHERE [type] = N'R' AND [name] = N'RohitAdmin_role')
+		DROP ROLE  RohitAdmin_role
+
+	CREATE USER RohitAdmin_user FROM LOGIN RohitAdmin;
+	CREATE ROLE  RohitAdmin_role AUTHORIZATION [dbo]
+	EXEC sp_addrolemember 'RohitAdmin_role', 'RohitAdmin_user';
+	ALTER ROLE db_owner Add Member RohitAdmin_role
+	---========================================================================================================================
+	IF EXISTS (SELECT [name] FROM [sys].[database_principals] WHERE [type] = N'S' AND [name] = N'VishalAdmin_user')
+		DROP USER VishalAdmin_user
+	IF EXISTS (SELECT [name] FROM [sys].[database_principals] WHERE [type] = N'R' AND [name] = N'VishalAdmin_role')
+		DROP ROLE  VishalAdmin_role
+
+
+	CREATE USER VishalAdmin_user FROM LOGIN VishalAdmin;
+	CREATE ROLE  VishalAdmin_role AUTHORIZATION [dbo]
+	EXEC sp_addrolemember 'VishalAdmin_role', 'VishalAdmin_user';
+	ALTER ROLE db_owner Add Member VishalAdmin_role
+	---========================================================================================================================
+	IF EXISTS (SELECT [name] FROM [sys].[database_principals] WHERE [type] = N'S' AND [name] = N'KrishnaAdmin_user')
+		DROP USER KrishnaAdmin_user
+	IF EXISTS (SELECT [name] FROM [sys].[database_principals] WHERE [type] = N'R' AND [name] = N'KrishnaAdmin_role')
+		DROP ROLE  KrishnaAdmin_role
+
+
+	CREATE USER KrishnaAdmin_user FROM LOGIN KrishnaAdmin;
+	CREATE ROLE  KrishnaAdmin_role AUTHORIZATION [dbo]
+	EXEC sp_addrolemember 'KrishnaAdmin_role', 'KrishnaAdmin_user';
+	ALTER ROLE db_owner Add Member KrishnaAdmin_role
+
+	---========================================================================================================================
+	IF EXISTS (SELECT [name] FROM [sys].[database_principals] WHERE [type] = N'S' AND [name] = N'ValuationQA_User')
+		DROP USER ValuationQA_User 
+	IF EXISTS (SELECT [name] FROM [sys].[database_principals] WHERE [type] = N'R' AND [name] = N'ValuationQA_role')
+		DROP ROLE  ValuationQA_role
+
+	CREATE USER ValuationQA_User FROM LOGIN ValuationQA;
+	CREATE ROLE  ValuationQA_role AUTHORIZATION [dbo]
+	EXEC sp_addrolemember 'ValuationQA_role', 'ValuationQA_User';
+	ALTER ROLE db_owner Add Member ValuationQA_role
+
+	---=================================================
+	---CREATE LOGIN M61DBReader  WITH password='EhuvWuP)9h})W[W';
+
+	IF EXISTS (SELECT [name] FROM [sys].[database_principals] WHERE [type] = N'S' AND [name] = N'M61DBReader_user')
+		DROP USER M61DBReader_user 
+	IF EXISTS (SELECT [name] FROM [sys].[database_principals] WHERE [type] = N'R' AND [name] = N'M61DBReader_role')
+		DROP ROLE  M61DBReader_role
+
+	CREATE USER M61DBReader_user FROM LOGIN M61DBReader;
+	CREATE ROLE  M61DBReader_role AUTHORIZATION [dbo]
+	EXEC sp_addrolemember 'M61DBReader_role', 'M61DBReader_user';
+	ALTER ROLE db_datareader Add Member M61DBReader_role
+
+	---========================================================================================================================
+	IF EXISTS (SELECT [name] FROM [sys].[database_principals] WHERE [type] = N'S' AND [name] = N'CRES4_Reader_Swapna_user')
+		DROP USER CRES4_Reader_Swapna_user 
+	IF EXISTS (SELECT [name] FROM [sys].[database_principals] WHERE [type] = N'R' AND [name] = N'CRES4_Reader_Swapna_role')
+		DROP ROLE  CRES4_Reader_Swapna_role
+
+	CREATE USER CRES4_Reader_Swapna_user FROM LOGIN CRES4_Reader_Swapna;
+	CREATE ROLE  CRES4_Reader_Swapna_role AUTHORIZATION [dbo]
+	EXEC sp_addrolemember 'CRES4_Reader_Swapna_role', 'CRES4_Reader_Swapna_user';
+	ALTER ROLE db_datareader Add Member CRES4_Reader_Swapna_role
+
+
+	---========================================================================================================================
+	IF EXISTS (SELECT [name] FROM [sys].[database_principals] WHERE [type] = N'S' AND [name] = N'CresReader_Int_user')
+		DROP USER CresReader_Int_user 
+	IF EXISTS (SELECT [name] FROM [sys].[database_principals] WHERE [type] = N'R' AND [name] = N'CresReader_Int_role')
+		DROP ROLE  CresReader_Int_role
+
+	CREATE USER CresReader_Int_user FROM LOGIN CresReader_Int;
+	CREATE ROLE  CresReader_Int_role AUTHORIZATION [dbo]
+	EXEC sp_addrolemember 'CresReader_Int_role', 'CresReader_Int_user';
+	ALTER ROLE db_datareader Add Member CresReader_Int_role
+
 
 END
 
@@ -231,6 +384,74 @@ BEGIN
 	CREATE USER sizerUser FROM LOGIN Sizer;
 	CREATE ROLE  sizer_Modify AUTHORIZATION [dbo]
 	EXEC sp_addrolemember 'sizer_Modify', 'sizerUser';
+	ALTER ROLE db_owner Add Member sizer_Modify
+	--================================================
+
+	IF EXISTS (SELECT [name] FROM [sys].[database_principals] WHERE [type] = N'S' AND [name] = N'RohitAdmin_user')
+		DROP USER RohitAdmin_user
+	IF EXISTS (SELECT [name] FROM [sys].[database_principals] WHERE [type] = N'R' AND [name] = N'RohitAdmin_role')
+		DROP ROLE  RohitAdmin_role
+
+	CREATE USER RohitAdmin_user FROM LOGIN RohitAdmin;
+	CREATE ROLE  RohitAdmin_role AUTHORIZATION [dbo]
+	EXEC sp_addrolemember 'RohitAdmin_role', 'RohitAdmin_user';
+	ALTER ROLE db_owner Add Member RohitAdmin_role
+	---========================================================================================================================
+	IF EXISTS (SELECT [name] FROM [sys].[database_principals] WHERE [type] = N'S' AND [name] = N'VishalAdmin_user')
+		DROP USER VishalAdmin_user
+	IF EXISTS (SELECT [name] FROM [sys].[database_principals] WHERE [type] = N'R' AND [name] = N'VishalAdmin_role')
+		DROP ROLE  VishalAdmin_role
+
+
+	CREATE USER VishalAdmin_user FROM LOGIN VishalAdmin;
+	CREATE ROLE  VishalAdmin_role AUTHORIZATION [dbo]
+	EXEC sp_addrolemember 'VishalAdmin_role', 'VishalAdmin_user';
+	ALTER ROLE db_owner Add Member VishalAdmin_role
+	---========================================================================================================================
+	IF EXISTS (SELECT [name] FROM [sys].[database_principals] WHERE [type] = N'S' AND [name] = N'KrishnaAdmin_user')
+		DROP USER KrishnaAdmin_user
+	IF EXISTS (SELECT [name] FROM [sys].[database_principals] WHERE [type] = N'R' AND [name] = N'KrishnaAdmin_role')
+		DROP ROLE  KrishnaAdmin_role
+
+
+	CREATE USER KrishnaAdmin_user FROM LOGIN KrishnaAdmin;
+	CREATE ROLE  KrishnaAdmin_role AUTHORIZATION [dbo]
+	EXEC sp_addrolemember 'KrishnaAdmin_role', 'KrishnaAdmin_user';
+	ALTER ROLE db_owner Add Member KrishnaAdmin_role
+
+	---========================================================================================================================
+	IF EXISTS (SELECT [name] FROM [sys].[database_principals] WHERE [type] = N'S' AND [name] = N'ValuationQA_User')
+		DROP USER ValuationQA_User 
+	IF EXISTS (SELECT [name] FROM [sys].[database_principals] WHERE [type] = N'R' AND [name] = N'ValuationQA_role')
+		DROP ROLE  ValuationQA_role
+
+	CREATE USER ValuationQA_User FROM LOGIN ValuationQA;
+	CREATE ROLE  ValuationQA_role AUTHORIZATION [dbo]
+	EXEC sp_addrolemember 'ValuationQA_role', 'ValuationQA_User';
+	ALTER ROLE db_owner Add Member ValuationQA_role
+
+	---========================================================================================================================
+	IF EXISTS (SELECT [name] FROM [sys].[database_principals] WHERE [type] = N'S' AND [name] = N'CRES4_Reader_Swapna_user')
+		DROP USER CRES4_Reader_Swapna_user 
+	IF EXISTS (SELECT [name] FROM [sys].[database_principals] WHERE [type] = N'R' AND [name] = N'CRES4_Reader_Swapna_role')
+		DROP ROLE  CRES4_Reader_Swapna_role
+
+	CREATE USER CRES4_Reader_Swapna_user FROM LOGIN CRES4_Reader_Swapna;
+	CREATE ROLE  CRES4_Reader_Swapna_role AUTHORIZATION [dbo]
+	EXEC sp_addrolemember 'CRES4_Reader_Swapna_role', 'CRES4_Reader_Swapna_user';
+	ALTER ROLE db_datareader Add Member CRES4_Reader_Swapna_role
+
+
+	---========================================================================================================================
+	IF EXISTS (SELECT [name] FROM [sys].[database_principals] WHERE [type] = N'S' AND [name] = N'sizerUserStaging')
+	DROP USER sizerUserStaging
+	IF EXISTS (SELECT [name] FROM [sys].[database_principals] WHERE [type] = N'R' AND [name] = N'sizer_ModifyStaging')
+		DROP ROLE  sizer_ModifyStaging
+
+	CREATE USER sizerUserStaging FROM LOGIN SizerStaging;
+	CREATE ROLE  sizer_ModifyStaging AUTHORIZATION [dbo]
+	EXEC sp_addrolemember 'sizer_ModifyStaging', 'sizerUserStaging';
+	ALTER ROLE db_owner Add Member sizer_ModifyStaging
 END
 
 IF(@CurrentDBName = @DBName_Dev)
@@ -246,7 +467,7 @@ BEGIN
 	CREATE USER BIViewerUser FROM LOGIN BIViewer;
 	CREATE ROLE  Acore_BIViewer AUTHORIZATION [dbo]
 	EXEC sp_addrolemember 'Acore_BIViewer', 'BIViewerUser';
-
+	ALTER ROLE db_owner Add Member Acore_BIViewer
 	---=========================================
 	IF EXISTS (SELECT [name] FROM [sys].[database_principals] WHERE [type] = N'S' AND [name] = N'Cres4_dev_user')
 		DROP USER Cres4_dev_user 
@@ -300,8 +521,62 @@ BEGIN
 	CREATE USER sizerUser FROM LOGIN Sizer;
 	CREATE ROLE  sizer_Modify AUTHORIZATION [dbo]
 	EXEC sp_addrolemember 'sizer_Modify', 'sizerUser';
+	ALTER ROLE db_owner Add Member sizer_Modify
+	--=================================================
+
+	IF EXISTS (SELECT [name] FROM [sys].[database_principals] WHERE [type] = N'S' AND [name] = N'RohitAdmin_user')
+		DROP USER RohitAdmin_user
+	IF EXISTS (SELECT [name] FROM [sys].[database_principals] WHERE [type] = N'R' AND [name] = N'RohitAdmin_role')
+		DROP ROLE  RohitAdmin_role
+
+	CREATE USER RohitAdmin_user FROM LOGIN RohitAdmin;
+	CREATE ROLE  RohitAdmin_role AUTHORIZATION [dbo]
+	EXEC sp_addrolemember 'RohitAdmin_role', 'RohitAdmin_user';
+	ALTER ROLE db_owner Add Member RohitAdmin_role
+	---========================================================================================================================
+	IF EXISTS (SELECT [name] FROM [sys].[database_principals] WHERE [type] = N'S' AND [name] = N'VishalAdmin_user')
+		DROP USER VishalAdmin_user
+	IF EXISTS (SELECT [name] FROM [sys].[database_principals] WHERE [type] = N'R' AND [name] = N'VishalAdmin_role')
+		DROP ROLE  VishalAdmin_role
 
 
+	CREATE USER VishalAdmin_user FROM LOGIN VishalAdmin;
+	CREATE ROLE  VishalAdmin_role AUTHORIZATION [dbo]
+	EXEC sp_addrolemember 'VishalAdmin_role', 'VishalAdmin_user';
+	ALTER ROLE db_owner Add Member VishalAdmin_role
+	---========================================================================================================================
+	IF EXISTS (SELECT [name] FROM [sys].[database_principals] WHERE [type] = N'S' AND [name] = N'KrishnaAdmin_user')
+		DROP USER KrishnaAdmin_user
+	IF EXISTS (SELECT [name] FROM [sys].[database_principals] WHERE [type] = N'R' AND [name] = N'KrishnaAdmin_role')
+		DROP ROLE  KrishnaAdmin_role
+
+
+	CREATE USER KrishnaAdmin_user FROM LOGIN KrishnaAdmin;
+	CREATE ROLE  KrishnaAdmin_role AUTHORIZATION [dbo]
+	EXEC sp_addrolemember 'KrishnaAdmin_role', 'KrishnaAdmin_user';
+	ALTER ROLE db_owner Add Member KrishnaAdmin_role
+
+	---========================================================================================================================
+	IF EXISTS (SELECT [name] FROM [sys].[database_principals] WHERE [type] = N'S' AND [name] = N'ValuationQA_User')
+		DROP USER ValuationQA_User 
+	IF EXISTS (SELECT [name] FROM [sys].[database_principals] WHERE [type] = N'R' AND [name] = N'ValuationQA_role')
+		DROP ROLE  ValuationQA_role
+
+	CREATE USER ValuationQA_User FROM LOGIN ValuationQA;
+	CREATE ROLE  ValuationQA_role AUTHORIZATION [dbo]
+	EXEC sp_addrolemember 'ValuationQA_role', 'ValuationQA_User';
+	ALTER ROLE db_owner Add Member ValuationQA_role
+
+	---========================================================================================================================
+	IF EXISTS (SELECT [name] FROM [sys].[database_principals] WHERE [type] = N'S' AND [name] = N'CRES4_Reader_Swapna_user')
+		DROP USER CRES4_Reader_Swapna_user 
+	IF EXISTS (SELECT [name] FROM [sys].[database_principals] WHERE [type] = N'R' AND [name] = N'CRES4_Reader_Swapna_role')
+		DROP ROLE  CRES4_Reader_Swapna_role
+
+	CREATE USER CRES4_Reader_Swapna_user FROM LOGIN CRES4_Reader_Swapna;
+	CREATE ROLE  CRES4_Reader_Swapna_role AUTHORIZATION [dbo]
+	EXEC sp_addrolemember 'CRES4_Reader_Swapna_role', 'CRES4_Reader_Swapna_user';
+	ALTER ROLE db_datareader Add Member CRES4_Reader_Swapna_role
 
 END
 
@@ -316,6 +591,7 @@ BEGIN
 	CREATE USER BIViewerUser FROM LOGIN BIViewer;
 	CREATE ROLE  Acore_BIViewer AUTHORIZATION [dbo]
 	EXEC sp_addrolemember 'Acore_BIViewer', 'BIViewerUser';
+	ALTER ROLE db_owner Add Member Acore_BIViewer
 	---=========================================
 
 	IF EXISTS (SELECT [name] FROM [sys].[database_principals] WHERE [type] = N'S' AND [name] = N'CRESPIKModeUser')
@@ -358,7 +634,62 @@ BEGIN
 	CREATE USER sizerUser FROM LOGIN Sizer;
 	CREATE ROLE  sizer_Modify AUTHORIZATION [dbo]
 	EXEC sp_addrolemember 'sizer_Modify', 'sizerUser';
-  
+	ALTER ROLE db_owner Add Member sizer_Modify
+	--==========================================================
+
+	IF EXISTS (SELECT [name] FROM [sys].[database_principals] WHERE [type] = N'S' AND [name] = N'RohitAdmin_user')
+		DROP USER RohitAdmin_user
+	IF EXISTS (SELECT [name] FROM [sys].[database_principals] WHERE [type] = N'R' AND [name] = N'RohitAdmin_role')
+		DROP ROLE  RohitAdmin_role
+
+	CREATE USER RohitAdmin_user FROM LOGIN RohitAdmin;
+	CREATE ROLE  RohitAdmin_role AUTHORIZATION [dbo]
+	EXEC sp_addrolemember 'RohitAdmin_role', 'RohitAdmin_user';
+	ALTER ROLE db_owner Add Member RohitAdmin_role
+	---========================================================================================================================
+	IF EXISTS (SELECT [name] FROM [sys].[database_principals] WHERE [type] = N'S' AND [name] = N'VishalAdmin_user')
+		DROP USER VishalAdmin_user
+	IF EXISTS (SELECT [name] FROM [sys].[database_principals] WHERE [type] = N'R' AND [name] = N'VishalAdmin_role')
+		DROP ROLE  VishalAdmin_role
+
+
+	CREATE USER VishalAdmin_user FROM LOGIN VishalAdmin;
+	CREATE ROLE  VishalAdmin_role AUTHORIZATION [dbo]
+	EXEC sp_addrolemember 'VishalAdmin_role', 'VishalAdmin_user';
+	ALTER ROLE db_owner Add Member VishalAdmin_role
+	---========================================================================================================================
+	IF EXISTS (SELECT [name] FROM [sys].[database_principals] WHERE [type] = N'S' AND [name] = N'KrishnaAdmin_user')
+		DROP USER KrishnaAdmin_user
+	IF EXISTS (SELECT [name] FROM [sys].[database_principals] WHERE [type] = N'R' AND [name] = N'KrishnaAdmin_role')
+		DROP ROLE  KrishnaAdmin_role
+
+
+	CREATE USER KrishnaAdmin_user FROM LOGIN KrishnaAdmin;
+	CREATE ROLE  KrishnaAdmin_role AUTHORIZATION [dbo]
+	EXEC sp_addrolemember 'KrishnaAdmin_role', 'KrishnaAdmin_user';
+	ALTER ROLE db_owner Add Member KrishnaAdmin_role
+
+	---========================================================================================================================
+	IF EXISTS (SELECT [name] FROM [sys].[database_principals] WHERE [type] = N'S' AND [name] = N'ValuationQA_User')
+		DROP USER ValuationQA_User 
+	IF EXISTS (SELECT [name] FROM [sys].[database_principals] WHERE [type] = N'R' AND [name] = N'ValuationQA_role')
+		DROP ROLE  ValuationQA_role
+
+	CREATE USER ValuationQA_User FROM LOGIN ValuationQA;
+	CREATE ROLE  ValuationQA_role AUTHORIZATION [dbo]
+	EXEC sp_addrolemember 'ValuationQA_role', 'ValuationQA_User';
+	ALTER ROLE db_owner Add Member ValuationQA_role
+
+		---========================================================================================================================
+	IF EXISTS (SELECT [name] FROM [sys].[database_principals] WHERE [type] = N'S' AND [name] = N'CRES4_Reader_Swapna_user')
+		DROP USER CRES4_Reader_Swapna_user 
+	IF EXISTS (SELECT [name] FROM [sys].[database_principals] WHERE [type] = N'R' AND [name] = N'CRES4_Reader_Swapna_role')
+		DROP ROLE  CRES4_Reader_Swapna_role
+
+	CREATE USER CRES4_Reader_Swapna_user FROM LOGIN CRES4_Reader_Swapna;
+	CREATE ROLE  CRES4_Reader_Swapna_role AUTHORIZATION [dbo]
+	EXEC sp_addrolemember 'CRES4_Reader_Swapna_role', 'CRES4_Reader_Swapna_user';
+	ALTER ROLE db_datareader Add Member CRES4_Reader_Swapna_role
 END
 
 
@@ -373,6 +704,7 @@ BEGIN
 	CREATE USER BIViewerUser FROM LOGIN BIViewer;
 	CREATE ROLE  Acore_BIViewer AUTHORIZATION [dbo]
 	EXEC sp_addrolemember 'Acore_BIViewer', 'BIViewerUser';
+	ALTER ROLE db_owner Add Member Acore_BIViewer
 	---=========================================
 
 	IF EXISTS (SELECT [name] FROM [sys].[database_principals] WHERE [type] = N'S' AND [name] = N'Cres4_Demo_user')
@@ -415,6 +747,62 @@ BEGIN
 	CREATE USER sizerUser FROM LOGIN Sizer;
 	CREATE ROLE  sizer_Modify AUTHORIZATION [dbo]
 	EXEC sp_addrolemember 'sizer_Modify', 'sizerUser';
+	ALTER ROLE db_owner Add Member sizer_Modify
+	---================================================
+
+	IF EXISTS (SELECT [name] FROM [sys].[database_principals] WHERE [type] = N'S' AND [name] = N'RohitAdmin_user')
+		DROP USER RohitAdmin_user
+	IF EXISTS (SELECT [name] FROM [sys].[database_principals] WHERE [type] = N'R' AND [name] = N'RohitAdmin_role')
+		DROP ROLE  RohitAdmin_role
+
+	CREATE USER RohitAdmin_user FROM LOGIN RohitAdmin;
+	CREATE ROLE  RohitAdmin_role AUTHORIZATION [dbo]
+	EXEC sp_addrolemember 'RohitAdmin_role', 'RohitAdmin_user';
+	ALTER ROLE db_owner Add Member RohitAdmin_role
+	---========================================================================================================================
+	IF EXISTS (SELECT [name] FROM [sys].[database_principals] WHERE [type] = N'S' AND [name] = N'VishalAdmin_user')
+		DROP USER VishalAdmin_user
+	IF EXISTS (SELECT [name] FROM [sys].[database_principals] WHERE [type] = N'R' AND [name] = N'VishalAdmin_role')
+		DROP ROLE  VishalAdmin_role
+
+
+	CREATE USER VishalAdmin_user FROM LOGIN VishalAdmin;
+	CREATE ROLE  VishalAdmin_role AUTHORIZATION [dbo]
+	EXEC sp_addrolemember 'VishalAdmin_role', 'VishalAdmin_user';
+	ALTER ROLE db_owner Add Member VishalAdmin_role
+	---========================================================================================================================
+	IF EXISTS (SELECT [name] FROM [sys].[database_principals] WHERE [type] = N'S' AND [name] = N'KrishnaAdmin_user')
+		DROP USER KrishnaAdmin_user
+	IF EXISTS (SELECT [name] FROM [sys].[database_principals] WHERE [type] = N'R' AND [name] = N'KrishnaAdmin_role')
+		DROP ROLE  KrishnaAdmin_role
+
+
+	CREATE USER KrishnaAdmin_user FROM LOGIN KrishnaAdmin;
+	CREATE ROLE  KrishnaAdmin_role AUTHORIZATION [dbo]
+	EXEC sp_addrolemember 'KrishnaAdmin_role', 'KrishnaAdmin_user';
+	ALTER ROLE db_owner Add Member KrishnaAdmin_role
+
+	---========================================================================================================================
+	IF EXISTS (SELECT [name] FROM [sys].[database_principals] WHERE [type] = N'S' AND [name] = N'ValuationQA_User')
+		DROP USER ValuationQA_User 
+	IF EXISTS (SELECT [name] FROM [sys].[database_principals] WHERE [type] = N'R' AND [name] = N'ValuationQA_role')
+		DROP ROLE  ValuationQA_role
+
+	CREATE USER ValuationQA_User FROM LOGIN ValuationQA;
+	CREATE ROLE  ValuationQA_role AUTHORIZATION [dbo]
+	EXEC sp_addrolemember 'ValuationQA_role', 'ValuationQA_User';
+	ALTER ROLE db_owner Add Member ValuationQA_role
+
+		---========================================================================================================================
+	IF EXISTS (SELECT [name] FROM [sys].[database_principals] WHERE [type] = N'S' AND [name] = N'CRES4_Reader_Swapna_user')
+		DROP USER CRES4_Reader_Swapna_user 
+	IF EXISTS (SELECT [name] FROM [sys].[database_principals] WHERE [type] = N'R' AND [name] = N'CRES4_Reader_Swapna_role')
+		DROP ROLE  CRES4_Reader_Swapna_role
+
+	CREATE USER CRES4_Reader_Swapna_user FROM LOGIN CRES4_Reader_Swapna;
+	CREATE ROLE  CRES4_Reader_Swapna_role AUTHORIZATION [dbo]
+	EXEC sp_addrolemember 'CRES4_Reader_Swapna_role', 'CRES4_Reader_Swapna_user';
+	ALTER ROLE db_datareader Add Member CRES4_Reader_Swapna_role
   
 END
 ---================================================================
@@ -911,9 +1299,9 @@ CREATE EXTERNAL TABLE [dbo].[Ex_Prod_NotePeriodicCalc] (
 	[ActualCashFlows] [decimal](28, 15) NULL,
 	[GAAPCashFlows] [decimal](28, 15) NULL,
 	[EndingGAAPBookValue] [decimal](28, 15) NULL,
-	[TotalGAAPIncomeforthePeriod] [decimal](28, 15) NULL,
-	[InterestAccrualforthePeriod] [decimal](28, 15) NULL,
-	[PIKInterestAccrualforthePeriod] [decimal](28, 15) NULL,
+	--[TotalGAAPIncomeforthePeriod] [decimal](28, 15) NULL,
+	--[InterestAccrualforthePeriod] [decimal](28, 15) NULL,
+	--[PIKInterestAccrualforthePeriod] [decimal](28, 15) NULL,
 	[TotalAmortAccrualForPeriod] [decimal](28, 15) NULL,
 	[AccumulatedAmort] [decimal](28, 15) NULL,
 	[BeginningBalance] [decimal](28, 15) NULL,
@@ -986,7 +1374,7 @@ CREATE EXTERNAL TABLE [dbo].[Ex_Prod_NotePeriodicCalc] (
 	[TotalGAAPInterestFortheCurrentPeriod] [decimal](28, 15) NULL,
 
 	InvestmentBasis decimal(28,15) null,
-	CurrentPeriodInterestAccrualPeriodEnddate  [decimal](28, 15) NULL, 
+	--CurrentPeriodInterestAccrualPeriodEnddate  [decimal](28, 15) NULL, 
 	LIBORPercentage  [decimal](28, 15) NULL,
 	SpreadPercentage  [decimal](28, 15) NULL,
 	AnalysisID UNIQUEIDENTIFIER null,
@@ -1214,15 +1602,15 @@ IF EXISTS(select [name] from sys.database_scoped_credentials where name = 'Crede
 --CREATE MASTER KEY ENCRYPTION BY PASSWORD = 'admin123*';
 
 --CREATE DATABASE SCOPED CREDENTIAL (Login: ACOREBackshopReader,pass: 2@chazuzEv&J)
-CREATE DATABASE SCOPED CREDENTIAL CredentialAcore  WITH IDENTITY = 'ACOREAccounting',  SECRET = 'cv9ftqVc?BtxbCS'
+CREATE DATABASE SCOPED CREDENTIAL CredentialAcore  WITH IDENTITY = 'ACOREAccounting',  SECRET = '25t30239urong24ep21h!jfekzkj*)^'
 
 --CREATE EXTERNAL DATA SOURCE
 Create EXTERNAL DATA SOURCE RemoteReferenceData 
 WITH 
 ( 
     TYPE=RDBMS, 
-    LOCATION='tcp:z70t9nlx1v.database.secure.windows.net', 
-    DATABASE_NAME='BackshopStaging', 
+    LOCATION='acore-sql-backshop-dev.database.windows.net', 
+    DATABASE_NAME='BackshopQA', 
     CREDENTIAL= CredentialAcore 
 ); 
 
@@ -1572,15 +1960,15 @@ IF EXISTS(select [name] from sys.database_scoped_credentials where name = 'Crede
 	Drop DATABASE SCOPED CREDENTIAL CredentialAcoreFF
 
 --CREATE DATABASE SCOPED CREDENTIAL
-CREATE DATABASE SCOPED CREDENTIAL CredentialAcoreFF  WITH IDENTITY = 'ACOREAccounting',  SECRET = 'cv9ftqVc?BtxbCS'
+CREATE DATABASE SCOPED CREDENTIAL CredentialAcoreFF  WITH IDENTITY = 'ACOREAccounting',  SECRET = '25t30239urong24ep21h!jfekzkj*)^'
 
 --CREATE EXTERNAL DATA SOURCE
 Create EXTERNAL DATA SOURCE RemoteReferenceDataFF 
 WITH 
 ( 
     TYPE=RDBMS, 
-    LOCATION='tcp:z70t9nlx1v.database.windows.net,1433', 
-    DATABASE_NAME='BackshopStaging', 
+    LOCATION='acore-sql-backshop-dev.database.windows.net', 
+    DATABASE_NAME='BackshopQA', 
     CREDENTIAL= CredentialAcoreFF 
 ); 
 
@@ -1841,15 +2229,15 @@ IF EXISTS(select [name] from sys.database_scoped_credentials where name = 'Crede
 --CREATE MASTER KEY ENCRYPTION BY PASSWORD = 'admin123*';
 
 --CREATE DATABASE SCOPED CREDENTIAL (Login: ACOREBackshopReader,pass: 2@chazuzEv&J)
-CREATE DATABASE SCOPED CREDENTIAL CredentialBSProd  WITH IDENTITY = 'ACOREAccounting',  SECRET = 'cv9ftqVc?BtxbCS'
+CREATE DATABASE SCOPED CREDENTIAL CredentialBSProd  WITH IDENTITY = 'ACOREAccounting',  SECRET = '25t30239urong24ep21h!jfekzkj*)^'
 
 --CREATE EXTERNAL DATA SOURCE
 Create EXTERNAL DATA SOURCE RemoteReferenceData_ReconHub 
 WITH 
 ( 
     TYPE=RDBMS, 
-    LOCATION='tcp:z70t9nlx1v.database.secure.windows.net', 
-    DATABASE_NAME='BackshopStaging', 
+    LOCATION='acore-sql-backshop-dev.database.windows.net', 
+    DATABASE_NAME='BackshopQA', 
     CREDENTIAL= CredentialBSProd 
 ); 
 
@@ -2146,8 +2534,11 @@ END
 IF (@CurrentDBName <> @DBName_Staging)
 BEGIN
 
-Print('Elastic query set up for: Import cres staging data in cres integration')
 
+
+Print('Elastic query set up for: Import cres staging data in cres integration')
+IF(1=1)
+Begin
 IF EXISTS(select name from sys.external_tables where name = 'Ex_Staging_Account')
 	DROP EXTERNAL TABLE [dbo].[Ex_Staging_Account]
 IF EXISTS(select name from sys.external_tables where name = 'Ex_Staging_Note')
@@ -2801,6 +3192,13 @@ WITH
 
 END
 
+update cre.WFNotificationMasterEmail set EmailID=replace(EmailID,'winthropcm.com','mailinator.com')
+update cre.WFNotificationMasterEmail set EmailID=replace(EmailID,'harel-ins.co.il','mailinator.com')
+update cre.WFNotificationMasterEmail set EmailID=replace(EmailID,'harel.ins.co.il','mailinator.com')
+
+
+END
+
 
 Delete from app.emailnotification where emailid = 'schandak@hvantage.com' and moduleid = 707
 Delete from app.emailnotification where emailid = 'support@m61systems.com' and moduleid = 781
@@ -2857,6 +3255,70 @@ Update app.[user] set StatusID = 1 where [login] in ('Pam' , 'sam', 'amo', 'tier
 update app.AppConfig set [Value]=0 where [Key] in ('AllowWFInternalNotification','AllowDrawFeeAMEmail')
 
 
+Update app.[user] set email = Replace(Email,'acorecapital.com','mailinator.com') where Email in (Select EmailId from app.emailnotification where EmailId like '%@acore%')
+Update app.EmailNotification set EmailID = Replace(EmailID,'acorecapital.com','mailinator.com')  where EmailId like '%@acore%'
+Update app.[user] set email = Replace(Email,'acorecapital.com','mailinator.com') where Email like '%@acore%'
+
+Update app.EmailNotification set EmailID = Replace(EmailID,'berkadia.com','mailinator.com')
+
+
+
+	--mask additional email in workflow with mailination
+	declare @temp as table
+	(
+	WFTaskAdditionalDetailid int ,
+	additionalemail nvarchar(1000)
+	)
+	insert into @temp
+	select
+	WFTaskAdditionalDetailid,
+	REplace(Email,substring(Email,charindex('@',Email),charindex('.com',Email)-charindex('@',Email)),'@mailinator')
+
+	--Email,
+	--Len(Email)
+	from 
+	(
+	SELECT A.WFTaskAdditionalDetailid,  
+		 Split.a.value('.', 'VARCHAR(100)') AS Email
+	FROM  
+	(
+		SELECT additionalemail, WFTaskAdditionalDetailid, 
+			 CAST ('<M>' + REPLACE(additionalemail, ',', '</M><M>') + '</M>' AS XML) AS CVS  
+		FROM  cre.WFTaskAdditionalDetail where isnull(additionalemail,'') <>''
+	) AS A CROSS APPLY CVS.nodes ('/M') AS Split(a)
+	where WFTaskAdditionalDetailid not in  ( 428189,428300,428441,428539,428605,
+												432110,
+												432256,
+												429647,
+												432255,
+												429655,
+												429723,
+												429882
+												)
+	) tbl
+
+	update cre.WFTaskAdditionalDetail set cre.WFTaskAdditionalDetail.AdditionalEmail=tbl1.additionalemail
+	from
+	(
+	SELECT WFTaskAdditionalDetailid, additionalemail = 
+		STUFF((SELECT ', ' + additionalemail
+			   FROM @temp b 
+			   WHERE b.WFTaskAdditionalDetailid = a.WFTaskAdditionalDetailid 
+			  FOR XML PATH('')), 1, 2, '')
+	FROM @temp a
+	GROUP BY WFTaskAdditionalDetailid
+	) tbl1
+	where cre.WFTaskAdditionalDetail.WFTaskAdditionalDetailID=tbl1.WFTaskAdditionalDetailid
+
+
+	---upgrade below users to Super Admin role
+	UPDATE [App].[UserRoleMap]
+   SET [RoleID] = '584B6F94-1028-4AD3-83EB-FEB3F031B07A'
+      ,[StatusID] = 1    
+      ,[UpdatedDate] = GETDATE()
+	WHERE UserRoleMapID in (Select UserRoleMapID from [App].[UserRoleMap] where userid in (select UserID from app.[user] where [login] in ('rtran','aaguilar','elee','bbarron','schang')))
+
+ 
 END
 
 
@@ -2865,7 +3327,7 @@ BEGIN
 	---======================================================
 
 	Update app.[user] set login = 'admin_qa' where login in ('admin_integration','admin_acore')
-	Update app.appconfig set [Value] = 0 where [Key] in ('AllowDebugInCalc', 'AllowBackshopFF','AllowBackshopPIKPrincipal','AllowFFDeleteFromM61andBackshop','AllowWFInternalNotification','AllowYieldConfigData','AllowDrawFeeAMEmail')
+	Update app.appconfig set [Value] = 0 where [Key] in ('AllowDebugInCalc', 'AllowBackshopFF','AllowBackshopPIKPrincipal','AllowFFDeleteFromM61andBackshop','AllowWFInternalNotification','AllowYieldConfigData','AllowDrawFeeAMEmail','AllowDealAutomation','UseDynamicsForInvoice','CalculateXIRRAfterDealSave')
 
 	Delete from app.[Emailnotification] where emailid = '%acoreaccounting%'
 
@@ -2877,7 +3339,11 @@ BEGIN
 
 	Update app.EmailNotification set EmailID = Replace(EmailID,'acorecapital.com','mailinator.com') 
 	Update app.[user] set email = Replace(Email,'acorecapital.com','mailinator.com')
-	Update app.[user] set [Password] = '8cf119d3deb242fc73bc25c226443b54' where [Login] = 'admin_qa'
+
+	Update app.EmailNotification set EmailID = Replace(EmailID,'statestreet.com','mailinator.com') 
+	Update app.[user] set email = Replace(Email,'statestreet.com','mailinator.com')
+	
+	---Update app.[user] set [Password] = '8cf119d3deb242fc73bc25c226443b54' where [Login] = 'admin_qa'
 
 	update app.reportfile set [Status]=1 where ReportFileID=10
 
@@ -2950,8 +3416,11 @@ BEGIN
 	INSERT INTO [CRE].[WFNotificationMasterEmail] (ClientID,ParentClient,LookupID,EmailID) Values( 8,'Delphi Fixed',605,'capitalcall@mailinator.com')
 
 	Update [CRE].[Servicer] set EmailID = 'missing@mailinator.com' 
-	Update [CRE].[Servicer] set EmailID = 'WFfundingnotice@mailinator.com' where ServicerName = 'Wells Fargo Bank'
-	Update [CRE].[Servicer] set EmailID = 'Berkadiafundingnotice@mailinator.com' where ServicerName = 'Berkadia Commercial Mortgage'
+	Update [CRE].[Servicer] set EmailID = 'Trimontfundingnotice@mailinator.com' where ServicerName = 'Wells Fargo Bank'
+	Update [CRE].[Servicer] set EmailID = 'Berkadiafundingnotice@mailinator.com,sgnotices@mailinator.com,donna.reif@mailinator.com' where ServicerName = 'Berkadia Commercial Mortgage'
+
+	Update [CRE].[Servicer] set EmailID = Replace(EmailID,'acorecapital.com','mailinator.com') 
+	Update [CRE].[Servicer] set EmailID = Replace(EmailID,'cms.trimont.com','mailinator.com') 
 	--=====================================================================
 
 
@@ -3064,8 +3533,8 @@ BEGIN
 		insert into app.emailnotification (EmailId,ModuleId,Status) select 'ar@mailinator.com',703,1
 
 	Update app.EmailNotification set EmailID = Replace(EmailID,'acorecapital.com','mailinator.com') 
-
-
+	Update app.EmailNotification set EmailID = Replace(EmailID,'statestreet.com','mailinator.com') 
+	
 
 	Delete from app.EmailNotification where moduleid = 363
 	INSERT INTO app.EmailNotification(EmailId,ModuleId,Status)VALUES('vbalapure@hvantage.com',363,1)
@@ -3195,7 +3664,9 @@ BEGIN
 	Truncate table CRE.TransactionEntryClose
 	--Truncate table CRE.TransactionEntry
 	--Truncate table CRE.NotePeriodicCalc	
-	
+
+	Truncate table CRE.DailyGAAPBasisComponents
+	Truncate table dW.NotePeriodicCalcByEntityBI_All
 
 	Print ('Truncate warehouse table data')
 	Print ('DB Refresh QA - Done')
@@ -3206,15 +3677,35 @@ BEGIN
 		Select UserID from app.[user] Where login in ('PAM','SAM','AMO','tier1','tier2')
 	)
 
+
+	Update cre.InvoiceDetail set Email1= 'rsahu@mailinator.com'
+	Update [App].[AppConfig] set [value] = 0 where [Key] = 'AllowSponsorDetailFromBackshop'
+	Update core.AnalysisParameter set AllowCalcAlongWithDefault = 4 where analysisid <> 'C10F3372-0FC2-4861-A9F5-148F1F80804F'
+	
+	---set automate used to superadmin
+	Update app.userrolemap set RoleID = '584B6F94-1028-4AD3-83EB-FEB3F031B07A' where userid = '822001E5-A6A9-4F7B-AC45-43913B860830'
+
+	
+	Update app.EmailNotification set EmailID = Replace(EmailID,'berkadia.com','mailinator.com') where EmailID like '%berkadia%'
+
+	Update app.appconfig set [value] = 1 where [key] = 'StopV1NoteCalculation'
+
+
+	Update  [VAL].[Configuration] Set [Value] = 'https://qacres5calculator.azurewebsites.net/'  Where env = 'qa'  and [Key]='Service_URL'
+
 END
 
 IF(@CurrentDBName = @DBName_Integration)
 BEGIN
     --Update login in app.[user] table
-	Update app.[user] set login = 'admin_integration' where login in ( 'admin_staging', 'admin_acore')
+	Update app.[user] set login = 'admin_integration',[Password] = 'f225999720b317e32fa0ffac27b84269' where login in ( 'admin_staging', 'admin_acore')
 	Delete from app.EmailNotification where EmailId like '%acorecapital.com%'
-	Update app.appconfig set [Value] = 0 where [Key] in ('AllowDebugInCalc', 'AllowBackshopFF','AllowBackshopPIKPrincipal','AllowFFDeleteFromM61andBackshop','AllowYieldConfigData')
+	Update app.appconfig set [Value] = 0 where [Key] in ('AllowBackshopFF','AllowBackshopPIKPrincipal','AllowDebugInCalc','AllowFFDeleteFromM61andBackshop','AllowYieldConfigData','AllowDealAutomation','AllowDealAutomation','UseDynamicsForInvoice','CalculateXIRRAfterDealSave')  ---, 'AllowBackshopFF','AllowBackshopPIKPrincipal',
 	
+	Update app.appconfig set [Value] = 1 where [Key] in ('AllowBackshopFF','AllowBackshopPIKPrincipal')
+	Update app.appconfig set [Value] = 1 where [key] = 'AllowBasicLogin'
+	Update app.appconfig SET [value] = 'https://integrationcres4.azurewebsites.net/' where [key] = 'M61BaseUrl'
+
 	--'AllowWFInternalNotification','AllowDrawFeeAMEmail'
 
 	update app.reportfile set [Status]=1 where ReportFileID=10
@@ -3278,10 +3769,18 @@ BEGIN
 		insert into app.emailnotification (EmailId,ModuleId,Status) select 'ar@mailinator.com',703,1
 	--===============================================================================================
 
-	Update [CRE].[Servicer] set EmailID = 'WFfundingnotice@mailinator.com' where ServicerName = 'Wells Fargo Bank'
-	Update [CRE].[Servicer] set EmailID = 'Berkadiafundingnotice@mailinator.com' where ServicerName = 'Berkadia Commercial Mortgage'
+	Update [CRE].[Servicer] set EmailID = 'Trimontfundingnotice@mailinator.com' where ServicerName = 'Wells Fargo Bank'
+	Update [CRE].[Servicer] set EmailID = 'Berkadiafundingnotice@mailinator.com,sgnotices@mailinator.com,donna.reif@mailinator.com' where ServicerName = 'Berkadia Commercial Mortgage'
+	Update [CRE].[Servicer] set EmailID = Replace(EmailID,'acorecapital.com','mailinator.com') 
+	Update [CRE].[Servicer] set EmailID = Replace(EmailID,'cms.trimont.com','mailinator.com') 
+
+
+
 
 	Update cre.WFNotificationMasterEmail set EmailID = Replace(EmailID,'acorecapital.com','mailinator.com')
+	Update cre.WFNotificationMasterEmail set EmailID = Replace(EmailID,'statestreet.com','mailinator.com')
+	--vishal1111
+	Update app.EmailNotification set EmailID = Replace(EmailID,'statestreet.com','mailinator.com') 
 
 	Update app.EmailNotification  set EmailID = 'amfinancialcontrols@mailinator.com' where ModuleId=614
 	
@@ -3333,21 +3832,256 @@ BEGIN
 	Where UserID in (
 		Select UserID from app.[user] Where login in ('PAM','SAM','AMO','tier1','tier2')
 	)
+			update app.[User] set email='jennis@acorecapital.com' where email='jennis@acorecapital.com'
+			update app.[User] set email='dgrocholski@acorecapital.com' where email='dgrocholski@acorecapital.com'
 
+			update app.EmailNotification set emailid='jennis@acorecapital.com' where emailid='jennis@mailinator.com'
+			update app.EmailNotification set emailid='dgrocholski@acorecapital.com' where emailid='dgrocholski@mailinator.com'
+			
+			
+			update app.QuickBookCompany 
+			set [name]='ACORE Capital, LP',
+			EndPointID='5f77ec5a02044978a8180f5fe4ae42d4',
+			AutofyCompanyID='c545f760592941d7a98a3f33a7011dc8'
+
+			update app.QuickBookCustomer set CompanyName='ACORE Capital, LP'
+
+			update app.QuickBookUser 
+			set AgentToken='TWDRQX1H599AE6YMOMAAZAHBL6XI',
+			CompanyId='ACORE Capital, LP',
+			ID='43513c9b6bcd4b7e8ea0e1214266af3b'
+
+		update cre.WFNotificationMasterEmail set EmailID=replace(EmailID,'winthropcm.com','mailinator.com')
+		update cre.WFNotificationMasterEmail set EmailID=replace(EmailID,'harel-ins.co.il','mailinator.com')
+		update cre.WFNotificationMasterEmail set EmailID=replace(EmailID,'harel.ins.co.il','mailinator.com')
 	
+
+		
+		Update app.EmailNotification SET EmailId = REPLACE(EmailId,'acorecapital.com','mailinator.com') where EmailId like '%acorecapital.com%'
+
+		-----Take backup of FF data for deal save automation using API
+		if exists (select * from sys.objects where name = 'Backup_FF_API_Test' and type = 'u')
+		drop table  [CRE].[Backup_FF_API_Test]
+
+		CREATE TABLE [CRE].[Backup_FF_API_Test] (
+		NoteID UNIQUEIDENTIFIER   NULL,
+		CRENoteID nvarchar(256) null,
+		TransactionDate Date null,
+		Amount decimal(28,15)  NULL,
+		WireConfirm bit null,
+		PurposeBI nvarchar(256) null,
+		DrawFundingID nvarchar(256) null,
+		Comments nvarchar(max) null,
+		CreatedBy 	nvarchar(256) NULL,
+		CreatedDate 	datetime ,
+		UpdatedBy 	nvarchar(256) NULL,
+		UpdatedDate 	datetime 
+		);
+
+
+		CREATE INDEX index_Backup_FF_API_Test_NoteID ON [CRE].[Backup_FF_API_Test] (NoteID,CRENoteID)
+
+		INSERT INTO [CRE].[Backup_FF_API_Test]
+		([NoteID]
+		,[CRENoteID]
+		,[TransactionDate]
+		,[WireConfirm]
+		,[PurposeBI]
+		,[Amount]
+		,[DrawFundingID]
+		,[Comments]
+		,[CreatedBy]
+		,[CreatedDate]
+		,[UpdatedBy] 
+		,[UpdatedDate] )
+
+		Select  
+		n.NoteID
+		,n.crenoteid as crenoteid
+		,fs.[Date] as [TransactionDate]
+		,fs.Applied as [WireConfirm]
+		,LPurposeID.Name as [PurposeBI]
+		,fs.Value as [Amount]
+		,fs.DrawFundingId as [DrawFundingID]
+		,fs.Comments as [Comments]
+		,fs.[CreatedBy]
+		,fs.[CreatedDate]
+		,fs.[UpdatedBy] 
+		,fs.[UpdatedDate] 
+		from CORE.FundingSchedule fs
+		INNER JOIN CORE.Event e on e.EventID = fs.EventId
+		INNER JOIN 
+		(						
+			Select 
+			(Select AccountID from CORE.Account ac where ac.AccountID = ns.Account_AccountID) AccountID ,
+			MAX(EffectiveStartDate) EffectiveStartDate,EventTypeID ,eve.StatusID
+			from CORE.Event eve
+			INNER JOIN CRE.Note ns ON ns.Account_AccountID = eve.AccountID
+			INNER JOIN CORE.Account acc ON acc.AccountID = ns.Account_AccountID
+			where EventTypeID = (Select LookupID from CORE.[Lookup] where Name = 'FundingSchedule')
+			--and ns.NoteID = @NoteId  
+			and acc.IsDeleted = 0
+			and eve.StatusID = (Select LookupID from Core.Lookup where name = 'Active' and ParentID = 1)
+			GROUP BY ns.Account_AccountID,EventTypeID,eve.StatusID
+		) sEvent
+
+		ON sEvent.AccountID = e.AccountID and e.EffectiveStartDate = sEvent.EffectiveStartDate  and e.EventTypeID = sEvent.EventTypeID
+
+		left JOIN [Core].[Lookup] LPurposeID ON LPurposeID.LookupID = fs.PurposeID 
+		INNER JOIN CORE.Account acc ON acc.AccountID = e.AccountID
+		INNER JOIN CRE.Note n ON n.Account_AccountID = acc.AccountID
+		where sEvent.StatusID = e.StatusID  and acc.IsDeleted = 0
+
+
+
+
+		Truncate table CRE.DailyGAAPBasisComponents	
+		Truncate table DW.DailyInterestAccrualsBI	
+		Truncate table CRE.TransactionEntryClose	
+		Truncate table DW.InterestCalculatorBI	
+		Truncate table DW.Staging_IntegartionCashFlowBI
+		Truncate table DW.EventBasedBalanceBI
+
+		Update cre.InvoiceDetail set Email1= 'rsahu@mailinator.com'
+		Update [App].[AppConfig] set [value] = 0 where [Key] = 'AllowSponsorDetailFromBackshop'
+		Update core.AnalysisParameter set AllowCalcAlongWithDefault = 4 where analysisid <> 'C10F3372-0FC2-4861-A9F5-148F1F80804F'
+
+		---set automate used to superadmin
+		Update app.userrolemap set RoleID = '584B6F94-1028-4AD3-83EB-FEB3F031B07A' where userid = '822001E5-A6A9-4F7B-AC45-43913B860830'
+
+		---Anastasia Slipka and Merve Gurbanli should be made Assest Manager and Yoon Costello should be upgraded to Super Admin.
+		Update app.userrolemap set RoleID = 'AAEE9C2A-6ADF-40D4-AECD-2E2C3B6645AB' where userid in (select userid from app.[user] where [login] in ('aaslipka','mgurbanli'))  --assetMgr
+		Update app.userrolemap set RoleID = '584B6F94-1028-4AD3-83EB-FEB3F031B07A' where userid in (select userid from app.[user] where [login] in ('ycostello'))  --SuperAdmin
+
+		Update app.EmailNotification set EmailID = Replace(EmailID,'berkadia.com','mailinator.com') where EmailID like '%berkadia%'
+
+		Update app.appconfig set [value] = 0 where [key] = 'StopV1NoteCalculation'
+
+		---Add extra user
+		exec [App].[usp_AddUpdateUser] '00000000-0000-0000-0000-000000000000','Easwar','Ayyar','easwar@hvantage.com','easwar','6026a8afe0e53574fe0149119b8a9009',null,1,'584B6F94-1028-4AD3-83EB-FEB3F031B07A',null,'335735a9-cdfe-4e22-9a3f-8adb3d9b931a','Central Standard Time'
+
+
+
+		------Report script-------------
+
+		update [App].[ReportFile] set reporttype='Acore' where reportFileFormat is not null
+		--here
+		--update reportfile table for power bi for integration db- 
+		delete from [App].[ReportFile] where ReportType='PowerBI' and ReportFileFormat is null
+ 
+		if not exists(select 1 from [App].[ReportFile] where ReportFileName='Accounting Reconciliation' and  TenantId='77be5eb1-c09a-4093-b65b-a73ae39864d9' and GroupId='9aaec036-ce37-4fbd-98f4-7737e1c6f89f')
+		begin
+		insert into [App].[ReportFile](ReportFileName,ReportFileGUID,ReportType,TenantId,GroupId)
+		values('Accounting Reconciliation','183ce580-6338-42c3-bec4-52849864acb4','PowerBI','77be5eb1-c09a-4093-b65b-a73ae39864d9','9aaec036-ce37-4fbd-98f4-7737e1c6f89f')
+		end
+
+		if not exists(select 1 from [App].[ReportFile] where ReportFileName='ACORE Capital Reconciliation Report' and  TenantId='77be5eb1-c09a-4093-b65b-a73ae39864d9' and GroupId='9aaec036-ce37-4fbd-98f4-7737e1c6f89f')
+		begin
+		insert into [App].[ReportFile](ReportFileName,ReportFileGUID,ReportType,TenantId,GroupId)
+		values('ACORE Capital Reconciliation Report','2bc2264f-f8ef-4581-a758-ed9084aaf0ce','PowerBI','77be5eb1-c09a-4093-b65b-a73ae39864d9','9aaec036-ce37-4fbd-98f4-7737e1c6f89f')
+		end
+		if not exists(select 1 from [App].[ReportFile] where ReportFileName='Additional Loan Calcs report' and  TenantId='77be5eb1-c09a-4093-b65b-a73ae39864d9' and GroupId='9aaec036-ce37-4fbd-98f4-7737e1c6f89f')
+		begin
+		insert into [App].[ReportFile](ReportFileName,ReportFileGUID,ReportType,TenantId,GroupId)
+		values('Additional Loan Calcs report','875d73d3-bba6-420b-a10e-337cc5db9cbf','PowerBI','77be5eb1-c09a-4093-b65b-a73ae39864d9','9aaec036-ce37-4fbd-98f4-7737e1c6f89f')
+		end
+		if not exists(select 1 from [App].[ReportFile] where ReportFileName='AM Reports' and  TenantId='77be5eb1-c09a-4093-b65b-a73ae39864d9' and GroupId='9aaec036-ce37-4fbd-98f4-7737e1c6f89f')
+		begin
+		insert into [App].[ReportFile](ReportFileName,ReportFileGUID,ReportType,TenantId,GroupId)
+		values('AM Reports','43586c17-0b9f-4ae4-a0dd-9d2b1288bcea','PowerBI','77be5eb1-c09a-4093-b65b-a73ae39864d9','9aaec036-ce37-4fbd-98f4-7737e1c6f89f')
+		end
+
+		if not exists(select 1 from [App].[ReportFile] where ReportFileName='Balance Roll' and  TenantId='77be5eb1-c09a-4093-b65b-a73ae39864d9' and GroupId='9aaec036-ce37-4fbd-98f4-7737e1c6f89f')
+		begin
+		insert into [App].[ReportFile](ReportFileName,ReportFileGUID,ReportType,TenantId,GroupId)
+		values('Balance Roll','6d2beb6c-b478-403b-9d50-7c01af948589','PowerBI','77be5eb1-c09a-4093-b65b-a73ae39864d9','9aaec036-ce37-4fbd-98f4-7737e1c6f89f')
+		end
+		if not exists(select 1 from [App].[ReportFile] where ReportFileName='Discrepancy Report' and  TenantId='77be5eb1-c09a-4093-b65b-a73ae39864d9' and GroupId='9aaec036-ce37-4fbd-98f4-7737e1c6f89f')
+		begin
+		insert into [App].[ReportFile](ReportFileName,ReportFileGUID,ReportType,TenantId,GroupId)
+		values('Discrepancy Report','52fb413f-7d41-4f27-bf64-7f8cd0ccbbc1','PowerBI','77be5eb1-c09a-4093-b65b-a73ae39864d9','9aaec036-ce37-4fbd-98f4-7737e1c6f89f')
+		end
+		if not exists(select 1 from [App].[ReportFile] where ReportFileName='Fee Schedule Report' and  TenantId='77be5eb1-c09a-4093-b65b-a73ae39864d9' and GroupId='9aaec036-ce37-4fbd-98f4-7737e1c6f89f')
+		begin
+		insert into [App].[ReportFile](ReportFileName,ReportFileGUID,ReportType,TenantId,GroupId)
+		values('Fee Schedule Report','af4ddc8e-9fce-4ae1-9dcf-e81e9a012a4d','PowerBI','77be5eb1-c09a-4093-b65b-a73ae39864d9','9aaec036-ce37-4fbd-98f4-7737e1c6f89f')
+		end
+		if not exists(select 1 from [App].[ReportFile] where ReportFileName='LIBOR SOFR Index Tracker' and  TenantId='77be5eb1-c09a-4093-b65b-a73ae39864d9' and GroupId='9aaec036-ce37-4fbd-98f4-7737e1c6f89f')
+		begin
+		insert into [App].[ReportFile](ReportFileName,ReportFileGUID,ReportType,TenantId,GroupId)
+		values('LIBOR SOFR Index Tracker','c782f478-d5c2-4384-929c-7c59b6031595','PowerBI','77be5eb1-c09a-4093-b65b-a73ae39864d9','9aaec036-ce37-4fbd-98f4-7737e1c6f89f')
+		end
+		if not exists(select 1 from [App].[ReportFile] where ReportFileName='M61 Principal Export' and  TenantId='77be5eb1-c09a-4093-b65b-a73ae39864d9' and GroupId='9aaec036-ce37-4fbd-98f4-7737e1c6f89f')
+		begin
+		insert into [App].[ReportFile](ReportFileName,ReportFileGUID,ReportType,TenantId,GroupId)
+		values('M61 Principal Export','cb93dcf7-5727-41ed-bf82-2569b85eeb5b','PowerBI','77be5eb1-c09a-4093-b65b-a73ae39864d9','9aaec036-ce37-4fbd-98f4-7737e1c6f89f')
+		end
+		if not exists(select 1 from [App].[ReportFile] where ReportFileName='Note Cap Rec Tool' and  TenantId='77be5eb1-c09a-4093-b65b-a73ae39864d9' and GroupId='9aaec036-ce37-4fbd-98f4-7737e1c6f89f')
+		begin
+		insert into [App].[ReportFile](ReportFileName,ReportFileGUID,ReportType,TenantId,GroupId)
+		values('Note Cap Rec Tool','cf776896-7449-4b39-bd20-f723ba7510cf','PowerBI','77be5eb1-c09a-4093-b65b-a73ae39864d9','9aaec036-ce37-4fbd-98f4-7737e1c6f89f')
+		end
+		if not exists(select 1 from [App].[ReportFile] where ReportFileName='Note Funding Rules' and  TenantId='77be5eb1-c09a-4093-b65b-a73ae39864d9' and GroupId='9aaec036-ce37-4fbd-98f4-7737e1c6f89f')
+		begin
+		insert into [App].[ReportFile](ReportFileName,ReportFileGUID,ReportType,TenantId,GroupId)
+		values('Note Funding Rules','97cee224-a0ba-4db1-87e4-d4fcad45952c','PowerBI','77be5eb1-c09a-4093-b65b-a73ae39864d9','9aaec036-ce37-4fbd-98f4-7737e1c6f89f')
+		end
+		if not exists(select 1 from [App].[ReportFile] where ReportFileName='Note Matrix Comparison Report' and  TenantId='77be5eb1-c09a-4093-b65b-a73ae39864d9' and GroupId='9aaec036-ce37-4fbd-98f4-7737e1c6f89f')
+		begin
+		insert into [App].[ReportFile](ReportFileName,ReportFileGUID,ReportType,TenantId,GroupId)
+		values('Note Matrix Comparison Report','64808a3a-1dd9-43ac-91a1-720e8d59841f','PowerBI','77be5eb1-c09a-4093-b65b-a73ae39864d9','9aaec036-ce37-4fbd-98f4-7737e1c6f89f')
+		end
+
+		if not exists(select 1 from [App].[ReportFile] where ReportFileName='Property Level Details' and  TenantId='77be5eb1-c09a-4093-b65b-a73ae39864d9' and GroupId='9aaec036-ce37-4fbd-98f4-7737e1c6f89f')
+		begin
+		insert into [App].[ReportFile](ReportFileName,ReportFileGUID,ReportType,TenantId,GroupId)
+		values('Property Level Details','9bc54829-2eb8-4a74-873e-333fd4e11b7a','PowerBI','77be5eb1-c09a-4093-b65b-a73ae39864d9','9aaec036-ce37-4fbd-98f4-7737e1c6f89f')
+		end
+		if not exists(select 1 from [App].[ReportFile] where ReportFileName='QB - AM Fee Details' and  TenantId='77be5eb1-c09a-4093-b65b-a73ae39864d9' and GroupId='9aaec036-ce37-4fbd-98f4-7737e1c6f89f')
+		begin
+		insert into [App].[ReportFile](ReportFileName,ReportFileGUID,ReportType,TenantId,GroupId)
+		values('QB - AM Fee Details','1fcd072e-7ed9-4d99-beb7-519f09a88d1f','PowerBI','77be5eb1-c09a-4093-b65b-a73ae39864d9','9aaec036-ce37-4fbd-98f4-7737e1c6f89f')
+		end
+		if not exists(select 1 from [App].[ReportFile] where ReportFileName='Rate Spread Schedule' and  TenantId='77be5eb1-c09a-4093-b65b-a73ae39864d9' and GroupId='9aaec036-ce37-4fbd-98f4-7737e1c6f89f')
+		begin
+		insert into [App].[ReportFile](ReportFileName,ReportFileGUID,ReportType,TenantId,GroupId)
+		values('Rate Spread Schedule','2274622c-116b-45ad-b6c6-dac228f85187','PowerBI','77be5eb1-c09a-4093-b65b-a73ae39864d9','9aaec036-ce37-4fbd-98f4-7737e1c6f89f')
+		end
+		if not exists(select 1 from [App].[ReportFile] where ReportFileName='Unfunded Commitment' and  TenantId='77be5eb1-c09a-4093-b65b-a73ae39864d9' and GroupId='9aaec036-ce37-4fbd-98f4-7737e1c6f89f')
+		begin
+		insert into [App].[ReportFile](ReportFileName,ReportFileGUID,ReportType,TenantId,GroupId)
+		values('Unfunded Commitment','33744298-4edb-430a-8da3-b3a5113cdf01','PowerBI','77be5eb1-c09a-4093-b65b-a73ae39864d9','9aaec036-ce37-4fbd-98f4-7737e1c6f89f')
+		end
+
+		if not exists(select 1 from [App].[ReportFile] where ReportFileName='M61 Data Tape' and  TenantId='77be5eb1-c09a-4093-b65b-a73ae39864d9' and GroupId='9aaec036-ce37-4fbd-98f4-7737e1c6f89f')
+		begin
+		insert into [App].[ReportFile](ReportFileName,ReportFileGUID,ReportType,TenantId,GroupId)
+		values('M61 Data Tape','8b7d7c4a-2d0f-477b-84cc-fa10a585bed4','PowerBI','77be5eb1-c09a-4093-b65b-a73ae39864d9','9aaec036-ce37-4fbd-98f4-7737e1c6f89f')
+		end
+		-------------------------
+
 
 END
 
 IF(@CurrentDBName = @DBName_Staging)
 BEGIN
 
-	Update app.[user] set login = 'admin_staging' where login = 'admin_acore'
-	Update app.appconfig set [Value] = 0 where [Key] in ('AllowDebugInCalc', 'AllowBackshopFF','AllowBackshopPIKPrincipal','AllowFFDeleteFromM61andBackshop','AllowWFInternalNotification','AllowYieldConfigData','AllowDrawFeeAMEmail')
+	Update app.[user] set login = 'admin_staging',[Password] = 'f225999720b317e32fa0ffac27b84269' where login = 'admin_acore'
+	Update app.appconfig set [Value] = 0 where [Key] in ('AllowDebugInCalc', 'AllowBackshopFF','AllowBackshopPIKPrincipal','AllowFFDeleteFromM61andBackshop','AllowWFInternalNotification','AllowYieldConfigData','AllowDrawFeeAMEmail','AllowDealAutomation','UseDynamicsForInvoice','CalculateXIRRAfterDealSave')
+	Update app.appconfig set [Value] = 1 where [key] = 'AllowBasicLogin'
 	--======================================================================================
 	Print('Set workflow email as mailinator')
-	Update [CRE].[Servicer] set EmailID = 'WFfundingnotice@mailinator.com' where ServicerName = 'Wells Fargo Bank'
-	Update [CRE].[Servicer] set EmailID = 'Berkadiafundingnotice@mailinator.com' where ServicerName = 'Berkadia Commercial Mortgage'
+	Update [CRE].[Servicer] set EmailID = 'Trimontfundingnotice@mailinator.com' where ServicerName = 'Wells Fargo Bank'
+	Update [CRE].[Servicer] set EmailID = 'Berkadiafundingnotice@mailinator.com,sgnotices@mailinator.com,donna.reif@mailinator.com' where ServicerName = 'Berkadia Commercial Mortgage'
+	Update [CRE].[Servicer] set EmailID = Replace(EmailID,'acorecapital.com','mailinator.com') 
+	Update [CRE].[Servicer] set EmailID = Replace(EmailID,'cms.trimont.com','mailinator.com') 
+	--====================
+
+
+
 	Update cre.WFNotificationMasterEmail set EmailID = Replace(EmailID,'acorecapital.com','mailinator.com')
+	Update cre.WFNotificationMasterEmail set EmailID = Replace(EmailID,'statestreet.com','mailinator.com')
+	
 	Update app.EmailNotification  set EmailID = 'amfinancialcontrols@mailinator.com' where ModuleId=614
 	update app.reportfile set [Status]=1 where ReportFileID=10
 	--======================================================================================
@@ -3376,6 +4110,9 @@ BEGIN
 	Truncate table DW.DailyInterestAccrualsBI
 	Truncate table CRE.TransactionEntryClose
 	Truncate table [DW].Staging_IntegartionCashFlowBI
+
+	Truncate table CRE.DailyGAAPBasisComponents		
+	Truncate table DW.InterestCalculatorBI	
 	--==========================
 	--IF EXISTS(SELECT ROUTINE_NAME  FROM INFORMATION_SCHEMA.ROUTINES  WHERE ROUTINE_TYPE = 'PROCEDURE' and ROUTINE_NAME = 'usp_DeltaJob')
 	--	DROP PROCEDURE [DW].[usp_DeltaJob]
@@ -3464,17 +4201,25 @@ BEGIN
 	Where UserID in (
 		Select UserID from app.[user] Where login in ('PAM','SAM','AMO','tier1','tier2')
 	)
+
+	Update cre.InvoiceDetail set Email1= 'rsahu@mailinator.com'
+	Update [App].[AppConfig] set [value] = 0 where [Key] = 'AllowSponsorDetailFromBackshop'
+	Update core.AnalysisParameter set AllowCalcAlongWithDefault = 4 where analysisid <> 'C10F3372-0FC2-4861-A9F5-148F1F80804F'
+
+	Update app.EmailNotification set EmailID = Replace(EmailID,'berkadia.com','mailinator.com') where EmailID like '%berkadia%'
+
+	Update app.appconfig set [value] = 0 where [key] = 'StopV1NoteCalculation'
 END
 
 IF(@CurrentDBName = @DBName_Dev)
 BEGIN
     --Update login in app.[user] table
-	Update app.[user] set login = 'admin_dev' where login in ( 'admin_staging', 'admin_acore', 'admin_integration')
+	Update app.[user] set login = 'admin_dev',[Password] = 'f225999720b317e32fa0ffac27b84269' where login in ( 'admin_staging', 'admin_acore', 'admin_integration')
 
 	Delete from app.EmailNotification where EmailId like '%acorecapital.com%'
-	Update app.appconfig set [Value] = 0 where [Key] in ('AllowDebugInCalc', 'AllowBackshopFF','AllowBackshopPIKPrincipal','AllowFFDeleteFromM61andBackshop','AllowWFInternalNotification','AllowYieldConfigData','AllowDrawFeeAMEmail')
+	Update app.appconfig set [Value] = 0 where [Key] in ('AllowDebugInCalc', 'AllowBackshopFF','AllowBackshopPIKPrincipal','AllowFFDeleteFromM61andBackshop','AllowWFInternalNotification','AllowYieldConfigData','AllowDrawFeeAMEmail','AllowDealAutomation','UseDynamicsForInvoice','CalculateXIRRAfterDealSave')
 	update app.reportfile set [Status]=1 where ReportFileID=10
-
+	Update app.appconfig set [Value] = 1 where [key] = 'AllowBasicLogin'
 	--================================================
 	delete from app.emailnotification  where moduleid in (606,617,552,614)
 	--first draw approver
@@ -3534,12 +4279,16 @@ BEGIN
 	--===============================================================================================
 
 
-	Update [CRE].[Servicer] set EmailID = 'WFfundingnotice@mailinator.com' where ServicerName = 'Wells Fargo Bank'
-	Update [CRE].[Servicer] set EmailID = 'Berkadiafundingnotice@mailinator.com' where ServicerName = 'Berkadia Commercial Mortgage'
+	Update [CRE].[Servicer] set EmailID = 'Trimontfundingnotice@mailinator.com' where ServicerName = 'Wells Fargo Bank'
+	Update [CRE].[Servicer] set EmailID = 'Berkadiafundingnotice@mailinator.com,sgnotices@mailinator.com,donna.reif@mailinator.com' where ServicerName = 'Berkadia Commercial Mortgage'
 	Update cre.WFNotificationMasterEmail set EmailID = Replace(EmailID,'acorecapital.com','mailinator.com')
+	Update cre.WFNotificationMasterEmail set EmailID = Replace(EmailID,'statestreet.com','mailinator.com')
+	
 	Update app.EmailNotification  set EmailID = 'amfinancialcontrols@mailinator.com' where ModuleId=614
 	Update app.[user] set password = 'f225999720b317e32fa0ffac27b84269' where login in ('pam', 'sam', 'amo', 'tier1', 'tier2')
 	Update [CRE].[Servicer] set EmailID = 'missing@mailinator.com' where EmailID is null
+	Update [CRE].[Servicer] set EmailID = Replace(EmailID,'acorecapital.com','mailinator.com') 
+	Update [CRE].[Servicer] set EmailID = Replace(EmailID,'cms.trimont.com','mailinator.com') 
 
 
 
@@ -3561,14 +4310,22 @@ BEGIN
 	Where UserID in (
 		Select UserID from app.[user] Where login in ('PAM','SAM','AMO','tier1','tier2')
 	)
+
+	Update cre.InvoiceDetail set Email1= 'rsahu@mailinator.com'
+	Update [App].[AppConfig] set [value] = 0 where [Key] = 'AllowSponsorDetailFromBackshop'
+	Update core.AnalysisParameter set AllowCalcAlongWithDefault = 4 where analysisid <> 'C10F3372-0FC2-4861-A9F5-148F1F80804F'
+
+	Update app.EmailNotification set EmailID = Replace(EmailID,'berkadia.com','mailinator.com') where EmailID like '%berkadia%'
+
+	Update app.appconfig set [value] = 1 where [key] = 'StopV1NoteCalculation'
 END
 
 IF(@CurrentDBName = @DBName_Alpha)
 BEGIN
 	---======================================================
 
-	Update app.[user] set login = 'admin_alpha' where login in ('admin_integration','admin_acore','admin_qa')
-	Update app.appconfig set [Value] = 0 where [Key] in ('AllowDebugInCalc', 'AllowBackshopFF','AllowBackshopPIKPrincipal','AllowFFDeleteFromM61andBackshop','AllowWFInternalNotification','AllowYieldConfigData','AllowDrawFeeAMEmail')
+	Update app.[user] set login = 'admin_alpha',[Password] = 'f225999720b317e32fa0ffac27b84269' where login in ('admin_integration','admin_acore','admin_qa')
+	Update app.appconfig set [Value] = 0 where [Key] in ('AllowDebugInCalc', 'AllowBackshopFF','AllowBackshopPIKPrincipal','AllowFFDeleteFromM61andBackshop','AllowWFInternalNotification','AllowYieldConfigData','AllowDrawFeeAMEmail','AllowDealAutomation','UseDynamicsForInvoice','CalculateXIRRAfterDealSave')
 
 	Delete from app.[Emailnotification] where emailid = '%acoreaccounting%'
 
@@ -3580,6 +4337,11 @@ BEGIN
 
 	Update app.EmailNotification set EmailID = Replace(EmailID,'acorecapital.com','mailinator.com') 
 	Update app.[user] set email = Replace(Email,'acorecapital.com','mailinator.com')
+
+	Update app.EmailNotification set EmailID = Replace(EmailID,'statestreet.com','mailinator.com') 
+	Update app.[user] set email = Replace(Email,'statestreet.com','mailinator.com')
+	
+
 	Update app.[user] set [Password] = '8cf119d3deb242fc73bc25c226443b54' where [Login] = 'admin_qa'
 
 	update app.reportfile set [Status]=1 where ReportFileID=10
@@ -3653,8 +4415,11 @@ BEGIN
 	INSERT INTO [CRE].[WFNotificationMasterEmail] (ClientID,ParentClient,LookupID,EmailID) Values( 8,'Delphi Fixed',605,'capitalcall@mailinator.com')
 
 	Update [CRE].[Servicer] set EmailID = 'missing@mailinator.com' 
-	Update [CRE].[Servicer] set EmailID = 'WFfundingnotice@mailinator.com' where ServicerName = 'Wells Fargo Bank'
-	Update [CRE].[Servicer] set EmailID = 'Berkadiafundingnotice@mailinator.com' where ServicerName = 'Berkadia Commercial Mortgage'
+	Update [CRE].[Servicer] set EmailID = 'Trimontfundingnotice@mailinator.com' where ServicerName = 'Wells Fargo Bank'
+	Update [CRE].[Servicer] set EmailID = 'Berkadiafundingnotice@mailinator.com,sgnotices@mailinator.com,donna.reif@mailinator.com' where ServicerName = 'Berkadia Commercial Mortgage'
+	Update [CRE].[Servicer] set EmailID = Replace(EmailID,'acorecapital.com','mailinator.com') 
+	Update [CRE].[Servicer] set EmailID = Replace(EmailID,'cms.trimont.com','mailinator.com') 
+
 	--=====================================================================
 
 
@@ -3762,8 +4527,8 @@ BEGIN
 
 
 	Update app.EmailNotification set EmailID = Replace(EmailID,'acorecapital.com','mailinator.com') 
-
-
+	Update app.EmailNotification set EmailID = Replace(EmailID,'statestreet.com','mailinator.com') 
+	
 
 	Delete from app.EmailNotification where moduleid = 363
 	INSERT INTO app.EmailNotification(EmailId,ModuleId,Status)VALUES('vbalapure@hvantage.com',363,1)
@@ -3889,10 +4654,10 @@ BEGIN
 	Truncate table DW.WFCheckListDetailBI
 	Truncate table DW.WFTaskDetailBI
 
-	Truncate table CRE.DailyInterestAccruals
+	--Truncate table CRE.DailyInterestAccruals
 	Truncate table CRE.TransactionEntryClose
-	Truncate table CRE.TransactionEntry
-	Truncate table CRE.NotePeriodicCalc
+	--Truncate table CRE.TransactionEntry
+	--Truncate table CRE.NotePeriodicCalc
 
 	
 
@@ -3903,16 +4668,24 @@ BEGIN
 	Where UserID in (
 		Select UserID from app.[user] Where login in ('PAM','SAM','AMO','tier1','tier2')
 	)
+
+	Update cre.InvoiceDetail set Email1= 'rsahu@mailinator.com'
+	Update [App].[AppConfig] set [value] = 0 where [Key] = 'AllowSponsorDetailFromBackshop'
+	Update core.AnalysisParameter set AllowCalcAlongWithDefault = 4 where analysisid <> 'C10F3372-0FC2-4861-A9F5-148F1F80804F'
+
+	Update app.EmailNotification set EmailID = Replace(EmailID,'berkadia.com','mailinator.com') where EmailID like '%berkadia%'
+
+	Update app.appconfig set [value] = 1 where [key] = 'StopV1NoteCalculation'
 END
 
 IF(@CurrentDBName = @DBName_PIKMode)
 BEGIN
     --Update login in app.[user] table
-	Update app.[user] set login = 'admin_pik' where login in ( 'admin_integration','admin_staging', 'admin_acore')
+	Update app.[user] set login = 'admin_pik',[Password] = 'f225999720b317e32fa0ffac27b84269' where login in ( 'admin_integration','admin_staging', 'admin_acore')
 	Delete from app.EmailNotification where EmailId like '%acorecapital.com%'
-	Update app.appconfig set [Value] = 0 where [Key] in ('AllowDebugInCalc', 'AllowBackshopFF','AllowBackshopPIKPrincipal','AllowFFDeleteFromM61andBackshop','AllowWFInternalNotification','AllowYieldConfigData','AllowDrawFeeAMEmail')
+	Update app.appconfig set [Value] = 0 where [Key] in ('AllowDebugInCalc', 'AllowBackshopFF','AllowBackshopPIKPrincipal','AllowFFDeleteFromM61andBackshop','AllowWFInternalNotification','AllowYieldConfigData','AllowDrawFeeAMEmail','AllowDealAutomation','UseDynamicsForInvoice','CalculateXIRRAfterDealSave')
 	update app.reportfile set [Status]=1 where ReportFileID=10
-
+	Update app.appconfig set [Value] = 1 where [key] = 'AllowBasicLogin'
 	--================================================
 	delete from app.emailnotification  where moduleid in (606,617,552,614)
 	--first draw approver
@@ -3972,9 +4745,11 @@ BEGIN
 		insert into app.emailnotification (EmailId,ModuleId,Status) select 'ar@mailinator.com',703,1
 	--===============================================================================================
 
-	Update [CRE].[Servicer] set EmailID = 'WFfundingnotice@mailinator.com' where ServicerName = 'Wells Fargo Bank'
-	Update [CRE].[Servicer] set EmailID = 'Berkadiafundingnotice@mailinator.com' where ServicerName = 'Berkadia Commercial Mortgage'
+	Update [CRE].[Servicer] set EmailID = 'Trimontfundingnotice@mailinator.com' where ServicerName = 'Wells Fargo Bank'
+	Update [CRE].[Servicer] set EmailID = 'Berkadiafundingnotice@mailinator.com,sgnotices@mailinator.com,donna.reif@mailinator.com' where ServicerName = 'Berkadia Commercial Mortgage'
 	Update cre.WFNotificationMasterEmail set EmailID = Replace(EmailID,'acorecapital.com','mailinator.com')
+	Update cre.WFNotificationMasterEmail set EmailID = Replace(EmailID,'statestreet.com','mailinator.com')
+	
 	Update app.EmailNotification  set EmailID = 'amfinancialcontrols@mailinator.com' where ModuleId=614
 	Update app.[user] set password = 'f225999720b317e32fa0ffac27b84269' where login in ('pam', 'sam', 'amo', 'tier1', 'tier2')
 	Update [CRE].[Servicer] set EmailID = 'missing@mailinator.com' where EmailID is null
@@ -3998,6 +4773,14 @@ BEGIN
 	Where UserID in (
 		Select UserID from app.[user] Where login in ('PAM','SAM','AMO','tier1','tier2')
 	)
+
+	Update cre.InvoiceDetail set Email1= 'rsahu@mailinator.com'
+	Update [App].[AppConfig] set [value] = 0 where [Key] = 'AllowSponsorDetailFromBackshop'
+	Update core.AnalysisParameter set AllowCalcAlongWithDefault = 4 where analysisid <> 'C10F3372-0FC2-4861-A9F5-148F1F80804F'
+
+	Update app.EmailNotification set EmailID = Replace(EmailID,'berkadia.com','mailinator.com') where EmailID like '%berkadia%'
+
+	Update app.appconfig set [value] = 1 where [key] = 'StopV1NoteCalculation'
 END
 
 
@@ -4008,9 +4791,11 @@ BEGIN
     --Update login in app.[user] table
 	Update app.[user] set login = 'admin_demo' where login in ( 'admin_integration','admin_staging', 'admin_acore', 'admin_dev')
 	Delete from app.EmailNotification where EmailId like '%acorecapital.com%'
-	Update app.appconfig set [Value] = 0 where [Key] in ('AllowDebugInCalc', 'AllowBackshopFF','AllowBackshopPIKPrincipal','AllowFFDeleteFromM61andBackshop','AllowWFInternalNotification','AllowYieldConfigData','AllowDrawFeeAMEmail')
+	Update app.appconfig set [Value] = 0 where [Key] in ('AllowDebugInCalc', 'AllowBackshopFF','AllowBackshopPIKPrincipal','AllowFFDeleteFromM61andBackshop','AllowWFInternalNotification','AllowYieldConfigData','AllowDrawFeeAMEmail','AllowDealAutomation','UseDynamicsForInvoice','CalculateXIRRAfterDealSave')
 	update app.reportfile set [Status]=1 where ReportFileID=10
 
+	Update app.[user] set [Password] = 'f225999720b317e32fa0ffac27b84269' where [login] = 'admin_demo'
+	Update app.appconfig set [Value] = 1 where [key] = 'AllowBasicLogin'
 	--================================================
 	delete from app.emailnotification  where moduleid in (606,617,552,614)
 	--first draw approver
@@ -4070,9 +4855,16 @@ BEGIN
 		insert into app.emailnotification (EmailId,ModuleId,Status) select 'ar@mailinator.com',703,1
 	--===============================================================================================
 
-	Update [CRE].[Servicer] set EmailID = 'WFfundingnotice@mailinator.com' where ServicerName = 'Wells Fargo Bank'
-	Update [CRE].[Servicer] set EmailID = 'Berkadiafundingnotice@mailinator.com' where ServicerName = 'Berkadia Commercial Mortgage'
+	Update [CRE].[Servicer] set EmailID = 'Trimontfundingnotice@mailinator.com' where ServicerName = 'Wells Fargo Bank'
+	Update [CRE].[Servicer] set EmailID = 'Berkadiafundingnotice@mailinator.com,sgnotices@mailinator.com,donna.reif@mailinator.com' where ServicerName = 'Berkadia Commercial Mortgage'
+	Update [CRE].[Servicer] set EmailID = Replace(EmailID,'acorecapital.com','mailinator.com') 
+	Update [CRE].[Servicer] set EmailID = Replace(EmailID,'cms.trimont.com','mailinator.com') 
+
+
+
 	Update cre.WFNotificationMasterEmail set EmailID = Replace(EmailID,'acorecapital.com','mailinator.com')
+	Update cre.WFNotificationMasterEmail set EmailID = Replace(EmailID,'statestreet.com','mailinator.com')
+	
 	Update app.EmailNotification  set EmailID = 'amfinancialcontrols@mailinator.com' where ModuleId=614
 	Update app.[user] set password = 'f225999720b317e32fa0ffac27b84269' where login in ('pam', 'sam', 'amo', 'tier1', 'tier2')
 	Update [CRE].[Servicer] set EmailID = 'missing@mailinator.com' where EmailID is null
@@ -4096,6 +4888,14 @@ BEGIN
 	Where UserID in (
 		Select UserID from app.[user] Where login in ('PAM','SAM','AMO','tier1','tier2')
 	)
+
+	Update cre.InvoiceDetail set Email1= 'rsahu@mailinator.com'
+	Update [App].[AppConfig] set [value] = 0 where [Key] = 'AllowSponsorDetailFromBackshop'
+	Update core.AnalysisParameter set AllowCalcAlongWithDefault = 4 where analysisid <> 'C10F3372-0FC2-4861-A9F5-148F1F80804F'
+
+	Update app.EmailNotification set EmailID = Replace(EmailID,'berkadia.com','mailinator.com') where EmailID like '%berkadia%'
+
+	Update app.appconfig set [value] = 1 where [key] = 'StopV1NoteCalculation'
 END
 
 

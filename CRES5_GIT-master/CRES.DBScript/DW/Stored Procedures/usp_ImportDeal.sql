@@ -1,5 +1,4 @@
-﻿
-CREATE PROCEDURE [DW].[usp_ImportDeal]
+﻿CREATE PROCEDURE [DW].[usp_ImportDeal]
 	@BatchLogId int,@LastBatchStart datetime, @CurrentBatchStart datetime
 AS
 BEGIN
@@ -78,7 +77,17 @@ INSERT INTO [DW].[L_DealBI]
 ,BSState
 ,MSA_NAME
 ,LoanStatusID
-,LoanStatusBI)
+,LoanStatusBI
+,WatchlistStatus
+,LiabilitySource
+
+,[LinkedDealID]               
+,[EnableAutoSpread]           
+,[EnableAutoSpreadRepayments] 
+,[ApplyNoteLevelPaydowns]     
+,[CalcEngineType]             
+,[CalcEngineTypeBI]           
+)
 Select
 d.[DealID],
 d.[DealName],
@@ -144,8 +153,16 @@ d.BSCity,
 d.BSState,
 d.MSA_NAME,
 d.LoanStatusID,
-ls.LoanStatusDesc as LoanStatusBI
+ls.LoanStatusDesc as LoanStatusBI,
+isnull(d.WatchlistStatus,''),
+lLiabilitySource.[Name] as LiabilitySource,
 
+d.[LinkedDealID]  ,             
+d.[EnableAutoSpread]   ,        
+d.[EnableAutoSpreadRepayments] ,
+d.[ApplyNoteLevelPaydowns]    , 
+d.[CalcEngineType]       ,      
+lCalcEngineType.name as [CalcEngineTypeBI]           
 
 FROM CRE.Deal d
 LEFT Join Core.Lookup lDealType on d.DealType=lDealType.LookupID
@@ -161,7 +178,8 @@ left join app.[User] uAm on uAm.UserID = d.AMUserID
 LEFT Join cre.DealTypeMaster dtm on d.DealTypeMasterID=dtm.DealTypeMasterID
 LEFT Join cre.PropertyTypeMajor ptm on ptm.PropertyTypeMajorID = d.PropertyTypeMajorID
 LEFT Join cre.LoanStatus ls on d.LoanStatusID=ls.LoanStatusID
-
+LEFT Join Core.Lookup lLiabilitySource on d.LiabilitySource=lLiabilitySource.LookupID
+LEFT Join Core.Lookup lCalcEngineType on d.CalcEngineType=lCalcEngineType.LookupID
 WHERE d.isdeleted <> 1
 and (d.CreatedDate > @LastBatchStart 
 	and d.CreatedDate < @CurrentBatchStart) 
@@ -239,7 +257,17 @@ INSERT INTO [DW].[L_DealBI]
 ,BSState
 ,MSA_NAME
 ,LoanStatusID
-,LoanStatusBI)
+,LoanStatusBI
+,WatchlistStatus
+,LiabilitySource
+
+,[LinkedDealID]              
+,[EnableAutoSpread]          
+,[EnableAutoSpreadRepayments]
+,[ApplyNoteLevelPaydowns]    
+,[CalcEngineType]            
+,[CalcEngineTypeBI]  
+)
 Select
 d.[DealID],
 d.[DealName],
@@ -305,9 +333,16 @@ d.BSCity,
 d.BSState,
 d.MSA_NAME,
 d.LoanStatusID,
-ls.LoanStatusDesc as LoanStatusBI
+ls.LoanStatusDesc as LoanStatusBI,
+isnull(d.WatchlistStatus,''),
+lLiabilitySource.[Name] as LiabilitySource,
 
-
+d.[LinkedDealID]  ,             
+d.[EnableAutoSpread]   ,        
+d.[EnableAutoSpreadRepayments] ,
+d.[ApplyNoteLevelPaydowns]    , 
+d.[CalcEngineType]       ,      
+lCalcEngineType.name as [CalcEngineTypeBI]  
 FROM CRE.Deal d
 LEFT Join Core.Lookup lDealType on d.DealType=lDealType.LookupID
 LEFT Join Core.Lookup lLoanProgram on d.LoanProgram=lLoanProgram.LookupID
@@ -322,6 +357,8 @@ left join app.[User] uAm on uAm.UserID = d.AMUserID
 LEFT Join cre.DealTypeMaster dtm on d.DealTypeMasterID=dtm.DealTypeMasterID
 LEFT Join cre.PropertyTypeMajor ptm on ptm.PropertyTypeMajorID = d.PropertyTypeMajorID
 LEFT Join cre.LoanStatus ls on d.LoanStatusID=ls.LoanStatusID
+LEFT Join Core.Lookup lLiabilitySource on d.LiabilitySource=lLiabilitySource.LookupID
+LEFT Join Core.Lookup lCalcEngineType on d.CalcEngineType=lCalcEngineType.LookupID
 	WHERE d.isdeleted <> 1
 
 
@@ -344,5 +381,5 @@ WHERE BatchDetailId = @id
 
 
 END
-
+GO
 

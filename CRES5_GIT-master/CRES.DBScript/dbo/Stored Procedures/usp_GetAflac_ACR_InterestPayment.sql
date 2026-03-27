@@ -105,21 +105,23 @@ BEGIN
 	left join core.lookup lcurrency on lcurrency.lookupid = ISNULL(acc.BaseCurrencyID,187) and ParentID = 29
 	left join cre.FinancingSourcemaster fs on fs.FinancingSourcemasterID = n.FinancingSourceID
 	left join (
-		Select tr.noteid,tr.type,SUM(nt.TotalInterest) amount ---SUM(tr.amount) amount
-		from cre.TransactionEntry tr 		
-		left join cre.NoteTransactionDetail nt on nt.noteid =tr.noteid and tr.date = nt.RelatedtoModeledPMTDate and tr.RemitDate = nt.RemittanceDate  and tr.[Type] = nt.TransactionTypeText
-		where tr.AnalysisID = 'C10F3372-0FC2-4861-A9F5-148F1F80804F'	
+		Select n.noteid,tr.type,SUM(nt.TotalInterest) amount ---SUM(tr.amount) amount
+		from cre.TransactionEntry tr 	
+		Inner Join core.account acc on acc.accountid = tr.accountid
+		inner join cre.note n on n.account_accountid = acc.AccountID	
+		left join cre.NoteTransactionDetail nt on nt.noteid =n.noteid and tr.date = nt.RelatedtoModeledPMTDate and tr.RemitDate = nt.RemittanceDate  and tr.[Type] = nt.TransactionTypeText
+		where tr.AnalysisID = 'C10F3372-0FC2-4861-A9F5-148F1F80804F'	and acc.AccountTypeID = 1
 		and tr.type in ('InterestPaid','StubInterest')
 		--and tr.date >= CAST(DATEADD(month, DATEDIFF(month, 0, getdate()), 0) as Date) and tr.date <= EOMONTH(getdate())	
 		and tr.Remitdate = Cast(@currentdatetime as Date)
 	    --and tr.Remitdate = Cast(dateadd(d,1,@currentdatetime) as Date)
-		and tr.noteid in (
+		and n.noteid in (
 			Select nn.noteid from cre.note nn
 			inner join core.account acc1 on acc1.accountid = nn.account_accountid
 			left join cre.FinancingSourcemaster fs1 on fs1.FinancingSourcemasterID = nn.FinancingSourceID
 			where acc1.IsDeleted <> 1 and ISNUMERIC(nn.crenoteid) = 1	and fs1.FinancingSourceName in ('AFLAC US','TRE ACR Portfolio')
 		)
-		group by tr.noteid,tr.type
+		group by n.noteid,tr.type
 	)nc on nc.noteid = n.noteid
 	join @transactionType temptr on nc.[type]=temptr.[type]
 	

@@ -96,5 +96,6 @@ Select  WFTaskDetailID,TaskID,TaskTypeID,Comment,CreatedDate,UpdatedDate,
         
 where objecttypeid=698      and nd.DrawFeeStatus not in ( 692,696) and tblInvoicedate.DrawFeeStatus <> 'Invoice Queued'      
 and isnull(nd.Amount,0)<>isnull(nd.AmountAdj,0)  
+and d.IsDeleted <> 1
          
       

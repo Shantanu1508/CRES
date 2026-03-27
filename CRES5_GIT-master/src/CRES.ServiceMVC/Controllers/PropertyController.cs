@@ -1,11 +1,13 @@
 ﻿using CRES.BusinessLogic;
-#pragma warning disable CS0105 // The using directive for 'CRES.BusinessLogic' appeared previously in this namespace
-#pragma warning restore CS0105 // The using directive for 'CRES.BusinessLogic' appeared previously in this namespace
+using CRES.BusinessLogic;
 using CRES.DataContract;
 using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
+using System.Net.Http;
+using System.Net.Http.Headers;
 
 
 namespace CRES.Services.Controllers
@@ -23,9 +25,7 @@ namespace CRES.Services.Controllers
             List<PropertyDataContract> _lstproperty = new List<PropertyDataContract>();
             PropertyLogic _propertyLogic = new PropertyLogic();
 
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
             var headerUserID = new Guid();
             if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
             {
@@ -85,9 +85,7 @@ namespace CRES.Services.Controllers
             GenericResult _actionResult = null;
             List<PropertyDataContract> _lstproperty = new List<PropertyDataContract>();
 
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
             var headerUserID = string.Empty;
 
             if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
@@ -96,20 +94,20 @@ namespace CRES.Services.Controllers
             }
 
             PropertyLogic _propertyLogic = new PropertyLogic();
-            _propertyDC = _propertyDC.FindAll(y => y.PropertyName != null && y.PropertyName.Trim() != "").ToList();
+            _propertyDC = _propertyDC.FindAll(y => y.PropertyName != null && y.PropertyName.Trim()!="" ).ToList();             
 
             bool result = _propertyLogic.UpdateProperty(new Guid(headerUserID), _propertyDC, headerUserID, headerUserID);
-
+             
             try
             {
                 if (result)
                 {
-
+                    
 
                     _actionResult = new GenericResult()
                     {
                         Succeeded = true,
-                        Message = "Property Updated successfully",
+                        Message = "Property Updated successfully",                        
                     };
                 }
                 else
@@ -147,15 +145,13 @@ namespace CRES.Services.Controllers
         [Services.Controllers.IsAuthenticate]
         [Services.Controllers.DeflateCompression]
         [Route("api/property/getpropertybypropertyid")]
-        public IActionResult GetPropertyByPropertyId([FromBody] PropertyDataContract _propertyDC)
+        public IActionResult GetPropertyByPropertyId([FromBody]PropertyDataContract _propertyDC)
         {
             GenericResult _authenticationResult = null;
             PropertyDataContract _property = new PropertyDataContract();
             PropertyLogic _propertyLogic = new PropertyLogic();
 
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
             var headerUserID = new Guid();
             if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
             {

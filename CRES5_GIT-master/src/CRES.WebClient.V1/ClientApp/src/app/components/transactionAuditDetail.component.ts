@@ -65,7 +65,7 @@ export class TransactionAuditDetailComponent {
 
 
   BackAuditSummary(): void {
-    this._router.navigate(['Transactionaudit']);
+    this._router.navigate(['transactionaudit']);
   }
 
 }

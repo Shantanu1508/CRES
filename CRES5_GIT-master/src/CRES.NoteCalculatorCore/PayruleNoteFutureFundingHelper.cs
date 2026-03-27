@@ -10,6 +10,8 @@ namespace CRES.NoteCalculator
 {
     public class PayruleNoteFutureFundingHelper
     {
+        #region Property
+
         public DealDataContract dealDC = new DealDataContract();
         public List<PayruleTargetNoteFundingScheduleDataContract> PayruleTargetNoteFundingScheduleList = new List<PayruleTargetNoteFundingScheduleDataContract>();
         public List<PayruleTargetNoteFundingScheduleDataContract> PayruleTargetNoteFundingScheduleListTemp = new List<PayruleTargetNoteFundingScheduleDataContract>();
@@ -32,6 +34,8 @@ namespace CRES.NoteCalculator
         public List<AutoRepaymentBalancesDataContract> ListRepaymentBalances = new List<AutoRepaymentBalancesDataContract>();
         public List<CalculatedAutoRepaymentDataContract> ListCalculatedAutoRepayment = new List<CalculatedAutoRepaymentDataContract>();
 
+        public CalculatedAutoRepaymentDataContract CurrentCalculatedAutoRepayment = new CalculatedAutoRepaymentDataContract();
+
         public List<PayruleTargetNoteFundingScheduleDataContract> PayruleDeletedTargetNoteFundingScheduleList = new List<PayruleTargetNoteFundingScheduleDataContract>();
         public List<CalculatedNoteRepaymentDataContract> ListCalculatedNoteRepayment = new List<CalculatedNoteRepaymentDataContract>();
         public List<AutoRepaymentNoteBalancesDataContract> ListNoteRepaymentBalances = new List<AutoRepaymentNoteBalancesDataContract>();
@@ -39,14 +43,12 @@ namespace CRES.NoteCalculator
 
         public List<int?> DeletedRowNumberList = new List<int?>();
         public decimal ExtraNoteFunding = 0, LessNoteFunding = 0, ExtraNoteRepayment = 0, LessNoteRepayment = 0, totalDealFunding = 0, totalNoteFunding = 0, noteFundingPercentage = 0, totalDealRepayment = 0, totalNoteRepayment = 0, noteRepaymentPercentage = 0;
-        public decimal? PreviousEndingBalance = 0, CurrentCPRandSLRFactor = 0, RepayToBeAdjusted = 0, RepayToBeAdjustedUseRuleN = 0;
+        public decimal? PreviousEndingBalance = 0, CurrentCPRandSLRFactor = 0, RepayToBeAdjusted = 0, RepayToBeAdjustedUseRuleN = 0, TotalRepaymentasofDate = 0;
         private int dropday = 0, actuallastmonth = 0;
         private Guid? dealid = Guid.Empty;
         private DateTime? AutoSpreadStartDate = DateTime.MinValue;
         private DateTime? maxWireConfirmedDate = DateTime.MinValue;
-        // private decimal? TotalEquityAmountDistributed = 0;
         private decimal? TotalRequiredEquity = 0;
-        private decimal? TotalAdditionalEquity = 0;
         private DateTime? maxFundDate = DateTime.MinValue;
         private DateTime? RepaymentEndDate = DateTime.MinValue;
         private DateTime? FirstRepayDate = DateTime.MinValue;
@@ -56,6 +58,11 @@ namespace CRES.NoteCalculator
         private DateTime? maxLockedDate = DateTime.MinValue;
         Boolean generateonLatestpossibleprepayment = false;
         Boolean datainCumulativeProbability = false;
+        private decimal? NonCommitmentAdjTotal = 0;
+        private decimal? RevolverTotal = 0;
+
+        private decimal? autoSpreadFundingcmp = 0;
+        private decimal? autoSpreadRepaymentcmp = 0;
 
         public List<PayruleDealFundingDataContract> PayruleDealFundingTempList = new List<PayruleDealFundingDataContract>();
         public List<PayruleDealFundingDataContract> OriginalDealFundingList = new List<PayruleDealFundingDataContract>();
@@ -64,14 +71,16 @@ namespace CRES.NoteCalculator
         public List<PayruleTargetNoteFundingScheduleDataContract> PayruleTargetNoteFundingScheduleTempList = new List<PayruleTargetNoteFundingScheduleDataContract>();
         public List<PayruleNoteAMSequenceDataContract> PayruleNoteAMSequenceTempList = new List<PayruleNoteAMSequenceDataContract>();
         public List<PayruleNoteDetailFundingDataContract> ListNoteDetail = new List<PayruleNoteDetailFundingDataContract>();
+        private int createcsv = 0;
 
-
+        #endregion 
         public DealDataContract StartCalculation(DealDataContract dealObject)
         {
             try
             {
+                createcsv = 0;
                 dealObject.PayruleDealFundingList.RemoveAll(x => x.Value == null & x.RequiredEquity == null & x.AdditionalEquity == null);
-                //for assign $0 in RequiredEquity, AdditionalEquity and Debt amount when any one field contain value
+                //to assign $0 in RequiredEquity, AdditionalEquity and Debt amount when any one field contain value
                 foreach (var val in dealObject.PayruleDealFundingList)
                 {
                     val.Value = val.Value.GetValueOrDefault(0);
@@ -86,11 +95,20 @@ namespace CRES.NoteCalculator
                 }
                 dealObject.PayruleDealFundingList.RemoveAll(x => x.Value == null);
                 dealObject.PayruleDealFundingList.RemoveAll(x => x.Date == null);
+
+                //added code to remove soft holiday from autospreading 
+                dealObject.ListHoliday = dealObject.ListHoliday.FindAll(x => x.IsSoftHoliday != 3);
+
                 dealDC = dealObject;
                 dealDC.PayruleDealFundingList = dealObject.PayruleDealFundingList.OrderBy(x => x.Date).ToList();
                 dealDC.PayruleDealFundingList = dealObject.PayruleDealFundingList.OrderBy(x => x.Date).OrderByDescending(x => x.Applied).ToList();
                 //dealDC = dealObject;
                 dealid = dealDC.DealID;
+
+                if (dealDC.Blockoutperiod == null)
+                {
+                    dealDC.Blockoutperiod = 2;
+                }
 
                 if (dealDC.EnableAutospreadRepayments == true || dealDC.EnableAutospreadUseRuleN == true)
                 {
@@ -106,6 +124,62 @@ namespace CRES.NoteCalculator
                         ListPayruleNoteSequence.Add(am);
                     }
                 }
+
+                CreateDealandNotedatcsv("Start");
+                #region "AdjustmentType"                
+                //below list  used in autospread
+                dealDC.PayruleDealFundingList_Pwriteoff = dealDC.PayruleDealFundingList.Where(x => x.PurposeID == 840 && x.DealFundingRowno != null).ToList();
+                dealDC.DealFundingListAdjustmentTypeAutoSpread = dealDC.PayruleDealFundingList.Where(x => (x.AdjustmentType == 834 || x.AdjustmentType == 896 || x.AdjustmentType == 835)).ToList();
+
+                //remove AdjustmentType
+                dealDC.PayruleDealFundingList_AdjustmentType = dealDC.PayruleDealFundingList.Where(x => x.PurposeID != 840 && (x.AdjustmentType == 834 || x.AdjustmentType == 896 || x.AdjustmentType == 835)).ToList();
+
+                for (int j = 0; j < dealDC.PayruleDealFundingList.Count(); j++)
+                {
+                    for (int i = 0; i < dealDC.PayruleTargetNoteFundingScheduleList.Count(); i++)
+                    {
+                        if (dealDC.PayruleDealFundingList[j].DealFundingID != null)
+                        {
+                            if (dealDC.PayruleDealFundingList[j].DealFundingRowno == dealDC.PayruleTargetNoteFundingScheduleList[i].DealFundingRowno)
+                            {
+                                dealDC.PayruleTargetNoteFundingScheduleList[i].AdjustmentType = dealDC.PayruleDealFundingList[j].AdjustmentType;
+                                dealDC.PayruleTargetNoteFundingScheduleList[i].OrgDealFundingRowno = dealDC.PayruleDealFundingList[j].DealFundingRowno;
+                            }
+                            if (dealDC.PayruleDealFundingList[j].DealFundingID == dealDC.PayruleTargetNoteFundingScheduleList[i].DealFundingID)
+                            {
+                                dealDC.PayruleTargetNoteFundingScheduleList[i].AdjustmentType = dealDC.PayruleDealFundingList[j].AdjustmentType;
+                                dealDC.PayruleTargetNoteFundingScheduleList[i].DealFundingRowno = dealDC.PayruleDealFundingList[j].DealFundingRowno;
+                                dealDC.PayruleTargetNoteFundingScheduleList[i].OrgDealFundingRowno = dealDC.PayruleDealFundingList[j].DealFundingRowno;
+                            }
+                        }
+                        else
+                        {
+                            if (dealDC.PayruleDealFundingList[j].DealFundingRowno == dealDC.PayruleTargetNoteFundingScheduleList[i].DealFundingRowno)
+                            {
+                                dealDC.PayruleTargetNoteFundingScheduleList[i].AdjustmentType = dealDC.PayruleDealFundingList[j].AdjustmentType;
+                                dealDC.PayruleTargetNoteFundingScheduleList[i].OrgDealFundingRowno = dealDC.PayruleDealFundingList[j].DealFundingRowno;
+                            }
+                        }
+                    }
+                    dealDC.PayruleDealFundingList[j].OrgDealFundingRowno = dealDC.PayruleDealFundingList[j].DealFundingRowno;
+                }
+
+                dealDC.PayruleTargetNoteFundingScheduleList_AdjustmentType = dealDC.PayruleTargetNoteFundingScheduleList.Where(x => (x.AdjustmentType == 834 || x.AdjustmentType == 896 || x.AdjustmentType == 835)).ToList();
+                dealDC.PayruleTargetNoteFundingScheduleList_Pwriteoff = dealDC.PayruleTargetNoteFundingScheduleList.Where(x => x.PurposeID == 840 && x.DealFundingRowno != null).ToList();
+                dealDC.PayruleTargetNoteFundingScheduleList_Pwriteoff = dealDC.PayruleTargetNoteFundingScheduleList_Pwriteoff.Where(x => x.DealFundingRowno > 0).ToList();
+                //below list  used in autospread
+                dealDC.NoteFundingScheduleListAdjustmentTypeAutoSpread = dealDC.PayruleTargetNoteFundingScheduleList.Where(x => (x.AdjustmentType == 834 || x.AdjustmentType == 896 || x.AdjustmentType == 835)).ToList();
+
+                IndentifyNCANote();
+                // remove AdjustmentType records from list
+                dealDC.PayruleDealFundingList.RemoveAll(x => (x.AdjustmentType == 834 || x.AdjustmentType == 896 || x.AdjustmentType == 835));
+                dealDC.PayruleTargetNoteFundingScheduleList.RemoveAll(x => (x.AdjustmentType == 834 || x.AdjustmentType == 896 || x.AdjustmentType == 835));
+
+                dealDC.PayruleDealFundingList.RemoveAll(x => x.PurposeID == 840);
+                dealDC.PayruleTargetNoteFundingScheduleList.RemoveAll(x => x.PurposeID == 840);
+
+                CreateDealandNotedatcsv("AfterDataRemoved");
+                #endregion
                 foreach (var note in dealDC.PayruleNoteDetailFundingList)
                 {
                     ListNoteDetail.Add(note);
@@ -114,13 +188,37 @@ namespace CRES.NoteCalculator
                 dealDC.PayruleTargetNoteFundingScheduleList = dealDC.PayruleTargetNoteFundingScheduleList.OrderBy(x => x.Date).ToList();
                 for (int j = 0; j < dealDC.PayruleDealFundingList.Count(); j++)
                 {
+                    if (dealDC.PayruleDealFundingList[j].DealFundingRowno == 8)
+                    {
+
+                    }
                     for (int i = 0; i < dealDC.PayruleTargetNoteFundingScheduleList.Count(); i++)
                     {
                         if (dealDC.PayruleDealFundingList[j].DealFundingID == dealDC.PayruleTargetNoteFundingScheduleList[i].DealFundingID & dealDC.PayruleTargetNoteFundingScheduleList[i].DealFundingID != null)
                         {
                             dealDC.PayruleTargetNoteFundingScheduleList[i].DealFundingRowno = dealDC.PayruleDealFundingList[j].DealFundingRowno;
                             dealDC.PayruleTargetNoteFundingScheduleList[i].Applied = dealDC.PayruleDealFundingList[j].Applied;
+                            dealDC.PayruleTargetNoteFundingScheduleList[i].AdjustmentType = dealDC.PayruleDealFundingList[j].AdjustmentType;
                         }
+                    }
+                }
+
+                if (dealDC.ListNoteEndingBalance != null)
+                {
+                    foreach (NoteEndingBalanceDataContract res in dealDC.ListNoteEndingBalance)
+                    {
+                        decimal? notesumseq = 0;
+                        Guid noteid = new Guid(res.NoteID);
+                        //SumRepaymentSequence
+                        foreach (var noteseq in ListPayruleNoteSequence)
+                        {
+                            if (noteseq.NoteID == noteid && noteseq.SequenceTypeText == "Repayment Sequence")
+                            {
+                                notesumseq = notesumseq.GetValueOrDefault(0) + noteseq.Value.GetValueOrDefault(0);
+                            }
+                        }
+
+                        res.SumRepaymentSequence = notesumseq.GetValueOrDefault(0);
                     }
                 }
 
@@ -130,9 +228,10 @@ namespace CRES.NoteCalculator
                     DeletePaydownFromNoteAndDeal();
                 }
 
+                DeleteAutoSpreadFundings();
+                CreateDealandNotedatcsv("BeforeAutospread");
                 if (dealDC.EnableAutoSpread == true && dealDC.EnableAutospreadUseRuleN != true)
                 {
-
                     DeleteFundingForAutoSpreading();
                     AutoSpreadFundDistribution();
                 }
@@ -148,6 +247,7 @@ namespace CRES.NoteCalculator
                             {
                                 dealDC.PayruleTargetNoteFundingScheduleList[i].DealFundingRowno = dealDC.PayruleDealFundingList[j].DealFundingRowno;
                                 dealDC.PayruleTargetNoteFundingScheduleList[i].Applied = dealDC.PayruleDealFundingList[j].Applied;
+                                dealDC.PayruleTargetNoteFundingScheduleList[i].AdjustmentType = dealDC.PayruleDealFundingList[j].AdjustmentType;
                             }
                         }
                     }
@@ -185,6 +285,7 @@ namespace CRES.NoteCalculator
                     }
 
                 }
+                CreateDealandNotedatcsv("AfterAutospread");
                 if (dealDC.EnableAutospreadUseRuleN != true)
                 {
                     if (dealDC.EnableAutospreadRepayments == true && dealDC.ApplyNoteLevelPaydowns != true)
@@ -195,13 +296,17 @@ namespace CRES.NoteCalculator
                     dealDC.PayruleDealFundingList.ForEach(x => x.Value = Convert.ToDecimal(Math.Round(Convert.ToDouble(x.Value), 2)));
                     dealDC.PayruleNoteAMSequenceList.ForEach(x => x.Value = Convert.ToDecimal(Math.Round(Convert.ToDouble(x.Value), 2)));
                     var cnt = 1;
+                    int? oldrownumber = 1;
                     foreach (var val in dealDC.PayruleDealFundingList)
                     {
                         PayruleDealFundingDataContract pay = new PayruleDealFundingDataContract();
+                        oldrownumber = val.DealFundingRowno;
 
                         pay.DealFundingRowno = cnt;
                         val.DealFundingRowno = cnt;
+
                         pay.Applied = val.Applied;
+                        pay.AdjustmentType = val.AdjustmentType;
                         pay.DealID = val.DealID;
                         pay.Date = val.Date;
                         pay.Value = val.Value;
@@ -214,8 +319,11 @@ namespace CRES.NoteCalculator
                         pay.RemainingEquityCommitment = val.RemainingEquityCommitment.GetValueOrDefault(0);
                         pay.RemainingFFCommitment = val.RemainingFFCommitment.GetValueOrDefault(0);
                         PayruleDealFundingList.Add(pay);
-
                         val.Value1 = val.Value;
+                        if (val.DealFundingID == null)
+                        {
+                            AssignRowToNoteBasedonoldRowNumber(cnt, oldrownumber, val.Date, val);
+                        }
                         cnt++;
                     }
 
@@ -231,6 +339,7 @@ namespace CRES.NoteCalculator
                             {
                                 dealDC.PayruleTargetNoteFundingScheduleList[i].DealFundingRowno = dealDC.PayruleDealFundingList[j].DealFundingRowno;
                                 dealDC.PayruleTargetNoteFundingScheduleList[i].Applied = dealDC.PayruleDealFundingList[j].Applied;
+                                dealDC.PayruleTargetNoteFundingScheduleList[i].AdjustmentType = dealDC.PayruleDealFundingList[j].AdjustmentType;
                             }
                         }
                     }
@@ -250,7 +359,30 @@ namespace CRES.NoteCalculator
                     {
                         DeleteRepaymentsFromNoteAndDeal();
                     }
+
+                    //#region "AdjustmentType"
+                    ////remove AdjustmentType //sam
+                    //dealDC.PayruleDealFundingList_AdjustmentType = dealDC.PayruleDealFundingList.Where(x => x.AdjustmentType == 834 || x.AdjustmentType == 835).ToList();
+
+                    //for (int j = 0; j < dealDC.PayruleDealFundingList.Count(); j++)
+                    //{
+                    //    for (int i = 0; i < dealDC.PayruleTargetNoteFundingScheduleList.Count(); i++)
+                    //    {
+                    //        if (dealDC.PayruleDealFundingList[j].DealFundingRowno == dealDC.PayruleTargetNoteFundingScheduleList[i].DealFundingRowno)
+                    //        {
+                    //            dealDC.PayruleTargetNoteFundingScheduleList[i].AdjustmentType = dealDC.PayruleDealFundingList[j].AdjustmentType;
+                    //        }
+                    //    }
+                    //}
+
+                    //dealDC.PayruleTargetNoteFundingScheduleList_AdjustmentType = dealDC.PayruleTargetNoteFundingScheduleList.Where(x => x.AdjustmentType == 834 || x.AdjustmentType == 835).ToList();
+                    //dealDC.PayruleDealFundingList.RemoveAll(x => x.AdjustmentType == 834 || x.AdjustmentType == 835);
+                    //dealDC.PayruleTargetNoteFundingScheduleList.RemoveAll(x => x.AdjustmentType == 834 || x.AdjustmentType == 835);
+
+                    //#endregion
+                    CreateDealandNotedatcsv("Before_Generate");
                     CalculateDealWaterfall();
+                    CreateDealandNotedatcsv("After_Generate");
                     if (dealDC.ApplyNoteLevelPaydowns == true)
                     {
                         foreach (var val in dealDC.PayruleDealFundingList)
@@ -274,14 +406,96 @@ namespace CRES.NoteCalculator
                         ApplyPennyAdjustmentToRepayment();
                     }
                 }
-
                 dealDC.PayruleDeletedDealFundingList = PayruleDeletedDealFundingList;
                 dealDC.PayruleDeletedTargetNoteFundingScheduleList = PayruleDeletedTargetNoteFundingScheduleList;
                 dealDC.ListCalculatedAutoRepayment = ListCalculatedAutoRepayment;
                 dealDC.ListCummulativeProbability = ListCummulativeProbability;
                 dealDC.ListCalculatedNoteRepayment = ListCalculatedNoteRepayment;
+
+                CreateDealandNotedatcsv("BeforeDataApply");
+                #region "AdjustmentType"
+                if (dealDC.PayruleDealFundingList_AdjustmentType.Count() > 0)
+                {
+                    var maxRowNum = dealDC.PayruleDealFundingList.Max(x => x.DealFundingRowno).ToInt32();
+                    dealDC.PayruleDealFundingList_AdjustmentType.ForEach(x => x.TempDealFundingRowno = x.DealFundingRowno);
+                    dealDC.PayruleTargetNoteFundingScheduleList_AdjustmentType.ForEach(x => x.TempDealFundingRowno = x.DealFundingRowno);
+
+                    //  CreateCSVFile(ToDataSet(dealDC.PayruleDealFundingList_AdjustmentType).Tables[0], "DealFundingList3");
+                    // CreateCSVFile(ToDataSet(dealDC.PayruleTargetNoteFundingScheduleList_AdjustmentType).Tables[0], "NoteFundingList3");
+                    //assign maxRowNum in AdjustmentType records
+                    for (int j = 0; j < dealDC.PayruleDealFundingList_AdjustmentType.Count(); j++)
+                    {
+                        maxRowNum++;
+                        for (int i = 0; i < dealDC.PayruleTargetNoteFundingScheduleList_AdjustmentType.Count(); i++)
+                        {
+                            if (dealDC.PayruleDealFundingList_AdjustmentType[j].TempDealFundingRowno == dealDC.PayruleTargetNoteFundingScheduleList_AdjustmentType[i].TempDealFundingRowno)// || dealDC.PayruleDealFundingList_AdjustmentType[j].DealFundingID == dealDC.PayruleTargetNoteFundingScheduleList_AdjustmentType[i].DealFundingID)
+                            {
+                                dealDC.PayruleTargetNoteFundingScheduleList_AdjustmentType[i].DealFundingRowno = maxRowNum;
+                                //dealDC.PayruleTargetNoteFundingScheduleList[i].AdjustmentType = dealDC.PayruleDealFundingList[j].AdjustmentType;
+
+                            }
+                        }
+                        dealDC.PayruleDealFundingList_AdjustmentType[j].DealFundingRowno = maxRowNum;
+                    }
+
+                    //Add AdjustmentType related data
+                    dealDC.PayruleDealFundingList.AddRange(dealDC.PayruleDealFundingList_AdjustmentType.ToList());
+                    dealDC.PayruleTargetNoteFundingScheduleList.AddRange(dealDC.PayruleTargetNoteFundingScheduleList_AdjustmentType.ToList());
+
+                }
+
+                CreateDealandNotedatcsv("Afteradjdata");
+
+
+                if (dealDC.PayruleDealFundingList_Pwriteoff.Count() > 0)
+                {
+                    var maxRowNum = dealDC.PayruleDealFundingList.Max(x => x.DealFundingRowno).ToInt32();
+                    dealDC.PayruleDealFundingList_Pwriteoff.ForEach(x => x.TempDealFundingRowno = x.DealFundingRowno);
+                    dealDC.PayruleTargetNoteFundingScheduleList_Pwriteoff.ForEach(x => x.TempDealFundingRowno = x.DealFundingRowno);
+
+                    //  CreateCSVFile(ToDataSet(dealDC.PayruleDealFundingList_AdjustmentType).Tables[0], "DealFundingList3");
+                    // CreateCSVFile(ToDataSet(dealDC.PayruleTargetNoteFundingScheduleList_AdjustmentType).Tables[0], "NoteFundingList3");
+                    //assign maxRowNum in AdjustmentType records
+                    for (int j = 0; j < dealDC.PayruleDealFundingList_Pwriteoff.Count(); j++)
+                    {
+                        maxRowNum++;
+                        for (int i = 0; i < dealDC.PayruleTargetNoteFundingScheduleList_Pwriteoff.Count(); i++)
+                        {
+                            if (dealDC.PayruleDealFundingList_Pwriteoff[j].TempDealFundingRowno == dealDC.PayruleTargetNoteFundingScheduleList_Pwriteoff[i].TempDealFundingRowno)// || dealDC.PayruleDealFundingList_AdjustmentType[j].DealFundingID == dealDC.PayruleTargetNoteFundingScheduleList_AdjustmentType[i].DealFundingID)
+                            {
+                                dealDC.PayruleTargetNoteFundingScheduleList_Pwriteoff[i].DealFundingRowno = maxRowNum;
+                                //dealDC.PayruleTargetNoteFundingScheduleList[i].AdjustmentType = dealDC.PayruleDealFundingList[j].AdjustmentType;
+
+                            }
+                        }
+                        dealDC.PayruleDealFundingList_Pwriteoff[j].DealFundingRowno = maxRowNum;
+                    }
+
+                    //Add AdjustmentType related data
+                    dealDC.PayruleDealFundingList.AddRange(dealDC.PayruleDealFundingList_Pwriteoff.ToList());
+                    dealDC.PayruleTargetNoteFundingScheduleList.AddRange(dealDC.PayruleTargetNoteFundingScheduleList_Pwriteoff.ToList());
+                }
+
+
+                #endregion
+
+
                 dealDC.PayruleDealFundingList = dealDC.PayruleDealFundingList.OrderBy(y => y.Date).ToList();
+                dealDC.PayruleTargetNoteFundingScheduleList = dealDC.PayruleTargetNoteFundingScheduleList.OrderBy(y => y.Date).ToList();
+                if (dealDC.EnableAutospreadRepayments == true)
+                {
+                    AddRepayForNonCommitmentAdjustment();
+                }
+                CreateDealandNotedatcsv("BeforeRowno");
                 AssignRowNum();
+                dealDC.PayruleDealFundingList = dealObject.PayruleDealFundingList.OrderBy(x => x.Date).OrderByDescending(x => x.Applied).ToList();
+                CreateDealandNotedatcsv("Output");
+
+
+                foreach (var _noteFunding in dealDC.PayruleTargetNoteFundingScheduleList)
+                {
+                    decimal? noteFundingScheduleListTemp = PayruleTargetNoteFundingScheduleListTemp.Where(x => x.NoteID == _noteFunding.NoteID && x.Value != 0).Sum(y => y.Value);
+                }
 
             }
             catch (Exception ex)
@@ -320,11 +534,27 @@ namespace CRES.NoteCalculator
                     {
                         dealDC.PayruleTargetNoteFundingScheduleList[i].DealFundingRowno = dealDC.PayruleDealFundingList[j].DealFundingRowno;
                         dealDC.PayruleTargetNoteFundingScheduleList[i].GeneratedBy = dealDC.PayruleDealFundingList[j].GeneratedBy;
+                        dealDC.PayruleTargetNoteFundingScheduleList[i].AdjustmentType = dealDC.PayruleDealFundingList[j].AdjustmentType;
 
                     }
                 }
             }
             //End of Assign New Row No
+        }
+        public void AssignRowToNoteBasedonoldRowNumber(int currentrownumber, int? oldrownumber, DateTime? currentdate, PayruleDealFundingDataContract pdc)
+        {
+            for (int i = 0; i < dealDC.PayruleTargetNoteFundingScheduleList.Count(); i++)
+            {
+                if (dealDC.PayruleTargetNoteFundingScheduleList[i].DealFundingID == null)
+                {
+                    if (dealDC.PayruleTargetNoteFundingScheduleList[i].DealFundingRowno == oldrownumber && dealDC.PayruleTargetNoteFundingScheduleList[i].Date == currentdate.Value)
+                    {
+                        dealDC.PayruleTargetNoteFundingScheduleList[i].DealFundingRowno = currentrownumber;
+                        dealDC.PayruleTargetNoteFundingScheduleList[i].Applied = pdc.Applied;
+                        dealDC.PayruleTargetNoteFundingScheduleList[i].AdjustmentType = pdc.AdjustmentType;
+                    }
+                }
+            }
         }
         public static DataSet ToDataSet<T>(IEnumerable<T> list)
         {
@@ -405,6 +635,15 @@ namespace CRES.NoteCalculator
             catch (Exception ex)
             {
                 throw ex;
+            }
+        }
+
+        public void CreateDealandNotedatcsv(string filename)
+        {
+            if (createcsv == 1)
+            {
+                CreateCSVFile(ToDataSet(dealDC.PayruleDealFundingList).Tables[0], "DealFunding_" + filename);
+                CreateCSVFile(ToDataSet(dealDC.PayruleTargetNoteFundingScheduleList).Tables[0], "NoteFunding_" + filename);
             }
         }
 
@@ -507,6 +746,7 @@ namespace CRES.NoteCalculator
                         PayruleTargetNoteFundingScheduleDataContract.PurposeID = _dealFunding.PurposeID;
                         PayruleTargetNoteFundingScheduleDataContract.Purpose = _dealFunding.PurposeText;
                         PayruleTargetNoteFundingScheduleDataContract.Applied = _dealFunding.Applied;
+                        PayruleTargetNoteFundingScheduleDataContract.AdjustmentType = _dealFunding.AdjustmentType;
                         PayruleTargetNoteFundingScheduleDataContract.DrawFundingId = _dealFunding.DrawFundingId;
                         PayruleTargetNoteFundingScheduleDataContract.Comments = _dealFunding.Comment;
                         PayruleTargetNoteFundingScheduleDataContract.DealFundingRowno = _dealFunding.DealFundingRowno;
@@ -663,12 +903,7 @@ namespace CRES.NoteCalculator
 
                 if (funding.Value.GetValueOrDefault(0) > 0)
                 {
-                    if (funding.Value.ToString() == "45695.02")
-                    {
-#pragma warning disable CS0219 // The variable 'str' is assigned but its value is never used
-                        string str = "";
-#pragma warning restore CS0219 // The variable 'str' is assigned but its value is never used
-                    }
+
 
                     for (int i = minFundingSequence; i <= maxFundingSequence && funding.Value != 0; i++)
                     {
@@ -712,11 +947,26 @@ namespace CRES.NoteCalculator
                                     if (sumFunding <= funding.Value)
                                     {
                                         PayruleTargetNoteFundingScheduleDataContract.Value = Math.Round((from val in dealDC.PayruleNoteAMSequenceList.Where(x => x.NoteID == lst.NoteID && x.SequenceNo == i && x.SequenceTypeText == "Funding Sequence") select val.Value.GetValueOrDefault(0)).FirstOrDefault(), 2);
+                                        //New code for stop assign -ve value
+                                        if (PayruleTargetNoteFundingScheduleDataContract.Value < 0)
+                                        {
+                                            PayruleTargetNoteFundingScheduleDataContract.Value = 0;
+
+                                        }
+                                        else if (PayruleTargetNoteFundingScheduleDataContract.Value <= new decimal(.01) && funding.Value > 1)
+                                        {
+                                            funding.Value -= PayruleTargetNoteFundingScheduleDataContract.Value;
+                                            PayruleTargetNoteFundingScheduleDataContract.Value = 0;
+                                        }
+
+                                        //Old code
+                                        /*
                                         if (PayruleTargetNoteFundingScheduleDataContract.Value <= new decimal(.01) && funding.Value > 1)
                                         {
                                             funding.Value -= PayruleTargetNoteFundingScheduleDataContract.Value;
                                             PayruleTargetNoteFundingScheduleDataContract.Value = 0;
                                         }
+                                        */
                                     }
                                     else
                                     {
@@ -833,6 +1083,7 @@ namespace CRES.NoteCalculator
                                         PayruleTargetNoteFundingScheduleDataContract.PurposeID = funding.PurposeID;
                                         PayruleTargetNoteFundingScheduleDataContract.Purpose = funding.PurposeText;
                                         PayruleTargetNoteFundingScheduleDataContract.Applied = funding.Applied;
+                                        PayruleTargetNoteFundingScheduleDataContract.AdjustmentType = funding.AdjustmentType;
                                         PayruleTargetNoteFundingScheduleDataContract.DrawFundingId = funding.DrawFundingId;
                                         PayruleTargetNoteFundingScheduleDataContract.Comments = funding.Comment;
                                         PayruleTargetNoteFundingScheduleDataContract.DealFundingRowno = funding.DealFundingRowno;
@@ -862,6 +1113,7 @@ namespace CRES.NoteCalculator
                                     PayruleTargetNoteFundingScheduleDataContract.PurposeID = funding.PurposeID;
                                     PayruleTargetNoteFundingScheduleDataContract.Purpose = funding.PurposeText;
                                     PayruleTargetNoteFundingScheduleDataContract.Applied = funding.Applied;
+                                    PayruleTargetNoteFundingScheduleDataContract.AdjustmentType = funding.AdjustmentType;
                                     PayruleTargetNoteFundingScheduleDataContract.DealFundingRowno = funding.DealFundingRowno;
                                     PayruleTargetNoteFundingScheduleDataContract.DrawFundingId = funding.DrawFundingId;
                                     PayruleTargetNoteFundingScheduleDataContract.Comments = funding.Comment;
@@ -1002,6 +1254,7 @@ namespace CRES.NoteCalculator
                                     PayruleTargetNoteFundingScheduleDataContract.PurposeID = funding.PurposeID;
                                     PayruleTargetNoteFundingScheduleDataContract.Purpose = funding.PurposeText;
                                     PayruleTargetNoteFundingScheduleDataContract.Applied = funding.Applied;
+                                    PayruleTargetNoteFundingScheduleDataContract.AdjustmentType = funding.AdjustmentType;
                                     PayruleTargetNoteFundingScheduleDataContract.DrawFundingId = funding.DrawFundingId;
                                     PayruleTargetNoteFundingScheduleDataContract.Comments = funding.Comment;
                                     PayruleTargetNoteFundingScheduleDataContract.DealFundingRowno = funding.DealFundingRowno;
@@ -1030,6 +1283,7 @@ namespace CRES.NoteCalculator
                                     PayruleTargetNoteFundingScheduleDataContract.PurposeID = funding.PurposeID;
                                     PayruleTargetNoteFundingScheduleDataContract.Purpose = funding.PurposeText;
                                     PayruleTargetNoteFundingScheduleDataContract.Applied = funding.Applied;
+                                    PayruleTargetNoteFundingScheduleDataContract.AdjustmentType = funding.AdjustmentType;
                                     PayruleTargetNoteFundingScheduleDataContract.DrawFundingId = funding.DrawFundingId;
                                     PayruleTargetNoteFundingScheduleDataContract.Comments = funding.Comment;
                                     PayruleTargetNoteFundingScheduleDataContract.DealFundingRowno = funding.DealFundingRowno;
@@ -1046,7 +1300,7 @@ namespace CRES.NoteCalculator
 
         public void GroupByList()
         {
-            PayruleTargetNoteFundingScheduleList = PayruleTargetNoteFundingScheduleList.GroupBy(c => new { c.NoteID, c.DealFundingRowno, c.Date, c.PurposeID, c.Purpose, c.Applied, c.Comments, c.DrawFundingId, c.DealFundingID }).Select(val => new PayruleTargetNoteFundingScheduleDataContract
+            PayruleTargetNoteFundingScheduleList = PayruleTargetNoteFundingScheduleList.GroupBy(c => new { c.NoteID, c.DealFundingRowno, c.Date, c.PurposeID, c.Purpose, c.Applied, c.Comments, c.NonCommitmentAdj, c.DrawFundingId, c.DealFundingID }).Select(val => new PayruleTargetNoteFundingScheduleDataContract
             {
                 NoteID = val.Key.NoteID,
                 Date = val.Key.Date,
@@ -1054,6 +1308,7 @@ namespace CRES.NoteCalculator
                 Purpose = val.Key.Purpose,
                 Applied = val.Key.Applied,
                 Comments = val.Key.Comments,
+                NonCommitmentAdj = val.Key.NonCommitmentAdj,
                 DrawFundingId = val.Key.DrawFundingId,
                 DealFundingRowno = val.Key.DealFundingRowno,
                 DealFundingID = val.Key.DealFundingID,
@@ -1066,170 +1321,174 @@ namespace CRES.NoteCalculator
 
         public void SettleAmountByRoundingRule()
         {
-            if (dealDC.PayruleDealFundingList.Sum(x => x.Value1) == PayruleTargetNoteFundingScheduleList.Sum(x => x.Value))
+            bool _isPennyDifference = false;
+            //if (dealDC.PayruleDealFundingList.Sum(x => x.Value1) == PayruleTargetNoteFundingScheduleList.Sum(x => x.Value))
+            //{
+            //    return;
+            //}
+
+            //check all row deal and note funding sum 
+            foreach (var lst in dealDC.PayruleDealFundingList)
             {
-                return;
+                if (lst.Value1 != PayruleTargetNoteFundingScheduleList.Where(x => x.DealFundingRowno == lst.DealFundingRowno).Sum(x => x.Value))
+                {
+                    _isPennyDifference = true;
+                    break;
+                }
             }
 
-            decimal totalFundingSequence = 0, totalNoteFunding = 0, totalRepaymentSequence = 0, totalNoteRepayment = 0;
-            DateTime maxFundingDate = default(DateTime), maxRepaymentDate = default(DateTime);
-            PayruleTargetNoteFundingScheduleList.ForEach(x => x.Value = Convert.ToDecimal(Math.Round(Convert.ToDouble(x.Value), 2)));
-            dealDC.PayruleNoteDetailFundingList = dealDC.PayruleNoteDetailFundingList.OrderBy(x => x.CommitmentUsedInFFDistribution).ThenBy(n => n.CRENoteID).ToList();
-            dealDC.PayruleNoteDetailFundingList = dealDC.PayruleNoteDetailFundingList.Where(note => PayruleTargetNoteFundingScheduleList.Any(deal => deal.NoteID == note.NoteID)).ToList();
-            decimal sumNote = 0, diffNoteDeal = 0, j = 0;
-            bool isRepayment = false;
-            //CreateCSVFile(ToDataSet(PayruleTargetNoteFundingScheduleList).Tables[0], "Before");
-            var list = dealDC.PayruleNoteDetailFundingList.Where(p => p.FundingPriority == j).ToList();
-            foreach (var val in PayruleDealFundingList)
+            if (_isPennyDifference)
             {
-                if (val.Value == new decimal(0.04))//Funding
+                decimal totalFundingSequence = 0, totalNoteFunding = 0, totalRepaymentSequence = 0, totalNoteRepayment = 0;
+                DateTime maxFundingDate = default(DateTime), maxRepaymentDate = default(DateTime);
+                PayruleTargetNoteFundingScheduleList.ForEach(x => x.Value = Convert.ToDecimal(Math.Round(Convert.ToDouble(x.Value), 2)));
+                dealDC.PayruleNoteDetailFundingList = dealDC.PayruleNoteDetailFundingList.OrderBy(x => x.CommitmentUsedInFFDistribution).ThenBy(n => n.CRENoteID).ToList();
+                dealDC.PayruleNoteDetailFundingList = dealDC.PayruleNoteDetailFundingList.Where(note => PayruleTargetNoteFundingScheduleList.Any(deal => deal.NoteID == note.NoteID)).ToList();
+                decimal sumNote = 0, diffNoteDeal = 0, j = 0;
+                bool isRepayment = false;
+                //CreateCSVFile(ToDataSet(PayruleTargetNoteFundingScheduleList).Tables[0], "Before");
+                var list = dealDC.PayruleNoteDetailFundingList.Where(p => p.FundingPriority == j).ToList();
+                foreach (var val in PayruleDealFundingList)
                 {
-                    //ss
-                }
 
-                if (val.Value < 0)//chck negative Funding
-                {
-                    isRepayment = true;
-                }
-
-                if (val.Value >= 0)//Funding
-                {
-                    sumNote = PayruleTargetNoteFundingScheduleList.Where(y => y.DealFundingRowno == val.DealFundingRowno && y.Value >= 0).Sum(x => x.Value.GetValueOrDefault(0));
-                    diffNoteDeal = val.Value.GetValueOrDefault(0) - sumNote;
-                    if (diffNoteDeal > 0)
+                    if (val.Value < 0)//chck negative Funding
                     {
-#pragma warning disable CS0219 // The variable 'str' is assigned but its value is never used
-                        string str = "";
-#pragma warning restore CS0219 // The variable 'str' is assigned but its value is never used
+                        isRepayment = true;
                     }
-                    // PayruleTargetNoteFundingScheduleList.Where(x => x.NoteID == dealDC.PayruleNoteDetailFundingList[dealDC.PayruleNoteDetailFundingList.Count - 1].NoteID && x.DealFundingRowno == val.DealFundingRowno && x.Value >= 0).ToList().ForEach(v => v.Value = v.Value + diffNoteDeal);
-                    var TotalNoteVal = PayruleTargetNoteFundingScheduleList.Where(x => x.NoteID == dealDC.PayruleNoteDetailFundingList[dealDC.PayruleNoteDetailFundingList.Count - 1].NoteID).Sum(x => x.Value.GetValueOrDefault(0));
-                    PayruleTargetNoteFundingScheduleList.Where(x => x.NoteID == dealDC.PayruleNoteDetailFundingList[dealDC.PayruleNoteDetailFundingList.Count - 1].NoteID && x.Date == val.Date && x.DealFundingRowno == val.DealFundingRowno && x.Value >= 0).ToList().ForEach(v => v.Value = v.Value + diffNoteDeal);
+
+                    if (val.Value >= 0)//Funding
+                    {
+                        sumNote = PayruleTargetNoteFundingScheduleList.Where(y => y.DealFundingRowno == val.DealFundingRowno && y.Value >= 0).Sum(x => x.Value.GetValueOrDefault(0));
+                        diffNoteDeal = val.Value.GetValueOrDefault(0) - sumNote;
+                        // PayruleTargetNoteFundingScheduleList.Where(x => x.NoteID == dealDC.PayruleNoteDetailFundingList[dealDC.PayruleNoteDetailFundingList.Count - 1].NoteID && x.DealFundingRowno == val.DealFundingRowno && x.Value >= 0).ToList().ForEach(v => v.Value = v.Value + diffNoteDeal);
+                        var TotalNoteVal = PayruleTargetNoteFundingScheduleList.Where(x => x.NoteID == dealDC.PayruleNoteDetailFundingList[dealDC.PayruleNoteDetailFundingList.Count - 1].NoteID).Sum(x => x.Value.GetValueOrDefault(0));
+                        PayruleTargetNoteFundingScheduleList.Where(x => x.NoteID == dealDC.PayruleNoteDetailFundingList[dealDC.PayruleNoteDetailFundingList.Count - 1].NoteID && x.Date == val.Date && x.DealFundingRowno == val.DealFundingRowno && x.Value >= 0).ToList().ForEach(v => v.Value = v.Value + diffNoteDeal);
+                    }
+                    else //Repayment
+                    {
+                        if (isRepayment == true)
+                        {
+                            sumNote = PayruleTargetNoteFundingScheduleList.Where(y => y.DealFundingRowno == val.DealFundingRowno && y.Value < 0).Sum(x => x.Value.GetValueOrDefault(0));
+                            diffNoteDeal = val.Value.GetValueOrDefault(0) - sumNote;
+                            //  PayruleTargetNoteFundingScheduleList.Where(x => x.NoteID == dealDC.PayruleNoteDetailFundingList[dealDC.PayruleNoteDetailFundingList.Count - 1].NoteID && x.DealFundingRowno == val.DealFundingRowno && x.Value < 0).ToList().ForEach(v => v.Value = v.Value + diffNoteDeal);
+                            PayruleTargetNoteFundingScheduleList.Where(x => x.NoteID == dealDC.PayruleNoteDetailFundingList[dealDC.PayruleNoteDetailFundingList.Count - 1].NoteID && x.Date == val.Date && x.DealFundingRowno == val.DealFundingRowno && x.Value < 0).ToList().ForEach(v => v.Value = v.Value + diffNoteDeal);
+                        }
+                    }
                 }
-                else //Repayment
+
+                #region FinalSettelment
+
+                //Finding max and common date in all note
+                foreach (var n in dealDC.PayruleNoteDetailFundingList)
                 {
+                    if (PayruleTargetNoteFundingScheduleList.Where(y => y.NoteID == n.NoteID && y.Value > 0).Count() > 0 && PayruleDealFundingList.Where(x => x.Value > 0).ToList().Count() != 0 && PayruleNoteAMSequenceList.Where(a => a.SequenceTypeText == "Funding Sequence").ToList().Count != 0)
+                    {
+                        if (maxFundingDate == default(DateTime))
+                        {
+                            maxFundingDate = PayruleTargetNoteFundingScheduleList.Where(y => y.NoteID == n.NoteID && y.Value > 0).Max(x => x.Date.GetValueOrDefault(new DateTime()));
+                        }
+                        else if (PayruleTargetNoteFundingScheduleList.Where(y => y.NoteID == n.NoteID && y.Value > 0).Max(x => x.Date.GetValueOrDefault(new DateTime())) > maxFundingDate)
+                        {
+                            maxFundingDate = PayruleTargetNoteFundingScheduleList.Where(y => y.NoteID == n.NoteID && y.Value > 0).Max(x => x.Date.GetValueOrDefault(new DateTime()));
+                        }
+                    }
                     if (isRepayment == true)
                     {
-                        sumNote = PayruleTargetNoteFundingScheduleList.Where(y => y.DealFundingRowno == val.DealFundingRowno && y.Value < 0).Sum(x => x.Value.GetValueOrDefault(0));
-                        diffNoteDeal = val.Value.GetValueOrDefault(0) - sumNote;
-                        //  PayruleTargetNoteFundingScheduleList.Where(x => x.NoteID == dealDC.PayruleNoteDetailFundingList[dealDC.PayruleNoteDetailFundingList.Count - 1].NoteID && x.DealFundingRowno == val.DealFundingRowno && x.Value < 0).ToList().ForEach(v => v.Value = v.Value + diffNoteDeal);
-                        PayruleTargetNoteFundingScheduleList.Where(x => x.NoteID == dealDC.PayruleNoteDetailFundingList[dealDC.PayruleNoteDetailFundingList.Count - 1].NoteID && x.Date == val.Date && x.DealFundingRowno == val.DealFundingRowno && x.Value < 0).ToList().ForEach(v => v.Value = v.Value + diffNoteDeal);
-                    }
-                }
-            }
-
-            #region FinalSettelment
-
-            //Finding max and common date in all note
-            foreach (var n in dealDC.PayruleNoteDetailFundingList)
-            {
-                if (PayruleTargetNoteFundingScheduleList.Where(y => y.NoteID == n.NoteID && y.Value > 0).Count() > 0 && PayruleDealFundingList.Where(x => x.Value > 0).ToList().Count() != 0 && PayruleNoteAMSequenceList.Where(a => a.SequenceTypeText == "Funding Sequence").ToList().Count != 0)
-                {
-                    if (maxFundingDate == default(DateTime))
-                    {
-                        maxFundingDate = PayruleTargetNoteFundingScheduleList.Where(y => y.NoteID == n.NoteID && y.Value > 0).Max(x => x.Date.GetValueOrDefault(new DateTime()));
-                    }
-                    else if (PayruleTargetNoteFundingScheduleList.Where(y => y.NoteID == n.NoteID && y.Value > 0).Max(x => x.Date.GetValueOrDefault(new DateTime())) > maxFundingDate)
-                    {
-                        maxFundingDate = PayruleTargetNoteFundingScheduleList.Where(y => y.NoteID == n.NoteID && y.Value > 0).Max(x => x.Date.GetValueOrDefault(new DateTime()));
-                    }
-                }
-                if (isRepayment == true)
-                {
-                    if (PayruleTargetNoteFundingScheduleList.Where(y => y.NoteID == n.NoteID && y.Value < 0).Count() > 0 && PayruleDealFundingList.Where(x => x.Value < 0).ToList().Count() != 0 && PayruleNoteAMSequenceList.Where(a => a.SequenceTypeText == "Repayment Sequence").ToList().Count != 0)
-                    {
-                        if (maxRepaymentDate == default(DateTime))
+                        if (PayruleTargetNoteFundingScheduleList.Where(y => y.NoteID == n.NoteID && y.Value < 0).Count() > 0 && PayruleDealFundingList.Where(x => x.Value < 0).ToList().Count() != 0 && PayruleNoteAMSequenceList.Where(a => a.SequenceTypeText == "Repayment Sequence").ToList().Count != 0)
                         {
-                            maxRepaymentDate = PayruleTargetNoteFundingScheduleList.Where(y => y.NoteID == n.NoteID && y.Value < 0).Max(x => x.Date.GetValueOrDefault(new DateTime()));
-                        }
-                        else if (PayruleTargetNoteFundingScheduleList.Where(y => y.NoteID == n.NoteID && y.Value < 0).Max(x => x.Date.GetValueOrDefault(new DateTime())) > maxRepaymentDate)
-                        {
-                            maxRepaymentDate = PayruleTargetNoteFundingScheduleList.Where(y => y.NoteID == n.NoteID && y.Value < 0).Max(x => x.Date.GetValueOrDefault(new DateTime()));
+                            if (maxRepaymentDate == default(DateTime))
+                            {
+                                maxRepaymentDate = PayruleTargetNoteFundingScheduleList.Where(y => y.NoteID == n.NoteID && y.Value < 0).Max(x => x.Date.GetValueOrDefault(new DateTime()));
+                            }
+                            else if (PayruleTargetNoteFundingScheduleList.Where(y => y.NoteID == n.NoteID && y.Value < 0).Max(x => x.Date.GetValueOrDefault(new DateTime())) > maxRepaymentDate)
+                            {
+                                maxRepaymentDate = PayruleTargetNoteFundingScheduleList.Where(y => y.NoteID == n.NoteID && y.Value < 0).Max(x => x.Date.GetValueOrDefault(new DateTime()));
+                            }
                         }
                     }
                 }
-            }
 
-            //Funding match
-            if (maxFundingDate != new DateTime())
-            {
-                //search for note which has note funding>sequence or funding<sequence
-                foreach (var note in dealDC.PayruleNoteDetailFundingList)
+                //Funding match
+                if (maxFundingDate != new DateTime())
                 {
-                    totalFundingSequence = PayruleNoteAMSequenceList.Where(a => a.NoteID == note.NoteID && a.SequenceTypeText == "Funding Sequence").Sum(x => x.Value.GetValueOrDefault(0));
-                    totalNoteFunding = PayruleTargetNoteFundingScheduleList.Where(y => y.NoteID == note.NoteID && y.Value > 0).Sum(x => x.Value.GetValueOrDefault(0));
-                    if (totalNoteFunding > totalFundingSequence)
-                    {
-                        ExtraNoteFunding = ExtraNoteFunding + (totalNoteFunding - totalFundingSequence);
-                    }
-                    else if (totalNoteFunding < totalFundingSequence)
-                    {
-                        LessNoteFunding = LessNoteFunding + (totalFundingSequence - totalNoteFunding);
-                    }
-                }
-
-                //settle funding
-                foreach (var note in dealDC.PayruleNoteDetailFundingList)
-                {
-                    totalFundingSequence = PayruleNoteAMSequenceList.Where(a => a.NoteID == note.NoteID && a.SequenceTypeText == "Funding Sequence").Sum(x => x.Value.GetValueOrDefault(0));
-                    totalNoteFunding = PayruleTargetNoteFundingScheduleList.Where(y => y.NoteID == note.NoteID && y.Value > 0).Sum(x => x.Value.GetValueOrDefault(0));
-                    if (totalNoteFunding > totalFundingSequence && LessNoteFunding != 0) //note with greater funding than sequence
-                    {
-                        diffNoteDeal = (totalNoteFunding - totalFundingSequence) <= LessNoteFunding ? (totalNoteFunding - totalFundingSequence) : LessNoteFunding;
-                        PayruleTargetNoteFundingScheduleList.Where(x => x.NoteID == note.NoteID && x.Date == maxFundingDate && x.Value > 0).ToList().ForEach(v => v.Value = v.Value - diffNoteDeal);
-                        LessNoteFunding = LessNoteFunding - diffNoteDeal;
-                    }
-                    else if (totalNoteFunding < totalFundingSequence && ExtraNoteFunding != 0) //note with less funding than sequence
-                    {
-                        diffNoteDeal = (totalFundingSequence - totalNoteFunding) <= ExtraNoteFunding ? (totalFundingSequence - totalNoteFunding) : ExtraNoteFunding;
-                        PayruleTargetNoteFundingScheduleList.Where(x => x.NoteID == note.NoteID && x.Date == maxFundingDate && x.Value > 0).ToList().ForEach(v => v.Value = v.Value + diffNoteDeal);
-                        ExtraNoteFunding = ExtraNoteFunding - diffNoteDeal;
-                    }
-                }
-            }
-
-            //Repayment match
-            if (isRepayment == true)
-            {
-                if (maxRepaymentDate != new DateTime())
-                {
-                    //search for note which has note Repayment>sequence or Repayment<sequence
+                    //search for note which has note funding>sequence or funding<sequence
                     foreach (var note in dealDC.PayruleNoteDetailFundingList)
                     {
-                        totalRepaymentSequence = PayruleNoteAMSequenceList.Where(a => a.NoteID == note.NoteID && a.SequenceTypeText == "Repayment Sequence").Sum(x => x.Value.GetValueOrDefault(0));
-                        totalNoteRepayment = Math.Abs(PayruleTargetNoteFundingScheduleList.Where(y => y.NoteID == note.NoteID && y.Value < 0).Sum(x => x.Value.GetValueOrDefault(0)));
-                        if (totalNoteRepayment > totalRepaymentSequence)
+                        totalFundingSequence = PayruleNoteAMSequenceList.Where(a => a.NoteID == note.NoteID && a.SequenceTypeText == "Funding Sequence").Sum(x => x.Value.GetValueOrDefault(0));
+                        totalNoteFunding = PayruleTargetNoteFundingScheduleList.Where(y => y.NoteID == note.NoteID && y.Value > 0).Sum(x => x.Value.GetValueOrDefault(0));
+                        if (totalNoteFunding > totalFundingSequence)
                         {
-                            ExtraNoteRepayment = ExtraNoteRepayment + (totalNoteRepayment - totalRepaymentSequence);
+                            ExtraNoteFunding = ExtraNoteFunding + (totalNoteFunding - totalFundingSequence);
                         }
-                        else if (totalNoteRepayment < totalRepaymentSequence)
+                        else if (totalNoteFunding < totalFundingSequence)
                         {
-                            LessNoteRepayment = LessNoteRepayment + (totalRepaymentSequence - totalNoteRepayment);
+                            LessNoteFunding = LessNoteFunding + (totalFundingSequence - totalNoteFunding);
                         }
                     }
-                    //settle Repayment
+
+                    //settle funding
                     foreach (var note in dealDC.PayruleNoteDetailFundingList)
                     {
-                        totalRepaymentSequence = PayruleNoteAMSequenceList.Where(a => a.NoteID == note.NoteID && a.SequenceTypeText == "Repayment Sequence").Sum(x => x.Value.GetValueOrDefault(0));
-                        totalNoteRepayment = Math.Abs(PayruleTargetNoteFundingScheduleList.Where(y => y.NoteID == note.NoteID && y.Value < 0).Sum(x => x.Value.GetValueOrDefault(0)));
-                        if (totalNoteRepayment > totalRepaymentSequence && LessNoteRepayment != 0) //note with greater Repayment than sequence
+                        totalFundingSequence = PayruleNoteAMSequenceList.Where(a => a.NoteID == note.NoteID && a.SequenceTypeText == "Funding Sequence").Sum(x => x.Value.GetValueOrDefault(0));
+                        totalNoteFunding = PayruleTargetNoteFundingScheduleList.Where(y => y.NoteID == note.NoteID && y.Value > 0).Sum(x => x.Value.GetValueOrDefault(0));
+                        if (totalNoteFunding > totalFundingSequence && LessNoteFunding != 0) //note with greater funding than sequence
                         {
-                            diffNoteDeal = (totalNoteRepayment - totalRepaymentSequence) <= LessNoteRepayment ? (totalNoteRepayment - totalRepaymentSequence) : LessNoteRepayment;
-                            PayruleTargetNoteFundingScheduleList.Where(x => x.NoteID == note.NoteID && x.Date == maxRepaymentDate && x.Value < 0).ToList().ForEach(v => v.Value = v.Value + diffNoteDeal);
+                            diffNoteDeal = (totalNoteFunding - totalFundingSequence) <= LessNoteFunding ? (totalNoteFunding - totalFundingSequence) : LessNoteFunding;
+                            PayruleTargetNoteFundingScheduleList.Where(x => x.NoteID == note.NoteID && x.Date == maxFundingDate && x.Value > 0).ToList().ForEach(v => v.Value = v.Value - diffNoteDeal);
                             LessNoteFunding = LessNoteFunding - diffNoteDeal;
                         }
-                        else if (totalNoteRepayment < totalRepaymentSequence && ExtraNoteRepayment != 0) //note with less Repayment than sequence
+                        else if (totalNoteFunding < totalFundingSequence && ExtraNoteFunding != 0) //note with less funding than sequence
                         {
-                            diffNoteDeal = (totalRepaymentSequence - totalNoteRepayment) <= ExtraNoteRepayment ? (totalRepaymentSequence - totalNoteRepayment) : ExtraNoteRepayment;
-                            PayruleTargetNoteFundingScheduleList.Where(x => x.NoteID == note.NoteID && x.Date == maxRepaymentDate && x.Value < 0).ToList().ForEach(v => v.Value = v.Value - diffNoteDeal);
-                            ExtraNoteRepayment = ExtraNoteRepayment - diffNoteDeal;
+                            diffNoteDeal = (totalFundingSequence - totalNoteFunding) <= ExtraNoteFunding ? (totalFundingSequence - totalNoteFunding) : ExtraNoteFunding;
+                            PayruleTargetNoteFundingScheduleList.Where(x => x.NoteID == note.NoteID && x.Date == maxFundingDate && x.Value > 0).ToList().ForEach(v => v.Value = v.Value + diffNoteDeal);
+                            ExtraNoteFunding = ExtraNoteFunding - diffNoteDeal;
                         }
                     }
                 }
-            }
-            // CreateCSVFile(ToDataSet(PayruleTargetNoteFundingScheduleList).Tables[0], "Final");
 
-            #endregion FinalSettelment
+                //Repayment match
+                if (isRepayment == true)
+                {
+                    if (maxRepaymentDate != new DateTime())
+                    {
+                        //search for note which has note Repayment>sequence or Repayment<sequence
+                        foreach (var note in dealDC.PayruleNoteDetailFundingList)
+                        {
+                            totalRepaymentSequence = PayruleNoteAMSequenceList.Where(a => a.NoteID == note.NoteID && a.SequenceTypeText == "Repayment Sequence").Sum(x => x.Value.GetValueOrDefault(0));
+                            totalNoteRepayment = Math.Abs(PayruleTargetNoteFundingScheduleList.Where(y => y.NoteID == note.NoteID && y.Value < 0).Sum(x => x.Value.GetValueOrDefault(0)));
+                            if (totalNoteRepayment > totalRepaymentSequence)
+                            {
+                                ExtraNoteRepayment = ExtraNoteRepayment + (totalNoteRepayment - totalRepaymentSequence);
+                            }
+                            else if (totalNoteRepayment < totalRepaymentSequence)
+                            {
+                                LessNoteRepayment = LessNoteRepayment + (totalRepaymentSequence - totalNoteRepayment);
+                            }
+                        }
+                        //settle Repayment
+                        foreach (var note in dealDC.PayruleNoteDetailFundingList)
+                        {
+                            totalRepaymentSequence = PayruleNoteAMSequenceList.Where(a => a.NoteID == note.NoteID && a.SequenceTypeText == "Repayment Sequence").Sum(x => x.Value.GetValueOrDefault(0));
+                            totalNoteRepayment = Math.Abs(PayruleTargetNoteFundingScheduleList.Where(y => y.NoteID == note.NoteID && y.Value < 0).Sum(x => x.Value.GetValueOrDefault(0)));
+                            if (totalNoteRepayment > totalRepaymentSequence && LessNoteRepayment != 0) //note with greater Repayment than sequence
+                            {
+                                diffNoteDeal = (totalNoteRepayment - totalRepaymentSequence) <= LessNoteRepayment ? (totalNoteRepayment - totalRepaymentSequence) : LessNoteRepayment;
+                                PayruleTargetNoteFundingScheduleList.Where(x => x.NoteID == note.NoteID && x.Date == maxRepaymentDate && x.Value < 0).ToList().ForEach(v => v.Value = v.Value + diffNoteDeal);
+                                LessNoteFunding = LessNoteFunding - diffNoteDeal;
+                            }
+                            else if (totalNoteRepayment < totalRepaymentSequence && ExtraNoteRepayment != 0) //note with less Repayment than sequence
+                            {
+                                diffNoteDeal = (totalRepaymentSequence - totalNoteRepayment) <= ExtraNoteRepayment ? (totalRepaymentSequence - totalNoteRepayment) : ExtraNoteRepayment;
+                                PayruleTargetNoteFundingScheduleList.Where(x => x.NoteID == note.NoteID && x.Date == maxRepaymentDate && x.Value < 0).ToList().ForEach(v => v.Value = v.Value - diffNoteDeal);
+                                ExtraNoteRepayment = ExtraNoteRepayment - diffNoteDeal;
+                            }
+                        }
+                    }
+                }
+                // CreateCSVFile(ToDataSet(PayruleTargetNoteFundingScheduleList).Tables[0], "Final");
+
+                #endregion FinalSettelment
+            }
         }
 
         #endregion NewCode
@@ -1289,41 +1548,26 @@ namespace CRES.NoteCalculator
                 dis.MaxFundDate = maxFundDate;
                 ListPurposeMinDate.Add(dis);
             }
-
-            DeleteFundingForAutoSpreading();
             maxrowno = maxrowno + 1;
             foreach (AutoSpreadRuleDataContract asd in dealDC.AutoSpreadRuleList)
             {
-
-                // TotalEquityAmountDistributed = 0;
                 TotalRequiredEquity = 0;
-                TotalAdditionalEquity = 0;
                 actuallastmonth = 0;
                 AutoSpreadStartDate = DateTime.MinValue;
                 maxWireConfirmedDate = DateTime.MinValue;
                 int totalmonths = 0;
-#pragma warning disable CS0219 // The variable 'DebtToEquityRatio' is assigned but its value is never used
-#pragma warning disable CS0219 // The variable 'EquityFundAllocated' is assigned but its value is never used
-#pragma warning disable CS0219 // The variable 'TotalEquityAmountToBeDistribute' is assigned but its value is never used
-                decimal? FundAllocated = 0, pennyToBeadjusted = 0, ReamingAmountToDistribute = 0, TotalAmtToBeDistribute = 0, TotalAmtDistributed = 0, TotalEquityAmountToBeDistribute = 0, EquityFundAllocated = 0, RequiredEquityAllocated = 0, AdditionalEquityAllocated = 0, TotalRequiredEquityToBeDistribute = 0, TotalAdditionalEquityToBeDistribute = 0, DebtToEquityRatio = 0;
-#pragma warning restore CS0219 // The variable 'TotalEquityAmountToBeDistribute' is assigned but its value is never used
-#pragma warning restore CS0219 // The variable 'EquityFundAllocated' is assigned but its value is never used
-#pragma warning restore CS0219 // The variable 'DebtToEquityRatio' is assigned but its value is never used
-#pragma warning disable CS0219 // The variable 'StartInnextMonth' is assigned but its value is never used
+                decimal? FundAllocated = 0, pennyToBeadjusted = 0, ReamingAmountToDistribute = 0, TotalAmtToBeDistribute = 0, TotalAmtDistributed = 0, RequiredEquityAllocated = 0, AdditionalEquityAllocated = 0, TotalRequiredEquityToBeDistribute = 0, TotalAdditionalEquityToBeDistribute = 0, DebtToEquityRatio = 0;
                 bool StartInnextMonth = true;
-#pragma warning restore CS0219 // The variable 'StartInnextMonth' is assigned but its value is never used
                 DateTime startdate = DateTime.MinValue;
                 DateTime enddate = DateTime.MinValue;
                 int numberofperiods = 0;
                 TotalAmtDistributed = GetTotalAmountDistributed(asd.PurposeTypeText);
                 TotalAmtToBeDistribute = asd.DebtAmount.GetValueOrDefault(0) - TotalAmtDistributed;
-                // TotalEquityAmountToBeDistribute = asd.EquityAmount.GetValueOrDefault(0) - TotalEquityAmountDistributed;
                 TotalRequiredEquityToBeDistribute = asd.RequiredEquity.GetValueOrDefault(0) - TotalRequiredEquity;
-                TotalAdditionalEquityToBeDistribute = asd.AdditionalEquity.GetValueOrDefault(0) - TotalAdditionalEquity;
                 // get dropday 
                 GetDropDay(asd.PurposeTypeText);
 
-                if (asd.StartDate.Value.Date == asd.EndDate.Value.Date && Math.Abs(TotalAmtToBeDistribute.Value + TotalRequiredEquityToBeDistribute.Value + TotalAdditionalEquityToBeDistribute.Value) != 0m)
+                if (asd.StartDate.Value.Date == asd.EndDate.Value.Date && Math.Abs(TotalAmtToBeDistribute.Value + TotalRequiredEquityToBeDistribute.Value) != 0m)
                 {
                     //get TotalAmtToBeDistribute and TotalAmtDistributeed for  purpose type
                     PayruleDealFundingDataContract pdf = new PayruleDealFundingDataContract();
@@ -1354,14 +1598,14 @@ namespace CRES.NoteCalculator
                     pdf.WF_IsCompleted = false;
                     pdf.WF_IsFlowStart = false;
                     pdf.wf_isUserCurrentFlow = false;
-                    pdf.EquityAmount = Math.Round(Convert.ToDecimal(asd.EquityAmount), 2);
-                    pdf.RequiredEquity = Math.Round(Convert.ToDecimal(asd.RequiredEquity), 2);
-                    pdf.AdditionalEquity = Math.Round(Convert.ToDecimal(asd.AdditionalEquity), 2);
+                    pdf.EquityAmount = Math.Round(Convert.ToDecimal(TotalRequiredEquityToBeDistribute.Value), 2);
+                    pdf.RequiredEquity = Math.Round(Convert.ToDecimal(TotalRequiredEquityToBeDistribute.Value), 2);
+
                     pdf.GeneratedBy = 747;
                     dealDC.PayruleDealFundingList.Add(pdf);
                     maxrowno = maxrowno + 1;
                 }
-                else if (Math.Abs(TotalAmtToBeDistribute.Value + TotalRequiredEquityToBeDistribute.Value + TotalAdditionalEquityToBeDistribute.Value) != 0m)
+                else if (Math.Abs(TotalAmtToBeDistribute.Value + TotalRequiredEquityToBeDistribute.Value) != 0m)
                 {
                     ReamingAmountToDistribute = TotalAmtToBeDistribute;
 
@@ -1436,21 +1680,20 @@ namespace CRES.NoteCalculator
                         lastfunddate = dealfunddate;
                         if (dealfunddate <= enddate)
                         {
-                            pdf.Date = DateExtensions.GetnextWorkingDays(Convert.ToDateTime(dealfunddate.AddDays(1)), Convert.ToInt16(-1), "US", dealDC.ListHoliday).Date;
+                            pdf.Date = DateExtensions.GetWorkingDayUsingOffset(Convert.ToDateTime(dealfunddate), Convert.ToInt16(-1), "US", dealDC.ListHoliday).Date;
                             pdf.PurposeText = asd.PurposeTypeText;
                             pdf.PurposeID = asd.PurposeType;
                             pdf.SubPurposeType = asd.PurposeSubType;
                             if (numberofperiods == 1)
                             {
                                 pdf.Value = TotalAmtToBeDistribute.GetValueOrDefault(0);
-                                pdf.RequiredEquity = TotalRequiredEquityToBeDistribute.GetValueOrDefault(0);
-                                pdf.AdditionalEquity = TotalAdditionalEquityToBeDistribute.GetValueOrDefault(0);
+                                pdf.RequiredEquity = Math.Max(0, TotalRequiredEquityToBeDistribute.GetValueOrDefault(0));
+
                             }
                             else
                             {
                                 pdf.Value = DistributeAmountBasedOnRule(TotalAmtToBeDistribute.GetValueOrDefault(0), numberofperiods, asd.DistributionMethodText, actuallastmonth, actuallastmonth + i + 1);
                                 pdf.RequiredEquity = DistributeAmountBasedOnRule(TotalRequiredEquityToBeDistribute.GetValueOrDefault(0), numberofperiods, asd.DistributionMethodText, actuallastmonth, actuallastmonth + i + 1);
-                                pdf.AdditionalEquity = DistributeAmountBasedOnRule(TotalAdditionalEquityToBeDistribute.GetValueOrDefault(0), numberofperiods, asd.DistributionMethodText, actuallastmonth, actuallastmonth + i + 1);
 
                             }
                             pdf.Applied = false;
@@ -1481,7 +1724,7 @@ namespace CRES.NoteCalculator
                             FundAllocated = FundAllocated + pdf.Value;
                             // EquityFundAllocated = EquityFundAllocated + pdf.EquityAmount;
                             RequiredEquityAllocated = RequiredEquityAllocated + pdf.RequiredEquity.GetValueOrDefault(0);
-                            AdditionalEquityAllocated = AdditionalEquityAllocated + pdf.AdditionalEquity.GetValueOrDefault(0);
+                            // AdditionalEquityAllocated = AdditionalEquityAllocated + pdf.AdditionalEquity.GetValueOrDefault(0);
 
                             ReamingAmountToDistribute = ReamingAmountToDistribute - pdf.Value;
                             dealDC.PayruleDealFundingList.Add(pdf);
@@ -1515,67 +1758,35 @@ namespace CRES.NoteCalculator
                             }
                         }
                     }
-                    if (AdditionalEquityAllocated != 0)
-                    {
-                        pennyToBeadjusted = 0;
-                        pennyToBeadjusted = TotalAdditionalEquityToBeDistribute - AdditionalEquityAllocated;
-                        if (pennyToBeadjusted != 0)
-                        {
-                            if (dealDC.PayruleDealFundingList.Count > 1)
-                            {
-                                dealDC.PayruleDealFundingList[dealDC.PayruleDealFundingList.Count - 1].AdditionalEquity = dealDC.PayruleDealFundingList[dealDC.PayruleDealFundingList.Count - 1].AdditionalEquity + pennyToBeadjusted.GetValueOrDefault(0);
-                            }
-                        }
-                    }
 
                 }
             }
+
+            //delete 0 
+            DeleteZeroAmountAfterAutoSpreadingFunding();
         }
 
         private DateTime CalculateStartDateForAutoSpreadFunding(DateTime? asdStartDate)
         {
             Boolean StartInnextMonth = true;
             DateTime startdate = DateTime.MinValue;
-            if (AutoSpreadStartDate == DateTime.MinValue || AutoSpreadStartDate == null)
-            {
-                AutoSpreadStartDate = asdStartDate.Value;
-                if (maxFundDate.Value.Date == DateTime.MinValue || maxFundDate == null)
-                {
-                    StartInnextMonth = false;
-                }
-            }
+            DateTime todaydate = DateTime.Now.Date;
+            DateTime nextdateafter15days = DateExtensions.GetWorkingDayUsingOffset(Convert.ToDateTime(todaydate), Convert.ToInt16(15), "US", dealDC.ListHoliday, true).Date;
+            DateTime nextstartdate = DateExtensions.CreateNewDate(todaydate.Year, todaydate.Month, dropday);
 
-            AutoSpreadStartDate = DateExtensions.GetMaxDate(AutoSpreadStartDate.Value.Date, maxFundDate.Value.Date);
+            AutoSpreadStartDate = DateExtensions.GetMaxDate(AutoSpreadStartDate.Value.Date, asdStartDate.Value.Date);
+            AutoSpreadStartDate = DateExtensions.GetMaxDate(AutoSpreadStartDate.Value.Date, maxFundDate.Value.Date.AddMonths(1));
             AutoSpreadStartDate = DateExtensions.GetMaxDate(AutoSpreadStartDate.Value.Date, DateTime.Now);
-
-            if (StartInnextMonth == true)
+            AutoSpreadStartDate = DateExtensions.GetMaxDate(AutoSpreadStartDate.Value.Date, nextdateafter15days);
+            AutoSpreadStartDate = DateExtensions.GetMaxDate(AutoSpreadStartDate.Value.Date, nextstartdate);
+            if (AutoSpreadStartDate.Value.Day > dropday)
             {
-                DateTime? tempstartdate = AutoSpreadStartDate.Value.Date;
-                var datetemp = DateExtensions.GetnextWorkingDays(Convert.ToDateTime(tempstartdate.Value.AddDays(1)), Convert.ToInt16(-1), "US", dealDC.ListHoliday).Date;
-                if (datetemp.Date == tempstartdate)
-                {
-                    //case : when last date is equal to new start date
-                    startdate = DateExtensions.CreateNewDate(AutoSpreadStartDate.Value.Year, AutoSpreadStartDate.Value.Month + 1, dropday);
-                }
-                else if (AutoSpreadStartDate.Value.Day >= dropday)
-                {
-                    //case : when dropday is greater last date then start from current date: so there is be 2 entries in same month
-                    startdate = DateExtensions.CreateNewDate(AutoSpreadStartDate.Value.Year, AutoSpreadStartDate.Value.Month + 1, dropday);
-                }
-                else
-                {
-                    startdate = DateExtensions.CreateNewDate(AutoSpreadStartDate.Value.Year, AutoSpreadStartDate.Value.Month, dropday);
-                }
+                startdate = DateExtensions.CreateNewDate(AutoSpreadStartDate.Value.Year, AutoSpreadStartDate.Value.Month + 1, dropday);
             }
             else
             {
                 startdate = DateExtensions.CreateNewDate(AutoSpreadStartDate.Value.Year, AutoSpreadStartDate.Value.Month, dropday);
             }
-            if (startdate < asdStartDate)
-            {
-                startdate = asdStartDate.Value.Date;
-            }
-
             return startdate;
         }
 
@@ -1595,14 +1806,43 @@ namespace CRES.NoteCalculator
         }
         private void DeleteFundingForAutoSpreading()
         {
+            foreach (AutoSpreadRuleDataContract asd in dealDC.AutoSpreadRuleList)
+            {
+                foreach (PayruleDealFundingDataContract ds in dealDC.PayruleDealFundingList)
+                {
+                    if (ds.PurposeText == asd.PurposeTypeText)
+                    {
+                        if (ds.Applied != true)
+                        {
+                            if (ds.WF_CurrentStatus == "Projected" || ds.WF_CurrentStatus == "" || ds.WF_CurrentStatus == null)
+                            {
+                                if (ds.Comment == null || ds.Comment == "")
+                                {
+                                    ds.isdeleted = true;
+                                    PayruleDeletedDealFundingList.Add(ds);
+                                }
+                            }
+                        }
+                        else if (ds.PurposeText == null || ds.PurposeText == "")
+                        {
+                            ds.isdeleted = true;
+                            PayruleDeletedDealFundingList.Add(ds);
+                        }
+                    }
+                }
+            }
+
+            dealDC.PayruleDealFundingList.RemoveAll(x => x.isdeleted == true);
+        }
+        private void DeleteAutoSpreadFundings()
+        {
             foreach (PayruleDealFundingDataContract ds in dealDC.PayruleDealFundingList)
             {
-                DateTime? tempdate = DateTime.MinValue;
-                if (ds.PurposeText != "Note Transfer" && ds.Value > 0)
+                if (ds.Value >= 0m)
                 {
                     if (ds.Applied != true)
                     {
-                        if (ds.WF_CurrentStatus == "Projected" || ds.WF_CurrentStatus == "" || ds.WF_CurrentStatus == null)
+                        if (ds.GeneratedBy == 747)
                         {
                             if (ds.Comment == null || ds.Comment == "")
                             {
@@ -1618,6 +1858,39 @@ namespace CRES.NoteCalculator
                     }
                 }
             }
+
+            dealDC.PayruleDealFundingList.RemoveAll(x => x.isdeleted == true);
+        }
+
+        private void DeleteZeroAmountAfterAutoSpreadingFunding()
+        {
+            foreach (AutoSpreadRuleDataContract asd in dealDC.AutoSpreadRuleList)
+            {
+                foreach (PayruleDealFundingDataContract ds in dealDC.PayruleDealFundingList)
+                {
+                    if (ds.PurposeText == asd.PurposeTypeText)
+                    {
+                        if (ds.Applied != true)
+                        {
+                            if (ds.WF_CurrentStatus == "Projected" || ds.WF_CurrentStatus == "" || ds.WF_CurrentStatus == null)
+                            {
+                                if (ds.Comment == null || ds.Comment == "")
+                                {
+                                    if (Math.Abs(ds.RequiredEquity.GetValueOrDefault(0) + ds.Value.GetValueOrDefault(0)) == 0m)
+                                    {
+                                        ds.isdeleted = true;
+                                        PayruleDeletedDealFundingList.Add(ds);
+
+                                    }
+
+                                }
+                            }
+                        }
+
+                    }
+                }
+            }
+
             dealDC.PayruleDealFundingList.RemoveAll(x => x.isdeleted == true);
         }
         public void AutoSpreadRepayment()
@@ -1644,18 +1917,31 @@ namespace CRES.NoteCalculator
             // 4) check for same month paydown if entries found in same month then move start date to next month         
             RepaymentStartDate = RecalculateStartDateAgain(Convert.ToDateTime(RepaymentStartDate));
             ListRepaymentBalances = dealDC.ListAutoRepaymentBalances;
-            // 5) Calculate CPR And SLR Factor
-            if (dealDC.RepaymentAutoSpreadMethodText != "Date Specific")
+
+            // If we have balance but the first paydown is happening after maturity then generate a paydown on maturity for
+            if (RepaymentEndDate != DateTime.MinValue && RepaymentStartDate != DateTime.MinValue)
             {
-                if (datainCumulativeProbability == true)
-                {
-                    CalculateCPRAndSLFactor(RepaymentStartDate);
-                }
-                else
+                if (RepaymentStartDate.Value.Date > RepaymentEndDate.Value.Date)
                 {
                     generateonLatestpossibleprepayment = true;
                 }
             }
+            if (generateonLatestpossibleprepayment != true)
+            {
+                // 5) Calculate CPR And SLR Factor
+                if (dealDC.RepaymentAutoSpreadMethodText != "Date Specific")
+                {
+                    if (datainCumulativeProbability == true)
+                    {
+                        CalculateCPRAndSLFactor(RepaymentStartDate);
+                    }
+                    else
+                    {
+                        generateonLatestpossibleprepayment = true;
+                    }
+                }
+            }
+
             //6)distribute balance
 
             if (generateonLatestpossibleprepayment != true)
@@ -1681,7 +1967,7 @@ namespace CRES.NoteCalculator
                     }
                     else
                     {
-                        pdf.Date = DateExtensions.GetnextWorkingDays(Convert.ToDateTime(pdf.Date.Value.AddDays(1)), Convert.ToInt16(-1), "US", dealDC.ListHoliday).Date;
+                        // pdf.Date = DateExtensions.GetWorkingDayUsingOffset(Convert.ToDateTime(pdf.Date.Value.Date), Convert.ToInt16(-1), "US", dealDC.ListHoliday).Date;
 
                         if (LastPaydownDate != DateTime.MinValue)
                         {
@@ -1704,7 +1990,7 @@ namespace CRES.NoteCalculator
                 {
                     int day = GetDayofTheMonth();
                     DateTime dealfunddate = Convert.ToDateTime(RepaymentEndDate);
-                    dealfunddate = DateExtensions.GetnextWorkingDays(Convert.ToDateTime(dealfunddate.AddDays(1)), Convert.ToInt16(-1), "US", dealDC.ListHoliday).Date;
+                    dealfunddate = DateExtensions.GetWorkingDayUsingOffset(Convert.ToDateTime(dealfunddate), Convert.ToInt16(-1), "US", dealDC.ListHoliday).Date;
 
                     Decimal? balance = 0;
                     balance = Convert.ToDecimal(GetCurrentBalance(dealfunddate, dealfunddate, 0, dealfunddate));
@@ -1716,7 +2002,7 @@ namespace CRES.NoteCalculator
             var trueup = CheckifTrueUpisToBeApplyorNot(RepaymentStartDate, RepaymentEndDate);
             if (LastPaydownDate != DateTime.MinValue)
             {
-                if (LastPaydownDate.Date < DateExtensions.GetnextWorkingDays(Convert.ToDateTime(RepaymentStartDate.Value.AddDays(1)), Convert.ToInt16(-1), "US", dealDC.ListHoliday).Date)
+                if (LastPaydownDate.Date < DateExtensions.GetWorkingDayUsingOffset(Convert.ToDateTime(RepaymentStartDate.Value), Convert.ToInt16(-1), "US", dealDC.ListHoliday).Date)
                 {
                     LastPaydownDate = Convert.ToDateTime(RepaymentStartDate);
                 }
@@ -1743,7 +2029,16 @@ namespace CRES.NoteCalculator
                     dealDC.PayruleDealFundingList.Add(ds);
                 }
             }
-            dealDC.RepayExpectedMaturityDate = CalculateExpectedMaturityDate();
+            foreach (PayruleDealFundingDataContract pdf in dealDC.PayruleDealFundingList)
+            {
+                pdf.Date = DateExtensions.GetWorkingDayUsingOffset(Convert.ToDateTime(pdf.Date.Value.Date), Convert.ToInt16(-1), "US", dealDC.ListHoliday).Date;
+
+            }
+
+
+            //commented below logic : now autospread end will be ExpectedMaturityDate
+            //dealDC.RepayExpectedMaturityDate = CalculateExpectedMaturityDate();
+            dealDC.RepayExpectedMaturityDate = RepaymentEndDate;
         }
 
         public void GetDropDay(string purposetype)
@@ -1833,19 +2128,28 @@ namespace CRES.NoteCalculator
                     }
                 }
             }
-            // 5) Calculate CPR And SLR Factor
-            if (dealDC.RepaymentAutoSpreadMethodText != "Date Specific")
+            if (RepaymentEndDate != DateTime.MinValue && RepaymentStartDate != DateTime.MinValue)
             {
-                if (datainCumulativeProbability == true)
-                {
-                    CalculateCPRAndSLFactor(RepaymentStartDate);
-                }
-                else
+                if (RepaymentStartDate.Value.Date > RepaymentEndDate.Value.Date)
                 {
                     generateonLatestpossibleprepayment = true;
                 }
             }
-
+            // 5) Calculate CPR And SLR Factor
+            if (generateonLatestpossibleprepayment != true)
+            {
+                if (dealDC.RepaymentAutoSpreadMethodText != "Date Specific")
+                {
+                    if (datainCumulativeProbability == true)
+                    {
+                        CalculateCPRAndSLFactor(RepaymentStartDate);
+                    }
+                    else
+                    {
+                        generateonLatestpossibleprepayment = true;
+                    }
+                }
+            }
             if (generateonLatestpossibleprepayment != true)
             {
                 //6)distribute balance 
@@ -1856,6 +2160,7 @@ namespace CRES.NoteCalculator
                 else
                 {
                     DistributeRepayAmountUseRuleN(RepaymentStartDate, RepaymentEndDate);
+
                 }
             }
 
@@ -1871,7 +2176,7 @@ namespace CRES.NoteCalculator
                     }
                     else
                     {
-                        pdf.Date = DateExtensions.GetnextWorkingDays(Convert.ToDateTime(pdf.Date.Value.AddDays(1)), Convert.ToInt16(-1), "US", dealDC.ListHoliday).Date;
+                        //pdf.Date = DateExtensions.GetWorkingDayUsingOffset(Convert.ToDateTime(pdf.Date.Value), Convert.ToInt16(-1), "US", dealDC.ListHoliday).Date;
 
                         if (LastPaydownDate != DateTime.MinValue)
                         {
@@ -1902,14 +2207,6 @@ namespace CRES.NoteCalculator
             }
             dealDC.PayruleTargetNoteFundingScheduleList.RemoveAll(x => x.isDeletedAutoSpread == true);
 
-            foreach (PayruleTargetNoteFundingScheduleDataContract notefund in dealDC.PayruleTargetNoteFundingScheduleList)
-            {
-                if (notefund.Purpose == "Paydown")
-                {
-                    notefund.Date = DateExtensions.GetnextWorkingDays(Convert.ToDateTime(notefund.Date.Value.AddDays(1)), Convert.ToInt16(-1), "US", dealDC.ListHoliday).Date;
-                }
-            }
-
             dealDC.PayruleDealFundingList.RemoveAll(x => x.isdeleted == true);
 
             if (generateonLatestpossibleprepayment == true)
@@ -1924,7 +2221,7 @@ namespace CRES.NoteCalculator
 
             if (generateonLatestpossibleprepayment != true && LastPaydownDate != DateTime.MinValue)
             {
-                if (LastPaydownDate.Value.Date < DateExtensions.GetnextWorkingDays(Convert.ToDateTime(RepaymentStartDate.Value.AddDays(1)), Convert.ToInt16(-1), "US", dealDC.ListHoliday).Date)
+                if (LastPaydownDate.Value.Date < DateExtensions.GetWorkingDayUsingOffset(Convert.ToDateTime(RepaymentStartDate.Value), Convert.ToInt16(-1), "US", dealDC.ListHoliday).Date)
                 {
                     LastPaydownDate = RepaymentStartDate;
                 }
@@ -1981,7 +2278,23 @@ namespace CRES.NoteCalculator
                     }
                 }
             }
-            dealDC.RepayExpectedMaturityDate = CalculateExpectedMaturityDate();
+            //holiday adjust the dates
+            foreach (PayruleDealFundingDataContract pdf in dealDC.PayruleDealFundingList)
+            {
+                pdf.Date = DateExtensions.GetWorkingDayUsingOffset(Convert.ToDateTime(pdf.Date.Value.Date), Convert.ToInt16(-1), "US", dealDC.ListHoliday).Date;
+
+            }
+            foreach (PayruleTargetNoteFundingScheduleDataContract notefund in dealDC.PayruleTargetNoteFundingScheduleList)
+            {
+                if (notefund.Purpose == "Paydown")
+                {
+                    notefund.Date = DateExtensions.GetWorkingDayUsingOffset(Convert.ToDateTime(notefund.Date.Value), Convert.ToInt16(-1), "US", dealDC.ListHoliday).Date;
+                }
+            }
+
+            //commented below logic : now autospread end will be ExpectedMaturityDate
+            //dealDC.RepayExpectedMaturityDate = CalculateExpectedMaturityDate();
+            dealDC.RepayExpectedMaturityDate = RepaymentEndDate;
         }
 
         public Decimal GetTotalAmountDistributed(String PurposeType)
@@ -1991,21 +2304,21 @@ namespace CRES.NoteCalculator
             {
                 if (PurposeType == pdfd.PurposeText)
                 {
-                    if (pdfd.WF_CurrentStatus != "Projected" || pdfd.WF_CurrentStatus == "" || pdfd.WF_CurrentStatus == null || pdfd.Applied == true)
+                    if (pdfd.NonCommitmentAdj != true)
                     {
-                        TotalAmountDistributed = TotalAmountDistributed + pdfd.Value.GetValueOrDefault(0);
-                        //TotalEquityAmountDistributed = TotalEquityAmountDistributed + pdfd.EquityAmount.GetValueOrDefault(0);
-                        TotalAdditionalEquity = TotalAdditionalEquity + pdfd.AdditionalEquity.GetValueOrDefault(0);
-                        TotalRequiredEquity = TotalRequiredEquity + pdfd.RequiredEquity.GetValueOrDefault(0);
+                        if (pdfd.WF_CurrentStatus != "Projected" || pdfd.WF_CurrentStatus == "" || pdfd.WF_CurrentStatus == null || pdfd.Applied == true)
+                        {
+                            TotalAmountDistributed = TotalAmountDistributed + pdfd.Value.GetValueOrDefault(0);
+                            TotalRequiredEquity = TotalRequiredEquity + pdfd.RequiredEquity.GetValueOrDefault(0);
 
+                        }
+                        else if (pdfd.Comment != "" || pdfd.Comment != null)
+                        {
+                            TotalAmountDistributed = TotalAmountDistributed + pdfd.Value.GetValueOrDefault(0);
+                            TotalRequiredEquity = TotalRequiredEquity + pdfd.RequiredEquity.GetValueOrDefault(0);
+                        }
                     }
-                    else if (pdfd.Comment != "" || pdfd.Comment != null)
-                    {
-                        TotalAmountDistributed = TotalAmountDistributed + pdfd.Value.GetValueOrDefault(0);
-                        // TotalEquityAmountDistributed = TotalEquityAmountDistributed + pdfd.EquityAmount.GetValueOrDefault(0);
-                        TotalAdditionalEquity = TotalAdditionalEquity + pdfd.AdditionalEquity.GetValueOrDefault(0);
-                        TotalRequiredEquity = TotalRequiredEquity + pdfd.RequiredEquity.GetValueOrDefault(0);
-                    }
+
                 }
                 if (pdfd.Applied == true)
                 {
@@ -2049,6 +2362,7 @@ namespace CRES.NoteCalculator
                     pamt = RemainingAmtToDistribute * (currentmonthid - lastmonth) * SmoothStepPact;
                 }
             }
+            pamt = Math.Max(0, pamt);
             return Math.Round(pamt, 2);
         }
 
@@ -2221,11 +2535,14 @@ namespace CRES.NoteCalculator
                     {
                         tempdate = ds.Date;
                     }
-                    if (ds.Comment != null)
+                    if (ds.PurposeText != "Amortization")
                     {
-                        if (ds.Comment != "")
+                        if (ds.Comment != null)
                         {
-                            tempdate = ds.Date;
+                            if (ds.Comment != "")
+                            {
+                                tempdate = ds.Date;
+                            }
                         }
                     }
 
@@ -2258,8 +2575,6 @@ namespace CRES.NoteCalculator
                             maxrepayDate = DateExtensions.GetMaxDate(maxrepayDate.Value.Date, ds.Date.Value.Date);
                         }
                     }
-
-
                 }
             }
             maxLockedDate = maxrepayDate.Value;
@@ -2418,23 +2733,23 @@ namespace CRES.NoteCalculator
             {
                 RepayEndDate = LastProjectedPayoffAsofDate;
             }
-            if (dealDC.maxMaturityDate != null && dealDC.maxMaturityDate != DateTime.MinValue)
-            {
-                if (RepayEndDate != DateTime.MinValue)
-                {
-                    if (RepayEndDate > dealDC.maxMaturityDate.Value.Date)
-                    {
-                        RepayEndDate = dealDC.maxMaturityDate.Value.Date;
-                        EventTrueup = true;
-                    }
-                }
-                else
-                {
-                    RepayEndDate = dealDC.maxMaturityDate.Value.Date;
-                    EventTrueup = true;
-                }
+            //if (dealDC.maxMaturityDate != null && dealDC.maxMaturityDate != DateTime.MinValue)
+            //{
+            //    if (RepayEndDate != DateTime.MinValue)
+            //    {
+            //        if (RepayEndDate > dealDC.maxMaturityDate.Value.Date)
+            //        {
+            //            RepayEndDate = dealDC.maxMaturityDate.Value.Date;
+            //            EventTrueup = true;
+            //        }
+            //    }
+            //    else
+            //    {
+            //        RepayEndDate = dealDC.maxMaturityDate.Value.Date;
+            //        EventTrueup = true;
+            //    }
 
-            }
+            //}
 
             return RepayEndDate.Value.Date;
 
@@ -2444,9 +2759,7 @@ namespace CRES.NoteCalculator
         {
             int listindex = 0;
             int numberofmonths = 0;
-#pragma warning disable CS0219 // The variable 'eventLatestPossibleRepaymentDate' is assigned but its value is never used
             bool eventLatestPossibleRepaymentDate = false;
-#pragma warning restore CS0219 // The variable 'eventLatestPossibleRepaymentDate' is assigned but its value is never used
             int dayofthemonth = GetDayofTheMonth();
             ListCummulativeProbability.RemoveAll(x => x.ProjectedPayoffAsofDate > RepaymentEndDate);
             ListCummulativeProbability.RemoveAll(x => x.ProjectedPayoffAsofDate < repaystartdate);
@@ -2632,7 +2945,6 @@ namespace CRES.NoteCalculator
         public decimal? CalculateCPRProbability(int index, decimal? CumulativeProbability)
         {
             Decimal? CPRProbability = 0;
-#pragma warning disable CS0168 // The variable 'ex' is declared but never used
             try
             {
 
@@ -2654,7 +2966,6 @@ namespace CRES.NoteCalculator
 
                 CPRProbability = 0;
             }
-#pragma warning restore CS0168 // The variable 'ex' is declared but never used
             return CPRProbability;
         }
 
@@ -2686,6 +2997,7 @@ namespace CRES.NoteCalculator
 
         public Decimal? GetCurrentBalance(DateTime repaymentstartdate, DateTime currentdate, decimal prevEndingBalance, DateTime lastfunddate)
         {
+            CurrentCalculatedAutoRepayment = new CalculatedAutoRepaymentDataContract();
             Decimal? BeginningBalance = 0;
             DateTime monthstartDate = DateExtensions.FirstDateOfMonth(currentdate);
             DateTime endOfMonth = DateExtensions.LastDateOfMonth(currentdate);
@@ -2694,6 +3006,8 @@ namespace CRES.NoteCalculator
             Decimal? sum = 0;
             Decimal? sumamort = 0;
             Decimal? sumPikFunding = 0;
+            decimal? NonCommitmentAdjsum = 0;
+            decimal? sumrevolver = 0;
             decimal? repaytotal = 0;
 
             decimal? fundingtotal = 0;
@@ -2720,40 +3034,56 @@ namespace CRES.NoteCalculator
             }
             if (repaymentstartdate.Date == currentdate.Date)
             {
+                NonCommitmentAdjTotal = 0;
+                RevolverTotal = 0;
+                autoSpreadFundingcmp = 0;
+                autoSpreadRepaymentcmp = 0;
                 BeginningBalance = GetStartingBalance(repaymentstartdate);
+                CurrentCalculatedAutoRepayment.BeginningBalance = dealDC.Endingbalance;
+                //CurrentCalculatedAutoRepayment.EndingBalance = BeginningBalance;
+
             }
             else
             {
                 BeginningBalance = prevEndingBalance;
-
+                CurrentCalculatedAutoRepayment.BeginningBalance = BeginningBalance;
+                //CurrentCalculatedAutoRepayment.EndingBalance = BeginningBalance;
                 foreach (var fundng in dealDC.PayruleDealFundingList)
                 {
-                    if (fundng.Value > 0)
+                    if (fundng.Date.Value.Date >= fundingStartDate && fundng.Date.Value.Date <= fundingEndDate)
                     {
-                        if (fundng.Date.Value.Date >= fundingStartDate && fundng.Date.Value.Date <= fundingEndDate)
+                        if (fundng.AdjustmentType != 834 && fundng.AdjustmentType != 896 && fundng.AdjustmentType != 835 && fundng.PurposeID != 840)
                         {
-                            fundingtotal = fundingtotal + fundng.Value;
-                        }
-                    }
-                    else if (fundng.Value < 0)
-                    {
-                        //Amortization 351 Paydown  631
-                        if (fundng.PurposeID != null)
-                        {
-                            if (fundng.PurposeID != 631 && fundng.PurposeID != 351)
+                            if (fundng.Value > 0)
                             {
-                                repaytotal = repaytotal.GetValueOrDefault(0) + fundng.Value.GetValueOrDefault(0);
+                                fundingtotal = fundingtotal + fundng.Value;
+                            }
+                            else if (fundng.Value < 0)
+                            {
+                                //Amortization 351 Paydown  631
+                                if (fundng.PurposeID != null)
+                                {
+                                    if (fundng.PurposeID != 631 && fundng.PurposeID != 351)
+                                    {
+                                        repaytotal = repaytotal.GetValueOrDefault(0) + fundng.Value.GetValueOrDefault(0);
+                                    }
+                                }
                             }
                         }
                     }
                 }
+                sumrevolver = GetRevolverBalance(fundingStartDate, fundingEndDate);
+                BeginningBalance = BeginningBalance + fundingtotal + repaytotal - NonCommitmentAdjsum - sumrevolver;
 
-                BeginningBalance = BeginningBalance + fundingtotal + repaytotal;
+                NonCommitmentAdjTotal = NonCommitmentAdjsum;
+                RevolverTotal = sumrevolver;
+                autoSpreadFundingcmp = fundingtotal;
+                autoSpreadRepaymentcmp = repaytotal;
             }
 
             foreach (var bal in ListRepaymentBalances)
             {
-                if (bal.Date >= fundingStartDate && bal.Date <= fundingEndDate)
+                if (bal.Date.Value.Date >= fundingStartDate && bal.Date.Value.Date <= fundingEndDate)
                 {
                     if (bal.Type == "PIKPrincipalFunding")
                     {
@@ -2771,8 +3101,17 @@ namespace CRES.NoteCalculator
                     }
                 }
             }
+            CurrentCalculatedAutoRepayment.Funding = autoSpreadFundingcmp;
+            CurrentCalculatedAutoRepayment.PIKPrincipalPaid = sum.GetValueOrDefault(0) * -1;
+            CurrentCalculatedAutoRepayment.PIKPrincipalFunding = sumPikFunding.GetValueOrDefault(0) * -1;
+            CurrentCalculatedAutoRepayment.ScheduledPrincipalPaid = sumamort.GetValueOrDefault(0) * -1;
+            CurrentCalculatedAutoRepayment.NonCommitmentAdjTotal = NonCommitmentAdjTotal * -1;
+            CurrentCalculatedAutoRepayment.RevolverTotal = RevolverTotal * -1;
+            CurrentCalculatedAutoRepayment.Repayment = autoSpreadRepaymentcmp;
+
             BeginningBalance = BeginningBalance + sum * -1 + sumPikFunding * -1 + sumamort.GetValueOrDefault(0) * -1;
             PreviousEndingBalance = BeginningBalance;
+            CurrentCalculatedAutoRepayment.EndingBalance = BeginningBalance;
             return BeginningBalance;
         }
 
@@ -2785,7 +3124,7 @@ namespace CRES.NoteCalculator
 
             foreach (var bal in ListRepaymentBalances)
             {
-                if (bal.Date > currentdate.Date)
+                if (bal.Date.Value.Date > currentdate.Date)
                 {
                     if (bal.Type == "PIKPrincipalPaid")
                     {
@@ -2805,10 +3144,25 @@ namespace CRES.NoteCalculator
             amount = pikPaid.GetValueOrDefault(0) + pikFunding.GetValueOrDefault(0) + sumamort.GetValueOrDefault(0) * -1;
             return amount;
         }
-
         public DateTime CalculateExpectedMaturityDate()
         {
             DateTime? lMinDateWith100CummulativeProbability = MinDateWith100CummulativeProbability;
+            DateTime? FinalPaydownDate = DateTime.MinValue;
+
+            foreach (var funding in dealDC.PayruleDealFundingList)
+            {
+                if (funding.PurposeText == "Paydown")
+                {
+                    if (FinalPaydownDate == DateTime.MinValue)
+                    {
+                        FinalPaydownDate = funding.Date;
+                    }
+                    else
+                    {
+                        FinalPaydownDate = DateExtensions.GetMaxDate(FinalPaydownDate.Value.Date, funding.Date.Value.Date);
+                    }
+                }
+            }
             if (dealDC.LatestPossibleRepaymentDate == null)
             {
                 dealDC.LatestPossibleRepaymentDate = DateTime.MinValue;
@@ -2828,22 +3182,24 @@ namespace CRES.NoteCalculator
             ExpectedMaturityDate = DateExtensions.GetMinDate(dealDC.LatestPossibleRepaymentDate.Value.Date, Convert.ToDateTime(lMinDateWith100CummulativeProbability));
             ExpectedMaturityDate = DateExtensions.GetMinDate(dealDC.maxMaturityDate.Value.Date, ExpectedMaturityDate);
             ExpectedMaturityDate = DateExtensions.GetMinDate(dealDC.ExpectedFullRepaymentDate.Value.Date, ExpectedMaturityDate);
-
-            ExpectedMaturityDate = DateExtensions.GetnextWorkingDays(Convert.ToDateTime(ExpectedMaturityDate.AddDays(1)), Convert.ToInt16(-1), "US", dealDC.ListHoliday).Date;
+            //if (ExpectedMaturityDate.Year == FinalPaydownDate.Value.Year && ExpectedMaturityDate.Month == FinalPaydownDate.Value.Month)
+            //    ExpectedMaturityDate = FinalPaydownDate.Value;
+            ExpectedMaturityDate = DateExtensions.GetWorkingDayUsingOffset(Convert.ToDateTime(ExpectedMaturityDate), Convert.ToInt16(-1), "US", dealDC.ListHoliday).Date;
             return ExpectedMaturityDate;
         }
 
         public decimal? GetStartingBalance(DateTime repaymentstartdate)
         {
+            decimal? currentrevolverbal = 0, databaserevolverbal = 0, revolverbalance = 0;
             Decimal? sum = 0;
-#pragma warning disable CS0219 // The variable 'ffsum' is assigned but its value is never used
             Decimal? ffsum = 0;
-#pragma warning restore CS0219 // The variable 'ffsum' is assigned but its value is never used
             Decimal? pikfunding = 0;
             DateTime monthstartDate = dealDC.MaxWireConfirmRecord;
             DateTime endOfMonth = repaymentstartdate;
             Decimal? sumrepay = 0;
-            //manish
+            Decimal? NonCommitmentAdjsum = 0, NonCommitmentAdjsumComponent = 0;
+            decimal? revolverComponent = 0;
+            decimal writeoffonstart = 0;
             foreach (var bal in ListRepaymentBalances)
             {
                 if (bal.Date.Value.Date == monthstartDate.Date)
@@ -2854,45 +3210,126 @@ namespace CRES.NoteCalculator
                     }
                 }
             }
+
+            foreach (var writeoff in dealDC.PayruleDealFundingList_Pwriteoff)
+            {
+                if (writeoff.Date.Value.Date == monthstartDate.Date && writeoff.Applied == true)
+                {
+                    writeoffonstart = writeoffonstart + writeoff.Value.GetValueOrDefault(0);
+                }
+            }
+
+            foreach (var fundng in dealDC.DealFundingListAdjustmentTypeAutoSpread)
+            {
+                if (fundng.Date.Value.Date >= monthstartDate && fundng.Date.Value.Date <= endOfMonth)
+                {
+                    if (fundng.Applied == true)
+                    {
+                        if (fundng.Value > 0)
+                        {
+                            if (fundng.PurposeID != 840)
+                            {
+                                if (fundng.AdjustmentType == 834 || fundng.AdjustmentType == 896)
+                                {
+                                    NonCommitmentAdjsumComponent = NonCommitmentAdjsumComponent.GetValueOrDefault(0) + fundng.Value.GetValueOrDefault(0);
+                                }
+                            }
+                        }
+                    }
+                    if (fundng.AdjustmentType == 835)
+                    {
+                        revolverComponent = revolverComponent.GetValueOrDefault(0) + fundng.Value.GetValueOrDefault(0);
+                    }
+                }
+
+                //remove all adjustment type from balance 
+                if (fundng.Date.Value.Date <= endOfMonth)
+                {
+                    if (fundng.Applied == true)
+                    {
+                        //834  Non - Commitment Adjustment
+                        if (fundng.PurposeID != 840)
+                        {
+                            if (fundng.AdjustmentType == 834 || fundng.AdjustmentType == 896)
+                            {
+                                NonCommitmentAdjsum = NonCommitmentAdjsum.GetValueOrDefault(0) + fundng.Value.GetValueOrDefault(0);
+                            }
+                        }
+                        if (fundng.AdjustmentType == 835)
+                        {
+                            currentrevolverbal = currentrevolverbal.GetValueOrDefault(0) + fundng.Value.GetValueOrDefault(0);
+                        }
+                    }
+
+                }
+            }
+
+            if (dealDC.ListRevolverDealFunding != null)
+            {
+                foreach (var fundng in dealDC.ListRevolverDealFunding)
+                {
+                    if (fundng.Applied == true)
+                    {
+                        databaserevolverbal = databaserevolverbal.GetValueOrDefault(0) + fundng.Value.GetValueOrDefault(0);
+                    }
+                }
+            }
+            else
+            {
+                databaserevolverbal = 0;
+            }
+            revolverbalance = currentrevolverbal - databaserevolverbal;
             foreach (var fundng in dealDC.PayruleDealFundingList)
             {
                 if (fundng.Date != null)
                 {
-                    if (fundng.Date.Value.Date >= monthstartDate && fundng.Date.Value.Date <= endOfMonth)
+                    if (fundng.AdjustmentType != 834 && fundng.AdjustmentType != 896 && fundng.AdjustmentType != 835 && fundng.PurposeID != 840)
                     {
-                        if (fundng.Value > 0)
+                        if (fundng.Date.Value.Date >= monthstartDate && fundng.Date.Value.Date <= endOfMonth)
                         {
-                            sum = sum.GetValueOrDefault(0) + fundng.Value.GetValueOrDefault(0);
+                            if (fundng.Value > 0)
+                            {
+                                sum = sum.GetValueOrDefault(0) + fundng.Value.GetValueOrDefault(0);
 
+                            }
+                            else if (fundng.Value < 0 && fundng.Applied == true)
+                            {
+                                sumrepay = sumrepay.GetValueOrDefault(0) + fundng.Value.GetValueOrDefault(0);
+                            }
+                            else if (fundng.Value < 0 && fundng.PurposeID != 351 && fundng.PurposeID != 631)
+                            {
+                                sumrepay = sumrepay.GetValueOrDefault(0) + fundng.Value.GetValueOrDefault(0);
+                            }
                         }
-                        else if (fundng.Value < 0 && fundng.Applied == true)
+
+                        if (fundng.Date.Value.Date > monthstartDate && fundng.Date.Value.Date <= endOfMonth)
                         {
-                            sumrepay = sumrepay.GetValueOrDefault(0) + fundng.Value.GetValueOrDefault(0);
-                        }
-                        else if (fundng.Value < 0 && fundng.PurposeID != 351 && fundng.PurposeID != 631)
-                        {
-                            sumrepay = sumrepay.GetValueOrDefault(0) + fundng.Value.GetValueOrDefault(0);
-                        }
-                    }
-                    if (fundng.Date.Value.Date > monthstartDate && fundng.Date.Value.Date <= endOfMonth)
-                    {
-                        if (fundng.Value < 0 && fundng.PurposeText == "Paydown")
-                        {
-                            RepayToBeAdjusted = RepayToBeAdjusted.GetValueOrDefault(0) + fundng.Value.GetValueOrDefault(0);
+                            if (fundng.Value < 0 && fundng.PurposeText == "Paydown")
+                            {
+                                RepayToBeAdjusted = RepayToBeAdjusted.GetValueOrDefault(0) + fundng.Value.GetValueOrDefault(0);
+                            }
                         }
                     }
                 }
             }
+            autoSpreadFundingcmp = sum;
+            autoSpreadRepaymentcmp = sumrepay;
             if (generateonLatestpossibleprepayment == true)
             {
-                sum = sum.GetValueOrDefault(0) + dealDC.Endingbalance + sumrepay.GetValueOrDefault(0) + pikfunding.GetValueOrDefault(0) * -1 + RepayToBeAdjusted.GetValueOrDefault(0);
+                //sumrevolver balance does not has any effecte for case generateonLatestpossibleprepayment
+                sum = sum.GetValueOrDefault(0) + dealDC.Endingbalance + NonCommitmentAdjsumComponent + revolverComponent + sumrepay.GetValueOrDefault(0) + pikfunding.GetValueOrDefault(0) * -1 - NonCommitmentAdjsum + writeoffonstart;
             }
             else
             {
-                sum = sum.GetValueOrDefault(0) + dealDC.Endingbalance + sumrepay.GetValueOrDefault(0) + pikfunding.GetValueOrDefault(0) * -1;
+                //NonCommitmentAdjsum balance does not has any effecte for case generateonLatestpossibleprepayment             
+                sum = sum.GetValueOrDefault(0) + dealDC.Endingbalance + NonCommitmentAdjsumComponent + revolverComponent + sumrepay.GetValueOrDefault(0) + pikfunding.GetValueOrDefault(0) * -1 - NonCommitmentAdjsum + writeoffonstart + revolverbalance;
             }
+
+            NonCommitmentAdjTotal = NonCommitmentAdjsum - NonCommitmentAdjsumComponent;
+            RevolverTotal = revolverbalance;
             return sum;
         }
+
 
         public Decimal? CumulativeTotalAmount(DateTime repaymentstartdate, DateTime currentdate)
         {
@@ -2997,21 +3434,21 @@ namespace CRES.NoteCalculator
                     {
                         CummulativeRepayments = CumulativeTotalAmount(RepaymentStartDate.Value, dealfunddate.Value) * -1;
                     }
-                    car.BeginningBalance = Balance;
+                    //car.BeginningBalance = Balance;
                     // if ((Balance.GetValueOrDefault(0) + Math.Abs(CummulativeRepayments.GetValueOrDefault(0))) != 0)
                     {
                         if (DateExtensions.LastDateOfMonth(dealfunddate.Value) == DateExtensions.LastDateOfMonth(RepaymentEndDate.Value))
                         {
-                            if (dealDC.maxMaturityDate != null)
-                            {
-                                if (dealDC.maxMaturityDate != DateTime.MinValue)
-                                {
-                                    if (RepaymentEndDate.Value > dealDC.maxMaturityDate)
-                                    {
-                                        dealfunddate = dealDC.maxMaturityDate.Value;
-                                    }
-                                }
-                            }
+                            //if (dealDC.maxMaturityDate != null)
+                            //{
+                            //    if (dealDC.maxMaturityDate != DateTime.MinValue)
+                            //    {
+                            //        if (RepaymentEndDate.Value > dealDC.maxMaturityDate)
+                            //        {
+                            //            dealfunddate = dealDC.maxMaturityDate.Value;
+                            //        }
+                            //    }
+                            //}
 
                             var trueup = CheckifTrueUpisToBeApplyorNot(RepaymentStartDate, RepaymentEndDate);
                             if (trueup == true)
@@ -3079,6 +3516,17 @@ namespace CRES.NoteCalculator
                         pdf.WF_IsFlowStart = false;
                         pdf.wf_isUserCurrentFlow = false;
                         pdf.GeneratedBy = 747;
+
+                        car.Funding = CurrentCalculatedAutoRepayment.Funding;
+                        car.PIKPrincipalPaid = CurrentCalculatedAutoRepayment.PIKPrincipalPaid;
+                        car.PIKPrincipalFunding = CurrentCalculatedAutoRepayment.PIKPrincipalFunding;
+                        car.ScheduledPrincipalPaid = CurrentCalculatedAutoRepayment.ScheduledPrincipalPaid;
+                        car.EndingBalance = CurrentCalculatedAutoRepayment.EndingBalance;
+                        car.NonCommitmentAdjTotal = CurrentCalculatedAutoRepayment.NonCommitmentAdjTotal;
+                        car.RevolverTotal = CurrentCalculatedAutoRepayment.RevolverTotal;
+                        car.Repayment = CurrentCalculatedAutoRepayment.Repayment;
+                        car.BeginningBalance = CurrentCalculatedAutoRepayment.BeginningBalance;
+
                         ListCalculatedAutoRepayment.Add(car);
                         dealDC.PayruleDealFundingList.Add(pdf);
 
@@ -3201,14 +3649,9 @@ namespace CRES.NoteCalculator
 
         public void CreateExpectedFullRepayRecord(DateTime ExpectedFullRepaymentDate)
         {
+            DateTime? RepaymentStartDate = GetAutoSpreadRepaymentStartDate();
+            ExpectedFullRepaymentDate = Convert.ToDateTime(GetAutoSpreadRepaymentEndDate(RepaymentStartDate));
             generateonLatestpossibleprepayment = true;
-            if (dealDC.maxMaturityDate != null && dealDC.maxMaturityDate != DateTime.MinValue)
-            {
-                if (ExpectedFullRepaymentDate > dealDC.maxMaturityDate.Value.Date)
-                {
-                    ExpectedFullRepaymentDate = dealDC.maxMaturityDate.Value.Date;
-                }
-            }
 
             Decimal? currentbalance = 0;
             foreach (PayruleDealFundingDataContract ds in dealDC.PayruleDealFundingList)
@@ -3246,7 +3689,10 @@ namespace CRES.NoteCalculator
             }
 
             currentbalance = currentbalance + repayment.GetValueOrDefault(0);
-            AddRepayToPayruleDealFundingList(ExpectedFullRepaymentDate, currentbalance);
+            if (currentbalance > 0)
+            {
+                AddRepayToPayruleDealFundingList(ExpectedFullRepaymentDate, currentbalance);
+            }
             //soft pay of case
             foreach (PayruleDealFundingDataContract pdf in dealDC.PayruleDealFundingList)
             {
@@ -3279,7 +3725,7 @@ namespace CRES.NoteCalculator
         {
             CalculatedAutoRepaymentDataContract car = new CalculatedAutoRepaymentDataContract();
             PayruleDealFundingDataContract pdf = new PayruleDealFundingDataContract();
-            pdf.Date = DateExtensions.GetnextWorkingDays(funddate.Value.AddDays(1), Convert.ToInt16(-1), "US", dealDC.ListHoliday).Date;
+            pdf.Date = DateExtensions.GetWorkingDayUsingOffset(funddate.Value, Convert.ToInt16(-1), "US", dealDC.ListHoliday).Date;
             pdf.PurposeText = "Paydown";
             pdf.PurposeID = 631;// id for paydown in lookuptable
             pdf.SubPurposeType = "";
@@ -3311,7 +3757,7 @@ namespace CRES.NoteCalculator
         {
             decimal? dealamount = 0;
 
-            funddate = DateExtensions.GetnextWorkingDays(funddate.Value.AddDays(1), Convert.ToInt16(-1), "US", dealDC.ListHoliday).Date;
+            funddate = DateExtensions.GetWorkingDayUsingOffset(funddate.Value, Convert.ToInt16(-1), "US", dealDC.ListHoliday).Date;
             UseRuleNRowNumber = UseRuleNRowNumber + 1;
             var notelist = dealDC.PayruleTargetNoteFundingScheduleList.FindAll(x => x.DealFundingRowno == DealFundingRowno && x.Date.Value.Date == funddate.Value.Date).ToList();
             foreach (var item in notelist)
@@ -3354,7 +3800,7 @@ namespace CRES.NoteCalculator
         {
             CalculatedAutoRepaymentDataContract car = new CalculatedAutoRepaymentDataContract();
             PayruleDealFundingDataContract pdf = new PayruleDealFundingDataContract();
-            pdf.Date = DateExtensions.GetnextWorkingDays(funddate.Value.AddDays(1), Convert.ToInt16(-1), "US", dealDC.ListHoliday).Date;
+            pdf.Date = DateExtensions.GetWorkingDayUsingOffset(funddate.Value, Convert.ToInt16(-1), "US", dealDC.ListHoliday).Date;
             pdf.PurposeText = "Paydown";
             pdf.PurposeID = 631;// id for paydown in lookuptable
             pdf.SubPurposeType = "";
@@ -3445,7 +3891,6 @@ namespace CRES.NoteCalculator
         {
             DateTime repaydateholidaiadj = repaymentstartdate;
             bool nextmonth = false;
-            //repaydateholidaiadj = DateExtensions.GetnextWorkingDays(Convert.ToDateTime(repaymentstartdate.Date.AddDays(1)), Convert.ToInt16(-1), "US", dealDC.ListHoliday).Date;
 
             DateTime monthstartDate = DateExtensions.FirstDateOfMonth(repaydateholidaiadj);
             DateTime endOfMonth = DateExtensions.LastDateOfMonth(repaydateholidaiadj);
@@ -3616,63 +4061,80 @@ namespace CRES.NoteCalculator
                     }
                     foreach (NoteEndingBalanceDataContract noteitem in dealDC.ListNoteEndingBalance)
                     {
-                        CalculatedNoteRepaymentDataContract cnr = new CalculatedNoteRepaymentDataContract();
-                        Balance = GetCurrentBalanceUseRuleN(RepaymentStartDate.Value, dealfunddate.Value, Convert.ToDateTime(lastusedfunddate), noteitem.NoteID, noteitem.EndingBalance.GetValueOrDefault(0));
+                        if (noteitem.isNCANote == false)
                         {
-                            CummulativeRepayments = (CumulativeTotalNoteAmount(RepaymentStartDate.Value, dealfunddate.Value, noteitem.NoteID)) * -1;
-                        }
-                        cnr.Date = dealfunddate.Value;
-                        cnr.EndingBalance = Balance;
-                        cnr.NoteID = noteitem.NoteID;
-                        if (DateExtensions.LastDateOfMonth(dealfunddate.Value) == DateExtensions.LastDateOfMonth(RepaymentEndDate.Value))
-                        {
-                            if (dealDC.maxMaturityDate != null)
+                            CalculatedNoteRepaymentDataContract cnr = new CalculatedNoteRepaymentDataContract();
+                            Balance = GetCurrentBalanceUseRuleN(RepaymentStartDate.Value, dealfunddate.Value, Convert.ToDateTime(lastusedfunddate), noteitem.NoteID, noteitem.EndingBalance.GetValueOrDefault(0));
                             {
-                                if (dealDC.maxMaturityDate != DateTime.MinValue)
+                                CummulativeRepayments = (CumulativeTotalNoteAmount(RepaymentStartDate.Value, dealfunddate.Value, noteitem.NoteID)) * -1;
+                            }
+
+                            cnr.Date = dealfunddate.Value;
+                            cnr.EndingBalance = Balance;
+                            cnr.NoteID = noteitem.NoteID;
+                            if (DateExtensions.LastDateOfMonth(dealfunddate.Value) == DateExtensions.LastDateOfMonth(RepaymentEndDate.Value))
+                            {
+                                //if (dealDC.maxMaturityDate != null)
+                                //{
+                                //    if (dealDC.maxMaturityDate != DateTime.MinValue)
+                                //    {
+                                //        if (RepaymentEndDate.Value > dealDC.maxMaturityDate)
+                                //        {
+                                //            dealfunddate = dealDC.maxMaturityDate.Value;
+                                //        }
+                                //    }
+                                //}
+
+                                amount = Balance - CummulativeRepayments;
+                                amount = Math.Max(0, amount.GetValueOrDefault(0));
+
+                                //var trueup = CheckifTrueUpisToBeApplyorNot(RepaymentStartDate, RepaymentEndDate);
+                                //if (trueup == true)
+                                //{
+                                //    amount = Balance - CummulativeRepayments;
+                                //    amount = amount + GetSumAmortAndPikAfterEndDateUseRuleN(Convert.ToDateTime(dealfunddate), noteitem.NoteID);
+                                //    amount = Math.Max(0, amount.GetValueOrDefault(0));
+                                //}
+                            }
+                            else
+                            {
+                                if (dealDC.RepaymentAutoSpreadMethodText == "Straight-line")
                                 {
-                                    if (RepaymentEndDate.Value > dealDC.maxMaturityDate)
-                                    {
-                                        dealfunddate = dealDC.maxMaturityDate.Value;
-                                    }
+                                    amount = (Balance * MonthlyCPRandSLRFactor) - CummulativeRepayments;
+                                }
+                                else if (dealDC.RepaymentAutoSpreadMethodText == "CPR")
+                                {
+                                    amount = (Balance * (1 - MonthlyCPRandSLRFactor)) - CummulativeRepayments;
                                 }
                             }
-
-                            amount = Balance - CummulativeRepayments;
-                            amount = Math.Max(0, amount.GetValueOrDefault(0));
-
-                            //var trueup = CheckifTrueUpisToBeApplyorNot(RepaymentStartDate, RepaymentEndDate);
-                            //if (trueup == true)
-                            //{
-                            //    amount = Balance - CummulativeRepayments;
-                            //    amount = amount + GetSumAmortAndPikAfterEndDateUseRuleN(Convert.ToDateTime(dealfunddate), noteitem.NoteID);
-                            //    amount = Math.Max(0, amount.GetValueOrDefault(0));
-                            //}
-                        }
-                        else
-                        {
-                            if (dealDC.RepaymentAutoSpreadMethodText == "Straight-line")
+                            if (listindex > 0)
                             {
-                                amount = (Balance * MonthlyCPRandSLRFactor) - CummulativeRepayments;
-                            }
-                            else if (dealDC.RepaymentAutoSpreadMethodText == "CPR")
-                            {
-                                amount = (Balance * (1 - MonthlyCPRandSLRFactor)) - CummulativeRepayments;
-                            }
-                        }
-                        if (listindex > 0)
-                        {
-                            if (CummulativeRepayments == LastPreviousBalance)
-                            {
+                                if (CummulativeRepayments == LastPreviousBalance)
+                                {
 
-                                amount = 0;
+                                    amount = 0;
+                                }
                             }
+                            amount = Math.Round(Convert.ToDecimal(Math.Max(0, amount.GetValueOrDefault(0))), 2);
+                            decimal? currentrpay = TotalRepaymentasofDate.GetValueOrDefault(0) * -1 + +amount.GetValueOrDefault(0);
+                            if (currentrpay > noteitem.SumRepaymentSequence)
+                            {
+                                decimal diff = currentrpay.GetValueOrDefault(0) - noteitem.SumRepaymentSequence.GetValueOrDefault(0);
+                                if (Math.Abs(Convert.ToDecimal(diff)) <= 1)
+                                {
+                                    amount = amount + diff * -1;
+                                }
+                            }
+                            cnr.Value = amount;
+                            cnr.CummulativeRepayments = CummulativeRepayments;
+                            //assign value to note fundings
+                            AddRepayToNoteFundingScheduleList(dealfunddate, amount, UseRuleNRowNumber, noteitem.NoteID, noteitem.NotenName);
+                            ListCalculatedNoteRepayment.Add(cnr);
+                            DealAmount = DealAmount.GetValueOrDefault(0) + amount.GetValueOrDefault(0);
+                            LastPreviousBalance = Balance;
+
                         }
-                        amount = Math.Round(Convert.ToDecimal(Math.Max(0, amount.GetValueOrDefault(0))), 2);
-                        //assign value to note fundings
-                        AddRepayToNoteFundingScheduleList(dealfunddate, amount, UseRuleNRowNumber, noteitem.NoteID, noteitem.NotenName);
-                        ListCalculatedNoteRepayment.Add(cnr);
-                        DealAmount = DealAmount.GetValueOrDefault(0) + amount.GetValueOrDefault(0);
-                        LastPreviousBalance = Balance;
+                        //nca end 
                     }
 
                     lastusedfunddate = dealfunddate.Value;
@@ -3693,7 +4155,7 @@ namespace CRES.NoteCalculator
             Decimal? repaytotal = 0;
             decimal? previousTotal = 0;
             Guid NoteID = new Guid(snoteid);
-
+            TotalRepaymentasofDate = 0;
 
             foreach (var repay in dealDC.PayruleTargetNoteFundingScheduleList)
             {
@@ -3707,16 +4169,24 @@ namespace CRES.NoteCalculator
                         }
                     }
 
-                    //if (repay.Applied != true)
-                    //{
-                    //    if (repay.Date.Value.Date <= repaymentstartdate && repay.NoteID == NoteID)
-                    //    {
-                    //        if (repay.Comments != null && repay.Comments != "")
-                    //        {
-                    //            previousTotal = previousTotal + repay.Value;
-                    //        }
-                    //    }
-                    //}
+                    if (repay.Applied != true)
+                    {
+                        if (repay.Date.Value.Date <= repaymentstartdate && repay.NoteID == NoteID)
+                        {
+                            if (repay.Comments != null && repay.Comments != "" && repay.Purpose == "Paydown")
+                            {
+                                previousTotal = previousTotal + repay.Value;
+                            }
+                        }
+                    }
+
+                    if (repay.Date.Value.Date <= currentdate && repay.NoteID == NoteID)
+                    {
+                        if (repay.Purpose == "Paydown")
+                        {
+                            TotalRepaymentasofDate = TotalRepaymentasofDate.GetValueOrDefault(0) + repay.Value.GetValueOrDefault(0);
+                        }
+                    }
                 }
             }
             repaytotal = repaytotal.GetValueOrDefault(0) + previousTotal.GetValueOrDefault(0);// + RepayToBeAdjustedUseRuleN.GetValueOrDefault(0);
@@ -3734,6 +4204,9 @@ namespace CRES.NoteCalculator
             Decimal? sumPikFunding = 0;
             decimal? fundingtotal = 0;
             decimal? repaytotal = 0;
+            decimal? NonCommitmentAdjsum = 0;
+            decimal? sumrevolver = 0;
+
             Guid GNoteID = new Guid(noteid);
             if (repaymentstartdate.Date == currentdate.Date)
             {
@@ -3774,28 +4247,46 @@ namespace CRES.NoteCalculator
                 {
                     if (funding.Date.Value.Date >= fundingStartDate && funding.Date.Value.Date <= fundingEndDate && funding.NoteID == GNoteID)
                     {
-                        if (funding.Value > 0)
+                        if (funding.AdjustmentType != 834 && funding.AdjustmentType != 896 && funding.AdjustmentType != 835 && funding.PurposeID != 840)
                         {
-                            fundingtotal = fundingtotal + funding.Value.GetValueOrDefault(0);
-                        }
-                        else if (funding.Value < 0)
-                        {
-                            //Amortization 351 Paydown  631
-                            if (funding.PurposeID != 631 && funding.PurposeID != 351)
+                            if (funding.Value > 0)
                             {
-                                repaytotal = repaytotal.GetValueOrDefault(0) + funding.Value.GetValueOrDefault(0);
+                                fundingtotal = fundingtotal + funding.Value.GetValueOrDefault(0);
                             }
+                            else if (funding.Value < 0)
+                            {
+                                //Amortization 351 Paydown  631
+                                if (funding.PurposeID != 631 && funding.PurposeID != 351)
+                                {
+                                    repaytotal = repaytotal.GetValueOrDefault(0) + funding.Value.GetValueOrDefault(0);
+                                }
+                            }
+
+                        }
+                        else
+                        {
+                            if (funding.AdjustmentType == 834 || funding.AdjustmentType == 896)
+                            {
+                                NonCommitmentAdjsum = NonCommitmentAdjsum.GetValueOrDefault(0) + funding.Value.GetValueOrDefault(0);
+
+                            }
+                            //if (funding.AdjustmentType == 835)
+                            //{
+                            //    sumrevolver = sumrevolver + funding.Value.GetValueOrDefault(0);
+                            //}
                         }
                     }
-
                 }
-                BeginningBalance = BeginningBalance + fundingtotal + repaytotal;
+
+                sumrevolver = GetRevolverBalanceUseRuleN(fundingStartDate, fundingEndDate, GNoteID);
+                BeginningBalance = BeginningBalance + fundingtotal + repaytotal - NonCommitmentAdjsum - sumrevolver;
             }
+
             foreach (var bal in ListNoteRepaymentBalances)
             {
                 if (bal.NoteID == noteid)
                 {
-                    if (bal.Date >= fundingStartDate && bal.Date <= fundingEndDate)
+                    if (bal.Date.Value.Date >= fundingStartDate && bal.Date.Value.Date <= fundingEndDate)
                     {
                         if (bal.Type == "PIKPrincipalFunding")
                         {
@@ -3823,15 +4314,18 @@ namespace CRES.NoteCalculator
         {
             RepayToBeAdjustedUseRuleN = 0;
             Decimal? sum = 0;
-#pragma warning disable CS0219 // The variable 'ffsum' is assigned but its value is never used
             Decimal? ffsum = 0;
-#pragma warning restore CS0219 // The variable 'ffsum' is assigned but its value is never used
-
+            Decimal? NonCommitmentAdjsum = 0, NonCommitmentAdjsumComponent = 0;
+            decimal? currentrevolverbal = 0, databaserevolverbal = 0, revolverbalance = 0;
             Guid Gnoteid = new Guid(noteid);
             DateTime startDate = dealDC.MaxWireConfirmRecord;
             DateTime endOfMonth = repaymentstartdate;
             Decimal? sumrepay = 0;
             Decimal? pikfunding = 0;
+            decimal? writeoffonstart = 0;
+
+            decimal? sumrevolverPositive = 0, revolverComponent = 0;
+            decimal? sumrevolverNegative = 0;
             foreach (var bal in ListNoteRepaymentBalances)
             {
                 if (bal.Date.Value.Date == startDate.Date && bal.NoteID == noteid)
@@ -3843,47 +4337,153 @@ namespace CRES.NoteCalculator
                 }
             }
 
-            foreach (var fundng in dealDC.PayruleTargetNoteFundingScheduleList)
+            foreach (var writeoff in dealDC.PayruleTargetNoteFundingScheduleList_Pwriteoff)
             {
-                if (fundng.Date != null)
+                if (writeoff.Date.Value.Date == startDate.Date && writeoff.Applied == true && writeoff.NoteID.ToString() == noteid)
                 {
-                    if (fundng.Date.Value.Date >= startDate && fundng.Date.Value.Date <= endOfMonth && fundng.NoteID == Gnoteid)
+                    writeoffonstart = writeoffonstart + writeoff.Value.GetValueOrDefault(0);
+                }
+            }
+
+            foreach (var fundng in dealDC.NoteFundingScheduleListAdjustmentTypeAutoSpread)
+            {
+                if (fundng.Date.Value.Date >= startDate && fundng.Date.Value.Date <= endOfMonth && fundng.NoteID == Gnoteid)
+                {
+                    if (fundng.Value > 0)
                     {
-                        if (fundng.Value > 0)
+                        if (fundng.Applied == true && fundng.PurposeID != 840)
                         {
-                            sum = sum.GetValueOrDefault(0) + fundng.Value.GetValueOrDefault(0);
-                        }
-                        else if (fundng.Value < 0 && fundng.Applied == true)
-                        {
-                            sumrepay = sumrepay.GetValueOrDefault(0) + fundng.Value.GetValueOrDefault(0);
-                        }
-                        else if (fundng.Value < 0 && fundng.PurposeID != 351 && fundng.PurposeID != 631)
-                        {
-                            sumrepay = sumrepay.GetValueOrDefault(0) + fundng.Value.GetValueOrDefault(0);
+                            if (fundng.AdjustmentType == 834 || fundng.AdjustmentType == 896)
+                            {
+                                NonCommitmentAdjsumComponent = NonCommitmentAdjsumComponent.GetValueOrDefault(0) + fundng.Value.GetValueOrDefault(0);
+                            }
                         }
                     }
 
-                    if (fundng.Date.Value.Date > startDate && fundng.Date.Value.Date <= endOfMonth && fundng.NoteID == Gnoteid)
+                    if (fundng.AdjustmentType == 835)
                     {
-                        if (fundng.Value < 0 && fundng.Purpose == "Paydown")
+                        revolverComponent = revolverComponent.GetValueOrDefault(0) + fundng.Value.GetValueOrDefault(0);
+                    }
+                }
+
+                if (fundng.Date.Value.Date <= endOfMonth && fundng.NoteID == Gnoteid)
+                {
+                    if (fundng.Applied == true)
+                    {
+                        //834  Non - Commitment Adjustment
+                        if (fundng.PurposeID != 840)
                         {
-                            RepayToBeAdjustedUseRuleN = RepayToBeAdjustedUseRuleN.GetValueOrDefault(0) + fundng.Value.GetValueOrDefault(0);
+                            if (fundng.AdjustmentType == 834 || fundng.AdjustmentType == 896)
+                            {
+                                NonCommitmentAdjsum = NonCommitmentAdjsum.GetValueOrDefault(0) + fundng.Value.GetValueOrDefault(0);
+                            }
+                        }
+                        //835 Revolver
+                        if (fundng.AdjustmentType == 835)
+                        {
+                            currentrevolverbal = currentrevolverbal.GetValueOrDefault(0) + fundng.Value.GetValueOrDefault(0);
                         }
                     }
+
+                }
+            }
+            if (dealDC.ListRevolverNoteFunding != null)
+            {
+                foreach (var fundng in dealDC.ListRevolverNoteFunding)
+                {
+                    if (fundng.NoteID == Gnoteid && fundng.Applied == true)
+                    {
+                        databaserevolverbal = databaserevolverbal.GetValueOrDefault(0) + fundng.Value.GetValueOrDefault(0);
+                    }
+                }
+            }
+            else
+            {
+                databaserevolverbal = 0;
+            }
+            revolverbalance = currentrevolverbal - databaserevolverbal;
+
+            foreach (var fundng in dealDC.PayruleTargetNoteFundingScheduleList)
+            {
+                if (fundng.AdjustmentType != 834 && fundng.AdjustmentType != 897 && fundng.AdjustmentType != 835)
+                {
+                    if (fundng.Date != null)
+                    {
+
+                        if (fundng.Date.Value.Date >= startDate && fundng.Date.Value.Date <= endOfMonth && fundng.NoteID == Gnoteid)
+                        {
+                            if (fundng.Value > 0)
+                            {
+                                sum = sum.GetValueOrDefault(0) + fundng.Value.GetValueOrDefault(0);
+                            }
+                            else if (fundng.Value < 0 && fundng.Applied == true)
+                            {
+                                sumrepay = sumrepay.GetValueOrDefault(0) + fundng.Value.GetValueOrDefault(0);
+                            }
+                            else if (fundng.Value < 0 && fundng.PurposeID != 351 && fundng.PurposeID != 631)
+                            {
+                                sumrepay = sumrepay.GetValueOrDefault(0) + fundng.Value.GetValueOrDefault(0);
+                            }
+                        }
+
+                        if (fundng.Date.Value.Date > startDate && fundng.Date.Value.Date <= endOfMonth && fundng.NoteID == Gnoteid)
+                        {
+                            if (fundng.Value < 0 && fundng.Purpose == "Paydown")
+                            {
+                                RepayToBeAdjustedUseRuleN = RepayToBeAdjustedUseRuleN.GetValueOrDefault(0) + fundng.Value.GetValueOrDefault(0);
+                            }
+                        }
+
+                    }
+
                 }
             }
             if (generateonLatestpossibleprepayment == true)
             {
-                sum = sum.GetValueOrDefault(0) + DBEndingbalance + sumrepay.GetValueOrDefault(0) + RepayToBeAdjustedUseRuleN.GetValueOrDefault(0) + pikfunding.GetValueOrDefault(0) * -1;
+                sum = sum.GetValueOrDefault(0) + DBEndingbalance + revolverComponent + NonCommitmentAdjsumComponent + sumrepay.GetValueOrDefault(0) + pikfunding.GetValueOrDefault(0) * -1 - NonCommitmentAdjsum + writeoffonstart;
             }
             else
             {
-                sum = sum.GetValueOrDefault(0) + DBEndingbalance + sumrepay.GetValueOrDefault(0) + pikfunding.GetValueOrDefault(0) * -1;
+                sum = sum.GetValueOrDefault(0) + DBEndingbalance + revolverComponent + NonCommitmentAdjsumComponent + sumrepay.GetValueOrDefault(0) + pikfunding.GetValueOrDefault(0) * -1 - NonCommitmentAdjsum + writeoffonstart + revolverbalance;
             }
 
             return sum;
         }
+        public decimal GetRevolverBalanceUseRuleN(DateTime fundingStartDate, DateTime fundingEndDate, Guid GNoteID)
+        {
+            decimal sumrevolver = 0;
+            foreach (var funding in dealDC.NoteFundingScheduleListAdjustmentTypeAutoSpread)
+            {
+                if (funding.Date.Value.Date >= fundingStartDate && funding.Date.Value.Date <= fundingEndDate && funding.NoteID == GNoteID)
+                {
+                    if (funding.AdjustmentType == 835)
+                    {
+                        sumrevolver = sumrevolver + funding.Value.GetValueOrDefault(0);
+                    }
 
+                }
+            }
+            sumrevolver = Math.Abs(sumrevolver);
+            return sumrevolver;
+        }
+
+        public decimal GetRevolverBalance(DateTime fundingStartDate, DateTime fundingEndDate)
+        {
+            decimal sumrevolver = 0;
+            foreach (var funding in dealDC.DealFundingListAdjustmentTypeAutoSpread)
+            {
+                if (funding.Date.Value.Date >= fundingStartDate && funding.Date.Value.Date <= fundingEndDate)
+                {
+                    if (funding.AdjustmentType == 835)
+                    {
+                        sumrevolver = sumrevolver + funding.Value.GetValueOrDefault(0);
+                    }
+
+                }
+            }
+            sumrevolver = Math.Abs(sumrevolver);
+            return sumrevolver;
+        }
         public decimal? GetSumAmortAndPikAfterEndDateUseRuleN(DateTime currentdate, string noteid)
         {
             decimal? amount = 0;
@@ -3894,7 +4494,7 @@ namespace CRES.NoteCalculator
 
             foreach (var bal in ListNoteRepaymentBalances)
             {
-                if (bal.Date > currentdate && bal.NoteID == noteid)
+                if (bal.Date.Value.Date > currentdate && bal.NoteID == noteid)
                 {
                     if (bal.Type == "PIKPrincipalPaid")
                     {
@@ -3922,21 +4522,11 @@ namespace CRES.NoteCalculator
             DateTime? maxpaydownDate = DateTime.MinValue;
             Decimal? sumofrepayseq = (ListPayruleNoteSequence.Where(y => y.SequenceTypeText == "Repayment Sequence").Sum(x => x.Value)).GetValueOrDefault(0);
             int? maxrownumber = 0;
-#pragma warning disable CS0219 // The variable 'noteIDWithMaxCommitment' is assigned but its value is never used
             Guid noteIDWithMaxCommitment = new Guid();
-#pragma warning restore CS0219 // The variable 'noteIDWithMaxCommitment' is assigned but its value is never used
-#pragma warning disable CS0219 // The variable 'noteIDWithSecondCommitment' is assigned but its value is never used
             Guid noteIDWithSecondCommitment = new Guid();
-#pragma warning restore CS0219 // The variable 'noteIDWithSecondCommitment' is assigned but its value is never used
-#pragma warning disable CS0219 // The variable 'maxcommitment' is assigned but its value is never used
             Decimal? maxcommitment = 0;
-#pragma warning restore CS0219 // The variable 'maxcommitment' is assigned but its value is never used
-#pragma warning disable CS0219 // The variable 'secondmaxcommitment' is assigned but its value is never used
             Decimal? secondmaxcommitment = 0;
-#pragma warning restore CS0219 // The variable 'secondmaxcommitment' is assigned but its value is never used
-#pragma warning disable CS0219 // The variable 'usesecondmax' is assigned but its value is never used
             string usesecondmax = "";
-#pragma warning restore CS0219 // The variable 'usesecondmax' is assigned but its value is never used
             decimal? remainingtoadjust = 0;
 
             foreach (var funding in dealDC.PayruleDealFundingList)
@@ -3964,7 +4554,7 @@ namespace CRES.NoteCalculator
 
             if (dealDC.ExpectedFullRepaymentDate != null && dealDC.ExpectedFullRepaymentDate != DateTime.MinValue)
             {
-                maxpaydownDate = DateExtensions.GetnextWorkingDays(Convert.ToDateTime(dealDC.ExpectedFullRepaymentDate.Value.Date.AddDays(1)), Convert.ToInt16(-1), "US", dealDC.ListHoliday).Date;
+                maxpaydownDate = DateExtensions.GetWorkingDayUsingOffset(Convert.ToDateTime(dealDC.ExpectedFullRepaymentDate.Value.Date), Convert.ToInt16(-1), "US", dealDC.ListHoliday).Date;
             }
 
             sumreapay = sumreapay.GetValueOrDefault(0) * -1;
@@ -4043,6 +4633,27 @@ namespace CRES.NoteCalculator
                                 break;
                             }
                         }
+
+                        //if (remainingtoadjust != 0)
+                        //{
+                        //    var notewithmaxcommitment = dealDC.PayruleNoteDetailFundingList.OrderByDescending(x => x.CommitmentUsedInFFDistribution).First();
+
+                        //    foreach (var funding in dealDC.PayruleTargetNoteFundingScheduleList)
+                        //    {
+                        //        if (funding.Purpose == "Paydown" && funding.Date == maxpaydownDate && funding.NoteID == notewithmaxcommitment.NoteID)
+                        //        {
+                        //            if (remainingtoadjust < 0)
+                        //            {
+                        //                remainingtoadjust = remainingtoadjust * -1;
+                        //            }
+                        //            if (funding.Value.GetValueOrDefault(0) != 0M)
+                        //            {
+                        //                funding.Value = funding.Value.GetValueOrDefault(0) + remainingtoadjust;
+                        //            }
+                        //        }
+                        //    }
+
+                        //}
                         // update deal level amount
                         foreach (var res in dealDC.PayruleDealFundingList)
                         {
@@ -4055,23 +4666,31 @@ namespace CRES.NoteCalculator
                         }
                     }
                 }
+                else
+                {
+                    dealDC.TotalRepaymentSequences = sumofrepayseq;
+                    dealDC.SumTotalRepayments = sumreapay;
+                    dealDC.RepayTobeAdjusted = repaytobeadjusted;
+                }
 
             }
         }
         public void CreateExpectedFullRepayRecordUseRuleN(DateTime ExpectedFullRepaymentDate)
         {
             Decimal? Balance = 0, DealAmount = 0;
-            DateTime funddate = ExpectedFullRepaymentDate;
+            DateTime? funddate = ExpectedFullRepaymentDate;
+            DateTime? RepaymentStartDate = GetAutoSpreadRepaymentStartDate();
+            funddate = GetAutoSpreadRepaymentEndDate(RepaymentStartDate);
             generateonLatestpossibleprepayment = true;
-            if (dealDC.maxMaturityDate != null && dealDC.maxMaturityDate != DateTime.MinValue)
-            {
-                if (funddate > dealDC.maxMaturityDate.Value.Date)
-                {
-                    funddate = dealDC.maxMaturityDate.Value.Date;
-                }
-            }
+            //if (dealDC.maxMaturityDate != null && dealDC.maxMaturityDate != DateTime.MinValue)
+            //{
+            //    if (funddate > dealDC.maxMaturityDate.Value.Date)
+            //    {
+            //        funddate = dealDC.maxMaturityDate.Value.Date;
+            //    }
+            //}
 
-            funddate = DateExtensions.GetnextWorkingDays(Convert.ToDateTime(funddate.AddDays(1)), Convert.ToInt16(-1), "US", dealDC.ListHoliday).Date;
+            funddate = DateExtensions.GetWorkingDayUsingOffset(Convert.ToDateTime(funddate), Convert.ToInt16(-1), "US", dealDC.ListHoliday).Date;
             //1) delete old and future records
             if (dealDC.ApplyNoteLevelPaydowns != true)
             {
@@ -4140,8 +4759,22 @@ namespace CRES.NoteCalculator
                     PayruleDeletedDealFundingList.Add(pdf);
                 }
             }
+
             dealDC.PayruleDealFundingList.RemoveAll(x => x.isdeleted == true);
-            dealDC.RepayExpectedMaturityDate = CalculateExpectedMaturityDate();
+
+            foreach (PayruleTargetNoteFundingScheduleDataContract notefund in dealDC.PayruleTargetNoteFundingScheduleList)
+            {
+                if (notefund.Value == 0 && notefund.Purpose == "Paydown")
+                {
+                    notefund.isDeletedAutoSpread = true;
+                    PayruleDeletedTargetNoteFundingScheduleList.Add(notefund);
+                }
+            }
+            dealDC.PayruleTargetNoteFundingScheduleList.RemoveAll(x => x.isDeletedAutoSpread == true);
+
+            //commented below logic : now autospread end will be ExpectedMaturityDate
+            //dealDC.RepayExpectedMaturityDate = CalculateExpectedMaturityDate();
+            dealDC.RepayExpectedMaturityDate = ExpectedFullRepaymentDate;
         }
 
         public void DeleteRepaymentsFromNoteAndDeal()
@@ -4349,5 +4982,273 @@ namespace CRES.NoteCalculator
             return sum;
         }
         #endregion autospread
+        public void AddRepayForNonCommitmentAdjustment()
+        {
+            DateTime LastPaydownDate = DateTime.MinValue;
+            DateTime holidayadjmaturity = DateTime.MinValue;
+            string nca = "";
+            string ncapa = "";
+            string comment = "";
+            DeleteNonCommitmentAdjustmentPaydownFromNoteAndDeal(holidayadjmaturity);
+            decimal? dealsum = 0;
+            foreach (PayruleDealFundingDataContract pdf in dealDC.PayruleDealFundingList)
+            {
+                if (pdf.PurposeText == "Paydown")
+                {
+                    if (pdf.Value != 0)
+                    {
+                        if (LastPaydownDate != DateTime.MinValue)
+                        {
+                            LastPaydownDate = DateExtensions.GetMaxDate(LastPaydownDate, Convert.ToDateTime(pdf.Date));
+                        }
+                        else
+                        {
+                            LastPaydownDate = Convert.ToDateTime(pdf.Date);
+                        }
+
+                    }
+                }
+                if (pdf.AdjustmentType == 834 || pdf.AdjustmentType == 896)
+                {
+                    if (pdf.AdjustmentType == 834)
+                    {
+                        nca = "Non-Commitment Adjustment";
+
+                    }
+                    if (pdf.AdjustmentType == 896)
+                    {
+                        ncapa = "Commitment Adjustment (PA)";
+                    }
+
+                    dealsum = dealsum.GetValueOrDefault(0) + pdf.Value.GetValueOrDefault(0);
+                }
+
+            }
+            if (nca != "" && ncapa != "")
+            {
+                comment = "Autospread : Non-Commitment Adjustment and Commitment Adjustment (PA).";
+            }
+            else if (nca != "")
+            {
+                comment = "Autospread : Non-Commitment Adjustment.";
+            }
+            else if (ncapa != "")
+            {
+                comment = "Autospread : Commitment Adjustment (PA).";
+            }
+
+            if (LastPaydownDate.Date.Year <= 2000)
+            {
+                holidayadjmaturity = DateExtensions.GetWorkingDayUsingOffset(dealDC.maxMaturityDate.Value, Convert.ToInt16(-1), "US", dealDC.ListHoliday).Date;
+            }
+            else
+            {
+                holidayadjmaturity = DateExtensions.GetWorkingDayUsingOffset(LastPaydownDate, Convert.ToInt16(-1), "US", dealDC.ListHoliday).Date;
+            }
+            if (Math.Round(dealsum.GetValueOrDefault(0), 2) > 0)
+            {
+                var RowNumber = dealDC.PayruleDealFundingList.Max(x => x.DealFundingRowno).ToInt32();
+                Decimal? dealamount = 0;
+                RowNumber = RowNumber + 1;
+
+                foreach (var noteitem in dealDC.PayruleNoteDetailFundingList)
+                {
+                    decimal? noteNonCommitmentAdjustmentBalance = 0;
+                    noteNonCommitmentAdjustmentBalance = GetNonCommitmentAdjustmentBalance(noteitem.NoteID);
+                    AddRepayToNoteFundingScheduleListWithAdjustmentType(holidayadjmaturity, noteNonCommitmentAdjustmentBalance, RowNumber, noteitem.NoteID.ToString(), noteitem.NoteName, 834);
+                    dealamount = dealamount + noteNonCommitmentAdjustmentBalance;
+                }
+
+                PayruleDealFundingDataContract pdf = new PayruleDealFundingDataContract();
+                pdf.Date = holidayadjmaturity;
+                pdf.PurposeText = "Paydown";
+                pdf.PurposeID = 631;// id for paydown in lookuptable
+                pdf.SubPurposeType = "";
+                pdf.RequiredEquity = 0;
+                pdf.Value = Math.Round(Convert.ToDecimal(dealamount * -1), 2);
+                pdf.AdditionalEquity = 0;
+                pdf.Value1 = pdf.Value;
+                pdf.Applied = false;
+                pdf.DealID = dealid;
+                pdf.DealFundingRowno = RowNumber;
+                pdf.DealFundingID = null;
+                pdf.WF_CurrentStatus = "Projected";
+                pdf.WF_CurrentStatusDisplayName = "Projected";
+                pdf.WF_IsAllow = true;
+                pdf.WF_isParticipate = true;
+                pdf.WF_IsCompleted = false;
+                pdf.WF_IsFlowStart = false;
+                pdf.wf_isUserCurrentFlow = false;
+                pdf.GeneratedBy = 747;
+                pdf.AdjustmentType = 834;
+                pdf.Comment = comment;
+
+                dealDC.PayruleDealFundingList.Add(pdf);
+            }
+
+        }
+        public decimal? GetNonCommitmentAdjustmentBalance(Guid noteid)
+        {
+            decimal? noteNonCommitmentAdjustmen = 0;
+            foreach (var note in dealDC.NoteFundingScheduleListAdjustmentTypeAutoSpread)
+            {
+                if (note.NoteID == noteid && note.PurposeID != 631)
+                {
+                    if (note.AdjustmentType == 834 || note.AdjustmentType == 896)
+                    {
+                        noteNonCommitmentAdjustmen = noteNonCommitmentAdjustmen + note.Value.GetValueOrDefault(0);
+                    }
+                }
+            }
+            return noteNonCommitmentAdjustmen;
+        }
+        public void AddRepayToNoteFundingScheduleListWithAdjustmentType(DateTime? funddate, Decimal? amount, int? DealFundingRowno, string NoteID, string NotenName, int AdjustmentType)
+        {
+            PayruleTargetNoteFundingScheduleDataContract notefunding = new PayruleTargetNoteFundingScheduleDataContract();
+            notefunding.Date = funddate;
+            notefunding.Value = amount * -1;
+            notefunding.NoteName = NotenName;
+            notefunding.AccountId = null;
+            notefunding.PurposeID = 631;
+            notefunding.Purpose = "Paydown";
+            notefunding.NoteID = new Guid(NoteID);
+            notefunding.Applied = false;
+            notefunding.DrawFundingId = null;
+            notefunding.DealFundingRowno = DealFundingRowno;
+            notefunding.Comments = "";
+            notefunding.isDeleted = null;
+            notefunding.NoteSplitDiff = null;
+            notefunding.DealFundingID = null;
+            notefunding.WF_CurrentStatus = "Projected";
+            notefunding.WF_CurrentStatusDisplayName = "Projected";
+            notefunding.OldComment = "";
+            notefunding.GeneratedBy = 747;
+            notefunding.AdjustmentType = AdjustmentType;
+            notefunding.Comments = "Autospread : Non-Commitment Adjustment.";
+            dealDC.PayruleTargetNoteFundingScheduleList.Add(notefunding);
+        }
+
+        public void DeleteNonCommitmentAdjustmentPaydownFromNoteAndDeal(DateTime holidayadjimatdate)
+        {
+            List<int?> rownumber = new List<int?>();
+            foreach (PayruleDealFundingDataContract ds in dealDC.PayruleDealFundingList)
+            {
+                if (ds.Date.Value.Date == holidayadjimatdate.Date && ds.PurposeText == "Paydown" && ds.AdjustmentType == 834)
+                {
+                    if (ds.Applied != true)
+                    {
+                        if (ds.Comment == null || ds.GeneratedBy == 747)
+                        {
+                            ds.isdeleted = true;
+                            PayruleDeletedDealFundingList.Add(ds);
+                        }
+                        else
+                        {
+                            if (ds.Value == 0)
+                            {
+                                ds.isdeleted = true;
+                                PayruleDeletedDealFundingList.Add(ds);
+                                rownumber.Add(ds.DealFundingRowno);
+                            }
+                        }
+                    }
+                }
+                if (ds.PurposeText == "Paydown" && ds.AdjustmentType == 834)
+                {
+                    if (ds.Applied != true)
+                    {
+                        if (ds.Value == 0 || ds.GeneratedBy == 747)
+                        {
+                            ds.isdeleted = true;
+                            PayruleDeletedDealFundingList.Add(ds);
+                            rownumber.Add(ds.DealFundingRowno);
+                        }
+                    }
+                }
+
+            }
+            dealDC.PayruleDealFundingList.RemoveAll(x => x.isdeleted == true);
+            foreach (PayruleTargetNoteFundingScheduleDataContract notefund in dealDC.PayruleTargetNoteFundingScheduleList)
+            {
+                if (notefund.Date.Value.Date == holidayadjimatdate.Date && notefund.Purpose == "Paydown" && notefund.AdjustmentType == 834)
+                {
+                    if (notefund.Applied != true)
+                    {
+                        if (notefund.Comments == null || notefund.GeneratedBy == 747)
+                        {
+                            notefund.isDeletedAutoSpread = true;
+                            PayruleDeletedTargetNoteFundingScheduleList.Add(notefund);
+                        }
+                    }
+                }
+            }
+
+            dealDC.PayruleTargetNoteFundingScheduleList.RemoveAll(x => x.isDeletedAutoSpread == true);
+            foreach (var item in rownumber)
+            {
+                foreach (PayruleTargetNoteFundingScheduleDataContract notefund in dealDC.PayruleTargetNoteFundingScheduleList)
+                {
+                    if (notefund.DealFundingRowno == item)
+                    {
+                        notefund.isDeletedAutoSpread = true;
+                        PayruleDeletedTargetNoteFundingScheduleList.Add(notefund);
+                    }
+                }
+            }
+            dealDC.PayruleTargetNoteFundingScheduleList.RemoveAll(x => x.isDeletedAutoSpread == true);
+
+        }
+
+        public void IndentifyNCANote()
+        {
+            decimal? noteFundseq = 0;
+            decimal? noteRepayseq = 0;
+            Boolean isNCAnote = false;
+            if (dealDC.ListNoteEndingBalance != null)
+            {
+                foreach (var item in dealDC.ListNoteEndingBalance)
+                {
+                    noteFundseq = 0;
+                    noteRepayseq = 0;
+                    isNCAnote = false;
+                    Guid currentnoteid = new Guid(item.NoteID);
+                    foreach (var noteseq in ListPayruleNoteSequence)
+                    {
+                        if (noteseq.NoteID == currentnoteid)
+                        {
+                            if (noteseq.SequenceTypeText == "Funding Sequence")
+                            {
+                                noteFundseq = noteFundseq.GetValueOrDefault(0) + noteseq.Value.GetValueOrDefault(0);
+                            }
+                            if (noteseq.SequenceTypeText == "Repayment Sequence")
+                            {
+                                noteRepayseq = noteRepayseq.GetValueOrDefault(0) + noteseq.Value.GetValueOrDefault(0);
+                            }
+                        }
+                    }
+                    if (noteFundseq == 0 && noteRepayseq == 0)
+                    {
+                        foreach (var funding in dealDC.NoteFundingScheduleListAdjustmentTypeAutoSpread)
+                        {
+                            if (currentnoteid == funding.NoteID && funding.AdjustmentType == 834)
+                            {
+                                //834  Non - Commitment Adjustment
+                                if (funding.Value != null && funding.Value != 0)
+                                {
+                                    isNCAnote = true;
+                                    break;
+                                }
+                            }
+
+                        }
+                    }
+
+                    item.isNCANote = isNCAnote;
+
+                }
+            }
+
+
+        }
     }
 }

@@ -1,4 +1,8 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
 
 namespace CRES.DataContract
 {
@@ -22,6 +26,11 @@ namespace CRES.DataContract
         public DateTime? TransactionDateServicingLog { get; set; }
         public DateTime? RemittanceDate { get; set; }
         //public Decimal? UsedInFeeRecon { get; set; }
+
+        public DateTime? InitialInterestAccrualEndDate { get; set; }
+        public Decimal? WriteOffAmount { get; set; }
+        public Decimal? CashInterest { get; set; }
+        public Decimal? CapitalizedInterest { get; set; }
 
     }
 }

@@ -1,11 +1,15 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
 
 namespace CRES.DataContract
 {
     public class FeeFunctionsConfigDataContract
     {
 
-
+      
 
         public int? FunctionNameID { get; set; }
         public Guid? FunctionGuID { get; set; }
@@ -24,7 +28,7 @@ namespace CRES.DataContract
         public int? LookupID { get; set; }
         public string Name { get; set; }
         public bool IsUsedInFeeSchedule { get; set; }
-
+        
 
     }
 }

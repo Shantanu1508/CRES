@@ -38,6 +38,7 @@ export class NoteService {
   private _getNoteOutputNPVdataByNoteId: string = 'api/note/getNoteOutputNPVdataByNoteId';
 
   private _checkduplicatenoteAPI: string = 'api/note/checkduplicatenote';
+  private _checkduplicateCashflowTransAPI: string = 'api/note/checkduplicatetransactionCashflow';
   private _Getnoteexceptions: string = 'api/note/getnoteexceptions';
 
   private _validatenoteobj: string = 'api/note/validatenoteobj';
@@ -67,6 +68,16 @@ export class NoteService {
   private _copynotedAPI: string = 'api/note/copynote';
   private _addupdatenoteruletypesetupAPI: string = 'api/note/AddUpdateNoteRuleTypeSetup';
   private getruletypesetupbynoteidAPI: string = 'api/note/GetRuleTypeSetupByNoteId';
+  private _getAllTagNameXIRRAPI: string = 'api/note/getAllTagNameXIRR';
+  private _updateNoteEditListRSSFEEPIK: string = 'api/note/UpdateNoteRSSFEEPIK';
+  private _updateUserPreferencesAPI: string = 'api/note/InsertUpdateUserPreference';
+  private _getUserPreferenceAPI: string = 'api/note/GetUserPreferenceByUserID';
+
+  private _getnotetranchepercentageAPI: string = 'api/note/getnotetranchepercentage';
+  private _updateNoteTranchePercentageAPI: string = 'api/note/updatenotetranchepercentage';
+  private _saveparentclientAPI: string = 'api/note/updateparentclient';
+  private _saveparentfundAPI: string = 'api/note/updateparentfund';
+  
 
   constructor(public datasrv: DataService) { }
 
@@ -227,8 +238,12 @@ export class NoteService {
     return this.datasrv.post(JSON.stringify(_note));
   }
 
-  getNoteCashflowsExportData(downloadCashFlow:any) {
+  CheckDuplicateTransactionCashflow(downloadCashFlow: any) {
+    this.datasrv.set(this._checkduplicateCashflowTransAPI);
+    return this.datasrv.post(JSON.stringify(downloadCashFlow));
+  }
 
+  getNoteCashflowsExportData(downloadCashFlow:any) {
     this.datasrv.set(this._getNoteCashflowsExportDataAPI);
     return this.datasrv.postWithBlob(JSON.stringify(downloadCashFlow));
   }
@@ -338,4 +353,43 @@ export class NoteService {
     this.datasrv.set(this.getruletypesetupbynoteidAPI);
     return this.datasrv.post(JSON.stringify(_ruletype));
   }
+
+  GetAllTagsNameXIRR() {
+    this.datasrv.set(this._getAllTagNameXIRRAPI);
+    return this.datasrv.getAll();
+  }
+
+  UpdateNoteEditlistRSSFEEPIK(EditNoteListRssFee: any) {
+    this.datasrv.set(this._updateNoteEditListRSSFEEPIK);
+    return this.datasrv.post(JSON.stringify(EditNoteListRssFee));
+  }
+  UpdateUserPreference(UserPreferences: any) {
+    this.datasrv.set(this._updateUserPreferencesAPI);
+    return this.datasrv.post(JSON.stringify(UserPreferences));
+  }
+  GetUserPreferenceByUserID() {
+    this.datasrv.set(this._getUserPreferenceAPI);
+    return this.datasrv.getAll();
+  }
+
+  getNoteTranchePercentagebyNoteid(ID: string) {
+    this.datasrv.set(this._getnotetranchepercentageAPI);
+    return this.datasrv.getByID(ID);
+  }
+
+  UpdateNoteTranchePercentage(CreNoteId: any) {
+    this.datasrv.set(this._updateNoteTranchePercentageAPI);
+    return this.datasrv.post(JSON.stringify(CreNoteId));
+  }
+
+  SaveParentClient(parentClient: any) {
+    this.datasrv.set(this._saveparentclientAPI);
+    return this.datasrv.post(JSON.stringify(parentClient));
+  }
+
+  SaveParentFund(parentFund: any) {
+    this.datasrv.set(this._saveparentfundAPI);
+    return this.datasrv.post(JSON.stringify(parentFund));
+  }
+
 }

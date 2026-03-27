@@ -1,10 +1,13 @@
 ﻿using System;
-using System.Security.Cryptography;
+using System.Collections.Generic;
+using System.Linq;
 using System.Text;
+using System.Threading.Tasks;
+using System.Security.Cryptography;
 
 namespace CRES.Utilities
-{
-    public static class Encryptor
+{  
+  public static class Encryptor
     {
         public static string MD5Hash(string text)
         {
@@ -41,6 +44,23 @@ namespace CRES.Utilities
                 Char.ConvertFromUtf32(rnd.Next(48, 58)) +   //Num
                 Char.ConvertFromUtf32(rnd.Next(33, 39));    //Special ! " # $ % &
             return newPassword;
+        }
+
+        public static string hashSH1(string input)
+        {
+            using (SHA1Managed sha1 = new SHA1Managed())
+            {
+                var hashSha1 = sha1.ComputeHash(Encoding.UTF8.GetBytes(input));
+                var sb = new StringBuilder(hashSha1.Length * 2);
+
+                //for (int i = 0; i < hashSha1.Length; i++)
+                foreach (byte b in hashSha1)
+                {
+                    sb.Append(b.ToString("X2").ToLower());
+                }
+
+                return sb.ToString();
+            }            
         }
     }
 }

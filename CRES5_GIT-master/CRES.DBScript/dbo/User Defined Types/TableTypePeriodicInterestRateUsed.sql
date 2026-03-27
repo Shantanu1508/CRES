@@ -1,4 +1,6 @@
-﻿CREATE TYPE [dbo].[TableTypePeriodicInterestRateUsed] AS TABLE (
+﻿--DROP PROCEDURE [dbo].[usp_InsertPeriodicInterestRateUsed]
+--DROP TYPE [dbo].[TableTypePeriodicInterestRateUsed]
+CREATE TYPE [dbo].[TableTypePeriodicInterestRateUsed] AS TABLE (
     [NoteID]                                UNIQUEIDENTIFIER NULL,
     [Date]                                  DATE             NULL,
     [CouponSpread]                          DECIMAL (28, 15) NULL,
@@ -10,5 +12,6 @@
     [AdditionalPIKinterestRatefromPIKTable] DECIMAL (28, 15) NULL,
     [AdditionalPIKSpreadfromPIKTable]       DECIMAL (28, 15) NULL,
     [PIKIndexFloorfromPIKTable]             DECIMAL (28, 15) NULL,
-    [AnalysisID]                            UNIQUEIDENTIFIER NULL);
+    [AnalysisID]                            UNIQUEIDENTIFIER NULL,
+	[IsPaymentDate]                         int NULL);
 

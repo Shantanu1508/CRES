@@ -11,23 +11,30 @@
         <button class="custombutton" id="btnCancelIndexScenario" style="margin-right:22px !important;" (click)="DiscardChanges()">
           Cancel
         </button>
-        <button class="custombutton" id='btnSaveIndexScenario' (click)="ValidateIndexesAndSave('Save')">
-          Save
-        </button>
-        <span *ngIf="_isShowImportIndexes">
-          <button class="custombutton" id='btnImportIndex' (click)="showDialogImportIndex()">
-            Import Indexes
+        <span *ngIf="_isshowsaveindexes">
+          <button class="custombutton" id='btnSaveIndexScenario' (click)="ValidateIndexesAndSave('Save')">
+            Save
           </button>
         </span>
-        <button class="custombutton" id='btnRefreshLibors' (click)="RefreshLibors()">
-          Refresh Libors
-        </button>
-      </span>
+          <span *ngIf="_isShowImportIndexes">
+            <button class="custombutton" id='btnImportIndex' (click)="showDialogImportIndex()">
+              Import Indexes
+            </button>
+          </span>
+          <span *ngIf="_isShowrefreshindexes">
+            <button class="custombutton" id='btnRefreshLibors' (click)="RefreshLibors()">
+              Refresh Indexes
+            </button>
+          </span>
+        </span>
 
-      <div *ngIf="_ShowmessagedivWar" class="alert alert-warning fade in">
-        <strong>{{_ShowmessagedivMsgWar}}</strong>
-      </div>
-    </div>
+        <div *ngIf="_ShowmessagedivWar" class="alert alert-warning fade in">
+          <strong>{{_ShowmessagedivMsgWar}}</strong>
+        </div>
+        <div *ngIf="_Showmessagediv" class="alert alert-success fade in">
+          <strong>{{_ShowmessagedivMsg}}</strong>
+        </div>
+</div>
 
     <div class="fmst fixheadercontent">
       <div class="cssload-container" *ngIf="_isIndexesDetailFetching">
@@ -37,14 +44,31 @@
       <div class="box1a">
         <div class="form-group row pD10">
 
-          <div class="col-sm-5">
+          <div class="col-sm-3">
             <label class="lab1">Index Scenario</label>
-            <input class="ibox1" required type="text" [(ngModel)]="_indexesdc.IndexesName" name="IndexesName" ngControl="IndexesName" #IndexesName="ngModel" id="IndexesName">
+            <input class="ibox1" required type="text" [(ngModel)]="_indexesdc.IndexesName" name="IndexesName" ngControl="IndexesName" #IndexesName="ngModel" id="IndexesName" [disabled]="_disableIndexesName == true">
           </div>
 
-          <div class="col-sm-7">
+          <div class="col-sm-3">
+            <label class="lab1">Status</label>
+            <select [disabled]="_disableStatus == true" [(ngModel)]="_indexesdc.Status" name="Status" #Status="ngModel" class="ibox1">
+              <option *ngFor="let _StatusRes of lstStatus" value={{_StatusRes.LookupID}}>
+                {{_StatusRes.Name}}
+              </option>
+            </select>
+          </div>
+
+          <div class="col-sm-6">
             <label class="lab1">Description</label>
             <textarea style="font-family: inherit;font-size: inherit;" (keyup)="adjustdescrtiptionheight()" class="ibox1 input-lg" rows="3" cols="60" [(ngModel)]="_indexesdc.Description" name="Description" #Description="ngModel" id="Description"></textarea>
+          </div>
+
+          <div class="col-sm-11" style="width:100%;" *ngIf="_isScenarioList" >
+            <div class="alert alert-info">
+              <span>
+                Scenario associated: {{ScenarioList}}
+              </span>
+            </div>
           </div>
 
         </div>
@@ -53,12 +77,13 @@
       <div class="box1a">
         <h3>Index Rates</h3>
         <div class="form-group row pD10 indexdetailtopdiv">
-          <div class="col-sm-12 ">
+          <div class="col-sm-12 indexdetailgrid">
 
             <button type="button" style="margin-right: 24px !important;" id="btnDownloadIndexsExportData" *ngIf="_isIndexLoad" class="custombutton_150px" (click)="downloadIndexsExportData()">Download Index Rates</button>
 
-            <wj-flex-grid id="flexIndexesDetail" #flexIndexesDetail [itemsSource]="cvIndexesDetaildata" [allowAddNew]="true" [allowResizing]="'Both'" class="gridSize indexdetailgrid"
-                          (selectionChanged)="IndexesDetailselectionChanged()" selection-mode="Row" (beginningEdit)="beginningEdit('IndexesDetail')" (rowEditEnded)="rowEditEnded('IndexesDetail')" (pasted)="CopiedDataValidate('IndexesDetail')">
+            <wj-flex-grid id="flexIndexesDetail" #flexIndexesDetail [itemsSource]="cvIndexesDetaildata" [allowAddNew]="true" [allowResizing]="'Both'" class="gridSize" style="max-height:400px;"
+                          (selectionChanged)="IndexesDetailselectionChanged()" selection-mode="Row" (beginningEdit)="beginningEdit('IndexesDetail')" keyActionTab="Cycle"
+                          (rowEditEnded)="rowEditEnded('IndexesDetail')" (pasted)="CopiedDataValidate('IndexesDetail')">
             </wj-flex-grid>
           </div>
         </div>

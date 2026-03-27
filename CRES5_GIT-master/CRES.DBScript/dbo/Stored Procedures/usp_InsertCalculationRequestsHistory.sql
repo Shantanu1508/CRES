@@ -37,7 +37,7 @@ Select
 (@BatchID + 1) as BatchID,
 getdate() as BatchDate,
 CalculationRequestID,
-NoteId,
+n.NoteId,
 RequestTime,
 StatusID,
 UserName,
@@ -53,10 +53,11 @@ AnalysisID,
 CalculationModeID,
 CalcBatch,
 NumberOfRetries,
-DealID,
+cr.DealID,
 RequestID,
 CalcType 
-from [Core].[CalculationRequests] 
+from [Core].[CalculationRequests] cr
+Inner join cre.Note n on n.Account_AccountID = cr.AccountId
 
 
 

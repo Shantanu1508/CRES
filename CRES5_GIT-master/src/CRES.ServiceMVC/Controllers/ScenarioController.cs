@@ -1,6 +1,5 @@
 ﻿using CRES.BusinessLogic;
-#pragma warning disable CS0105 // The using directive for 'CRES.BusinessLogic' appeared previously in this namespace
-#pragma warning restore CS0105 // The using directive for 'CRES.BusinessLogic' appeared previously in this namespace
+using CRES.BusinessLogic;
 using CRES.DataContract;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
@@ -8,8 +7,13 @@ using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Linq;
+using System.Net;
+using System.Net.Http;
+using System.Net.Http.Headers;
 using System.Threading;
 using System.IO;
+using Newtonsoft.Json;
+using System.Web.Helpers;
 
 
 namespace CRES.Services.Controllers
@@ -24,16 +28,14 @@ namespace CRES.Services.Controllers
         public IActionResult GetAllScenario()
         {
             GenericResult _authenticationResult = null;
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
             var headerUserID = new Guid();
             if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
             {
                 headerUserID = new Guid(Request.Headers["TokenUId"]);
             }
 
-            int pageSize = 20;
+            int pageSize = 100;
             int pageIndex = 1;
 
             List<ScenarioParameterDataContract> listscenario = new List<ScenarioParameterDataContract>();
@@ -76,9 +78,7 @@ namespace CRES.Services.Controllers
         public IActionResult GetScenarioParameterByScenarioID([FromBody] string scenarioid)
         {
             GenericResult _authenticationResult = null;
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
             var headerUserID = string.Empty;
             if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
             {
@@ -91,7 +91,7 @@ namespace CRES.Services.Controllers
             ScenarioParameterDataContract spdc = new ScenarioParameterDataContract();
             if (permissionlist != null && permissionlist.Count > 0)
             {
-                spdc = scenarioLogic.GetScenarioParameterByScenarioID(scenarioid);
+                spdc = scenarioLogic.GetScenarioParameterByScenarioID(scenarioid,new Guid(headerUserID.ToString()));
             }
 
             try
@@ -134,9 +134,7 @@ namespace CRES.Services.Controllers
         {
             GenericResult _authenticationResult = null;
             DataTable IndexTypedatatable = new DataTable();
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
             var headerUserID = string.Empty;
             if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
             {
@@ -187,9 +185,7 @@ namespace CRES.Services.Controllers
         {
             GenericResult _authenticationResult = null;
             DataTable IndexTypedatatable = new DataTable();
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
             var headerUserID = string.Empty;
             if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
             {
@@ -240,9 +236,7 @@ namespace CRES.Services.Controllers
         {
             GenericResult _authenticationResult = null;
             DataTable IndexTypedatatable = new DataTable();
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
             var headerUserID = string.Empty;
             if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
             {
@@ -292,9 +286,7 @@ namespace CRES.Services.Controllers
         public IActionResult InsertUpdateScenario([FromBody] ScenarioParameterDataContract scenarioDC)
         {
             GenericResult _authenticationResult = null;
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
             var headerUserID = string.Empty;
             string scenariomsg = "";
             if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
@@ -304,9 +296,47 @@ namespace CRES.Services.Controllers
 
             scenarioDC.CreatedBy = headerUserID;
             scenarioDC.UpdatedBy = headerUserID;
+            if (scenarioDC.AnalysisID == "00000000-0000-0000-0000-000000000000")
+            {
+                if (scenarioDC.ScenarioStatus == null || scenarioDC.ScenarioStatus == 0)
+                {//assign to 1 in case of new 
+                    scenarioDC.ScenarioStatus = 1;
+                }
+            }
 
             ScenarioLogic scenarioLogic = new ScenarioLogic();
             string res = scenarioLogic.InsertUpdateScenario(scenarioDC);
+
+            DataTable dtActivityLogDetail = (DataTable)JsonConvert.DeserializeObject(scenarioDC.jsonparam, (typeof(DataTable)));
+
+            if (dtActivityLogDetail.Rows.Count > 0)
+            {
+                // Remove the "RowIndex" column if it exists
+                if (dtActivityLogDetail.Columns.Contains("RowIndex"))
+                {
+                    dtActivityLogDetail.Columns.Remove("RowIndex");
+                }
+
+                dtActivityLogDetail.Columns.Add("Comment", typeof(string));
+                dtActivityLogDetail.Columns.Add("CreatedBy", typeof(string));
+
+                foreach (DataRow row in dtActivityLogDetail.Rows)
+                {
+                    string fieldName = row["FieldName"].ToString();
+                    string comment = $"{fieldName} has been updated.";
+
+                    row["Comment"] = comment;
+                    row["CreatedBy"] = headerUserID;
+                    
+                    if (row["ModuleID"] == null || string.IsNullOrWhiteSpace(row["ModuleID"].ToString()))
+                    {
+                        row["ModuleID"] = res;
+                    }
+
+                }
+
+                scenarioLogic.InsertActivityLogDetail(dtActivityLogDetail);
+            }
 
 
             if (scenarioDC.ActionStatus == "CalcAndSave")
@@ -314,16 +344,6 @@ namespace CRES.Services.Controllers
                 scenariomsg = "Scenario Details saved successfully. All loans are being added for recalculation.";
                 Thread FirstThread = new Thread(() => AddNoteInCalculationRequestsByScenarioID(scenarioDC.AnalysisID, headerUserID));
                 FirstThread.Start();
-
-
-                ////update all scenario to inactive
-                //scenarioLogic.UpdateScenarioToInactive(scenarioDC.AnalysisID);
-                //// send request to recalc all notes
-                //scenariomsg = "Scenario Details saved successfully. All loans are being added for recalculation.";
-                //Thread FirstThread = new Thread(() => SendRequestToRecalAlllNotes(headerUserID));
-                //FirstThread.Start();
-
-
 
             }
             else
@@ -372,12 +392,8 @@ namespace CRES.Services.Controllers
                     Message = ex.Message
                 };
             }
-            //var javaScriptSerializer = new System.Web.Script.Serialization.JavaScriptSerializer();
-            //string jsonString = javaScriptSerializer.Serialize(_authenticationResult);
-            //var json = new JavaScriptSerializer().Serialize(_authenticationResult);
-            //Request.Content.Headers.ContentType = new MediaTypeHeaderValue("application/octet-stream");
             return Ok(_authenticationResult);
-            //    return Ok(_authenticationResult);
+
         }
 
         [HttpGet]
@@ -386,12 +402,10 @@ namespace CRES.Services.Controllers
         [Route("api/scenarios/getallLookup")]
         public IActionResult GetAllLookup()
         {
-            string getAllLookup = "52,79,2,98";
+            string getAllLookup = "52,79,2,98,133,134,1";
             GenericResult _authenticationResult = null;
             List<LookupDataContract> lstlookupDC = new List<LookupDataContract>();
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
             var headerUserID = string.Empty;
             if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
             {
@@ -436,9 +450,7 @@ namespace CRES.Services.Controllers
         {
             GetConfigSetting();
             CalculationManagerLogic calculationlogic = new CalculationManagerLogic();
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
             var headerUserID = string.Empty;
             // var Enablem61Calculation = Sectionroot.GetSection("Enablem61Calculation").Value;
             if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
@@ -447,26 +459,7 @@ namespace CRES.Services.Controllers
             }
             AppConfigLogic appl = new AppConfigLogic();
             //to get user 
-            List<AppConfigDataContract> SettingKeyslist;
-            var Enablem61Calculation = string.Empty;
-            if (headerUserID == "")
-                SettingKeyslist = appl.GetAppConfigByKey(null, "EnableM61Calculator");
-            else
-                SettingKeyslist = appl.GetAppConfigByKey(new Guid(headerUserID), "EnableM61Calculator");
-
-            if (SettingKeyslist != null)
-            {
-                var Value = SettingKeyslist.FirstOrDefault().Value;
-                if (Value == "1")
-                {
-                    Enablem61Calculation = "true";
-                }
-                else
-                {
-                    Enablem61Calculation = "false";
-                }
-            }
-            List<CalculationManagerDataContract> lstcalculationstatus = calculationlogic.RefreshcalculationStatus(DCcalc, new Guid(headerUserID), Enablem61Calculation);
+            List<CalculationManagerDataContract> lstcalculationstatus = calculationlogic.RefreshcalculationStatus(DCcalc, new Guid(headerUserID));
 
             //string envname = System.Configuration.ConfigurationManager.AppSettings["ApplicationName"].ToString();
             string envname = Sectionroot.GetSection("ApplicationName").Value;
@@ -481,8 +474,6 @@ namespace CRES.Services.Controllers
             calculationlogic.QueueNotesForCalculation(lstcalculationstatus, DCcalc.UserName);
         }
 
-
-
         public void AddNoteInCalculationRequestsByScenarioID(string AnalysisID, string username)
         {
             GetConfigSetting();
@@ -492,59 +483,6 @@ namespace CRES.Services.Controllers
             calculationlogic.AddNoteInCalculationRequestsByScenarioID(AnalysisID, username, envname);
         }
 
-        [HttpPost]
-        [Services.Controllers.IsAuthenticate]
-        [Services.Controllers.DeflateCompression]
-        [Route("api/scenarios/resettodefault")]
-        public IActionResult ResetDefaultToActiveScenario([FromBody] CalculationManagerDataContract DCcalc)
-        {
-            GenericResult _authenticationResult = null;
-            List<LookupDataContract> lstlookupDC = new List<LookupDataContract>();
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
-            IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
-            var headerUserID = string.Empty;
-            if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
-            {
-                headerUserID = Convert.ToString(Request.Headers["TokenUId"]);
-            }
-
-            ScenarioLogic scenarioLogic = new ScenarioLogic();
-            DCcalc.UserName = headerUserID;
-            scenarioLogic.ResetDefaultToActiveScenario(headerUserID);
-
-            //calc all notes
-            SendRequestToRecalAlllNotes(DCcalc);
-
-            try
-            {
-                if (lstlookupDC != null)
-                {
-                    _authenticationResult = new GenericResult()
-                    {
-                        Succeeded = true,
-                        Message = "Authentication succeeded"
-                    };
-                }
-                else
-                {
-                    _authenticationResult = new GenericResult()
-                    {
-                        Succeeded = false,
-                        Message = "Authentication failed"
-                    };
-                }
-            }
-            catch (Exception ex)
-            {
-                _authenticationResult = new GenericResult()
-                {
-                    Succeeded = false,
-                    Message = ex.Message
-                };
-            }
-            return Ok(_authenticationResult);
-        }
 
         [HttpPost]
         [Services.Controllers.IsAuthenticate]
@@ -554,9 +492,7 @@ namespace CRES.Services.Controllers
         {
             GenericResult _authenticationResult = null;
 
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
             var headerUserID = string.Empty;
             if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
             {
@@ -604,13 +540,9 @@ namespace CRES.Services.Controllers
         public IActionResult InsertUpdateScenarioUserMap([FromBody] ScenarioUserMapDataContract scenarioDC)
         {
             GenericResult _authenticationResult = null;
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
             var headerUserID = string.Empty;
-#pragma warning disable CS0219 // The variable 'scenariomsg' is assigned but its value is never used
             string scenariomsg = "";
-#pragma warning restore CS0219 // The variable 'scenariomsg' is assigned but its value is never used
             if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
             {
                 headerUserID = Convert.ToString(Request.Headers["TokenUId"]);
@@ -679,9 +611,7 @@ namespace CRES.Services.Controllers
         {
             GenericResult _authenticationResult = null;
             ScenarioUserMapDataContract retScenarioDC = new ScenarioUserMapDataContract();
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
             var headerUserID = string.Empty;
             if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
             {
@@ -732,9 +662,7 @@ namespace CRES.Services.Controllers
         public IActionResult GetAllScenarioDistinct([FromBody] ScenarioParameterDataContract _ScenarioDc)
         {
             GenericResult _authenticationResult = null;
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
             var headerUserID = new Guid();
             if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
             {
@@ -780,9 +708,7 @@ namespace CRES.Services.Controllers
         {
             GenericResult _authenticationResult = null;
             //DataTable IndexTypedatatable = new DataTable();
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
             var headerUserID = string.Empty;
             if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
             {
@@ -853,9 +779,7 @@ namespace CRES.Services.Controllers
         public IActionResult GetAllRuleType()
         {
             GenericResult _authenticationResult = null;
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
             var headerUserID = new Guid();
             if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
             {
@@ -894,9 +818,7 @@ namespace CRES.Services.Controllers
         public IActionResult GetAllRuleTypeDetail()
         {
             GenericResult _authenticationResult = null;
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
             var headerUserID = new Guid();
             if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
             {
@@ -972,13 +894,9 @@ namespace CRES.Services.Controllers
         public IActionResult AddUpdateAnalysisRuleTypeSetup([FromBody] List<ScenarioruletypeDataContract> scenarioDC)
         {
             GenericResult _authenticationResult = null;
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
             var headerUserID = string.Empty;
-#pragma warning disable CS0219 // The variable 'scenariomsg' is assigned but its value is never used
             string scenariomsg = "";
-#pragma warning restore CS0219 // The variable 'scenariomsg' is assigned but its value is never used
             if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
             {
                 headerUserID = Convert.ToString(Request.Headers["TokenUId"]);
@@ -1023,7 +941,7 @@ namespace CRES.Services.Controllers
         [Services.Controllers.IsAuthenticate]
         [Services.Controllers.DeflateCompression]
         [Route("api/scenarios/deleteScenariobyAnalysisID")]
-        public IActionResult deleteScenariobyAnalysisID([FromBody] string AnalysisID)
+        public IActionResult deleteScenariobyAnalysisID([FromBody] ScenarioParameterDataContract scenariodc)
         {
             GenericResult _authenticationResult = null;
             var headerUserID = new Guid();
@@ -1033,7 +951,37 @@ namespace CRES.Services.Controllers
             }
 
             ScenarioLogic scenarioLogic = new ScenarioLogic();
-            var res = scenarioLogic.deleteScenariobyAnalysisID(AnalysisID, headerUserID.ToString());
+            var res = scenarioLogic.deleteScenariobyAnalysisID(scenariodc.AnalysisID, headerUserID.ToString());
+
+            DataTable dtLog = new DataTable();
+
+            DataColumn column1 = new DataColumn("ParentModuleName", typeof(string));
+            DataColumn column2 = new DataColumn("ChildModuleName", typeof(string));
+            DataColumn column3 = new DataColumn("ModuleID", typeof(string));
+            DataColumn column4 = new DataColumn("FieldName", typeof(string));
+            DataColumn column5 = new DataColumn("FieldValue", typeof(string));
+            DataColumn column6 = new DataColumn("Comment", typeof(string));
+            DataColumn column7 = new DataColumn("CreatedBy", typeof(string));
+
+            dtLog.Columns.Add(column1);
+            dtLog.Columns.Add(column2);
+            dtLog.Columns.Add(column3);
+            dtLog.Columns.Add(column4);
+            dtLog.Columns.Add(column5);
+            dtLog.Columns.Add(column6);
+            dtLog.Columns.Add(column7);
+
+            DataRow row = dtLog.NewRow();
+            row["ParentModuleName"] = "Scenario";
+            row["ChildModuleName"] = "Scenario";
+            row["ModuleID"] = scenariodc.AnalysisID;
+            row["FieldName"] = scenariodc.ScenarioName;
+            row["FieldValue"] = scenariodc.ScenarioName;
+            row["Comment"] = scenariodc.ScenarioName + " has been Deleted.";
+            row["CreatedBy"] = headerUserID;
+            dtLog.Rows.Add(row);
+
+            scenarioLogic.InsertActivityLogDetail(dtLog);
 
             try
             {
@@ -1067,5 +1015,6 @@ namespace CRES.Services.Controllers
 
             return Ok(_authenticationResult);
         }
+
     }
 }

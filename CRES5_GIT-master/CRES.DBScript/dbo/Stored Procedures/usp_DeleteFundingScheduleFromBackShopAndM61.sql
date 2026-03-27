@@ -23,30 +23,30 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 				
 	SET @DeleteCount = @@ROWCOUNT
 
-	--Delete FF from Backshop
-	IF ((SELECT ISNUMERIC(@CRENoteId)) = 1) --Because backshop's procedure take crenoteid as int
-	BEGIN
-		DECLARE @BackshopFF TABLE  
-		(  
-			CRENoteID nvarchar(256) null,  
-			FundingDate Date null,  
-			FundingAmount decimal(28 ,15) null, 	 
-			ShardName nvarchar(256) null  
-		)  
+	----Delete FF from Backshop
+	--IF ((SELECT ISNUMERIC(@CRENoteId)) = 1) --Because backshop's procedure take crenoteid as int
+	--BEGIN
+	--	DECLARE @BackshopFF TABLE  
+	--	(  
+	--		CRENoteID nvarchar(256) null,  
+	--		FundingDate Date null,  
+	--		FundingAmount decimal(28 ,15) null, 	 
+	--		ShardName nvarchar(256) null  
+	--	)  
 
-		DECLARE @query nvarchar(MAX) = N'Select Distinct CAST(NoteID_f as varchar(256)),FundingDate,FundingAmount from [acore].[vw_AcctNoteFundings] where NoteID_f = '''+ @CRENoteId +''' '  
-		INSERT INTO @BackshopFF (CRENoteID,FundingDate,FundingAmount,ShardName)  
-		EXEC sp_execute_remote @data_source_name  = N'RemoteReferenceDataFF',   
-		@stmt = @query 
+	--	DECLARE @query nvarchar(MAX) = N'Select Distinct CAST(NoteID_f as varchar(256)),FundingDate,FundingAmount from [acore].[vw_AcctNoteFundings] where NoteID_f = '''+ @CRENoteId +''' '  
+	--	INSERT INTO @BackshopFF (CRENoteID,FundingDate,FundingAmount,ShardName)  
+	--	EXEC sp_execute_remote @data_source_name  = N'RemoteReferenceDataFF',   
+	--	@stmt = @query 
 
-		IF EXISTS(Select CRENoteID from @BackshopFF)
-		BEGIN
-			exec sp_NoteFundingsDeleteByNoteId @CRENoteId
-			exec spNoteProjectedPaymentDeleteByNoteId @NoteId
-			--exec sp_NoteFundingsDeleteByNoteIdPIK @CRENoteId
-		END		
+	--	IF EXISTS(Select CRENoteID from @BackshopFF)
+	--	BEGIN
+	--		exec sp_NoteFundingsDeleteByNoteId @CRENoteId
+	--		exec spNoteProjectedPaymentDeleteByNoteId @NoteId
+	--		--exec sp_NoteFundingsDeleteByNoteIdPIK @CRENoteId
+	--	END		
 		
-	END
+	--END
 
 	IF (@DeleteCount>0)
 		exec usp_InsertActivityLog @NoteID,182,@NoteID,402,'deleted',@UserId

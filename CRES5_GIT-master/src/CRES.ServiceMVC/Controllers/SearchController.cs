@@ -1,10 +1,13 @@
-﻿using CRES.BusinessLogic;
+﻿using System.Collections.Generic;
 using CRES.DataContract;
-using Microsoft.AspNetCore.Mvc;
+using CRES.BusinessLogic;
+using System.Net.Http;
+using System.Linq;
 using System;
-using System.Collections.Generic;
-#pragma warning disable CS0105 // The using directive for 'CRES.BusinessLogic' appeared previously in this namespace
-#pragma warning restore CS0105 // The using directive for 'CRES.BusinessLogic' appeared previously in this namespace
+using System.Net;
+using System.Net.Http.Headers;
+using Microsoft.AspNetCore.Mvc;
+using CRES.BusinessLogic;
 
 namespace CRES.Services.Controllers
 {
@@ -15,16 +18,14 @@ namespace CRES.Services.Controllers
 
         [HttpPost]
         [Services.Controllers.IsAuthenticate]
-        [Services.Controllers.DeflateCompression]
-        [Route("api/search/getautosuggestsearchdata")]
+        [Services.Controllers.DeflateCompression] 
+        [Route("api/search/getautosuggestsearchdata")]  
         public IActionResult GetAutosuggestSearchData([FromBody] SearchDataContract _searchDC, int? pageIndex, int? pageSize)
         {
             GenericResult _auctionResult = null;
             List<SearchDataContract> lstSearchResult = new List<SearchDataContract>();
 
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
 
             var headerUserID = new Guid();
 
@@ -79,9 +80,7 @@ namespace CRES.Services.Controllers
             GenericResult _auctionResult = null;
             List<SearchDataContract> lstSearchResult = new List<SearchDataContract>();
 
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
 
             var headerUserID = new Guid();
 
@@ -134,10 +133,8 @@ namespace CRES.Services.Controllers
         public IActionResult UpdateRankInSearchItem([FromBody] SearchDataContract _searchDC)
         {
             GenericResult _auctionResult = null;
-
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
+            
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
 
             var headerUserID = new Guid();
 
@@ -158,10 +155,10 @@ namespace CRES.Services.Controllers
                     {
                         Succeeded = true,
                         Message = "succeeded",
-
+                         
                     };
                 }
-
+                
             }
             catch (Exception ex)
             {
@@ -172,7 +169,7 @@ namespace CRES.Services.Controllers
                 };
             }
             return Ok(_auctionResult);
-
+            
         }
 
 
@@ -186,9 +183,7 @@ namespace CRES.Services.Controllers
             GenericResult _auctionResult = null;
             List<SearchDataContract> lstSearchResult = new List<SearchDataContract>();
 
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
 
             var headerUserID = new Guid();
 
@@ -241,9 +236,7 @@ namespace CRES.Services.Controllers
             GenericResult _auctionResult = null;
             List<SearchDataContract> lstSearchResult = new List<SearchDataContract>();
 
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
 
             var headerUserID = new Guid();
 

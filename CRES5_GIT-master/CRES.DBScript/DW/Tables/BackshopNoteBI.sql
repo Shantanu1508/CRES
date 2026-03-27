@@ -20,6 +20,10 @@
     [USSIC]                          DECIMAL (28, 15) NULL,
     [TMNF]                           DECIMAL (28, 15) NULL,
     [HAIH]                           DECIMAL (28, 15) NULL,
-    [TotalParticipation]             DECIMAL (28, 15) NULL
+    [TotalParticipation]             DECIMAL (28, 15) NULL,
+    [BackshopNoteBI_AutoID]          INT              IDENTITY (1, 1) NOT NULL,
+    CONSTRAINT [PK_BackshopNoteBI_AutoID] PRIMARY KEY CLUSTERED ([BackshopNoteBI_AutoID] ASC)
 );
+
+
 

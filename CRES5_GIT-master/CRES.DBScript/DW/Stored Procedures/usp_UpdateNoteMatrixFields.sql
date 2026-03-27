@@ -1,5 +1,4 @@
-﻿
-CREATE PROCEDURE [DW].[usp_UpdateNoteMatrixFields]
+﻿CREATE PROCEDURE [DW].[usp_UpdateNoteMatrixFields]
 AS
 BEGIN
 	SET NOCOUNT ON;
@@ -24,6 +23,8 @@ left join cre.Servicer svr on svr.ServicerName = ce.Servicer
 where ce.Servicer is not null and svr.ServicerName is null
 
 ---================================================
+
+---comment for now only
 --Insert New FinancingSourceDesc from Backshop
 Declare @tblFinancingSourceDesc as table
 (
@@ -52,6 +53,9 @@ Select ce.FinancingSourceDesc as BS_M61_FinancingSourceDescName,ce.FinancingSour
 from @tblFinancingSourceDesc ce
 left join cre.FinancingSourceMaster svr on svr.FinancingSourceName = ce.FinancingSourceDesc
 where ce.FinancingSourceDesc is not null and svr.FinancingSourceName is null
+
+
+
 
 ---====Insert Fund from Backshop======================================
 Declare @Fund as table
@@ -89,7 +93,7 @@ where dtbs.ClientName is not null and dt.ClientName is null
 ---====================================================================
 
 
-
+--For now commented
 --UpdateNoteFields from BS
 Declare @tblNoteFields as table
 (
@@ -112,7 +116,7 @@ ON AN.NoteID = EP.NoteID_F
 where FinancingSourceDesc <> ''Note Sale'' ' 
 
 Update CRE.Note Set 
-CRE.Note.ClientID  = a.ClientID,
+--CRE.Note.ClientID  = a.ClientID,
 CRE.Note.FinancingSourceID  = a.FinancingSourceDescID,
 CRE.Note.FundId  = a.FundId,
 CRE.Note.ServicerNameID  = a.ServicerID,
@@ -157,8 +161,8 @@ from(
 where CRE.Note.CRENoteID = a.Noteid and CRE.Note.dealid = a.dealid 
 ------------------------------------------------------------------
 
-
---Update note sale with original lender
+---for now commented
+----Update note sale with original lender
 Declare @tblNoteFields_NS as table
 (	 
 	Noteid nvarchar(256) null,
@@ -272,15 +276,17 @@ CRE.Note.ServicerID = a.ServicerLoanNumber,
 CRE.Note.updatedBy = User_Name(),
 CRE.Note.updatedDate = getdate()
 From(
-	Select CAST(noteid_F as varchar(256)) noteid_F,ServicerLoanNumber ,n.ServicerID as note_ServicerID
+	Select CAST(noteid_F as varchar(256)) noteid_F,ServicerLoanNumber ,n.TaxVendorLoanNumber as note_ServicerID
 	from @tmp_tblNoteExp un
 	Inner join cre.note n on n.crenoteid = un.noteid_F
 	inner join core.Account acc on acc.accountid = n.account_accountid
 	where acc.isdeleted <> 1
-	and ISNULL(ServicerLoanNumber,'a') <> ISNULL(n.ServicerID,'a')
+	and ISNULL(ServicerLoanNumber,'a') <> ISNULL(n.TaxVendorLoanNumber,'a')
 )a
 WHERE CRE.Note.crenoteid = CAST(a.noteid_F as varchar(256))
 
+
+update CRE.Note set TaxVendorLoanNumber = 'NA' Where TaxVendorLoanNumber is null
 
 --=============================
 --Update LienPosition,Priority
@@ -485,6 +491,8 @@ From(
 Where CRE.Deal.Credealid = a.ControlID
 
 ---================================================
+
+---for now commented
 ---Update FinancingSourceCode from Backshop
 Declare @BSFinancingSource as table
 (
@@ -511,6 +519,10 @@ Update cre.FinancingSourceMaster set ParentClient = FinancingSourceName where Pa
 Update cre.FinancingSourceMaster set FinancingSourceGroup = FinancingSourceName where FinancingSourceGroup is null
 
 Update cre.FinancingSourceMaster set IsThirdParty = 1 where FinancingSourceName like 'Note Sale - %'
+
+
+
+
 ---================================================
 --Update Inquiry date from bckshop
 Declare @tblInquiryDate as table
@@ -532,7 +544,7 @@ From(
 	Select ControlId_F,InquiryDateFirst 
 	from @tblInquiryDate t
 	inner join cre.deal d on d.credealid = t.ControlId_F
-	Where d.InquiryDate <> t.InquiryDateFirst
+	Where ISNULL(d.InquiryDate,'1/1/1900') <> t.InquiryDateFirst
 )a
 where cre.deal.credealid = a.ControlId_F
 
@@ -739,6 +751,9 @@ Where CRE.Deal.Credealid = a.ControlID
 
 ---==================================================
 
+----for now commented
+update cre.FinancingSourceMaster set ParentClient='ACP II' where FinancingSourceName like 'ACP II%' and FinancingSourceName not in ('ACP II Co-Invest')
+
 
 ---done from above script
 --Update CRE.DEAL set BSCity = z.city,BSState = z.[state]
@@ -779,4 +794,64 @@ Where CRE.Deal.Credealid = a.ControlID
 
 
 
+--Update ServicerLoanNumber in note
+Declare @tmp_tblNoteExp_ServicingStatus as table
+(
+	noteid_F nvarchar(256) null,
+	ServicingStatusCd_F nvarchar(256) null,
+	ShardName nvarchar(256) null
+)
+
+INSERT INTO @tmp_tblNoteExp_ServicingStatus (noteid_F,ServicingStatusCd_F,ShardName)
+EXEC sp_execute_remote @data_source_name  = N'RemoteReferenceData', 
+@stmt = N'Select CAST(noteid_F as varchar(256)) noteid_F,ServicingStatusCd_F from tblNoteExp'
+
+
+Update CRE.Note set 
+CRE.Note.ServicingStatusBS = a.ServicingStatusCd_F,
+CRE.Note.updatedBy = User_Name(),
+CRE.Note.updatedDate = getdate()
+From(
+	Select CAST(noteid_F as varchar(256)) noteid_F,ServicingStatusCd_F 
+	from @tmp_tblNoteExp_ServicingStatus un
+	Inner join cre.note n on n.crenoteid = un.noteid_F
+	inner join core.Account acc on acc.accountid = n.account_accountid
+	where acc.isdeleted <> 1
+	and ISNULL(ServicingStatusCd_F,'a') <> ISNULL(n.ServicingStatusBS,'a')
+)a
+WHERE CRE.Note.crenoteid = CAST(a.noteid_F as varchar(256))
+
+---==========================================
+
+---Update banker nae from backshop
+Declare @BSDeal_Banker as table
+(
+	ControlID nvarchar(256) null,
+	PrimaryBankerName nvarchar(256) null,	
+	ShardName nvarchar(256) null
+)
+
+INSERT INTO @BSDeal_Banker (ControlID,PrimaryBankerName,ShardName)
+EXEC sp_execute_remote @data_source_name  = N'RemoteReferenceData', 
+@stmt = N'Select controlid,cnt.FirstName +'' ''+ LastName as PrimaryBankerName
+from tblcontrolmaster cm
+Left join ACORE.RPTCONTACT cnt on cnt.UserId_F = cm.PrimaryBanker_UserId_F '
+
+
+Update CRE.Deal 
+set CRE.Deal.PrimaryBankerName = a.PrimaryBankerName
+From(
+	Select bsd.ControlID,bsd.PrimaryBankerName
+	from @BSDeal_Banker bsd
+	Inner join cre.deal d on d.credealid = bsd.ControlID
+	where d.isdeleted <> 1
+	and ISNULL(d.PrimaryBankerName,'a') <> isNULL(bsd.PrimaryBankerName,'a')
+)a
+Where CRE.Deal.Credealid = a.ControlID
+
+
+
+
 END
+GO
+

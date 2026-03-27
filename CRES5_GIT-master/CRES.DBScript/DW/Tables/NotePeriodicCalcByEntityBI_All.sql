@@ -94,6 +94,10 @@
     [PIKInterestPercentage]                      DECIMAL (28, 15) NULL,
     [FinancingSource]                            NVARCHAR (256)   NULL,
     [ClientName]                                 NVARCHAR (256)   NULL,
+
+    PIKInterestAppliedForThePeriod             decimal(28,15),    
+    PIKPrincipalPaidForThePeriod			   decimal(28,15),
+    
     CONSTRAINT [PK_NotePeriodicCalcByEntityBI_All_NotePeriodicCalcByEntity_AutoID] PRIMARY KEY CLUSTERED ([NotePeriodicCalcByEntity_AutoID] ASC)
 );
 

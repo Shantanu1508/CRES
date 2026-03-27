@@ -62,6 +62,7 @@ BEGIN
  and Lgb.name = 'Auto Spread'  
  and dealname not in ('NorthStar ALTO Portfolio Copy','Northstar ALTO Portfolio Copy X','Northstar ALTO Portfolio Test')  
  and d.status = 323  
+ AND  d.DealName NOT LIKE '%copy%'
  group by d.DealName ,  
  d.credealid ,  
  n.crenoteid,  
@@ -98,7 +99,14 @@ BEGIN
   
   
  Select * from(  
-  Select m61.DealName,m61.DealId,m61.NoteID,m61.notename,CONVERT(varchar, m61.Date, 101) as Date,m61.AMount as M61_AMount,bs.AMount as BS_AMount,(round(m61.AMount,4) - ROUND(bs.AMount,4)) as delta  
+  Select m61.DealName as [Deal Name]
+  ,m61.DealID as [Deal ID]
+  ,m61.NoteID as [Note ID]
+  ,m61.notename as [Note Name]
+  ,CONVERT(varchar, m61.Date, 101) as Date
+  ,CAST(ROUND(m61.AMount,2) as decimal(28,2)) as [M61 Amount]
+  ,CAST(ROUND(bs.AMount,2)  as decimal(28,2)) as [BS Amount]
+  ,CAST(ROUND( (round(m61.AMount,4) - ROUND(bs.AMount,4)) ,2) as decimal(28,2)) as Delta  
   from @M61FFTable m61  
   left Join (  
    Select DealName,DealId,NoteID,Date,SUM(Amount) as Amount,Purposetype  

@@ -1,6 +1,12 @@
-﻿namespace CRES.DataContract
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace CRES.DataContract
 {
-    public class SizerScenarioDataContract
+   public  class SizerScenarioDataContract
     {
         public int? Maturity { get; set; }
         public decimal? Spread { get; set; }

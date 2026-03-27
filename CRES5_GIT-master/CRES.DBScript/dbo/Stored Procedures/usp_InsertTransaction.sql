@@ -38,7 +38,7 @@ BEGIN
 END
 
 
-DECLARE @CurrencyID int = (Select BaseCurrencyID from CORE.Account where AccountID = @AccountID and AccountTypeID in (Select LookupID from CORE.Lookup where Name = 'Note'))
+DECLARE @CurrencyID int = (Select BaseCurrencyID from CORE.Account where AccountID = @AccountID and AccountTypeID  = 1)  ---in (Select LookupID from CORE.Lookup where Name = 'Note')
 
 --HardCoded
 DECLARE @PeriodID UNIQUEIDENTIFIER = (Select PeriodID from CORE.Period where Name = 'temp')

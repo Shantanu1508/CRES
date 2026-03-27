@@ -1,12 +1,15 @@
-﻿using CRES.BusinessLogic;
+﻿using System.Data;
+using System.Collections.Generic;
+using System.Linq;
+using System.Net;
+using System.Net.Http;
+using CRES.BusinessLogic;
 using CRES.DataContract;
 using CRES.Utilities;
-using Microsoft.AspNetCore.Mvc;
 using System;
-using System.Collections.Generic;
-using System.Data;
-#pragma warning disable CS0105 // The using directive for 'CRES.BusinessLogic' appeared previously in this namespace
-#pragma warning restore CS0105 // The using directive for 'CRES.BusinessLogic' appeared previously in this namespace
+using Microsoft.AspNetCore.Mvc;
+using CRES.BusinessLogic;
+using OfficeOpenXml.FormulaParsing.Excel.Functions.DateTime;
 
 namespace CRES.Services.Controllers
 {
@@ -17,13 +20,11 @@ namespace CRES.Services.Controllers
         [Services.Controllers.IsAuthenticate]
         [Services.Controllers.DeflateCompression]
         [Route("api/account/GetIndexType")]
-        public IActionResult GetIndexTypeByDate([FromBody] IndexTypeDataContract indextypeDc)
+        public IActionResult GetIndexTypeByDate([FromBody]IndexTypeDataContract indextypeDc)
         {
             GenericResult _actionResult = null;
             DataTable IndexTypedatatable = new DataTable();
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
             var headerUserID = string.Empty;
 
             if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
@@ -78,14 +79,12 @@ namespace CRES.Services.Controllers
         [Services.Controllers.IsAuthenticate]
         [Services.Controllers.DeflateCompression]
         [Route("api/account/AddUpdateIndexType")]
-        public IActionResult AddUpdateIndexType([FromBody] DataTable dt)
+        public IActionResult AddUpdateIndexType([FromBody]DataTable dt)
         {
             GenericResult _actionResult = null;
             int res = 0;
 
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
 
             var headerUserID = string.Empty;
 
@@ -133,13 +132,11 @@ namespace CRES.Services.Controllers
         [Services.Controllers.IsAuthenticate]
         [Services.Controllers.DeflateCompression]
         [Route("api/indextype/addupdateindextypeList")]
-        public IActionResult AddUpdateIndexTypeList([FromBody] DataTable dt)
+        public IActionResult AddUpdateIndexTypeList([FromBody]DataTable dt)
         {
             GenericResult _actionResult = null;
             int res = 0;
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
 
             var headerUserID = string.Empty;
 
@@ -155,7 +152,7 @@ namespace CRES.Services.Controllers
                     res = indexTypeLog.AddUpdateIndexList(dt, headerUserID, headerUserID);
                 }
             }
-
+              
 
             try
             {
@@ -187,7 +184,7 @@ namespace CRES.Services.Controllers
                             Message = "Authentication failed",
                         };
                     }
-
+                   
                 }
             }
             catch (Exception ex)
@@ -209,9 +206,7 @@ namespace CRES.Services.Controllers
         {
             GenericResult _authenticationResult = null;
             IndexesMasterDataContract _indexDC = new IndexesMasterDataContract();
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
 
             var headerUserID = new Guid();
             if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
@@ -223,7 +218,7 @@ namespace CRES.Services.Controllers
             IndexTypeLogic indexLogic = new IndexTypeLogic();
 
             //to get user
-            List<UserPermissionDataContract> permissionlist = upl.GetuserPermissionByUserIDAndPageName(headerUserID.ToString(), "IndexesPage", IndexDC.IndexesMasterGuid.ToString() == "00000000-0000-0000-0000-000000000000" ? IndexDC.IndexesMasterGuid.ToString() : IndexDC.IndexesMasterGuid.ToString(), 283); // IndexDetail
+            List<UserPermissionDataContract> permissionlist = upl.GetuserPermissionByUserIDAndPageName(headerUserID.ToString(), "Indexes_Detail", IndexDC.IndexesMasterGuid.ToString() == "00000000-0000-0000-0000-000000000000" ? IndexDC.IndexesMasterGuid.ToString() : IndexDC.IndexesMasterGuid.ToString(), 283); // IndexDetail
             if (permissionlist != null && permissionlist.Count > 0)
             {
                 _indexDC = indexLogic.GetIndexesMasterDetailByIndexesMaster(IndexDC.IndexesMasterGuid.ToGuid(), headerUserID.ToString());
@@ -267,12 +262,10 @@ namespace CRES.Services.Controllers
         [Services.Controllers.IsAuthenticate]
         [Services.Controllers.DeflateCompression]
         [Route("api/indextype/insertupdateindexesmasterdetail")]
-        public IActionResult InsertUpdateIndexesMasterDetail([FromBody] IndexesMasterDataContract IndexDC)
+        public IActionResult InsertUpdateIndexesMasterDetail([FromBody]IndexesMasterDataContract IndexDC)
         {
             GenericResult _authenticationResult = null;
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
             var headerUserID = string.Empty;
             IndexTypeLogic indexLogic = new IndexTypeLogic();
 
@@ -288,7 +281,7 @@ namespace CRES.Services.Controllers
                 DealLogic dealLogic = new DealLogic();
                 PayruleSetupLogic psl = new PayruleSetupLogic();
                 string res = indexLogic.InsertUpdateIndexesMasterDetail(IndexDC);
-
+              
 
                 string message = "Changes were saved successfully.";
 
@@ -296,7 +289,7 @@ namespace CRES.Services.Controllers
                 {
                     if (res != "FALSE")
                     {
-                        _authenticationResult = new GenericResult()
+                       _authenticationResult = new GenericResult()
                         {
                             newIndexesMasterGuid = res,
                             Succeeded = true,
@@ -343,9 +336,7 @@ namespace CRES.Services.Controllers
         {
             GenericResult _actionResult = null;
             List<IndexesMasterDataContract> lstIndexesMaster = new List<IndexesMasterDataContract>();
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
             var headerUserID = string.Empty;
 
             if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
@@ -405,9 +396,7 @@ namespace CRES.Services.Controllers
             List<IndexesMasterDataContract> _lstIndexMaster = new List<IndexesMasterDataContract>();
             IndexTypeLogic indexTypeLog = new IndexTypeLogic();
 
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
             var headerUserID = new Guid();
             if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
             {
@@ -470,9 +459,7 @@ namespace CRES.Services.Controllers
         {
             GenericResult _authenticationResult = null;
 
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
             var headerUserID = string.Empty;
             if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
             {
@@ -515,14 +502,12 @@ namespace CRES.Services.Controllers
         [Services.Controllers.IsAuthenticate]
         [Services.Controllers.DeflateCompression]
         [Route("api/indextype/addupdateindextypefromscenario")]
-        public IActionResult AddUpdateIndexTypeFromScenario([FromBody] DataTable dt)
+        public IActionResult AddUpdateIndexTypeFromScenario([FromBody]DataTable dt)
         {
             GenericResult _actionResult = null;
             int res = 0;
 
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
 
             var headerUserID = string.Empty;
 
@@ -593,9 +578,7 @@ namespace CRES.Services.Controllers
         {
             GenericResult _authenticationResult = null;
             DataTable IndexTypedatatable = new DataTable();
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
             var headerUserID = string.Empty;
             if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
             {
@@ -645,9 +628,7 @@ namespace CRES.Services.Controllers
         {
             GenericResult _authenticationResult = null;
             DataTable IndexTypedatatable = new DataTable();
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
             var headerUserID = string.Empty;
             if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
             {
@@ -693,13 +674,11 @@ namespace CRES.Services.Controllers
         [Services.Controllers.IsAuthenticate]
         [Services.Controllers.DeflateCompression]
         [Route("api/indextype/getindexlistbydate")]
-        public IActionResult GetIndexListByDates([FromBody] IndexesMasterSearchDataContract _indexesMasterSearchDC)
+        public IActionResult GetIndexListByDates([FromBody]IndexesMasterSearchDataContract _indexesMasterSearchDC)
         {
             GenericResult _authenticationResult = null;
             DataTable IndexTypedatatable = new DataTable();
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
             var headerUserID = string.Empty;
             if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
             {
@@ -749,13 +728,9 @@ namespace CRES.Services.Controllers
         public IActionResult ImportIndexes([FromBody] IndexesMasterDataContract _indexesDC)
         {
             GenericResult _actionResult = null;
-#pragma warning disable CS0219 // The variable 'res' is assigned but its value is never used
             int res = 0;
-#pragma warning restore CS0219 // The variable 'res' is assigned but its value is never used
 
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
 
             var headerUserID = new Guid();
             if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
@@ -784,7 +759,7 @@ namespace CRES.Services.Controllers
                 }
             }
 
-
+           
             return Ok(_actionResult);
         }
 
@@ -796,13 +771,9 @@ namespace CRES.Services.Controllers
         {
 
             GenericResult _actionResult = null;
-#pragma warning disable CS0219 // The variable 'res' is assigned but its value is never used
             int res = 0;
-#pragma warning restore CS0219 // The variable 'res' is assigned but its value is never used
 
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
 
             var headerUserID = new Guid();
             if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
@@ -814,14 +785,12 @@ namespace CRES.Services.Controllers
             //    headerUserID = new Guid(headerValues.FirstOrDefault());
             //}
 
-#pragma warning disable CS0219 // The variable 'IndexName' is assigned but its value is never used
             var IndexName = "Default Index";
-#pragma warning restore CS0219 // The variable 'IndexName' is assigned but its value is never used
             //var json = File.ReadAllText(@"E:\Data\Code\CRES5\SampleJson\Libordata.json");
             //DataTable dtjsonresult = (DataTable)JsonConvert.DeserializeObject(json, (typeof(DataTable)));
 
             //IndexTypeLogic indexTypeLog = new IndexTypeLogic();
-            //indexTypeLog.InsertIndexTypeOutputJsonInfo(IndexName, dtjsonresult, headerUserID);
+            ///indexTypeLog.InsertIndexTypeOutputJsonInfo(IndexName, dtjsonresult, headerUserID);
 
             try
             {

@@ -29,6 +29,10 @@
     [Suspense]                      DECIMAL (28, 15) NULL,
     [BalanceafterFundingTransacton] DECIMAL (28, 15) NULL,
     [PrincipalWriteOff]             DECIMAL (28, 15) NULL,
-    [PaymentStatus]                 NVARCHAR (256)   NULL
+    [PaymentStatus]                 NVARCHAR (256)   NULL,
+    [ServicingTransactionBI_AutoID] INT              IDENTITY (1, 1) NOT NULL,
+    CONSTRAINT [PK_ServicingTransactionBI_AutoID] PRIMARY KEY CLUSTERED ([ServicingTransactionBI_AutoID] ASC)
 );
+
+
 

@@ -39,7 +39,7 @@ export class NoteDateObjects {
   public FinancingSchedule_EffectiveDate: Date;
   public DefaultSchedule_EffectiveDate: Date;
   public NoteTransferDate: Date;
-
+  public FirstIndexDeterminationDateOverride: Date;
   constructor() {
   }
 }

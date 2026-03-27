@@ -1,5 +1,5 @@
 ﻿
---[dbo].[usp_GetHistoricalDataOfModuleByNoteId] 'e2f964ad-7a39-4b70-85f6-1bb93921a122', '432E2FDC-1C2D-4C95-BE79-1EC45AD45A2E','RateSpreadSchedule','C10F3372-0FC2-4861-A9F5-148F1F80804F'
+--[dbo].[usp_GetHistoricalDataOfModuleByNoteId] '336e6a38-7d3b-47b7-808d-89cf1a577a09', '432E2FDC-1C2D-4C95-BE79-1EC45AD45A2E','PIKSchedule','C10F3372-0FC2-4861-A9F5-148F1F80804F'
 
 
 CREATE PROCEDURE [dbo].[usp_GetHistoricalDataOfModuleByNoteId] --'9c6c2b1a-bbaa-47b9-b73c-797e984eb9fc', '432E2FDC-1C2D-4C95-BE79-1EC45AD45A2E','FeeCouponStripReceivable','C10F3372-0FC2-4861-A9F5-148F1F80804F'
@@ -22,7 +22,7 @@ SET FMTONLY OFF;
    
 
 DECLARE @cols AS NVARCHAR(MAX),
-@query  AS NVARCHAR(MAX)
+@query  AS NVARCHAR(MAX),@query1  AS NVARCHAR(MAX) = '',@query2  AS NVARCHAR(MAX) = '',@query3  AS NVARCHAR(MAX) = ''
 
 
 IF(@ModuleName = 'RateSpreadSchedule')
@@ -57,6 +57,7 @@ BEGIN
 				,ISNULL(Cast(LValueTypeID.Name as nvarchar(MAX)),'''') as [Value Type]
 				,Cast(ISNULL(cast(cast(rs.[RateOrSpreadToBeStripped] as DECIMAL(28,5)) as float),0)as nvarchar(MAX)) as [Rate Or Spread To Be Stripped]
 				,ISNULL(Cast(Lindexname.Name as nvarchar(MAX)),'''') as [Index Name]
+				,ISNULL(Cast(LDeterminationDateHolidayList.CalendarName as nvarchar(MAX)),'''') as [Determination Date Holiday List]
 				from [CORE].RateSpreadSchedule rs
 				INNER JOIN [CORE].[Event] eve ON eve.EventID = rs.EventId
 				INNER JOIN [CORE].[Account] acc ON acc.AccountID = eve.AccountID
@@ -65,14 +66,12 @@ BEGIN
 				LEFT JOIN [CORE].[Lookup] LIntCalcMethodID ON LIntCalcMethodID.LookupID = rs.IntCalcMethodID
 				LEFT JOIN [CORE].[Lookup] LEventTypeID ON LEventTypeID.LookupID = eve.EventTypeID
 				LEFT JOIN [CORE].[Lookup] Lindexname ON Lindexname.LookupID = rs.IndexNameID
-				
+				LEFT JOIN app.HoliDaysMaster LDeterminationDateHolidayList ON LDeterminationDateHolidayList.HolidayMasterID = rs.DeterminationDateHolidayList				
 				where n.NoteID = '''+ cast(@NoteId as varchar(256))+'''  and acc.IsDeleted = 0
-				and eve.StatusID = (Select LookupID from Core.Lookup where name = ''Active'' and parentid = 1)
-
-
+				and eve.StatusID = 1
 			) as sq_source
 		UNPIVOT (Amount FOR [0] IN
-		([Effective Date],[Rate or Spread Change Date],  [Value] , [Int Calc Method],[Value Type],[Rate Or Spread To Be Stripped],[Index Name])
+		([Effective Date],[Rate or Spread Change Date],  [Value] , [Int Calc Method],[Value Type],[Rate Or Spread To Be Stripped],[Index Name],[Determination Date Holiday List])
 
 
 	) as sq_up
@@ -105,13 +104,15 @@ BEGIN
 	Select ISNULL(Convert (nvarchar(MAX), e.EffectiveStartDate, 101),'')  as [Effective Date],
 	lMaturityType.name as [Maturity Type],
 	ISNULL(Convert (nvarchar(MAX), mat.MaturityDate, 101),'') as [Maturity Date],
-	lApproved.name as Approved
+	lApproved.name as Approved,
+	lExtensionType.name as ExtensionType
 	from [CORE].Maturity mat  
 	INNER JOIN [CORE].[Event] e on e.EventID = mat.EventId  
 	Left JOin Core.lookup lMaturityType on lMaturityType.lookupid = mat.MaturityType
 	Left JOin Core.lookup lApproved on lApproved.lookupid = mat.Approved
 	INNER JOIN [CORE].[Account] acc ON acc.AccountID = e.AccountID
-	INNER JOIN [CRE].[Note] n ON n.Account_AccountID = acc.AccountID  
+	INNER JOIN [CRE].[Note] n ON n.Account_AccountID = acc.AccountID 
+	Left JOin Core.lookup lExtensionType on lExtensionType.lookupid = mat.ExtensionType
 	where n.noteid = @NoteId and e.StatusID = 1
 	ORDER BY EffectiveStartDate,lMaturityType.SortOrder,mat.MaturityDate
 
@@ -641,6 +642,12 @@ END
 
 IF(@ModuleName = 'PIKSchedule')
 BEGIN
+
+
+			
+	--ISNULL(CAST(	pik.PeriodicRateCapAmount	 as nvarchar(MAX)),'''') as 	[Periodic Rate Cap Amount],
+	--ISNULL(CAST(	pik.PeriodicRateCapPercent	 as nvarchar(MAX)),'''') as 	[Periodic Rate Cap %]	
+
 	select @cols = STUFF((SELECT ',' + QUOTENAME( Convert (nvarchar(MAX), cast((ROW_NUMBER() over (order by pik.PIKScheduleID))  as varchar(50)), 101) ) 
 					from [CORE].[PIKSchedule] pik
 			INNER JOIN [CORE].[Event] eve ON eve.EventID = pik.EventId
@@ -655,82 +662,88 @@ BEGIN
 					,1,1,'')
 					
 	PRINT(@cols)
+	
 
 	set @query = N'SELECT [0],' + @cols + N'
-  FROM (
-  
+	FROM (  
 	SELECT [RowCount], Amount, [0]
 	FROM (			
 			Select 
 			cast((ROW_NUMBER() over (order by eve.EffectiveStartDate, pik.StartDate, pik.EndDate))  as varchar(MAX))   as [RowCount]
 			,ISNULL(Convert (nvarchar(MAX), eve.EffectiveStartDate, 101),'''') [Effective Date],
-			ISNULL(CAST(	accSourceAccount.Name	 as nvarchar(MAX)),'''') as 	[PIK Source Note]	,
-			ISNULL(CAST(	accTargetAccount.Name	 as nvarchar(MAX)),'''') as 	[PIK Target Note]	,
-			ISNULL(CAST(	pik.AdditionalIntRate	 as nvarchar(MAX)),'''') as 	[Additional PIK interest Rate]	,
-			ISNULL(CAST(	pik.AdditionalSpread	 as nvarchar(MAX)),'''') as 	[Additional PIK Spread]	,
-			ISNULL(CAST(	pik.IndexFloor	 as nvarchar(MAX)),'''') as 	[PIK Index Floor]	,
-			ISNULL(CAST(	pik.IntCompoundingRate	 as nvarchar(MAX)),'''') as 	[PIK Interest Compounding Rate]	,
-			ISNULL(CAST(	pik.IntCompoundingSpread	 as nvarchar(MAX)),'''') as 	[PIK Interest Compounding Spread]	,
-			ISNULL(Convert (nvarchar(MAX),	pik.StartDate	, 101),'''') as 	[PIK Start Date]	,
-			ISNULL(Convert (nvarchar(MAX),	pik.EndDate	, 101),'''') as 	[PIK End Date]	,
-			ISNULL(CAST(	pik.IntCapAmt	 as nvarchar(MAX)),'''') as 	[PIK Interest Cap ($)]	,
-			ISNULL(CAST(	pik.PurBal	 as nvarchar(MAX)),'''') as 	[Purchased PIK Balance]	,
-			ISNULL(CAST(	pik.AccCapBal	 as nvarchar(MAX)),'''') as 	[Note & PIK Cap Balance],
-			ISNULL(CAST(LPIKReasonCode.name	 as nvarchar(MAX)),'''') as 	[PIK Reason Code],
+			ISNULL(Convert (nvarchar(MAX),	pik.StartDate	, 101),'''') as 	[Start Date]	,
+			ISNULL(Convert (nvarchar(MAX),	pik.EndDate	, 101),'''') as 	[End Date]	,
+			ISNULL(CAST(LPIKSetUp.name	 as nvarchar(MAX)),'''') as 	[PIK Set Up],			
+			(CASE WHEN ISNULL(CAST(CAST(pik.pikpercentage * 100 as Decimal(28,9))	 as nvarchar(MAX)),'''') <> '''' THEN ISNULL(CAST(CAST(pik.pikpercentage * 100 as Decimal(28,9))	 as nvarchar(MAX)),'''') + ''%'' ELSE ISNULL(CAST(CAST(pik.pikpercentage * 100 as Decimal(28,9))	 as nvarchar(MAX)),'''') END)  as 	[PIK %],			
+			(CASE WHEN ISNULL(CAST(CAST(pik.PIKCurrentPayRate * 100 as Decimal(28,9)) as nvarchar(MAX)),'''') <> '''' THEN ISNULL(CAST(CAST(pik.PIKCurrentPayRate * 100 as Decimal(28,9)) as nvarchar(MAX)),'''') + ''%'' ELSE ISNULL(CAST(CAST(pik.PIKCurrentPayRate * 100 as Decimal(28,9)) as nvarchar(MAX)),'''') END) as 	[Current Pay Rate]	,
+			ISNULL(CAST(LPIKSeparateCompounding.name AS nvarchar(MAX)), ''N'') AS [PIK with Separate Compounding],		
+			(CASE WHEN ISNULL(CAST(CAST(pik.IntCompoundingRate * 100 as Decimal(28,9))	 as nvarchar(MAX)),'''') <> '''' THEN ISNULL(CAST(CAST(pik.IntCompoundingRate * 100 as Decimal(28,9))	 as nvarchar(MAX)),'''') + ''%'' ELSE ISNULL(CAST(CAST(pik.IntCompoundingRate * 100 as Decimal(28,9)) as nvarchar(MAX)),'''') END)  as 	[PIK Compounding Rate]	,			
+			(CASE WHEN ISNULL(CAST(CAST(pik.IntCompoundingSpread * 100 as Decimal(28,9)) as nvarchar(MAX)),'''') <> '''' THEN ISNULL(CAST(CAST(pik.IntCompoundingSpread * 100 as Decimal(28,9)) as nvarchar(MAX)),'''') + ''%'' ELSE ISNULL(CAST(CAST(pik.IntCompoundingSpread * 100 as Decimal(28,9)) as nvarchar(MAX)),'''') END)  as 	[PIK Compounding Spread]	,
+			(CASE WHEN ISNULL(CAST(CAST(pik.AdditionalIntRate * 100 as Decimal(28,9)) as nvarchar(MAX)),'''') <> '''' THEN ISNULL(CAST(CAST(pik.AdditionalIntRate * 100 as Decimal(28,9)) as nvarchar(MAX)),'''') + ''%''ELSE ISNULL(CAST(CAST(pik.AdditionalIntRate * 100 as Decimal(28,9)) as nvarchar(MAX)),'''') END )   as 	[PIK Rate]	,
+			(CASE WHEN ISNULL(CAST(CAST(pik.AdditionalSpread * 100 as Decimal(28,9)) as nvarchar(MAX)),'''') <> '''' THEN ISNULL(CAST(CAST(pik.AdditionalSpread * 100 as Decimal(28,9)) as nvarchar(MAX)),'''') + ''%'' ELSE ISNULL(CAST(CAST(pik.AdditionalSpread * 100 as Decimal(28,9)) as nvarchar(MAX)),'''') END) as 	[PIK Spread]	,
+			(CASE WHEN ISNULL(CAST(CAST(pik.IndexFloor * 100 as Decimal(28,9)) as nvarchar(MAX)),'''') <> '''' THEN ISNULL(CAST(CAST(pik.IndexFloor * 100 as Decimal(28,9)) as nvarchar(MAX)),'''') + ''%'' ELSE ISNULL(CAST(CAST(pik.IndexFloor * 100 as Decimal(28,9)) as nvarchar(MAX)),'''') END)  as 	[Index Floor]	,
+			ISNULL(CAST(LPIKIntCalcMethodID.name	 as nvarchar(MAX)),'''') as 	[PIK Interest Calc method],	
+			CONVERT(NVARCHAR(MAX), ISNULL(CAST(pik.PurBal AS DECIMAL(28,2)), 0)) AS [Pur Balance],
 			ISNULL(CAST(pik.PIKComments	 as nvarchar(MAX)),'''') as 	[PIK Comments],
-			ISNULL(CAST(LPIKIntCalcMethodID.name	 as nvarchar(MAX)),'''') as 	[PIK Int Calc Method]
-			
-					
-			from [CORE].[PIKSchedule] pik
+			ISNULL(CAST(LPIKReasonCode.name	 as nvarchar(MAX)),'''') as 	[PIK Reason Code],
+			ISNULL(CAST(LImpactCommitmentCalc.name	 as nvarchar(MAX)),'''') as 	[Impact in Commitment Calc],
+			ISNULL(CAST(LPIKInterestAddedToBalanceBasedOnBusinessAdjustedDate.name	 as nvarchar(MAX)),'''') as 	[Cash Interest Calc-PIK Balance updated on Business Adjusted Pmt Date],
+			ISNULL(CAST(	accSourceAccount.Name	 as nvarchar(MAX)),'''') as 	[Source Account]	,
+			ISNULL(CAST(	accTargetAccount.Name	 as nvarchar(MAX)),'''') as 	[Target Account]	,
+			CONVERT(NVARCHAR(MAX), ISNULL(CAST(pik.IntCapAmt AS DECIMAL(28,2)), 0)) AS [Cap Amount],
+			CONVERT(NVARCHAR(MAX), ISNULL(CAST(pik.AccCapBal AS DECIMAL(28,2)), 0)) AS [Acc Cap Balance]
+			'SET @query1 = 'from [CORE].[PIKSchedule] pik
 			INNER JOIN [CORE].[Event] eve ON eve.EventID = pik.EventId
 			INNER JOIN [CORE].[Account] acc ON acc.AccountID = eve.AccountID
 			INNER JOIN [CRE].[Note] n ON n.Account_AccountID = acc.AccountID
 			left JOIN [CORE].[Account] accSourceAccount ON accSourceAccount.AccountID= pik.SourceAccountID
 			left JOIN [CORE].[Account] accTargetAccount ON accTargetAccount.AccountID= pik.TargetAccountID
 			LEFT JOIN [CORE].[Lookup] LEventTypeID ON LEventTypeID.LookupID = eve.EventTypeID
-			LEFT JOIN [CORE].[Lookup] LPIKReasonCode ON LPIKReasonCode.LookupID = pik.PIKReasonCodeID
+			'SET @query2 = 'LEFT JOIN [CORE].[Lookup] LPIKReasonCode ON LPIKReasonCode.LookupID = pik.PIKReasonCodeID
 			LEFT JOIN [CORE].[Lookup] LPIKIntCalcMethodID ON LPIKIntCalcMethodID.LookupID = pik.PIKIntCalcMethodID 
-			where n.NoteID = '''+ cast(@NoteId as varchar(256))+'''  and acc.IsDeleted = 0
-
-
-			) as sq_source
+			LEFT JOIN [CORE].[Lookup] LPIKSetUp ON LPIKSetUp.LookupID = pik.PIKSetUp 
+			LEFT JOIN [CORE].[Lookup] LPIKSeparateCompounding ON LPIKSeparateCompounding.LookupID = pik.PIKSeparateCompounding  
+			LEFT JOIN [CORE].[Lookup] LImpactCommitmentCalc ON LImpactCommitmentCalc.LookupID = n.ImpactCommitmentCalc
+			LEFT JOIN [CORE].[Lookup] LPIKInterestAddedToBalanceBasedOnBusinessAdjustedDate ON LPIKInterestAddedToBalanceBasedOnBusinessAdjustedDate.LookupID = n.PIKInterestAddedToBalanceBasedOnBusinessAdjustedDate	
+			where n.NoteID = '''+ cast(@NoteId as varchar(256))+'''  and acc.IsDeleted = 0		
+		) as sq_source
 		UNPIVOT (Amount FOR [0] IN
-		([Effective Date],[PIK Source Note],[PIK Target Note],[Additional PIK interest Rate],[Additional PIK Spread],[PIK Index Floor],[PIK Interest Compounding Rate],[PIK Interest Compounding Spread],[PIK Start Date],[PIK End Date],[PIK Interest Cap ($)],[Purchased PIK Balance],[Note & PIK Cap Balance],[PIK Reason Code],[PIK Comments],[PIK Int Calc Method])
-
-
-	) as sq_up
-         
-		 
-		 ) as sq  
-     PIVOT (
-        MIN(Amount)
-        FOR [RowCount] IN
-           (' + @cols + N')
-           ) as p
-
-
+		([Effective Date],[Start Date],[End Date],[PIK Set Up],[PIK %],[Current Pay Rate],[PIK with Separate Compounding],[PIK Compounding Rate],[PIK Compounding Spread],[PIK Rate],[PIK Spread],[Index Floor],[PIK Interest Calc method],[Pur Balance],[PIK Comments],[PIK Reason Code],[Impact in Commitment Calc],[Cash Interest Calc-PIK Balance updated on Business Adjusted Pmt Date],[Source Account],[Target Account],[Cap Amount],[Acc Cap Balance])		
+	) as sq_up  
+) as sq  
+PIVOT (
+	MIN(Amount)
+	FOR [RowCount] IN
+	(' + @cols + N')
+) as p
+'SET @query3 = '
 ORDER BY CASE WHEN [0] = ''Effective Date'' THEN 1
-WHEN [0] = ''PIK Source Note'' THEN 2
-WHEN [0] = ''PIK Target Note'' THEN 3
-WHEN [0] = ''Additional PIK interest Rate'' THEN 4
-WHEN [0] = ''Additional PIK Spread'' THEN 5
-WHEN [0] = ''PIK Index Floor'' THEN 6
-WHEN [0] = ''PIK Interest Compounding Rate'' THEN 7
-WHEN [0] = ''PIK Interest Compounding Spread'' THEN 8
-WHEN [0] = ''PIK Start Date'' THEN 9
-WHEN [0] = ''PIK End Date'' THEN 10
-WHEN [0] = ''PIK Interest Cap ($)'' THEN 11
-WHEN [0] = ''Purchased PIK Balance'' THEN 12
-WHEN [0] = ''Note & PIK Cap Balance'' THEN 13
-WHEN [0] = ''PIK Reason Code'' THEN 14
+WHEN [0] = ''Start Date'' THEN 2
+WHEN [0] = ''End Date'' THEN 3
+WHEN [0] = ''PIK Set Up'' THEN 4
+WHEN [0] = ''PIK %'' THEN 5
+WHEN [0] = ''Current Pay Rate'' THEN 6
+WHEN [0] = ''PIK with Separate Compounding'' THEN 7
+WHEN [0] = ''PIK Compounding Rate'' THEN 8
+WHEN [0] = ''PIK Compounding Spread'' THEN 9
+WHEN [0] = ''PIK Rate'' THEN 10
+WHEN [0] = ''PIK Spread'' THEN 11
+WHEN [0] = ''Index Floor'' THEN 12
+WHEN [0] = ''PIK Interest Calc method'' THEN 13
+WHEN [0] = ''Pur Balance'' THEN 14
 WHEN [0] = ''PIK Comments'' THEN 15
-WHEN [0] = ''PIK Int Calc Method'' THEN 16
+WHEN [0] = ''PIK Reason Code'' THEN 16
+WHEN [0] = ''Impact in Commitment Calc'' THEN 17
+WHEN [0] = ''Cash Interest Calc-PIK Balance updated on Business Adjusted Pmt Date'' THEN 18
+WHEN [0] = ''Source Account'' THEN 19
+WHEN [0] = ''Target Account'' THEN 20
+WHEN [0] = ''Cap Amount'' THEN 21
+WHEN [0] = ''Acc Cap Balance'' THEN 22
+ELSE [0] END ASC'
 
-ELSE [0] END ASC
-		    '
 END
 
-
+-----[PIK Interest Compounding Rate],[PIK Interest Compounding Spread],[Periodic Rate Cap Amount],[Periodic Rate Cap %]
 
 IF(@ModuleName = 'FundingSchedule')
 BEGIN
@@ -1101,7 +1114,16 @@ ORDER BY eve.EffectiveStartDate,fr.[Date] DESC'
 
 END
 
-PRINT(@query)
-exec sp_executesql @query;
+PRINT(@query)  
+PRINT(@query1) 
+PRINT(@query2) 
+PRINT(@query3)
+
+Declare @query_full nvarchar(max);
+SET @query_full = (@query + @query1 + @query2 + @query3)
+
+exec sp_executesql @query_full;
+	
+	
 	SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 END

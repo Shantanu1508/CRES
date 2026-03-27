@@ -1,10 +1,10 @@
 ﻿using CRES.DAL.IRepository;
 using CRES.DataContract;
-using CRES.Utilities;
 using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Data.SqlClient;
+using CRES.Utilities;
 
 namespace CRES.DAL.Repository
 {
@@ -191,6 +191,7 @@ namespace CRES.DAL.Repository
                     _userlst.ModuleId = Convert.ToInt32(dr["ModuleId"]);
                     _userlst.StatusID = Convert.ToInt32(dr["Status"]);
                     _userlst.FirstName = Convert.ToString(dr["FirstName"]) + ' ' + Convert.ToString(dr["LastName"]);
+                    _userlst.UserID = new Guid(Convert.ToString(dr["UserID"]));
                     userlst.Add(_userlst);
                 }
             }
@@ -260,7 +261,7 @@ namespace CRES.DAL.Repository
         }
 
         public DataTable GetAllTransactionTypes(Guid? UserID)
-        {
+        { 
             DataTable dt = new DataTable();
             Helper.Helper hp = new Helper.Helper();
             SqlParameter p1 = new SqlParameter { ParameterName = "@UserID", Value = UserID };
@@ -272,7 +273,7 @@ namespace CRES.DAL.Repository
         public void InsertUpdateTransactionTypes(DataTable transtypeDC, Guid UserID)
         {
             Helper.Helper hp = new Helper.Helper();
-            SqlParameter p1 = new SqlParameter { ParameterName = "@Tabletransactiontypes", Value = transtypeDC };
+            SqlParameter p1 = new SqlParameter { ParameterName = "@c", Value = transtypeDC };
             SqlParameter p2 = new SqlParameter { ParameterName = "@UserID", Value = UserID };
 
             SqlParameter[] sqlparam = new SqlParameter[] { p1, p2 };
@@ -416,13 +417,13 @@ namespace CRES.DAL.Repository
                 dt = hp.ExecDataTable("dbo.usp_GetAllHolidayCalendar", sqlparam);
                 return dt;
             }
-            catch (Exception ex)
+            catch(Exception ex)
             {
                 throw ex;
             }
         }
 
-        public void AddHolidayCalendarName(Guid UserID, string CalendarName)
+        public void AddHolidayCalendarName(Guid UserID, string CalendarName )
         {
             try
             {
@@ -432,12 +433,12 @@ namespace CRES.DAL.Repository
                 SqlParameter[] sqlparam = new SqlParameter[] { p1, p2 };
                 var count = hp.ExecNonquery("dbo.usp_InsertHolidayCalendar", sqlparam);
             }
-            catch (Exception ex)
+            catch(Exception ex)
             {
                 throw ex;
             }
         }
-
+       
         public void InsertHolidayDates(DataTable dtHolidaydates, Guid UserID)
         {
             try
@@ -446,15 +447,14 @@ namespace CRES.DAL.Repository
                 SqlParameter p1 = new SqlParameter { ParameterName = "@TableHolidays", Value = dtHolidaydates };
                 SqlParameter p2 = new SqlParameter { ParameterName = "@CreatedBy", Value = UserID };
 
-                SqlParameter[] sqlparam = new SqlParameter[] { p1, p2 };
+                SqlParameter[] sqlparam = new SqlParameter[] { p1, p2 };  //insert holiday dates.
                 hp.ExecDataTablewithparams("dbo.usp_InsertHolidaysDate", sqlparam);
             }
-            catch (Exception ex)
+            catch(Exception ex)
             {
-                throw ex;
+                throw ex; 
             }
         }
-
         public DataTable GetHolidayMaster(Guid? UserID)
         {
             try
@@ -475,7 +475,7 @@ namespace CRES.DAL.Repository
         {
             DataTable dt = new DataTable();
             Helper.Helper hp = new Helper.Helper();
-            List<RuleTypeDataContract> _lstAllRules = new List<RuleTypeDataContract>();
+            List<RuleTypeDataContract> _lstAllRules = new List<RuleTypeDataContract>();   
             dt = hp.ExecDataTable("dbo.usp_GetRuleTypeNameAndFileName");
             if (dt != null && dt.Rows.Count > 0)
             {
@@ -490,11 +490,11 @@ namespace CRES.DAL.Repository
                     lstrules.OriginalFileName = Convert.ToString(dr["FileName"]);
                     lstrules.Type = Convert.ToString(dr["Type"]);
                     lstrules.DBFileName = Convert.ToString(dr["DBFileName"]);
-                    _lstAllRules.Add(lstrules);
+                    _lstAllRules.Add(lstrules);               
                 }
             }
             return _lstAllRules;
-        }
+        }   
 
 
         public string GetContentByRuleTypeDetailID(int RuleTypeDetailID)
@@ -502,15 +502,15 @@ namespace CRES.DAL.Repository
             DataTable dt = new DataTable();
             Helper.Helper hp = new Helper.Helper();
             string Content = "";
-            SqlParameter p1 = new SqlParameter { ParameterName = "@RuleTypeDetailID", Value = RuleTypeDetailID };
+            SqlParameter p1 = new SqlParameter { ParameterName = "@RuleTypeDetailID", Value = RuleTypeDetailID };  
             SqlParameter[] sqlparam = new SqlParameter[] { p1 };
 
             dt = hp.ExecDataTable("dbo.usp_GetContentByRuleTypeDetailID", sqlparam);
             if (dt != null && dt.Rows.Count > 0)
             {
                 foreach (DataRow dr in dt.Rows)
-                {
-                    Content = Convert.ToString(dr["Content"]);
+                {     
+                    Content = Convert.ToString(dr["Content"]);                     
                 }
             }
             return Content;
@@ -521,7 +521,7 @@ namespace CRES.DAL.Repository
             DataTable dt = new DataTable();
             Helper.Helper hp = new Helper.Helper();
             SqlParameter p1 = new SqlParameter { ParameterName = "@key", Value = key };
-
+            
             SqlParameter[] sqlparam = new SqlParameter[] { p1, };
             dt = hp.ExecDataTable("dbo.usp_GetJsonTemplateByKey", sqlparam);
             if (dt != null && dt.Rows.Count > 0)
@@ -529,7 +529,7 @@ namespace CRES.DAL.Repository
                 jtitem.Type = Convert.ToString(dt.Rows[0]["Value"]);
             }
             return jtitem;
-        }
+        }    
 
         public void AddTemplateName(Guid UserID, TemplateNameDc template)
         {
@@ -547,6 +547,30 @@ namespace CRES.DAL.Repository
             {
                 throw ex;
             }
+        }
+
+        public List<UserDataContract> GetFCApprover(Guid? UserID)
+        {
+            DataTable dt = new DataTable();
+            List<UserDataContract> userlst = new List<UserDataContract>();
+            Helper.Helper hp = new Helper.Helper();
+            SqlParameter p1 = new SqlParameter { ParameterName = "@UserID", Value = UserID };
+
+            SqlParameter[] sqlparam = new SqlParameter[] { p1 };
+           dt = hp.ExecDataTable("dbo.usp_GetFCApprover", sqlparam);
+            if (dt != null && dt.Rows.Count > 0)
+            {
+                foreach (DataRow dr in dt.Rows)
+                {
+                    UserDataContract _userlst = new UserDataContract();
+                    _userlst.FirstName = (Convert.ToString(dr["FirstName"]) + ' ' + Convert.ToString(dr["LastName"]));
+                    _userlst.UserID = new Guid(Convert.ToString(dr["UserID"]));
+                    _userlst.RoleName = Convert.ToString(dr["RoleName"]);
+
+                    userlst.Add(_userlst);
+                }
+            }
+            return userlst;
         }
     }
 }

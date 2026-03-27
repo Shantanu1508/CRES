@@ -5,7 +5,8 @@ as
 select     
 T.NoteID as NoteKey,    
 T.CRENoteID as NoteID,    
-Date,    
+--ISNULL(TransactionDateByRule,Date) as Date,
+(CASE WHEN T.Type like '%Interest%' THEN ISNULL(TransactionDateByRule,Date) ELSE T.Date END)  as Date,    
 Amount,    
 Type,    
 T.CreatedBy,    
@@ -31,8 +32,9 @@ RemitDate as TR_RemitDate
 From [DW].[TransactionEntryBI] T    
 left join DW.NoteBI N on N.Noteid = T.NoteID    
     
-Where T.analysisID in (Select analysisID from core.analysis where [Name] in ('Default','Fully Extended (FWCV)') )  
+Where T.analysisID in ('C10F3372-0FC2-4861-A9F5-148F1F80804F','45CF083B-4755-4A8C-982A-7DC6D7B8E5F2') --- (Select analysisID from core.analysis where [Name] in ('Default','Fully Extended (FWCV)') )  
 
 and T.Date >= CAST(DateADD(year,-1,getdate())  as Date) 
+and T.AccountTypeID = 1 
  
     

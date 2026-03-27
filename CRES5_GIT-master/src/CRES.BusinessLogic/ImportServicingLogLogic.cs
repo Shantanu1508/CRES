@@ -1,13 +1,19 @@
-﻿using CRES.DAL.Repository;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using CRES.DAL.Repository;
+using CRES.DataContract;
 using System.Data;
 
 namespace CRES.BusinessLogic
 {
-    public class ImportServicingLogLogic
+   public class ImportServicingLogLogic
     {
         ImportServicingLogRepository _importServicinglog = new ImportServicingLogRepository();
 
-        public int ImportIntoINServicingTransaction(DataTable dt, string userId, string sourceBlobFileName, string fileDisplayName, string storagetype, string _startdate, string _enddate)
+        public int ImportIntoINServicingTransaction(DataTable dt, string userId,string sourceBlobFileName, string fileDisplayName,string storagetype, string _startdate, string _enddate)
         {
             return _importServicinglog.ImportIntoINServicingTransaction(dt, userId, sourceBlobFileName, fileDisplayName, storagetype, _startdate, _enddate);
         }

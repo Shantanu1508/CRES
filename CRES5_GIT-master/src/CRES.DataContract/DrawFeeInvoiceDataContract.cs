@@ -1,6 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
 
 namespace CRES.DataContract
 {
@@ -59,10 +62,10 @@ namespace CRES.DataContract
         public bool IsSuccess { get; set; }
         public string InvoiceSource { get; set; }
         public MemoryStream filestream { get; set; }
-        public string AMEmails { get; set; }
-        public string SenderFirstName { get; set; }
-        public string SenderLastName { get; set; }
-        public string SenderEmail { get; set; }
+        public string AMEmails {get;set;}
+        public string SenderFirstName { get;set; }
+        public string SenderLastName { get;set; }
+        public string SenderEmail { get;set; }
 
         public decimal? FundingAmount { get; set; }
         public string DealID { get; set; }
@@ -82,5 +85,7 @@ namespace CRES.DataContract
         public string PreAssignedInvoiceNo { get; set; }
         public string InvoiceGuid { get; set; }
         public string CreatedFrom { get; set; }
+        public string InvoiceTypeFreeText { get; set; }
+        public string WorkDescription { get; set; }
     }
 }

@@ -27,7 +27,7 @@ namespace CRES.DataContract
         public DateTime? EffectiveEndDate { get; set; }
         public int? EventTypeID { get; set; }
         public string EventTypeText { get; set; }
-        // public Guid? DefaultScheduleID { get; set; }
+       // public Guid? DefaultScheduleID { get; set; }
         public Guid? EventId { get; set; }
         public DateTime? StartDate { get; set; }
         public DateTime? EndDate { get; set; }

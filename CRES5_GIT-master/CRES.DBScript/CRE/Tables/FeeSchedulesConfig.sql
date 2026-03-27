@@ -20,7 +20,18 @@
     [ExcludeFromCashflowDownload]             BIT              NULL,
     [IsActive]                                BIT              CONSTRAINT [DF__FeeSchedu__IsAct__62A57E71] DEFAULT ((1)) NULL,
     [InitialFundingID]                        INT              NULL,
-	[M61AdjustedCommitmentID]                 INT              NULL
+    [M61AdjustedCommitmentID]                 INT              NULL,
+    [PIKFundingID]                            INT              NULL,
+    [PIKPrincipalPaymentID]                   INT              NULL,
+    [CurtailmentID]                           INT              NULL,
+    [UpsizeAmountID]                          INT              NULL,
+    [UnfundedCommitmentID]                    INT              NULL,
     CONSTRAINT [PK_FeeTypeNameID] PRIMARY KEY CLUSTERED ([FeeTypeNameID] ASC)
 );
+
+
+GO
+ALTER TABLE [CRE].[FeeSchedulesConfig] ENABLE CHANGE_TRACKING WITH (TRACK_COLUMNS_UPDATED = ON);
+
+
 

@@ -5,6 +5,10 @@ using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Linq;
+using CRES.DAL;
+using CRES.Utilities;
+using Syncfusion.Compression;
+using CRES.DAL.IRepository;
 
 namespace CRES.BusinessLogic
 {
@@ -63,6 +67,10 @@ namespace CRES.BusinessLogic
         public NoteAdditinalListDataContract GetNoteAdditinalList(Guid? noteId, Guid? userId)
         {
             return _noteRepository.GetNoteAdditinalList(noteId, userId);
+        }
+        public NoteAdditinalListDataContract GetNoteAdditional_RSSFEE(Guid? noteId, Guid? userID)
+        {
+            return _noteRepository.GetNoteAdditional_RSSFEE(noteId, userID);
         }
 
         public List<MaturityScenariosDataContract> GetMaturityPeriodicDataByNoteId(Guid? noteid, Guid? userID, int? pageIndex, int? pageSize, out int? TotalCount)
@@ -205,9 +213,9 @@ namespace CRES.BusinessLogic
             _noteRepository.InsertNotePeriodicCalc(_notePeriodicOutputsDC);
         }
 
-        public void InsertCashflowTransaction(List<TransactionEntry> _transactionEntryDC, string noteId, string CreatedBy)
+        public void InsertCashflowTransaction(List<TransactionEntry> _transactionEntryDC, string noteId, string CreatedBy, DateTime? MaturityUsedInCalc)
         {
-            _noteRepository.InsertCashflowTransaction(_transactionEntryDC, noteId, CreatedBy);
+            _noteRepository.InsertCashflowTransaction(_transactionEntryDC, noteId, CreatedBy, MaturityUsedInCalc);
         }
 
         public void InsertInterestCalculator(List<InterestCalculatorDataContract> ListInterestCalculator, string noteId, string CreatedBy)
@@ -255,9 +263,8 @@ namespace CRES.BusinessLogic
                 List<NoteServicingFeeScheduleDataContract> NoteServicingFeeScheduleList = new List<NoteServicingFeeScheduleDataContract>();
                 List<FeeFunctionsConfigDataContract> ListFeeFunctionsConfigDataContract = new List<FeeFunctionsConfigDataContract>();
                 List<FeeSchedulesConfigDataContract> ListFeeSchedulesConfigDataContract = new List<FeeSchedulesConfigDataContract>();
-                List<HistoricalAccrualDataContract> ListPeriodCloseArchiveDataContract = new List<HistoricalAccrualDataContract>();
+                List<HistoricalAccrualDataContract> ListAccountingClosePeriodicArchiveDataContract = new List<HistoricalAccrualDataContract>();
                 List<NoteCommitmentDataContract> ListNoteCommitment = new List<NoteCommitmentDataContract>();
-
 
 
                 //get note master data
@@ -326,6 +333,10 @@ namespace CRES.BusinessLogic
                     _noteCalculatorDC.FullyExtendedMaturityDate = _noteDC.FullyExtendedMaturityDate.Value.Date;
                 if (_noteDC.OpenPrepaymentDate != null)
                     _noteCalculatorDC.OpenPrepaymentDate = _noteDC.OpenPrepaymentDate.Value.Date;
+
+                if (_noteDC.PrepayDate != null)
+                    _noteCalculatorDC.PrepayDate = _noteDC.PrepayDate.Value.Date;
+
                 _noteCalculatorDC.CashflowEngineID = _noteDC.CashflowEngineID;
                 _noteCalculatorDC.LoanType = _noteDC.LoanType;
                 _noteCalculatorDC.Classification = _noteDC.Classification;
@@ -412,8 +423,14 @@ namespace CRES.BusinessLogic
                 _noteCalculatorDC.ServicerNameText = _noteDC.ServicerNameText;
                 _noteCalculatorDC.BusinessdaylafrelativetoPMTDate = _noteDC.BusinessdaylafrelativetoPMTDate;
                 _noteCalculatorDC.DayoftheMonth = _noteDC.DayoftheMonth;
+
                 _noteCalculatorDC.InterestCalculationRuleForPaydowns = _noteDC.InterestCalculationRuleForPaydowns;
                 _noteCalculatorDC.InterestCalculationRuleForPaydownsText = _noteDC.InterestCalculationRuleForPaydownsText;
+
+                _noteCalculatorDC.InterestCalculationRuleForPIKPaydowns = _noteDC.InterestCalculationRuleForPIKPaydowns;
+                _noteCalculatorDC.InterestCalculationRuleForPIKPaydownsText = _noteDC.InterestCalculationRuleForPIKPaydownsText;
+
+
                 _noteCalculatorDC.InterestCalculationRuleForPaydownsAmortText = _noteDC.InterestCalculationRuleForPaydownsAmortText;
                 _noteCalculatorDC.InterestCalculationRuleForPaydownsAmort = _noteDC.InterestCalculationRuleForPaydownsAmort;
                 _noteCalculatorDC.EnableDebug = _noteDC.EnableDebug;
@@ -423,6 +440,21 @@ namespace CRES.BusinessLogic
                 _noteCalculatorDC.AllowYieldConfigData = _noteDC.AllowYieldConfigData;
                 _noteCalculatorDC.CalcByNewMaturitySetup = _noteDC.CalcByNewMaturitySetup;
                 _noteCalculatorDC.OriginalTotalCommitment = _noteDC.OriginalTotalCommitment;
+                _noteCalculatorDC.ImpactCommitmentCalc = _noteDC.ImpactCommitmentCalc;
+
+                _noteCalculatorDC.AccrualPeriodType = _noteDC.AccrualPeriodType;
+                _noteCalculatorDC.AccrualPeriodBusinessDayAdj = _noteDC.AccrualPeriodBusinessDayAdj;
+                _noteCalculatorDC.AccrualPeriodTypetext = _noteDC.AccrualPeriodTypetext;
+                _noteCalculatorDC.AccrualPeriodBusinessDayAdjText = _noteDC.AccrualPeriodBusinessDayAdjText;
+
+                _noteCalculatorDC.AccountingClose = _noteDC.AccountingClose;
+                _noteCalculatorDC.AccountingCloseText = _noteDC.AccountingCloseText;
+                _noteCalculatorDC.AllowDailyGAAPBasisComponents = _noteDC.AllowDailyGAAPBasisComponents;
+
+                _noteCalculatorDC.MaturityAdjMonthsOverride = _noteDC.MaturityAdjMonthsOverride;
+
+                if (_noteDC.FirstIndexDeterminationDateOverride != null)
+                    _noteCalculatorDC.FirstIndexDeterminationDateOverride = _noteDC.FirstIndexDeterminationDateOverride.Value.Date;
                 //==========================================================================
 
                 ScenarioLogic _sl = new ScenarioLogic();
@@ -471,6 +503,12 @@ namespace CRES.BusinessLogic
                 _noteCalculatorDC.ListServicingLogTab = GetNoteTransactionDetailByNoteID(_noteDC.NoteId, _noteDC.AnalysisID);
                 _noteCalculatorDC.DefaultScenarioParameters = _noteDC.DefaultScenarioParameters;
                 //-- ListFixedAmortScheduleTab
+
+                //ListServicingWatchProjected
+                if (_noteCalculatorDC.DefaultScenarioParameters.IncludeProjectedPrincipalWriteoffText == "Y")
+                {
+                    _noteCalculatorDC.ListServicingWatchProjected = GetServicingWatchListForCalc(_noteDC.NoteId);
+                }
                 ListFixedAmortScheduleTab = GetFixedAmortScheduleTabListDataByNoteId(new Guid(noteid), UserID, pageIndex, pageSize, out totalCount);
 
                 //case "ServicingFeeSchedule":  -- NoteServicingFeeScheduleList
@@ -484,14 +522,27 @@ namespace CRES.BusinessLogic
                 //new 
                 ListFeeFunctionsConfigDataContract = GetFeeFunctionsConfig(UserID);
                 ListFeeSchedulesConfigDataContract = GetFeeSchedulesConfig(UserID);
-                ListPeriodCloseArchiveDataContract = GetAccrualFieldsFromNotePeriodicByNoteID(new Guid(noteid), UserID, _noteDC.AnalysisID);
+                ListAccountingClosePeriodicArchiveDataContract = GetAccrualFieldsFromNotePeriodicByNoteID(new Guid(noteid), UserID, _noteDC.AnalysisID);
 
                 ListNoteCommitment = GetNoteCommitmentForCalculatorByNoteID(new Guid(noteid));
 
-                //assign sofr rates to list
+                DealRepository _dealRepository = new DealRepository();
+                DataTable dtTotalCommitment = _dealRepository.GetAdjustmentTotalCommitmentByDealIDForAPI(new Guid(_noteDC.DealID), UserID);
 
+                //manish
+                string colname = noteid.ToUpper() + "_Noteid";
+                List<NoteCommitmentEquityDataContract> commitmentlist = new List<NoteCommitmentEquityDataContract>();
+                foreach (DataRow row in dtTotalCommitment.Rows)
+                {
+                    NoteCommitmentEquityDataContract nce = new NoteCommitmentEquityDataContract();
+                    nce.NoteAmount = Convert.ToDecimal(row[colname]);
+                    nce.Type = Convert.ToString(row["CommitmentType"]);
+                    nce.Date = Convert.ToDateTime(row["Date"]);
+                    commitmentlist.Add(nce);
+                }
 
                 //// List objects /////
+                _noteCalculatorDC.NoteCommitmentNoteData = commitmentlist;
                 _noteCalculatorDC.RateSpreadScheduleList = RateSpreadScheduleList;
                 _noteCalculatorDC.NoteStrippingList = NoteStrippingList;
                 _noteCalculatorDC.MaturityScenariosListFromDatabase = MaturityScenariosList;
@@ -505,18 +556,64 @@ namespace CRES.BusinessLogic
                 _noteCalculatorDC.ListFixedAmortScheduleTab = ListFixedAmortScheduleTab;
                 _noteCalculatorDC.NoteServicingFeeScheduleList = NoteServicingFeeScheduleList;
                 _noteCalculatorDC.NoteFinancingScheduleList = NoteFinancingScheduleList;
-                _noteCalculatorDC.ListHoliday = GetHolidayListForCalculator();
+                List<HolidayListDataContract> holidaylist = GetHolidayListForCalculator();
+                //remove soft holiday dates
+                _noteCalculatorDC.ListHoliday = holidaylist.FindAll(x => x.IsSoftHoliday != 3);
                 _noteCalculatorDC.ListFeeFunctions = ListFeeFunctionsConfigDataContract;
                 _noteCalculatorDC.ListFeeSchedulesConfiguration = ListFeeSchedulesConfigDataContract;
-                _noteCalculatorDC.ListHistoricalAccrual = ListPeriodCloseArchiveDataContract;
+                _noteCalculatorDC.ListHistoricalAccrual = ListAccountingClosePeriodicArchiveDataContract;
                 _noteCalculatorDC.ListNoteCommitment = ListNoteCommitment;
 
                 _noteCalculatorDC = ScenarioRules.AssignValuesToSelectedMaturityUsingDealSetup(_noteCalculatorDC, "");
+
+                _noteCalculatorDC=ScenarioRules.AddEndDateToPikSchedule(_noteCalculatorDC);
                 //AssignIndexRates
-                _noteCalculatorDC.ListLiborScheduleTabFromDB = _noteCalculatorDC.ListLiborScheduleTab;
+                //_noteCalculatorDC.ListLiborScheduleTabFromDB = _noteCalculatorDC.ListLiborScheduleTab;
                 _noteCalculatorDC = ScenarioRules.AssignIndexRates(_noteCalculatorDC);
 
+                _noteCalculatorDC.ListIndices = ScenarioRules.CreateIndexDataContract(ListLiborScheduleTab);
                 _noteCalculatorDC = ScenarioRules.ApplyExcludedForcastedPrePaymentRule(_noteCalculatorDC);
+                if (_noteCalculatorDC.DefaultScenarioParameters.ExcludedForcastedPrePaymentText == "Y")
+                {
+                    var PrincipalWriteoffList = _noteCalculatorDC.ListFutureFundingScheduleTabFromDB.FindAll(x => x.PurposeID == 840);
+                    var distinctWriteoffDates = PrincipalWriteoffList.Select(x => x.Date).Distinct();
+                    foreach (var d in distinctWriteoffDates)
+                    {
+                        foreach (var item in _noteCalculatorDC.ListFutureFundingScheduleTabFromDB)
+                        {
+                            if (item.PurposeID == 840 && item.Date >= d.Value.Date)
+                            {
+
+                                var aa = _noteCalculatorDC.ListFutureFundingScheduleTab.FindAll(x => x.PurposeID == 840 && x.Date == d.Value.Date);
+                                if (aa != null)
+                                {
+                                    foreach (var fund in _noteCalculatorDC.ListFutureFundingScheduleTab)
+                                    {
+                                        if (d.Value.Date > fund.EffectiveDate)
+                                        {
+                                            if (fund.PurposeID == 840 && fund.Date >= d.Value.Date)
+                                            {
+                                                fund.EffectiveDate = d.Value.Date;
+
+                                            }
+                                        }
+                                    }
+                                }
+                                else
+                                {
+                                    FutureFundingScheduleTab ff = new FutureFundingScheduleTab();
+                                    ff.EffectiveDate = d.Value.Date;
+                                    ff.Date = item.Date.Value;
+                                    ff.Value = item.Value;
+                                    ff.PurposeID = item.PurposeID;
+                                    ff.PurposeText = item.PurposeText;
+                                    _noteCalculatorDC.ListFutureFundingScheduleTab.Add(ff);
+                                }
+
+                            }
+                        }
+                    }
+                }
 
                 // add new effective dates to effective date list
                 var items = _noteCalculatorDC.ListFutureFundingScheduleTab.Select(x => x.EffectiveDate).Distinct().ToList();
@@ -532,7 +629,21 @@ namespace CRES.BusinessLogic
                         _noteCalculatorDC.EffectiveDateList.Add(edl);
                     }
                 }
-
+                if (_noteCalculatorDC.ListServicingWatchProjected != null)
+                {
+                    var distincteffectivedate = _noteCalculatorDC.ListServicingWatchProjected.Select(x => x.EffectiveDate).Distinct().ToList();
+                    foreach (var dates in distincteffectivedate)
+                    {
+                        EffectiveDateList res = _noteCalculatorDC.EffectiveDateList.Find(x => x.EffectiveDate.Value.Date == dates.Value.Date);
+                        if (res == null)
+                        {
+                            EffectiveDateList edl = new EffectiveDateList();
+                            edl.EffectiveDate = dates;
+                            edl.Type = "ProjectedWritoff";
+                            _noteCalculatorDC.EffectiveDateList.Add(edl);
+                        }
+                    }
+                }
                 if (_noteCalculatorDC.RateType == 139)
                 {
                     _noteCalculatorDC = ScenarioRules.UpdateRateSpreadSchedule(_noteCalculatorDC);
@@ -555,6 +666,7 @@ namespace CRES.BusinessLogic
                 }
 
                 _noteCalculatorDC = ScenarioRules.GetAccoutingCLoseDate(_noteCalculatorDC);
+                _noteCalculatorDC.ListLiborScheduleTab = new List<LiborScheduleTab>();
                 return _noteCalculatorDC;
             }
             catch (Exception ex)
@@ -876,6 +988,14 @@ namespace CRES.BusinessLogic
 
             return status;
         }
+
+        public string ExportFutureFundingFromCRES_API(List<PayruleTargetNoteFundingScheduleDataContract> NoteFundings, string username, DealDataContract dealdc)
+        {
+            string status = _noteRepository.ExportFutureFundingFromCRES_API(NoteFundings, username, dealdc);
+
+            return status;
+        }
+
         public string ExportFutureFundingFromNote(List<FutureFundingScheduleTab> NoteFundings, string username)
         {
             string status = _noteRepository.ExportFutureFundingFromNote(NoteFundings, username);
@@ -964,7 +1084,22 @@ namespace CRES.BusinessLogic
             _noteCashflowsExportDataContractList = _noteRepository.GetNoteCashflowsExportData(downloadCashFlow);
             return _noteCashflowsExportDataContractList;
         }
-
+        public DataTable GetNoteCashflowsExportData_All(string AnalysisID)
+        {
+            return _noteRepository.GetNoteCashflowsExportData_All(AnalysisID);
+        }
+        public DataTable CheckDuplicateTransactionCashflowDownload(string AnalysisID)
+        {
+            return _noteRepository.CheckDuplicateTransactionCashflowDownload(AnalysisID);
+        }
+        public DataTable CheckDuplicateTransactionCashflowDownloadAnalysis_Deal(string AnalysisID, string DealID)
+        {
+            return _noteRepository.CheckDuplicateTransactionCashflowDownloadAnalysis_Deal(AnalysisID, DealID);
+        }
+        public DataTable CheckDuplicateTransactionCashflowDownloadByAnalysis_Note(string AnalysisID, string NoteID)
+        {
+            return _noteRepository.CheckDuplicateTransactionCashflowDownloadByAnalysis_Note(AnalysisID, NoteID);
+        }
         public DataTable DownloadNoteDataTape(int withoutSpread)
         {
             DataTable _DownloadNoteDataTapeList = new DataTable();
@@ -976,7 +1111,10 @@ namespace CRES.BusinessLogic
         {
             return _noteRepository.GetNoteTransactionDetailByNoteID(NoteID, Analysisid);
         }
-
+        public List<ServicingWatchListCalcDataContract> GetServicingWatchListForCalc(string NoteID)
+        {
+            return _noteRepository.GetServicingWatchListForCalc(NoteID);
+        }
 
         public void InsertNoteTransactionDetail(List<ServicingLogTab> _lstCalcValDC, string NoteId, string CreatedBy)
         {
@@ -1058,270 +1196,6 @@ namespace CRES.BusinessLogic
             return _fundDataContractList;
         }
 
-        public FNoteDataContract GetNoteDataForCalculationByNoteId(string noteid, Guid? UserID, int? pageIndex, int? pageSize)
-        {
-            try
-            {
-                NoteDataContract _noteDC = new NoteDataContract();
-
-                int? totalCount = 0;
-                List<MaturityScenariosDataContract> MaturityScenariosList = new List<MaturityScenariosDataContract>();
-                List<RateSpreadSchedule> RateSpreadScheduleList = new List<RateSpreadSchedule>();
-                List<PrepayAndAdditionalFeeScheduleDataContract> NotePrepayAndAdditionalFeeScheduleList = new List<PrepayAndAdditionalFeeScheduleDataContract>();
-                List<StrippingScheduleDataContract> NoteStripping = new List<StrippingScheduleDataContract>();
-                List<FStrippingScheduleDataContract> NoteStrippingList = new List<FStrippingScheduleDataContract>();
-                List<FinancingScheduleDataContract> NoteFinancingScheduleList = new List<FinancingScheduleDataContract>();
-                List<DefaultScheduleDataContract> NoteDefaultScheduleList = new List<DefaultScheduleDataContract>();
-                List<EffectiveDateList> EffectiveDateList = new List<EffectiveDateList>();
-                List<FFutureFundingScheduleTab> ListFutureFundingScheduleTab = new List<FFutureFundingScheduleTab>();
-                List<PIKfromPIKSourceNoteTab> ListPIKfromPIKSourceNoteTab = new List<PIKfromPIKSourceNoteTab>();
-                List<FeeCouponStripReceivableTab> ListFeeCouponStripReceivable = new List<FeeCouponStripReceivableTab>();
-                //List<LiborScheduleTab> ListLiborScheduleTab = new List<LiborScheduleTab>();
-                List<FixedAmortScheduleTab> ListFixedAmortScheduleTab = new List<FixedAmortScheduleTab>();
-                List<NoteServicingFeeScheduleDataContract> NoteServicingFeeScheduleList = new List<NoteServicingFeeScheduleDataContract>();
-
-                //get note master data
-                FNoteDataContract _noteCalculatorDC = new FNoteDataContract();
-                _noteDC = GetNoteFromNoteId(noteid, UserID, _noteDC.AnalysisID);
-
-                //assign values in _noteCalculatorDC
-                _noteCalculatorDC.NoteId = _noteDC.NoteId;
-                _noteCalculatorDC.NoteRule = _noteDC.NoteRule;
-                _noteCalculatorDC.ID = _noteDC.NoteId;
-
-                _noteCalculatorDC.AccountID = _noteDC.AccountID;
-
-                _noteCalculatorDC.CRENoteID = _noteDC.CRENoteID;
-
-                if (_noteDC.InitialInterestAccrualEndDate != null)
-                    _noteCalculatorDC.InitialInterestAccrualEndDate = _noteDC.InitialInterestAccrualEndDate.Value.Date;
-                _noteCalculatorDC.AccrualFrequency = _noteDC.AccrualFrequency;
-                _noteCalculatorDC.DeterminationDateLeadDays = _noteDC.DeterminationDateLeadDays;
-                _noteCalculatorDC.DeterminationDateReferenceDayoftheMonth = _noteDC.DeterminationDateReferenceDayoftheMonth;
-                _noteCalculatorDC.DeterminationDateInterestAccrualPeriod = _noteDC.DeterminationDateInterestAccrualPeriod;
-                _noteCalculatorDC.DeterminationDateHolidayList = _noteDC.DeterminationDateHolidayList;
-                _noteCalculatorDC.DeterminationDateHolidayList = _noteDC.DeterminationDateHolidayList;
-                if (_noteDC.FirstPaymentDate != null)
-                    _noteCalculatorDC.FirstPaymentDate = _noteDC.FirstPaymentDate.Value.Date;
-                if (_noteDC.InitialMonthEndPMTDateBiWeekly != null)
-                    _noteCalculatorDC.InitialMonthEndPMTDateBiWeekly = _noteDC.InitialMonthEndPMTDateBiWeekly.Value.Date;
-                _noteCalculatorDC.PaymentDateBusinessDayLag = _noteDC.PaymentDateBusinessDayLag;
-                _noteCalculatorDC.PayFrequency = _noteDC.PayFrequency;
-                _noteCalculatorDC.IOTerm = _noteDC.IOTerm;
-                _noteCalculatorDC.AmortTerm = _noteDC.AmortTerm;
-                _noteCalculatorDC.PIKSeparateCompounding = _noteDC.PIKSeparateCompounding;
-                _noteCalculatorDC.MonthlyDSOverridewhenAmortizing = _noteDC.MonthlyDSOverridewhenAmortizing;
-                _noteCalculatorDC.AccrualPeriodPaymentDayWhenNotEOMonth = _noteDC.AccrualPeriodPaymentDayWhenNotEOMonth;
-                _noteCalculatorDC.FirstPeriodInterestPaymentOverride = _noteDC.FirstPeriodInterestPaymentOverride;
-                _noteCalculatorDC.FirstPeriodPrincipalPaymentOverride = _noteDC.FirstPeriodPrincipalPaymentOverride;
-                if (_noteDC.FinalInterestAccrualEndDateOverride != null)
-                    _noteCalculatorDC.FinalInterestAccrualEndDateOverride = _noteDC.FinalInterestAccrualEndDateOverride.Value.Date;
-                _noteCalculatorDC.LoanCurrency = _noteDC.LoanCurrency;
-
-                _noteCalculatorDC.InterestDueAtMaturity = _noteDC.InterestDueAtMaturity;
-                _noteCalculatorDC.RateIndexResetFreq = _noteDC.RateIndexResetFreq;
-                if (_noteDC.FirstRateIndexResetDate != null)
-                    _noteCalculatorDC.FirstRateIndexResetDate = _noteDC.FirstRateIndexResetDate.Value.Date;
-                _noteCalculatorDC.LoanPurchase = _noteDC.LoanPurchase;
-                _noteCalculatorDC.LoanPurchaseYNText = _noteDC.LoanPurchaseYNText;
-                _noteCalculatorDC.AmortIntCalcDayCount = _noteDC.AmortIntCalcDayCount;
-                _noteCalculatorDC.StubPaidinAdvanceYN = _noteDC.StubPaidinAdvanceYN;
-                _noteCalculatorDC.FullPeriodInterestDueatMaturity = _noteDC.FullPeriodInterestDueatMaturity;
-
-                _noteCalculatorDC.IsCapitalized = _noteDC.IsCapitalized;
-                _noteCalculatorDC.SelectedMaturityDateScenario = _noteDC.SelectedMaturityDateScenario;
-                if (_noteDC.SelectedMaturityDate != null)
-                    _noteCalculatorDC.SelectedMaturityDate = _noteDC.SelectedMaturityDate.Value.Date;
-                if (_noteDC.InitialMaturityDate != null)
-                    _noteCalculatorDC.InitialMaturityDate = _noteDC.InitialMaturityDate.Value.Date;
-                if (_noteDC.ExpectedMaturityDate != null)
-                    _noteCalculatorDC.ExpectedMaturityDate = _noteDC.ExpectedMaturityDate.Value.Date;
-                if (_noteDC.FullyExtendedMaturityDate != null)
-                    _noteCalculatorDC.FullyExtendedMaturityDate = _noteDC.FullyExtendedMaturityDate.Value.Date;
-                if (_noteDC.OpenPrepaymentDate != null)
-                    _noteCalculatorDC.OpenPrepaymentDate = _noteDC.OpenPrepaymentDate.Value.Date;
-
-                _noteCalculatorDC.TotalToBeAmortized = _noteDC.TotalToBeAmortized;
-                _noteCalculatorDC.StubPeriodInterest = _noteDC.StubPeriodInterest;
-
-                _noteCalculatorDC.PurchaseBalance = _noteDC.PurchaseBalance;
-                _noteCalculatorDC.DaysofAccrued = _noteDC.DaysofAccrued;
-                _noteCalculatorDC.InterestRate = _noteDC.InterestRate;
-                _noteCalculatorDC.PurchasedInterestCalc = _noteDC.PurchasedInterestCalc;
-                _noteCalculatorDC.ModelFinancingDrawsForFutureFundings = _noteDC.ModelFinancingDrawsForFutureFundings;
-                _noteCalculatorDC.NumberOfBusinessDaysLagForFinancingDraw = _noteDC.NumberOfBusinessDaysLagForFinancingDraw;
-                _noteCalculatorDC.FinancingFacilityID = _noteDC.FinancingFacilityID;
-                if (_noteDC.FinancingInitialMaturityDate != null)
-                    _noteCalculatorDC.FinancingInitialMaturityDate = _noteDC.FinancingInitialMaturityDate.Value.Date;
-                if (_noteDC.FinancingExtendedMaturityDate != null)
-                    _noteCalculatorDC.FinancingExtendedMaturityDate = _noteDC.FinancingExtendedMaturityDate.Value.Date;
-                _noteCalculatorDC.FinancingPayFrequency = _noteDC.FinancingPayFrequency;
-                _noteCalculatorDC.FinancingInterestPaymentDay = _noteDC.FinancingInterestPaymentDay;
-                if (_noteDC.ClosingDate != null)
-                    _noteCalculatorDC.ClosingDate = _noteDC.ClosingDate.Value.Date;
-                _noteCalculatorDC.InitialFundingAmount = _noteDC.InitialFundingAmount;
-                _noteCalculatorDC.InitialIndexValueOverride = _noteDC.InitialIndexValueOverride;
-                _noteCalculatorDC.Discount = _noteDC.Discount;
-                _noteCalculatorDC.OriginationFee = _noteDC.OriginationFee;
-                _noteCalculatorDC.CapitalizedClosingCosts = _noteDC.CapitalizedClosingCosts;
-                if (_noteDC.PurchaseDate != null)
-                    _noteCalculatorDC.PurchaseDate = _noteDC.PurchaseDate.Value.Date;
-                _noteCalculatorDC.PurchaseAccruedFromDate = _noteDC.PurchaseAccruedFromDate;
-                _noteCalculatorDC.PurchasedInterestOverride = _noteDC.PurchasedInterestOverride;
-                _noteCalculatorDC.OngoingAnnualizedServicingFee = _noteDC.OngoingAnnualizedServicingFee;
-                _noteCalculatorDC.DiscountRate = _noteDC.DiscountRate;
-                if (_noteDC.ValuationDate != null)
-                    _noteCalculatorDC.ValuationDate = _noteDC.ValuationDate.Value.Date;
-                _noteCalculatorDC.DiscountRatePlus = _noteDC.DiscountRatePlus;
-                _noteCalculatorDC.DiscountRateMinus = _noteDC.DiscountRateMinus;
-                _noteCalculatorDC.IncludeServicingPaymentOverrideinLevelYield = _noteDC.IncludeServicingPaymentOverrideinLevelYield;
-                _noteCalculatorDC.IncludeServicingPaymentOverrideinLevelYieldText = _noteDC.IncludeServicingPaymentOverrideinLevelYieldText;
-
-                _noteCalculatorDC.PIKSeparateCompoundingText = _noteDC.PIKSeparateCompoundingText;
-                _noteCalculatorDC.StubPaidinAdvanceYNText = _noteDC.StubPaidinAdvanceYNText;
-                _noteCalculatorDC.ModelFinancingDrawsForFutureFundingsText = _noteDC.ModelFinancingDrawsForFutureFundingsText;
-                _noteCalculatorDC.RoundingMethodText = _noteDC.RoundingMethodText;
-                _noteCalculatorDC.RoundingMethod = _noteDC.RoundingMethod;
-                _noteCalculatorDC.IndexRoundingRule = _noteDC.IndexRoundingRule;
-                _noteCalculatorDC.StubOnFFtext = _noteDC.StubOnFFtext;
-                _noteCalculatorDC.StubOnFF = _noteDC.StubOnFF;
-                _noteCalculatorDC.StubIntOverride = _noteDC.StubIntOverride;
-                _noteCalculatorDC.PurchasedIntOverride = _noteDC.PurchasedIntOverride;
-                _noteCalculatorDC.ExitFeeFreePrepayAmt = _noteDC.ExitFeeFreePrepayAmt;
-                _noteCalculatorDC.ExitFeeBaseAmountOverride = _noteDC.ExitFeeBaseAmountOverride;
-                _noteCalculatorDC.ExitFeeAmortCheck = _noteDC.ExitFeeAmortCheck;
-                _noteCalculatorDC.ExitFeeAmortCheckText = _noteDC.ExitFeeAmortCheckText;
-                _noteCalculatorDC.FixedAmortSchedule = _noteDC.FixedAmortSchedule;
-                _noteCalculatorDC.FixedAmortScheduleText = _noteDC.FixedAmortScheduleText;
-
-
-                //_noteCalculatorDC.ExtendedMaturityScenario1 = _noteDC.ExtendedMaturityScenario1;
-                //_noteCalculatorDC.ExtendedMaturityScenario2 = _noteDC.ExtendedMaturityScenario2;
-                //_noteCalculatorDC.ExtendedMaturityScenario3 = _noteDC.ExtendedMaturityScenario3;
-                _noteCalculatorDC.UnusedFeeThresholdBalance = _noteDC.UnusedFeeThresholdBalance;
-                _noteCalculatorDC.UnusedFeePaymentFrequency = Convert.ToInt16(_noteDC.UnusedFeePaymentFrequency);
-
-                _noteCalculatorDC.ActualPayoffDate = _noteDC.ActualPayoffDate;
-                _noteCalculatorDC.SelectedMaturityDateScenarioText = _noteDC.SelectedMaturityDateScenarioText;
-                _noteCalculatorDC.TotalCommitmentExtensionFeeisBasedOn = _noteDC.TotalCommitmentExtensionFeeisBasedOn;
-                _noteCalculatorDC.TotalCommitment = _noteDC.TotalCommitment;
-                _noteCalculatorDC.FullInterestAtPPayoffText = _noteDC.FullInterestAtPPayoffText;
-                _noteCalculatorDC.FullInterestAtPPayoff = _noteDC.FullInterestAtPPayoff;
-                _noteCalculatorDC.MaturityScenarioOverrideText = _noteDC.MaturityScenarioOverrideText;
-
-                //==========================================================================
-                ScenarioLogic _sl = new ScenarioLogic();
-                _noteDC.DefaultScenarioParameters = _sl.GetActiveScenarioParameters(_noteDC.AnalysisID);
-                //case "RateSpreadSchedule": --RateSpreadScheduleList
-                RateSpreadScheduleList = GetRateSpreadSchedulePeriodicDataByNoteId(new Guid(noteid), UserID, pageIndex, pageSize, out totalCount);
-
-                //case "Maturity": -- MaturityScenariosList
-                MaturityScenariosList = GetMaturityPeriodicDataByNoteId(new Guid(noteid), UserID, pageIndex, pageSize, out totalCount);
-
-                //case "DefaultSchedule": --NoteDefaultScheduleList
-                NoteDefaultScheduleList = GetDefaultSchedulePeriodicDataByNoteId(new Guid(noteid), UserID, pageIndex, pageSize, out totalCount);
-
-                //case "PrepayAndAdditionalFeeSchedule": NotePrepayAndAdditionalFeeScheduleList
-                NotePrepayAndAdditionalFeeScheduleList = GetPrepayAndAdditionalFeeScheduleDataByNoteId(new Guid(noteid), UserID, pageIndex, pageSize, out totalCount);
-
-                //case "StrippingSchedule":  --NoteStrippingList
-                NoteStripping = GetStrippingSchedulePeriodicDataByNoteId(new Guid(noteid), UserID, pageIndex, pageSize, out totalCount);
-
-                foreach (StrippingScheduleDataContract item in NoteStripping)
-                {
-                    FStrippingScheduleDataContract fssd = new FStrippingScheduleDataContract();
-                    fssd.EffectiveDate = item.EffectiveDate;
-                    fssd.Date = item.StartDate;
-                    fssd.Value = item.Value;
-                    fssd.ValueTypeText = item.ValueTypeText;
-                    fssd.IncludedLevelYield = item.IncludedLevelYield;
-                    fssd.IncludedBasis = item.IncludedBasis;
-                    NoteStrippingList.Add(fssd);
-                }
-                //EffectiveDateList
-                EffectiveDateList = GetEffectiveDateListDataByNoteId(new Guid(noteid), UserID, pageIndex, pageSize, out totalCount);
-
-                //-- ListFutureFundingScheduleTab
-                ListFutureFundingScheduleTab = GetInputFutureFundingScheduleListDataByNoteId(new Guid(noteid), UserID, pageIndex, pageSize, out totalCount);
-
-                //-- ListPIKfromPIKSourceNoteTab
-                ListPIKfromPIKSourceNoteTab = GetPIKfromPIKSourceNoteTabListDataByNoteId(new Guid(noteid), UserID, pageIndex, pageSize, out totalCount);
-
-                //--ListFeeCouponStripReceivable -
-                ListFeeCouponStripReceivable = GetFeeCouponStripReceivableListDataByNoteId(new Guid(noteid), UserID, _noteDC.AnalysisID, pageIndex, pageSize, out totalCount);
-                //vishal
-                // ListFeeCouponStripReceivable = GetFeeCouponStripReceivableDataByNoteIdForCalc(new Guid(noteid), UserID, _noteDC.AnalysisID);
-
-
-
-                //---ListLiborScheduleTab               
-                // ListLiborScheduleTab = GetLiborScheduleTabListDataForCalcByNoteId(new Guid(_noteDC.NoteId), Convert.ToInt32(_noteDC.IndexNameID), UserID, pageIndex, pageSize, out totalCount);
-
-                //NotePIKScheduleList
-                _noteCalculatorDC.NotePIKScheduleList = GetPIKSchedulePeriodicDataByNoteId(new Guid(noteid), UserID, pageIndex, pageSize, out totalCount);
-                //ListServicingLogTab
-                _noteCalculatorDC.ListServicingLogTab = GetNoteTransactionDetailByNoteID(_noteDC.NoteId, _noteDC.AnalysisID);
-
-                _noteCalculatorDC.DefaultScenarioParameters = _noteDC.DefaultScenarioParameters;
-
-                //-- ListFixedAmortScheduleTab
-                ListFixedAmortScheduleTab = GetFixedAmortScheduleTabListDataByNoteId(new Guid(noteid), UserID, pageIndex, pageSize, out totalCount);
-
-                //case "ServicingFeeSchedule":  -- NoteServicingFeeScheduleList
-                NoteServicingFeeScheduleList = GetServicingFeeSchedulePeriodicDataByNoteId(new Guid(noteid), UserID, pageIndex, pageSize, out totalCount);
-
-                //case "FinancingSchedule":  -- NoteFinancingScheduleList
-                NoteFinancingScheduleList = GetFinancingSchedulePeriodicDataByNoteId(new Guid(noteid), UserID, pageIndex, pageSize, out totalCount);
-
-                ListFutureFundingScheduleTab = ListFutureFundingScheduleTab.Where(s => s.PurposeText != "Amortization").ToList();
-                //// List objects /////
-                _noteCalculatorDC.RateSpreadScheduleList = RateSpreadScheduleList;
-                _noteCalculatorDC.NoteStrippingList = NoteStrippingList;
-                _noteCalculatorDC.MaturityScenariosList = MaturityScenariosList;
-                _noteCalculatorDC.NoteDefaultScheduleList = NoteDefaultScheduleList;
-                _noteCalculatorDC.NotePrepayAndAdditionalFeeScheduleList = NotePrepayAndAdditionalFeeScheduleList;
-                _noteCalculatorDC.EffectiveDateList = EffectiveDateList;
-                _noteCalculatorDC.ListFutureFundingScheduleTab = ListFutureFundingScheduleTab;
-                _noteCalculatorDC.ListPIKfromPIKSourceNoteTab = ListPIKfromPIKSourceNoteTab;
-                _noteCalculatorDC.ListFeeCouponStripReceivable = ListFeeCouponStripReceivable;
-                //  _noteCalculatorDC.ListLiborScheduleTab = ListLiborScheduleTab;
-                _noteCalculatorDC.ListFixedAmortScheduleTab = ListFixedAmortScheduleTab;
-                _noteCalculatorDC.NoteServicingFeeScheduleList = NoteServicingFeeScheduleList;
-                _noteCalculatorDC.NoteFinancingScheduleList = NoteFinancingScheduleList;
-
-
-                AppConfigLogic app = new AppConfigLogic();
-                List<AppConfigDataContract> appconfiglist = app.GetAppConfigByKey(UserID, "NumberofDaysin");
-
-                foreach (AppConfigDataContract app1 in appconfiglist)
-                {
-                    if (app1.Key.ToLower() == "NumberofDaysinPast".ToLower())
-                    {
-                        _noteCalculatorDC.NumberofDaysinPast = Convert.ToInt32(app1.Value);
-                    }
-                    if (app1.Key.ToLower() == "NumberofDaysinFuture".ToLower())
-                    {
-                        _noteCalculatorDC.NumberofDaysinFuture = Convert.ToInt32(app1.Value);
-                    }
-                }
-
-                //if (_noteCalculatorDC.MaturityScenariosList.Count > 0)
-                //{
-                //    foreach (MaturityScenariosDataContract mdc in _noteCalculatorDC.MaturityScenariosList)
-                //    {
-                //        mdc.SelectedMaturityDate = _noteCalculatorDC.SelectedMaturityDate;
-                //    }
-                //}
-
-
-                return _noteCalculatorDC;
-            }
-            catch (Exception ex)
-            {
-                throw ex;
-            }
-        }
-
         public DataTable GetWellsViewsDataByDealID(string dealid, string viewName)
         {
             DataTable _wellsImportDataContractList = new DataTable();
@@ -1353,6 +1227,11 @@ namespace CRES.BusinessLogic
             return _noteRepository.GetAllFeeTypesFromFeeSchedulesConfig();
         }
 
+        public List<FeeSchedulesConfigDataContract> GetAllFeeTypesFromFeeSchedulesConfigLiability()
+        {
+            return _noteRepository.GetAllFeeTypesFromFeeSchedulesConfigLiability();
+        }
+
 
 
         public List<FeeFunctionsConfigDataContract> GetFeeFunctionsConfig(Guid? userID)
@@ -1369,15 +1248,10 @@ namespace CRES.BusinessLogic
             _feeSchedulesConfigDataContract = feeConfigLogic.GetFeeSchedulesConfig(userID);
             return _feeSchedulesConfigDataContract;
         }
-
-
-
         public List<HistoricalAccrualDataContract> GetAccrualFieldsFromNotePeriodicByNoteID(Guid? NoteId, Guid? UserID, Guid? AnalysisID)
         {
             return _noteRepository.GetAccrualFieldsFromNotePeriodicByNoteID(NoteId, UserID, AnalysisID);
         }
-
-
         public List<TransactionEntryDataContract> GetTransactionEntryByNoteId(Guid? noteid, Guid? AnalysisID)
         {
             return _noteRepository.GetTransactionEntryByNoteId(noteid, AnalysisID);
@@ -1498,6 +1372,55 @@ namespace CRES.BusinessLogic
             List<ScenarioruletypeDataContract> _scenarioDC = new List<ScenarioruletypeDataContract>();
             _scenarioDC = _noteRepository.GetRuleTypeSetupByNoteId(NoteID, AnalysisID);
             return _scenarioDC;
+        }
+        public string InsertUpdatedNoteRateSpreadSchedule(List<RateSpreadSchedule> noteRateSpread, string userid)
+        {
+            return _noteRepository.InsertUpdatedNoteRateSpreadSchedule(noteRateSpread, userid);
+        }
+        public string InsertUpdatedNoteFeeSchedule(List<PrepayAndAdditionalFeeScheduleDataContract> noteFeeSchedule, string userid)
+        {
+            return _noteRepository.InsertUpdatedNoteFeeSchedule(noteFeeSchedule, userid);
+        }
+        public string InsertUpdateNotePIKScheduleEditHistory(List<PIKSchedule> notePIKSchedule, string userid)
+        {
+            return _noteRepository.InsertUpdateNotePIKScheduleEditHistory(notePIKSchedule, userid);
+        }
+        public void InsertUpdateUserPreference(UserPreferenceDataContract logsDc)
+        {
+            _noteRepository.InsertUpdateUserPreference(logsDc);
+        }
+        public DataTable GetUserPreferenceByUserID(string userid)
+        {
+            return _noteRepository.GetUserPreferenceByUserID(userid);
+        }
+        public DataTable GetDashBoardDataByNoteID(Guid NoteId)
+        {
+            return _noteRepository.GetDashBoardDataByNoteID(NoteId);
+        }
+        public void ImportBackshopTableForDiscrepancy()
+        {
+            _noteRepository.ImportBackshopTableForDiscrepancy();
+        }
+
+        public DataTable GetNoteTranchePercentageByNoteId(string NoteId)
+        {
+            return _noteRepository.GetNoteTranchePercentageByNoteId(NoteId);
+        }
+
+
+        public void UpdateNoteTranchePercentage(string CreNoteId)
+        {
+            _noteRepository.UpdateNoteTranchePercentage(CreNoteId);
+        }
+
+        public void UpdateParentClient(DataTable transtypeDC, Guid UserID)
+        {
+            _noteRepository.UpdateParentClient(transtypeDC, UserID);
+        }
+
+        public void UpdateParentFund(DataTable transtypeDC, Guid UserID)
+        {
+            _noteRepository.UpdateParentFund(transtypeDC, UserID);
         }
     }
 }

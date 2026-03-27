@@ -1,5 +1,4 @@
-﻿
-CREATE View [dbo].[M61_CurrentBalalnce]
+﻿CREATE View [dbo].[M61_CurrentBalalnce]
 
 AS
 
@@ -10,6 +9,7 @@ outer apply (Select SUM(ISNUll(Amount,0))As Amount, AnalysisID AnalysisID_TransE
 
 			 and Type in ('FundingorRepayment', 'ScheduledPrincipalPaid')
 			 and N.AnalysisID = T.AnalysisID
+			 and T.AccountTypeID = 1
 			 Group by T.Noteid, AnalysisId
 
 

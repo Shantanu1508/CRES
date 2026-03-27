@@ -67,13 +67,6 @@ export class functionService {
     return this.accountService.getByIDAndIDDest(id, iddest);
   }
 
-  //createFunction(id: string, iddest: string)
-  //{
-  //    this.accountService.set(this._functionCreateFunctionAPI);
-  //    return this.accountService.getByIDAndIDDest(id, iddest);
-
-  //}
-
   createFunction(parameters: any) {
     this.accountService.set(this._functionCreateFunctionAPI);
     return this.accountService.post(JSON.stringify(parameters));
@@ -83,13 +76,7 @@ export class functionService {
   updateFunction(parameters: any) {
     this.accountService.set(this._functionUpdateFunctionAPI);
     return this.accountService.post(JSON.stringify(parameters));
-  }
-
-  //invokeFunction(id: string, iddest: string) {
-  //    this.accountService.set(this._functionInvokeFunctionAPI);
-  //    return this.accountService.getByIDAndIDDest(id, iddest);
-
-  //}
+  }  
 
   invokeFunction(parameters: any) {
     this.accountService.set(this._functionInvokeFunctionAPI);
@@ -97,10 +84,7 @@ export class functionService {
 
   }
 
-  getallFastFunction() {
-    this.accountService.set(this._functiongetallFastFunctionAPI);
-    return this.accountService.getAll();
-  }
+   
 
   updateFileFunction(parameters: any) {
     this.accountService.set(this._functionUpdateFileFunctionAPI);

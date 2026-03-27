@@ -7,7 +7,12 @@
     [CreatedDate] DATETIME       NULL,
     [UpdatedBy]   NVARCHAR (256) NULL,
     [UpdatedDate] DATETIME       NULL,
+    [ParentFund]    NVARCHAR (256) NULL,
     CONSTRAINT [PK_FundID] PRIMARY KEY CLUSTERED ([FundID] ASC),
     CONSTRAINT [FK_Fund_ClientID] FOREIGN KEY ([ClientID]) REFERENCES [CRE].[Client] ([ClientID])
 );
 
+
+GO
+ALTER TABLE [CRE].[Fund] ENABLE CHANGE_TRACKING WITH (TRACK_COLUMNS_UPDATED = ON);
+GO

@@ -9,6 +9,10 @@
     [CreatedBy]                        NVARCHAR (256)   NULL,
     [CreatedDate]                      DATETIME         DEFAULT (getdate()) NULL,
     [UpdatedBy]                        NVARCHAR (256)   NULL,
-    [UpdatedDate]                      DATETIME         DEFAULT (getdate()) NULL
+    [UpdatedDate]                      DATETIME         DEFAULT (getdate()) NULL,
+    [WellsDataTap_AutoID]              INT              IDENTITY (1, 1) NOT NULL,
+    CONSTRAINT [PK_WellsDataTap_AutoID] PRIMARY KEY CLUSTERED ([WellsDataTap_AutoID] ASC)
 );
+
+
 

@@ -1,4 +1,8 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
 
 namespace CRES.DataContract
 {
@@ -14,7 +18,7 @@ namespace CRES.DataContract
         public Decimal? StraightLineFactor { get; set; }
         public Decimal? CPRFactor { get; set; }
 
-
+       
 
     }
 

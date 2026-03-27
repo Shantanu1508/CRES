@@ -4,6 +4,7 @@
     [LookupID]                    INT            NULL,
     [EmailID]                     NVARCHAR (250) NULL,
     [ParentClient]                NVARCHAR (250) NULL,
+    ParentClient_Old nvarchar(256)
     CONSTRAINT [PK_WFNotificationMasterEmail] PRIMARY KEY CLUSTERED ([WFNotificationMasterEmailID] ASC)
 );
 

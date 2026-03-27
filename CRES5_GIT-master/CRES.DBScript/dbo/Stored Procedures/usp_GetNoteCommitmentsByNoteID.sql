@@ -1,8 +1,9 @@
-﻿-- [dbo].[usp_GetNoteCommitmentsByNoteID] 'a980c8a4-b5c2-4224-aec6-8ad61fc7ea33','b0e6697b-3534-4c09-be0a-04473401ab93'
+﻿-- Procedure
+-- [dbo].[usp_GetNoteCommitmentsByNoteID] 'a980c8a4-b5c2-4224-aec6-8ad61fc7ea33','b0e6697b-3534-4c09-be0a-04473401ab93'
 --  [dbo].[usp_GetNoteCommitmentsByNoteID] '62E55DE7-791D-4023-949A-D35AEE98CFA7','b0e6697b-3534-4c09-be0a-04473401ab93'
 -- [dbo].[usp_GetNoteCommitmentsByNoteID] '5bf977cd-4922-4b8f-aef6-21503c8e9baf','b0e6697b-3534-4c09-be0a-04473401ab93'
 
-Create PROCEDURE [dbo].[usp_GetNoteCommitmentsByNoteID] 
+CREATE PROCEDURE [dbo].[usp_GetNoteCommitmentsByNoteID] 
 (
 @NoteId nvarchar(256),
 @UserID nvarchar(256)

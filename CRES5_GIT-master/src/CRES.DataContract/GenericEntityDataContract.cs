@@ -1,4 +1,8 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
 
 namespace CRES.DataContract
 {
@@ -17,5 +21,13 @@ namespace CRES.DataContract
         public string Comment { get; set; }
         public string TableName { get; set; }
         public string Cash_NonCash { get; set; }
+    }
+    public class TagXIRREntityDataContract
+    {
+        public string TableName { get; set; }
+        public string ObjectID { get; set; }
+        public int TagID { get; set;}
+        public string TagName { get; set; }
+        public string Status { get; set; }
     }
 }

@@ -1,4 +1,5 @@
-﻿
+﻿-- Procedure
+
 CREATE PROCEDURE [dbo].[usp_VerifyPIKPrincipalM61andBackshop]   
 (  
  @CRENoteId nvarchar(256),  
@@ -8,6 +9,8 @@ CREATE PROCEDURE [dbo].[usp_VerifyPIKPrincipalM61andBackshop]
 AS  
 BEGIN  
   
+Declare @Cutoffdate date = CAST((select [Value] from app.appconfig where [key] = 'CutOffDate_BackshopExport') as date)
+
   
 DECLARE @query1 nvarchar(256) = N'Select COUNT(noteid) from [acore].[vw_AcctNote] where Noteid = '''+@CRENoteId+''''  
 DECLARE @NoteCount TABLE (Cnt int,ShardName nvarchar(max))  
@@ -60,8 +63,10 @@ from [IO].[out_PIKPrincipalFunding] where [CRENoteID] = @CRENoteId ---and [Audit
   
 ------------------  
 DECLARE @query nvarchar(MAX) = N'Select Distinct CAST(NoteID_f as varchar(256)),FundingDate,FundingAmount,'''' as Comments,FundingPurposeCD_F,Applied,WireConfirm,FundingDrawId   
-from [acore].[vw_AcctNoteFundings] where FundingDate > ''12/31/2019'' and NoteID_f = '''+ @CRENoteId +''' and FundingPurposeCD_F in (''PIKNC'',''PIKPP'') '  
-  
+from [acore].[vw_AcctNoteFundings] where FundingDate > '''+ CAST(@Cutoffdate as nvarchar(256)) +''' and  NoteID_f = '''+ @CRENoteId +''' and FundingPurposeCD_F in (''PIKNC'',''PIKPP'') '  ----''Balloon'' ,''PAYOFF''
+
+---
+
 INSERT INTO @BackshopFF (CRENoteID,FundingDate,FundingAmount,Comments,FundingPurpose,Applied,WireConfirm,DrawFundingId,ShardName)  
 EXEC sp_execute_remote @data_source_name  = N'RemoteReferenceDataFF',   
 @stmt = @query  
@@ -121,7 +126,6 @@ END
   
 END  
   
-END  
-  
-  
-  
+END
+GO
+

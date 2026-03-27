@@ -16,8 +16,10 @@ declare @CalculationRequestID UNIQUEIDENTIFIER;
 declare @Noteid UNIQUEIDENTIFIER;
 
 
-Select top 1 @analysisID = analysisID ,@CalculationRequestID = CalculationRequestID,@Noteid = Noteid
-from core.CalculationRequests where RequestID = @RequestID
+Select top 1 @analysisID = analysisID ,@CalculationRequestID = CalculationRequestID,@Noteid = n.Noteid
+from core.CalculationRequests cr
+inner Join cre.note n on n.Account_AccountID = cr.AccountId
+where RequestID = @RequestID
 and CalcType = 775
 
 

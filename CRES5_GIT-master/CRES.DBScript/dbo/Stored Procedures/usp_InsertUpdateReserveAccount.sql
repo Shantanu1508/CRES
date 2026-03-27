@@ -1,4 +1,4 @@
-CREATE PROCEDURE [dbo].[usp_InsertUpdateReserveAccount ]  
+CREATE PROCEDURE [dbo].[usp_InsertUpdateReserveAccount]  
 @tblTypeReserveAccount TableTypeReserveAccount readonly,
 @UserID UNIQUEIDENTIFIER
 AS  
@@ -15,7 +15,8 @@ INSERT INTO [CRE].[ReserveAccount]
            (
            [CREReserveAccountID]
            ,[DealID]
-           ,[ReserveAccountName]
+		   ,[ReserveAccountMasterID]
+           --,[ReserveAccountName]
            ,[InitialBalanceDate]
            ,[InitialFundingAmount]
            ,[EstimatedReserveBalance]
@@ -24,7 +25,7 @@ INSERT INTO [CRE].[ReserveAccount]
            ,[CreatedDate]
            ,[UpdatedBy]
            ,[UpdatedDate])
-   Select CREReserveAccountID,DealID,ReserveAccountName,InitialBalanceDate,InitialFundingAmount,EstimatedReserveBalance,FloatInterestRate,@UserID,GetDate(),@UserID,getdate()
+   Select CREReserveAccountID,DealID,ReserveAccountMasterID,InitialBalanceDate,InitialFundingAmount,EstimatedReserveBalance,FloatInterestRate,@UserID,GetDate(),@UserID,getdate()
 			from @tblTypeReserveAccount
 			where  ReserveAccountGUID ='00000000-0000-0000-0000-000000000000'
 			
@@ -33,14 +34,15 @@ INSERT INTO [CRE].[ReserveAccount]
 
 
 	UPDATE CRE.ReserveAccount SET CREReserveAccountID =a.CREReserveAccountID,
-						ReserveAccountName =a.ReserveAccountName,
+						--ReserveAccountName =a.ReserveAccountName,
+						ReserveAccountMasterID=a.ReserveAccountMasterID,
 						InitialBalanceDate =a.InitialBalanceDate,
 						InitialFundingAmount =a.InitialFundingAmount,
 						EstimatedReserveBalance =a.EstimatedReserveBalance,
 						FloatInterestRate = a.FloatInterestRate,
 						UpdatedBy=@UserID,
 						UpdatedDate=getdate()
-	FROM(Select ReserveAccountGUID,CREReserveAccountID,DealID,ReserveAccountName,InitialBalanceDate,InitialFundingAmount,EstimatedReserveBalance,FloatInterestRate
+	FROM(Select ReserveAccountGUID,CREReserveAccountID,DealID,ReserveAccountMasterID,InitialBalanceDate,InitialFundingAmount,EstimatedReserveBalance,FloatInterestRate
 			from @tblTypeReserveAccount
 			where DealID=@DealID 
 			and ReserveAccountGUID<>'00000000-0000-0000-0000-000000000000'  

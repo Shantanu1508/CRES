@@ -1,4 +1,8 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
 
 namespace CRES.DataContract
 {
@@ -16,13 +20,13 @@ namespace CRES.DataContract
         public string ReceiverName { get; set; }
         public string ReplyTo { get; set; }
         public List<FileAttachmentDataContract> FileAttachment;
-        public string TemplatePath { get; set; }
+        public string TemplatePath {get;set;}
         //email setting
         public EmailSettings EmailSettings { get; set; }
         public int ModuleId { get; set; }
         public string EmailID { get; set; }
 
-        public int? Type { get; set; }
+        public int? Type { get; set; }    
 
 
     }

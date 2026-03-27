@@ -1,5 +1,6 @@
-﻿--[dbo].[usp_DeleteDealFromDataBaseByCreDealID] '19-1056DD'
-
+﻿-- Procedure
+-- Procedure
+---[dbo].[usp_DeleteDealFromDataBaseByCreDealID] '22-3282'
 
 CREATE PROCEDURE [dbo].[usp_DeleteDealFromDataBaseByCreDealID] 
 (
@@ -19,15 +20,22 @@ IF(@CreDealID <> '')
 BEGIN
 	
 	Declare @dealid UNIQUEIDENTIFIER;
-	SET @dealid = (Select DealID from CRE.DEAL where credealid = @CreDealID)
+	Declare @dealAccountid UNIQUEIDENTIFIER;
+
+	  
+	Select @dealid = DealID ,@dealAccountid = AccountID
+	from CRE.DEAL where credealid = @CreDealID
+	
 
 	IF EXISTS(Select DealID from CRE.DEAL where credealid = @CreDealID)
 	BEGIN
 		----Delete Note----
 		--collect notes ids of deal
-		Declare @tblNoteIds as table(noteid UNIQUEIDENTIFIER)
+		Declare @tblNoteIds as table(noteid UNIQUEIDENTIFIER,accountid UNIQUEIDENTIFIER)
 		INSERT INTO @tblNoteIds
-		Select n.noteid from cre.note n
+		Select n.noteid ,acc.accountid
+		from cre.note n
+		Inner Join core.account acc on acc.accountid = n.account_accountid
 		inner join cre.deal d on d.dealid =  n.dealid
 		where d.dealid = @dealid
 
@@ -50,12 +58,13 @@ BEGIN
 
 		Delete from [CRE].[DependentCalcRequest] where  ParentNoteID in (Select noteid from @tblNoteIds)
 		Delete from CRE.PayruleDistributions where SourceNoteID in (Select noteid from @tblNoteIds)
-		Delete from Core.CalculationRequests  where NoteID in (Select noteid from @tblNoteIds)
+		Delete from Core.CalculationRequests  where AccountId in (Select accountid from @tblNoteIds)
 		Delete from CRE.FundingRepaymentSequence where NoteID in (Select noteid from @tblNoteIds)
 		Delete from CRE.NoteTransactionDetail where NoteID in (Select noteid from @tblNoteIds)
-		Delete from CRE.NotePeriodicCalc where   NoteID in (Select noteid from @tblNoteIds)
-		Delete from CRE.OutputNPVdata where   NoteID in (Select noteid from @tblNoteIds)
-		Delete from CRE.TransactionEntry where NoteID in (Select noteid from @tblNoteIds)
+		Delete from CRE.NotePeriodicCalc where   AccountID in (Select accountid from @tblNoteIds)
+		Delete from CRE.OutputNPVdata where   NoteID in (Select noteid from @tblNoteIds)		
+		--Delete from CRE.TransactionEntry where NoteID in (Select NoteID from @tblNoteIds)
+		Delete from CRE.TransactionEntry where accountid in (Select accountid from @tblNoteIds)		
 		Delete from CRE.PeriodicInterestRateUsed where NoteID in (Select noteid from @tblNoteIds)
 		Delete from CRE.DailyInterestAccruals where NoteID in (Select noteid from @tblNoteIds)
 		Delete from CRE.InterestCalculator where NoteID in (Select noteid from @tblNoteIds)
@@ -103,8 +112,13 @@ BEGIN
 		Delete from cre.AutoSpreadRule where dealid = @dealid
 		Delete from cre.DealAmortizationSchedule where dealid = @dealid
 		Delete from cre.DealProjectedPayOffAccounting where dealid = @dealid
+
+		Delete from [CRE].WLDealLegalStatus where dealid = @dealid
+		
+
 		Delete from [CRE].[Deal] where dealid = @dealid
 
+		Delete from Core.Account where AccountID = @dealAccountid
 
 		---Clear record form search item---
 		Declare @LookupIdForNote int = (Select lookupid from core.Lookup where name = 'Note');

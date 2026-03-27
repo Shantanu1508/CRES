@@ -1,11 +1,13 @@
 ﻿using CRES.BusinessLogic;
-#pragma warning disable CS0105 // The using directive for 'CRES.BusinessLogic' appeared previously in this namespace
-#pragma warning restore CS0105 // The using directive for 'CRES.BusinessLogic' appeared previously in this namespace
+using CRES.BusinessLogic;
 using CRES.DataContract;
 using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
+using System.Net.Http;
+using System.Net.Http.Headers;
 using System.Threading;
 
 namespace CRES.Services.Controllers
@@ -33,9 +35,7 @@ namespace CRES.Services.Controllers
             string getAllLookup = "57,58,59,60";
             GenericResult _authenticationResult = null;
             List<LookupDataContract> lstlookupDC = new List<LookupDataContract>();
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
             var headerUserID = string.Empty;
             if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
             {
@@ -80,12 +80,10 @@ namespace CRES.Services.Controllers
         [Services.Controllers.IsAuthenticate]
         [Services.Controllers.DeflateCompression]
         [Route("api/taskmanagement/insertupdatetask")]
-        public IActionResult InsertUpdateTask([FromBody] TaskManagementDataContract TaskDc)
+        public IActionResult InsertUpdateTask([FromBody]TaskManagementDataContract TaskDc)
         {
             GenericResult _authenticationResult = null;
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
             var headerUserID = string.Empty;
             if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
             {
@@ -190,9 +188,7 @@ namespace CRES.Services.Controllers
             GenericResult _authenticationResult = null;
             List<TaskManagementDataContract> _lsttask = new List<TaskManagementDataContract>();
 
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
             var headerUserID = new Guid();
             if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
             {
@@ -246,9 +242,7 @@ namespace CRES.Services.Controllers
         {
             GenericResult _authenticationResult = null;
             TaskManagementDataContract taskdc = new TaskManagementDataContract();
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
 
             var headerUserID = string.Empty;
 
@@ -298,9 +292,7 @@ namespace CRES.Services.Controllers
         public IActionResult InsertUpdateTaskComment([FromBody] TaskCommentDataContract commentsDC)
         {
             GenericResult _authenticationResult = null;
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
             string usernametext = "";
             var headerUserID = string.Empty;
             if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
@@ -372,13 +364,11 @@ namespace CRES.Services.Controllers
         [Services.Controllers.IsAuthenticate]
         [Services.Controllers.DeflateCompression]
         [Route("api/taskmanagement/commentsbytaskid")]
-        public IActionResult GetTaskCommentsByTaskId([FromBody] TaskCommentDataContract commentsDC)
+        public IActionResult GetTaskCommentsByTaskId([FromBody]TaskCommentDataContract commentsDC)
         {
             GenericResult _authenticationResult = null;
             List<TaskCommentDataContract> lsttaskcommentdc = new List<TaskCommentDataContract>();
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
             //  string currentTime = "2017-08-09";
             var headerUserID = string.Empty;
 
@@ -388,7 +378,7 @@ namespace CRES.Services.Controllers
             }
             commentsDC.CommentType = "All";
             TaskManagementLogic tasklogic = new TaskManagementLogic();
-            lsttaskcommentdc = tasklogic.GetTaskCommentsByTaskId(new Guid(headerUserID), commentsDC.TaskID.ToString(), commentsDC.Currentdate, commentsDC.CommentType);
+            lsttaskcommentdc = tasklogic.GetTaskCommentsByTaskId(new Guid(headerUserID),commentsDC.TaskID.ToString(), commentsDC.Currentdate, commentsDC.CommentType);
 
             try
             {
@@ -429,9 +419,7 @@ namespace CRES.Services.Controllers
         {
             GenericResult _authenticationResult = null;
             List<TaskSubscriptionDataContract> lstSubscribeduser = new List<TaskSubscriptionDataContract>();
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
 
             var headerUserID = string.Empty;
 
@@ -478,12 +466,10 @@ namespace CRES.Services.Controllers
         [Services.Controllers.IsAuthenticate]
         [Services.Controllers.DeflateCompression]
         [Route("api/taskmanagement/insertsubscriptiondata")]
-        public IActionResult InsertSubscriptionData([FromBody] List<TaskSubscriptionDataContract> lstsubdata)
+        public IActionResult InsertSubscriptionData([FromBody]List<TaskSubscriptionDataContract> lstsubdata)
         {
             GenericResult _authenticationResult = null;
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
             var headerUserID = string.Empty;
             if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
             {
@@ -591,11 +577,11 @@ namespace CRES.Services.Controllers
         //[Services.Controllers.IsAuthenticate]
         [Services.Controllers.DeflateCompression]
         [Route("api/taskmanagement/managetask")]
-        public IActionResult ManageTask([FromBody] WorkflowDataContract WorkDc)
+        public IActionResult ManageTask([FromBody]WorkflowDataContract WorkDc)
         {
             GenericResult _authenticationResult = null;
 
-
+           
 
             try
             {

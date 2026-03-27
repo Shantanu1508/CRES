@@ -80,6 +80,11 @@
     [UnderwrittenReturn]      NVARCHAR (256) NULL,
     [AcoreOrig]               NVARCHAR (256) NULL,
     [ACOREID]                 NVARCHAR (256) NULL,
-    [SheetName]               NVARCHAR (256) NULL
+    [SheetName]               NVARCHAR (256) NULL,
+    [L_NoteMatrixBI_AutoID]   INT            IDENTITY (1, 1) NOT NULL,
+    ExitFee1 decimal(28,15)
+    CONSTRAINT [PK_L_NoteMatrixBI_AutoID] PRIMARY KEY CLUSTERED ([L_NoteMatrixBI_AutoID] ASC)
 );
+
+
 

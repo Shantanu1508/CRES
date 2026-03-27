@@ -101,7 +101,7 @@ SELECT --n.NoteID
 	from 
 	[CORE].[Account] acc 
 	INNER JOIN [CRE].[Note] n ON n.Account_AccountID = acc.AccountID
-	inner join CRE.noteperiodiccalc np on np.noteid = n.noteid
+	inner join CRE.noteperiodiccalc np on np.AccountID = n.Account_AccountID
 	where ( CASE WHEN @NoteId = '00000000-0000-0000-0000-000000000000' THEN 1 WHEN n.NoteID = @NoteId  THEN 1 ELSE 0 END ) = 1 
 	and isnull(np.balloonpayment,0)<>0 and acc.isdeleted=0
 	AND (CASE WHEN @DealId = '00000000-0000-0000-0000-000000000000' THEN 1 WHEN n.DealID = @DealId  THEN 1 ELSE 0 END ) = 1
@@ -117,7 +117,7 @@ SELECT --n.NoteID
 	from 
 	[CORE].[Account] acc 
 	INNER JOIN [CRE].[Note] n ON n.Account_AccountID = acc.AccountID
-	inner join CRE.noteperiodiccalc np on np.noteid = n.noteid
+	inner join CRE.noteperiodiccalc np on np.AccountID = n.Account_AccountID
 	where ( CASE WHEN @NoteId = '00000000-0000-0000-0000-000000000000' THEN 1 WHEN n.NoteID = @NoteId  THEN 1 ELSE 0 END ) = 1 
 	and isnull(np.principalpaid,0)<>0 and acc.isdeleted=0
 	AND (CASE WHEN @DealId = '00000000-0000-0000-0000-000000000000' THEN 1 WHEN n.DealID = @DealId  THEN 1 ELSE 0 END ) = 1
@@ -133,7 +133,7 @@ SELECT --n.NoteID
 	from 
 	[CORE].[Account] acc 
 	INNER JOIN [CRE].[Note] n ON n.Account_AccountID = acc.AccountID
-	inner join CRE.noteperiodiccalc np on np.noteid = n.noteid
+	inner join CRE.noteperiodiccalc np on np.AccountID = n.Account_AccountID
 	where ( CASE WHEN @NoteId = '00000000-0000-0000-0000-000000000000' THEN 1 WHEN n.NoteID = @NoteId  THEN 1 ELSE 0 END ) = 1 
 	and isnull(np.interestpaidonpaymentdate,0)<>0 and acc.isdeleted=0
 	AND (CASE WHEN @DealId = '00000000-0000-0000-0000-000000000000' THEN 1 WHEN n.DealID = @DealId  THEN 1 ELSE 0 END ) = 1
@@ -149,7 +149,7 @@ SELECT --n.NoteID
 	from 
 	[CORE].[Account] acc 
 	INNER JOIN [CRE].[Note] n ON n.Account_AccountID = acc.AccountID
-	inner join CRE.noteperiodiccalc np on np.noteid = n.noteid
+	inner join CRE.noteperiodiccalc np on np.AccountID = n.Account_AccountID
 	where ( CASE WHEN @NoteId = '00000000-0000-0000-0000-000000000000' THEN 1 WHEN n.NoteID = @NoteId  THEN 1 ELSE 0 END ) = 1 
 	and isnull(np.ExitFeeIncludedInLevelYield,0)<>0 and acc.isdeleted=0
 	AND (CASE WHEN @DealId = '00000000-0000-0000-0000-000000000000' THEN 1 WHEN n.DealID = @DealId  THEN 1 ELSE 0 END ) = 1
@@ -165,7 +165,7 @@ SELECT --n.NoteID
 	from 
 	[CORE].[Account] acc 
 	INNER JOIN [CRE].[Note] n ON n.Account_AccountID = acc.AccountID
-	inner join CRE.noteperiodiccalc np on np.noteid = n.noteid
+	inner join CRE.noteperiodiccalc np on np.AccountID = n.Account_AccountID
 	where ( CASE WHEN @NoteId = '00000000-0000-0000-0000-000000000000' THEN 1 WHEN n.NoteID = @NoteId  THEN 1 ELSE 0 END ) = 1 
 	and isnull(np.ExitFeeExcludedFromLevelYield,0)<>0 and acc.isdeleted=0
 	AND (CASE WHEN @DealId = '00000000-0000-0000-0000-000000000000' THEN 1 WHEN n.DealID = @DealId  THEN 1 ELSE 0 END ) = 1
@@ -181,7 +181,7 @@ SELECT --n.NoteID
 	from 
 	[CORE].[Account] acc 
 	INNER JOIN [CRE].[Note] n ON n.Account_AccountID = acc.AccountID
-	inner join CRE.noteperiodiccalc np on np.noteid = n.noteid
+	inner join CRE.noteperiodiccalc np on np.AccountID = n.Account_AccountID
 	where ( CASE WHEN @NoteId = '00000000-0000-0000-0000-000000000000' THEN 1 WHEN n.NoteID = @NoteId  THEN 1 ELSE 0 END ) = 1 
 	and isnull(np.AdditionalFeesIncludedInLevelYield,0)<>0 and acc.isdeleted=0
 	AND (CASE WHEN @DealId = '00000000-0000-0000-0000-000000000000' THEN 1 WHEN n.DealID = @DealId  THEN 1 ELSE 0 END ) = 1
@@ -197,7 +197,7 @@ SELECT --n.NoteID
 	from 
 	[CORE].[Account] acc 
 	INNER JOIN [CRE].[Note] n ON n.Account_AccountID = acc.AccountID
-	inner join CRE.noteperiodiccalc np on np.noteid = n.noteid
+	inner join CRE.noteperiodiccalc np on np.AccountID = n.Account_AccountID
 	where ( CASE WHEN @NoteId = '00000000-0000-0000-0000-000000000000' THEN 1 WHEN n.NoteID = @NoteId  THEN 1 ELSE 0 END ) = 1 
 	and isnull(np.AdditionalFeesExcludedFromLevelYield,0)<>0 and acc.isdeleted=0
 	AND (CASE WHEN @DealId = '00000000-0000-0000-0000-000000000000' THEN 1 WHEN n.DealID = @DealId  THEN 1 ELSE 0 END ) = 1
@@ -213,7 +213,7 @@ SELECT --n.NoteID
 	from 
 	[CORE].[Account] acc 
 	INNER JOIN [CRE].[Note] n ON n.Account_AccountID = acc.AccountID
-	inner join CRE.noteperiodiccalc np on np.noteid = n.noteid
+	inner join CRE.noteperiodiccalc np on np.AccountID = n.Account_AccountID
 	where ( CASE WHEN @NoteId = '00000000-0000-0000-0000-000000000000' THEN 1 WHEN n.NoteID = @NoteId  THEN 1 ELSE 0 END ) = 1 
 	and isnull(np.OriginationFeeStripping,0)<>0 and acc.isdeleted=0
 	AND (CASE WHEN @DealId = '00000000-0000-0000-0000-000000000000' THEN 1 WHEN n.DealID = @DealId  THEN 1 ELSE 0 END ) = 1
@@ -229,7 +229,7 @@ SELECT --n.NoteID
 	from 
 	[CORE].[Account] acc 
 	INNER JOIN [CRE].[Note] n ON n.Account_AccountID = acc.AccountID
-	inner join CRE.noteperiodiccalc np on np.noteid = n.noteid
+	inner join CRE.noteperiodiccalc np on np.AccountID = n.Account_AccountID
 	where ( CASE WHEN @NoteId = '00000000-0000-0000-0000-000000000000' THEN 1 WHEN n.NoteID = @NoteId  THEN 1 ELSE 0 END ) = 1 
 	and isnull(np.ExitFeeStrippingIncldinLevelYield,0)<>0 and acc.isdeleted=0
 	AND (CASE WHEN @DealId = '00000000-0000-0000-0000-000000000000' THEN 1 WHEN n.DealID = @DealId  THEN 1 ELSE 0 END ) = 1
@@ -245,7 +245,7 @@ SELECT --n.NoteID
 	from 
 	[CORE].[Account] acc 
 	INNER JOIN [CRE].[Note] n ON n.Account_AccountID = acc.AccountID
-	inner join CRE.noteperiodiccalc np on np.noteid = n.noteid
+	inner join CRE.noteperiodiccalc np on np.AccountID = n.Account_AccountID
 	where ( CASE WHEN @NoteId = '00000000-0000-0000-0000-000000000000' THEN 1 WHEN n.NoteID = @NoteId  THEN 1 ELSE 0 END ) = 1 
 	and isnull(np.ExitFeeStrippingExcldfromLevelYield,0)<>0 and acc.isdeleted=0
 	AND (CASE WHEN @DealId = '00000000-0000-0000-0000-000000000000' THEN 1 WHEN n.DealID = @DealId  THEN 1 ELSE 0 END ) = 1
@@ -261,7 +261,7 @@ SELECT --n.NoteID
 	from 
 	[CORE].[Account] acc 
 	INNER JOIN [CRE].[Note] n ON n.Account_AccountID = acc.AccountID
-	inner join CRE.noteperiodiccalc np on np.noteid = n.noteid
+	inner join CRE.noteperiodiccalc np on np.AccountID = n.Account_AccountID
 	where ( CASE WHEN @NoteId = '00000000-0000-0000-0000-000000000000' THEN 1 WHEN n.NoteID = @NoteId  THEN 1 ELSE 0 END ) = 1 
 	and isnull(np.AddlFeesStrippingIncldinLevelYield,0)<>0 and acc.isdeleted=0
 	AND (CASE WHEN @DealId = '00000000-0000-0000-0000-000000000000' THEN 1 WHEN n.DealID = @DealId  THEN 1 ELSE 0 END ) = 1
@@ -277,7 +277,7 @@ SELECT --n.NoteID
 	from 
 	[CORE].[Account] acc 
 	INNER JOIN [CRE].[Note] n ON n.Account_AccountID = acc.AccountID
-	inner join CRE.noteperiodiccalc np on np.noteid = n.noteid
+	inner join CRE.noteperiodiccalc np on np.AccountID = n.Account_AccountID
 	where ( CASE WHEN @NoteId = '00000000-0000-0000-0000-000000000000' THEN 1 WHEN n.NoteID = @NoteId  THEN 1 ELSE 0 END ) = 1 
 	and isnull(np.AddlFeesStrippingExcldfromLevelYield,0)<>0 and acc.isdeleted=0
 	AND (CASE WHEN @DealId = '00000000-0000-0000-0000-000000000000' THEN 1 WHEN n.DealID = @DealId  THEN 1 ELSE 0 END ) = 1
@@ -293,7 +293,7 @@ UNION
 	from 
 	[CORE].[Account] acc 
 	INNER JOIN [CRE].[Note] n ON n.Account_AccountID = acc.AccountID
-	inner join CRE.noteperiodiccalc np on np.noteid = n.noteid
+	inner join CRE.noteperiodiccalc np on np.AccountID = n.Account_AccountID
 	where ( CASE WHEN @NoteId = '00000000-0000-0000-0000-000000000000' THEN 1 WHEN n.NoteID = @NoteId  THEN 1 ELSE 0 END ) = 1 
 	and isnull(np.EndingGAAPBookValue,0)<>0 and acc.isdeleted=0
 	AND (CASE WHEN @DealId = '00000000-0000-0000-0000-000000000000' THEN 1 WHEN n.DealID = @DealId  THEN 1 ELSE 0 END ) = 1
@@ -304,14 +304,15 @@ UNION
 	,acc.name NoteName
 	,dateadd(d,day(firstpaymentdate),eomonth(periodenddate,-1)) 
 	,LEFT(CONVERT(VARCHAR, dateadd(d,day(firstpaymentdate),eomonth(periodenddate,-1)), 101), 10) AS DisplayDate
-	,np.TotalGAAPIncomeforthePeriod
+	,null TotalGAAPIncomeforthePeriod
 	,'TotalGAAPIncomeforthePeriod' as ValueType
 	from 
 	[CORE].[Account] acc 
 	INNER JOIN [CRE].[Note] n ON n.Account_AccountID = acc.AccountID
-	inner join CRE.noteperiodiccalc np on np.noteid = n.noteid
+	inner join CRE.noteperiodiccalc np on np.AccountID = n.Account_AccountID
 	where ( CASE WHEN @NoteId = '00000000-0000-0000-0000-000000000000' THEN 1 WHEN n.NoteID = @NoteId  THEN 1 ELSE 0 END ) = 1 
-	and isnull(np.TotalGAAPIncomeforthePeriod,0)<>0 and acc.isdeleted=0
+	--and isnull(np.TotalGAAPIncomeforthePeriod,0)<>0 
+	and acc.isdeleted=0
 	AND (CASE WHEN @DealId = '00000000-0000-0000-0000-000000000000' THEN 1 WHEN n.DealID = @DealId  THEN 1 ELSE 0 END ) = 1
 
 Union

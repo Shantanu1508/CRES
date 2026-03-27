@@ -1,0 +1,1 @@
+﻿Update [CORE].IndexesMaster Set [Status]=1

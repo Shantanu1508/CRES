@@ -1,0 +1,13 @@
+﻿-- Procedure
+
+create procedure dbo.usp_GetAllAutospreadsDeals 
+@isdeleted int,
+@status int
+as
+Select Distinct  dealname,credealid 
+from cre.deal d
+inner join cre.note n on n.dealid = d.dealid
+inner join core.account acc on acc.accountid = n.account_accountid
+Where d.isdeleted <> 1 and acc.isdeleted <> 1
+and d.status = 323
+and EnableAutoSpreadRepayments = 1

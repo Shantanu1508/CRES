@@ -32,12 +32,12 @@ namespace CRES.BusinessLogic
             return lstexce;
         }
 
-        public void InsertExceptionsByFieldName(List<ExceptionDataContract> exlist, string username, string FieldName)
+        public void InsertExceptionsByFieldName(List<ExceptionDataContract> exlist, string username, string FieldName) 
         {
-            er.InsertExceptionsByFieldName(exlist, username, FieldName);
+            er.InsertExceptionsByFieldName(exlist, username,FieldName);
         }
 
-        public void DeleteExceptionByobjectByFieldName(string objectid, string objecttype, string fieldname)
+        public void DeleteExceptionByobjectByFieldName(string objectid, string objecttype,string fieldname)
         {
             er.DeleteExceptionByobjectByFieldName(objectid, objecttype, fieldname);
         }

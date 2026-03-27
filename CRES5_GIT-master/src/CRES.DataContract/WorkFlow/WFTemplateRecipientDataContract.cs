@@ -1,4 +1,8 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
 
 namespace CRES.DataContract.WorkFlow
 {
@@ -18,6 +22,6 @@ namespace CRES.DataContract.WorkFlow
         public string CC { get; set; }
         public string ReplyTo { get; set; }
         public int WFNotificationMasterID { get; set; }
-
+        
     }
 }

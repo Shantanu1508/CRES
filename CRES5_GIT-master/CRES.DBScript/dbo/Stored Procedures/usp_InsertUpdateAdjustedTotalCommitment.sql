@@ -13,8 +13,8 @@ DECLARE  @rownumberOuter int;
 Declare @DealID uniqueidentifier = (SELECT Top 1 DealID FROM @TableAdjustedTotalCommitment)      
       
 --------============Delete table NoteAdjustedCommitmentMaster==============------      
- DELETE FROM CRE.NoteAdjustedCommitmentDetail WHERE DealID = @DealID       
- DELETE FROM CRE.NoteAdjustedCommitmentMaster WHERE DealID = @DealID       
+ DELETE FROM CRE.NoteAdjustedCommitmentDetail WHERE DealID = @DealID  --and type<>690       
+ DELETE FROM CRE.NoteAdjustedCommitmentMaster WHERE DealID = @DealID  --and type<>690 
       
 -----==== Declaring cursor to insert row by row ==========----------      
 IF CURSOR_STATUS('global','row_cursor')>= -1          
@@ -55,7 +55,6 @@ INSERT INTO CRE.NoteAdjustedCommitmentMaster
    ,TotalRequiredEquity      
    ,TotalAdditionalEquity      
    ,Rowno    
-   ,ExcludeFromCommitmentCalculation
    ,TotalEquityatClosing
   )      
       
@@ -75,9 +74,8 @@ INSERT INTO CRE.NoteAdjustedCommitmentMaster
    ,getdate()      
    ,TotalRequiredEquity      
    ,TotalAdditionalEquity      
-   ,@rownumberOuter      
-   ,ExcludeFromCommitmentCalculation ,
-   TotalEquityatClosing
+   ,@rownumberOuter  
+   ,TotalEquityatClosing
  FROM @TableAdjustedTotalCommitment ttc      
  WHERE ttc.Rownumber = @rownumberOuter      
        

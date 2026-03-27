@@ -31,7 +31,7 @@ BEGIN
 			mt.TransDate					
 	  from IO.[L_ManualTransaction] mt
 		inner join cre.note n on n.CRENoteID=mt.NoteID 		
-		left join [Cre].Transactionentry CREtr on n.NoteID=CREtr.NoteID and mt.DueDate=CREtr.Date and mt.ValueType=CREtr.Type and AnalysisID=@ScenarioId		
+		left join [Cre].Transactionentry CREtr on n.Account_AccountID=CREtr.AccountID and mt.DueDate=CREtr.Date and mt.ValueType=CREtr.Type and AnalysisID=@ScenarioId		
 	 Where mt.ValueType='InterestPaid'
 	)
 
@@ -78,7 +78,7 @@ INSERT into cre.TranscationReconciliation(DealId,NoteID,ServcerMasterID,Transact
 	  from IO.[L_ManualTransaction] mt
 		inner join cre.note n on n.CRENoteID=mt.NoteID 
 		left join cre.Deal d on d.DealID=n.DealID
-		left join [Cre].Transactionentry CREtr on n.NoteID=CREtr.NoteID and mt.DueDate=CREtr.Date and mt.ValueType=CREtr.Type and AnalysisID=@ScenarioId		
+		left join [Cre].Transactionentry CREtr on n.Account_AccountID=CREtr.AccountID and mt.DueDate=CREtr.Date and mt.ValueType=CREtr.Type and AnalysisID=@ScenarioId		
 	 Where mt.ValueType='InterestPaid' 
 	 )	
 

@@ -1,6 +1,19 @@
-<div class="col-sm-12" width="100%">
+<div class="col-sm-9" width="100%">
+  <button id="btnRefresh" type="button" class="custombutton-position-fixed" *ngIf="_IsRefreshVisible" (click)="refreshPBIReport()">Refresh</button>
+</div>
+<div class="col-sm-12" width="100%" id="dvReportContainer">
 
-  <div id="reportContainer" style="height:calc(100vh - 54px)!important"></div>
+
+  <div id="reportContainer" style="height:calc(100vh - 54px)!important">
+    <div *ngIf="_Showmessagediv" class="alert alert-success fade in">
+      <strong>{{_ShowmessagedivMsg}}</strong>
+    </div>
+    <iframe class="report-iframe" title="AM Reports" frameborder="0" allowFullScreen="allowfullscreen" id="iframreports" src=""></iframe>
+  </div>
+
+
+
+
 
 </div>
 <div id="customdialogbox" class="modal">
@@ -24,3 +37,7 @@
     </div>
   </div>
 </div>
+<div class="cssload-container" *ngIf="_isFetching">
+  <div class="cssload-whirlpool"></div>
+</div>
+<!--<div></div>-->

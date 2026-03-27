@@ -4,7 +4,7 @@
 
       <!--<h1 style="display: inline-block;margin-top: 5px;">Note details: {{_note.DealName}}\{{_note.Name}}</h1>-->
       <h1 style="display: inline-block;margin-top: 5px;">
-        Note details: <a style="color: #2196f3 !important;" routerLink='/dealdetail/{{_note.CREDealID}}' routerLinkActive="active">{{_note.DealName}}</a>\{{_note.Name}}
+        Note Details: <a style="color: #2196f3 !important;" routerLink='/dealdetail/{{_note.CREDealID}}' routerLinkActive="active">{{_note.DealName}}</a>\{{_note.Name}}
       </h1>
 
       <span *ngIf="!_isNoteSaving">
@@ -23,9 +23,6 @@
             </ul>
           </div>
         </span>
-        <!--<span *ngIf="_isSuperAdminUser">
-            <button type="button" id="btnCalcJson" class="custombutton" (click)="showDialog('CalculatorJson')">Calc Json</button>
-        </span>-->
 
         <span *ngIf="_isShowCopynote">
           <button type="button" id="btnCopyNote" class="custombutton" (click)="showCopyDialog(CRENoteID)">Copy</button>
@@ -33,18 +30,6 @@
 
         <span *ngIf="_isShowCalcbutton">
           <button type="button" id="btnCalcNote" name="btnCalc" class="custombutton" (click)="showDialog('Calculator')">Calc</button>
-
-          <!--<div class="btn-group" style="float:right;margin-right:10px;">
-              <button type="button" id="btnCalcNote" class="custombutton dropdown-toggle" data-toggle="dropdown">Calc<b class="caret"></b></button>
-              <ul class="dropdown-menu dropdown-menu-right">
-                  <li *ngFor="let item of lstCalculationMode">
-                      <a style="padding-left: 30px;" (click)="showDialog($event,'Calculator')">
-                          {{item.Name}}
-                      </a>
-                  </li>
-              </ul>
-          </div>-->
-
         </span>
 
         <button type="button" class="custombutton" (click)="DiscardChanges()">Cancel</button>
@@ -55,20 +40,6 @@
           <button type="submit" id="btnSave" tooltip="Save Note" class="custombutton" (click)="SaveOnly(true)" [disabled]="!_disabled">Save</button>
         </span>
 
-        <!--<span *ngIf="HideNonSuperAdminUser()">
-            <button type="button" tooltip="Data Management" style="width:120px!important" (click)="showDialogDeleteOption()" class="custombutton" [disabled]="!_disabled">Data Management</button>
-        </span>-->
-        <!--<span *ngIf="HideNonSuperAdminUser()">
-            <select id="DeletDealSchedule" name="DeletDealSchedule" class="ibox1" style="width:248px!important" [(ngModel)]="_moduledelete.LookupID">
-                <option value="0">
-                    Please select an option
-                </option>
-                <option *ngFor="let item of lstNoteDeleteFilter" [ngValue]="item.LookupID">
-                    {{item.Name}}
-                </option>
-            </select>
-        </span>-->
-        <!--<button type="submit" tooltip="Save Note" class="custombutton">Save</button>-->
       </span>
 
       <div *ngIf="_copymessagediv" class="alert alert-success fade in">
@@ -143,7 +114,7 @@
 
         <li *ngIf="_isShowClosing"><a id="aClosing" data-target="#closing" data-toggle="tab" (click)="ClosingTab()">Closing</a></li>
         <li *ngIf="_isShowFinancing"><a id="aFinancing" data-target="#financing22" data-toggle="tab" (click)="FinancingTab()">Financing</a></li>
-        <li *ngIf="_isShowSettlement"><a id="aSettlement" data-target="#settlement" data-toggle="tab" (click)="setFocus()">Settlement</a></li>
+        <li *ngIf="_isShowSettlement"><a id="aSettlement" data-target="#settlement" data-toggle="tab" (click)="getNoteTranchePercentage()">Settlement</a></li>
 
         <li *ngIf="_isShowServicing"><a id="aServicing" data-target="#servicing" data-toggle="tab" (click)="ServicingTab()">Default</a></li>
 
@@ -178,14 +149,14 @@
             <div class="form-group row pD10">
 
               <!--<div class="col-sm-3">
-            <label class="lab1">Start date</label>
-            <wj-input-date [(value)]="_note.StartDate" [format]="'M/d/yyyy'" class="ibox1 rightalign" [required]="false" [placeholder]="'M/d/yyyy'"></wj-input-date>
-        </div>
-        <div class="col-sm-3">
-            <label class="lab1">End date</label>
+                  <label class="lab1">Start date</label>
+                  <wj-input-date [(value)]="_note.StartDate" [format]="'M/d/yyyy'" class="ibox1 rightalign" [required]="false" [placeholder]="'M/d/yyyy'"></wj-input-date>
+              </div>
+              <div class="col-sm-3">
+                  <label class="lab1">End date</label>
 
-            <wj-input-date [(value)]="_note.EndDate" [format]="'M/d/yyyy'" class="ibox1 rightalign" [required]="false" [placeholder]="'M/d/yyyy'"></wj-input-date>
-        </div>-->
+                  <wj-input-date [(value)]="_note.EndDate" [format]="'M/d/yyyy'" class="ibox1 rightalign" [required]="false" [placeholder]="'M/d/yyyy'"></wj-input-date>
+              </div>-->
 
               <div class="col-sm-3">
                 <label class="lab1">Client</label>
@@ -197,10 +168,10 @@
                 </select>
               </div>
               <!--<div class="col-sm-3">
-            <label class="lab1">Portfolio</label>
+                  <label class="lab1">Portfolio</label>
 
-            <input class="ibox1" type="text" [(ngModel)]="_note.Portfolio" name="Portfolio" #Portfolio="ngModel" id="Portfolio">
-        </div>-->
+                  <input class="ibox1" type="text" [(ngModel)]="_note.Portfolio" name="Portfolio" #Portfolio="ngModel" id="Portfolio">
+              </div>-->
               <div class="col-sm-3">
                 <label class="lab1">Fund</label>
                 <!--<input class="ibox1" type="text" [(ngModel)]="_note.ClientName" name="ClientName" #ClientName="ngModel" id="ClientName">-->
@@ -218,33 +189,33 @@
                     {{lst.FinancingSourceName}}
                   </option>
                   <!--<option *ngFor="let lst of lstFinancingSource" value={{lst.LookupID}}>
-                {{lst.Name}}
-            </option>-->
+                      {{lst.Name}}
+                  </option>-->
                   <!--<option value=424>3rd Party Owned</option>
-            <option value=425>ACORE Credit IV</option>
-            <option value=426>Cap One Subscription Line</option>
-            <option value=427>Co-Fund</option>
-            <option value=428>Delphi ACORE</option>
-            <option value=429>Delphi Portfolio</option>
-            <option value=430>Delphi Warehouse LIne</option>
-            <option value=431>Delphi Warehouse Hold</option>
-            <option value=432>Morgan Stanley Repo</option>
-            <option value=433>Note Sale</option>
-            <option value=434>Opportunistic Sale</option>
-            <option value=435>Refinance Program</option>
-            <option value=436>To be determined</option>
-            <option value=437>TRE ACR GL allocations</option>
-            <option value=438>TRE ACR Portfolio</option>
-            <option value=439>AFLAC US</option>
-            <option value=440>AFLAC US - C</option>
-            <option value=441>Wells Fargo Repo</option>
-            <option value=455>None</option>
-            <option value=580>Delphi Fixed</option>
-            <option value=599>ACORE Credit IV - GS 2018</option>
-            <option value=600>ACORE Credit IV - Offshore</option>
-            <option value=601>BcIMC Sidecar</option>
-            <option value=602>Delphi Offshore</option>
-            <option value=603>ACORE Credit IV - MS</option>-->
+                  <option value=425>ACORE Credit IV</option>
+                  <option value=426>Cap One Subscription Line</option>
+                  <option value=427>Co-Fund</option>
+                  <option value=428>Delphi ACORE</option>
+                  <option value=429>Delphi Portfolio</option>
+                  <option value=430>Delphi Warehouse LIne</option>
+                  <option value=431>Delphi Warehouse Hold</option>
+                  <option value=432>Morgan Stanley Repo</option>
+                  <option value=433>Note Sale</option>
+                  <option value=434>Opportunistic Sale</option>
+                  <option value=435>Refinance Program</option>
+                  <option value=436>To be determined</option>
+                  <option value=437>TRE ACR GL allocations</option>
+                  <option value=438>TRE ACR Portfolio</option>
+                  <option value=439>AFLAC US</option>
+                  <option value=440>AFLAC US - C</option>
+                  <option value=441>Wells Fargo Repo</option>
+                  <option value=455>None</option>
+                  <option value=580>Delphi Fixed</option>
+                  <option value=599>ACORE Credit IV - GS 2018</option>
+                  <option value=600>ACORE Credit IV - Offshore</option>
+                  <option value=601>BcIMC Sidecar</option>
+                  <option value=602>Delphi Offshore</option>
+                  <option value=603>ACORE Credit IV - MS</option>-->
                 </select>
               </div>
               <div class="col-sm-3">
@@ -252,14 +223,15 @@
                 <!--<input class="ibox1" type="text" [(ngModel)]="_note.ClientName" name="ClientName" #ClientName="ngModel" id="ClientName">-->
                 <select [(ngModel)]="_note.DebtTypeID" id="DebtType" name="DebtType" class="ibox1" #DebtType="ngModel" (change)="DebtTypeChange($event.target.value)">
                   <!--<option *ngFor="let lst of lstDebtType" value={{lst.LookupID}}>
-                {{lst.Name}}
-            </option>-->
+                      {{lst.Name}}
+                  </option>-->
                   <option value=442>Senior</option>
                   <option value=443>Sub</option>
                   <option value=444>3rd Party</option>
                   <option value=456>None</option>
                 </select>
               </div>
+              <div class="clearfix"></div>
               <div class="col-sm-3">
                 <label class="lab1">Billing Notes</label>
                 <!--<input class="ibox1" type="text" [(ngModel)]="_note.ClientName" name="ClientName" #ClientName="ngModel" id="ClientName">-->
@@ -273,8 +245,10 @@
                 <!--<input class="ibox1" type="text" [(ngModel)]="_note.ClientName" name="ClientName" #ClientName="ngModel" id="ClientName">-->
                 <select [(ngModel)]="_note.CapStack" id="CapStack" name="CapStack" class="ibox1" #CapStack="ngModel" (change)="CapStackChange($event.target.value)">
                   <!--<option *ngFor="let lst of lstCapStack" value={{lst.LookupID}}>
-                {{lst.Name}}
-            </option>-->
+                      {{lst.Name}}
+                  </option>-->
+
+
                   <option value=445>Billing</option>
                   <option value=446>Legal</option>
                   <option value=457>None</option>
@@ -282,12 +256,11 @@
               </div>
               <div class="col-sm-3">
                 <label class="lab1">Pool</label>
-                <!--<input class="ibox1" type="text" [(ngModel)]="_note.ClientName" name="ClientName" #ClientName="ngModel" id="ClientName">-->
                 <select [(ngModel)]="_note.PoolID" id="Pool" name="Pool" class="ibox1" #Pool="ngModel" (change)="PoolChange($event.target.value)">
-                  <!--<option *ngFor="let lst of lstCapStack" value={{lst.LookupID}}>
-                {{lst.Name}}
-            </option>-->
-                  <option value=448>3rd Party</option>
+                  <option *ngFor="let lst of lstPool" value={{lst.LookupID}}>
+                    {{lst.Name}}
+                  </option>
+                  <!--<option value=448>3rd Party</option>
                   <option value=450>ACORE Credit IV</option>
                   <option value=724>ACORE Credit IV - Offshore</option>
                   <option value=725>ACSS</option>
@@ -304,7 +277,7 @@
                   <option value=731>Delphi VI</option>
                   <option value=732>Delphi VII</option>
                   <option value=453>TRE ACR</option>
-                  <option value=458>None</option>
+                  <option value=458>None</option>-->
                 </select>
               </div>
               <div class="col-sm-3">
@@ -318,34 +291,38 @@
                 </select>
 
                 <!--<select [(ngModel)]="_note.BaseCurrencyID" name="BaseCurrencyID" #BaseCurrencyID="ngModel">
-              <option *ngFor="#LoanCurrency of lstLoanCurrency" value={{LoanCurrency.LookupID}}>
-                  {{LoanCurrency.Name}}
-              </option>
-          </select>-->
+                    <option *ngFor="#LoanCurrency of lstLoanCurrency" value={{LoanCurrency.LookupID}}>
+                        {{LoanCurrency.Name}}
+                    </option>
+                </select>-->
               </div>
+              <div class="clearfix"></div>
               <div class="col-sm-3">
                 <label class="lab1">Pay frequency</label>
                 <wj-input-number [isRequired]="false" [(value)]="_note.PayFrequency" id="PayFrequency" class="ibox1 rightalign" [format]="'n0'"></wj-input-number>
 
                 <!--<select [(ngModel)]="_note.PayFrequency" name="PayFrequency" #PayFrequency="ngModel" class="ibox1">
-              <option value=1>1 </option>
-              <option value=2>2 </option>
-              <option value=3>3 </option>
-              <option value=4>4 </option>
-              <option value=5>5 </option>
-              <option value=6>6 </option>
-              <option value=7>7 </option>
-              <option value=8>8 </option>
-              <option value=9>9 </option>
-              <option value=10>10 </option>
-              <option value=11>11 </option>
-              <option value=12>12 </option>
-          </select>-->
+                    <option value=1>1 </option>
+                    <option value=2>2 </option>
+                    <option value=3>3 </option>
+                    <option value=4>4 </option>
+                    <option value=5>5 </option>
+                    <option value=6>6 </option>
+                    <option value=7>7 </option>
+                    <option value=8>8 </option>
+                    <option value=9>9 </option>
+                    <option value=10>10 </option>
+                    <option value=11>11 </option>
+                    <option value=12>12 </option>
+                </select>-->
                 <!--<option *ngFor
-          ="#PayFrequency of lstPayFrequency" value={{PayFrequency.LookupID}}>
-              {{PayFrequency.Name}}
-          </option>-->
+                ="#PayFrequency of lstPayFrequency" value={{PayFrequency.LookupID}}>
+                    {{PayFrequency.Name}}
+                </option>-->
+
+
               </div>
+
 
               <div class="col-sm-3">
                 <label class="lab1">Tag 1</label>
@@ -359,10 +336,11 @@
                 <label class="lab1">Tag 3</label>
                 <input class="ibox1" type="text" [(ngModel)]="_note.Tag3" name="Tag3" #Tag3="ngModel" id="Tag3">
               </div>
-              <div class="col-sm-3">
+              <div class="clearfix"></div>
+              <!--<div class="col-sm-3">
                 <label class="lab1">Tag 4</label>
                 <input class="ibox1" type="text" [(ngModel)]="_note.Tag4" name="Tag4" #Tag4="ngModel" id="Tag4">
-              </div>
+              </div>-->
               <div class="col-sm-3">
                 <label class="lab1"> Market Price</label>
                 <wj-input-number name="MKT_PRICE" [isRequired]="false" [(ngModel)]="_note.MKT_PRICE" #MKT_PRICE="ngModel" class="ibox1 rightalign" [format]="'n2'"></wj-input-number>
@@ -384,9 +362,32 @@
                 </select>
               </div>
 
-              <div class="col-sm-12">
+              <div class="col-sm-3">
+                <label class="lab1">Note Type</label>
+                <select [(ngModel)]="_note.NoteType" id="NoteType" name="NoteType" #NoteType="ngModel" class="ibox1" (change)="NoteTypeChange($event.target.value)">
+                  <option value=901>REO</option>
+                  <option value=902>Debt</option>
+                  <option value=939>PA</option>
+                </select>
+              </div>
+              <div class="clearfix"></div>
+
+              <div class="col-sm-6">
+                <label class="lab1">Tags</label>
+                <wj-multi-auto-complete #theMultiAutoCompleteXIRR
+                                        [placeholder]="'Select Tags'"
+                                        [displayMemberPath]="'Name'"
+                                        [itemsSource]="lstXIRRTags"
+                                        [(ngModel)]="_note.ListSelectedXIRRTags"
+                                        [(selectedItems)]="_note.ListSelectedXIRRTags" style="height:84px">
+                </wj-multi-auto-complete>
+
+              </div>
+
+
+              <div class="col-sm-6">
                 <label class="lab1">Comments</label>
-                <!--<input class="ibox1" type="text" [(ngModel)]="_note.Comments" name="Comments" #Comments="ngModel">-->
+
                 <textarea class="ibox1" type="text" id="Comments" [(ngModel)]="_note.Comments" name="Comments" #Comments="ngModel" style="height: 84px !important"></textarea>
               </div>
             </div>
@@ -406,10 +407,10 @@
                   <option value=41>Custom</option>
                 </select>
                 <!--<select [(ngModel)]="_note.ProspectiveAccountingMode" name="ProspectiveAccountingMode" #ProspectiveAccountingMode="ngModel">
-              <option *ngFor="#AccountingMode of lstAccountingMode" value={{AccountingMode.LookupID}}>
-                  {{AccountingMode.Name}}
-              </option>
-          </select>-->
+                    <option *ngFor="#AccountingMode of lstAccountingMode" value={{AccountingMode.LookupID}}>
+                        {{AccountingMode.Name}}
+                    </option>
+                </select>-->
               </div>
               <div class="col-sm-3">
                 <label class="lab1">Is capitalized</label>
@@ -418,10 +419,10 @@
                   <option value=4>N</option>
                 </select>
                 <!--<select [(ngModel)]="_note.IsCapitalized" name="IsCapitalized" #IsCapitalized="ngModel">
-              <option *ngFor="#YesNo of lstYesNo" value={{YesNo.LookupID}}>
-                  {{YesNo.Name}}
-              </option>
-          </select>-->
+                    <option *ngFor="#YesNo of lstYesNo" value={{YesNo.LookupID}}>
+                        {{YesNo.Name}}
+                    </option>
+                </select>-->
               </div>
               <div class="col-sm-3">
                 <label class="lab1">Cashflow Engine Id</label>
@@ -439,6 +440,7 @@
                 </select>
 
               </div>
+              <div class="clearfix"></div>
               <div class="col-sm-3">
                 <label class="lab1">Classification</label>
                 <select [(ngModel)]="_note.Classification" id="Classification" name="Classification" #Classification="ngModel" class="ibox1" (change)="ClassificationChange($event.target.value)">
@@ -452,10 +454,10 @@
                   <option value=49>Other</option>
                 </select>
                 <!--<select [(ngModel)]="_note.Classification" name="Classification" #Classification="ngModel">
-              <option *ngFor="#Classification of lstClassification" value={{Classification.LookupID}}>
-                  {{Classification.Name}}
-              </option>
-          </select>-->
+                    <option *ngFor="#Classification of lstClassification" value={{Classification.LookupID}}>
+                        {{Classification.Name}}
+                    </option>
+                </select>-->
               </div>
               <div class="col-sm-3">
                 <label class="lab1">Sub classification</label>
@@ -465,10 +467,10 @@
                   <option value=52>C note</option>
                 </select>
                 <!--<select [(ngModel)]="_note.SubClassification" name="SubClassification" #SubClassification="ngModel">
-              <option *ngFor="#SubClassification of lstSubClassification" value={{SubClassification.LookupID}}>
-                  {{SubClassification.Name}}
-              </option>
-          </select>-->
+                    <option *ngFor="#SubClassification of lstSubClassification" value={{SubClassification.LookupID}}>
+                        {{SubClassification.Name}}
+                    </option>
+                </select>-->
               </div>
               <div class="col-sm-3">
                 <label class="lab1">GAAP designation</label>
@@ -478,15 +480,16 @@
                   <option value=55>AFS</option>
                 </select>
                 <!--<select [(ngModel)]="_note.GAAPDesignation" name="GAAPDesignation" #GAAPDesignation="ngModel">
-              <option *ngFor="#GAAPDesignation of lstGAAPDesignation" value={{GAAPDesignation.LookupID}}>
-                  {{GAAPDesignation.Name}}
-              </option>
-          </select>-->
+                    <option *ngFor="#GAAPDesignation of lstGAAPDesignation" value={{GAAPDesignation.LookupID}}>
+                        {{GAAPDesignation.Name}}
+                    </option>
+                </select>-->
               </div>
               <div class="col-sm-3">
                 <label class="lab1">Portfolio Id</label>
                 <wj-input-number [isRequired]="false" [(value)]="_note.PortfolioID" id="PortfolioID" class="ibox1 rightalign" [format]="'n0'"></wj-input-number>
               </div>
+              <div class="clearfix"></div>
               <div class="col-sm-3">
                 <label class="lab1">Geographic location</label>
                 <select [(ngModel)]="_note.GeographicLocation" id="GeographicLocation" name="GeographicLocation" #GeographicLocation="ngModel" class="ibox1" (change)="GeographicLocationChange($event.target.value)">
@@ -567,10 +570,10 @@
                   <option value=130>Croatia</option>
                 </select>
                 <!--<select [(ngModel)]="_note.GeographicLocation" name="GeographicLocation" #GeographicLocation="ngModel">
-              <option *ngFor="#GeographicLoc of lstGeographicLoc" value={{GeographicLoc.LookupID}}>
-                  {{GeographicLoc.Name}}
-              </option>
-          </select>-->
+                    <option *ngFor="#GeographicLoc of lstGeographicLoc" value={{GeographicLoc.LookupID}}>
+                        {{GeographicLoc.Name}}
+                    </option>
+                </select>-->
               </div>
               <div class="col-sm-3">
                 <label class="lab1">Property type</label>
@@ -588,10 +591,10 @@
                   <option value=299>Condo Construction</option>
                 </select>
                 <!--<select [(ngModel)]="_note.PropertyType" name="PropertyType" #PropertyType="ngModel">
-              <option *ngFor="#PropertyType of lstPropertyType" value={{PropertyType.LookupID}}>
-                  {{PropertyType.Name}}
-              </option>
-          </select>-->
+                    <option *ngFor="#PropertyType of lstPropertyType" value={{PropertyType.LookupID}}>
+                        {{PropertyType.Name}}
+                    </option>
+                </select>-->
               </div>
               <div class="col-sm-3">
                 <label class="lab1">Rating agency</label>
@@ -611,6 +614,7 @@
                   </option>
                 </select>
               </div>
+              <div class="clearfix"></div>
               <div class="col-sm-3">
                 <label class="lab1">Purchase price</label>
                 <wj-input-number name="PurchasePrice" [isRequired]="false" [(ngModel)]="_note.PurchasePrice" #PurchasePrice="ngModel" id="PurchasePrice" class="ibox1 rightalign" [format]="'n2'"></wj-input-number>
@@ -624,9 +628,10 @@
                 <wj-input-number name="TotalToBeAmortized" [isRequired]="false" [(ngModel)]="_note.TotalToBeAmortized" #TotalToBeAmortized="ngModel" id="PurchasePrice" class="ibox1 rightalign" [format]="'n2'"></wj-input-number>
               </div>
               <div class="col-sm-3">
-                <label class="lab1">Stub period  Calcu</label>
+                <label class="lab1">Stub period  Interest Calculated</label>
                 <wj-input-number name="StubPeriodInterest" [isRequired]="false" [(ngModel)]="_note.StubPeriodInterest" #StubPeriodInterest="ngModel" class="ibox1 rightalign" [format]="'n2'"></wj-input-number>
               </div>
+              <div class="clearfix"></div>
               <div class="col-sm-3">
                 <label class="lab1">WDP asset multiple</label>
                 <wj-input-number name="WDPAssetMultiple" [isRequired]="false" [(ngModel)]="_note.WDPAssetMultiple" #WDPAssetMultiple="ngModel" class="ibox1 rightalign" [format]="'p9'" [min]="0.0" [max]="1.00"> </wj-input-number>
@@ -643,6 +648,7 @@
                 <label class="lab1">Days of accrued</label>
                 <wj-input-number name="DaysofAccrued" [isRequired]="false" [(ngModel)]="_note.DaysofAccrued" #DaysofAccrued="ngModel" class="ibox1 rightalign" [format]="'n0'"></wj-input-number>
               </div>
+              <div class="clearfix"></div>
               <div class="col-sm-3">
                 <label class="lab1">Interest rate</label>
                 <wj-input-number name="InterestRate" [isRequired]="false" [(ngModel)]="_note.InterestRate" #InterestRate="ngModel" class="ibox1 rightalign" [format]="'p9'" [min]="0.0" [max]="1.00"> </wj-input-number>
@@ -653,23 +659,23 @@
               </div>
 
               <!--<div class="col-sm-3">
-            <label class="lab1"> Total Commitment</label>
-            <wj-input-number (keyup)="CalculateAggregateTotal()" name="TotalCommitment" [(ngModel)]="_note.TotalCommitment" #TotalCommitment="ngModel" [isRequired]="false" [isReadOnly]="false" class="ibox1 rightalign" [format]="'n2'"></wj-input-number>
-        </div>
+                  <label class="lab1"> Total Commitment</label>
+                  <wj-input-number (keyup)="CalculateAggregateTotal()" name="TotalCommitment" [(ngModel)]="_note.TotalCommitment" #TotalCommitment="ngModel" [isRequired]="false" [isReadOnly]="false" class="ibox1 rightalign" [format]="'n2'"></wj-input-number>
+              </div>
 
-        <div class="col-sm-3">
-            <label class="lab1"> Adjusted total commitment</label>
-            <wj-input-number style="background-color:#e0e0e0;" name="AdjustedTotalCommitment" (keyup)="CalculateAggregateTotal()" [(ngModel)]="_note.AdjustedTotalCommitment" #AdjustedTotalCommitment="ngModel" [isReadOnly]="true" class="ibox1 rightalign" [format]="'n2'"></wj-input-number>
-        </div>
+              <div class="col-sm-3">
+                  <label class="lab1"> Adjusted total commitment</label>
+                  <wj-input-number style="background-color:#e0e0e0;" name="AdjustedTotalCommitment" (keyup)="CalculateAggregateTotal()" [(ngModel)]="_note.AdjustedTotalCommitment" #AdjustedTotalCommitment="ngModel" [isReadOnly]="true" class="ibox1 rightalign" [format]="'n2'"></wj-input-number>
+              </div>
 
-        <div class="col-sm-3">
-            <label class="lab1"> Aggregated total</label>
-            <wj-input-number style="background-color:#e0e0e0;" name="AggregatedTotal" [(ngModel)]="_note.AggregatedTotal" #AggregatedTotal="ngModel" [isRequired]="false" class="ibox1 rightalign" [isReadOnly]="true" [format]="'n2'"></wj-input-number>
-        </div>
-        <div class="col-sm-3">
-            <label class="lab1"> Original total commitment</label>
-            <wj-input-number style="background-color:#e0e0e0;" name="OriginalTotalCommitment" [(ngModel)]="_note.OriginalTotalCommitment" #OriginalTotalCommitment="ngModel" [isRequired]="false" [isReadOnly]="true" class="ibox1 rightalign" [format]="'n2'"></wj-input-number>
-        </div>-->
+              <div class="col-sm-3">
+                  <label class="lab1"> Aggregated total</label>
+                  <wj-input-number style="background-color:#e0e0e0;" name="AggregatedTotal" [(ngModel)]="_note.AggregatedTotal" #AggregatedTotal="ngModel" [isRequired]="false" class="ibox1 rightalign" [isReadOnly]="true" [format]="'n2'"></wj-input-number>
+              </div>
+              <div class="col-sm-3">
+                  <label class="lab1"> Original total commitment</label>
+                  <wj-input-number style="background-color:#e0e0e0;" name="OriginalTotalCommitment" [(ngModel)]="_note.OriginalTotalCommitment" #OriginalTotalCommitment="ngModel" [isRequired]="false" [isReadOnly]="true" class="ibox1 rightalign" [format]="'n2'"></wj-input-number>
+              </div>-->
 
             </div>
           </div>
@@ -682,7 +688,7 @@
                 <wj-flex-grid id="flexmarketprice" #flexmarketprice [itemsSource]="ListNoteMarketPrice" [allowAddNew]="true" [allowResizing]="'Both'"
                               (cellEditEnded)="cellEditEndedMarketPrice()" (beginningEdit)="beginningEditMarketPrice()"
                               (pasted)="pastedMarketPrice(flexmarketprice,$event)"
-                              (initialized)="addFooterRow(flexmarketprice)" style="max-height:300px">
+                              (initialized)="addFooterRow(flexmarketprice)" style="max-height:300px" keyActionTab="Cycle">
                   <wj-flex-grid-filter #filter></wj-flex-grid-filter>
                   <wj-flex-grid-column [header]="'Date'" [binding]="'Date'" align="right" [width]="'*'"></wj-flex-grid-column>
                   <wj-flex-grid-column [header]="'Amount'" [binding]="'Value'" [dataType]="'Number'" align="right" format="n2" [width]="'*'" [aggregate]="'Sum'">
@@ -709,11 +715,11 @@
                   <label class="lab1"><b>Adjusted Commitment:</b> {{_adjustedcommitmenttextboxvalue}}</label>
                 </div>
                 <!--<div class="col-sm-3">
-              <label class="lab1"><b>M61 Aggregate Commitment:</b> {{_aggregatedcommitmenttexboxtvalue}}</label>
-          </div>-->
+                    <label class="lab1"><b>M61 Aggregate Commitment:</b> {{_aggregatedcommitmenttexboxtvalue}}</label>
+                </div>-->
                 <div class="col-sm-8">
                   <wj-flex-grid id="flexnotecommitments" #flexnotecommitments [itemsSource]="NoteCommitmentList"
-                                (initialized)="addFooterTotalcommitmentRow(flexnotecommitments)" style="max-height:300px" [isReadOnly]="true">
+                                (initialized)="addFooterTotalcommitmentRow(flexnotecommitments)" style="max-height:300px" [isReadOnly]="true" keyActionTab="Cycle">
                     <wj-flex-grid-filter #filter></wj-flex-grid-filter>
                     <wj-flex-grid-column [header]="'Date'" [binding]="'Date'" align="right" [width]="100"></wj-flex-grid-column>
                     <wj-flex-grid-column [header]="'Type'" [binding]="'Typetext'" align="left" [width]="180"></wj-flex-grid-column>
@@ -735,7 +741,7 @@
             <h3>Maturity</h3>
             <div class="col-sm-12">
               <div class="col-sm-6">
-                <label class="lab1" style="margin-top:12px;margin-left: 3px;">Note group: <span style="margin-left:40px;">{{maturityGroupName}}</span></label>
+                <label class="lab1" style="margin-top:12px;margin-left: 3px;">Note group: <span style="margin-left:40px;font-weight:bold;"> {{maturityGroupName}}</span></label>
               </div>
               <div class="col-sm-6">
                 <button type="button" *ngIf="ShowHideFlagMaturity" id="ShowHideFlagMaturity" class="custombutton viewScheduleButton" (click)="showDialog('Maturity')"> View history {{EffectiveDateCountMaturity }}</button>
@@ -784,10 +790,11 @@
                   <wj-flex-grid id="flexMaturity" #flexMaturity
                                 [itemsSource]="maturityList" [allowAddNew]="false"
                                 (initialized)="addFooterTotalcommitmentRow(flexMaturity)"
-                                class="gridSize" style="max-height:220px;" [isReadOnly]="true">
+                                class="gridSize" style="max-height:220px;" [isReadOnly]="true" keyActionTab="Cycle">
                     <wj-flex-grid-column [header]="'Maturity date'" [binding]="'MaturityDate'" [dataType]="'Date'" [format]="'MM/dd/yyyy'" align="right" [width]="175"></wj-flex-grid-column>
                     <wj-flex-grid-column [header]="'Type'" [binding]="'MaturityTypeText'" align="left" [width]="200"></wj-flex-grid-column>
                     <wj-flex-grid-column [header]="'Approved'" [binding]="'ApprovedText'" align="left" [width]="200"></wj-flex-grid-column>
+                    <wj-flex-grid-column [header]="'Extension Type'" [binding]="'ExtensionTypeText'" align="left" [width]="200"></wj-flex-grid-column>
                   </wj-flex-grid>
                 </div>
               </div>
@@ -815,6 +822,7 @@
                 <label class="lab1">Initial month end payment date for bi weekly</label>
                 <wj-input-date name="InitialMonthEndPMTDateBiWeekly" [(ngModel)]="_note.InitialMonthEndPMTDateBiWeekly" #InitialMonthEndPMTDateBiWeekly="ngModel" [format]="'M/d/yyyy'" class="ibox1 rightalign" [isRequired]="false" [placeholder]="'M/d/yyyy'"></wj-input-date>
               </div>
+              <div class="clearfix"></div>
               <div class="col-sm-3">
                 <label class="lab1">Payment date business day lag</label>
                 <!--<wj-input-number [(value)]="_note.PaymentDateBusinessDayLag" [isRequired]="false" class="ibox1 rightalign" [format]="'0'"></wj-input-number>-->
@@ -830,17 +838,26 @@
                 <wj-input-number name="IOTerm" [isRequired]="false" [(ngModel)]="_note.IOTerm" #IOTerm="ngModel" class="ibox1 rightalign" [format]="'n0'"></wj-input-number>
               </div>
               <div class="col-sm-3">
+                <label class="lab1">Full Term IO Interest Only Note</label>
+                <select [(ngModel)]="_note.InterestOnlyNote" id="InterestOnlyNote" name="InterestOnlyNote" #InterestOnlyNote="ngModel" class="ibox1" (change)="InterestOnlyNoteChange($event.target.value)">
+                  <option value=3>Y</option>
+                  <option value=4>N</option>
+                </select>
+              </div>
+              <div class="clearfix"></div>
+              <div class="col-sm-3">
                 <label class="lab1">Amort term</label>
                 <wj-input-number name="AmortTerm" [isRequired]="false" [(ngModel)]="_note.AmortTerm" #AmortTerm="ngModel" class="ibox1 rightalign" [format]="'n0'"></wj-input-number>
               </div>
+
               <div class="col-sm-3">
                 <label class="lab1">Monthly DS override when amortizing</label>
                 <wj-input-number name="MonthlyDSOverridewhenAmortizing" [isRequired]="false" [(ngModel)]="_note.MonthlyDSOverridewhenAmortizing" #MonthlyDSOverridewhenAmortizing="ngModel" class="ibox1 rightalign" [format]="'n2'"></wj-input-number>
               </div>
               <!--<div class="col-sm-3">
-            <label class="lab1">Accrual period payment day when not end of month</label>
-            <wj-input-number [(value)]="_note.AccrualPeriodPaymentDayWhenNotEOMonth" [required]="false" class="ibox1 rightalign" [format]="'n0'"></wj-input-number>
-        </div>-->
+                  <label class="lab1">Accrual period payment day when not end of month</label>
+                  <wj-input-number [(value)]="_note.AccrualPeriodPaymentDayWhenNotEOMonth" [required]="false" class="ibox1 rightalign" [format]="'n0'"></wj-input-number>
+              </div>-->
               <div class="col-sm-3">
                 <label class="lab1">First period interest payment override</label>
                 <wj-input-number name="FirstPeriodInterestPaymentOverride" [isRequired]="false" [(ngModel)]="_note.FirstPeriodInterestPaymentOverride" #FirstPeriodInterestPaymentOverride="ngModel" class="ibox1 rightalign" [format]="'n2'"></wj-input-number>
@@ -853,6 +870,7 @@
                 <label class="lab1">Final interest accrual end date override</label>
                 <wj-input-date name="FinalInterestAccrualEndDateOverride" [(ngModel)]="_note.FinalInterestAccrualEndDateOverride" #FinalInterestAccrualEndDateOverride="ngModel" [format]="'M/d/yyyy'" class="ibox1 rightalign" [isRequired]="false" [placeholder]="'M/d/yyyy'"></wj-input-date>
               </div>
+
               <div class="col-sm-3">
                 <label class="lab1">Amort type</label>
                 <wj-input-number name="AmortType" [isRequired]="false" [(ngModel)]="_note.AmortType" #AmortType="ngModel" class="ibox1 rightalign" [format]="'n0'"></wj-input-number>
@@ -865,13 +883,6 @@
                   <option value=139>Fixed</option>
                   <option value=140>Floating</option>
                 </select>
-                <!--<select [(ngModel)]="_note.RateType" name="RateType" #RateType="ngModel">
-              <option *ngFor="#RateType of lstRateType" value={{RateType.LookupID}}>
-                  {{RateType.Name}}
-              </option>
-          </select>-->
-
-
               </div>
 
               <div class="col-sm-3">
@@ -880,27 +891,14 @@
                   <option value=3>Y</option>
                   <option value=4>N</option>
                 </select>
-                <!--<select [(ngModel)]="_note.ReAmortizeMonthly" name="ReAmortizeMonthly" #ReAmortizeMonthly="ngModel">
-              <option *ngFor="#YesNo of lstYesNo" value={{YesNo.LookupID}}>
-                  {{YesNo.Name}}
-              </option>
-          </select>-->
-
-
               </div>
-
+              <div class="clearfix"></div>
               <div class="col-sm-3">
                 <label class="lab1">Re amortize at payment reset</label>
                 <select [(ngModel)]="_note.ReAmortizeatPMTReset" id="ReAmortizeatPMTReset" name="ReAmortizeatPMTReset" #ReAmortizeatPMTReset="ngModel" class="ibox1" (change)="ReAmortizeatPMTResetChange($event.target.value)">
                   <option value=3>Y</option>
                   <option value=4>N</option>
                 </select>
-                <!--<select [(ngModel)]="_note.ReAmortizeatPMTReset" name="ReAmortizeatPMTReset" #ReAmortizeatPMTReset="ngModel">
-              <option *ngFor="#YesNo of lstYesNo" value={{YesNo.LookupID}}>
-                  {{YesNo.Name}}
-              </option>
-          </select>-->
-
 
               </div>
 
@@ -910,13 +908,6 @@
                   <option value=3>Y</option>
                   <option value=4>N</option>
                 </select>
-                <!--<select [(ngModel)]="_note.StubPaidInArrears" name="StubPaidInArrears" #StubPaidInArrears="ngModel">
-              <option *ngFor="#YesNo of lstYesNo" value={{YesNo.LookupID}}>
-                  {{YesNo.Name}}
-              </option>
-          </select>-->
-
-
               </div>
 
               <div class="col-sm-3">
@@ -925,13 +916,6 @@
                   <option value=3>Y</option>
                   <option value=4>N</option>
                 </select>
-                <!--<select [(ngModel)]="_note.RelativePaymentMonth" name="RelativePaymentMonth" #RelativePaymentMonth="ngModel">
-              <option *ngFor="#YesNo of lstYesNo" value={{YesNo.LookupID}}>
-                  {{YesNo.Name}}
-              </option>
-          </select>-->
-
-
               </div>
 
               <div class="col-sm-3">
@@ -940,13 +924,6 @@
                   <option value=3>Y</option>
                   <option value=4>N</option>
                 </select>
-                <!--<select [(ngModel)]="_note.SettleWithAccrualFlag" name="SettleWithAccrualFlag" #SettleWithAccrualFlag="ngModel">
-              <option *ngFor="#YesNo of lstYesNo" value={{YesNo.LookupID}}>
-                  {{YesNo.Name}}
-              </option>
-          </select>-->
-
-
               </div>
 
               <div class="col-sm-3">
@@ -955,12 +932,6 @@
                   <option value=3>Y</option>
                   <option value=4>N</option>
                 </select>
-                <!--<select [(ngModel)]="_note.InterestDueAtMaturity" name="InterestDueAtMaturity" #InterestDueAtMaturity="ngModel">
-              <option *ngFor="#YesNo of lstYesNo" value={{YesNo.LookupID}}>
-                  {{YesNo.Name}}
-              </option>
-          </select>-->
-
 
               </div>
 
@@ -972,40 +943,26 @@
                 <label class="lab1">Determination date month relative to commencement</label>
                 <wj-input-number name="DeterminationDateInterestAccrualPeriod" [isRequired]="false" [(ngModel)]="_note.DeterminationDateInterestAccrualPeriod" #DeterminationDateInterestAccrualPeriod="ngModel" class="ibox1 rightalign" [format]="'n0'"></wj-input-number>
               </div>
-              <div class="col-sm-3">
-                <label class="lab1">Determination date holiday list</label>
-                <!--<select [(ngModel)]="_note.DeterminationDateHolidayList" id="DeterminationDateHolidayList" name="DeterminationDateHolidayList" #DeterminationDateHolidayList="ngModel" class="ibox1" (change)="DeterminationDateHolidayListChange($event.target.value)">
-              <option value=141>US</option>
-              <option value=142>UK</option>
-          </select>-->
-                <select [(ngModel)]="_note.DeterminationDateHolidayList" name="DeterminationDateHolidayList" #DeterminationDateHolidayList="ngModel" (change)="DeterminationDateHolidayListChange($event.target.value)" class="ibox1">
-                  <option *ngFor="let DeterminationDateHoliday of holidayCalendarNamelist" value={{DeterminationDateHoliday.HolidayMasterID}}>
-                    {{DeterminationDateHoliday.CalendarName}}
-                  </option>
-                </select>
 
-
-              </div>
 
               <div class="col-sm-3">
                 <label class="lab1">Rate index reset freq</label>
                 <wj-input-number name="RateIndexResetFreq" [isRequired]="false" [(ngModel)]="_note.RateIndexResetFreq" #RateIndexResetFreq="ngModel" class="ibox1 rightalign" [format]="'n12'"></wj-input-number>
               </div>
+
+              <div class="clearfix"></div>
+
               <div class="col-sm-3">
-                <label class="lab1">First rate index reset date</label>
-                <wj-input-date name="FirstRateIndexResetDate" [(ngModel)]="_note.FirstRateIndexResetDate" #FirstRateIndexResetDate="ngModel" [format]="'M/d/yyyy'" class="ibox1 rightalign" [isRequired]="false" [placeholder]="'M/d/yyyy'"></wj-input-date>
+                <label class="lab1">First index determination date override</label>
+                <wj-input-date name="FirstIndexDeterminationDateOverride" [(ngModel)]="_note.FirstIndexDeterminationDateOverride" #FirstIndexDeterminationDateOverride="ngModel" [format]="'M/d/yyyy'" class="ibox1 rightalign" [isRequired]="false" [placeholder]="'M/d/yyyy'"></wj-input-date>
               </div>
+
               <div class="col-sm-3">
                 <label class="lab1">Stub paid in advance</label>
                 <select [(ngModel)]="_note.StubPaidinAdvanceYN" id="StubPaidinAdvanceYN" name="StubPaidinAdvanceYN" #StubPaidinAdvanceYN="ngModel" class="ibox1" (change)="StubPaidinAdvanceYNChange($event.target.value)">
                   <option value=3>Y</option>
                   <option value=4>N</option>
                 </select>
-                <!--<select [(ngModel)]="_note.StubPaidinAdvanceYN" name="StubPaidinAdvanceYN" #StubPaidinAdvanceYN="ngModel">
-              <option *ngFor="#YesNo of lstYesNo" value={{YesNo.LookupID}}>
-                  {{YesNo.Name}}
-              </option>
-          </select>-->
 
 
               </div>
@@ -1017,10 +974,10 @@
                   <option value=4>N</option>
                 </select>
                 <!--<select [(ngModel)]="_note.LoanPurchase" name="LoanPurchase" #LoanPurchase="ngModel">
-              <option *ngFor="#YesNo of lstYesNo" value={{YesNo.LookupID}}>
-                  {{YesNo.Name}}
-              </option>
-          </select>-->
+                    <option *ngFor="#YesNo of lstYesNo" value={{YesNo.LookupID}}>
+                        {{YesNo.Name}}
+                    </option>
+                </select>-->
 
 
               </div>
@@ -1029,10 +986,12 @@
                 <label class="lab1">Amort int calc day count</label>
                 <wj-input-number name="AmortIntCalcDayCount" [isRequired]="false" [(ngModel)]="_note.AmortIntCalcDayCount" #AmortIntCalcDayCount="ngModel" class="ibox1 rightalign" [format]="'n0'"></wj-input-number>
               </div>
+
               <div class="col-sm-3">
                 <label class="lab1">Tax amort check</label>
                 <input class="ibox1" type="text" [(ngModel)]="_note.TaxAmortCheck" id="TaxAmortCheck" name="TaxAmortCheck" #TaxAmortCheck="ngModel">
               </div>
+
               <div class="col-sm-3">
                 <label class="lab1">Initial index value override</label>
                 <wj-input-number name="InitialIndexValueOverride" [isRequired]="false" [(ngModel)]="_note.InitialIndexValueOverride" #InitialIndexValueOverride="ngModel" class="ibox1 rightalign" [format]="'p9'" [min]="0.0" [max]="1.00"> </wj-input-number>
@@ -1048,43 +1007,32 @@
                   <option value=250>Nearest</option>
                   <option value=251>Up</option>
                   <option value=252>Down</option>
-                  <!--<option *ngFor="#RoundMeth of lstRoundingMethod" value={{RoundMeth.LookupID}}>
-                {{RoundMeth.Name}}
-            </option>-->
                 </select>
-
-
               </div>
-
+              <div class="clearfix"></div>
               <div class="col-sm-3">
                 <label class="lab1">Index rounding rule</label>
                 <wj-input-number name="IndexRoundingRule" [(ngModel)]="_note.IndexRoundingRule" #IndexRoundingRule="ngModel" [isRequired]="false" class="ibox1 rightalign" [format]="'n0'"></wj-input-number>
               </div>
+
               <div class="col-sm-3">
                 <label class="lab1">Stub interest paid on future advances</label>
                 <select [(ngModel)]="_note.StubInterestPaidonFutureAdvances" id="StubInterestPaidonFutureAdvances" name="StubInterestPaidonFutureAdvances" #StubInterestPaidonFutureAdvances="ngModel" class="ibox1" (change)="StubInterestPaidonFutureAdvancesChange($event.target.value)">
                   <option value=3>Y</option>
                   <option value=4>N</option>
-
-                  <!--<option *ngFor="#YesNo of lstYesNo" value={{YesNo.LookupID}}>
-                {{YesNo.Name}}
-            </option>-->
                 </select>
-
-
               </div>
-
-
 
               <div class="col-sm-3">
                 <label class="lab1">Payment date adjustment for next payment cycle</label>
                 <wj-input-number name="NoofdaysrelPaymentDaterollnextpaymentcycle" [(ngModel)]="_note.NoofdaysrelPaymentDaterollnextpaymentcycle" #NoofdaysrelPaymentDaterollnextpaymentcycle="ngModel" [isRequired]="false" class="ibox1 rightalign" [format]="'0'"></wj-input-number>
               </div>
-
               <div class="col-sm-3">
                 <label class="lab1">Stub interest override</label>
                 <wj-input-number name="StubIntOverride" [(ngModel)]="_note.StubIntOverride" #StubIntOverride="ngModel" [isRequired]="false" class="ibox1 rightalign" [format]="'n2'"></wj-input-number>
               </div>
+
+
               <div class="col-sm-3">
                 <label class="lab1">Purchased interest override</label>
                 <wj-input-number name="PurchasedInterestOverride" [(ngModel)]="_note.PurchasedInterestOverride" #PurchasedInterestOverride="ngModel" [isRequired]="false" class="ibox1 rightalign" [format]="'n2'"></wj-input-number>
@@ -1104,17 +1052,9 @@
                 <select [(ngModel)]="_note.ExitFeeAmortCheck" id="ExitFeeAmortCheck" name="ExitFeeAmortCheck" #ExitFeeAmortCheck="ngModel" class="ibox1" (change)="ExitFeeAmortCheckChange($event.target.value)">
                   <option value=3>Y</option>
                   <option value=4>N</option>
-
-                  <!--<option *ngFor="#YesNo of lstYesNo" value={{YesNo.LookupID}}>
-                {{YesNo.Name}}
-            </option>-->
                 </select>
-
-
               </div>
-
-
-
+              <div class="clearfix"></div>
               <div class="col-sm-3">
                 <label class="lab1">Payment day of month override</label>
                 <wj-input-number name="AccrualPeriodPaymentDayWhenNotEOMonth" [(ngModel)]="_note.AccrualPeriodPaymentDayWhenNotEOMonth" #AccrualPeriodPaymentDayWhenNotEOMonth="ngModel" [isRequired]="false" class="ibox1 rightalign" [format]="'n0'"></wj-input-number>
@@ -1137,19 +1077,12 @@
               <div class="col-sm-3">
                 <label class="lab1">Ongoing annualized servicing fee</label>
                 <div class="input-icon input-icon-right">
-                  <!--<i *ngIf="_note.OngoingAnnualizedServicingFee != '' && _note.OngoingAnnualizedServicingFee != null">%</i>
-            <input class="ibox1 rightalign" type="text" [(ngModel)]="_note.OngoingAnnualizedServicingFee" name="OngoingAnnualizedServicingFee" #OngoingAnnualizedServicingFee="ngModel">-->
-
                   <wj-input-number name="OngoingAnnualizedServicingFee" [(ngModel)]="_note.OngoingAnnualizedServicingFee" #OngoingAnnualizedServicingFee="ngModel" [isRequired]="false" class="ibox1 rightalign" [format]="'p9'" [min]="0.0" [max]="1.00"> </wj-input-number>
                 </div>
               </div>
+
               <div class="col-sm-3">
                 <label class="lab1">Discount rate</label>
-
-                <!--<div class="input-icon input-icon-right">
-                                      <i *ngIf="_note.DiscountRate != '' && _note.DiscountRate != null">%</i>
-          <input class="ibox1 rightalign" type="text" [(ngModel)]="_note.DiscountRate" name="DiscountRate" #DiscountRate="ngModel">
-                                  </div>-->
 
                 <wj-input-number name="DiscountRate" [(ngModel)]="_note.DiscountRate" #DiscountRate="ngModel" class="ibox1 rightalign" [isRequired]="false" [format]="'p9'" [min]="0.0" [max]="1.00"> </wj-input-number>
               </div>
@@ -1166,9 +1099,6 @@
               <div class="col-sm-3">
                 <label class="lab1">Discount rate (+bps)</label>
                 <div class="input-icon input-icon-right">
-                  <!--<i *ngIf="_note.DiscountRatePlus != '' && _note.DiscountRatePlus != null">%</i>
-            <input class="ibox1 rightalign" type="text" [(ngModel)]="_note.DiscountRatePlus" name="DiscountRatePlus" #DiscountRatePlus="ngModel">-->
-
                   <wj-input-number name="DiscountRatePlus" [(ngModel)]="_note.DiscountRatePlus" #DiscountRatePlus="ngModel" [isRequired]="false" class="ibox1 rightalign" [format]="'p9'" [min]="0.0" [max]="1.00"> </wj-input-number>
                 </div>
               </div>
@@ -1177,11 +1107,12 @@
                 <label class="lab1">Fair value (+bps)</label>
                 <input class="ibox1 rightalign" type="text" [(ngModel)]="_note.FairValuePlus" id="FairValuePlus" name="FairValuePlus" #FairValuePlus="ngModel">
               </div>
+
               <div class="col-sm-3">
                 <label class="lab1">Discount rate (-bps)</label>
                 <div class="input-icon input-icon-right">
                   <!--<i *ngIf="_note.DiscountRateMinus != '' && _note.DiscountRateMinus != null">%</i>
-            <input class="ibox1 rightalign" type="text" [(ngModel)]="_note.DiscountRateMinus" name="DiscountRateMinus" #DiscountRateMinus="ngModel">-->
+                  <input class="ibox1 rightalign" type="text" [(ngModel)]="_note.DiscountRateMinus" name="DiscountRateMinus" #DiscountRateMinus="ngModel">-->
 
                   <wj-input-number name="DiscountRateMinus" [(ngModel)]="_note.DiscountRateMinus" #DiscountRateMinus="ngModel" [isRequired]="false" class="ibox1 rightalign" [format]="'p9'" [min]="0.0" [max]="1.00"> </wj-input-number>
                 </div>
@@ -1192,56 +1123,38 @@
               </div>
 
               <div class="col-sm-3">
-                <label class="lab1">Index Name</label>
-                <select [(ngModel)]="_note.IndexNameID" id="IndexNameID" name="IndexNameID" #IndexNameID="ngModel" class="ibox1"
-                        (change)="IndexNameIDChange($event.target)">
-                  <option *ngFor="let indextype of lstIndextype" value={{indextype.LookupID}}>
-                    {{indextype.Name}}
-                  </option>
-                </select>
-              </div>
-
-              <div class="col-sm-3">
                 <label class="lab1">Total commitment extension fee is based on</label>
                 <input class="ibox1 rightalign" type="text" [(ngModel)]="_note.TotalCommitmentExtensionFeeisBasedOn" id="TotalCommitmentExtensionFeeisBasedOn" name="TotalCommitmentExtensionFeeisBasedOn" #TotalCommitmentExtensionFeeisBasedOn="ngModel">
               </div>
+              <div class="clearfix"></div>
               <div class="col-sm-3">
                 <label class="lab1">Unused Fee Threshold Balance</label>
                 <input class="ibox1 rightalign" type="text" [(ngModel)]="_note.UnusedFeeThresholdBalance " id="UnusedFeeThresholdBalance " name="UnusedFeeThresholdBalance " #UnusedFeeThresholdBalance="ngModel">
               </div>
+
               <div class="col-sm-3">
                 <label class="lab1">Unused Fee Payment Freq</label>
                 <wj-input-number name="UnusedFeePaymentFrequency" [(ngModel)]="_note.UnusedFeePaymentFrequency" #UnusedFeePaymentFrequency="ngModel" [isRequired]="false" class="ibox1 rightalign" [format]="'n0'"></wj-input-number>
               </div>
 
               <div class="col-sm-3">
-                <label class="lab1">Interest for full period is due at maturity</label>
+                <label class="lab1">Interest for full period is due at mat</label>
                 <select [(ngModel)]="_note.FullInterestAtPPayoff" id="FullInterestAtPPayoff" name="FullInterestAtPPayoff" #FullInterestAtPPayoff="ngModel" class="ibox1" (change)="FullInterestAtPPayoffChange($event.target.value)">
                   <option value=3>Y</option>
                   <option value=4>N</option>
                 </select>
               </div>
-              <div class="col-sm-3">
-                <label class="lab1">Stub Interest Rate Override</label>
-                <div class="input-icon input-icon-right">
-                  <!--<i *ngIf="_note.DiscountRateMinus != '' && _note.DiscountRateMinus != null">%</i>
-            <input class="ibox1 rightalign" type="text" [(ngModel)]="_note.DiscountRateMinus" name="DiscountRateMinus" #DiscountRateMinus="ngModel">-->
 
-                  <wj-input-number name="StubInterestRateOverride" [(ngModel)]="_note.StubInterestRateOverride" #StubInterestRateOverride="ngModel" [isRequired]="false" class="ibox1 rightalign" [format]="'p9'" [min]="0.0" [max]="1.00"> </wj-input-number>
-                </div>
+              <div class="col-sm-3">
+                <label class="lab1">Amort Override</label>
+                <input class="ibox1 rightalign" type="text" [(ngModel)]="_note.StraightLineAmortOverride" id="StraightLineAmortOverride" name="StraightLineAmortOverride" #StraightLineAmortOverride="ngModel">
               </div>
               <div class="col-sm-3" style="display:none;">
                 <label class="lab1">Libor Data Asof Date</label>
                 <wj-input-date name="LiborDataAsofDate" [(ngModel)]="_note.LiborDataAsofDate" #LiborDataAsofDate="ngModel" [format]="'M/d/yyyy'" class="ibox1 rightalign" [isRequired]="false" [placeholder]="'M/d/yyyy'"></wj-input-date>
               </div>
-              <div class="col-sm-3">
-                <label class="lab1">PIK Int In Balance Based On Business Adj Date</label>
-                <select [(ngModel)]="_note.PIKInterestAddedToBalanceBasedOnBusinessAdjustedDate" id="PIKInterestAddedToBalanceBasedOnBusinessAdjustedDate" name="PIKInterestAddedToBalanceBasedOnBusinessAdjustedDate" #PIKInterestAddedToBalanceBasedOnBusinessAdjustedDate="ngModel" class="ibox1" (change)="FullInterestAtPPayoffChange($event.target.value)">
-                  <option value=3>Y</option>
-                  <option value=4>N</option>
-                </select>
-              </div>
 
+              <div class="clearfix"></div>
 
               <div class="col-sm-3">
                 <label class="lab1">Interest Calculation Rule For Paydowns</label>
@@ -1252,8 +1165,9 @@
                   </option>
                 </select>
               </div>
+
               <div class="col-sm-3">
-                <label class="lab1">Amort Interest Calculation Rule For Paydowns</label>
+                <label class="lab1">Interest Calculation Rule For Amort</label>
                 <select [(ngModel)]="_note.InterestCalculationRuleForPaydownsAmort" id="InterestCalculationRuleForPaydownsAmort" name="InterestCalculationRuleForPaydownsAmort" #InterestCalculationRuleForPaydownsAmort="ngModel" class="ibox1"
                         (change)="InterestCalculationRuleForPaydownsAmortChange($event.target.value)">
                   <option *ngFor="let svramortitem of lstInterestCalculationRuleForPaydownsAmort" value={{svramortitem.LookupID}}>
@@ -1262,7 +1176,15 @@
                 </select>
               </div>
 
-
+              <div class="col-sm-3">
+                <label class="lab1">Interest Calculation Rule For PIK Paydowns</label>
+                <select [(ngModel)]="_note.InterestCalculationRuleForPIKPaydowns" id="InterestCalculationRuleForPIKPaydowns" name="InterestCalculationRuleForPIKPaydowns" #InterestCalculationRuleForPIKPaydowns="ngModel" class="ibox1"
+                        (change)="InterestCalculationRuleForPIKPaydownsChange($event.target.value)">
+                  <option *ngFor="let svrpikitem of lstInterestCalculationRuleForPaydowns" value={{svrpikitem.LookupID}}>
+                    {{svrpikitem.Name}}
+                  </option>
+                </select>
+              </div>
 
               <div class="col-sm-3">
                 <label class="lab1">Rounding Note</label>
@@ -1272,20 +1194,47 @@
                 </select>
               </div>
 
-              <div class="col-sm-3">
-                <label class="lab1">Amort Override</label>
-                <input class="ibox1 rightalign" type="text" [(ngModel)]="_note.StraightLineAmortOverride" id="StraightLineAmortOverride" name="StraightLineAmortOverride" #StraightLineAmortOverride="ngModel">
-              </div>
 
+              <!--<div class="clearfix"></div>-->
               <div class="col-sm-3">
                 <label class="lab1">Note Transfer Date</label>
                 <wj-input-date name="NoteTransferDate" [(ngModel)]="_note.NoteTransferDate" #NoteTransferDate="ngModel" [format]="'M/d/yyyy'" class="ibox1 rightalign" [isRequired]="false" [placeholder]="'M/d/yyyy'"></wj-input-date>
               </div>
-
               <div class="col-sm-3">
                 <label class="lab1">Origination Fee% used in daily reporting</label>
                 <wj-input-number name="OriginationFeePercentageRP" [(ngModel)]="_note.OriginationFeePercentageRP" #OriginationFeePercentageRP="ngModel" [isRequired]="false" class="ibox1 rightalign" [format]="'p9'" [min]="0.0" [max]="1.00"> </wj-input-number>
               </div>
+              <div class="col-sm-3">
+                <label class="lab1">First rate index reset date</label>
+                <wj-input-date name="FirstRateIndexResetDate" [(ngModel)]="_note.FirstRateIndexResetDate" #FirstRateIndexResetDate="ngModel" [format]="'M/d/yyyy'" class="ibox1 rightalign" [isRequired]="false" [placeholder]="'M/d/yyyy'"></wj-input-date>
+              </div>
+              <div class="col-sm-3">
+                <label class="lab1">Constant Payment Method</label>
+                <select [(ngModel)]="_note.ConstantPaymentMethod" id="ConstantPaymentMethod" name="ConstantPaymentMethod" #ConstantPaymentMethod="ngModel" class="ibox1" (change)="ConstantPaymentMethodChange($event.target.value)">
+                  <option value=3>Y</option>
+                  <option value=4>N</option>
+                </select>
+              </div>
+              <!--<div class="col-sm-3">
+                <label class="lab1">Payment Date Accrual Period</label>
+                <select [(ngModel)]="_note.PaymentDateAccrualPeriod" id="PaymentDateAccrualPeriod" name="PaymentDateAccrualPeriod" #PaymentDateAccrualPeriod="ngModel" class="ibox1" (change)="PaymentDateAccrualPeriodChange($event.target.value)">
+                  <option value=905>Current</option>
+                  <option value=906>Preceding</option>
+                </select>
+              </div>-->
+              <!--<div class="col-sm-3">
+                <label class="lab1">Full I/O Term flag</label>
+                <select [(ngModel)]="_note.FullIOTermFlag" name="FullIOTermFlag" id="FullIOTermFlag" #FullIOTermFlag="ngModel" class="ibox1" (change)="FullIOTermFlagChange($event.target.value)">
+                  <option value=3>Y</option>
+                  <option value=4>N</option>
+                </select>
+              </div>-->
+              <!--<div class="col-sm-3">
+                <label class="lab1">Stub Interest Rate Override</label>
+                <div class="input-icon input-icon-right">
+                  <wj-input-number name="StubInterestRateOverride" [(ngModel)]="_note.StubInterestRateOverride" #StubInterestRateOverride="ngModel" [isRequired]="false" class="ibox1 rightalign" [format]="'p9'" [min]="0.0" [max]="1.00"> </wj-input-number>
+                </div>
+              </div>-->
             </div>
           </div>
           <div class="box1a">
@@ -1301,17 +1250,22 @@
                 <div>
                   <button id="btnVHRateSpreadSchedule" *ngIf="ShowHideFlagRateSpreadSchedule" type="button" class="custombutton viewScheduleButton" (click)="showDialog('RateSpreadSchedule')"> View history {{EffectiveDateCountRateSpreadSchedule }}</button>
                 </div>
+                <div *ngIf="HideNonSuperAdminUser()">
+                  <button id="btnEditRateSpreadSchedule" *ngIf="ShowHideEditRateSpreadSchedule" type="button" class="custombutton viewScheduleButton" (click)="EditDialogRSSFEE('Rate Spread Schedule')"> Edit History</button>
+                </div>
                 <div class="col-sm-12 customgridpadding">
-                  <wj-flex-grid id="flexrss" #flexrss [itemsSource]="cvRateSpreadScheduleList" [allowAddNew]="true" [allowResizing]="'Both'" class="gridSize"
+                  <wj-flex-grid id="flexrss" #flexrss [itemsSource]="cvRateSpreadScheduleList" [allowAddNew]="true" [allowResizing]="'Both'" class="gridSize" keyActionTab="Cycle"
                                 (selectionChanged)="rssselectionChanged()" selection-mode="Row" (beginningEdit)="beginningEditDateAndValue('RateSpreadSchedule')" (rowEditEnded)="rowEditEndedDateAndValue('RateSpreadSchedule')" (pasted)="CopiedDataValidate('RateSpreadSchedule')">
                     <wj-flex-grid-filter #filter></wj-flex-grid-filter>
                     <!--<wj-flex-grid-column [header]="'Effective date'" [binding]="'EffectiveDate'" align="right" style="border:double" [width]="'*'"></wj-flex-grid-column>-->
                     <wj-flex-grid-column [header]="'Date'" [binding]="'Date'" align="right" style="border:1px solid red" [width]="'*'"></wj-flex-grid-column>
                     <wj-flex-grid-column [name]="'ValueType'" [header]="'Value type'" [binding]="'ValueTypeText'" style="border:1px solid red" [width]="'*'"></wj-flex-grid-column>
-                    <wj-flex-grid-column [header]="'Value'" [binding]="'Value'" align="right" style="border:1px solid red" format="p9" [width]="'*'">
+                    <wj-flex-grid-column [header]="'Value'" [binding]="'Value'" align="right" style="border:1px solid red" format="p9" [dataType]="'Number'" [width]="'*'">
                     </wj-flex-grid-column>
                     <wj-flex-grid-column [name]="'Calc Method'" [header]="'Calc method'" [binding]="'IntCalcMethodText'" style="border:1px solid red" [width]="'*'"></wj-flex-grid-column>
-                    <wj-flex-grid-column [header]="'Rate Or Spread To Be Stripped'" [binding]="'RateOrSpreadToBeStripped'" align="right" style="border:1px solid red" format="p9" [width]="'*'"> </wj-flex-grid-column>
+                    <wj-flex-grid-column [header]="'Rate Or Spread To Be Stripped'" [binding]="'RateOrSpreadToBeStripped'" align="right" style="border:1px solid red" format="p9" [dataType]="'Number'" [width]="'*'"> </wj-flex-grid-column>
+                    <wj-flex-grid-column [name]="'Index Name'" [header]="'Index Name'" [binding]="'IndexNameText'" style="border:1px solid red" [width]="'*'"></wj-flex-grid-column>
+                    <wj-flex-grid-column [name]="'Determination Date Holiday List'" [header]="'Determination Date Holiday List'" [binding]="'DeterminationDateHolidayListText'" style="border:1px solid red" [width]="'*'"></wj-flex-grid-column>
 
                     <wj-flex-grid-column [name]="'buttons'" [header]="'Delete'" [isReadOnly]="true" align="right" [width]="80">
                       <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
@@ -1338,34 +1292,45 @@
                 <div>
                   <button type="button" *ngIf="ShowHideFlagPrepayAndAdditionalFeeSchedule" class="custombutton viewScheduleButton" (click)="showDialog('PrepayAndAdditionalFeeSchedule')"> View history {{EffectiveDateCountPrepayAndAdditionalFeeSchedule}}</button>
                 </div>
+                <div *ngIf="HideNonSuperAdminUser()">
+                  <button id="btnEditPrepayAndAdditionalFeeSchedule" *ngIf="ShowHideEditPrepayAndAdditionalFeeSchedule" type="button" class="custombutton viewScheduleButton" (click)="EditDialogRSSFEE('Fee Schedule')"> Edit History</button>
+                </div>
                 <div class="col-sm-12 customgridpadding">
-                  <wj-flex-grid id="flexPrepay" #flexPrepay [itemsSource]="cvNotePrepayAndAdditionalFeeScheduleList" [allowAddNew]="true" [allowResizing]="'Both'" class="gridSize"
-                                item-formatter="itemFormatter" (beginningEdit)="beginningEditDateAndValue('PrepayAndAdditionalFeeSchedule')" (rowEditEnded)="rowEditEndedDateAndValue('PrepayAndAdditionalFeeSchedule')" (pasted)="CopiedDataValidate('PrepayFeeSchedule')">
+                  <wj-flex-grid id="flexPrepay" #flexPrepay [itemsSource]="cvNotePrepayAndAdditionalFeeScheduleList"
+                                [allowAddNew]="true"
+                                [allowResizing]="'Both'"
+                                class="gridSize" keyActionTab="Cycle"
+                                item-formatter="itemFormatter"
+                                (beginningEdit)="beginningEditDateAndValue('PrepayAndAdditionalFeeSchedule')"
+                                (rowEditEnded)="rowEditEndedDateAndValue('PrepayAndAdditionalFeeSchedule')"
+                                (pasted)="CopiedDataValidate('PrepayFeeSchedule')"
+                                (keydown.delete)="delDown($event, flexPrepay)">
                     <!--(selectionChanged)="PrepayselectionChanged()"-->
                     <wj-flex-grid-filter #filter></wj-flex-grid-filter>
+                    <!--<wj-flex-grid-column [header]="'Effective date'" [binding]="'EffectiveDate'" align="right" style="border:double" [width]="'*'"></wj-flex-grid-column>-->
 
                     <wj-flex-grid-column [header]="'Fee Name'" [binding]="'FeeName'" align="left" [width]="'*'"></wj-flex-grid-column>
 
                     <wj-flex-grid-column [header]="'Start date'" [binding]="'StartDate'" align="right" [width]="'*'"></wj-flex-grid-column>
-                    <wj-flex-grid-column [header]="'End date'" [binding]="'ScheduleEndDate'" align="right" [width]="'*'"></wj-flex-grid-column>
+                    <wj-flex-grid-column [header]="'End date'" [binding]="'ScheduleEndDate'" align="right" [width]="'*'" [isRequired]="false"></wj-flex-grid-column>
 
                     <wj-flex-grid-column [name]="'ValueType'" [header]="'Fee Type'" [binding]="'ValueTypeText'" [width]="'*'"></wj-flex-grid-column>
 
-                    <wj-flex-grid-column [header]="'Fee(%)'" [binding]="'Value'" align="right" format="p9" [width]="'*'"></wj-flex-grid-column>
+                    <wj-flex-grid-column [header]="'Fee(%)'" [binding]="'Value'" align="right" format="p9" [dataType]="'Number'" [width]="'*'"></wj-flex-grid-column>
 
                     <wj-flex-grid-column [header]="'Fee Amt Override'" [binding]="'FeeAmountOverride'" align="right" [width]="'*'"></wj-flex-grid-column>
                     <wj-flex-grid-column [header]="'Base Amt Override'" [binding]="'BaseAmountOverride'" align="right" [width]="'*'"></wj-flex-grid-column>
 
                     <wj-flex-grid-column [name]="'Apply True-Up Feature'" [header]="'Apply True Up'" [binding]="'ApplyTrueUpFeatureText'" [width]="'*'"></wj-flex-grid-column>
 
-                    <wj-flex-grid-column [header]="'In lv yield calc'" [binding]="'IncludedLevelYield'" align="right" format="p9" [width]="'*'">
+                    <wj-flex-grid-column [header]="'In lv yield calc'" [binding]="'IncludedLevelYield'" align="right" format="p9" [dataType]="'Number'" [width]="'*'">
                     </wj-flex-grid-column>
 
-                    <wj-flex-grid-column [header]="'Fee to be Stripped'" [binding]="'PercentageOfFeeToBeStripped'" align="right" format="p9" [width]="'*'">
+                    <wj-flex-grid-column [header]="'Fee to be Stripped'" [binding]="'PercentageOfFeeToBeStripped'" align="right" format="p9" [dataType]="'Number'" [width]="'*'">
                     </wj-flex-grid-column>
 
                     <!--<wj-flex-grid-column [header]="'Include in basis calc'" [binding]="'IncludedBasis'" align="right" format="p5" [width]="'*'">
-              </wj-flex-grid-column>-->
+                    </wj-flex-grid-column>-->
                     <wj-flex-grid-column [name]="'buttons'" [header]="'Delete'" [isReadOnly]="true" align="right" [width]="80">
                       <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
                         <a style="text-decoration: underline;" (click)="showDeleteDialog(cell.row.index,'Prepay and additional fee schedule')">Delete</a>
@@ -1428,10 +1393,10 @@
                   <option value=149>One time</option>
                 </select>
                 <!--<select [(ngModel)]="_note.FinancingPayFrequency" name="FinancingPayFrequency" #FinancingPayFrequency="ngModel">
-              <option *ngFor="#FinPayFrequency of lstFinancingPayFrequency" value={{FinPayFrequency.LookupID}}>
-                  {{FinPayFrequency.Name}}
-              </option>
-          </select>-->
+                    <option *ngFor="#FinPayFrequency of lstFinancingPayFrequency" value={{FinPayFrequency.LookupID}}>
+                        {{FinPayFrequency.Name}}
+                    </option>
+                </select>-->
 
 
               </div>
@@ -1460,13 +1425,13 @@
 
                 <div class="col-sm-12 customgridpadding">
                   <wj-flex-grid id="flexfinancingfee" #flexfinancingfee [itemsSource]="_noteext.lstFinancingFeeSchedule" [allowAddNew]="true"
-                                [allowResizing]="'Both'" class="gridSize" (beginningEdit)="beginningEditDateAndValue('FinancingFeeSchedule')" (rowEditEnded)="rowEditEndedDateAndValue('FinancingFeeSchedule')" (pasted)="CopiedDataValidate('FinancingFeeSchedule')">
+                                [allowResizing]="'Both'" class="gridSize" (beginningEdit)="beginningEditDateAndValue('FinancingFeeSchedule')" (rowEditEnded)="rowEditEndedDateAndValue('FinancingFeeSchedule')" (pasted)="CopiedDataValidate('FinancingFeeSchedule')" keyActionTab="Cycle">
                     <!--(selectionChanged)="financingfeeselectionChanged()"-->
                     <wj-flex-grid-filter #filter></wj-flex-grid-filter>
                     <!--<wj-flex-grid-column [header]="'Effective date'" [binding]="'EffectiveDate'" align="right" [width]="'*'"></wj-flex-grid-column>-->
                     <wj-flex-grid-column [header]="'Date'" [binding]="'Date'" align="right" [width]="'*'"></wj-flex-grid-column>
                     <wj-flex-grid-column [header]="'Value type'" [binding]="'ValueTypeText'" [width]="'*'"></wj-flex-grid-column>
-                    <wj-flex-grid-column [header]="'Value'" [binding]="'Value'" align="right" format="p9" [width]="'*'">
+                    <wj-flex-grid-column [header]="'Value'" [binding]="'Value'" align="right" format="p9" [dataType]="'Number'" [width]="'*'">
                     </wj-flex-grid-column>
                   </wj-flex-grid>
                 </div>
@@ -1491,13 +1456,13 @@
                 <div class="col-sm-12 customgridpadding">
 
                   <wj-flex-grid id="flexFinancingSch" #flexFinancingSch [itemsSource]="_noteext.NoteFinancingScheduleList" [allowAddNew]="true"
-                                [allowResizing]="'Both'" class="gridSize" (beginningEdit)="beginningEditDateAndValue('FinancingSchedule')" (rowEditEnded)="rowEditEndedDateAndValue('FinancingSchedule')" (pasted)="CopiedDataValidate('FinancingSchedule')">
+                                [allowResizing]="'Both'" class="gridSize" (beginningEdit)="beginningEditDateAndValue('FinancingSchedule')" (rowEditEnded)="rowEditEndedDateAndValue('FinancingSchedule')" (pasted)="CopiedDataValidate('FinancingSchedule')" keyActionTab="Cycle">
                     <!--(selectionChanged)="financingSchselectionChanged()"-->
                     <wj-flex-grid-filter #filter></wj-flex-grid-filter>
                     <!--<wj-flex-grid-column [header]="'Effective date'" [binding]="'EffectiveDate'" align="right" [width]="'*'"></wj-flex-grid-column>-->
                     <wj-flex-grid-column [header]="'Date'" [binding]="'Date'" align="right" [width]="'*'"></wj-flex-grid-column>
                     <wj-flex-grid-column [name]="'Value Type'" [header]="'Value type'" [binding]="'ValueTypeText'" [width]="'*'"></wj-flex-grid-column>
-                    <wj-flex-grid-column [header]="'Value'" [binding]="'Value'" align="right" format="p9" [width]="'*'">
+                    <wj-flex-grid-column [header]="'Value'" [binding]="'Value'" align="right" format="p9" [dataType]="'Number'" [width]="'*'">
                     </wj-flex-grid-column>
                     <wj-flex-grid-column [name]="'Currency Code'" [header]="'Currency code'" [binding]="'CurrencyCodeText'" [width]="'*'"></wj-flex-grid-column>
                     <wj-flex-grid-column [name]="'Index Type'" [header]="'Index type'" [binding]="'IndexTypeText'" [width]="'*'"></wj-flex-grid-column>
@@ -1508,6 +1473,8 @@
               </div>
             </div>
           </div>
+
+
         </div>
 
         <div class="tab-pane fade" id="settlement" style="min-height:70vh;" *ngIf="_isShowSettlement">
@@ -1550,22 +1517,168 @@
                 <label class="lab1">Initial Additional Equity</label>
                 <wj-input-number name="InitialAdditionalEquity" [isRequired]="false" [(ngModel)]="_note.InitialAdditionalEquity" #InitialAdditionalEquity="ngModel" class="ibox1 rightalign" [format]="'n2'"></wj-input-number>
               </div>
+              <div class="col-sm-3">
+                <label class="lab1">Impact Commitment Calc</label>
+                <select [(ngModel)]="_note.ImpactCommitmentCalc" id="ImpactCommitmentCalc" name="ImpactCommitmentCalc" #ImpactCommitmentCalc="ngModel" class="ibox1" (change)="ImpactCommitmentCalcChange($event.target.value)">
+                  <option value=3>Y</option>
+                  <option value=4>N</option>
+                </select>
+              </div>
+              <div class="col-sm-3">
+                <label class="lab1">UPB at Closing</label>
+                <wj-input-number name="UPBAtForeclosure" [isRequired]="false" [(ngModel)]="_note.UPBAtForeclosure" #UPBAtForeclosure="ngModel" class="ibox1 rightalign" [format]="'n2'"></wj-input-number>
+              </div>
             </div>
           </div>
 
           <div class="box1a">
-            <h3>PIK schedule</h3>
+            <h3>PIK Schedule</h3>
             <div class="form-group row pD10">
               <div class="col-sm-12">
-                <button id="btnVHPIKSchedule" *ngIf="ShowHideFlagPIKSchedule" type="button" class="custombutton viewScheduleButton" (click)="showDialog('PIKSchedule')"> View history {{EffectiveDateCountPIKSchedule}}</button>
+                <div>
+                  <button id="btnVHPIKSchedule" *ngIf="ShowHideFlagPIKSchedule" type="button" class="custombutton viewScheduleButton" (click)="showDialog('PIKSchedule')"> View history {{EffectiveDateCountPIKSchedule}}</button>
+                </div>
+                <div *ngIf="HideNonSuperAdminUser()">
+                  <button id="btnEditPIKSchedule" *ngIf="ShowHideEditPIKSchedule" type="button" class="custombutton viewScheduleButton" (click)="EditDialogRSSFEE('PIK Schedule')"> Edit History</button>
+                </div>
               </div>
-
               <div class="col-sm-3">
-                <label class="lab1">Effective date</label>
+                <label class="lab1">Effective Date</label>
                 <wj-input-date [(value)]="PIKSchedule_EffectiveDate" id="PIKSchedule_EffectiveDate" [format]="'M/d/yyyy'" class="ibox1 rightalign" [isRequired]="false" [placeholder]="'M/d/yyyy'"></wj-input-date>
               </div>
               <div class="col-sm-3">
-                <label class="lab1">Source account</label>
+                <label class="lab1">Start Date</label>
+                <wj-input-date [(value)]="PIKSchedule_StartDate" id="PIKSchedule_StartDate" [format]="'M/d/yyyy'" class="ibox1 rightalign" [isRequired]="false" [placeholder]="'M/d/yyyy'"></wj-input-date>
+              </div>
+              <div class="col-sm-3">
+                <label class="lab1">End Date</label>
+                <wj-input-date [(value)]="PIKSchedule_EndDate" id="PIKSchedule_EndDate" [format]="'M/d/yyyy'" class="ibox1 rightalign" [isRequired]="false" [placeholder]="'M/d/yyyy'"></wj-input-date>
+              </div>
+            </div>
+
+            <div class="form-group row pD10">
+              <div class="col-sm-12" style="margin-bottom:15px;">
+                <span class="customheading">
+                  PIK Compounding Setup
+                </span>
+              </div>
+
+              <div class="col-sm-3">
+                <label class="lab1">PIK Set Up</label>
+                <select [(ngModel)]="PIKSetUp" id="PIKSetUp" name="PIKSetUp" class="ibox1" (change)="PIKSetUpmethodChange($event.target.value)">
+                  <option value="870">As a % of Coupon</option>
+                  <option value="871">PIK Rate</option>
+                  <option value="891">Over Current Pay Rate</option>
+                </select>
+              </div>
+
+              <div class="col-sm-3" *ngIf="showCurrentPayRate">
+                <label class="lab1">Current Pay Rate</label>
+                <wj-input-number [isRequired]="false" [(value)]="PIKCurrentPayRate" id="PIKCurrentPayRate" class="ibox1 rightalign" [format]="'p9'" [min]="0.0" [max]="1.00"> </wj-input-number>
+              </div>
+
+              <div class="col-sm-3" *ngIf="showpikAccruesrate">
+                <label class="lab1">PIK %</label>
+                <wj-input-number [isRequired]="false" [(value)]="PIKPercentage" id="PIKPercentage" class="ibox1 rightalign" [format]="'p9'" [min]="0.0" [max]="1.00"> </wj-input-number>
+              </div>
+
+              <div class="col-sm-3" *ngIf="showpikwithPIKSeparateCompounding">
+                <label class="lab1">PIK with Separate Compounding</label>
+                <select [(value)]="PIKSeparateCompounding" id="PIKSeparateCompounding" name="PIKSeparateCompounding" class="ibox1" (change)="PIKSeparateCompoundingChange($event.target.value)">
+                  <option value=3>Y</option>
+                  <option value=4>N</option>
+                </select>
+              </div>
+
+            </div>
+
+            <div class="form-group row pD10" *ngIf="showpiksetupdiv">
+              <div class="col-sm-3" *ngIf="showpikAdditionalrate">
+                <label class="lab1">PIK Rate</label>
+                <wj-input-number [isRequired]="false" [(value)]="PIKSchedule_AdditionalIntRate" id="PIKSchedule_AdditionalIntRate" class="ibox1 rightalign" [format]="'p9'" [min]="0.0" [max]="1.00"> </wj-input-number>
+              </div>
+              <div class="col-sm-3" *ngIf="showpikAdditionalrate">
+                <label class="lab1">PIK Spread</label>
+                <wj-input-number [isRequired]="false" [(value)]="PIKSchedule_AdditionalSpread" id="PIKSchedule_AdditionalSpread" class="ibox1 rightalign" [format]="'p9'" [min]="0.0" [max]="1.00"> </wj-input-number>
+              </div>
+
+              <div class="col-sm-3" *ngIf="showpikAccrualrate">
+                <label class="lab1">PIK Compounding Rate</label>
+                <wj-input-number [isRequired]="false" [(value)]="PIKSchedule_IntCompoundingRate" id="PIKSchedule_IntCompoundingRate" class="ibox1 rightalign" [format]="'p9'" [min]="0.0" [max]="1.00"> </wj-input-number>
+              </div>
+
+              <div class="col-sm-3" *ngIf="showpikAccrualrate">
+                <label class="lab1">PIK Compounding Spread</label>
+                <wj-input-number [isRequired]="false" [(value)]="PIKSchedule_IntCompoundingSpread" id="PIKSchedule_IntCompoundingSpread" class="ibox1 rightalign" [format]="'p9'"></wj-input-number>
+              </div>
+
+              <div class="col-sm-3">
+                <label class="lab1">Index Floor</label>
+                <wj-input-number [isRequired]="false" [(value)]="PIKSchedule_IndexFloor" id="PIKSchedule_IndexFloor" class="ibox1 rightalign" [format]="'p9'" [min]="0.0" [max]="1.00"> </wj-input-number>
+              </div>
+              <div class="col-sm-3">
+                <label class="lab1">PIK Interest Calc method</label>
+                <select [(ngModel)]="PIKSchedule_PIKIntCalcMethodID" id="PIKSchedule_PIKIntCalcMethodID" name="PIKSchedule_PIKIntCalcMethodID" #PIKSchedulePIKIntCalcMethodID="ngModel" class="ibox1" (change)="PIKInterestCalcmethodChange($event.target.value)">
+                  <option value=178>Actual/360</option>
+                  <option value=179>30/360</option>
+                  <option value=180>Actual/365</option>
+                  <option value=853>Actual/Actual</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="form-group row pD10">
+              <div class="col-sm-3">
+                <label class="lab1">Pur Balance</label>
+                <wj-input-number [isRequired]="false" [(value)]="PIKSchedule_PurBal" id="PIKSchedule_PurBal" class="ibox1 rightalign" [format]="'n2'"></wj-input-number>
+              </div>
+
+              <div class="col-sm-3">
+                <label class="lab1">PIK Comments</label>
+                <input class="ibox1" type="text" [(ngModel)]="PIKSchedule_PIKComments" name="PIKComments" #PIKComments="ngModel" id="PIKComments">
+              </div>
+
+              <div class="col-sm-3">
+                <label class="lab1">PIK Reason Code</label>
+                <select [(ngModel)]="PIKSchedule_PIKReasonCodeID" id="PIKSchedule_PIKReasonCodeID" name="PIKSchedule_PIKReasonCodeID" #PIKSchedulePIKReasonCodeID="ngModel" class="ibox1" (change)="PIKSchedulePIKReasonCodeIDChange($event.target.value)">
+                  <option value=687>Contractual</option>
+                  <option value=688>COVID</option>
+                  <option value=856>Deferral Interest Payments</option>
+                  <option value=689>Other</option>
+                </select>
+              </div>
+            </div>
+
+          </div>
+
+          <div class="box1a">
+            <h3>Additional PIK Details (Not Effective Date Managed)</h3>
+            <div class="form-group row pD10">
+
+              <div class="col-sm-3">
+                <label class="lab1">Impact in Commitment Calc</label>
+                <select [(ngModel)]="_note.ImpactCommitmentCalc" id="ImpactCommitmentCalc" name="ImpactCommitmentCalc" #ImpactCommitmentCalc="ngModel" class="ibox1" (change)="ImpactCommitmentCalcChange($event.target.value)">
+                  <option value=3>Y</option>
+                  <option value=4>N</option>
+                </select>
+              </div>
+              <div class="col-sm-4">
+                <label class="lab1">
+                  Cash Interest Calc-PIK Balance updated on Business Adjusted Pmt Date
+                </label>
+                <select [(ngModel)]="_note.PIKInterestAddedToBalanceBasedOnBusinessAdjustedDate" id="PIKInterestAddedToBalanceBasedOnBusinessAdjustedDate" name="PIKInterestAddedToBalanceBasedOnBusinessAdjustedDate" #PIKInterestAddedToBalanceBasedOnBusinessAdjustedDate="ngModel" class="ibox1" (change)="FullInterestAtPPayoffChange($event.target.value)">
+                  <option value=3>Y</option>
+                  <option value=4>N</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <div class="box1a">
+            <h3>PIK Cap & Cash Interest </h3>
+            <div class="form-group row pD10" style="margin-bottom:20px;">
+              <div class="col-sm-3">
+                <label class="lab1">Source Account</label>
                 <wj-auto-complete #pikAsync
                                   [itemsSourceFunction]="getAutosuggestpikaccount"
                                   [displayMemberPath]="'DisplayName'"
@@ -1577,7 +1690,7 @@
                 </wj-auto-complete>
               </div>
               <div class="col-sm-3">
-                <label class="lab1">Target account</label>
+                <label class="lab1">Target Account</label>
                 <wj-auto-complete #pikAsyncTarg
                                   [itemsSourceFunction]="getAutosuggestpikaccount"
                                   [displayMemberPath]="'DisplayName'"
@@ -1588,95 +1701,47 @@
                                   (isDroppedDownChanged)="checkDropDownChangedtarget(pikAsyncTarg, $event)" class="ibox1" style="padding: 3px !important;">
                 </wj-auto-complete>
               </div>
-
               <div class="col-sm-3">
-                <label class="lab1">Additional rate</label>
-                <wj-input-number [isRequired]="false" [(value)]="PIKSchedule_AdditionalIntRate" id="PIKSchedule_AdditionalIntRate" class="ibox1 rightalign" [format]="'p9'" [min]="0.0" [max]="1.00"> </wj-input-number>
-              </div>
-
-              <div class="col-sm-3">
-                <label class="lab1">Additional spread</label>
-                <wj-input-number [isRequired]="false" [(value)]="PIKSchedule_AdditionalSpread" id="PIKSchedule_AdditionalSpread" class="ibox1 rightalign" [format]="'p9'" [min]="0.0" [max]="1.00"> </wj-input-number>
-              </div>
-
-              <div class="col-sm-3">
-                <label class="lab1">Index floor</label>
-                <wj-input-number [isRequired]="false" [(value)]="PIKSchedule_IndexFloor" id="PIKSchedule_IndexFloor" class="ibox1 rightalign" [format]="'p9'" [min]="0.0" [max]="1.00"> </wj-input-number>
-              </div>
-              <div class="col-sm-3">
-                <label class="lab1">Compounding rate</label>
-                <wj-input-number [isRequired]="false" [(value)]="PIKSchedule_IntCompoundingRate" id="PIKSchedule_IntCompoundingRate" class="ibox1 rightalign" [format]="'p9'" [min]="0.0" [max]="1.00"> </wj-input-number>
-              </div>
-              <div class="col-sm-3">
-                <label class="lab1">Compounding spread</label>
-                <wj-input-number [isRequired]="false" [(value)]="PIKSchedule_IntCompoundingSpread" id="PIKSchedule_IntCompoundingSpread" class="ibox1 rightalign" [format]="'p9'"></wj-input-number>
-              </div>
-              <div class="col-sm-3">
-                <label class="lab1">Start date</label>
-                <wj-input-date [(value)]="PIKSchedule_StartDate" id="PIKSchedule_StartDate" [format]="'M/d/yyyy'" class="ibox1 rightalign" [isRequired]="false" [placeholder]="'M/d/yyyy'"></wj-input-date>
-              </div>
-              <div class="col-sm-3">
-                <label class="lab1">End date</label>
-                <wj-input-date [(value)]="PIKSchedule_EndDate" id="PIKSchedule_EndDate" [format]="'M/d/yyyy'" class="ibox1 rightalign" [isRequired]="false" [placeholder]="'M/d/yyyy'"></wj-input-date>
-              </div>
-              <div class="col-sm-3">
-                <label class="lab1">Cap amount</label>
+                <label class="lab1">Cap Amount</label>
                 <wj-input-number [isRequired]="false" [(value)]="PIKSchedule_IntCapAmt" id="PIKSchedule_IntCapAmt" class="ibox1 rightalign" [format]="'n2'"></wj-input-number>
               </div>
               <div class="col-sm-3">
-                <label class="lab1">Pur balance</label>
-                <wj-input-number [isRequired]="false" [(value)]="PIKSchedule_PurBal" id="PIKSchedule_PurBal" class="ibox1 rightalign" [format]="'n2'"></wj-input-number>
-              </div>
-              <div class="col-sm-3">
-                <label class="lab1">Acc cap balance</label>
+                <label class="lab1">Acc Cap Balance</label>
                 <wj-input-number [isRequired]="false" [(value)]="PIKSchedule_AccCapBal" id="PIKSchedule_AccCapBal" class="ibox1 rightalign" [format]="'n2'"></wj-input-number>
               </div>
-
-              <div class="col-sm-3">
-                <label class="lab1">Pik with separate compounding</label>
-                <select [(ngModel)]="_note.PIKSeparateCompounding" id="PIKSeparateCompounding" name="PIKSeparateCompounding" #PIKSeparateCompounding="ngModel" class="ibox1" (change)="PIKSeparateCompoundingChange($event.target.value)">
-                  <option value=3>Y</option>
-                  <option value=4>N</option>
-                </select>
-
-                <!--<wj-input-number name="PIKSeparateCompounding" [(ngModel)]="_note.PIKSeparateCompounding" #PIKSeparateCompounding="ngModel" [isRequired]="false" class="ibox1 rightalign" [format]="'n0'"></wj-input-number>-->
-              </div>
-
-              <div class="col-sm-3">
-                <label class="lab1">PIK Reason Code</label>
-                <select [(ngModel)]="PIKSchedule_PIKReasonCodeID" id="PIKSchedule_PIKReasonCodeID" name="PIKSchedule_PIKReasonCodeID" #PIKSchedulePIKReasonCodeID="ngModel" class="ibox1" (change)="PIKSchedulePIKReasonCodeIDChange($event.target.value)">
-                  <option value=687>Contractual</option>
-                  <option value=688>COVID</option>
-                  <option value=689>Other</option>
-                </select>
-              </div>
-
-              <div class="col-sm-3">
-                <label class="lab1">PIK Comments</label>
-                <input class="ibox1" type="text" [(ngModel)]="PIKSchedule_PIKComments" name="PIKComments" #PIKComments="ngModel" id="PIKComments">
-              </div>
-
-              <div class="col-sm-3">
-                <label class="lab1">PIK Interest Calc method</label>
-                <select [(ngModel)]="PIKSchedule_PIKIntCalcMethodID" id="PIKSchedule_PIKIntCalcMethodID" name="PIKSchedule_PIKIntCalcMethodID" #PIKSchedulePIKIntCalcMethodID="ngModel" class="ibox1" (change)="PIKInterestCalcmethodChange($event.target.value)">
-                  <option value=178>Actual/360</option>
-                  <option value=179>30/360</option>
-                  <option value=180>Actual/365</option>
-                </select>
-              </div>
-
-
             </div>
           </div>
+          <div class="box1a">
+            <h3>Note Tranche Participation </h3>
+            <div class="form-group row pD10">
+              <div class="col-sm-12">
+                <div>
+                  <button id="btnRefreshTranche"  type="button" class="custombutton viewScheduleButton" (click)="UpdateNoteTranchePercentageFromBackshop()">Refresh</button>
+                </div>
+              </div>
+
+              <div class="col-sm-6 customgridpadding">
+                <wj-flex-grid id="flexNoteTranche" #flexNoteTranche [itemsSource]="lstNoteTranchePercentage" [allowResizing]="'Both'"
+                              style="max-height:300px" keyActionTab="Cycle">
+                  <wj-flex-grid-filter #filter></wj-flex-grid-filter>
+                  <wj-flex-grid-column [header]="'Tranche Name'" [binding]="'TrancheName'" [width]="'*'" [isReadOnly]="true"></wj-flex-grid-column>
+                  <wj-flex-grid-column [header]="'Allocation Percentage'" [binding]="'PercentofNote'" [isReadOnly]="true" [dataType]="'Number'" align="right" format="p9" [width]="'*'">
+                  </wj-flex-grid-column>
+
+                </wj-flex-grid>
+              </div>
+            </div>
+          </div>
+
         </div>
 
         <div class="tab-pane fade" id="servicing" *ngIf="_isShowServicing">
           <div class="box1a">
-            <h3>Default schedule</h3>
+            <h3>Default Schedule</h3>
             <div class="form-group row pD10 defaulttopdiv">
 
               <div class="col-sm-1">
-                <label class="lab1">Effective date </label>
+                <label class="lab1">Effective Date </label>
 
               </div>
               <div class="col-sm-4">
@@ -1689,14 +1754,14 @@
 
               <div class="col-sm-12 customgridpadding">
                 <wj-flex-grid id="flexdefaultsch" #flexdefaultsch [allowAddNew]="true" [itemsSource]="_noteext.NoteDefaultScheduleList"
-                              [allowResizing]="'Both'" class="gridSize defaultgrid" (beginningEdit)="beginningEditDateAndValue('DefaultSchedule')" (rowEditEnded)="rowEditEndedDateAndValue('DefaultSchedule')" (pasted)="CopiedDataValidate('DefaultSchedule')">
+                              [allowResizing]="'Both'" class="gridSize defaultgrid" (beginningEdit)="beginningEditDateAndValue('DefaultSchedule')" (rowEditEnded)="rowEditEndedDateAndValue('DefaultSchedule')" (pasted)="CopiedDataValidate('DefaultSchedule')" keyActionTab="Cycle">
                   <!--(selectionChanged)="defaultschselectionChanged()"-->
                   <wj-flex-grid-filter #filter></wj-flex-grid-filter>
                   <!--<wj-flex-grid-column [header]="'Effective date'" [binding]="'EffectiveDate'" align="right" [width]="'*'"></wj-flex-grid-column>-->
                   <wj-flex-grid-column [header]="'Start date'" [binding]="'StartDate'" align="right" [width]="'*'"></wj-flex-grid-column>
                   <wj-flex-grid-column [header]="'End date'" [binding]="'EndDate'" align="right" [width]="'*'"></wj-flex-grid-column>
                   <wj-flex-grid-column [header]="'Value type'" [binding]="'ValueTypeText'" [width]="'*'"></wj-flex-grid-column>
-                  <wj-flex-grid-column [header]="'Value'" [binding]="'Value'" align="right" format="p9" [width]="'*'">
+                  <wj-flex-grid-column [header]="'Value'" [binding]="'Value'" align="right" format="p9" [dataType]="'Number'" [width]="'*'">
                   </wj-flex-grid-column>
                 </wj-flex-grid>
               </div>
@@ -1727,7 +1792,7 @@
               <div class="customgridpadding">
                 <wj-flex-grid id="flexservicelog" #flexservicelog [allowAddNew]="false" [itemsSource]="cvNoteServicingLog" [allowResizing]="'Both'" class="gridSize actualgrid" [wjContextMenu]="ctxMenu" (contextmenu)="onContextMenu(flexservicelog, $event)"
                               (initialized)="addFooterRow(flexservicelog)" (beginningEdit)="beginningEdit('Servicelog')" (cellEditEnded)="celleditservicelog(flexservicelog,$event)" (paste)="pastedservicelog(flexservicelog,$event)"
-                              [frozenColumns]="3" [frozenRows]="1" [allowSorting]="false">
+                              [frozenColumns]="3" [frozenRows]="1" [allowSorting]="false" keyActionTab="Cycle">
                   <!--(selectionChanged)="servicelogselectionChanged()"-->
                   <wj-flex-grid-column [name]="'buttons'" [header]="'Delete'" [isReadOnly]="true" align="left" [width]="60">
                     <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
@@ -1740,8 +1805,8 @@
                   <wj-flex-grid-column [header]="'Due Date'" [binding]="'RelatedtoModeledPMTDate'" align="right" [width]="110"> </wj-flex-grid-column>
                   <wj-flex-grid-column [header]="'Remit Date'" [binding]="'RemittanceDate'" align="right" [width]="110"> </wj-flex-grid-column>
                   <wj-flex-grid-column [header]="'Transaction Type'" [binding]="'TransactionTypeText'" [width]="140"></wj-flex-grid-column>
-                  <wj-flex-grid-column [header]="'Calculated Amount'" [binding]="'CalculatedAmount'" [width]="157" [aggregate]="'Sum'" format="n2"></wj-flex-grid-column>
-                  <wj-flex-grid-column [header]="'Servicing Amount'" [binding]="'ServicingAmount'" [width]="145" [aggregate]="'Sum'" format="n2"></wj-flex-grid-column>
+                  <wj-flex-grid-column [header]="'Calculated Amount'" [binding]="'CalculatedAmount'" [width]="157" align="right" [aggregate]="'Sum'" format="n2"></wj-flex-grid-column>
+                  <wj-flex-grid-column [header]="'Servicing Amount'" [binding]="'ServicingAmount'" [dataType]="'Number'" align="right" [width]="145" [aggregate]="'Sum'" format="n2"></wj-flex-grid-column>
                   <wj-flex-grid-column [header]="'Override Value'" [binding]="'OverrideValue'" [width]="140" [aggregate]="'Sum'" format="n2"></wj-flex-grid-column>
                   <wj-flex-grid-column [name]="'OverrideReason'" [header]="'Override Reason'" [binding]="'OverrideReasonText'" [width]="125"></wj-flex-grid-column>
 
@@ -1749,14 +1814,16 @@
 
                   <wj-flex-grid-column [header]="'Calculated Delta'" [binding]="'Delta'" [width]="100" [aggregate]="'Sum'" format="n2"></wj-flex-grid-column>
                   <wj-flex-grid-column [header]="'Adjustment'" [binding]="'Adjustment'" [width]="100" [aggregate]="'Sum'" format="n2"></wj-flex-grid-column>
-                  <wj-flex-grid-column [header]="'ActualDelta'" [binding]="'ActualDelta'" [width]="100" [aggregate]="'Sum'" format="n2"></wj-flex-grid-column>
+                  <wj-flex-grid-column [header]="'WriteOff Amount'" [binding]="'WriteOffAmount'" [dataType]="'Number'" align="right" [isReadOnly]="true" [aggregate]="'Sum'" [width]="100"></wj-flex-grid-column>
+                  <wj-flex-grid-column [header]="'Actual Delta'" [binding]="'ActualDelta'" [width]="100" [aggregate]="'Sum'" format="n2"></wj-flex-grid-column>
                   <wj-flex-grid-column [header]="'Capitalized Interest'" [binding]="'AddlInterest'" [dataType]="'Number'" align="right" [isReadOnly]="true" [aggregate]="'Sum'" [width]="100"></wj-flex-grid-column>
                   <wj-flex-grid-column [header]="'Cash Interest'" [binding]="'TotalInterest'" [dataType]="'Number'" align="right" [isReadOnly]="true" [aggregate]="'Sum'" [width]="100"></wj-flex-grid-column>
 
                   <wj-flex-grid-column [header]="'Interest Adj'" [binding]="'InterestAdj'" [dataType]="'Number'" align="right" [isReadOnly]="true" [aggregate]="'Sum'" [width]="100"></wj-flex-grid-column>
 
-                  <wj-flex-grid-column [header]="'M61'" [binding]="'M61Value'" [width]="70"></wj-flex-grid-column>
-                  <wj-flex-grid-column [header]="'Servicer'" [binding]="'ServicerValue'" [width]="80"></wj-flex-grid-column>
+
+                  <wj-flex-grid-column [header]="'M61'" [binding]="'M61Value'" [dataType]="'Boolean'" [width]="70"></wj-flex-grid-column>
+                  <wj-flex-grid-column [header]="'Servicer'" [binding]="'ServicerValue'" [dataType]="'Boolean'" [width]="80"></wj-flex-grid-column>
                   <!--<wj-flex-grid-column [header]="'Ignore'" [binding]="'Ignore'" [width]="70"></wj-flex-grid-column>-->
                   <!--<wj-flex-grid-column [header]="'Exception'" [binding]="'Exception'" [isReadOnly]="true" [width]="100"></wj-flex-grid-column>-->
                   <wj-flex-grid-column [header]="'Exception'" [binding]="'Exception'" [width]="100" align="center">
@@ -1779,12 +1846,12 @@
                          (itemClicked)="menuItemClicked(ctxMenu, $event)">
 
                   <!--<wj-menu-item>
-                Modify
-            </wj-menu-item>-->
-                  <!--<wj-menu-item cmd="cmdReset" cmd-param="1">
-                Reset
-            </wj-menu-item>
-            <wj-menu-separator></wj-menu-separator>-->
+                      Modify
+                  </wj-menu-item>-->
+                  <wj-menu-item cmd="cmdReset" cmd-param="1" *ngIf="isResetMenuShow">
+                    Reset
+                  </wj-menu-item>
+                  <wj-menu-separator></wj-menu-separator>
                   <wj-menu-item cmd="cmdUpdate" cmd-param="2">
                     Update
                   </wj-menu-item>
@@ -1810,7 +1877,7 @@
               </div>
 
               <div class="col-sm-3">
-                <label class="lab1">Business day laf relative to PMT Date</label>
+                <label class="lab1">Business Day Lag Relative to PMT Date</label>
                 <wj-input-number name="BusinessdaylafrelativetoPMTDate" [isRequired]="false" [(ngModel)]="_note.BusinessdaylafrelativetoPMTDate" #BusinessdaylafrelativetoPMTDate="ngModel" class="ibox1 rightalign" [format]="'n0'"></wj-input-number>
               </div>
               <div class="col-sm-3">
@@ -1830,7 +1897,7 @@
 
               <div class="col-sm-12 customgridpadding">
 
-                <wj-flex-grid id="ServicingDropDateflex" #ServicingDropDateflex [itemsSource]="cvNoteServicerDropDateSetup" [allowAddNew]="true" [allowResizing]="'Both'" class="gridSize Servicinggrid">
+                <wj-flex-grid id="ServicingDropDateflex" #ServicingDropDateflex [itemsSource]="cvNoteServicerDropDateSetup" [allowAddNew]="true" [allowResizing]="'Both'" class="gridSize Servicinggrid" keyActionTab="Cycle">
                   <wj-flex-grid-filter #filter></wj-flex-grid-filter>
                   <wj-flex-grid-column [name]="'buttons'" [header]="'Delete'" [isReadOnly]="true" align="right" [width]="60">
                     <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
@@ -1862,7 +1929,7 @@
 
               <div class="col-sm-12 customgridpadding">
                 <wj-flex-grid id="pikflex" #pikflex [itemsSource]="_noteext.ListPIKfromPIKSourceNoteTab" [allowAddNew]="true" [allowResizing]="'Both'" class="gridSizeDateAmount pikgrid"
-                              (beginningEdit)="beginningEdit('PIKScheduleDetail')" (rowEditEnded)="rowEditEnded('PIKScheduleDetail')" (pasted)="CopiedValidate('PIKScheduleDetail')" (initialized)="addFooterRow(pikflex)">
+                              (beginningEdit)="beginningEdit('PIKScheduleDetail')" (rowEditEnded)="rowEditEnded('PIKScheduleDetail')" (pasted)="CopiedValidate('PIKScheduleDetail')" (initialized)="addFooterRow(pikflex)" keyActionTab="Cycle">
                   <wj-flex-grid-filter #filter></wj-flex-grid-filter>
                   <wj-flex-grid-column [isReadOnly]="true" [header]="'Date'" [binding]="'Date'" align="right" [width]="'*'"></wj-flex-grid-column>
                   <wj-flex-grid-column [isReadOnly]="true" [header]="'Amount'" [binding]="'Value'" [dataType]="'Number'" align="right" format="n2" [width]="'*'" [aggregate]="'Sum'">
@@ -1956,11 +2023,11 @@
 
                 <div *ngIf="_showliborgride">
                   <wj-flex-grid id="laborflex" #laborflex [itemsSource]="_noteext.ListLiborScheduleTab" [allowAddNew]="true" [allowResizing]="'Both'" class="gridSizeDateAmount"
-                                (beginningEdit)="beginningEdit('LIBORSchedule')" (rowEditEnded)="rowEditEnded('LIBORSchedule')" (pasted)="CopiedValidate('LIBORSchedule')" style="height:calc(99.8vh - 372px)">
+                                (beginningEdit)="beginningEdit('LIBORSchedule')" (rowEditEnded)="rowEditEnded('LIBORSchedule')" (pasted)="CopiedValidate('LIBORSchedule')" style="height:calc(99.8vh - 372px)" keyActionTab="Cycle">
                     <wj-flex-grid-filter #filter></wj-flex-grid-filter>
                     <wj-flex-grid-column [header]="'Date'" [binding]="'Date'" align="right" [width]="'*'"></wj-flex-grid-column>
                     <wj-flex-grid-column [header]="'Overrides'" [binding]="'Value'" [dataType]="'Number'" align="right" format="p9" [width]="'*'"></wj-flex-grid-column>
-                    <wj-flex-grid-column [header]="'Index rates'" [binding]="'Indexoverrides'" align="right" [isReadOnly]="true" format="p9" [width]="'*'">
+                    <wj-flex-grid-column [header]="'Index rates'" [binding]="'Indexoverrides'" align="right" [isReadOnly]="true" format="p9" [dataType]="'Number'" [width]="'*'">
                     </wj-flex-grid-column>
                   </wj-flex-grid>
                 </div>
@@ -1982,7 +2049,7 @@
 
               <div class="col-sm-12 customgridpadding ">
                 <wj-flex-grid id="fixedamortflex" #fixedamortflex [itemsSource]="_noteext.ListFixedAmortScheduleTab" [allowAddNew]="true" [allowResizing]="'Both'" class="gridSizeDateAmount amortgrid"
-                              (beginningEdit)="beginningEdit('AmortSchedule')" (rowEditEnded)="rowEditEnded('AmortSchedule')" (pasted)="CopiedValidate('AmortSchedule')" (initialized)="addFooterRow(fixedamortflex)">
+                              (beginningEdit)="beginningEdit('AmortSchedule')" (rowEditEnded)="rowEditEnded('AmortSchedule')" (pasted)="CopiedValidate('AmortSchedule')" (initialized)="addFooterRow(fixedamortflex)" keyActionTab="Cycle">
                   <wj-flex-grid-filter #filter></wj-flex-grid-filter>
                   <wj-flex-grid-column [header]="'Date'" [binding]="'Date'" align="right" [width]="'*'"></wj-flex-grid-column>
                   <wj-flex-grid-column [header]="'Amount'" [binding]="'Value'" [dataType]="'Number'" align="right" format="n2" [width]="'*'" [aggregate]="'Sum'">
@@ -2013,11 +2080,11 @@
               </div>
 
               <div class="col-sm-12" *ngIf="!_showexceptionEmptymessage">
-                <wj-flex-grid id="flexnoteexceptions" #flexnoteexceptions [itemsSource]="lstnotesexceptions" [allowResizing]="'Both'" auto-generate-columns="true" allow-add-new="true" allow-sorting="true" showFilterIcons="true" style="height:calc(99.8vh - 347px);">
+                <wj-flex-grid id="flexnoteexceptions" #flexnoteexceptions [itemsSource]="lstnotesexceptions" [allowResizing]="'Both'" auto-generate-columns="true" allow-add-new="true" allow-sorting="true" showFilterIcons="true" style="height:calc(99.8vh - 347px);" keyActionTab="Cycle">
                   <wj-flex-grid-filter #filter></wj-flex-grid-filter>
-                  <wj-flex-grid-column [header]="'Field name'" [binding]="'FieldName'" align="left" [width]="150"></wj-flex-grid-column>
-                  <wj-flex-grid-column [header]="'Summary'" [binding]="'Summary'" align="left" [width]="'*'"></wj-flex-grid-column>
-                  <wj-flex-grid-column [header]="'Exception type'" [binding]="'ActionLevelText'" align="left" [width]="150" format="n2"></wj-flex-grid-column>
+                  <wj-flex-grid-column [header]="'Field Name'" [binding]="'FieldName'" align="left" [width]="150" [isReadOnly]="true"></wj-flex-grid-column>
+                  <wj-flex-grid-column [header]="'Summary'" [binding]="'Summary'" align="left" [width]="'*'" [isReadOnly]="true"></wj-flex-grid-column>
+                  <wj-flex-grid-column [header]="'Exception Type'" [binding]="'ActionLevelText'" align="left" [width]="150" format="n2" [isReadOnly]="true"></wj-flex-grid-column>
                 </wj-flex-grid>
               </div>
             </div>
@@ -2028,7 +2095,9 @@
             <h3>Cashflow</h3>
             <div class="form-group row pD10 cashflowtopdiv">
               <div class="col-sm-12" *ngIf="_islastCalcDateTime">
-                <table style="width:100% !important;">
+
+
+                <table style="width: 100% !important; margin-bottom:5px;">
                   <tr>
                     <td>
 
@@ -2036,52 +2105,73 @@
                         <span>Enable M61 Calculations is N. Transactions in this note were uploaded using batch upload tool.</span>
                       </div>
 
-                      <label class="lab1 lab1size " *ngIf="_isShowCalcbutton">
+                      <label class="lab1 lab1size display-inline">
+                        <span style="font-weight:bold">Accounting Close : {{_note.AccountingCloseDate | date: 'MM/dd/yyyy'}}|</span>
                         <span style="font-weight:bold">Calculated on: {{_note.lastCalcDateTime | date: 'EEEE, MMMM d, y h:mm a'}}&nbsp;{{_timezoneAbbreviation}}</span>
-                        <span *ngIf="_note.CalculationStatus!=''" style="font-weight:bold">|&nbsp;Status :</span>
+                        <span *ngIf="_note.CalculationStatus!=''" style="font-weight:bold">|&nbsp;Status:&nbsp;</span>
                         <span *ngIf="_note.CalculationStatus=='Processing'" class="badge badge-primary">Processing</span>
                         <span *ngIf="_note.CalculationStatus=='Dependents'" class="badge badge-secondary">Dependents</span>
                         <span *ngIf="_note.CalculationStatus=='Completed'" class="badge badge-success">Completed</span>
-                        <span *ngIf="_note.CalculationStatus=='Failed'" class="badge badge-danger">Failed</span>
+                        <span *ngIf="_note.CalculationStatus=='Failed'" class="badge badge-danger" title="{{_note.ErrorMessage}}">Failed</span>
                         <span *ngIf="_note.CalculationStatus=='Running'" class="badge badge-warning">Running</span>
+                        <span *ngIf="_note.CalculationStatus=='CalcSubmit'" class="badge badge-dark">CalcSubmit</span>
+                        <span *ngIf="_note.CalculationStatus=='Pause'" class="badge badge-secondary">Paused</span>
+                        <span *ngIf="_note.CalculationStatus=='Nevercalculated'" class="badge badge-dark">Never Calculated</span>
                         <span *ngIf="_showgaapcheck" class="badge badge-warning">Gaap Check Failed</span>
                         <span *ngIf="_showamortcheck" class="badge badge-warning">Amort Check Failed</span>
+                        &nbsp;<span class="badge badge-info">{{_note.CalcEngineTypeText}}</span>
                       </label>
 
-
-                    </td>
-                    <td>
-                      <span *ngIf="_isShowDownloadCashflows">
-                        <div *ngIf="_islastCalcDateTime" style="float:right !important;margin-left:0px !important;">
-                          <wj-multi-select #multiseltransactioncategory id="multiseltransactioncategory"
-                                           [placeholder]="'Download Transactions'"
-                                           class="multiselect-dropdown display-table-cell"
-                                           [headerFormat]="'{count} Transactions selected'"
-                                           [displayMemberPath]="'TransactionCategory'"
-                                           [checkedMemberPath]="'selected'"
-                                           [itemsSource]="listtransactioncategory"
-                                           style="width:215px; height:30px !important;">
-                          </wj-multi-select>
-                          <button type="button" class="btn" style="background-color: #2196f3 !important;color:#ffffff!important;margin-right:10px !important;" id="btnDownloadNoteCashflowsExportData" (click)="downloadNoteCashflowsExportData()"><i class="fa fa-download" aria-hidden="true"></i></button>
-                        </div>
-                        <!--<button *ngIf="_islastCalcDateTime" type="button" id="btnDownloadNoteCashflowsExportData" class="custombutton_150px" (click)="downloadNoteCashflowsExportData()">Download Cashflows</button>-->
-                      </span>
-
-                      <span *ngIf="_isTransactionEntryFetched">
-                        <button *ngIf="_islastCalcDateTime" type="button" id="btnPeriodicOutput" class="custombutton_150px" (click)="ShowPeriodicOutput()">Show Periodic Output</button>
-                      </span>
-                      <span *ngIf="!_isTransactionEntryFetched">
-                        <button *ngIf="_islastCalcDateTime" type="button" id="btnShowTransaction" class="custombutton_150px" (click)="ShowTransaction()">Show Transaction</button>
-                      </span>
-                      <select style="width:180px;float: right; margin-right:2px; height:32px;" class="ibox1" (change)="changeScenario($event.target.value)" *ngIf="_isShowCalcbutton">
+                      <select style="width: max-content; display:inline-block;margin-left:10px;" class="ibox1" (change)="changeScenario($event.target.value)" *ngIf="_isShowCalcbutton">
                         <option *ngFor="let item of _lstScenario" value={{item.AnalysisID}} selected="{{item.ScenarioName=='Default'?'selected':''}}">
                           {{item.ScenarioName}}
                         </option>
                       </select>
-
                     </td>
                   </tr>
                 </table>
+              </div>
+
+              <div class="col-sm-12" *ngIf="_islastCalcDateTime" style="margin:10px;">
+                <!--<span class="pull-right" style="margin-right:23px;">
+                  <wj-multi-select #selectColumnGroups id="selectColumnGroups"
+                                   [showSelectAllCheckbox]="true"
+                                   [itemsSource]="columnGroupHeaders"
+                                   (checkedItemsChanged)="onSelectionChanged(selectColumnGroups, $event)"
+                                   [displayMemberPath]="'header'"
+                                   [checkedItems]="checkedItems"
+                                   [showFilterInput]="true"
+                                   (initialized)="onMultiSelectInitialized()"
+                                   style="width: 34px; height: 33px !important;"
+                                   class="multi-select">
+                  </wj-multi-select>
+                  <div style="display:none;" class="footer-button">
+                  </div>
+                </span>-->
+
+                <span *ngIf="_isShowDownloadCashflows" class="pull-right">
+                  <div *ngIf="_islastCalcDateTime" style="margin-left: 5px !important;margin-right:5px;">
+                    <wj-multi-select #multiseltransactioncategory id="multiseltransactioncategory"
+                                     [placeholder]="'Download Transactions'"
+                                     class="multiselect-dropdown display-table-cell"
+                                     [headerFormat]="'{count} Transactions selected'"
+                                     [displayMemberPath]="'TransactionCategory'"
+                                     [checkedMemberPath]="'selected'"
+                                     [itemsSource]="listtransactioncategory"
+                                     style="width:195px; height:30px !important;">
+                    </wj-multi-select>
+                    <button type="button" class="btn" style="background-color: #2196f3 !important;color:#ffffff!important;margin-left:5px;" id="btnDownloadNoteCashflowsExportData" (click)="CheckDuplicateTransactionCashflow()"><i class="fa fa-download" aria-hidden="true"></i></button>
+                  </div>
+                </span>
+
+
+
+                <span *ngIf="_isTransactionEntryFetched" class="pull-right">
+                  <button *ngIf="_islastCalcDateTime" style="margin: 0px !important;" type="button" id="btnPeriodicOutput" class="custombutton_150px" (click)="ShowPeriodicOutput()">Show Periodic Output</button>
+                </span>
+                <span *ngIf="!_isTransactionEntryFetched" class="pull-right">
+                  <button *ngIf="_islastCalcDateTime" style="margin: 0px !important;" type="button" id="btnShowTransaction" class="custombutton_150px" (click)="ShowTransaction()">Show Transaction</button>
+                </span>
               </div>
 
               <div class="cssload-container" *ngIf="_isnoteperiodiccalcFetching">
@@ -2095,17 +2185,22 @@
                 </div>
               </div>
               <!--<span *ngIf="_dvEmptynoteperiodiccalcMsg">
-        <b>No records found</b>
+              <b>No records found</b>
 
-        </span>-->
+              </span>-->
 
               <div *ngIf="_norecordfound" class=" customgridpadding">
                 <div *ngIf="!_isTransactionEntryFetched">
                   <wj-flex-grid id="flexnoteperiodiccalc" [isReadOnly]="true" #flexnoteperiodiccalc [itemsSource]="_noteext.lstnotePeriodicOutputs" [allowResizing]="'Both'" class="gridSize cashflowgrid" [frozenColumns]="2" [frozenRows]="1"
-                                (initialized)="addFooterRow(flexnoteperiodiccalc)">
+                                (initialized)="addFooterRow(flexnoteperiodiccalc)"
+                                (copied)="CopyGridDataWithHeader(flexnoteperiodiccalc,$event)"
+                                [columnGroups]="columnGroups"
+                                [ngClass]="{'animated': animated}"
+                                keyActionTab="Cycle">
 
                     <wj-flex-grid-filter #filter></wj-flex-grid-filter>
-                    <wj-flex-grid-column [header]="'Period end date'" [binding]="'PeriodEndDate'" align="right" [width]="130"></wj-flex-grid-column>
+
+                    <!--<wj-flex-grid-column [header]="'Period end date'" [binding]="'PeriodEndDate'" align="right" [width]="130"></wj-flex-grid-column>
                     <wj-flex-grid-column [header]="'Month'" [binding]="'Month'" align="right" format="n0" [width]="70"></wj-flex-grid-column>
                     <wj-flex-grid-column [header]="'Actual cashflows'" [binding]="'ActualCashFlows'" align="right" [aggregate]="'Sum'" format="n2" [width]="130">
 
@@ -2124,123 +2219,6 @@
                         </div>
                       </ng-template>
                     </wj-flex-grid-column>
-                    <wj-flex-grid-column [header]="'Ending GAAP book value'" [binding]="'EndingGAAPBookValue'" align="right" format="n2" [width]="170" [aggregate]="'Sum'">
-                      <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
-                        <div [ngStyle]="{color: cell.item.EndingGAAPBookValue < 0? 'red' : 'darkgreen'}">
-                          {{cell.item.EndingGAAPBookValue|number : '1.2-2'}}
-                        </div>
-                      </ng-template>
-                    </wj-flex-grid-column>
-
-                    <wj-flex-grid-column [header]="'Reversal of Prior Interest Accrual'" [binding]="'ReversalofPriorInterestAccrual'" align="right" format="n2" [width]="220" [aggregate]="'Sum'">
-                      <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
-                        <div [ngStyle]="{color: cell.item.ReversalofPriorInterestAccrual < 0? 'red' : 'darkgreen'}">
-                          {{cell.item.ReversalofPriorInterestAccrual|number : '1.2-2'}}
-                        </div>
-                      </ng-template>
-                    </wj-flex-grid-column>
-
-                    <wj-flex-grid-column [header]="'Interest Received in Current Period'" [binding]="'InterestReceivedinCurrentPeriod'" align="right" format="n2" [width]="220" [aggregate]="'Sum'">
-                      <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
-                        <div [ngStyle]="{color: cell.item.InterestReceivedinCurrentPeriod < 0? 'red' : 'darkgreen'}">
-                          {{cell.item.InterestReceivedinCurrentPeriod|number : '1.2-2'}}
-                        </div>
-                      </ng-template>
-                    </wj-flex-grid-column>
-
-                    <wj-flex-grid-column [header]="'Current Period Interest Accrual Monthly'" [binding]="'CurrentPeriodInterestAccrual'" align="right" format="n2" [width]="220" [aggregate]="'Sum'">
-                      <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
-                        <div [ngStyle]="{color: cell.item.CurrentPeriodInterestAccrual < 0? 'red' : 'darkgreen'}">
-                          {{cell.item.CurrentPeriodInterestAccrual|number : '1.2-2'}}
-                        </div>
-                      </ng-template>
-                    </wj-flex-grid-column>
-                    <wj-flex-grid-column [header]="'Total GAAP Interest for the Current Period'" [binding]="'TotalGAAPInterestFortheCurrentPeriod'" align="right" format="n2" [width]="220" [aggregate]="'Sum'">
-                      <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
-                        <div [ngStyle]="{color: cell.item.TotalGAAPInterestFortheCurrentPeriod < 0? 'red' : 'darkgreen'}">
-                          {{cell.item.TotalGAAPInterestFortheCurrentPeriod|number : '1.2-2'}}
-                        </div>
-                      </ng-template>
-                    </wj-flex-grid-column>
-
-                    <wj-flex-grid-column [header]="'All In coupon rate'" [binding]="'AllInCouponRate'" align="right" style="border:1px solid red" format="p9" [width]="'*'" [aggregate]="'Sum'">
-                    </wj-flex-grid-column>
-
-                    <wj-flex-grid-column [header]="'All In PIK Rate'" [binding]="'AllInPIKRate'" align="right" style="border:1px solid red" format="p9" [width]="'*'" [aggregate]="'Sum'">
-                    </wj-flex-grid-column>
-
-                    <wj-flex-grid-column [header]="'PIK interest accrual for the period'" [binding]="'PIKInterestAccrualforthePeriod'" align="right" format="n2" [width]="220" [aggregate]="'Sum'">
-                      <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
-                        <div [ngStyle]="{color: cell.item.PIKInterestAccrualforthePeriod < 0? 'red' : 'darkgreen'}">
-                          {{cell.item.PIKInterestAccrualforthePeriod|number : '1.2-2'}}
-                        </div>
-                      </ng-template>
-                    </wj-flex-grid-column>
-
-                    <wj-flex-grid-column [header]="'Amortized Cost'" [binding]="'AmortizedCost'" align="right" format="n2" [width]="150" [aggregate]="'Sum'">
-
-                      <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
-                        <div [ngStyle]="{color: cell.item.AmortizedCost < 0? 'red' : 'darkgreen'}">
-                          {{cell.item.AmortizedCost|number : '1.2-2'}}
-                        </div>
-                      </ng-template>
-                    </wj-flex-grid-column>
-                    <wj-flex-grid-column [header]="'(Discount) / Premium Accrual'" [binding]="'DiscountPremiumAccrual'" align="right" format="n2" [width]="220" [aggregate]="'Sum'">
-
-                      <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
-                        <div [ngStyle]="{color: cell.item.DiscountPremiumAccrual < 0? 'red' : 'darkgreen'}">
-                          {{cell.item.DiscountPremiumAccrual|number : '1.2-2'}}
-                        </div>
-                      </ng-template>
-                    </wj-flex-grid-column>
-                    <wj-flex-grid-column [header]="'Exit Fee Accrual'" [binding]="'ExitFeeAccrual'" align="right" format="n2" [width]="220" [aggregate]="'Sum'">
-
-                      <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
-                        <div [ngStyle]="{color: cell.item.ExitFeeAccrual < 0? 'red' : 'darkgreen'}">
-                          {{cell.item.ExitFeeAccrual|number : '1.2-2'}}
-                        </div>
-                      </ng-template>
-                    </wj-flex-grid-column>
-
-                    <wj-flex-grid-column [header]="'Amort of Deferred Fees'" [binding]="'TotalAmortAccrualForPeriod'" align="right" format="n2" [width]="200" [aggregate]="'Sum'">
-
-                      <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
-                        <div [ngStyle]="{color: cell.item.TotalAmortAccrualForPeriod < 0? 'red' : 'darkgreen'}">
-                          {{cell.item.TotalAmortAccrualForPeriod|number : '1.2-2'}}
-                        </div>
-                      </ng-template>
-                    </wj-flex-grid-column>
-                    <wj-flex-grid-column [header]="'Accumulated Amort of Deferred Fees'" [binding]="'AccumulatedAmort'" align="right" format="n2" [width]="135" [aggregate]="'Sum'">
-                      <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
-                        <div [ngStyle]="{color: cell.item.AccumulatedAmort < 0? 'red' : 'darkgreen'}">
-                          {{cell.item.AccumulatedAmort|number : '1.2-2'}}
-                        </div>
-                      </ng-template>
-                    </wj-flex-grid-column>
-                    <wj-flex-grid-column [header]="'Beginning balance'" [binding]="'BeginningBalance'" align="right" format="n2" [width]="135" [aggregate]="'Sum'">
-                      <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
-                        <div [ngStyle]="{color: cell.item.BeginningBalance < 0? 'red' : 'darkgreen'}">
-                          {{cell.item.BeginningBalance|number : '1.2-2'}}
-                        </div>
-                      </ng-template>
-                    </wj-flex-grid-column>
-                    <wj-flex-grid-column [header]="'Total future advances for the period'" [binding]="'TotalFutureAdvancesForThePeriod'" align="right" format="n2" [width]="230" [aggregate]="'Sum'">
-
-                      <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
-                        <div [ngStyle]="{color: cell.item.TotalFutureAdvancesForThePeriod < 0? 'red' : 'darkgreen'}">
-                          {{cell.item.TotalFutureAdvancesForThePeriod|number : '1.2-2'}}
-                        </div>
-                      </ng-template>
-                    </wj-flex-grid-column>
-
-                    <wj-flex-grid-column [header]="'Total discretionary curtailments for the period'" [binding]="'TotalDiscretionaryCurtailmentsforthePeriod'" align="right" format="n2" [width]="290" [aggregate]="'Sum'">
-
-                      <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
-                        <div [ngStyle]="{color: cell.item.TotalDiscretionaryCurtailmentsforthePeriod < 0? 'red' : 'darkgreen'}">
-                          {{cell.item.TotalDiscretionaryCurtailmentsforthePeriod|number : '1.2-2'}}
-                        </div>
-                      </ng-template>
-                    </wj-flex-grid-column>
 
                     <wj-flex-grid-column [header]="'Total coupon stripped for the period'" [binding]="'TotalCouponStrippedforthePeriod'" align="right" format="n2" [width]="230" [aggregate]="'Sum'">
                       <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
@@ -2256,6 +2234,65 @@
                         </div>
                       </ng-template>
                     </wj-flex-grid-column>
+
+
+
+                    <wj-flex-grid-column [header]="'All In coupon rate'" [binding]="'AllInCouponRate'" align="right" style="border:1px solid red" format="p9" [dataType]="'Number'" [width]="'*'" [aggregate]="'Sum'">
+                    </wj-flex-grid-column>
+                    <wj-flex-grid-column [header]="'All In PIK Rate'" [binding]="'AllInPIKRate'" align="right" style="border:1px solid red" format="p9" [dataType]="'Number'" [width]="'*'" [aggregate]="'Sum'">
+                    </wj-flex-grid-column>
+                    <wj-flex-grid-column [header]="'Exit Fee Accrual'" [binding]="'ExitFeeAccrual'" align="right" format="n2" [width]="220" [aggregate]="'Sum'">
+                      <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
+                        <div [ngStyle]="{color: cell.item.ExitFeeAccrual < 0? 'red' : 'darkgreen'}">
+                          {{cell.item.ExitFeeAccrual|number : '1.2-2'}}
+                        </div>
+                      </ng-template>
+                    </wj-flex-grid-column>-->
+                    <!--Balance-->
+                    <!--<wj-flex-grid-column [header]="'Beginning balance'" [binding]="'BeginningBalance'" align="right" format="n2" [width]="135" [aggregate]="'Sum'">
+                      <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
+                        <div [ngStyle]="{color: cell.item.BeginningBalance < 0? 'red' : 'darkgreen'}">
+                          {{cell.item.BeginningBalance|number : '1.2-2'}}
+                        </div>
+                      </ng-template>
+                    </wj-flex-grid-column>
+
+
+                    <wj-flex-grid-column [header]="'Total future advances for the period'" [binding]="'TotalFutureAdvancesForThePeriod'" align="right" format="n2" [width]="230" [aggregate]="'Sum'">
+                      <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
+                        <div [ngStyle]="{color: cell.item.TotalFutureAdvancesForThePeriod < 0? 'red' : 'darkgreen'}">
+                          {{cell.item.TotalFutureAdvancesForThePeriod|number : '1.2-2'}}
+                        </div>
+                      </ng-template>
+                    </wj-flex-grid-column>
+
+                    <wj-flex-grid-column [header]="'Principal Writeoff'" [binding]="'PrincipalWriteoff'" align="right" format="n2" [width]="140" [aggregate]="'Sum'">
+                      <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
+                        <div [ngStyle]="{color: cell.item.PrincipalWriteoff < 0? 'red' : 'darkgreen'}">
+                          {{cell.item.PrincipalWriteoff|number : '1.2-2'}}
+                        </div>
+                      </ng-template>
+                    </wj-flex-grid-column>
+
+                    <wj-flex-grid-column [header]="'Net PIK Amount For The Period'" [binding]="'NetPIKAmountForThePeriod'" align="right" format="n2" [width]="140" [aggregate]="'Sum'">
+                      <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
+                        <div [ngStyle]="{color: cell.item.NetPIKAmountForThePeriod < 0? 'red' : 'darkgreen'}">
+                          {{cell.item.NetPIKAmountForThePeriod|number : '1.2-2'}}
+                        </div>
+                      </ng-template>
+                    </wj-flex-grid-column>
+
+                    <wj-flex-grid-column [header]="'Total discretionary curtailments for the period'" [binding]="'TotalDiscretionaryCurtailmentsforthePeriod'" align="right" format="n2" [width]="290" [aggregate]="'Sum'">
+
+                      <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
+                        <div [ngStyle]="{color: cell.item.TotalDiscretionaryCurtailmentsforthePeriod < 0? 'red' : 'darkgreen'}">
+                          {{cell.item.TotalDiscretionaryCurtailmentsforthePeriod|number : '1.2-2'}}
+                        </div>
+                      </ng-template>
+                    </wj-flex-grid-column>
+
+
+
                     <wj-flex-grid-column [header]="'Scheduled principal'" [binding]="'ScheduledPrincipal'" align="right" format="n2" [width]="140" [aggregate]="'Sum'">
 
                       <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
@@ -2272,6 +2309,16 @@
                         </div>
                       </ng-template>
                     </wj-flex-grid-column>
+
+                    <wj-flex-grid-column [header]="'PIK Principal Paid For the Period'" [binding]="'PIKPrincipalPaidForThePeriod'" align="right" format="n2" [aggregate]="'Sum'">
+
+                      <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
+                        <div [ngStyle]="{color: cell.item.PIKPrincipalPaidForThePeriod < 0? 'red' : 'darkgreen'}">
+                          {{cell.item.PIKPrincipalPaidForThePeriod|number : '1.2-2'}}
+                        </div>
+                      </ng-template>
+                    </wj-flex-grid-column>
+
                     <wj-flex-grid-column [header]="'Balloon payment'" [binding]="'BalloonPayment'" align="right" format="n2" [width]="130" [aggregate]="'Sum'">
                       <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
                         <div [ngStyle]="{color: cell.item.BalloonPayment < 0? 'red' : 'darkgreen'}">
@@ -2287,9 +2334,161 @@
                           {{cell.item.EndingBalance|number : '1.2-2'}}
                         </div>
                       </ng-template>
+                    </wj-flex-grid-column>-->
+                    <!--Clean Cost-->
+                    <!--<wj-flex-grid-column [header]="'Gross Deferred Fees'" [binding]="'GrossDeferredFees'" align="right" format="n2" [width]="130" [aggregate]="'Sum'">
+                      <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
+                        <div [ngStyle]="{color: cell.item.GrossDeferredFees < 0? 'red' : 'darkgreen'}">
+                          {{cell.item.GrossDeferredFees|number : '1.2-2'}}
+                        </div>
+                      </ng-template>
                     </wj-flex-grid-column>
 
+                    <wj-flex-grid-column [header]="'Clean Cost'" [binding]="'CleanCost'" align="right" format="n2" [aggregate]="'Sum'">
+                      <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
+                        <div [ngStyle]="{color: cell.item.CleanCost < 0? 'red' : 'darkgreen'}">
+                          {{cell.item.CleanCost|number : '1.2-2'}}
+                        </div>
+                      </ng-template>
+                    </wj-flex-grid-column>-->
+                    <!--Amortized Cost-->
+                    <!--<wj-flex-grid-column [header]="'Amort of Deferred Fees'" [binding]="'TotalAmortAccrualForPeriod'" align="right" format="n2" [width]="200" [aggregate]="'Sum'">
 
+                      <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
+                        <div [ngStyle]="{color: cell.item.TotalAmortAccrualForPeriod < 0? 'red' : 'darkgreen'}">
+                          {{cell.item.TotalAmortAccrualForPeriod|number : '1.2-2'}}
+                        </div>
+                      </ng-template>
+                    </wj-flex-grid-column>
+
+                    <wj-flex-grid-column [header]="'Accumulated Amort of Deferred Fees'" [binding]="'AccumulatedAmort'" align="right" format="n2" [width]="135" [aggregate]="'Sum'">
+                      <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
+                        <div [ngStyle]="{color: cell.item.AccumulatedAmort < 0? 'red' : 'darkgreen'}">
+                          {{cell.item.AccumulatedAmort|number : '1.2-2'}}
+                        </div>
+                      </ng-template>
+                    </wj-flex-grid-column>
+
+                    <wj-flex-grid-column [header]="'Amort of (Discount) / Premium'" [binding]="'DiscountPremiumAccrual'" align="right" format="n2" [width]="220" [aggregate]="'Sum'">
+
+                      <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
+                        <div [ngStyle]="{color: cell.item.DiscountPremiumAccrual < 0? 'red' : 'darkgreen'}">
+                          {{cell.item.DiscountPremiumAccrual|number : '1.2-2'}}
+                        </div>
+                      </ng-template>
+                    </wj-flex-grid-column>
+
+                    <wj-flex-grid-column [header]="'Accumulated Amort of (Discount) / Premium'" [binding]="'DiscountPremiumAccumulatedAmort'" align="right" format="n2" [width]="135" [aggregate]="'Sum'">
+                      <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
+                        <div [ngStyle]="{color: cell.item.DiscountPremiumAccumulatedAmort < 0? 'red' : 'darkgreen'}">
+                          {{cell.item.DiscountPremiumAccumulatedAmort|number : '1.2-2'}}
+                        </div>
+                      </ng-template>
+                    </wj-flex-grid-column>
+
+                    <wj-flex-grid-column [header]="'Amort of Capitalized Cost'" [binding]="'CapitalizedCostAccrual'" align="right" format="n2" [width]="140" [aggregate]="'Sum'">
+                      <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
+                        <div [ngStyle]="{color: cell.item.CapitalizedCostAccrual < 0? 'red' : 'darkgreen'}">
+                          {{cell.item.CapitalizedCostAccrual|number : '1.2-2'}}
+                        </div>
+                      </ng-template>
+                    </wj-flex-grid-column>
+
+                    <wj-flex-grid-column [header]="'Accumulated Amort of Capitalized Cost'" [binding]="'CapitalizedCostAccumulatedAmort'" align="right" format="n2" [width]="135" [aggregate]="'Sum'">
+                      <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
+                        <div [ngStyle]="{color: cell.item.CapitalizedCostAccumulatedAmort < 0? 'red' : 'darkgreen'}">
+                          {{cell.item.CapitalizedCostAccumulatedAmort|number : '1.2-2'}}
+                        </div>
+                      </ng-template>
+                    </wj-flex-grid-column>
+
+                    <wj-flex-grid-column [header]="'Amortized Cost'" [binding]="'AmortizedCost'" align="right" format="n2" [width]="150" [aggregate]="'Sum'">
+
+                      <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
+                        <div [ngStyle]="{color: cell.item.AmortizedCost < 0? 'red' : 'darkgreen'}">
+                          {{cell.item.AmortizedCost|number : '1.2-2'}}
+                        </div>
+                      </ng-template>
+                    </wj-flex-grid-column>-->
+                    <!--GAAP Interest Income-->
+                    <!--<wj-flex-grid-column [header]="'Reversal of Prior Interest Accrual'" [binding]="'ReversalofPriorInterestAccrual'" align="right" format="n2" [width]="220" [aggregate]="'Sum'">
+                      <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
+                        <div [ngStyle]="{color: cell.item.ReversalofPriorInterestAccrual < 0? 'red' : 'darkgreen'}">
+                          {{cell.item.ReversalofPriorInterestAccrual|number : '1.2-2'}}
+                        </div>
+                      </ng-template>
+                    </wj-flex-grid-column>
+
+                    <wj-flex-grid-column [header]="'Interest Received in Current Period'" [binding]="'InterestReceivedinCurrentPeriod'" align="right" format="n2" [width]="220" [aggregate]="'Sum'">
+                      <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
+                        <div [ngStyle]="{color: cell.item.InterestReceivedinCurrentPeriod < 0? 'red' : 'darkgreen'}">
+                          {{cell.item.InterestReceivedinCurrentPeriod|number : '1.2-2'}}
+                        </div>
+                      </ng-template>
+                    </wj-flex-grid-column>
+
+                    <wj-flex-grid-column [header]="'Current Period Interest Accrual'" [binding]="'CurrentPeriodInterestAccrual'" align="right" format="n2" [width]="220" [aggregate]="'Sum'">
+                      <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
+                        <div [ngStyle]="{color: cell.item.CurrentPeriodInterestAccrual < 0? 'red' : 'darkgreen'}">
+                          {{cell.item.CurrentPeriodInterestAccrual|number : '1.2-2'}}
+                        </div>
+                      </ng-template>
+                    </wj-flex-grid-column>
+
+                    <wj-flex-grid-column [header]="'Current Period PIK Interest Accrual'" [binding]="'CurrentPeriodPIKInterestAccrual'" align="right" format="n2" [width]="220" [aggregate]="'Sum'">
+                      <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
+                        <div [ngStyle]="{color: cell.item.CurrentPeriodPIKInterestAccrual < 0? 'red' : 'darkgreen'}">
+                          {{cell.item.CurrentPeriodPIKInterestAccrual|number : '1.2-2'}}
+                        </div>
+                      </ng-template>
+                    </wj-flex-grid-column>-->
+                    <!--Suspense Account-->
+                    <!--<wj-flex-grid-column [header]="'Interest Suspense Account Activity for the Period'" [binding]="'InterestSuspenseAccountActivityforthePeriod'" align="right" format="n2" [width]="140" [aggregate]="'Sum'">
+                      <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
+                        <div [ngStyle]="{color: cell.item.InterestSuspenseAccountActivityforthePeriod < 0? 'red' : 'darkgreen'}">
+                          {{cell.item.InterestSuspenseAccountActivityforthePeriod|number : '1.2-2'}}
+                        </div>
+                      </ng-template>
+                    </wj-flex-grid-column>
+                    <wj-flex-grid-column [header]="'Interest Suspense Account Balance'" [binding]="'InterestSuspenseAccountBalance'" align="right" format="n2" [width]="140" [aggregate]="'Sum'">
+                      <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
+                        <div [ngStyle]="{color: cell.item.InterestSuspenseAccountBalance < 0? 'red' : 'darkgreen'}">
+                          {{cell.item.InterestSuspenseAccountBalance|number : '1.2-2'}}
+                        </div>
+                      </ng-template>
+                    </wj-flex-grid-column>
+
+                    <wj-flex-grid-column [header]="'Total GAAP Interest for the Current Period'" [binding]="'TotalGAAPInterestFortheCurrentPeriod'" align="right" format="n2" [width]="220" [aggregate]="'Sum'">
+                      <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
+                        <div [ngStyle]="{color: cell.item.TotalGAAPInterestFortheCurrentPeriod < 0? 'red' : 'darkgreen'}">
+                          {{cell.item.TotalGAAPInterestFortheCurrentPeriod|number : '1.2-2'}}
+                        </div>
+                      </ng-template>
+                    </wj-flex-grid-column>-->
+                    <!--Book Value-->
+                    <!--<wj-flex-grid-column [header]="'Ending GAAP book value'" [binding]="'EndingGAAPBookValue'" align="right" format="n2" [width]="170" [aggregate]="'Sum'">
+                      <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
+                        <div [ngStyle]="{color: cell.item.EndingGAAPBookValue < 0? 'red' : 'darkgreen'}">
+                          {{cell.item.EndingGAAPBookValue|number : '1.2-2'}}
+                        </div>
+                      </ng-template>
+                    </wj-flex-grid-column>
+
+                    <wj-flex-grid-column [header]="'Monthly Interest Income'" [binding]="'CurrentPeriodInterestAccrualPeriodEnddate'" align="right" format="n2" [width]="140" [aggregate]="'Sum'">
+                      <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
+                        <div [ngStyle]="{color: cell.item.CurrentPeriodInterestAccrualPeriodEnddate < 0? 'red' : 'darkgreen'}">
+                          {{cell.item.CurrentPeriodInterestAccrualPeriodEnddate|number : '1.2-2'}}
+                        </div>
+                      </ng-template>
+                    </wj-flex-grid-column>
+
+                    <wj-flex-grid-column [header]="'Monthly PIK Interest Income'" [binding]="'CurrentPeriodPIKInterestAccrualPeriodEnddate'" align="right" format="n2" [width]="140" [aggregate]="'Sum'">
+                      <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
+                        <div [ngStyle]="{color: cell.item.CurrentPeriodPIKInterestAccrualPeriodEnddate < 0? 'red' : 'darkgreen'}">
+                          {{cell.item.CurrentPeriodPIKInterestAccrualPeriodEnddate|number : '1.2-2'}}
+                        </div>
+                      </ng-template>
+                    </wj-flex-grid-column>
                     <wj-flex-grid-column [header]="'End of period WAL'" [binding]="'EndOfPeriodWAL'" align="right" format="n2" [width]="135" [aggregate]="'Sum'">
 
                       <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
@@ -2339,7 +2538,7 @@
                       </ng-template>
                     </wj-flex-grid-column>
 
-                    <wj-flex-grid-column [header]="'Beginning PIK balance if not compounded inside loan balance'" [binding]="'BeginningPIKBalanceNotInsideLoanBalance'" align="right" format="n2" [aggregate]="'Sum'" [width]="380">
+                    <wj-flex-grid-column [header]="'Separately Compounded Beginning PIK Balance'" [binding]="'BeginningPIKBalanceNotInsideLoanBalance'" align="right" format="n2" [aggregate]="'Sum'" [width]="380">
                       <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
                         <div [ngStyle]="{color: cell.item.BeginningPIKBalanceNotInsideLoanBalance < 0? 'red' : 'darkgreen'}">
                           {{cell.item.BeginningPIKBalanceNotInsideLoanBalance|number : '1.2-2'}}
@@ -2347,7 +2546,7 @@
                       </ng-template>
                     </wj-flex-grid-column>
 
-                    <wj-flex-grid-column [header]="'PIK interest for the period if not compounded inside loan balance'" [binding]="'PIKInterestForPeriodNotInsideLoanBalance'" align="right" format="n2" [aggregate]="'Sum'" [width]="405">
+                    <wj-flex-grid-column [header]="'Separately Compounded PIK Interest'" [binding]="'PIKInterestForPeriodNotInsideLoanBalance'" align="right" format="n2" [aggregate]="'Sum'" [width]="405">
                       <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
                         <div [ngStyle]="{color: cell.item.PIKInterestForPeriodNotInsideLoanBalance < 0? 'red' : 'darkgreen'}">
                           {{cell.item.PIKInterestForPeriodNotInsideLoanBalance|number : '1.2-2'}}
@@ -2355,7 +2554,7 @@
                       </ng-template>
                     </wj-flex-grid-column>
 
-                    <wj-flex-grid-column [header]="'PIK balance balloon payment'" [binding]="'PIKBalanceBalloonPayment'" align="right" format="n2" [width]="190" [aggregate]="'Sum'">
+                    <wj-flex-grid-column [header]="'Separately Compounded PIK Balloon'" [binding]="'PIKBalanceBalloonPayment'" align="right" format="n2" [width]="190" [aggregate]="'Sum'">
                       <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
                         <div [ngStyle]="{color: cell.item.PIKBalanceBalloonPayment < 0? 'red' : 'darkgreen'}">
                           {{cell.item.PIKBalanceBalloonPayment|number : '1.2-2'}}
@@ -2363,36 +2562,11 @@
                       </ng-template>
                     </wj-flex-grid-column>
 
-                    <wj-flex-grid-column [header]="'Ending PIK balance if not compounded inside loan balance'" [binding]="'EndingPIKBalanceNotInsideLoanBalance'" [aggregate]="'Sum'" align="right" format="n2" [width]="365">
+                    <wj-flex-grid-column [header]="'Separately Compounded Ending PIK Balance'" [binding]="'EndingPIKBalanceNotInsideLoanBalance'" [aggregate]="'Sum'" align="right" format="n2" [width]="365">
 
                       <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
                         <div [ngStyle]="{color: cell.item.EndingPIKBalanceNotInsideLoanBalance < 0? 'red' : 'darkgreen'}">
                           {{cell.item.EndingPIKBalanceNotInsideLoanBalance|number : '1.2-2'}}
-                        </div>
-                      </ng-template>
-                    </wj-flex-grid-column>
-
-                    <wj-flex-grid-column [header]="'PIK principal paid for the period'" [binding]="'PIKPrincipalPaidForThePeriod'" align="right" format="n2" [aggregate]="'Sum'">
-
-                      <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
-                        <div [ngStyle]="{color: cell.item.PIKPrincipalPaidForThePeriod < 0? 'red' : 'darkgreen'}">
-                          {{cell.item.PIKPrincipalPaidForThePeriod|number : '1.2-2'}}
-                        </div>
-                      </ng-template>
-                    </wj-flex-grid-column>
-
-                    <wj-flex-grid-column [header]="'Clean Cost'" [binding]="'CleanCost'" align="right" format="n2" [aggregate]="'Sum'">
-                      <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
-                        <div [ngStyle]="{color: cell.item.CleanCost < 0? 'red' : 'darkgreen'}">
-                          {{cell.item.CleanCost|number : '1.2-2'}}
-                        </div>
-                      </ng-template>
-                    </wj-flex-grid-column>
-
-                    <wj-flex-grid-column [header]="'Gross Deferred Fees'" [binding]="'GrossDeferredFees'" align="right" format="n2" [width]="130" [aggregate]="'Sum'">
-                      <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
-                        <div [ngStyle]="{color: cell.item.GrossDeferredFees < 0? 'red' : 'darkgreen'}">
-                          {{cell.item.GrossDeferredFees|number : '1.2-2'}}
                         </div>
                       </ng-template>
                     </wj-flex-grid-column>
@@ -2524,7 +2698,7 @@
                         </div>
                       </ng-template>
                     </wj-flex-grid-column>
-                    <wj-flex-grid-column [header]="'Period levered yield'" [binding]="'PeriodLeveredYield'" align="right" format="p9" [width]="140" [aggregate]="'Sum'">
+                    <wj-flex-grid-column [header]="'Period levered yield'" [binding]="'PeriodLeveredYield'" align="right" format="p9" [dataType]="'Number'" [width]="140" [aggregate]="'Sum'">
                       <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
                         <div [ngStyle]="{color: cell.item.PeriodLeveredYield < 0? 'red' : 'darkgreen'}">
                           {{cell.item.PeriodLeveredYield|number : '1.2-5'}}
@@ -2532,55 +2706,10 @@
                       </ng-template>
                     </wj-flex-grid-column>
 
-                    <wj-flex-grid-column [header]="'Clean Cost Price'" [binding]="'CleanCostPrice'" align="right" format="n2" [width]="140" [aggregate]="'Sum'">
-                      <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
-                        <div [ngStyle]="{color: cell.item.CleanCostPrice < 0? 'red' : 'darkgreen'}">
-                          {{cell.item.CleanCostPrice|number : '1.2-2'}}
-                        </div>
-                      </ng-template>
-                    </wj-flex-grid-column>
-                    <wj-flex-grid-column [header]="'Amortized Cost Price'" [binding]="'AmortizedCostPrice'" align="right" format="n2" [width]="140" [aggregate]="'Sum'">
-                      <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
-                        <div [ngStyle]="{color: cell.item.AmortizedCostPrice < 0? 'red' : 'darkgreen'}">
-                          {{cell.item.AmortizedCostPrice|number : '1.2-2'}}
-                        </div>
-                      </ng-template>
-                    </wj-flex-grid-column>
                     <wj-flex-grid-column [header]="'Additional Fee Accrual'" [binding]="'AdditionalFeeAccrual'" align="right" format="n2" [width]="140" [aggregate]="'Sum'">
                       <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
                         <div [ngStyle]="{color: cell.item.AdditionalFeeAccrual < 0? 'red' : 'darkgreen'}">
                           {{cell.item.AdditionalFeeAccrual|number : '1.2-2'}}
-                        </div>
-                      </ng-template>
-                    </wj-flex-grid-column>
-                    <wj-flex-grid-column [header]="'Capitalized Cost Accrual'" [binding]="'CapitalizedCostAccrual'" align="right" format="n2" [width]="140" [aggregate]="'Sum'">
-                      <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
-                        <div [ngStyle]="{color: cell.item.CapitalizedCostAccrual < 0? 'red' : 'darkgreen'}">
-                          {{cell.item.CapitalizedCostAccrual|number : '1.2-2'}}
-                        </div>
-                      </ng-template>
-                    </wj-flex-grid-column>
-
-                    <wj-flex-grid-column [header]="'Investment Basis'" [binding]="'InvestmentBasis'" align="right" format="n2" [width]="140" [aggregate]="'Sum'">
-                      <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
-                        <div [ngStyle]="{color: cell.item.InvestmentBasis < 0? 'red' : 'darkgreen'}">
-                          {{cell.item.InvestmentBasis|number : '1.2-2'}}
-                        </div>
-                      </ng-template>
-                    </wj-flex-grid-column>
-
-                    <wj-flex-grid-column [header]="'Current Period Interest Accrual'" [binding]="'CurrentPeriodInterestAccrualPeriodEnddate'" align="right" format="n2" [width]="140" [aggregate]="'Sum'">
-                      <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
-                        <div [ngStyle]="{color: cell.item.CurrentPeriodInterestAccrualPeriodEnddate < 0? 'red' : 'darkgreen'}">
-                          {{cell.item.CurrentPeriodInterestAccrualPeriodEnddate|number : '1.2-2'}}
-                        </div>
-                      </ng-template>
-                    </wj-flex-grid-column>
-
-                    <wj-flex-grid-column [header]="'Current period pik interest accrual'" [binding]="'CurrentPeriodPIKInterestAccrualPeriodEnddate'" align="right" format="n2" [width]="140" [aggregate]="'Sum'">
-                      <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
-                        <div [ngStyle]="{color: cell.item.CurrentPeriodPIKInterestAccrualPeriodEnddate < 0? 'red' : 'darkgreen'}">
-                          {{cell.item.CurrentPeriodPIKInterestAccrualPeriodEnddate|number : '1.2-2'}}
                         </div>
                       </ng-template>
                     </wj-flex-grid-column>
@@ -2600,24 +2729,6 @@
                         </div>
                       </ng-template>
                     </wj-flex-grid-column>
-                    <wj-flex-grid-column [header]="'Interest Suspense Account Activity for the Period'" [binding]="'InterestSuspenseAccountActivityforthePeriod'" align="right" format="n2" [width]="140" [aggregate]="'Sum'">
-                      <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
-                        <div [ngStyle]="{color: cell.item.InterestSuspenseAccountActivityforthePeriod < 0? 'red' : 'darkgreen'}">
-                          {{cell.item.InterestSuspenseAccountActivityforthePeriod|number : '1.2-2'}}
-                        </div>
-                      </ng-template>
-                    </wj-flex-grid-column>
-                    <wj-flex-grid-column [header]="'Interest Suspense Account Balance'" [binding]="'InterestSuspenseAccountBalance'" align="right" format="n2" [width]="140" [aggregate]="'Sum'">
-                      <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
-                        <div [ngStyle]="{color: cell.item.InterestSuspenseAccountBalance < 0? 'red' : 'darkgreen'}">
-                          {{cell.item.InterestSuspenseAccountBalance|number : '1.2-2'}}
-                        </div>
-                      </ng-template>
-                    </wj-flex-grid-column>
-
-
-
-
 
 
                     <wj-flex-grid-column [header]="'All-In Basis(Valuation)'" [binding]="'AllInBasisValuation'" align="right" format="n2" [width]="140" [aggregate]="'Sum'">
@@ -2662,7 +2773,6 @@
                       </ng-template>
                     </wj-flex-grid-column>
 
-
                     <wj-flex-grid-column [header]="'Ending Accum GAAP Amort'" [binding]="'EndingAccumAmort'" align="right" format="n2" [width]="140" [aggregate]="'Sum'">
                       <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
                         <div [ngStyle]="{color: cell.item.EndingAccumAmort < 0? 'red' : 'darkgreen'}">
@@ -2670,8 +2780,6 @@
                         </div>
                       </ng-template>
                     </wj-flex-grid-column>
-
-
                     <wj-flex-grid-column [header]="'GAAP Amort for the period'" [binding]="'PVAmortForThePeriod'" align="right" format="n2" [width]="140" [aggregate]="'Sum'">
                       <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
                         <div [ngStyle]="{color: cell.item.PVAmortForThePeriod < 0? 'red' : 'darkgreen'}">
@@ -2679,8 +2787,6 @@
                         </div>
                       </ng-template>
                     </wj-flex-grid-column>
-
-
                     <wj-flex-grid-column [header]="'Ending SL Basis'" [binding]="'EndingSLBasis'" align="right" format="n2" [width]="140" [aggregate]="'Sum'">
                       <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
                         <div [ngStyle]="{color: cell.item.EndingSLBasis < 0? 'red' : 'darkgreen'}">
@@ -2696,7 +2802,6 @@
                         </div>
                       </ng-template>
                     </wj-flex-grid-column>
-
 
                     <wj-flex-grid-column [header]="'SL Amort Of Total Fees Incl In LY'" [binding]="'SLAmortOfTotalFeesInclInLY'" align="right" format="n2" [width]="140" [aggregate]="'Sum'">
                       <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
@@ -2740,28 +2845,65 @@
                       </ng-template>
                     </wj-flex-grid-column>
 
+                    <wj-flex-grid-column [header]="'Unfunded Commitment'" [binding]="'RemainingUnfundedCommitment'" align="right" format="n2" [width]="140" [aggregate]="'Sum'">
+                      <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
+                        <div [ngStyle]="{color: cell.item.RemainingUnfundedCommitment < 0? 'red' : 'darkgreen'}">
+                          {{cell.item.RemainingUnfundedCommitment|number : '1.2-2'}}
+                        </div>
+                      </ng-template>
+                    </wj-flex-grid-column>
 
+                    <wj-flex-grid-column [header]="'Drop Date Interest Delta Balance'" [binding]="'DropDateInterestDeltaBalance'" align="right" format="n2" [width]="150" [aggregate]="'Sum'">
+                      <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
+                        <div [ngStyle]="{color: cell.item.DropDateInterestDeltaBalance < 0? 'red' : 'darkgreen'}">
+                          {{cell.item.DropDateInterestDeltaBalance|number : '1.2-2'}}
+                        </div>
+                      </ng-template>
+                    </wj-flex-grid-column>
+
+
+                    <wj-flex-grid-column [header]="'Average Daily Balance'" [binding]="'AverageDailyBalance'" align="right" format="n2" [width]="150" [aggregate]="'Sum'">
+                      <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
+                        <div [ngStyle]="{color: cell.item.AverageDailyBalance < 0? 'red' : 'darkgreen'}">
+                          {{cell.item.AverageDailyBalance|number : '1.2-2'}}
+                        </div>
+                      </ng-template>
+                    </wj-flex-grid-column>
+
+                    <wj-flex-grid-column [header]="'Interest Past Due'" [binding]="'InterestPastDue'" align="right" format="n2" [width]="150" [aggregate]="'Sum'">
+                      <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
+                        <div [ngStyle]="{color: cell.item.InterestPastDue < 0? 'red' : 'darkgreen'}">
+                          {{cell.item.InterestPastDue|number : '1.2-2'}}
+                        </div>
+                      </ng-template>
+                    </wj-flex-grid-column>-->
 
                   </wj-flex-grid>
                 </div>
                 <div *ngIf="_isTransactionEntryFetched">
                   <wj-flex-grid id="flexTransactionEntry" [isReadOnly]="true" #flexTransactionEntry [itemsSource]="lstTransactionEntry" [allowResizing]="'Both'" class="gridSize cashflowgrid"
-                                (initialized)="addFooterRow(flexTransactionEntry)">
+                                (initialized)="addFooterRow(flexTransactionEntry)" keyActionTab="Cycle" [frozenColumns]="1">
                     <wj-flex-grid-filter #filter></wj-flex-grid-filter>
                     <wj-flex-grid-column [header]="'Date'" [binding]="'Date'" align="right" [width]="'*'"></wj-flex-grid-column>
                     <wj-flex-grid-column [header]="'Value'" [binding]="'Amount'" format="n2" [aggregate]="'Sum'" align="right" [width]="'*'"></wj-flex-grid-column>
                     <wj-flex-grid-column [header]="'Value Type'" [binding]="'Type'" align="left" [width]="'*'"></wj-flex-grid-column>
-                    <wj-flex-grid-column [header]="'Spread'" [binding]="'SpreadPercentage'" format="p9" align="right" [width]="'*'"></wj-flex-grid-column>
-                    <!--<wj-flex-grid-column [header]="'Additional PIK Spread'" [binding]="'PIKInterestPercentage'" format="p9" align="right" [width]="'*'"></wj-flex-grid-column>-->
-                    <wj-flex-grid-column [header]="'Index Value'" [binding]="'LIBORPercentage'" format="p9" align="right" [width]="'*'"></wj-flex-grid-column>
+                    <wj-flex-grid-column [header]="'Spread/Rate'" [binding]="'SpreadPercentage'" format="p9" [dataType]="'Number'" align="right" [width]="'*'"></wj-flex-grid-column>
+                    <wj-flex-grid-column [header]="'Original Index'" [binding]="'RawIndexPercentage'" format="p9" align="right" [width]="'*'"></wj-flex-grid-column>
+                    <wj-flex-grid-column [header]="'Index Value'" [binding]="'LIBORPercentage'" format="p9" [dataType]="'Number'" align="right" [width]="'*'"></wj-flex-grid-column>
+                    <wj-flex-grid-column [header]="'Effective Rate'" [binding]="'AllInCouponRate'" format="p9" align="right" [width]="'*'"></wj-flex-grid-column>
+
                     <wj-flex-grid-column [header]="'Fee Name'" [binding]="'FeeName'" align="left" [width]="'*'"></wj-flex-grid-column>
                     <wj-flex-grid-column [header]="'Transaction Date'" [binding]="'TransactionDateByRule'" align="right" [width]="'*'"></wj-flex-grid-column>
                     <wj-flex-grid-column [header]="'Due Date'" [binding]="'DueDate'" align="right" [width]="'*'"></wj-flex-grid-column>
                     <wj-flex-grid-column [header]="'Remit Date'" [binding]="'RemitDate'" align="right" [width]="'*'"></wj-flex-grid-column>
+                    <wj-flex-grid-column [header]="'Acc Close Date'" [binding]="'AccountingCloseDate'" align="right" [width]="'*'"></wj-flex-grid-column>
+
+                    <wj-flex-grid-column [header]="'Purpose Type'" [binding]="'PurposeType'" align="left" [width]="'*'"></wj-flex-grid-column>
                     <wj-flex-grid-column [header]="'Comment'" [binding]="'Comment'" align="left" [width]="'*'"></wj-flex-grid-column>
+                    <wj-flex-grid-column [header]="'Adjustment Type'" [binding]="'AdjustmentType'" align="left" [width]="'*'"></wj-flex-grid-column>
 
-                    <!--<wj-flex-grid-column [header]="'Transaction Category'" [binding]="'TransactionCategory'" align="left" [width]="'*'"></wj-flex-grid-column>-->
 
+                    <wj-flex-grid-column [header]="'Financing Note ID'" align="left" [width]="'*'"></wj-flex-grid-column>
                   </wj-flex-grid>
                 </div>
               </div>
@@ -2799,9 +2941,9 @@
                 <wj-flex-grid #RuleTypeList [itemsSource]="_lstruletype" [allowAddNew]="false"
                               (beginningEdit)="cellRuleTypeEditHandler(RuleTypeList,$event)"
                               (cellEditEnded)="celleditRuleType(RuleTypeList,$event)"
-                              [allowResizing]="'Both'" class="gridSize grid">
+                              [allowResizing]="'Both'" class="gridSize grid" keyActionTab="Cycle">
                   <wj-flex-grid-column [header]="'Ruleset Type'" [binding]="'RuleTypeName'" [isReadOnly]="_isReadOnlyRuleTypeName" [width]="205"></wj-flex-grid-column>
-                  <wj-flex-grid-column [header]="'Ruleset File'" [binding]="'FileName'" [showDropDown]="true" [width]="300"></wj-flex-grid-column>
+                  <wj-flex-grid-column [header]="'Ruleset File'" [binding]="'FileName'" [width]="300"></wj-flex-grid-column>
 
                   <wj-flex-grid-column [header]="''">
                     <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
@@ -2842,33 +2984,30 @@
               </div>
 
               <div class="col-sm-12 customgridpadding">
-                <!--(selectionChanged)="futurefundingselectionChanged()"-->
                 <wj-flex-grid id="futurefundingflex" #futurefundingflex [itemsSource]="_noteext.ListFutureFundingScheduleTab" [allowResizing]="'Both'" [allowSorting]="true" class="gridSize fundinggrid"
-                              (initialized)="addFooterRow(futurefundingflex)">
+                              (initialized)="addFooterRow(futurefundingflex)" keyActionTab="Cycle">
 
-                  <wj-flex-grid-column [header]="'Date'" [binding]="'Date'" align="right" [width]="'*'"></wj-flex-grid-column>
-
-                  <wj-flex-grid-column [header]="'Amount'" [binding]="'Value'" [dataType]="'Number'" format="n2" align="right" [width]="'*'" [aggregate]="'Sum'">
+                  <wj-flex-grid-column [header]="'Date'" [binding]="'Date'" align="right" [width]="125"></wj-flex-grid-column>
+                  <wj-flex-grid-column [header]="'Amount'" [binding]="'Value'" [dataType]="'Number'" format="n2" align="right" [width]="150" [aggregate]="'Sum'">
                     <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
                       <div [ngStyle]="{color: cell.item.Value < 0? 'red' : 'darkgreen'}">
                         {{cell.item.Value |number : '1.2-2'}}
                       </div>
                     </ng-template>
                   </wj-flex-grid-column>
-                  <!--<wj-flex-grid-column [header]="'Purpose'" [binding]="'PurposeText'" align="left" [width]="'*'" [isReadOnly]="true"></wj-flex-grid-column>-->
 
-                  <wj-flex-grid-column [name]="'Purpose'" [header]="'Purpose'" [binding]="'PurposeText'" [width]="'*'"></wj-flex-grid-column>
+                  <wj-flex-grid-column [name]="'Purpose'" [header]="'Purpose'" [binding]="'PurposeText'" [width]="200"></wj-flex-grid-column>
 
-                  <!--<wj-flex-grid-column [header]="'Applied'" [binding]="'Applied'" align="left" [width]="'*'"></wj-flex-grid-column>-->
-                  <wj-flex-grid-column [header]="'Wire Confirm'" [binding]="'Applied'" [isReadOnly]="true">
+                  <wj-flex-grid-column [header]="'Wire Confirm'" [binding]="'Applied'" [isReadOnly]="true" [width]="115">
                     <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
                       <div>
                         <input #fundingappiedchk type="checkbox" [checked]="cell.item.Applied" [attr.data-FundingScheduleID]="cell.item.FundingScheduleID" id="fundingappiedchk" [disabled]=true />
                       </div>
                     </ng-template>
                   </wj-flex-grid-column>
-                  <wj-flex-grid-column [header]="'Draw #'" [binding]="'Comments'" align="left" [width]="'*'"></wj-flex-grid-column>
-                  <!--<wj-flex-grid-column [header]="'DrawFundingId'" [binding]="'DrawFundingId'" align="left" [width]="'*'"></wj-flex-grid-column>-->
+                  <wj-flex-grid-column [header]="'Adjustment Type'" [binding]="'AdjustmentTypeText'" align="center" [isReadOnly]="true" [width]="150"></wj-flex-grid-column>
+                  <wj-flex-grid-column [header]="'Draw #'" [binding]="'Comments'" align="left" [width]="200"></wj-flex-grid-column>
+
                 </wj-flex-grid>
               </div>
             </div>
@@ -2888,12 +3027,17 @@
                   <div class="cssload-whirlpool"></div>
                 </div>
                 <div>
-                  <label class="lab1">Select File</label>
+                  <!--<label class="lab1">Select File</label>
                   <div class="fileinput" appDnd (fileDropped)="onFileDropped($event)">
                     <input type="file" multiple #myFileInputIdentifier id="myFileInputIdentifier" (change)="onAction($event,'change')" style="display:none;" />
+                    <button class="custombutton-special-1" (click)="myFileInputIdentifier.click()" type="button">Browse  </button> <span style="color:black !important;" class="dropfile">Drop file here</span>
                     <label for="myFileInputIdentifier" class="filebutton">
-                      Browse <span style="color:black !important;" class="dropfile">Drop file here</span>
+
                     </label>
+                  </div>-->
+                  <div>
+                    <input #myFileInputIdentifier type="file" (click)="myFileInputIdentifier.value = null" (change)="onAction($event,'change')" style="display:none">
+                    <button class="custombutton-special" style="display:block;width:130px; height:50px;" (click)="myFileInputIdentifier.click()" type="button">Browse  </button>
                   </div>
                 </div>
                 <!--<button type="button" class="btn btn-default" (click)="resetFileInput()">Click to reset file input</button>-->
@@ -2934,7 +3078,7 @@
               <div class="col-sm-12 customgridpadding">
                 <div class="clearfix"></div>
 
-                <wj-flex-grid id="flexDocument" #flexDocument [itemsSource]="lstDocuments" auto-generate-columns="true" allow-add-new="true" allow-sorting="true" showFilterIcons="true" class="wijmogridcss">
+                <wj-flex-grid id="flexDocument" #flexDocument [itemsSource]="lstDocuments" auto-generate-columns="true" allow-add-new="true" allow-sorting="true" showFilterIcons="true" class="wijmogridcss" keyActionTab="Cycle">
                   <!--(selectionChanged)="selectionChangedHandler()"-->
                   <wj-flex-grid-filter #filter></wj-flex-grid-filter>
                   <wj-flex-grid-column [header]="'File Name'" [isReadOnly]="true" [width]="350">
@@ -3074,7 +3218,7 @@
               <div class="modal-header" style="background:#2196f3 !important;color:white !important;">
                 {{modulename}}
 
-                <span class="close" (click)="ClosePopUp()">×</span>
+                <span class="close closeWhite" (click)="ClosePopUp()">×</span>
               </div>
 
               <div class="modal-body">
@@ -3088,8 +3232,11 @@
 
                 <div *ngIf="_isPeriodicDataFetched">
 
-                  <wj-flex-grid id="grdPeriodicData" #grdPeriodicData [itemsSource]="lstPeriodicDataList" [allowResizing]="'Both'" [isReadOnly]="true" class="popupGridSize" [frozenColumns]="1" [selectionMode]="'Row'">
-
+                  <wj-flex-grid id="grdPeriodicData" #grdPeriodicData [itemsSource]="lstPeriodicDataList"
+                                [allowResizing]="'Both'"
+                                [isReadOnly]="true" class="popupGridSize" [frozenColumns]="1"
+                                (copied)="CopyGridDataWithHeader(grdPeriodicData,$event)" keyActionTab="Cycle">
+                    <wj-flex-grid-filter #filter></wj-flex-grid-filter>
                     <wj-flex-grid-column *ngFor="let col of columns"
                                          [header]="col.header"
                                          [binding]="col.binding"
@@ -3114,6 +3261,177 @@
             </div>
           </div>
         </div>
+
+        <div id="myModalConfirmationBox" class="modal" style="z-index: 1500">
+          <div class="modal-dialog" draggable="true" id="myModalConfirmationBox" style="min-height:300px;width:500px">
+            <!-- Modal content -->
+            <div class="modal-content" style="padding:0px;border:0px;">
+              <div class="modal-header" style="background:#2196f3 !important">
+                <span class="customheading" id="heading" style="color:white !important">Update</span>
+                <span class="close" (click)="CloseConfirmPopUp()">×</span>
+              </div>
+
+              <div class="modal-body">
+                <span class="customheading" id="confirmationMessage">This will update historical records. Are you sure you want to update this?</span>
+              </div>
+              <div class="modal-footer" style="background-color:white !important;">
+                <button type="button" (click)="CloseConfirmPopUp()" class="custombutton" style="width:100px !important">Cancel</button>
+                <button type="button" id="yesbtn" (click)="UpdateNoteEditlistRSSFEEPIK()" class="custombutton" style="width: 100px !important">Yes</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div id="myModalEditNoteRSS" class="modal">
+          <div class="modal-dialog" draggable="true" id="modal-dialog" style="min-height:300px;width:1100px">
+
+            <div class="modal-content" style="padding:0px;border:0px;">
+              <div class="modal-header" style="background:#2196f3 !important;color:white !important;">
+                Edit Rate Spread Schedule History
+
+                <span class="close closeWhite" (click)="ClosePopUpNoteRSS()">×</span>
+              </div>
+
+              <div class="modal-body">
+
+                <wj-flex-grid id="NoteEditRSSData" #NoteEditRSSData [itemsSource]="cvEditRateSpreadScheduleList"
+                              [allowResizing]="'Both'"
+                              class="popupGridSize"
+                              [allowAddNew]="true"
+                              keyActionTab="Cycle">
+                  <wj-flex-grid-filter #filter></wj-flex-grid-filter>
+                  <wj-flex-grid-column [header]="'Effective Date'" [binding]="'EffectiveDate'" align="right" style="border:double" [width]="130"></wj-flex-grid-column>
+                  <wj-flex-grid-column [header]="'Date'" [binding]="'Date'" align="right" style="border:1px solid red" [width]="120"></wj-flex-grid-column>
+                  <wj-flex-grid-column [name]="'ValueType'" [header]="'Value Type'" [binding]="'ValueTypeText'" style="border:1px solid red" [width]="140"></wj-flex-grid-column>
+                  <wj-flex-grid-column [header]="'Value'" [binding]="'Value'" align="right" style="border:1px solid red" format="p9" [dataType]="'Number'" [width]="140">
+                  </wj-flex-grid-column>
+                  <wj-flex-grid-column [name]="'Calc Method'" [header]="'Calc Method'" [binding]="'IntCalcMethodText'" style="border:1px solid red" [width]="140"></wj-flex-grid-column>
+                  <wj-flex-grid-column [header]="'Rate Or Spread To Be Stripped'" [binding]="'RateOrSpreadToBeStripped'" align="right" style="border:1px solid red" format="p9" [dataType]="'Number'" [width]="200"> </wj-flex-grid-column>
+                  <wj-flex-grid-column [name]="'Index Name'" [header]="'Index Name'" [binding]="'IndexNameText'" style="border:1px solid red" [width]="160"></wj-flex-grid-column>
+                  <wj-flex-grid-column [name]="'Determination Date Holiday List'" [header]="'Determination Date Holiday List'" [binding]="'DeterminationDateHolidayListText'" style="border:1px solid red" [width]="170"></wj-flex-grid-column>
+                  <wj-flex-grid-column [name]="'buttons'" [header]="'Delete'" [isReadOnly]="true" align="left" [width]="80">
+                    <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
+                      <a style="text-decoration: underline;" (click)="showDeleteDialog(cell.row.index,'Rate Spread Schedule History')">Delete</a>
+                    </ng-template>
+                  </wj-flex-grid-column>
+                </wj-flex-grid>
+              </div>
+              <div class="modal-footer" style="background-color:white !important;">
+                <button type="button" (click)="ClosePopUpNoteRSS()" class="custombutton" style="width:100px !important">Cancel</button>
+                <button type="button" (click)="showConfirmationDialog('EditRSS')" class="custombutton" style="width:100px !important">Update</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div id="myModalEditNoteFEE" class="modal">
+          <div class="modal-dialog" draggable="true" id="modal-dialog" style="min-height:300px;width:1100px">
+
+            <div class="modal-content" style="padding:0px;border:0px;">
+              <div class="modal-header" style="background:#2196f3 !important;color:white !important;">
+                Edit Fee Schedule History
+
+                <span class="close closeWhite" (click)="ClosePopUpNoteFEE()">×</span>
+              </div>
+
+              <div class="modal-body">
+
+                <wj-flex-grid id="NoteEditFEEData" #NoteEditFEEData [itemsSource]="cvEditFeeScheduleList"
+                              [allowResizing]="'Both'"
+                              class="popupGridSize"
+                              [allowAddNew]="true"
+                              keyActionTab="Cycle">
+                  <wj-flex-grid-filter #filter></wj-flex-grid-filter>
+                  <wj-flex-grid-column [header]="'Effective date'" [binding]="'EffectiveDate'" align="right" style="border:double" [width]="120"></wj-flex-grid-column>
+
+                  <wj-flex-grid-column [header]="'Fee Name'" [binding]="'FeeName'" align="left" [width]="130"></wj-flex-grid-column>
+
+                  <wj-flex-grid-column [header]="'Start date'" [binding]="'StartDate'" align="right" [width]="110"></wj-flex-grid-column>
+                  <wj-flex-grid-column [header]="'End date'" [binding]="'ScheduleEndDate'" align="right" [width]="110" [isRequired]="false"></wj-flex-grid-column>
+
+                  <wj-flex-grid-column [name]="'ValueType'" [header]="'Fee Type'" [binding]="'ValueTypeText'" [width]="150"></wj-flex-grid-column>
+
+                  <wj-flex-grid-column [header]="'Fee(%)'" [binding]="'Value'" align="right" format="p9" [dataType]="'Number'" [width]="140"></wj-flex-grid-column>
+
+                  <wj-flex-grid-column [header]="'Fee Amt Override'" [binding]="'FeeAmountOverride'" align="right" [width]="140"></wj-flex-grid-column>
+                  <wj-flex-grid-column [header]="'Base Amt Override'" [binding]="'BaseAmountOverride'" align="right" [width]="140"></wj-flex-grid-column>
+
+                  <wj-flex-grid-column [name]="'Apply True-Up Feature'" [header]="'Apply True Up'" [binding]="'ApplyTrueUpFeatureText'" [width]="140"></wj-flex-grid-column>
+
+                  <wj-flex-grid-column [header]="'In lv yield calc'" [binding]="'IncludedLevelYield'" align="right" format="p9" [dataType]="'Number'" [width]="140">
+                  </wj-flex-grid-column>
+
+                  <wj-flex-grid-column [header]="'Fee to be Stripped'" [binding]="'PercentageOfFeeToBeStripped'" align="right" format="p9" [dataType]="'Number'" [width]="150">
+                  </wj-flex-grid-column>
+                  <wj-flex-grid-column [name]="'buttons'" [header]="'Delete'" [isReadOnly]="true" align="left" [width]="80">
+                    <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
+                      <a style="text-decoration: underline;" (click)="showDeleteDialog(cell.row.index,'Fee Schedule History')">Delete</a>
+                    </ng-template>
+                  </wj-flex-grid-column>
+                </wj-flex-grid>
+              </div>
+              <div class="modal-footer" style="background-color:white !important;">
+                <button type="button" (click)="ClosePopUpNoteFEE()" class="custombutton" style="width:100px !important">Cancel</button>
+                <button type="button" (click)="showConfirmationDialog('EditFEE')" class="custombutton" style="width:100px !important">Update</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div id="myModalEditNotePIK" class="modal">
+          <div class="modal-dialog" draggable="true" id="modal-dialog" style="min-height:300px;width:1100px">
+
+            <div class="modal-content" style="padding:0px;border:0px;">
+              <div class="modal-header" style="background:#2196f3 !important;color:white !important;">
+                Edit PIK Schedule History
+
+                <span class="close closeWhite" (click)="ClosePopUpNotePIK()">×</span>
+              </div>
+
+              <div class="modal-body">
+
+                <wj-flex-grid id="NoteEditPIKData" #NoteEditPIKData [itemsSource]="cvEditPIKSchedulelist"
+                              [allowResizing]="'Both'"
+                              class="popupGridSize"
+                              [allowAddNew]="true"
+                              keyActionTab="Cycle">
+                  <wj-flex-grid-filter #filter></wj-flex-grid-filter>
+                  <wj-flex-grid-column [header]="'Effective Date'" [binding]="'EffectiveDate'" align="right" [width]="120"></wj-flex-grid-column>
+                  <wj-flex-grid-column [header]="'Start Date'" [binding]="'StartDate'" align="right" [width]="100"></wj-flex-grid-column>
+                  <wj-flex-grid-column [header]="'End Date'" [binding]="'EndDate'" align="right" [width]="100"></wj-flex-grid-column>
+                  <wj-flex-grid-column [header]="'PIK Set UP'" [binding]="'PIKSetUpText'" [width]="110"></wj-flex-grid-column>
+                  <wj-flex-grid-column [header]="'PIK%'" [binding]="'PIKPercentage'" format="p9" [dataType]="'Number'" align="right" [width]="110"></wj-flex-grid-column>
+                  <wj-flex-grid-column [header]="'Current Pay Rate'" [binding]="'PIKCurrentPayRate'" format="p9" [dataType]="'Number'" align="right" [width]="140"></wj-flex-grid-column>
+                  <wj-flex-grid-column [header]="'PIK with Separate Compounding'" [binding]="'PIKSeparateCompounding'" [width]="200"></wj-flex-grid-column>
+                  <wj-flex-grid-column [header]="'PIK Rate'" [binding]="'AdditionalIntRate'" format="p9" [dataType]="'Number'" align="right" [width]="120"></wj-flex-grid-column>
+                  <wj-flex-grid-column [header]="'PIK Spread'" [binding]="'AdditionalSpread'" format="p9" [dataType]="'Number'" align="right" [width]="120"></wj-flex-grid-column>
+                  <wj-flex-grid-column [header]="'Index Floor'" [binding]="'IndexFloor'" format="p9" [dataType]="'Number'" align="right" [width]="120"></wj-flex-grid-column>
+                  <wj-flex-grid-column [header]="'PIK Interest Calc Method'" [binding]="'PIKIntCalcMethodIDText'" [width]="190"></wj-flex-grid-column>
+                  <wj-flex-grid-column [header]="'Pur Balance'" [binding]="'PurBal'" align="right" [width]="120"></wj-flex-grid-column>
+                  <wj-flex-grid-column [header]="'PIK Comments'" [binding]="'PIKComments'" [width]="150"></wj-flex-grid-column>
+                  <wj-flex-grid-column [header]="'PIK Reason Code'" [binding]="'PIKReasonCodeIDtext'" [width]="150"></wj-flex-grid-column>
+                  <wj-flex-grid-column [header]="'Impact in Commitment Calc'" [binding]="'ImpactCommitmentCalc'" [isReadOnly]="true" [width]="150"></wj-flex-grid-column>
+                  <wj-flex-grid-column [header]="'Cash Interest Calc-PIK Balance updated on Business Adjusted Pmt Date'" [binding]="'PIKInterestAddedToBalanceBasedOnBusinessAdjustedDate'" [isReadOnly]="true" [width]="170"></wj-flex-grid-column>
+                  <wj-flex-grid-column [header]="'Source Account'" [binding]="'SourceAccount'" [isReadOnly]="true" [width]="130"></wj-flex-grid-column>
+                  <wj-flex-grid-column [header]="'Target Account'" [binding]="'TargetAccount'" [isReadOnly]="true" [width]="130"></wj-flex-grid-column>
+                  <wj-flex-grid-column [header]="'Cap Amount'" [binding]="'IntCapAmt'" align="right" [width]="120"></wj-flex-grid-column>
+                  <wj-flex-grid-column [header]="'Acc Cap Balance'" [binding]="'AccCapBal'" align="right" [width]="130"></wj-flex-grid-column>
+                  <wj-flex-grid-column [name]="'buttons'" [header]="'Delete'" [isReadOnly]="true" align="left" [width]="80">
+                    <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
+                      <a style="text-decoration: underline;" (click)="showDeleteDialog(cell.row.index,'PIK Schedule History')">Delete</a>
+                    </ng-template>
+                  </wj-flex-grid-column>
+                </wj-flex-grid>
+              </div>
+              <div class="modal-footer" style="background-color:white !important;">
+                <button type="button" (click)="ClosePopUpNotePIK()" class="custombutton" style="width:100px !important">Cancel</button>
+                <button type="button" (click)="showConfirmationDialog('EditPIK')" class="custombutton" style="width:100px !important">Update</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+
         <!--copy Note-->
         <div id="myModalCopyNote" class="modal">
           <div class="modal-dialog" id="myModalCopyNote" style="width:1100px">
@@ -3125,6 +3443,7 @@
 
               <div class="modal-header" style="background:#2196f3 !important;color:white !important;">
                 <span class="close" (click)="CloseCopyPopUp()">×</span>
+
                 Copy Note:
               </div>
               <div class="modal-body">
@@ -3155,9 +3474,7 @@
                     <label class="lab1">Note name</label>
                     <input class="ibox1" type="text" [(ngModel)]="_note.NewNoteName" name="NewNoteName" #NewNoteName="ngModel" id="NewNoteName">
                   </div>
-                  <!--<div class="cssload-container" *ngIf="_isCopied">
-              <div class="cssload-whirlpool"></div>
-            </div>-->
+
                 </div>
                 <div *ngIf="_noteExistMsg" class="alert alert-warning fade in">
                   <strong>{{_noteExistMsg}}</strong>
@@ -3238,7 +3555,7 @@
     </div>
 
     <div id="dialogoverlay"></div>
-    <div id="dialogbox">
+    <div id="dialogbox" style="z-index: 1500">
       <div>
         <div id="dialogboxhead"></div>
         <div id="dialogboxbody"></div>
@@ -3314,7 +3631,7 @@
             </div>
           </div>
           <div class="modal-footer" style="background-color:white !important;">
-            <!--<button type="button" class="custombutton" style="width:100px !important" (click)="ContextMenuResetdialogbox()">Reset</button>-->
+
             <button type="button" class="custombutton" style="width:100px !important" (click)="CloseContextMenuDialog()">Cancel</button>
             <button type="button" class="custombutton" style="width:100px !important" (click)="ContextMenuUpdatedialogbox()">Update</button>
 

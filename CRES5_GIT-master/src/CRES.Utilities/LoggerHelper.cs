@@ -1,7 +1,16 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Data.SqlClient;
+using System.Data.SqlTypes;
 using System.Diagnostics;
+using System.IO;
 using System.Reflection;
+using System.Runtime.InteropServices;
+using System.Runtime.Serialization;
+using System.Security.Principal;
 using System.Text;
+using System.Xml;
+ 
 
 namespace CRES.Utilities
 {
@@ -21,18 +30,41 @@ namespace CRES.Utilities
             // get all messages
             var sb = new StringBuilder();
 
-            sb.AppendLine("-------------------  Exception Occured in " + caller + " Begin ------------------- ");
-            sb.AppendLine("<---- StackTrace Begin ---- >");
-            sb.AppendLine(stackTrace);
-            sb.AppendLine("<---- StackTrace End ---- >");
-            sb.AppendLine(exception.Message);
-
-            while (exception.InnerException != null)
+            if (exception.GetType().FullName == "System.Data.SqlClient.SqlException")
             {
-                exception = exception.InnerException;
-                sb.AppendLine(" --> ").Append(exception.Message);
+             
+                SqlException selException = exception as SqlException;
+
+                sb.Append(
+                     "Message: " + selException.Message + "\n" +
+                     "Error Number: " + selException.Number + "\n" +
+                     "LineNumber: " + selException.LineNumber + "\n" +
+                     "Source: " + selException.Source + "\n" +
+                     "Procedure: " + selException.Procedure + "\n" +
+                      "caller: " + selException.TargetSite.Name + "\n" +
+                       "StackTrace: " + selException.ToString() + "\n"
+                     );
             }
-            sb.AppendLine("-------------------  Exception Occured in " + caller + " Ends ------------------- ");
+            else
+            {
+                sb.AppendLine("-------------------  Exception Occured in " + caller + " Begin ------------------- ");
+                sb.AppendLine("Procedure");
+                sb.AppendLine("<---- StackTrace Begin ---- >");
+                sb.AppendLine(stackTrace);
+                sb.AppendLine("<---- StackTrace End ---- >");
+                sb.AppendLine(exception.Message);
+
+                while (exception.InnerException != null)
+                {
+                    exception = exception.InnerException;
+                    sb.AppendLine(" --> ").Append(exception.Message);
+                }
+                sb.AppendLine("-------------------  Exception Occured in " + caller + " Ends ------------------- ");
+            }
+
+
+
+
             return sb.ToString();
         }
 

@@ -1,19 +1,23 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
 using CRES.DataContract;
 using CRES.DAL.IRepository;
+using CRES.DAL;
 using System.Data;
-#pragma warning disable CS0105 // The using directive for 'CRES.DAL.IRepository' appeared previously in this namespace
-#pragma warning restore CS0105 // The using directive for 'CRES.DAL.IRepository' appeared previously in this namespace
+using CRES.DAL.IRepository;
 
 using System.Data.SqlClient;
+using CRES.DAL.Helper;
 using CRES.Utilities;
 
 namespace CRES.DAL.Repository
 {
-    public class SearchRepository : ISearchRepository
+    public class SearchRepository :  ISearchRepository
     {
-        public List<SearchDataContract> GetAutosuggestSearchData(System.Guid? userID, int? pageIndex, int? pageSize, string serchKey, out int? TotalCount)
+         public List<SearchDataContract> GetAutosuggestSearchData(System.Guid? userID, int? pageIndex, int? pageSize,string serchKey, out int? TotalCount)
         {
             //ObjectParameter totalCount = new ObjectParameter("TotalCount", typeof(int));
             DataTable dt = new DataTable();
@@ -34,7 +38,7 @@ namespace CRES.DAL.Repository
             {
                 SearchDataContract _Searchdc = new SearchDataContract();
                 _Searchdc.ValueID = Convert.ToString(dr["ValueID"]);
-                _Searchdc.Valuekey = Convert.ToString(dr["Valuekey"]);
+                _Searchdc.Valuekey = Convert.ToString(dr["Valuekey"]); 
                 _Searchdc.ValueType = CommonHelper.ToInt32(dr["ValueType"]);
 
                 lstSearchDC.Add(_Searchdc);
@@ -83,18 +87,18 @@ namespace CRES.DAL.Repository
             dt = hp.ExecDataTable("dbo.usp_GetSearchPIKAccountBykey", sqlparam);
 
             //var lstSearchResult = dbContext.usp_GetSearchPIKAccountBykey(userID, pageIndex, pageSize, serchKey, totalCount);
-            // var lstSearchpik = lstSearchResult.ToList();
+           // var lstSearchpik = lstSearchResult.ToList();
             //if (totalCount != null)
             //    TotalCount = Convert.ToInt32(totalCount.Value);
             //else
-            TotalCount = 0;
+                TotalCount = 0;
 
             foreach (DataRow dr in dt.Rows)
             {
                 SearchDataContract _Searchdc = new SearchDataContract();
                 _Searchdc.ValueID = Convert.ToString(dr["ValueID"]);
                 _Searchdc.Valuekey = Convert.ToString(dr["Valuekey"]);
-                //   _Searchdc.ValueType = _search.ValueType;
+             //   _Searchdc.ValueType = _search.ValueType;
 
                 lstPikAccount.Add(_Searchdc);
             }
@@ -108,8 +112,8 @@ namespace CRES.DAL.Repository
             SqlParameter p1 = new SqlParameter { ParameterName = "@ObjectID", Value = ObjectID };
             SqlParameter p2 = new SqlParameter { ParameterName = "@SearchText", Value = SearchText.Trim() };
             SqlParameter[] sqlparam = new SqlParameter[] { p1, p2 };
-            hp.ExecNonquery("App.usp_UpdateRankInSearchItem", sqlparam);
-            // var UpdateResult = dbContext.usp_UpdateRankInSearchItem(ObjectID, SearchText.Trim());
+             hp.ExecNonquery("App.usp_UpdateRankInSearchItem", sqlparam);
+           // var UpdateResult = dbContext.usp_UpdateRankInSearchItem(ObjectID, SearchText.Trim());
         }
 
         public List<SearchDataContract> GetAutosuggestSearchDeal(System.Guid? userID, int? pageIndex, int? pageSize, string serchKey, out int? TotalCount)
@@ -135,7 +139,7 @@ namespace CRES.DAL.Repository
             {
                 SearchDataContract _Searchdc = new SearchDataContract();
                 _Searchdc.ValueID = Convert.ToString(dr["ValueID"]);
-                _Searchdc.Valuekey = Convert.ToString(dr["Valuekey"]);
+                _Searchdc.Valuekey = Convert.ToString(dr["Valuekey"]); 
 
                 lstSearchDC.Add(_Searchdc);
             }

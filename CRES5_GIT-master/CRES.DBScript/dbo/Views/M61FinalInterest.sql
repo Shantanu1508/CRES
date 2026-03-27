@@ -14,6 +14,7 @@ where ActualPayoffdate between '5/8/2019' and '8/8/2019'
 and T.Noteid not Like '%x%' and T.Noteid not Like '%Y%'  and  T.Noteid Not Like '%Z%'
 and AnalysisID = 'C10F3372-0FC2-4861-A9F5-148F1F80804F'
 and Type = 'InterestPaid' and D.Status not like 'Phantom'
+and T.AccountTypeID = 1
 Group By T.Noteid, D.Status
 )x
 On X.NoteID = T1.NoteID and X.Date = T1.Date  

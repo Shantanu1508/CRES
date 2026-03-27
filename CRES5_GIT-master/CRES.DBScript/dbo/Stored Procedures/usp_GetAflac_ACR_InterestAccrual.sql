@@ -99,7 +99,8 @@ and di.noteid in (
     
 	Select     
 	'ACR'+REPLICATE('0',6-LEN(RTRIM(n.crenoteid))) + RTRIM(n.crenoteid) as [Asset_SecurityID],    
-	ROUND((pir.AllInCouponRate*100),6,0) as [ContractIPF_AllInRate],    
+	--ROUND((pir.AllInCouponRate*100),6,0) as [ContractIPF_AllInRate],
+	ROUND((nc.AllInCouponRate*100),6,0) as [ContractIPF_AllInRate],    
 	CONVERT(varchar, @currentdatetime, 101) as [ContractIP_ReceiveDate],    
 	lcurrency.name as [Contract_CurrencyType_Identifier],    
 	'ACR'+REPLICATE('0',6-LEN(RTRIM(n.crenoteid))) + RTRIM(n.crenoteid) +' '+    
@@ -120,7 +121,17 @@ and di.noteid in (
 	left join core.lookup lcurrency on lcurrency.lookupid = ISNULL(acc.BaseCurrencyID,187) and ParentID = 29    
 	left join cre.FinancingSourcemaster fs on fs.FinancingSourcemasterID = n.FinancingSourceID    
 	join CRE.DailyInterestAccruals nc on nc.NoteID = n.NoteID and cast(nc.[Date]as date)=cast(@currentdatetime as date) and  nc.analysisid='C10F3372-0FC2-4861-A9F5-148F1F80804F'     
-	join [CRE].[PeriodicInterestRateUsed] pir on pir.NoteID= n.NoteID  and cast(pir.[Date]as date)=cast(@currentdatetime as date)  and pir.analysisid='C10F3372-0FC2-4861-A9F5-148F1F80804F'    
+	--join (
+	--	--Select NoteID,[Date],AllInCouponRate,Analysisid 
+	--	--from [CRE].[PeriodicInterestRateUsed] 
+	--	--where analysisid='C10F3372-0FC2-4861-A9F5-148F1F80804F'   
+	--	--and IsPaymentDate is NULL
+
+	--	Select NoteID,[Date],AllInCouponRate,Analysisid  
+	--	from cre.dailyinterestaccruals
+	--	where AnalysisID = 'C10F3372-0FC2-4861-A9F5-148F1F80804F'
+
+	--)pir on pir.NoteID= n.NoteID  and cast(pir.[Date]as date)=cast(@currentdatetime as date)  and pir.analysisid='C10F3372-0FC2-4861-A9F5-148F1F80804F'    
 	Left Join(	
 		Select NoteID,ActualPayoffDate,SUM(DailyInterestAccrual) sum_DailyInterestAccrual
 		from #tblDailyIn

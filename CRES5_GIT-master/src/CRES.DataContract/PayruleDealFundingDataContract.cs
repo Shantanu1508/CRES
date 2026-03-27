@@ -1,4 +1,8 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
 
 namespace CRES.DataContract
 {
@@ -54,5 +58,11 @@ namespace CRES.DataContract
         public string GeneratedByText { get; set; }
         public int? GeneratedBy { get; set; }
         public int? TempDealFundingRowno { get; set; }
+
+       public Boolean? NonCommitmentAdj { get; set; }
+
+        public int? AdjustmentType { get; set; }
+
+        public string GeneratedByUserID { get; set; }
     }
 }

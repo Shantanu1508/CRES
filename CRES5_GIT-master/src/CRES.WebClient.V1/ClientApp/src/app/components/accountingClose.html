@@ -1,0 +1,199 @@
+<form #f="ngForm">
+  <div class="col-sm-12">
+    <div class="head fixheaderdiv">
+      <h1 style="display: inline-block;margin-top: 5px;">Accounting Close</h1>
+    </div>
+
+
+    <div id="Genericdialogbox" class="modal">
+      <div class="modal-dialog" draggable="true" id="myModalgen" style="min-height:300px;width:500px">
+        <div class="modal-content" style="padding:0px;border:0px;">
+          <div class="modal-header" style="background:#2196f3 !important">
+            <span class="customheading" style="color:white !important">CRES - Validation Error</span>
+            <span class="close" (click)="ClosePopUpDialog()">×</span>
+          </div>
+
+          <div class="modal-body modalpopupscroll" id="savedialogmessage">
+
+          </div>
+          <div class="modal-footer" style="background-color:white !important;">
+            <button type="button" class="custombutton" style="width:100px !important" (click)="ClosePopUpDialog()">Ok</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="fmst fixheadercontent">
+      <div class="cssload-container" *ngIf="_isaccountingcloseSaving">
+        <div class="cssload-whirlpool"></div>
+      </div>
+
+      <div class="form-group row pD10">
+        <div *ngIf="_Showmessagediv" class="alert alert-success fade in">
+          <strong>{{_ShowmessagedivMsg}}</strong>
+        </div>
+
+        <div style="width:99%;">
+          <div class="buttongridaccountingclose">
+            <table style="width: 100%;">
+              <tr>
+                <td style="width:150px;"><label class="lab1">Close Period</label></td>
+                <td><wj-input-date id="_closeDate" [(value)]="_closeDate" class="ibox1 rightalign" [format]="'d'" [isRequired]="false" [placeholder]="'M/d/yyyy'"></wj-input-date></td>
+                <td style="width:120px;"><button type="button" id="btnSaveaccountingClose" class="custombutton custombutton_floatleft" style="margin-top: 0px !important;" (click)="CheckAndValidateBeforeCloseAndOpen('close')">Close</button></td>
+              </tr>
+            </table>
+
+
+          </div>
+          <div class="buttongridaccountingclose">
+            <table style="width: 100%;">
+              <tr>
+                <td style="width:150px;"> <label class="lab1">Open Period</label></td>
+                <td><wj-input-date id="_openDate" [(value)]="_openDate" class="ibox1 rightalign" [format]="'d'" [isRequired]="false" [placeholder]="'M/d/yyyy'"></wj-input-date></td>
+                <td style="width:120px;"> <button type="button" id="btnSaveaccountingOpen" class="custombutton custombutton_floatleft" style="margin-top: 0px !important;" (click)="CheckAndValidateBeforeCloseAndOpen('open')">Open</button></td>
+              </tr>
+            </table>
+          </div>
+          <div style="float: left; width: 98%; padding-left: 15px;">
+            <table style="width: 100%;">
+              <tr>
+                <td style="width:9%;"><label class="lab1">Comment</label></td>
+                <td style="width:60%;"><input class="ibox1" type="text" [(ngModel)]="comment" id="comment" name="comment" style="margin-left:8px;"></td>
+                <td style="width:10%;">
+                  <select id="DefaultNoteTab" name="DefaultNoteTab" style="width:180px;float: right; margin-right: 10px;" class="ibox1" (change)="ChangeDynamicPortfolio($event.target.value)">
+                    <option value="00000000-0000-0000-0000-000000000000">
+                      <b> Filter By: Portfolio</b>
+                    </option>
+                    <option *ngFor="let item of lstPortfolio" value={{item.PortfolioMasterGuid}}>
+                      {{item.PortfolioName}}
+                    </option>
+                  </select>
+                </td>
+              </tr>
+            </table>
+          </div>
+          
+        </div>         
+ 
+        <div class="col-sm-12 customgridpadding" style="padding-top:10px !important;">
+
+          <wj-flex-grid #flexaccountingclose [itemsSource]="lstaccountingClose"
+                        [allowAddNew]="false"
+                        [allowResizing]="'Both'"
+                        [allowSorting]="true"
+                        class="gridSize AccountingClosegrid" keyActionTab="Cycle">
+            <wj-flex-grid-filter #filter [filterColumns]="['CREDealID','DealName','LastAccountingCloseDate','LastClosedOn','LastClosedBy','LastActivityType','ClosingDate','Maturity']"></wj-flex-grid-filter>
+
+            <wj-flex-grid-column [binding]="'Active'" [width]="70">
+              <ng-template wjFlexGridCellTemplate [cellType]="'ColumnHeader'" let cell="cell">
+                <input type="checkbox" id="chkSelectAll" (change)="SelectAll()" /> Select
+              </ng-template>
+            </wj-flex-grid-column>
+            <wj-flex-grid-column [header]="'Deal ID'" [binding]="'CREDealID'" [width]="120" [isReadOnly]="true">
+              <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
+                <div>
+                  <a routerLink='/dealdetail/{{cell.item.CREDealID}}' routerLinkActive="active">{{cell.item.CREDealID}}</a>
+                </div>
+              </ng-template>
+            </wj-flex-grid-column>
+
+            <wj-flex-grid-column [header]="'Deal Name'" [binding]="'DealName'" align="left" [isReadOnly]="true" [width]="280"></wj-flex-grid-column>
+            <wj-flex-grid-column [header]="'Last Accounting Close Date'" [binding]="'LastAccountingCloseDate'" [isReadOnly]="true" [width]="201" align="right"></wj-flex-grid-column>
+            <wj-flex-grid-column [header]="'Last Closed On'" [binding]="'LastClosedOn'" align="right" [isReadOnly]="true" type="datetime" format="MM-dd-yyyy hh:mm:ss" [width]="145"></wj-flex-grid-column>
+            <wj-flex-grid-column [header]="'Last Closed By'" [binding]="'LastClosedBy'" align="left" [isReadOnly]="true" [width]="145"></wj-flex-grid-column>
+            <!--<wj-flex-grid-column [header]="'Last Activity Type'" [binding]="'LastActivityType'" [isReadOnly]="true" [width]="135"></wj-flex-grid-column>-->
+            <wj-flex-grid-column [header]="'Comment'" [binding]="'Comments'" [isReadOnly]="true" [width]="200" align="left"></wj-flex-grid-column>
+            <wj-flex-grid-column [header]="'Initial Funding Date'" [binding]="'ClosingDate'" type="datetime" [isReadOnly]="true" [width]="150" align="right"></wj-flex-grid-column>
+            <wj-flex-grid-column [header]="'Maturity'" [binding]="'Maturity'" [isReadOnly]="true" [width]="120" align="right"></wj-flex-grid-column>
+            <wj-flex-grid-column [header]="'Actual Payoff Date'" [binding]="'ActualPayoffdate'" [isReadOnly]="true" [width]="140" align="right"></wj-flex-grid-column>
+            <wj-flex-grid-column [header]="'First Unreconcile Date'" [binding]="'FirstUnrecDate'" [isReadOnly]="true" [width]="150" align="right"></wj-flex-grid-column>
+
+            <wj-flex-grid-column [header]="'Accounting Close Log'" [isReadOnly]="true" align="center" [width]="135">
+              <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
+                <div>
+                  <a style="text-decoration: underline;cursor:pointer" (click)="clickedAccoutingCloselog(cell.item.DealID,cell.item.DealName)" routerLinkActive="active">
+                    View
+                  </a>
+                </div>
+              </ng-template>
+            </wj-flex-grid-column>
+          </wj-flex-grid>
+        </div>
+      </div>
+    </div>
+    <div id="customdialogboxAccountingclose" class="modal">
+      <div class="modal-dialog" draggable="true" id="myModal-close" style="min-height:300px;width:500px">
+
+        <div class="modal-content" style="padding:0px;border:0px;">
+          <div class="modal-header" style="background:#2196f3 !important">
+            <span class="customheading" style="color:white !important">Confirmation</span>
+            <span class="close" (click)="ClosePopUpConfirmBox()">×</span>
+          </div>
+
+          <div class="modal-body">
+            <span>
+              {{ _ConfirmMsgText }}
+            </span>
+          </div>
+          <div class="modal-footer" style="background-color:white !important;">
+            <button type="button" class="custombutton" style="width:100px !important" (click)="ClosePopUpConfirmBox()">Cancel</button>
+            <button type="button" class="custombutton" style="width:100px !important" (click)="SaveAccountingClose()">Ok</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+
+    <div id="customdialogboxopenperiod" class="modal">
+      <div class="modal-dialog" draggable="true" id="myModal-open" style="min-height:300px;width:500px">
+
+        <div class="modal-content" style="padding:0px;border:0px;">
+          <div class="modal-header" style="background:#2196f3 !important">
+            <span class="customheading" style="color:white !important">Confirmation</span>
+            <span class="close" (click)="ClosePopUpConfirmBox()">×</span>
+          </div>
+
+          <div class="modal-body">
+            <span>
+              {{ _ConfirmMsgText }}
+            </span>
+          </div>
+          <div class="modal-footer" style="background-color:white !important;">
+            <button type="button" class="custombutton" style="width:100px !important" (click)="ClosePopUpopenperiod()">Cancel</button>
+            <button type="button" class="custombutton" style="width:100px !important" (click)="SaveAccountingOpen()">Ok</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+
+    <div id="myModalAccouting" class="modal">
+      <div class="modal-dialog" id="myModalAccouting" style="width:900px;">
+        <div class="modal-content" style="padding:0px;border:0px;">
+
+          <div class="modal-header" style="background:#2196f3 !important">
+            <span class="close" (click)="CloseAccountingpopup()">×</span>
+            <span class="customheading" style="color:white !important"> Deal Accouting Close: {{DealName}}</span>
+          </div>
+          <div class="modal-body">
+            <div class="form-group row pD10">
+              <wj-flex-grid #flexaccountingclose [itemsSource]="lstdealaccountingClose"
+                            class="gridSize AccountingClosegridDeal">
+                <wj-flex-grid-filter #filter></wj-flex-grid-filter>
+                <wj-flex-grid-column [header]="'Close Period'" [binding]="'CloseDate'" [isReadOnly]="true" align="right" [width]="'*'"></wj-flex-grid-column>
+                <wj-flex-grid-column [header]="'Opened Period'" [binding]="'OpenDate'" [isReadOnly]="true" [width]="'*'" align="right"></wj-flex-grid-column>
+                <wj-flex-grid-column [header]="'Description'" [binding]="'Description'" [isReadOnly]="true" align="left" [width]="150"></wj-flex-grid-column>
+                <wj-flex-grid-column [header]="'Comment'" [binding]="'comments'" [isReadOnly]="true" align="left" [width]="150"></wj-flex-grid-column>
+                <wj-flex-grid-column [header]="'Updated By'" [binding]="'UpdatedBy'" [isReadOnly]="true" align="left" [width]="'*'"></wj-flex-grid-column>
+                <wj-flex-grid-column [header]="'Updated On'" [binding]="'UpdatedOn'" [isReadOnly]="true" align="right" [width]="'*'"></wj-flex-grid-column>
+              </wj-flex-grid>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+  </div>
+</form>
+

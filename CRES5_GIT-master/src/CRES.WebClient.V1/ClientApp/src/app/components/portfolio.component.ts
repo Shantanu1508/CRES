@@ -1,4 +1,4 @@
-import { Component, OnInit, Inject, Compiler, ViewChild } from '@angular/core';
+import { Component, OnInit, Inject, Compiler, ViewChild, Injectable } from '@angular/core';
 import { Router, ActivatedRoute, Params, Route } from '@angular/router';
 import { portfolio } from "../core/domain/portfolio.model";
 import { NotificationService } from '../core/services/notification.service'
@@ -15,7 +15,8 @@ import { WjCoreModule } from '@grapecity/wijmo.angular2.core';
 import { WjGridModule } from '@grapecity/wijmo.angular2.grid';
 import { WjGridFilterModule } from '@grapecity/wijmo.angular2.grid.filter';
 import { WjInputModule } from '@grapecity/wijmo.angular2.input';
-import { portfolioService } from '../core/services/portfolio.service'
+import { portfolioService } from '../core/services/portfolio.service';
+import { Paginated } from '../core/common/paginated.service';
 declare var $: any;
 
 @Component({
@@ -24,7 +25,8 @@ declare var $: any;
   providers: [NoteService, NotificationService, UtilityService, portfolioService],
 })
 
-export class PortfolioComponent {
+@Injectable()
+export class PortfolioComponent extends Paginated {
   cvScenarioDetaildata: wjcCore.CollectionView;
   public TotalCount: number = 0;
   public _portfolio: portfolio;
@@ -49,11 +51,14 @@ export class PortfolioComponent {
     public membershipService: MembershipService,
     public _portfolioService: portfolioService
   ) {
+    super(50, 1, 0);
     this.GetAllPortfolio();
     this.utilityService.setPageTitle("M61 – Dynamic Portfolio");
   }
 
-
+  ngAfterViewInit() {
+    
+  }
 
   GetAllPortfolio(): void {
     if (localStorage.getItem('divSucessPortfolio') == 'true') {
@@ -70,8 +75,8 @@ export class PortfolioComponent {
 
       setTimeout(function () {
         if (this.flexportfolio) {
-          this.flexportfolio.autoSizeColumns(0, this.flexportfolio.columns.length, false, 20);
-          this.flexportfolio.columns[0].width = 350; // for Note Id
+         // this.flexportfolio.autoSizeColumns(0, this.flexportfolio.columns.length, false, 20);
+         // this.flexportfolio.columns[0].width = 350; // for Note Id
         }
       }.bind(this), 1);
 

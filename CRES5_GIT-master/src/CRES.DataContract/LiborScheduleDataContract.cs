@@ -1,8 +1,12 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
 
 namespace CRES.DataContract
 {
-    public class LiborScheduleDataContract
+   public class LiborScheduleDataContract
     {
         public System.Guid NoteID { get; set; }
         public System.Guid AccountID { get; set; }

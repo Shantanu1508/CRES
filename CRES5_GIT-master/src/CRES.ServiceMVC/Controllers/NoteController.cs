@@ -1,10 +1,5 @@
-﻿using CRES.BusinessLogic;
-using CRES.DataContract;
+﻿using CRES.DataContract;
 using CRES.NoteCalculator;
-using CRES.Utilities;
-using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Configuration;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
@@ -12,8 +7,22 @@ using System.Data;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Net;
 using System.Net.Http;
+using System.Net.Http.Headers;
 using System.Threading;
+using Microsoft.AspNetCore.Mvc;
+using CRES.BusinessLogic;
+using Microsoft.Extensions.Configuration;
+using CRES.Utilities;
+using System.Threading.Tasks;
+using System.Collections;
+using Microsoft.AspNetCore.Hosting;
+using System.Reflection;
+using System.util;
+using static CRES.DataContract.V1CalcDataContract;
+
+
 //using CRES.Utilities;
 
 namespace CRES.ServicesNew.Controllers
@@ -21,11 +30,9 @@ namespace CRES.ServicesNew.Controllers
     [Microsoft.AspNetCore.Cors.EnableCors("CRESPolicy")]
     public class NoteController : ControllerBase
     {
-#pragma warning disable CS0618 // 'IHostingEnvironment' is obsolete: 'This type is obsolete and will be removed in a future version. The recommended alternative is Microsoft.AspNetCore.Hosting.IWebHostEnvironment.'
         private IHostingEnvironment _env;
-#pragma warning restore CS0618 // 'IHostingEnvironment' is obsolete: 'This type is obsolete and will be removed in a future version. The recommended alternative is Microsoft.AspNetCore.Hosting.IWebHostEnvironment.'
 
-
+        private string useridforSys_Scheduler = "3D6DB33D-2B3A-4415-991D-A3DA5CEB8B50";
         //private readonly IEmailNotification _iEmailNotification;
         //public DealController(IEmailNotification iemailNotification, IHostingEnvironment env)
         //{
@@ -34,13 +41,12 @@ namespace CRES.ServicesNew.Controllers
         //}
 
         private readonly IEmailNotification _iEmailNotification;
-#pragma warning disable CS0618 // 'IHostingEnvironment' is obsolete: 'This type is obsolete and will be removed in a future version. The recommended alternative is Microsoft.AspNetCore.Hosting.IWebHostEnvironment.'
         public NoteController(IEmailNotification iemailNotification, IHostingEnvironment env)
-#pragma warning restore CS0618 // 'IHostingEnvironment' is obsolete: 'This type is obsolete and will be removed in a future version. The recommended alternative is Microsoft.AspNetCore.Hosting.IWebHostEnvironment.'
         {
             _iEmailNotification = iemailNotification;
             _env = env;
         }
+
 
 
 
@@ -57,9 +63,7 @@ namespace CRES.ServicesNew.Controllers
             GenericResult _authenticationResult = null;
             List<NoteDataContract> lstNotes = new List<NoteDataContract>();
 
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
 
             var headerUserID = new Guid();
 
@@ -117,9 +121,7 @@ namespace CRES.ServicesNew.Controllers
             GenericResult _authenticationResult = null;
             List<NoteUsedInDealDataContract> lstNotes = new List<NoteUsedInDealDataContract>();
 
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
 
             var headerUserID = new Guid();
 
@@ -182,9 +184,7 @@ namespace CRES.ServicesNew.Controllers
             GenericResult _actionResult = null;
             List<NoteDataContract> _lstNotes = new List<NoteDataContract>();
 
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
             var headerUserID = string.Empty;
             var createdBy = string.Empty;
             var UpdatedBy = string.Empty;
@@ -204,6 +204,7 @@ namespace CRES.ServicesNew.Controllers
                 _noteLogic.UpdateMaturityConfiguration(_noteDC, (new Guid(headerUserID)));
                 if (_noteDC[0].NoteMaturityList.Rows.Count > 0)
                 {
+                    ValidateNoteMaturityScenariosFromDeal(_noteDC[0].maturityList, headerUserID, _noteDC);
                     _noteLogic.SaveMaturitybydeal(_noteDC[0].NoteMaturityList, (new Guid(headerUserID)));
                 }
             }
@@ -246,6 +247,78 @@ namespace CRES.ServicesNew.Controllers
             return Ok(_actionResult);
         }
 
+        public void ValidateNoteMaturityScenariosFromDeal(DataTable dt, string UserID, List<NoteDataContract> _noteDC)
+        {
+            ExceptionsLogic _ExceptionsLogic = new ExceptionsLogic();
+
+            string msg = "";
+            string currentnoteid = "";
+            string norecordformaturity = "";
+            var distinctnoteid = _noteDC.Select(x => x.NoteId).Distinct();
+            foreach (var dv in distinctnoteid)
+            {
+                currentnoteid = dv.ToString();
+                List<ExceptionDataContract> exceptionlist = new List<ExceptionDataContract>();
+                norecordformaturity = "";
+                if (dt.Rows.Count > 0)
+                {
+                    foreach (DataRow dr in dt.Rows)
+                    {
+                        if (currentnoteid == Convert.ToString(dr["NoteID"]))
+                        {
+                            norecordformaturity = "recordfound";
+                            DateTime? dte = CommonHelper.ToDateTime(dr["MaturityDate"]);
+                            int? MaturityType = CommonHelper.ToInt32(dr["MaturityType"]);
+                            if (dte == null)
+                            {
+                                msg = "Maturity scenario cannot be empty";
+                            }
+
+                            if (MaturityType == 708 && dte == null)
+                            {
+                                msg = "initial Maturity Date cannot be empty";
+                            }
+                            if (msg != "")
+                            {
+                                ExceptionDataContract edc = new ExceptionDataContract();
+                                edc.ObjectID = new Guid(Convert.ToString(dr["NoteID"]));
+                                edc.ObjectTypeText = "Note";
+                                edc.FieldName = "Maturity scenarios List";
+                                edc.Summary = msg;
+                                edc.ActionLevelText = "Critical";
+                                exceptionlist.Add(edc);
+                            }
+                        }
+
+                    }
+
+                }
+                else
+                {
+                    msg = "Maturity scenario cannot be empty";
+                }
+                if (norecordformaturity == "")
+                {
+                    ExceptionDataContract edc = new ExceptionDataContract();
+                    edc.ObjectID = new Guid(Convert.ToString(currentnoteid));
+                    edc.ObjectTypeText = "Note";
+                    edc.FieldName = "Maturity scenarios List";
+                    edc.Summary = "Maturity scenario cannot be empty";
+                    edc.ActionLevelText = "Critical";
+                    exceptionlist.Add(edc);
+                }
+                if (exceptionlist.Count > 0)
+                {
+                    _ExceptionsLogic.InsertExceptionsByFieldName(exceptionlist, UserID, "Maturity scenarios List");
+                }
+                else
+                {
+                    //remove old exceptions
+                    _ExceptionsLogic.DeleteExceptionByobjectByFieldName(currentnoteid, "note", "Maturity scenarios List");
+                }
+            }
+        }
+
         [HttpPost]
         [Services.Controllers.IsAuthenticate]
         [Services.Controllers.DeflateCompression]
@@ -253,10 +326,9 @@ namespace CRES.ServicesNew.Controllers
         public IActionResult AddupdateNoteAdditinallist([FromBody] NoteAdditinalListDataContract _noteaddlistdc)
         {
             GenericResult _actionResult = null;
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
             string Validationmessage = string.Empty;
+
             var headerUserID = string.Empty;
             if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
             {
@@ -287,17 +359,26 @@ namespace CRES.ServicesNew.Controllers
                 #endregion
 
 
+                NoteLogic _noteLogic = new NoteLogic();
                 #region validationengine
 
                 ExceptionsLogic _ExceptionsLogic = new ExceptionsLogic();
                 ValidationEngine validate = new ValidationEngine();
                 NoteDataContract _cnoteobject = ConvertToNoteobject(_noteaddlistdc);
+
+                List<FeeSchedulesConfigDataContract> ListFeeSchedulesConfig = new List<FeeSchedulesConfigDataContract>();
+                ListFeeSchedulesConfig = _noteLogic.GetFeeSchedulesConfig(new Guid(headerUserID));
+                _cnoteobject.ListFeeSchedulesConfiguration = ListFeeSchedulesConfig;
+
                 List<ExceptionDataContract> edc = validate.ValidateNoteObject(_cnoteobject);
 
                 #endregion validationengine
 
-                NoteLogic _noteLogic = new NoteLogic();
                 int result = _noteLogic.AddUpdateNoteAdditinalList(new Guid(headerUserID), _noteaddlistdc, headerUserID, headerUserID);
+
+                //_noteLogic.InsertUpdatedNoteRateSpreadSchedule(_noteaddlistdc.RateSpreadScheduleList, headerUserID);
+                //_noteLogic.InsertUpdatedNoteFeeSchedule(_noteaddlistdc.NotePrepayAndAdditionalFeeScheduleList, headerUserID);
+
                 if (_noteaddlistdc.deleteMarketPriceList != null)
                 {
                     _noteLogic.DeleteMarketPriceByNoteID(_noteaddlistdc.deleteMarketPriceList, new Guid(headerUserID));
@@ -334,7 +415,7 @@ namespace CRES.ServicesNew.Controllers
                     ed.ObjectTypeText = "Note";
                     ed.FieldName = "PIK Balance";
                     ed.Summary = Validationmessage;
-                    ed.ActionLevelText = "Critical";
+                    ed.ActionLevelText = "Normal";
                     edc.Add(ed);
                 }
                 if (edc.Count > 0)
@@ -346,7 +427,7 @@ namespace CRES.ServicesNew.Controllers
                         exc.CreatedBy = headerUserID;
                     }
                     _ExceptionsLogic.InsertExceptions(edc, headerUserID);
-                    Validationmessage = "Note saved successfully with exceptions.";
+                    Validationmessage = "Note saved successfully with exceptions.Check Exceptions tab for more information";
                 }
                 else
                 {
@@ -371,7 +452,8 @@ namespace CRES.ServicesNew.Controllers
                     {
                         Succeeded = true,
                         Message = Validationmessage,
-                        TotalCount = edc.Count
+                        TotalCount = edc.Count,
+                        Allexceptionslist = edc
                     };
                 }
                 else
@@ -399,8 +481,105 @@ namespace CRES.ServicesNew.Controllers
             return Ok(_actionResult);
         }
 
+        [HttpPost]
+        [Services.Controllers.IsAuthenticate]
+        [Services.Controllers.DeflateCompression]
+        [Route("api/note/UpdateNoteRSSFEEPIK")]
+        public IActionResult UpdateNoteRSSFEEPIKlist([FromBody] NoteAdditinalListDataContract _noteupdatelistdc)
+        {
+            GenericResult _actionResult = null;
+            IEnumerable<string> headerValues;
+            string Validationmessage = string.Empty;
 
+            var headerUserID = string.Empty;
+            if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
+            {
+                headerUserID = Convert.ToString(Request.Headers["TokenUId"]);
+            }
 
+            if (_noteupdatelistdc.RateSpreadScheduleList != null)
+            {
+                foreach (var item in _noteupdatelistdc.RateSpreadScheduleList)
+                {
+                    if (string.IsNullOrEmpty(item.ScheduleID))
+                    {
+                        item.ScheduleID = "00000000-0000-0000-0000-000000000000";
+                    }
+                }
+            }
+
+            if (_noteupdatelistdc.NotePrepayAndAdditionalFeeScheduleList != null)
+            {
+                foreach (var item in _noteupdatelistdc.NotePrepayAndAdditionalFeeScheduleList)
+                {
+                    if (string.IsNullOrEmpty(item.ScheduleID))
+                    {
+                        item.ScheduleID = "00000000-0000-0000-0000-000000000000";
+                    }
+                }
+            }
+
+            if (_noteupdatelistdc.NotePIKScheduleList != null)
+            {
+                foreach (var item in _noteupdatelistdc.NotePIKScheduleList)
+                {
+                    if (string.IsNullOrEmpty(item.ScheduleID))
+                    {
+                        item.ScheduleID = "00000000-0000-0000-0000-000000000000";
+                    }
+                }
+            }
+
+            try
+            {
+                if (_noteupdatelistdc.RateSpreadScheduleList != null)
+                    _noteupdatelistdc.RateSpreadScheduleList = _noteupdatelistdc.RateSpreadScheduleList.FindAll(y => y.Date != null).ToList();
+                if (_noteupdatelistdc.NotePrepayAndAdditionalFeeScheduleList != null)
+                    _noteupdatelistdc.NotePrepayAndAdditionalFeeScheduleList = _noteupdatelistdc.NotePrepayAndAdditionalFeeScheduleList.FindAll(y => y.StartDate != null).ToList();
+                if (_noteupdatelistdc.NotePIKScheduleList != null)
+                    _noteupdatelistdc.NotePIKScheduleList = _noteupdatelistdc.NotePIKScheduleList.FindAll(y => y.StartDate != null).ToList();
+
+                NoteLogic _noteLogic = new NoteLogic();
+
+                if (_noteupdatelistdc.RateSpreadScheduleList != null)
+                {
+                    _noteLogic.InsertUpdatedNoteRateSpreadSchedule(_noteupdatelistdc.RateSpreadScheduleList, headerUserID);
+                }
+                if (_noteupdatelistdc.NotePrepayAndAdditionalFeeScheduleList != null)
+                {
+                    _noteLogic.InsertUpdatedNoteFeeSchedule(_noteupdatelistdc.NotePrepayAndAdditionalFeeScheduleList, headerUserID);
+                }
+                if (_noteupdatelistdc.NotePIKScheduleList != null)
+                {
+                    _noteLogic.InsertUpdateNotePIKScheduleEditHistory(_noteupdatelistdc.NotePIKScheduleList, headerUserID);
+                }
+
+                if (_noteupdatelistdc.EnableM61Calculations != 4)
+                {
+                    InsertSingleNoteForCalculation(headerUserID.ToString(), new Guid("c10f3372-0fc2-4861-a9f5-148f1f80804f"), _noteupdatelistdc.NoteId);
+                }
+
+                _actionResult = new GenericResult()
+                {
+                    Succeeded = true,
+                    Message = Validationmessage
+                };
+            }
+            catch (Exception ex)
+            {
+
+                LoggerLogic Log = new LoggerLogic();
+                Log.WriteLogException(CRESEnums.Module.Note.ToString(), "Error occurred in UpdateNoteAdditinallist " + _noteupdatelistdc.NoteId, _noteupdatelistdc.NoteId.ToString(), headerUserID.ToString(), ex.TargetSite.Name.ToString(), "", ex);
+
+                _actionResult = new GenericResult()
+                {
+                    Succeeded = false,
+                    Message = ex.Message.ToString()
+                };
+            }
+
+            return Ok(_actionResult);
+        }
 
         [HttpPost]
         [Services.Controllers.IsAuthenticate]
@@ -410,9 +589,7 @@ namespace CRES.ServicesNew.Controllers
         {
             GenericResult _actionResult = null;
 
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
             string Validationmessage = string.Empty;
             var headerUserID = string.Empty;
             if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
@@ -423,12 +600,7 @@ namespace CRES.ServicesNew.Controllers
             try
             {
                 NoteLogic _noteLogic = new NoteLogic();
-
-                //if (_note.noteValue == "Copy")
-                //{
-                //Script for copy FF while NOteCopy
                 string newnoteid = _noteLogic.CopyNote(_note, headerUserID);
-                //  }               
 
                 if (newnoteid != "")
                 {
@@ -453,7 +625,11 @@ namespace CRES.ServicesNew.Controllers
             {
 
                 LoggerLogic Log = new LoggerLogic();
-                Log.WriteLogException(CRESEnums.Module.Note.ToString(), "Error occurred in CopyNote " + _note.CRENoteID, _note.NoteId.ToString(), headerUserID.ToString(), ex.TargetSite.Name.ToString(), "", ex);
+                string formatedstring = Log.WriteLogException(CRESEnums.Module.Note.ToString(), "Error occurred in CopyNote " + _note.CRENoteID, _note.NoteId.ToString(), headerUserID.ToString(), ex.TargetSite.Name.ToString(), "", ex);
+
+                string emailextrainfo = "ParentNoteID :" + _note.NoteId + " CopyCRENoteId :" + _note.CopyCRENoteId + " CopyName :" + _note.CopyName + " ";
+                Thread FirstThread = new Thread(() => _iEmailNotification.SendEmailOnExceptionFailed("CopyNote", formatedstring, ExceptionHelper.GetFullMessage(ex), headerUserID, emailextrainfo));
+                FirstThread.Start();
 
                 _actionResult = new GenericResult()
                 {
@@ -499,9 +675,7 @@ namespace CRES.ServicesNew.Controllers
         public IActionResult AddupdateNoteArchieveAdditinallist([FromBody] NoteAdditinalListDataContract _noteaddlistdc)
         {
             GenericResult _actionResult = null;
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
             string Validationmessage = string.Empty;
             var headerUserID = string.Empty;
             if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
@@ -556,10 +730,9 @@ namespace CRES.ServicesNew.Controllers
         {
             GenericResult _actionResult = null;
             NoteAdditinalListDataContract objNoteadd = new NoteAdditinalListDataContract();
+            NoteAdditinalListDataContract NoteList_RSSFEE = new NoteAdditinalListDataContract();
 
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
             var headerUserID = string.Empty;
 
             if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
@@ -582,6 +755,8 @@ namespace CRES.ServicesNew.Controllers
                     objNoteadd.ListFutureFundingScheduleTab = list;
                 }
 
+                NoteList_RSSFEE = _noteLogic.GetNoteAdditional_RSSFEE(new Guid(_noteDC.NoteId), new Guid(headerUserID));
+
                 try
                 {
                     if (objNoteadd != null)
@@ -591,7 +766,8 @@ namespace CRES.ServicesNew.Controllers
                         {
                             Succeeded = true,
                             Message = "Authentication succeeded",
-                            NoteAdditinalList = objNoteadd
+                            NoteAdditinalList = objNoteadd,
+                            NoteList_RSSFEE = NoteList_RSSFEE
                         };
                     }
                     else
@@ -626,9 +802,7 @@ namespace CRES.ServicesNew.Controllers
         public IActionResult Addteadditiote([FromBody] NoteDataContract _noteDC)
         {
             GenericResult _actionResult = null;
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
             var headerUserID = string.Empty;
 
             if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
@@ -673,6 +847,9 @@ namespace CRES.ServicesNew.Controllers
             {
                 _noteLogic.InsertUpdateMarketPriceByNoteID(_noteDC.ListNoteMarketPrice, new Guid(headerUserID));
             }
+            TagXIRRLogic tagXIRRLogic = new TagXIRRLogic();
+            tagXIRRLogic.InsertUpdateTagAccountMappingXIRR(_noteDC.AccountID, _noteDC.ListSelectedXIRRTags, headerUserID);
+
             // to call for AIEntityApi
             AIDynamicEntityUpdateLogic _dynamicentity = new AIDynamicEntityUpdateLogic();
             Thread FirstThread = new Thread(() => _dynamicentity.InsertUpdateAINoteEntitiesAsync(lstNoteDC, headerUserID));
@@ -721,9 +898,7 @@ namespace CRES.ServicesNew.Controllers
             GenericResult _acationResult = null;
             NoteDataContract objNote = new NoteDataContract();
 
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
 
             var headerUserID = new Guid();
 
@@ -735,16 +910,34 @@ namespace CRES.ServicesNew.Controllers
             UserPermissionLogic upl = new UserPermissionLogic();
             DataTable dt = new DataTable();
             DataTable dtnotecommitment = new DataTable();
+            DataTable dtnotedashboarddata = new DataTable();
             //to get user
             List<UserPermissionDataContract> permissionlist = upl.GetuserPermissionByUserIDAndPageName(headerUserID.ToString(), "NoteDetail", _noteDC.NoteId, 182);
             if (permissionlist != null && permissionlist.Count > 0)
             {
+                DateTime? LastAccountingclosedate = new DateTime();
                 objNote = _noteLogic.GetNoteFromNoteId(_noteDC.NoteId, headerUserID, _noteDC.AnalysisID);
 
+                dtnotedashboarddata = _noteLogic.GetDashBoardDataByNoteID(new Guid(_noteDC.NoteId));
+
+                PeriodicLogic pr = new PeriodicLogic();
+                LastAccountingclosedate = pr.GetLastAccountingCloseDateByDealIDORNoteID(null, new Guid(_noteDC.NoteId));
+
+                //LastAccountingclosedate = Convert.ToDateTime("07/30/2023");
+                objNote.LastAccountingCloseDate = LastAccountingclosedate;
+                if (objNote.LastAccountingCloseDate != null)
+                {
+                    if (objNote.LastAccountingCloseDate.Value.Year < 1970)
+                    {
+                        objNote.LastAccountingCloseDate = null;
+                    }
+                }
+                TagXIRRLogic tagXIRRLogic = new TagXIRRLogic();
                 ScenarioLogic _sl = new ScenarioLogic();
                 objNote.DefaultScenarioParameters = _sl.GetActiveScenarioParameters(_noteDC.AnalysisID);
                 objNote.DefaultscenarioID = objNote.DefaultScenarioParameters.AnalysisID;
                 objNote.ListEffectiveDateCount = _noteLogic.GetScheduleEffectiveDateCount(new Guid(_noteDC.NoteId));
+                objNote.ListSelectedXIRRTags = tagXIRRLogic.GetTagMasterXIRRByAccountID(objNote.AccountID);
                 dt = _noteLogic.GetMarketPriceByNoteID(_noteDC.NoteId, Convert.ToString(headerUserID));
                 dtnotecommitment = _noteLogic.GetNoteCommitmentsByNoteID(_noteDC.NoteId, Convert.ToString(headerUserID));
             }
@@ -761,7 +954,8 @@ namespace CRES.ServicesNew.Controllers
                         NoteData = objNote,
                         UserPermissionList = permissionlist,
                         dt = dt,
-                        dtNoteCommitment = dtnotecommitment
+                        dtNoteCommitment = dtnotecommitment,
+                        dtnotedashboarddata = dtnotedashboarddata
                     };
                 }
                 else
@@ -794,12 +988,10 @@ namespace CRES.ServicesNew.Controllers
         [Route("api/note/getallLookup")]
         public IActionResult GetAllLookup()
         {
-            string getAllLookup = "2,5,6,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,28,29,32,33,39,43,44,47,1,50,62,65,66,71,72,73,74,78,79,95,99,110";
+            string getAllLookup = "2,5,6,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,28,29,32,33,39,43,44,47,1,50,62,65,66,71,72,73,74,78,79,95,99,110,136,137,141,146,111";
             GenericResult _authenticationResult = null;
             List<LookupDataContract> lstlookupDC = new List<LookupDataContract>();
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
             var headerUserID = string.Empty;
             if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
             {
@@ -852,15 +1044,11 @@ namespace CRES.ServicesNew.Controllers
         [Route("api/note/getnotecalculatordatabynoteId")]
         public IActionResult GetNoteCalculatorDataByNoteId([FromBody] NoteDataContract _noteDC, int? pageIndex, int? pageSize)
         {
-#pragma warning disable CS0219 // The variable '_result' is assigned but its value is never used
             IActionResult _result = null;
-#pragma warning restore CS0219 // The variable '_result' is assigned but its value is never used
             GenericResult _authenticationResult = null;
             NoteDataContract _noteCalculatorDC = new NoteDataContract();
 
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
             var headerUserID = new Guid();
             if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
             {
@@ -869,12 +1057,8 @@ namespace CRES.ServicesNew.Controllers
 
             try
             {
-#pragma warning disable CS0219 // The variable 'flag' is assigned but its value is never used
                 bool flag = false;
-#pragma warning restore CS0219 // The variable 'flag' is assigned but its value is never used
-#pragma warning disable CS0219 // The variable 'totalCount' is assigned but its value is never used
                 int? totalCount = 0;
-#pragma warning restore CS0219 // The variable 'totalCount' is assigned but its value is never used
 
                 CalculationManagerLogic calculationlogic = new CalculationManagerLogic();
                 // check for dependents
@@ -959,7 +1143,7 @@ namespace CRES.ServicesNew.Controllers
                 }
                 if (_authenticationResult.ListCashflowTransactionEntry != null)
                 {
-                    _noteLogic.InsertCashflowTransaction(_authenticationResult.ListCashflowTransactionEntry, _noteDC.NoteId, headerUserID.ToString());
+                    _noteLogic.InsertCashflowTransaction(_authenticationResult.ListCashflowTransactionEntry, _noteDC.NoteId, headerUserID.ToString(), _noteDC.MaturityUsedInCalc);
                 }
 
 
@@ -997,9 +1181,7 @@ namespace CRES.ServicesNew.Controllers
             GenericResult _authenticationResult = null;
             List<LiborScheduleTab> lstLiborScheduledata = new List<LiborScheduleTab>();
 
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
 
             var headerUserID = new Guid();
 
@@ -1084,9 +1266,7 @@ namespace CRES.ServicesNew.Controllers
             //int? pageSize = _noteDC.pageSize;
             string modulename = _noteDC.modulename;
 
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
             var headerUserID = new Guid();
             if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
             {
@@ -1287,9 +1467,7 @@ namespace CRES.ServicesNew.Controllers
             GenericResult _authenticationResult = null;
             NoteAllScheduleLatestRecordDataContract _noteAllScheduleLatestRecordDataContract = new NoteAllScheduleLatestRecordDataContract();
 
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
 
             var headerUserID = new Guid();
 
@@ -1343,9 +1521,7 @@ namespace CRES.ServicesNew.Controllers
             GenericResult _authenticationResult = null;
             NoteAllScheduleLatestRecordDataContract _noteAllScheduleLatestRecordDataContract = new NoteAllScheduleLatestRecordDataContract();
 
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
 
             var headerUserID = new Guid();
 
@@ -1416,9 +1592,7 @@ namespace CRES.ServicesNew.Controllers
             GenericResult _authenticationResult = null;
             List<NotePeriodicOutputsDataContract> lstnotePeriodicOutputs = new List<NotePeriodicOutputsDataContract>();
 
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
 
             var headerUserID = new Guid();
 
@@ -1486,9 +1660,7 @@ namespace CRES.ServicesNew.Controllers
             //List<NoteCashflowsExportDataContract> lstNoteCashflowsExportData = new List<NoteCashflowsExportDataContract>();
             DataTable lstnotePeriodicOutputs = new DataTable();
 
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
 
             var headerUserID = new Guid();
 
@@ -1558,9 +1730,7 @@ namespace CRES.ServicesNew.Controllers
             List<string> lstnoteexistmsg = new List<string>();
             GenericResult _authenticationResult = null;
 
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
 
             var headerUserID = string.Empty;
 
@@ -1638,9 +1808,7 @@ namespace CRES.ServicesNew.Controllers
             GenericResult _authenticationResult = null;
             List<NoteDataContract> lstNotes = new List<NoteDataContract>();
 
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
 
             var headerUserID = new Guid();
 
@@ -1696,9 +1864,7 @@ namespace CRES.ServicesNew.Controllers
             GenericResult _authenticationResult = null;
             string Validationmessage = string.Empty;
             int count = int.MinValue;
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
 
             var headerUserID = new Guid();
 
@@ -1713,6 +1879,12 @@ namespace CRES.ServicesNew.Controllers
             ValidationEngine validate = new ValidationEngine();
 
             NoteDataContract _cnoteobject = ConvertToNoteobject(_noteaddlistdc);
+
+            List<FeeSchedulesConfigDataContract> ListFeeSchedulesConfig = new List<FeeSchedulesConfigDataContract>();
+            ListFeeSchedulesConfig = _noteLogic.GetFeeSchedulesConfig(headerUserID);
+            _cnoteobject.ListFeeSchedulesConfiguration = ListFeeSchedulesConfig;
+
+
             List<ExceptionDataContract> edc = validate.ValidateNoteObject(_cnoteobject);
             int Criticalerror = edc.FindAll(x => x.ActionLevelText == "Critical").ToList().Count();
 
@@ -1922,6 +2094,7 @@ namespace CRES.ServicesNew.Controllers
                 noteobj.SaveWithoutCalc = _NoteAdditinalListDataContract.noteobj.SaveWithoutCalc;
                 noteobj.NoofdaysrelPaymentDaterollnextpaymentcycle = _NoteAdditinalListDataContract.noteobj.NoofdaysrelPaymentDaterollnextpaymentcycle;
                 noteobj.lastCalcDateTime = _NoteAdditinalListDataContract.noteobj.lastCalcDateTime;
+                noteobj.FirstIndexDeterminationDateOverride = _NoteAdditinalListDataContract.noteobj.FirstIndexDeterminationDateOverride;
 
                 return noteobj;
             }
@@ -1947,7 +2120,6 @@ namespace CRES.ServicesNew.Controllers
                 try
                 {
                     NoteDataContract noteobject = _noteLogic.GetNoteAllDataForCalculatorByNoteId(note.NoteId, null, note.AnalysisID, null, null);
-
                     ExceptionsLogic _ExceptionsLogic = new ExceptionsLogic();
                     ValidationEngine validate = new ValidationEngine();
                     List<ExceptionDataContract> edc = validate.ValidateNoteObject(noteobject);
@@ -1958,9 +2130,7 @@ namespace CRES.ServicesNew.Controllers
                         foreach (ExceptionDataContract exc in edc)
                         {
                             exc.CreatedBy = "kbaderia";
-                            exc.CreatedBy = "kbaderia";
                         }
-
                         _ExceptionsLogic.InsertExceptions(edc, "kbaderia");
                     }
                     else
@@ -1994,50 +2164,6 @@ namespace CRES.ServicesNew.Controllers
             return Ok(_authenticationResult);
         }
 
-        [HttpPost]
-        [Services.Controllers.DeflateCompression]
-        [Services.Controllers.IsAuthenticate]
-        [Route("api/note/getnotecalculatorjsonbynoteid")]
-        public IActionResult GetNoteCalculatorJsonByNoteId([FromBody] string _noteDC)
-        {
-            IActionResult _result = null;
-            GenericResult _authenticationResult = null;
-            FNoteDataContract _noteCalculatorDC = new FNoteDataContract();
-
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
-            IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
-            var headerUserID = new Guid();
-            if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
-            {
-                headerUserID = new Guid(Request.Headers["TokenUId"]);
-            }
-
-            try
-            {
-
-                NoteLogic nl = new NoteLogic();
-                _noteCalculatorDC = nl.GetNoteDataForCalculationByNoteId(_noteDC, null, null, null);
-                var _gresult = JsonConvert.SerializeObject(_noteCalculatorDC);
-                var result1 = _gresult;
-                _authenticationResult = new GenericResult()
-                {
-                    Succeeded = true,
-                    Message = _gresult
-                };
-                return Ok(_authenticationResult);
-            }
-            catch (Exception ex)
-            {
-                _authenticationResult = new GenericResult()
-                {
-                    Succeeded = false,
-                    Message = ex.Message
-                };
-            }
-            return Ok(_result);
-        }
-
         [Services.Controllers.DeflateCompression]
         [HttpPost]
         [Services.Controllers.IsAuthenticate]
@@ -2048,9 +2174,7 @@ namespace CRES.ServicesNew.Controllers
             GenericResult _authenticationResult = null;
             //NoteDataContract _noteCalculatorDC = new NoteDataContract();
 
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
             var headerUserID = new Guid();
             if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
             {
@@ -2059,12 +2183,8 @@ namespace CRES.ServicesNew.Controllers
 
             try
             {
-#pragma warning disable CS0219 // The variable 'flag' is assigned but its value is never used
                 bool flag = false;
-#pragma warning restore CS0219 // The variable 'flag' is assigned but its value is never used
-#pragma warning disable CS0219 // The variable 'totalCount' is assigned but its value is never used
                 int? totalCount = 0;
-#pragma warning restore CS0219 // The variable 'totalCount' is assigned but its value is never used
 
                 var _calcJSONRequest = _noteDC.CalcJSONRequest;
 
@@ -2162,18 +2282,21 @@ namespace CRES.ServicesNew.Controllers
         [HttpGet]
         //[Services.Controllers.IsAuthenticate]
         [Route("api/note/getimportsourcetodw-new")]
-        public IActionResult Getimportsourcetodw()
+        public void Getimportsourcetodw()
         {
-            GenericResult _authenticationResult = null;
-
-            _noteLogic.importsourcetodw();
-            _authenticationResult = new GenericResult()
+            LoggerLogic Log = new LoggerLogic();
+            try
             {
-                Succeeded = true,
-                Message = "Import succeeded"
-            };
+                Log.WriteLogInfo("DataWarehouseRefresh", "Getimportsourcetodw Called", "", useridforSys_Scheduler);
+                Thread FirstThread = new Thread(() => _noteLogic.importsourcetodw());
+                FirstThread.Start();
 
-            return Ok(_authenticationResult);
+                Log.WriteLogInfo("DataWarehouseRefresh", "Getimportsourcetodw Ended", "", useridforSys_Scheduler);
+            }
+            catch (Exception ex)
+            {
+                Log.WriteLogException("DataWarehouseRefresh", "Error in Getimportsourcetodw ", "", useridforSys_Scheduler, ex.TargetSite.Name.ToString(), "", ex);
+            }
         }
 
         [HttpGet]
@@ -2182,8 +2305,44 @@ namespace CRES.ServicesNew.Controllers
         {
 
             GenericResult _authenticationResult = null;
-            GetDealNoteFundingDiscrepancyNew();
-            GetNonFullpayoffDealDiscrepancy();
+
+            AppConfigLogic _appConfigLogic = new AppConfigLogic();
+            List<AppConfigDataContract> lstAppConfig = _appConfigLogic.GetAppConfigByKey(null, "EnableDiscrepancyEmail");
+
+            if (lstAppConfig != null && lstAppConfig.Count > 0)
+            {
+                if (lstAppConfig[0].Value == "1")
+                {
+                    Thread FirstThread = new Thread(() => GetDealNoteFundingDiscrepancyNew());
+                    FirstThread.Start();
+                }
+            }
+
+            //Thread SecondThread = new Thread(() => GetNonFullpayoffDealDiscrepancy());
+            //SecondThread.Start();
+
+            Thread ThirdThread = new Thread(() => GetParentClientMissingEmail());
+            ThirdThread.Start();
+
+            Thread fourthThread = new Thread(() => SendGenerateAutomationEmails());
+            fourthThread.Start();
+
+            Thread fithThread = new Thread(() => SendAllAutoSpreadDealsAutomationEmail("All_AutoSpread_Deals"));
+            fithThread.Start();
+
+
+            Thread sixthThread = new Thread(() => SendAllAutoSpreadDealsAutomationEmail("AutoSpread_UnderwritingDataChanged"));
+            sixthThread.Start();
+
+            Thread seventhThread = new Thread(() => SendFundingDrawBusinessdayEmails());
+            seventhThread.Start();
+
+
+
+            //Thread seventhThread = new Thread(() => SendErrorEmail());
+            //seventhThread.Start();
+
+
             _authenticationResult = new GenericResult()
             {
                 Succeeded = true,
@@ -2261,7 +2420,6 @@ namespace CRES.ServicesNew.Controllers
 
         }
 
-
         public bool UploadDataTableToAzureblob(System.Data.DataTable dt, string csvname)
         {
             GetConfigSetting();
@@ -2270,7 +2428,6 @@ namespace CRES.ServicesNew.Controllers
 
             MemoryStream ms1 = new MemoryStream();
 
-#pragma warning disable CS0168 // The variable 'ex' is declared but never used
             try
             {
                 using (MemoryStream ms = new MemoryStream())
@@ -2320,20 +2477,13 @@ namespace CRES.ServicesNew.Controllers
                     ms1.Seek(0, SeekOrigin.Begin);
                     blockBlob.UploadFromStream(ms1);
                 }
-
-
                 return true;
-
             }
             catch (Exception ex)
             {
                 return true;
             }
-#pragma warning restore CS0168 // The variable 'ex' is declared but never used
-
         }
-
-
 
         [HttpGet]
         //[Services.Controllers.IsAuthenticate]
@@ -2364,9 +2514,7 @@ namespace CRES.ServicesNew.Controllers
             //List<NoteCashflowsExportDataContract> lstNoteCashflowsExportData = new List<NoteCashflowsExportDataContract>();
             DataTable lstNoteCashflowsExportData = new DataTable();
 
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
 
             var headerUserID = new Guid();
 
@@ -2439,67 +2587,189 @@ namespace CRES.ServicesNew.Controllers
             return Ok(_authenticationResult);
         }
 
+
         [HttpPost]
-        //[Services.Controllers.DeflateCompression]
-        //[Services.Controllers.IsAuthenticate]
+        [Services.Controllers.IsAuthenticate]
+        [Services.Controllers.DeflateCompression]
+        [Route("api/note/checkduplicatetransactionCashflow")]
+        public IActionResult CheckDuplicateTransactionCashflow([FromBody] DownloadCashFlowDataContract downloadCashFlow)
+        {
+            GenericResult _authenticationResult = null;
+            DataTable lstCheckDuplicateTransactionCashflow = new DataTable();
+
+            IEnumerable<string> headerValues;
+
+            var headerUserID = string.Empty;
+
+            if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
+            {
+                headerUserID = Convert.ToString(Request.Headers["TokenUId"]);
+            }
+
+            NoteLogic noteLogic = new NoteLogic();
+
+            if (downloadCashFlow.Pagename == "Scenario")
+            {
+                lstCheckDuplicateTransactionCashflow = _noteLogic.CheckDuplicateTransactionCashflowDownload(downloadCashFlow.AnalysisID);
+            }
+            else if (downloadCashFlow.Pagename == "Deal")
+            {
+                lstCheckDuplicateTransactionCashflow = _noteLogic.CheckDuplicateTransactionCashflowDownloadAnalysis_Deal(downloadCashFlow.AnalysisID, downloadCashFlow.DealID);
+            }
+            else if (downloadCashFlow.Pagename == "Calc")
+            {
+                lstCheckDuplicateTransactionCashflow = _noteLogic.CheckDuplicateTransactionCashflowDownload(downloadCashFlow.AnalysisID);
+            }
+            else if (downloadCashFlow.Pagename == "Note")
+            {
+                lstCheckDuplicateTransactionCashflow = _noteLogic.CheckDuplicateTransactionCashflowDownloadByAnalysis_Note(downloadCashFlow.AnalysisID, downloadCashFlow.NoteId);
+
+            }
+
+            try
+            {
+
+                if (lstCheckDuplicateTransactionCashflow.Rows.Count > 0)
+                {
+                    _authenticationResult = new GenericResult()
+                    {
+                        CheckDuplicateData = lstCheckDuplicateTransactionCashflow
+                    };
+                }
+                else
+                {
+                    _authenticationResult = new GenericResult()
+                    {
+                        CheckDuplicateData = null
+                    };
+                }
+            }
+            catch (Exception ex)
+            {
+                _authenticationResult = new GenericResult()
+                {
+                    Succeeded = false,
+                    Message = ex.Message
+                };
+            }
+            return Ok(_authenticationResult);
+        }
+
+
+        [HttpPost]
         [Route("api/note/getNoteCashflowsExportExcel")]
         public IActionResult GetNoteCashflowsExportExcel([FromBody] DownloadCashFlowDataContract downloadCashFlow)
         {
+            int CashFlowDownloadRequestsID = 0;
+            GenericResult _authenticationResult = null;
             DataTable lstNoteCashflowsExportData = new DataTable();
             DataTable lstGaapBasisExportData = new DataTable();
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
-            IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
+            DataTable lstCheckDuplicateTransactionCashflow = new DataTable();
             var headerUserID = new Guid();
-            if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
-            {
-                headerUserID = new Guid(Request.Headers["TokenUId"]);
-            }
-            DealLogic deallogic = new DealLogic();
-            DataTable exceptiondt = new DataTable();
-            if (downloadCashFlow.Pagename != "Scenario")
-            {
-                //lstNoteCashflowsExportData = _noteLogic.GetNoteCashflowsExportData(new Guid(downloadCashFlow.NoteId), new Guid(downloadCashFlow.DealID), new Guid(downloadCashFlow.AnalysisID), downloadCashFlow.MutipleNoteId);
-                lstNoteCashflowsExportData = _noteLogic.GetNoteCashflowsExportData(downloadCashFlow);
+            bool isallnotesselected = false;
+            CashFlowDownloadRequestLogic logic = new CashFlowDownloadRequestLogic();
 
-                if (downloadCashFlow.Pagename == "Deal")
+            try
+            {
+
+                if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
                 {
-                    lstGaapBasisExportData = _noteLogic.GetNoteCashflowsGAAPBasisExportData(downloadCashFlow);
-                    exceptiondt = deallogic.GetAllExceptionsByDealID(new Guid(downloadCashFlow.DealID), downloadCashFlow.Pagename, "", new Guid(), new Guid());
+                    headerUserID = new Guid(Request.Headers["TokenUId"]);
                 }
-                else if (downloadCashFlow.Pagename == "Calc")
+                CashFlowDownloadRequestsID = logic.InsertIntoCashFlowDownloadRequests(downloadCashFlow.AnalysisID, headerUserID.ToString());
+
+                DealLogic deallogic = new DealLogic();
+                DataTable exceptiondt = new DataTable();
+
+                if (downloadCashFlow.Pagename != "Deal" && downloadCashFlow.Pagename != "Note")
                 {
-                    exceptiondt = deallogic.GetAllExceptionsByDealID(new Guid(), downloadCashFlow.Pagename, downloadCashFlow.MutipleNoteId, new Guid(), new Guid());
+                    if ((downloadCashFlow.MutipleNoteId == "" || downloadCashFlow.MutipleNoteId == null))
+                    {
+                        isallnotesselected = true;
+                    }
                 }
-                else if (downloadCashFlow.Pagename == "Note")
+
+                logic.UpdateStatusCashFlowDownloadRequests(downloadCashFlow.AnalysisID, CashFlowDownloadRequestsID, "Start", "StartTime", "", headerUserID.ToString());
+
+                if (downloadCashFlow.Pagename != "Scenario")
                 {
-                    lstGaapBasisExportData = _noteLogic.GetNoteCashflowsGAAPBasisExportData(downloadCashFlow);
-                    exceptiondt = deallogic.GetAllExceptionsByDealID(new Guid(), downloadCashFlow.Pagename, downloadCashFlow.MutipleNoteId, new Guid(), new Guid(downloadCashFlow.NoteId));
+                    if (isallnotesselected == true)
+                    {
+                        string analysisid = downloadCashFlow.AnalysisID;
+
+                        logic.UpdateStatusCashFlowDownloadRequests(downloadCashFlow.AnalysisID, CashFlowDownloadRequestsID, "Preparing Data", "StartTime", "", headerUserID.ToString());
+                        lstNoteCashflowsExportData = _noteLogic.GetNoteCashflowsExportData_All(analysisid);
+
+
+                    }
+                    else
+                    {
+                        logic.UpdateStatusCashFlowDownloadRequests(downloadCashFlow.AnalysisID, CashFlowDownloadRequestsID, "Preparing Data", "StartTime", "", headerUserID.ToString());
+                        lstNoteCashflowsExportData = _noteLogic.GetNoteCashflowsExportData(downloadCashFlow);
+                        if (downloadCashFlow.Pagename == "Deal")
+                        {
+                            lstGaapBasisExportData = _noteLogic.GetNoteCashflowsGAAPBasisExportData(downloadCashFlow);
+                            exceptiondt = deallogic.GetAllExceptionsByDealID(new Guid(downloadCashFlow.DealID), downloadCashFlow.Pagename, "", new Guid(), new Guid());
+
+                        }
+                        else if (downloadCashFlow.Pagename == "Calc")
+                        {
+                            exceptiondt = deallogic.GetAllExceptionsByDealID(new Guid(), downloadCashFlow.Pagename, downloadCashFlow.MutipleNoteId, new Guid(), new Guid());
+
+                        }
+                        else if (downloadCashFlow.Pagename == "Note")
+                        {
+                            lstGaapBasisExportData = _noteLogic.GetNoteCashflowsGAAPBasisExportData(downloadCashFlow);
+                            exceptiondt = deallogic.GetAllExceptionsByDealID(new Guid(), downloadCashFlow.Pagename, downloadCashFlow.MutipleNoteId, new Guid(), new Guid(downloadCashFlow.NoteId));
+                        }
+                    }
+
                 }
+
+                else
+                {
+                    logic.UpdateStatusCashFlowDownloadRequests(downloadCashFlow.AnalysisID, CashFlowDownloadRequestsID, "Preparing Data", "StartTime", "", headerUserID.ToString());
+                    string analysisid = downloadCashFlow.AnalysisID;
+                    lstNoteCashflowsExportData = _noteLogic.GetNoteCashflowsExportData_All(analysisid);
+                    exceptiondt = deallogic.GetAllExceptionsByDealID(new Guid(), "Scenario", "", new Guid(), new Guid());
+                }
+
+
+                logic.UpdateStatusCashFlowDownloadRequests(downloadCashFlow.AnalysisID, CashFlowDownloadRequestsID, "Creating File", "StartTime", "", headerUserID.ToString());
+                // Export to excel
+                DataSet ds = new DataSet();
+                lstNoteCashflowsExportData.TableName = "Cashflow";
+                ds.Tables.Add(lstNoteCashflowsExportData);
+
+                if (lstGaapBasisExportData.Rows.Count > 0)
+                {
+                    lstGaapBasisExportData.TableName = "GaapBasis";
+                    ds.Tables.Add(lstGaapBasisExportData);
+                }
+
+                if (exceptiondt.Rows.Count > 0)
+                {
+                    exceptiondt.TableName = "Exceptions";
+                    ds.Tables.Add(exceptiondt);
+                }
+                logic.UpdateStatusCashFlowDownloadRequests(downloadCashFlow.AnalysisID, CashFlowDownloadRequestsID, "File Ready", "EndTime", "", headerUserID.ToString());
+                Stream stream = new StreamReader(_env.WebRootPath + "/ExcelTemplate/" + "Cashflow_download.xlsx").BaseStream;
+                MemoryStream ms = WriteDataToExcel(ds, stream);
+                return File(ms, "application/octet-stream");
             }
-            else
+            catch (Exception ex)
             {
-                lstNoteCashflowsExportData = _noteLogic.GetNoteCashflowsExportData(new Guid("00000000-0000-0000-0000-000000000000"), new Guid("00000000-0000-0000-0000-000000000000"), new Guid(downloadCashFlow.AnalysisID), "");
-                exceptiondt = deallogic.GetAllExceptionsByDealID(new Guid(), "Scenario", "", new Guid(), new Guid());
-                //lstGaapBasisExportData = _noteLogic.GetNoteCashflowsGAAPBasisExportData(new Guid("00000000-0000-0000-0000-000000000000"), new Guid("00000000-0000-0000-0000-000000000000"), new Guid(downloadCashFlow.AnalysisID), "");
+                logic.UpdateStatusCashFlowDownloadRequests(downloadCashFlow.AnalysisID, CashFlowDownloadRequestsID, "Failed", "EndTime", ex.ToString(), headerUserID.ToString());
+                LoggerLogic Log = new LoggerLogic();
+                Log.WriteLogException(CRESEnums.Module.CashFlowDownload.ToString(), "Error occurred in cashflow download ", "", headerUserID.ToString(), ex.TargetSite.Name.ToString(), "", ex);
 
+                _authenticationResult = new GenericResult()
+                {
+                    Succeeded = false,
+                    Message = ex.Message
+                };
+                return Ok(_authenticationResult);
             }
-            // Export to excel
-            DataSet ds = new DataSet();
-            lstNoteCashflowsExportData.TableName = "Cashflow";
-            ds.Tables.Add(lstNoteCashflowsExportData);
-
-            if (lstGaapBasisExportData.Rows.Count > 0)
-            {
-                lstGaapBasisExportData.TableName = "GaapBasis";
-                ds.Tables.Add(lstGaapBasisExportData);
-            }
-            exceptiondt.TableName = "Exceptions";
-            ds.Tables.Add(exceptiondt);
-
-            Stream stream = new StreamReader(_env.WebRootPath + "/ExcelTemplate/" + "Cashflow_download.xlsx").BaseStream;
-            MemoryStream ms = WriteDataToExcel(ds, stream);
-            return File(ms, "application/octet-stream");
 
         }
 
@@ -2512,9 +2782,7 @@ namespace CRES.ServicesNew.Controllers
             GenericResult _authenticationResult = null;
             DataTable lstDownloadNoteDataTape = new DataTable();
 
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
 
             var headerUserID = new Guid();
 
@@ -2577,9 +2845,7 @@ namespace CRES.ServicesNew.Controllers
             GenericResult _authenticationResult = null;
             List<NoteDataContract> lstNotes = new List<NoteDataContract>();
 
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
 
             var headerUserID = new Guid();
 
@@ -2630,9 +2896,7 @@ namespace CRES.ServicesNew.Controllers
         {
             GenericResult _authenticationResult = null;
             List<ActivityLogDataContract> lstactivitydc = new List<ActivityLogDataContract>();
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
             //  string currentTime = "2017-08-09";
             var headerUserID = string.Empty;
             int? totalCount = 0;
@@ -2685,9 +2949,7 @@ namespace CRES.ServicesNew.Controllers
         {
             GenericResult _authenticationResult = null;
             DealDataContract Deal = new DealDataContract();
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
 
             var headerUserID = string.Empty;
 
@@ -2744,9 +3006,7 @@ namespace CRES.ServicesNew.Controllers
         {
             GenericResult _authenticationResult = null;
             NoteAllScheduleLatestRecordDataContract noteallsche = new NoteAllScheduleLatestRecordDataContract();
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
 
             var headerUserID = string.Empty;
 
@@ -2796,9 +3056,7 @@ namespace CRES.ServicesNew.Controllers
         public IActionResult AddUpdateNoteRuleByNoteId([FromBody] NoteDataContract _noteDC)
         {
             GenericResult _actionResult = null;
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
             string Validationmessage = string.Empty;
             var headerUserID = string.Empty;
             if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
@@ -2940,7 +3198,6 @@ namespace CRES.ServicesNew.Controllers
             DataSet dsWellsImportData = new DataSet();
             DataTable dt, dtCopy;
 
-#pragma warning disable CS0168 // The variable 'ex' is declared but never used
             try
             {
                 dsWellsImportData = _noteLogic.GetWellsViewsAllDataByDealID(DealID);
@@ -3001,7 +3258,6 @@ namespace CRES.ServicesNew.Controllers
             {
 
             }
-#pragma warning restore CS0168 // The variable 'ex' is declared but never used
 
             return lstWellsImportData;
 
@@ -3174,9 +3430,7 @@ namespace CRES.ServicesNew.Controllers
             GenericResult _authenticationResult = null;
             List<TransactionEntryDataContract> lsttransactionEntry = new List<TransactionEntryDataContract>();
 
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
 
             var headerUserID = new Guid();
 
@@ -3232,8 +3486,6 @@ namespace CRES.ServicesNew.Controllers
             return Ok(_authenticationResult);
         }
 
-
-
         [HttpGet]
         [Services.Controllers.IsAuthenticate]
         [Services.Controllers.DeflateCompression]
@@ -3243,9 +3495,7 @@ namespace CRES.ServicesNew.Controllers
 
             GenericResult _authenticationResult = null;
             List<LookupMasterDataContract> lstlookupMasterDC = new List<LookupMasterDataContract>();
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
             var headerUserID = string.Empty;
             if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
             {
@@ -3299,9 +3549,7 @@ namespace CRES.ServicesNew.Controllers
         {
             GenericResult _authenticationResult = null;
             DevDashBoardDataContract devd = new DevDashBoardDataContract();
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
             var headerUserID = string.Empty;
             if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
             {
@@ -3353,9 +3601,7 @@ namespace CRES.ServicesNew.Controllers
 
             GenericResult _authenticationResult = null;
             List<FinancingSourceDataContract> lstfinancingsourceDC = new List<FinancingSourceDataContract>();
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
             var headerUserID = string.Empty;
 
             if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
@@ -3414,8 +3660,42 @@ namespace CRES.ServicesNew.Controllers
             }
         }
 
+        [HttpPost]
+        [Services.Controllers.IsAuthenticate]
+        [Route("api/note/savefinancingsourceparentclient")]
+        public IActionResult SaveFinancingSourceParentClient([FromBody] DataTable dt)
+        {
+            GenericResult _genericResult = null;
+            IEnumerable<string> headerValues;
+            var headerUserID = new Guid();
+            if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
+            {
+                headerUserID = new Guid(Request.Headers["TokenUId"]);
+            }
+            UserPermissionLogic upl = new UserPermissionLogic();
+            upl.InsertUpdateTransactionTypes(dt, headerUserID);
+            try
+            {
+                _genericResult = new GenericResult()
+                {
+                    Succeeded = true,
+                    Message = "Save/Updated Successfully!",
+                };
+            }
+            catch (Exception ex)
+            {
+                LoggerLogic Log = new LoggerLogic();
+                Log.WriteLogException(CRESEnums.Module.Note.ToString(), "Error occurred in SaveFinancingSourceParentClient", "", "", ex.TargetSite.Name.ToString(), "", ex);
 
+                _genericResult = new GenericResult()
+                {
+                    Succeeded = false,
+                    Message = ex.Message
+                };
+            }
 
+            return Ok(_genericResult);
+        }
         public void GetDealNoteFundingDiscrepancyNew()
         {
             DataTable dt = new DataTable();
@@ -3425,21 +3705,109 @@ namespace CRES.ServicesNew.Controllers
             DataTable dt4 = new DataTable();
             DataTable dt5 = new DataTable();
             DataTable dt6 = new DataTable();
+            DataTable dt7 = new DataTable();
+            DataTable dt8 = new DataTable();
+            DataTable dt9 = new DataTable();
+            DataTable dt10 = new DataTable();
+            DataTable dt11 = new DataTable();
+            DataTable dt12 = new DataTable();
+            DataTable dt13 = new DataTable();
+            DataTable dt14 = new DataTable();
+            DataTable dt15 = new DataTable();
+            DataTable dt16 = new DataTable();
+            DataTable dt17 = new DataTable();
+            DataTable dt18 = new DataTable();
+
             DealLogic _dealLogic = new DealLogic();
             dt = _dealLogic.GetDealNoteFundingDiscrepancy();
             dt1 = _dealLogic.GetDiscrepancyForExitAndExtentionStripReceiveable();
             dt2 = _dealLogic.GetDiscrepancyForFFBetweenM61andBackshop();
-            dt3 = _dealLogic.GetDiscrepancyForCommitment();
+            ////dt3 = _dealLogic.GetDiscrepancyForCommitment();
             dt4 = _dealLogic.GetDiscrepancyForCommitmentData();
             dt5 = _dealLogic.GetDiscrepancyListOfDealForEnableAutoSpread();
             dt6 = _dealLogic.GetDiscrepancyForExportPaydown();
+            dt7 = _dealLogic.GetDiscrepancyForNetIOTransaction();
+            dt8 = _dealLogic.GetDiscrepancyForFinancingSource();
+            dt9 = _dealLogic.GetInvoiceDiscrepancy();
+
+            dt10 = _dealLogic.GetDiscrepancyForWireConfirmed();
+            dt11 = _dealLogic.GetDiscrepancyForBalanceM61VsBackshop();
+            dt12 = _dealLogic.GetDiscrepancyForAdjCommitmentM61VsBackshop();
+            dt13 = _dealLogic.GetDiscrepancyForTotalFFVsUnfundedCommitment();
+            dt14 = _dealLogic.GetDiscrepancyForDuplicatePIK_InBackshop();
+            dt15 = _dealLogic.GetDiscrepancyForNotesFailedInCalculation();
+            dt16 = _dealLogic.GetDiscrepancyAutoSpreadDealWithNoUnderwriting();
+            dt17 = _dealLogic.GetDiscrepancyAmortSchedule();
+            dt18 = _dealLogic.GetDiscrepancyForDuplicateTransactions();
+
+            if (dt4.Rows.Count > 0)
+            { dt4.Columns.Remove("DealID"); }
+
+
+            #region get first row of table
+            //if (dt.Rows.Count > 0)
+            //    dt = dt.AsEnumerable().Take(1).CopyToDataTable();
+
+            //if (dt1.Rows.Count > 0)
+            //    dt1 = dt1.AsEnumerable().Take(1).CopyToDataTable();
+
+            //if (dt2.Rows.Count > 0)
+            //    dt2 = dt2.AsEnumerable().Take(1).CopyToDataTable();
+
+            //if (dt4.Rows.Count > 0)
+            //    dt4 = dt4.AsEnumerable().Take(1).CopyToDataTable();
+
+            //if (dt5.Rows.Count > 0)
+            //    dt5 = dt5.AsEnumerable().Take(1).CopyToDataTable();
+
+            //if (dt6.Rows.Count > 0)
+            //    dt6 = dt6.AsEnumerable().Take(1).CopyToDataTable();
+
+            //if (dt7.Rows.Count > 0)
+            //    dt7 = dt7.AsEnumerable().Take(1).CopyToDataTable();
+
+            //if (dt8.Rows.Count > 0)
+            //    dt8 = dt8.AsEnumerable().Take(1).CopyToDataTable();
+
+            //if (dt9.Rows.Count > 0)
+            //    dt9 = dt9.AsEnumerable().Take(1).CopyToDataTable();
+
+            //if (dt10.Rows.Count > 0)
+            //    dt10 = dt10.AsEnumerable().Take(1).CopyToDataTable();
+
+            //if (dt11.Rows.Count > 0)
+            //    dt11 = dt11.AsEnumerable().Take(1).CopyToDataTable();
+
+            //if (dt12.Rows.Count > 0)
+            //    dt12 = dt12.AsEnumerable().Take(1).CopyToDataTable();
+
+            //if (dt13.Rows.Count > 0)
+            //    dt13 = dt13.AsEnumerable().Take(1).CopyToDataTable();
+
+            //if (dt14.Rows.Count > 0)
+            //    dt14 = dt14.AsEnumerable().Take(1).CopyToDataTable();
+
+            //if (dt15.Rows.Count > 0)
+            //    dt15 = dt15.AsEnumerable().Take(1).CopyToDataTable();
+
+            //if (dt16.Rows.Count > 0)
+            //    dt16 = dt16.AsEnumerable().Take(1).CopyToDataTable();
+
+            //if (dt17.Rows.Count > 0)
+            //    dt17 = dt17.AsEnumerable().Take(1).CopyToDataTable();
+
+            #endregion
+
+
             try
             {
-                _iEmailNotification.SendDealFundingandNoteFundingDiscrepancy(dt, dt.Rows.Count, dt1, dt1.Rows.Count, dt2, dt2.Rows.Count, dt3, dt3.Rows.Count, dt4, dt4.Rows.Count, dt5, dt5.Rows.Count, dt6, dt6.Rows.Count);
+                _iEmailNotification.SendDealFundingandNoteFundingDiscrepancy(dt, dt.Rows.Count, dt1, dt1.Rows.Count, dt2, dt2.Rows.Count, dt3, dt3.Rows.Count, dt4, dt4.Rows.Count, dt5, dt5.Rows.Count, dt6, dt6.Rows.Count, dt7, dt7.Rows.Count, dt8, dt8.Rows.Count, dt9, dt9.Rows.Count, dt10, dt10.Rows.Count, dt11, dt11.Rows.Count, dt12, dt12.Rows.Count, dt13, dt13.Rows.Count, dt14, dt14.Rows.Count, dt15, dt15.Rows.Count, dt16, dt16.Rows.Count, dt17, dt17.Rows.Count, dt18, dt18.Rows.Count);
             }
             catch (Exception ex)
             {
-                throw ex;
+                LoggerLogic Log = new LoggerLogic();
+                Log.WriteLogException(CRESEnums.Module.GenericScheduler.ToString(), "Error occurred while executing methode GetDealNoteFundingDiscrepancyNew ", "", "", ex.TargetSite.Name.ToString(), "", ex);
+
             }
 
         }
@@ -3450,9 +3818,7 @@ namespace CRES.ServicesNew.Controllers
         {
             GenericResult _authenticationResult = null;
             string Message = "";
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
             var headerUserID = string.Empty;
             if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
             {
@@ -3486,10 +3852,9 @@ namespace CRES.ServicesNew.Controllers
         {
             GenericResult _authenticationResult = null;
             bool status = true;
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
             var headerUserID = string.Empty;
+            string CalcStatus = "";
             if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
             {
                 headerUserID = Convert.ToString(Request.Headers["TokenUId"]);
@@ -3510,15 +3875,24 @@ namespace CRES.ServicesNew.Controllers
                 cdc.CalcType = 775;
                 nlist.Add(cdc);
 
-                CalculationManagerLogic calculationlogic = new CalculationManagerLogic();
-                status = calculationlogic.QueueNotesForCalculation(nlist, headerUserID.ToString());
+                Thread thread = new Thread(() => QueueNotesForCalculationRealTime(nlist, headerUserID.ToString(), _noteDC.CalcEngineTypeText, _noteDC.NoteId, _noteDC.AnalysisID.ToString()));
+                thread.Start();
 
+                if (_noteDC.CalcEngineTypeText == "V1 (New)")
+                {
+                    CalcStatus = "CalcSubmit";
+                }
+                else
+                {
+                    CalcStatus = "Processing";
+                }
                 if (status)
                 {
                     _authenticationResult = new GenericResult()
                     {
                         Succeeded = true,
-                        Message = "Calculation request submitted successfully"
+                        Message = "Calculation request submitted successfully",
+                        DealCalcuStatus = CalcStatus
                     };
                 }
                 else
@@ -3545,7 +3919,24 @@ namespace CRES.ServicesNew.Controllers
             }
             return Ok(_authenticationResult);
         }
+        public void QueueNotesForCalculationRealTime(List<CalculationManagerDataContract> nlist, string username, string CalcEngineType, string NoteId, string AnalysisID)
+        {
 
+            try
+            {
+                CalculationManagerLogic calculationlogic = new CalculationManagerLogic();
+                calculationlogic.CallQueueNotesForCalculation(nlist, username, "Note");
+                if (CalcEngineType == "V1 (New)")
+                {
+                    V1CalcLogic v1logic = new V1CalcLogic();
+                    string resp = v1logic.SubmitCalcRequest(NoteId, 182, AnalysisID.ToString(), 775, false, "");
+                }
+            }
+            catch (Exception)
+            {
+                throw;
+            }
+        }
         public void InsertSingleNoteForCalculation(string username, Guid? AnalysisID, string NoteId)
         {
 
@@ -3564,112 +3955,6 @@ namespace CRES.ServicesNew.Controllers
             CalculationManagerLogic calculationlogic = new CalculationManagerLogic();
             calculationlogic.QueueNotesForCalculation(nlist, username);
         }
-
-        ////to call for AI notename or crenoteid add/update
-        //public async Task InsertUpdateAINoteEntitiesAsync(List<NoteDataContract> _noteDC, string userid)
-        //{
-        //    try
-        //    {
-        //        GetConfigSetting();
-        //        string AIApiAuthKey = Sectionroot.GetSection("AIApiAuthKey").Value;
-        //        string BaseUrl = Sectionroot.GetSection("apiPath").Value;
-        //        string AIAddEntityApi = Sectionroot.GetSection("AIAddEntityApi").Value;
-        //        //insert new deal
-        //        foreach (var note in _noteDC)
-        //        {
-        //            if (note.NoteId == "00000000-0000-0000-0000-000000000000")
-        //            {
-        //                ArrayList noteidarr = new ArrayList();
-        //                ArrayList notenamearr = new ArrayList();
-        //                using (var client = new HttpClient())
-        //                {
-        //                    client.BaseAddress = new Uri(BaseUrl);
-        //                    client.DefaultRequestHeaders.Accept.Clear();
-        //                    client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-        //                    AIRealTimeEntityDataContract EntityResult = new AIRealTimeEntityDataContract();
-
-        //                    // HTTP POST for crenoteid
-        //                    HttpResponseMessage _noteidresponse = new HttpResponseMessage();
-        //                    EntityResult.type = "NoteID";
-        //                    EntityResult.value = note.CRENoteID;
-        //                    noteidarr.Add(note.CRENoteID);
-
-        //                    EntityResult.synonym = noteidarr;
-
-        //                    _noteidresponse = await client.PostAsJsonAsync(AIAddEntityApi + AIApiAuthKey, EntityResult);
-        //                    if (_noteidresponse.IsSuccessStatusCode)
-        //                    {
-        //                        Uri aientityUrl = _noteidresponse.Headers.Location;
-        //                    }
-        //                    // HTTP POST for notename
-        //                    HttpResponseMessage _notenameresponse = new HttpResponseMessage();
-        //                    EntityResult.type = "NoteName";
-        //                    EntityResult.value = note.Name;
-        //                    notenamearr.Add(note.Name);
-        //                    EntityResult.synonym = notenamearr;
-
-        //                    _notenameresponse = await client.PostAsJsonAsync(AIAddEntityApi + AIApiAuthKey, EntityResult);
-        //                    if (_notenameresponse.IsSuccessStatusCode)
-        //                    {
-        //                        Uri aientityUrl = _notenameresponse.Headers.Location;
-        //                    }
-        //                }
-        //            }// end for insert entity
-        //            else
-        //            {
-        //                //update noteid and notename
-        //                string AIUpdateEntityApi = Sectionroot.GetSection("AIUpdateEntityApi").Value;
-        //                using (var client = new HttpClient())
-        //                {
-        //                    AIRealTimeEntityDataContract EntityResult = new AIRealTimeEntityDataContract();
-        //                    if (note.OriginalCRENoteID != note.CRENoteID)
-        //                    {
-
-        //                        client.BaseAddress = new Uri(BaseUrl);
-        //                        client.DefaultRequestHeaders.Accept.Clear();
-        //                        client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-        //                        ArrayList noteidarr = new ArrayList();
-
-        //                        // HTTP POST for crenoteid
-        //                        HttpResponseMessage _noteidresponse = new HttpResponseMessage();
-        //                        EntityResult.type = "NoteID";
-        //                        EntityResult.original_entity =note.OriginalCRENoteID;
-        //                        EntityResult.altered_entity =note.CRENoteID;
-        //                        noteidarr.Add(note.OriginalCRENoteID);
-        //                        noteidarr.Add(note.CRENoteID);
-        //                        EntityResult.synonym = noteidarr;
-        //                        _noteidresponse = await client.PostAsJsonAsync(AIUpdateEntityApi + AIApiAuthKey, EntityResult);
-        //                        if (_noteidresponse.IsSuccessStatusCode)
-        //                        {
-        //                            Uri aientityUrl = _noteidresponse.Headers.Location;
-        //                        }
-        //                    }
-
-        //                        // HTTP POST for notename
-        //                        if (note.OriginalNoteName != note.Name)
-        //                        {
-        //                            ArrayList notenamearr = new ArrayList();
-        //                            HttpResponseMessage _notenameresponse = new HttpResponseMessage();
-        //                            EntityResult.type = "NoteName";
-        //                            EntityResult.value= note.Name;
-        //                            notenamearr.Add(note.Name);
-        //                            EntityResult.synonym = notenamearr;
-        //                            _notenameresponse = await client.PostAsJsonAsync(AIAddEntityApi + AIApiAuthKey, EntityResult);
-        //                            if (_notenameresponse.IsSuccessStatusCode)
-        //                            {
-        //                                Uri aientityUrl = _notenameresponse.Headers.Location;
-        //                            }
-        //                        }
-        //                }
-        //            }// end for update entity
-        //        }
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        LoggerLogic Log = new LoggerLogic();
-        //        Log.WriteLogException(CRESEnums.Module.AI_Assistant.ToString(), "Error occurred  while saving note(AI Entity insert/update): Deal ID " + _noteDC[0].CRENoteID, _noteDC[0].NoteId.ToString(), userid, ex.TargetSite.Name.ToString(), "", ex);
-        //    }
-        //}
 
         [HttpGet]
         [Services.Controllers.IsAuthenticate]
@@ -3728,9 +4013,7 @@ namespace CRES.ServicesNew.Controllers
         {
             GenericResult _authenticationResult = null;
 
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
 
             var headerUserID = string.Empty;
 
@@ -3775,9 +4058,6 @@ namespace CRES.ServicesNew.Controllers
             }
             return Ok(_authenticationResult);
         }
-
-
-
         public MemoryStream WriteDataToExcel(DataSet dsData, Stream strm)
         {
 
@@ -3786,8 +4066,6 @@ namespace CRES.ServicesNew.Controllers
             List<string> lstTemplateLines = new List<string>();
             try
             {
-
-
                 using (var package = new OfficeOpenXml.ExcelPackage(strm))
                 {
 
@@ -3804,7 +4082,6 @@ namespace CRES.ServicesNew.Controllers
                     {
                         for (int i = 0; i < iSheetsCount; i++)
                         {
-
                             OfficeOpenXml.ExcelWorksheet worksheet;
                             try
                             {
@@ -3815,40 +4092,17 @@ namespace CRES.ServicesNew.Controllers
                                 worksheet = package.Workbook.Worksheets[i];
                             }
 
-
                             if (dsData.Tables[worksheet.Name] != null)
                             {
-                                //for (var k = 1; k <= worksheet.Dimension.End.Column; k++)
-                                //{
-                                //    worksheet.Column(k).AutoFit();
-
-                                //}
-                                //if (i == 0)
-                                //{
-                                //    worksheet.Column(3).Style.Numberformat.Format = "mm-dd-yyyy";
-
-                                //    worksheet.Column(8).Style.Numberformat.Format = "mm-dd-yyyy";
-                                //    worksheet.Column(9).Style.Numberformat.Format = "mm-dd-yyyy";
-                                //    worksheet.Column(10).Style.Numberformat.Format = "mm-dd-yyyy";
-                                //}
-                                //if (i == 1)
-                                //{
-                                //    worksheet.Column(6).Style.Numberformat.Format = "mm-dd-yyyy";
-                                //}
                                 worksheet.Cells[1, 1].LoadFromDataTable(dsData.Tables[worksheet.Name], true);
                             }
 
                         }
-
                         Byte[] fileBytes = package.GetAsByteArray();
                         TemplateMemoryStream = new MemoryStream(fileBytes);
                     }
-
-
                 }
-
                 return (MemoryStream)TemplateMemoryStream;
-
 
             }
             catch (Exception ex)
@@ -3858,20 +4112,14 @@ namespace CRES.ServicesNew.Controllers
 
                 throw ex;
             }
-
         }
-
-
-
         [HttpGet]
         [Route("api/note/getrefreshentitydatatodw")]
         public IActionResult getrefreshentitydatatodw()
         {
             GenericResult _authenticationResult = null;
             string Message = "";
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
             var headerUserID = string.Empty;
             if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
             {
@@ -3904,13 +4152,9 @@ namespace CRES.ServicesNew.Controllers
         public IActionResult AddUpdateNoteRuleTypeSetup([FromBody] List<ScenarioruletypeDataContract> scenarioDC)
         {
             GenericResult _authenticationResult = null;
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
             var headerUserID = string.Empty;
-#pragma warning disable CS0219 // The variable 'scenariomsg' is assigned but its value is never used
             string scenariomsg = "";
-#pragma warning restore CS0219 // The variable 'scenariomsg' is assigned but its value is never used
             if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
             {
                 headerUserID = Convert.ToString(Request.Headers["TokenUId"]);
@@ -3999,22 +4243,836 @@ namespace CRES.ServicesNew.Controllers
 
             return Ok(_authenticationResult);
         }
-
-        public void GetNonFullpayoffDealDiscrepancy()
+        public void SendGenerateAutomationEmails()
         {
-            DataTable dt = new DataTable();
-            DealLogic _dealLogic = new DealLogic();
-            dt = _dealLogic.GetDiscrepancyListOfDealForEnableAutoSpread();
-
+            LoggerLogic Log = new LoggerLogic();
             try
             {
-                _iEmailNotification.SendNonFullPayoffDealDiscrepancy(dt);
+                Log.WriteLogInfo(CRESEnums.Module.GenerateAutomation.ToString(), "FundingMoveTo15Businessdays Email sending called ", "", "");
+                SendFundingMoveBusinessdaysEmails("FundingMoveTo15Businessdays");
+                Log.WriteLogInfo(CRESEnums.Module.GenerateAutomation.ToString(), "AmortizationAutoWire Email sending called ", "", "");
+                GenerateAutomationLogic GenerateAutomationLogic = new GenerateAutomationLogic();
+                //--AmortizationAutoWire 'FundingMoveToNextMonth'
+                DataTable dt = GenerateAutomationLogic.GetAutomationRequestsForEmail("AmortizationAutoWire");
+                if (dt != null && dt.Rows.Count > 0)
+                {
+
+                    DataTable datadump = GenerateAutomationLogic.GetAutomationRequestsDataForEmailByBatchType("AmortizationAutoWire");
+                    MemoryStream ms = GetAutomationStreamfromDatatableAutomation(datadump);
+                    string randomstring = DateTime.Now.ToString("MM_dd_yyyy_hhmmss");
+                    _iEmailNotification.SendAutoConfirmAmortization(dt, "AmortizationAutoWire", ms, "Deal_Funding_AmortizationAutoWire_" + randomstring + ".xlsx", datadump);
+                    GenerateAutomationLogic.UpdateAutomationRequestsSentEmailToY("AmortizationAutoWire");
+                    Log.WriteLogInfo(CRESEnums.Module.GenerateAutomation.ToString(), "Email sent for AmortizationAutoWire", "", "");
+                }
+                else
+                {
+                    Log.WriteLogInfo(CRESEnums.Module.GenerateAutomation.ToString(), "No email sent for AmortizationAutoWire as not record found ", "", "");
+                }
+
+                DataTable dt1 = GenerateAutomationLogic.GetAutomationRequestsForEmail("FundingMoveToNextMonth");
+                if (dt1 != null && dt1.Rows.Count > 0)
+                {
+                    DataTable datadump = GenerateAutomationLogic.GetAutomationRequestsDataForEmailByBatchType("FundingMoveToNextMonth");
+                    MemoryStream ms = GetAutomationStreamfromDatatableAutomation(datadump);
+                    string randomstring = DateTime.Now.ToString("MM_dd_yyyy_hhmmss");
+                    _iEmailNotification.SendAutoConfirmAmortization(dt1, "FundingMoveToNextMonth", ms, "Deal_Funding_AutoKickedOutFundings_" + randomstring + ".xlsx", datadump);
+                    GenerateAutomationLogic.UpdateAutomationRequestsSentEmailToY("FundingMoveToNextMonth");
+                }
+                else
+                {
+                    Log.WriteLogInfo(CRESEnums.Module.GenerateAutomation.ToString(), "No email sent for FundingMoveToNextMonth as no record found ", "", "");
+                }
+
             }
             catch (Exception ex)
             {
-                throw ex;
+                Log.WriteLogException(CRESEnums.Module.GenericScheduler.ToString(), "Error occurred while executing SendGenerateAutomationEmails ", "", "", ex.TargetSite.Name.ToString(), "", ex);
             }
 
         }
+
+        public void GetParentClientMissingEmail()
+        {
+            DataTable dt = new DataTable();
+            WFLogic _wfLogic = new WFLogic();
+            dt = _wfLogic.GetParentClientMissingEmail();
+
+            try
+            {
+                if (dt != null && dt.Rows.Count > 0)
+                {
+                    _iEmailNotification.SendEmailForParentClientMissingEmailId(dt);
+                }
+            }
+            catch (Exception ex)
+            {
+                LoggerLogic Log = new LoggerLogic();
+                Log.WriteLogException(CRESEnums.Module.WFNotification.ToString(), "Error occurred while sending a list of parent clients needs email ids for notification ", "", "", ex.TargetSite.Name.ToString(), "", ex);
+
+            }
+        }
+        public void SendAllAutoSpreadDealsAutomationEmail(string BatchType)
+        {
+            LoggerLogic Log = new LoggerLogic();
+            try
+            {
+                Log.WriteLogInfo(CRESEnums.Module.GenerateAutomation.ToString(), "Email sending called for " + BatchType, "", "");
+                GenerateAutomationLogic GenerateAutomationLogic = new GenerateAutomationLogic();
+                DataTable dt = GenerateAutomationLogic.GetAutomationRequestsAutoSpreadDealsForEmail(BatchType);
+                if (dt != null && dt.Rows.Count > 0)
+                {
+                    MemoryStream ms = GetAutomationStreamfromDatatableAutomation(dt);
+                    string randomstring = DateTime.Now.ToString("MM_dd_yyyy_hhmmss");
+                    _iEmailNotification.SendFundingValidationEmail(ms, "Deal_Funding_Validation_" + randomstring + ".xlsx", BatchType, dt);
+                    GenerateAutomationLogic.UpdateAutomationRequestsSentEmailToY(BatchType);
+                    Log.WriteLogInfo(CRESEnums.Module.GenerateAutomation.ToString(), "Email sent for " + BatchType, "", "");
+                }
+                else
+                {
+                    Log.WriteLogInfo(CRESEnums.Module.GenerateAutomation.ToString(), "No email sent for " + BatchType + "as no record found ", "", "");
+                }
+
+            }
+            catch (Exception ex)
+            {
+                Log.WriteLogException(CRESEnums.Module.GenericScheduler.ToString(), "Error occurred while executing GetAutomationRequestsAutoSpreadDealsForEmail ", "", "", ex.TargetSite.Name.ToString(), "", ex);
+            }
+        }
+
+        [Route("api/note/CheckAutomationEmail")]
+        public IActionResult CheckAutomationEmail(string type)
+        {
+            try
+            {
+                //string body = "User msingh@hvantage.com tried to access m61 website but restricted to login as no role in M61 app is assigned ";
+                //_iEmailNotification.SendGenericNotificationEmail(body, "Unauthorized Access");
+                //if (type == "all")
+                //{
+                //    //--789   130 AutoSpread_UnderwritingDataChanged
+                //    //--799   130 All_AutoSpread_Deals
+                //    SendAllAutoSpreadDealsAutomationEmail("AutoSpread_UnderwritingDataChanged");
+                //}
+                if (type == "amort")
+                {
+                    GenerateAutomationLogic GenerateAutomationLogic = new GenerateAutomationLogic();
+
+                    DataTable dt = GenerateAutomationLogic.GetAutomationRequestsForEmail("AmortizationAutoWire");
+                    if (dt != null && dt.Rows.Count > 0)
+                    {
+
+                        DataTable datadump = GenerateAutomationLogic.GetAutomationRequestsDataForEmailByBatchType("AmortizationAutoWire");
+                        MemoryStream ms = GetAutomationStreamfromDatatableAutomation(datadump);
+                        string randomstring = DateTime.Now.ToString("MM_dd_yyyy_hhmmss");
+                        _iEmailNotification.SendAutoConfirmAmortization(dt, "AmortizationAutoWire", ms, "Deal_Funding_AmortizationAutoWire_" + randomstring + ".xlsx", datadump);
+
+                        GenerateAutomationLogic.UpdateAutomationRequestsSentEmailToY("AmortizationAutoWire");
+
+                    }
+
+                }
+                else if (type == "nextmonth")
+                {
+                    GenerateAutomationLogic GenerateAutomationLogic = new GenerateAutomationLogic();
+                    DataTable dt1 = GenerateAutomationLogic.GetAutomationRequestsForEmail("FundingMoveToNextMonth");
+                    if (dt1 != null && dt1.Rows.Count > 0)
+                    {
+                        DataTable dt = GenerateAutomationLogic.GetAutomationRequestsDataForEmailByBatchType("FundingMoveToNextMonth");
+                        MemoryStream ms = GetAutomationStreamfromDatatableAutomation(dt);
+                        string randomstring = DateTime.Now.ToString("MM_dd_yyyy_hhmmss");
+                        _iEmailNotification.SendAutoConfirmAmortization(dt1, "FundingMoveToNextMonth", ms, "Deal_Funding_AutoKickedOutFundings_" + randomstring + ".xlsx", dt);
+                        GenerateAutomationLogic.UpdateAutomationRequestsSentEmailToY("FundingMoveToNextMonth");
+
+                    }
+
+                }
+                else if (type == "FundingMoveTo1BusinessdaysWF")
+                {
+                    SendFundingMoveTo1BusinessdaysWFEmails();
+                }
+                else if (type == "FundingMoveTo15Businessdays")
+                {
+                    SendFundingMoveBusinessdaysEmails(type);
+                }
+                else
+                {
+                    //--789   130 AutoSpread_UnderwritingDataChanged
+                    //    //--799   130 All_AutoSpread_Deals
+                    SendAllAutoSpreadDealsAutomationEmail(type);
+
+                }
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(Microsoft.AspNetCore.Http.StatusCodes.Status500InternalServerError, ex);
+            }
+            return StatusCode(Microsoft.AspNetCore.Http.StatusCodes.Status200OK, "Email Sent");
+        }
+
+        [Route("api/note/downloadAutomationExcel")]
+        public IActionResult DownloadAutomationExcel(int ID)
+        {
+            var ms = new MemoryStream();
+            try
+            {
+                GenerateAutomationLogic GenerateAutomationLogic = new GenerateAutomationLogic();
+
+                DataTable dt = GenerateAutomationLogic.GetAutomationRequestsAutoForDownloadExcel(ID);
+                ms = GetAutomationStreamfromDatatableAutomation(dt);
+
+                //if (dt != null && dt.Rows.Count > 0)
+                //    {
+                //        _iEmailNotification.SendAutoConfirmAmortization(dt, "AmortizationAutoWire");
+
+                //    }
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(Microsoft.AspNetCore.Http.StatusCodes.Status500InternalServerError, ex);
+            }
+            //return StatusCode(Microsoft.AspNetCore.Http.StatusCodes.Status200OK, "Email Sent");
+            return File(ms, "application/octet-stream");
+        }
+
+        [Route("api/note/CheckProcess")]
+        public IActionResult CheckProcess()
+        {
+            try
+            {
+                CashFlowDownloadRequestLogic logic = new CashFlowDownloadRequestLogic();
+                int id = logic.InsertIntoCashFlowDownloadRequests("c10f3372-0fc2-4861-a9f5-148f1f80804f", "B0E6697B-3534-4C09-BE0A-04473401AB93");
+                logic.UpdateStatusCashFlowDownloadRequests("c10f3372-0fc2-4861-a9f5-148f1f80804f", id, "Completed", "StartTime", "", "B0E6697B-3534-4C09-BE0A-04473401AB93");
+                logic.UpdateStatusCashFlowDownloadRequests("c10f3372-0fc2-4861-a9f5-148f1f80804f", id, "FAILED", "EndTime", "eRROR", "B0E6697B-3534-4C09-BE0A-04473401AB93");
+
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(Microsoft.AspNetCore.Http.StatusCodes.Status500InternalServerError, ex);
+            }
+            return StatusCode(Microsoft.AspNetCore.Http.StatusCodes.Status200OK, "Email Sent");
+        }
+        public MemoryStream GetAutomationStreamfromDatatableAutomation(DataTable dt)
+        {
+            Stream ms = new MemoryStream();
+            List<AutoMationOutputData> vallist = new List<AutoMationOutputData>();
+            if (dt != null && dt.Rows.Count > 0)
+            {
+                GenerateAutomationHelper generateAutomationHelper = new GenerateAutomationHelper();
+                DataTable emaildata = generateAutomationHelper.GetFormatedDatafromDatatableForAutomation(dt);
+
+                DataSet ds = new DataSet();
+                ds.Tables.Add(emaildata);
+                Stream stream = new StreamReader(_env.WebRootPath + "/ExcelTemplate/" + "Deal_Funding_Validation.xlsx").BaseStream;
+                ms = WriteDataToExcel(ds, stream);
+
+            }
+
+            return (MemoryStream)ms;
+        }
+
+        [Route("api/note/SendErrorEmail")]
+        public void SendErrorEmail()
+        {
+            LoggerLogic Log = new LoggerLogic();
+            try
+            {
+                DevDashBoardLogic DevDashBoardLogic = new DevDashBoardLogic();
+                DataTable AutoMationOutputData = DevDashBoardLogic.GetErrorForEmail();
+                if (AutoMationOutputData != null && AutoMationOutputData.Rows.Count > 0)
+                {
+                    AutoMationOutputData.TableName = "ErrorList";
+
+                    DataSet ds = new DataSet();
+                    ds.Tables.Add(AutoMationOutputData);
+                    Stream stream = new StreamReader(_env.WebRootPath + "/ExcelTemplate/" + "ErrorList.xlsx").BaseStream;
+                    MemoryStream ms = WriteDataToExcel(ds, stream);
+
+                    string randomstring = DateTime.Now.ToString("MM_dd_yyyy_hhmmss");
+
+
+                    _iEmailNotification.SendErrorListEmail(ms, "ErrorList_" + randomstring + ".xlsx");
+                }
+                else
+                {
+                    Log.WriteLogInfo("EmailNotification", "No email sent for SendErrorEmail as no record found ", "", "");
+                }
+
+            }
+            catch (Exception ex)
+            {
+                Log.WriteLogException(CRESEnums.Module.GenericScheduler.ToString(), "Error occurred while executing SendErrorEmail ", "", "", ex.TargetSite.Name.ToString(), "", ex);
+            }
+
+        }
+
+        [Route("api/note/CheckSendFundingDrawBusinessdayEmails")]
+        public IActionResult CheckSendFundingDrawBusinessdayEmails()
+        {
+            try
+            {
+                SendFundingDrawBusinessdayEmails();
+
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(Microsoft.AspNetCore.Http.StatusCodes.Status500InternalServerError, ex);
+            }
+            return StatusCode(Microsoft.AspNetCore.Http.StatusCodes.Status200OK, "Email Sent");
+        }
+        public void SendFundingDrawBusinessdayEmails()
+        {
+            LoggerLogic Log = new LoggerLogic();
+            try
+            {
+                Log.WriteLogInfo(CRESEnums.Module.GenerateAutomation.ToString(), "SendFundingDrawBusinessdayEmails sending called ", "", "");
+                GenerateAutomationLogic GenerateAutomationLogic = new GenerateAutomationLogic();
+                DataTable dt = GenerateAutomationLogic.GetFundingDrawByBusinessday(15);
+                if (dt != null && dt.Rows.Count > 0)
+                {
+                    Log.WriteLogInfo(CRESEnums.Module.GenerateAutomation.ToString(), "SendFundingDrawBusinessdayEmails sending called data found ", "", "");
+
+                    _iEmailNotification.SendFundingDrawBusinessdayEmails(dt);
+                    Log.WriteLogInfo(CRESEnums.Module.GenerateAutomation.ToString(), "SendFundingDrawBusinessdayEmails sending called ended ", "", "");
+
+                }
+                else
+                {
+                    Log.WriteLogInfo(CRESEnums.Module.GenerateAutomation.ToString(), "No email sent for SendFundingDrawBusinessdayEmails as not record found ", "", "");
+                }
+
+            }
+            catch (Exception ex)
+            {
+                Log.WriteLogException(CRESEnums.Module.GenericScheduler.ToString(), "Error occurred while executing SendFundingDrawBusinessdayEmails ", "", "", ex.TargetSite.Name.ToString(), "", ex);
+            }
+
+        }
+
+        [Route("api/note/SendFundingMoveTo1BusinessdaysWFEmails")]
+        public void SendFundingMoveTo1BusinessdaysWFEmails()
+        {
+            LoggerLogic Log = new LoggerLogic();
+            try
+            {
+                Log.WriteLogInfo(CRESEnums.Module.GenerateAutomation.ToString(), "SendFundingMoveTo1BusinessdaysWFEmails sending called ", "", "");
+
+                GenerateAutomationLogic GenerateAutomationLogic = new GenerateAutomationLogic();
+                DataTable dt1 = GenerateAutomationLogic.GetAutomationRequestsForEmail("FundingMoveTo1BusinessdaysWF");
+                if (dt1 != null && dt1.Rows.Count > 0)
+                {
+                    DataTable datadump = GenerateAutomationLogic.GetAutomationRequestsDataForEmailByBatchType("FundingMoveTo1BusinessdaysWF");
+                    MemoryStream ms = GetAutomationStreamfromDatatableAutomation(datadump);
+                    string randomstring = DateTime.Now.ToString("MM_dd_yyyy_hhmmss");
+                    _iEmailNotification.SendAutoConfirmAmortization(dt1, "FundingMoveTo1BusinessdaysWF", ms, "Deal_Funding_AutoKickedOutFundings_" + randomstring + ".xlsx", datadump);
+                    GenerateAutomationLogic.UpdateAutomationRequestsSentEmailToY("FundingMoveTo1BusinessdaysWF");
+                }
+                else
+                {
+                    Log.WriteLogInfo(CRESEnums.Module.GenerateAutomation.ToString(), "No email sent for SendFundingMoveTo1BusinessdaysWFEmails as no record found ", "", "");
+                }
+            }
+            catch (Exception ex)
+            {
+                Log.WriteLogException(CRESEnums.Module.GenericScheduler.ToString(), "Error occurred while executing SendFundingMoveTo1BusinessdaysWFEmails ", "", "", ex.TargetSite.Name.ToString(), "", ex);
+            }
+
+        }
+
+        [HttpGet]
+        [Route("api/note/CheckGetDealNoteFundingDiscrepancy")]
+        public IActionResult CheckGetDealNoteFundingDiscrepancy(string type)
+        {
+            try
+            {
+                AppConfigLogic _appConfigLogic = new AppConfigLogic();
+                List<AppConfigDataContract> lstAppConfig = _appConfigLogic.GetAppConfigByKey(null, "EnableDiscrepancyEmail");
+
+                if (lstAppConfig != null && lstAppConfig.Count > 0)
+                {
+                    if (lstAppConfig[0].Value == "1")
+                    {
+                        if (type == "data")
+                        {
+                            GetDealNoteFundingDiscrepancyNew();
+                        }
+                        else
+                        {
+                            GetDealNoteFundingDiscrepancyOnlyEmail();
+                        }
+
+                        return StatusCode(Microsoft.AspNetCore.Http.StatusCodes.Status200OK, "Email Sent");
+                    }
+                    else
+                    {
+                        return StatusCode(Microsoft.AspNetCore.Http.StatusCodes.Status200OK, "Please enable the flag to send email notification for discrepancy.");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(Microsoft.AspNetCore.Http.StatusCodes.Status500InternalServerError, ex);
+            }
+            return StatusCode(Microsoft.AspNetCore.Http.StatusCodes.Status200OK, "Email Sent");
+        }
+
+        public void GetDealNoteFundingDiscrepancyOnlyEmail()
+        {
+            DataTable dt = new DataTable();
+            DataTable dt1 = new DataTable();
+            DataTable dt2 = new DataTable();
+            DataTable dt3 = new DataTable();
+            DataTable dt4 = new DataTable();
+            DataTable dt5 = new DataTable();
+            DataTable dt6 = new DataTable();
+            DataTable dt7 = new DataTable();
+            DataTable dt8 = new DataTable();
+            DataTable dt9 = new DataTable();
+            DataTable dt10 = new DataTable();
+            DataTable dt11 = new DataTable();
+            DataTable dt12 = new DataTable();
+            DataTable dt13 = new DataTable();
+            DataTable dt14 = new DataTable();
+            DataTable dt15 = new DataTable();
+            DataTable dt16 = new DataTable();
+            DataTable dt17 = new DataTable();
+            DataTable dt18 = new DataTable();
+
+
+            if (dt4.Rows.Count > 0)
+            { dt4.Columns.Remove("DealID"); }
+            try
+            {
+                _iEmailNotification.SendDealFundingandNoteFundingDiscrepancy(dt, dt.Rows.Count, dt1, dt1.Rows.Count, dt2, dt2.Rows.Count, dt3, dt3.Rows.Count, dt4, dt4.Rows.Count, dt5, dt5.Rows.Count, dt6, dt6.Rows.Count, dt7, dt7.Rows.Count, dt8, dt8.Rows.Count, dt9, dt9.Rows.Count, dt10, dt10.Rows.Count, dt11, dt11.Rows.Count, dt12, dt12.Rows.Count, dt13, dt13.Rows.Count, dt14, dt14.Rows.Count, dt15, dt15.Rows.Count, dt16, dt16.Rows.Count, dt17, dt17.Rows.Count, dt18, dt18.Rows.Count);
+            }
+            catch (Exception ex)
+            {
+                LoggerLogic Log = new LoggerLogic();
+                Log.WriteLogException(CRESEnums.Module.GenericScheduler.ToString(), "Error occurred while executing methode GetDealNoteFundingDiscrepancyOnlyEmail ", "", "", ex.TargetSite.Name.ToString(), "", ex);
+
+            }
+
+        }
+        [HttpGet]
+        [Services.Controllers.IsAuthenticate]
+        [Route("api/note/getAllTagNameXIRR")]
+        public IActionResult GetAllTagNameXIRR()
+        {
+            GenericResult _authenticationResult = null;
+            TagXIRRLogic tagXIRRLogic = new TagXIRRLogic();
+            var headerUserID = new Guid();
+            if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
+            {
+                headerUserID = new Guid(Request.Headers["TokenUId"]);
+            }
+
+            DataTable dt = tagXIRRLogic.GetAllNoteTagsXIRR(headerUserID);
+
+
+            try
+            {
+                if (dt.Rows.Count > 0)
+                {
+                    _authenticationResult = new GenericResult()
+                    {
+                        Succeeded = true,
+                        Message = "Authentication succeeded",
+                        dt = dt
+
+                    };
+                }
+                else
+                {
+                    _authenticationResult = new GenericResult()
+                    {
+                        Succeeded = false,
+                        Message = "Authentication failed"
+                    };
+                }
+            }
+            catch (Exception ex)
+            {
+                LoggerLogic Log = new LoggerLogic();
+                Log.WriteLogException(CRESEnums.Module.Account.ToString(), "Error occurred in GetAllTags", "", "", ex.TargetSite.Name.ToString(), "", ex);
+
+                _authenticationResult = new GenericResult()
+                {
+                    Succeeded = false,
+                    Message = ex.Message
+                };
+            }
+            return Ok(_authenticationResult);
+        }
+
+        public void SendFundingMoveBusinessdaysEmails(string Batchtype)
+        {
+            LoggerLogic Log = new LoggerLogic();
+            try
+            {
+                Log.WriteLogInfo(CRESEnums.Module.GenerateAutomation.ToString(), Batchtype + " sending called ", "", "");
+
+                GenerateAutomationLogic GenerateAutomationLogic = new GenerateAutomationLogic();
+                DataTable dt1 = GenerateAutomationLogic.GetAutomationRequestsForEmail(Batchtype);
+                if (dt1 != null && dt1.Rows.Count > 0)
+                {
+                    DataTable datadump = GenerateAutomationLogic.GetAutomationRequestsDataForEmailByBatchType(Batchtype);
+                    MemoryStream ms = GetAutomationStreamfromDatatableAutomation(datadump);
+                    string randomstring = DateTime.Now.ToString("MM_dd_yyyy_hhmmss");
+                    _iEmailNotification.SendAutoConfirmAmortization(dt1, Batchtype, ms, "Deal_Funding_AutoKickedOutFundings_" + randomstring + ".xlsx", datadump);
+                    GenerateAutomationLogic.UpdateAutomationRequestsSentEmailToY(Batchtype);
+                }
+                else
+                {
+                    Log.WriteLogInfo(CRESEnums.Module.GenerateAutomation.ToString(), "No email sent for " + Batchtype + "  as no record found ", "", "");
+                }
+            }
+            catch (Exception ex)
+            {
+                Log.WriteLogException(CRESEnums.Module.GenericScheduler.ToString(), "Error occurred while executing " + Batchtype + " ", "", "", ex.TargetSite.Name.ToString(), "", ex);
+            }
+
+        }
+
+        public DataTable GetFormatedDatafromDatatableForAutomation(DataTable dt)
+        {
+            DataTable emaildata = new DataTable();
+
+            List<AutoMationOutputData> vallist = new List<AutoMationOutputData>();
+            if (dt != null && dt.Rows.Count > 0)
+            {
+                DataView view = new DataView(dt);
+                DataTable distinctValues = view.ToTable(true, "DealID");
+                foreach (DataRow dv in distinctValues.Rows)
+                {
+                    DataTable tblFiltered = new DataTable();
+
+                    string query = "DealID = '" + dv["DealID"].ToString() + "'";
+                    tblFiltered = dt.Select(query).CopyToDataTable();
+                    int j = 1;
+                    AutoMationOutputData am = new AutoMationOutputData();
+
+                    am.DealID = tblFiltered.Rows[0]["CREDealID"].ToString();
+                    am.DealName = tblFiltered.Rows[0]["DealName"].ToString();
+
+                    foreach (DataRow row in tblFiltered.Rows)
+                    {
+                        if (row["Message"].ToString() == "Funding schedule generated successfully.")
+                        {
+                            am.GenerateMessage = row["Message"].ToString();
+                            am.SaveMessage = "Deal Saved Successfully";
+                        }
+                        else
+                        {
+                            if (j <= 10)
+                            {
+                                PropertyInfo _propertyInfo = am.GetType().GetProperty("Validation" + j);
+                                _propertyInfo.SetValue(am, row["Message"].ToString(), null);
+                                am.GenerateMessage = "";
+                            }
+                            j = j + 1;
+                        }
+
+                    }
+                    vallist.Add(am);
+                }
+                emaildata = ObjToDataTable.ConvertToDataTable(vallist);
+
+            }
+
+            return emaildata;
+        }
+
+        [HttpPost]
+        [Services.Controllers.IsAuthenticate]
+        [Services.Controllers.DeflateCompression]
+        [Route("api/note/InsertUpdateUserPreference")]
+        public IActionResult InsertUpdateUserPreference([FromBody] UserPreferenceDataContract logsDc)
+        {
+            GenericResult _authenticationResult = null;
+            IEnumerable<string> headerValues;
+            var headerUserID = string.Empty;
+            if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
+            {
+                headerUserID = Convert.ToString(Request.Headers["TokenUId"]);
+            }
+
+            logsDc.userid = headerUserID;
+            logsDc.UpdatedBy = headerUserID;
+
+            NoteLogic noteLogic = new NoteLogic();
+            noteLogic.InsertUpdateUserPreference(logsDc);
+
+            try
+            {
+                _authenticationResult = new GenericResult()
+                {
+                    Succeeded = true,
+                    Message = "User Preferences updated successfully",
+                };
+
+            }
+            catch (Exception ex)
+            {
+                _authenticationResult = new GenericResult()
+                {
+                    Succeeded = false,
+                    Message = ex.Message
+                };
+            }
+            return Ok(_authenticationResult);
+
+        }
+
+        [HttpGet]
+        [Services.Controllers.IsAuthenticate]
+        [Services.Controllers.DeflateCompression]
+        [Route("api/note/GetUserPreferenceByUserID")]
+        public IActionResult GetUserPreferenceByUserID()
+        {
+            GenericResult _authenticationResult = null;
+            var headerUserID = string.Empty;
+            if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
+            {
+                headerUserID = Convert.ToString(Request.Headers["TokenUId"]);
+            }
+
+            DataTable dt = new DataTable();
+
+            NoteLogic notelogic = new NoteLogic();
+            dt = notelogic.GetUserPreferenceByUserID(headerUserID);
+
+            try
+            {
+                _authenticationResult = new GenericResult()
+                {
+                    Succeeded = true,
+                    Message = "GetUserPreferenceByUserID succeeded",
+                    UserPreferenceLogs = dt
+                };
+            }
+            catch (Exception ex)
+            {
+                _authenticationResult = new GenericResult()
+                {
+                    Succeeded = false,
+                    Message = ex.Message
+                };
+            }
+
+            return Ok(_authenticationResult);
+        }
+
+        [HttpGet]
+        [Route("api/note/ImportBackshopTableForDiscrepancy")]
+        public IActionResult ImportBackshopTableForDiscrepancy()
+        {
+            GenericResult _authenticationResult = null;
+            var headerUserID = string.Empty;
+            if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
+            {
+                headerUserID = Convert.ToString(Request.Headers["TokenUId"]);
+            }
+
+            try
+            {
+                Thread FirstThread = new Thread(() => ImportBackshopDiscrepancy());
+                FirstThread.Start();
+
+                _authenticationResult = new GenericResult()
+                {
+                    Succeeded = true,
+                    Message = "ImportBackshopTableForDiscrepancy succeeded"
+                };
+            }
+            catch (Exception ex)
+            {
+                _authenticationResult = new GenericResult()
+                {
+                    Succeeded = false,
+                    Message = ex.Message
+                };
+            }
+
+            return Ok(_authenticationResult);
+        }
+
+        public void ImportBackshopDiscrepancy()
+        {
+            try
+            {
+                NoteLogic notelogic = new NoteLogic();
+                notelogic.ImportBackshopTableForDiscrepancy();
+            }
+            catch (Exception ex)
+            {
+
+                LoggerLogic Log = new LoggerLogic();
+                Log.WriteLogException(CRESEnums.Module.AccountingReport.ToString(), "Error occurred while creating importing backshop for  discrepancy", "", "", ex.TargetSite.Name.ToString(), "", ex);
+            }
+
+        }
+
+        [HttpGet]
+        [Services.Controllers.IsAuthenticate]
+        [Services.Controllers.DeflateCompression]
+        [Route("api/note/getnotetranchepercentage")]
+        public IActionResult GetNoteTranchePercentage(string ID)
+        {
+            GenericResult _authenticationResult = null;
+
+            var headerUserID = string.Empty;
+
+            if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
+            {
+                headerUserID = Convert.ToString(Request.Headers["TokenUId"]);
+            }
+
+            NoteLogic noteLogic = new NoteLogic();
+            DataTable dtNoteTranche = noteLogic.GetNoteTranchePercentageByNoteId(ID);
+
+
+            try
+            {
+                if (dtNoteTranche != null)
+                {
+                    _authenticationResult = new GenericResult()
+                    {
+                        Succeeded = true,
+                        Message = "Authentication succeeded",
+                        dt = dtNoteTranche
+                    };
+                }
+                else
+                {
+                    _authenticationResult = new GenericResult()
+                    {
+                        Succeeded = false,
+                        Message = "Authentication failed"
+                    };
+                }
+            }
+            catch (Exception ex)
+            {
+                LoggerLogic Log = new LoggerLogic();
+                Log.WriteLogException(CRESEnums.Module.Note.ToString(), "Error occurred in GetNoteTranchePercentage: Note ID " + ID, ID.ToString(), headerUserID.ToString(), ex.TargetSite.Name.ToString(), "", ex);
+
+                _authenticationResult = new GenericResult()
+                {
+                    Succeeded = false,
+                    Message = ex.Message
+                };
+            }
+            return Ok(_authenticationResult);
+        }
+
+        [HttpPost]
+        [Services.Controllers.IsAuthenticate]
+        [Services.Controllers.DeflateCompression]
+        [Route("api/note/updatenotetranchepercentage")]
+        public IActionResult UpdateNoteTranchePercentage([FromBody] string CRENoteID)
+        {
+            GenericResult _authenticationResult = null;
+            var headerUserID = string.Empty;
+            if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
+            {
+                headerUserID = Convert.ToString(Request.Headers["TokenUId"]);
+            }
+
+            NoteLogic noteLogic = new NoteLogic();
+            noteLogic.UpdateNoteTranchePercentage(CRENoteID);
+
+            try
+            {
+                _authenticationResult = new GenericResult()
+                {
+                    Succeeded = true,
+                    Message = "Note tranche percentage updated successfully",
+                };
+
+            }
+            catch (Exception ex)
+            {
+                _authenticationResult = new GenericResult()
+                {
+                    Succeeded = false,
+                    Message = ex.Message
+                };
+            }
+            return Ok(_authenticationResult);
+
+        }
+
+        [HttpPost]
+        [Services.Controllers.IsAuthenticate]
+        [Route("api/note/updateparentclient")]
+        public IActionResult UpdateParentClient([FromBody] DataTable dt)
+        {
+            GenericResult _genericResult = null;
+            IEnumerable<string> headerValues;
+            var headerUserID = new Guid();
+            if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
+            {
+                headerUserID = new Guid(Request.Headers["TokenUId"]);
+            }
+            NoteLogic _notelogic = new NoteLogic();
+            _notelogic.UpdateParentClient(dt, headerUserID);
+            try
+            {
+                _genericResult = new GenericResult()
+                {
+                    Succeeded = true,
+                    Message = "Save/Updated Successfully!",
+                };
+            }
+            catch (Exception ex)
+            {
+                LoggerLogic Log = new LoggerLogic();
+                Log.WriteLogException(CRESEnums.Module.Account.ToString(), "Error occurred in updateparentclient", "", "", ex.TargetSite.Name.ToString(), "", ex);
+
+                _genericResult = new GenericResult()
+                {
+                    Succeeded = false,
+                    Message = ex.Message
+                };
+            }
+
+            return Ok(_genericResult);
+        }
+
+        [HttpPost]
+        [Services.Controllers.IsAuthenticate]
+        [Route("api/note/updateparentfund")]
+        public IActionResult UpdateParentFund([FromBody] DataTable dt)
+        {
+            GenericResult _genericResult = null;
+            IEnumerable<string> headerValues;
+            var headerUserID = new Guid();
+            if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
+            {
+                headerUserID = new Guid(Request.Headers["TokenUId"]);
+            }
+            NoteLogic _notelogic = new NoteLogic();
+            _notelogic.UpdateParentFund(dt, headerUserID);
+            try
+            {
+                _genericResult = new GenericResult()
+                {
+                    Succeeded = true,
+                    Message = "Save/Updated Successfully!",
+                };
+            }
+            catch (Exception ex)
+            {
+                LoggerLogic Log = new LoggerLogic();
+                Log.WriteLogException(CRESEnums.Module.Account.ToString(), "Error occurred in UpdateParentFund", "", "", ex.TargetSite.Name.ToString(), "", ex);
+
+                _genericResult = new GenericResult()
+                {
+                    Succeeded = false,
+                    Message = ex.Message
+                };
+            }
+
+            return Ok(_genericResult);
+        }
+
     }
 }

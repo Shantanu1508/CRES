@@ -8,7 +8,7 @@ select CRENoteID, ISNULL(Prepayments,0) + ISNULL(FullPayoff,0) Prepayment  from 
 Union  
   
 Select NoteID, (Case when Amount= 0.01 then 0 else Amount end)*-1 Amount from TransactionEntry  
-Where Scenario = 'Default' and Type = 'Balloon' and Date <= GETDATE()  
+Where Scenario = 'Default' and Type = 'Balloon' and Date <= GETDATE()  and AccountTypeID = 1
   
 )X  
 Group by Crenoteid

@@ -1,4 +1,4 @@
-﻿create PROCEDURE [dbo].[usp_GetMissingQBDCutomer] --'69f7abd1-c9c4-414d-8846-bc7247c9522b'
+﻿CREATE PROCEDURE [dbo].[usp_GetMissingQBDCutomer] --'69f7abd1-c9c4-414d-8846-bc7247c9522b'
 AS
 BEGIN
 
@@ -95,3 +95,5 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 		on tbl1.DealName=tbl2.DealName and tbl1.UpdatedDate=tbl2.UpdatedDate
 
 end
+GO
+

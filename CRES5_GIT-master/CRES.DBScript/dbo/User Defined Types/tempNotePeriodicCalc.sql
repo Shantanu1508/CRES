@@ -1,11 +1,17 @@
-﻿CREATE TYPE [dbo].[tempNotePeriodicCalc] AS TABLE (
+﻿--DROP PROCEDURE dbo.usp_InsertUpdateNotePeriodicCalcByNoteID
+--DROP PROCEDURE dbo.usp_InsertUpdateNotePeriodicCalcByNoteIDDaily
+--DROP PROCEDURE dbo.usp_InsertUpdateNotePeriodicCalcByNoteIDUpdateColumn
+
+--drop TYPE [dbo].[tempNotePeriodicCalc] 
+
+CREATE TYPE [dbo].[tempNotePeriodicCalc] AS TABLE (
     [NoteID]                                       UNIQUEIDENTIFIER NULL,
     [PeriodEndDate]                                DATE             NULL,
     [Month]                                        INT              NULL,
     [ActualCashFlows]                              DECIMAL (28, 15) NULL,
     [GAAPCashFlows]                                DECIMAL (28, 15) NULL,
     [EndingGAAPBookValue]                          DECIMAL (28, 15) NULL,
-    [PIKInterestAccrualforthePeriod]               DECIMAL (28, 15) NULL,
+    --[PIKInterestAccrualforthePeriod]               DECIMAL (28, 15) NULL,
     [TotalAmortAccrualForPeriod]                   DECIMAL (28, 15) NULL,
     [AccumulatedAmort]                             DECIMAL (28, 15) NULL,
     [BeginningBalance]                             DECIMAL (28, 15) NULL,
@@ -88,5 +94,17 @@
     [SLAmortOfCapCost]                             DECIMAL (28, 15) NULL,
     [EndingAccumSLAmort]                           DECIMAL (28, 15) NULL,
     [EndingPreCapGAAPBasis]                        DECIMAL (28, 15) NULL,
-    [PIKPrincipalPaidForThePeriod]                 DECIMAL (28, 15) NULL);
+    [PIKPrincipalPaidForThePeriod]                 DECIMAL (28, 15) NULL,
+	[RemainingUnfundedCommitment]                 DECIMAL (28, 15) NULL	,
+	CurrentPeriodPIKInterestAccrual                 DECIMAL (28, 15) NULL,
+	DropDateInterestDeltaBalance                 DECIMAL (28, 15) NULL,
+	AverageDailyBalance DECIMAL (28, 15) NULL,
+	InterestPastDue       decimal(28,15) null,	
+	CapitalizedCostAccumulatedAmort decimal(28,15) null,
+    DiscountPremiumAccumulatedAmort decimal(28,15) null,
+	PrincipalWriteoff       decimal(28,15) null,
+	NetPIKAmountForThePeriod       decimal(28,15) null,
+	CashInterest       decimal(28,15) null,
+    CapitalizedInterest       decimal(28,15) null
+	);
 

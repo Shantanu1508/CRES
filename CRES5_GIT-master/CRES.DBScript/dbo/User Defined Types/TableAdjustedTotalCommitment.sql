@@ -1,4 +1,5 @@
-﻿
+﻿--Drop TYPE [dbo].[TableAdjustedTotalCommitment] 
+
 CREATE TYPE [dbo].[TableAdjustedTotalCommitment] AS TABLE (
     [NoteAdjustedCommitmentMasterID] INT              NULL,
     [DealID]                         UNIQUEIDENTIFIER NULL,
@@ -17,7 +18,6 @@ CREATE TYPE [dbo].[TableAdjustedTotalCommitment] AS TABLE (
     [NoteTotalCommitment]            DECIMAL (28, 15) NULL,
     [TotalRequiredEquity]            DECIMAL (28, 15) NULL,
 	[TotalAdditionalEquity]          DECIMAL (28, 15) NULL,
-    [ExcludeFromCommitmentCalculation]  bit NULL,
     [TotalEquityatClosing]             DECIMAL (28, 15) NULL
     );
 

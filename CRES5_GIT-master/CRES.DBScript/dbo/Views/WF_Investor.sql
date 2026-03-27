@@ -22,7 +22,11 @@ FROM(
 	InitialFundingAmount as CurrentPrincipalBalance,
 	--(Select np.EndingBalance from cre.NotePeriodicCalc np where np.noteid = n.noteid and np.PeriodEndDate = DATEADD(MONTH, DATEDIFF(MONTH, -1, GETDATE())-1, -1)) as CurrentPrincipalBalance,
 
-	(Select cf.AllInCouponRate * 100 from cre.NotePeriodicCalc cf where cf.noteid  = n.noteid and cf.PeriodEndDate = EOMonth(DateAdd(Month,-1,n.InitialInterestAccrualEndDate))) as NetYield,
+	(Select cf.AllInCouponRate * 100 from cre.NotePeriodicCalc cf 
+	Inner join core.account acc on acc.accountid = cf.AccountID
+    Inner join cre.note nn on nn.account_accountid = acc.accountid    
+	where cf.AccountID  = n.Account_AccountID and acc.AccounttypeID = 1 
+	and cf.PeriodEndDate = EOMonth(DateAdd(Month,-1,n.InitialInterestAccrualEndDate))) as NetYield,
 
 	'L' as NetYieldMethod,
 	'' as ServiceFeeRate,

@@ -1,0 +1,62 @@
+# Starter pipeline
+# Start with a minimal pipeline that you can customize to build and deploy your code.
+# Add steps that build, run tests, deploy, and more:
+# https://aka.ms/yaml
+
+trigger: 
+  branches:
+    include:
+      - QA
+  paths:
+    include:
+      - src/CRES.ServiceMVC/*
+
+pool:
+  vmImage: 'windows-2019'
+
+variables:
+  buildConfiguration: 'Release'
+  ASPNETCORE_ENVIRONMENT: 'QA'   
+
+steps:
+
+- script: echo Hello, world!
+  displayName: 'Run script for API'
+
+- task: FileTransform@1
+  displayName: 'File Transform: '
+  inputs:
+    folderPath: 'src/CRES.ServiceMVC/**/'
+    fileType: 'json'
+    targetFiles: 'appsettings.json'
+
+- task: DotNetCoreCLI@2
+  inputs:
+    command: 'build'
+    projects: 'src/CRES.ServiceMVC/CRES.ServiceMVC.csproj'
+    workingDirectory: 'src/CRES.ServiceMVC'
+    arguments: '--configuration $(ASPNETCORE_ENVIRONMENT)' 
+
+- task: DotNetCoreCLI@2
+  inputs:
+    command: 'publish'
+    publishWebProjects: false
+    projects: 'src/CRES.ServiceMVC/CRES.ServiceMVC.csproj'
+    workingDirectory: 'src/CRES.ServiceMVC'
+    arguments: '--configuration $(ASPNETCORE_ENVIRONMENT)' 
+
+- task: AzureRmWebAppDeployment@4
+  inputs:
+    ConnectionType: 'AzureRM'
+    azureSubscription: 'Microsoft Partner Network 3'
+    appType: 'webApp'
+    WebAppName: 'qaCRES4API'
+    packageForLinux: '$(System.DefaultWorkingDirectory)/**/*.zip'
+
+# - task: AzureRmWebAppDeployment@4
+#   inputs:
+#     ConnectionType: 'AzureRM'
+#     azureSubscription: 'iTechsol(9)(021c83fc-1e2a-4da6-92dd-8e1d74c0e1cb)'
+#     appType: 'webAppLinux'
+#     WebAppName: 'qaCRES5API'
+#     packageForLinux: '$(System.DefaultWorkingDirectory)/**/*.zip'

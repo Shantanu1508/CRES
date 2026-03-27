@@ -15,11 +15,12 @@ BEGIN
 
 select  
 l.Name as statusname 
- from
-  Core.CalculationRequests  cr 
-	inner join  Core.Lookup l on l.LookupID = cr.StatusID
-	where NoteId in( select  NoteID from CRE.Note where CRENoteID =@CRENoteID)
-	 and cr.CalcType = 775
+from Core.CalculationRequests  cr 
+Inner Join core.Account acc on acc.AccountID = cr.AccountId and acc.AccountTypeID = 1
+inner join  Core.Lookup l on l.LookupID = cr.StatusID
+where cr.AccountID in( select  Account_AccountID from CRE.Note where CRENoteID =@CRENoteID)
+and cr.CalcType = 775
+and acc.AccountTypeID = 1
 
 
 	SET TRANSACTION ISOLATION LEVEL READ COMMITTED

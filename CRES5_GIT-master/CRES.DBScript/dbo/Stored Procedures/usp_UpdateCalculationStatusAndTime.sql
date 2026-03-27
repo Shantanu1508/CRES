@@ -12,6 +12,9 @@ BEGIN
 
 
 Declare @AnalysisID UNIQUEIDENTIFIER = ( SELECT AnalysisID FROM core.CalculationRequests where  CalculationRequestID = @CalculationRequestID)
+Declare @AccountID UNIQUEIDENTIFIER = ( SELECT Account_accountID FROM cre.Note where  NoteId = @NoteID)
+
+
 
 Declare @Query AS NVARCHAR(MAX)
 
@@ -49,7 +52,7 @@ BEGIN
 	--EndTime = getdate() ,
 	EndTime=case when (@ErrorMessage LIKE '%deadlocked%' or @ErrorMessage LIKE '%Timeout Expired%') then null else getdate() end,
 	ErrorMessage=@ErrorMessage
-	where NoteID=@NoteID and CalculationRequestID = @CalculationRequestID and AnalysisID = @AnalysisID
+	where AccountID=@AccountID and CalculationRequestID = @CalculationRequestID and AnalysisID = @AnalysisID
 	
 
 	Update Core.BatchCalculationDetail SET 
@@ -108,7 +111,9 @@ BEGIN
 		update Core.CalculationRequests
 		 set StatusID=@StatusFailed,
 		 ErrorMessage='Excluded from the calculation as parent note failed to calculate.'
-		 where NoteId in (select StripTransferTo from CRE.PayruleSetup where StripTransferFrom= @NoteID)
+		 where AccountID in (
+			Select Account_AccountID from cre.Note where NoteID in (select StripTransferTo from CRE.PayruleSetup where StripTransferFrom= @NoteID)
+		 )
 		 and @StatusFailed=(Select lookupid from CORE.Lookup where name = @StatusText and ParentID = 40) 
 		 and AnalysisID = @AnalysisID
 		 and CalcType = 775
@@ -148,13 +153,24 @@ Declare @PriorityID int = (SELECT LookupID from core.Lookup where Name='Batch' a
 	set StatusID=@StatusProcessing,
 	PriorityID = @PriorityID,
 	StartTime = getdate()
-	where noteid in
-	(select distinct StripTransferTo from CRE.PayruleSetup where StripTransferFrom =@NoteID and StripTransferTo not in (
-	select distinct child.StripTransferTo from  Core.CalculationRequests cr  inner join CRE.PayruleSetup child on child.StripTransferFrom=cr.NoteID
-	inner join  CRE.PayruleSetup parent on parent.StripTransferTo=child.StripTransferTo and parent.StripTransferFrom!=@NoteID
-	inner join Core.CalculationRequests parentStatus on parentStatus.NoteID=parent.StripTransferFrom and ((parentStatus.StatusID!=@StatusComplete and parentStatus.StatusID!=@StatusFailed  ) or(parentStatus.StatusID=@StatusFailed and abs( DATEDIFF(second, parentStatus.RequestTime , parentStatus.RequestTime))>=60))
-	where cr.NoteID=@NoteID and parentStatus.AnalysisID = @AnalysisID
-	))
+	where AccountID in
+	(
+		Select Account_AccountID from cre.note where noteid in(
+		select distinct StripTransferTo 
+		from CRE.PayruleSetup 
+		where StripTransferFrom =@NoteID and StripTransferTo not in (
+			select distinct child.StripTransferTo 
+			from  Core.CalculationRequests cr 
+			Inner Join cre.note n on n.Account_AccountID = cr.AccountId 
+			inner join CRE.PayruleSetup child on child.StripTransferFrom=n.NoteID
+			inner join  CRE.PayruleSetup parent on parent.StripTransferTo=child.StripTransferTo and parent.StripTransferFrom!=@NoteID
+			inner join( 
+				Select nn.noteid,StatusID,AnalysisID,RequestTime from Core.CalculationRequests cr
+				Inner Join cre.note nn on nn.account_accountid = cr.accountid
+			)parentStatus on parentStatus.NoteID=parent.StripTransferFrom and ((parentStatus.StatusID!=@StatusComplete and parentStatus.StatusID!=@StatusFailed  ) or(parentStatus.StatusID=@StatusFailed and abs( DATEDIFF(second, parentStatus.RequestTime , parentStatus.RequestTime))>=60))
+			where cr.AccountID=@AccountID and parentStatus.AnalysisID = @AnalysisID)
+		)
+	)
 	and AnalysisID = @AnalysisID
 	and CalcType = 775
 
@@ -163,10 +179,16 @@ Declare @PriorityID int = (SELECT LookupID from core.Lookup where Name='Batch' a
 	StartTime = getdate()
 	where noteid in
 	(select distinct StripTransferTo from CRE.PayruleSetup where StripTransferFrom =@NoteID and StripTransferTo not in (
-	select distinct child.StripTransferTo from  Core.CalculationRequests cr  inner join CRE.PayruleSetup child on child.StripTransferFrom=cr.NoteID
-	inner join  CRE.PayruleSetup parent on parent.StripTransferTo=child.StripTransferTo and parent.StripTransferFrom!=@NoteID
-	inner join Core.CalculationRequests parentStatus on parentStatus.NoteID=parent.StripTransferFrom and ((parentStatus.StatusID!=@StatusComplete and parentStatus.StatusID!=@StatusFailed  ) or(parentStatus.StatusID=@StatusFailed and abs( DATEDIFF(second, parentStatus.RequestTime , parentStatus.RequestTime))>=60))
-	where cr.NoteID=@NoteID and parentStatus.AnalysisID = @AnalysisID
+		select distinct child.StripTransferTo 
+		from  Core.CalculationRequests cr  
+		Inner Join cre.note n on n.account_accountid = cr.accountid
+		inner join CRE.PayruleSetup child on child.StripTransferFrom=n.NoteID
+		inner join  CRE.PayruleSetup parent on parent.StripTransferTo=child.StripTransferTo and parent.StripTransferFrom!=@NoteID
+		inner join( 
+			Select nn.noteid,StatusID,AnalysisID,RequestTime from Core.CalculationRequests cr
+			Inner Join cre.note nn on nn.account_accountid = cr.accountid 
+		)parentStatus on parentStatus.NoteID=parent.StripTransferFrom and ((parentStatus.StatusID!=@StatusComplete and parentStatus.StatusID!=@StatusFailed  ) or(parentStatus.StatusID=@StatusFailed and abs( DATEDIFF(second, parentStatus.RequestTime , parentStatus.RequestTime))>=60))
+		where n.NoteID=@NoteID and parentStatus.AnalysisID = @AnalysisID
 	))
 	and BatchCalculationMasterID in (select BatchCalculationMasterID from Core.BatchCalculationMaster where AnalysisID=@AnalysisID) 
 	and EndTime is null

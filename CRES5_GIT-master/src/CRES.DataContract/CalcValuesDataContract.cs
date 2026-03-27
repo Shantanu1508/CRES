@@ -1,8 +1,12 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
 
 namespace CRES.DataContract
 {
-    public class CalcValuesDataContract
+   public class CalcValuesDataContract
     {
         public Guid? AccountID { get; set; }
         public int? CalcValueID { get; set; }

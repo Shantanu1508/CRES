@@ -1,0 +1,28 @@
+CREATE TABLE [DW].[LiabilityNoteBI](
+	[LiabilityNoteAutoID] [int] NOT NULL,
+	[LiabilityNoteGUID] [uniqueidentifier] NOT NULL,
+	[AccountID] [uniqueidentifier] NULL,
+	[DealAccountID] [uniqueidentifier] NULL,
+	[DealID] [uniqueidentifier] NULL,
+	[LiabilityNoteID] [nvarchar](256) NULL,
+	[LiabilityTypeID] [uniqueidentifier] NULL,
+	[TypeName] [nvarchar](256) NULL,
+	[AssetAccountID] [uniqueidentifier] NULL,
+	[AssetID] [nvarchar] (256) NULL,
+	[PledgeDate] [date] NULL,
+	[CurrentAdvanceRate] [decimal](28, 15) NULL,
+	[TargetAdvanceRate] [decimal](28, 15) NULL,
+	[CurrentBalance] [decimal](28, 15) NULL,
+	[UndrawnCapacity] [decimal](28, 15) NULL,
+	[CreatedBy] [nvarchar](256) NULL,
+	[CreatedDate] [datetime] NULL,
+	[UpdatedBy] [nvarchar](256) NULL,
+	[UpdatedDate] [datetime] NULL,
+	[TempBalanceAsofCalcDate] [decimal](28, 15) NULL,
+	[DebtEquityType] nvarchar(256),
+	LiabilitySource int null,
+	LiabilitySourceText nvarchar(256) null,
+
+	[LatestMaturityDate] [date] NULL,
+	[LatestEffectiveDate] [date] NULL
+)

@@ -1,6 +1,4 @@
-﻿
-
-CREATE PROCEDURE [dbo].[usp_AddUpdateNoteFromCalculatorService]
+﻿CREATE PROCEDURE [dbo].[usp_AddUpdateNoteFromCalculatorService]
 (
 @UserID [uniqueidentifier],
 @NoteID	[uniqueidentifier],
@@ -130,6 +128,7 @@ CREATE PROCEDURE [dbo].[usp_AddUpdateNoteFromCalculatorService]
 @ExitFeeAmortCheckText  nvarchar(MAX),
 @FixedAmortScheduleText  nvarchar(MAX),
 @TotalCommitmentExtensionFeeisBasedOn [decimal](28, 15) ,
+@FirstIndexDeterminationDateOverride date,
 ---------------------------------------------
 @newnoteId varchar(256) OUTPUT
 
@@ -175,7 +174,7 @@ VALUES
 @StartDate,
 @EndDate,
 @PayFrequency,
-182,
+1, --182,
 @CreatedBy,
 GETDATE(),
 @UpdatedBy,
@@ -201,7 +200,7 @@ GetDATE(),0)
            ,[PaymentDateBusinessDayLag]
            ,[IOTerm]
            ,[AmortTerm]
-           ,[PIKSeparateCompounding]
+           --,[PIKSeparateCompounding]
            ,[MonthlyDSOverridewhenAmortizing]
            ,[AccrualPeriodPaymentDayWhenNotEOMonth]
            ,[FirstPeriodInterestPaymentOverride]
@@ -292,7 +291,8 @@ GetDATE(),0)
            ,[CreatedBy]
            ,[CreatedDate]
            ,[UpdatedBy]
-           ,[UpdatedDate])
+           ,[UpdatedDate]
+		   ,FirstIndexDeterminationDateOverride)
 		   	OUTPUT inserted.NoteID INTO @tNote(tNewNoteId)
      VALUES
 	 (
@@ -312,7 +312,7 @@ GetDATE(),0)
 		@PaymentDateBusinessDayLag	,
 		@IOTerm	,
 		@AmortTerm	,
-		(Select lookupid from CORE.lookup where name = @PIKSeparateCompoundingText),
+		--(Select lookupid from CORE.lookup where name = @PIKSeparateCompoundingText),
 		@MonthlyDSOverridewhenAmortizing	,
 		@AccrualPeriodPaymentDayWhenNotEOMonth	,
 		@FirstPeriodInterestPaymentOverride	,
@@ -403,7 +403,8 @@ GetDATE(),0)
 		@CreatedBy	,
 		GETDATE(),
 		@UpdatedBy	,
-		GETDATE()	
+		GETDATE()	,
+		@FirstIndexDeterminationDateOverride
 )
   SELECT @newnoteId = tNewNoteId FROM @tNote;
 END
@@ -413,7 +414,7 @@ BEGIN
 Set @Account_AccountID = (Select Account_AccountID from CRE.Note where NoteID= @NoteID)
 
 UPDATE [Core].[Account]
-   SET [AccountTypeID] = (Select LookupID from CORE.Lookup where name = 'Note')
+   SET [AccountTypeID] = 1 ---(Select LookupID from CORE.Lookup where name = 'Note')
       ,[StatusID] = @statusID
       ,[Name] = @name
       ,[ClientNoteID] = @CRENoteID
@@ -442,7 +443,7 @@ UPDATE CRE.Note SET
 [PaymentDateBusinessDayLag]	 = 	@PaymentDateBusinessDayLag	,
 [IOTerm]	 = 	@IOTerm	,
 [AmortTerm]	 = 	@AmortTerm	,
-[PIKSeparateCompounding]	 = 	(Select lookupid from CORE.lookup where name = @PIKSeparateCompoundingText)	,
+--[PIKSeparateCompounding]	 = 	(Select lookupid from CORE.lookup where name = @PIKSeparateCompoundingText)	,
 [MonthlyDSOverridewhenAmortizing]	 = 	@MonthlyDSOverridewhenAmortizing	,
 [AccrualPeriodPaymentDayWhenNotEOMonth] = 	@AccrualPeriodPaymentDayWhenNotEOMonth	,
 [FirstPeriodInterestPaymentOverride] = 	@FirstPeriodInterestPaymentOverride	,
@@ -530,7 +531,9 @@ FullyExtendedMaturityDate =@FullyExtendedMaturityDate,
 [NoofdaysrelPaymentDaterollnextpaymentcycle] = @NoofdaysrelPaymentDaterollnextpaymentcycle,
 TotalCommitmentExtensionFeeisBasedOn = @TotalCommitmentExtensionFeeisBasedOn,
 [UpdatedBy]	 = 	@UpdatedBy	,
-[UpdatedDate]	 = 	GETDATE()
+[UpdatedDate]	 = 	GETDATE(),
+FirstIndexDeterminationDateOverride = @FirstIndexDeterminationDateOverride
+
 WHERE NoteID = @NoteID
 
 

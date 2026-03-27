@@ -1,0 +1,599 @@
+<form #f="ngForm">
+  <div class="col-sm-12">
+    <div class="head fixheaderdiv">
+      <h1 style="display: inline-block;margin-top: 10px;">XIRR</h1>
+      <div class="cssload-container" *ngIf="_isShowLoader">
+        <div class="cssload-whirlpool"></div>
+      </div>
+
+      <div *ngIf="_ShowSuccessmessagediv" class="alert alert-success fade in">
+        <strong>{{_ShowSuccessmessage}}</strong>
+      </div>
+      <div *ngIf="_dvEmptyDealSearchMsg" class="alert alert-danger fade in" style="margin-top:18px;">
+        <strong>{{_ShowErrorMessage}}</strong>
+      </div>
+    </div>
+    <div class="fmst fixheadercontent">
+
+      <div class="cssload-container" *ngIf="_isxirrListFetching">
+        <div class="cssload-whirlpool"></div>
+      </div>
+      <ul id="myTab" class="nav nav-tabs nav-tabs">
+        <li *ngIf="_isShowXIRRDashboard"><a data-target="#XIRRDashboard" id="aXIRRDashboard" (click)="GetXIRRDashboard()" data-toggle="tab">XIRR Dashboard</a></li>
+        <li *ngIf="_isShowXIRRSetup" class="active"><a data-target="#XIRRSetup" id="XIRRSetuptab" data-toggle="tab" (click)="getXIRRConfig()">XIRR Setup</a></li>
+        <li *ngIf="_isShowArchive"><a data-target="#tabArchive" (click)="invalidateArchiveTab()" data-toggle="tab">Archive XIRR</a></li>
+        <li *ngIf="_isShownoteTags"><a data-target="#noteTags" (click)="getNoteTags()" data-toggle="tab">Tags</a></li>
+      </ul>
+
+      <div class="tab-content" id="myTabContent">
+        <div class="tab-pane fade active in" id="XIRRSetup">
+          <div class="box1a" style="margin-top:0px;">
+            <div class="form-group row pD10">
+              <div class="col-sm-12 ">
+                <!--<span class="customheading"> XIRR Config</span>-->
+                <!--<button type="button" class="custombutton" id="btnXIRRCalc" style="float: right  !important; width:120px !important">Download</button>-->
+                <button type="button" class="custombutton" id="btnXIRRCalc" (click)="ValidateXIRRArchive()" style="float: right  !important; width:120px !important">Archive</button>
+                <button type="button" class="custombutton" id="btnXIRRCalc" (click)="XIRRCalc()" style="float: right  !important; width:120px !important">Calc XIRR</button>
+                <!--<button type="button" class="custombutton" id="btnXIRRSave" (click)="XIRRConfigValidation()" style="float: right  !important; width:120px !important">Save</button>-->
+                <button type="button" class="custombutton" id="btnXIRRCalc" (click)="AddNewXirrConfig()" style="float: right  !important; width:120px !important">Add New Return</button>
+              </div>
+              <div class="col-sm-12 ">
+                <wj-flex-grid id="XIRRflex" #XIRRflex [itemsSource]="_cvXIRRConfiglist"
+                              [allowAddNew]="false" class="XirrConfigDatamanagement" [wjContextMenu]="ctxMenu"
+                              (contextmenu)="onContextMenu(XIRRflex, $event)"
+                              auto-size-mode="Headers" [allowResizing]="'Both'" keyActionTab="Cycle">
+
+                  <wj-flex-grid-filter #filter [filterColumns]="['ReturnName','Type','Tags','AnalysisName','Comments','Status','ErrorDetails','UpdatedDate','ArchivalRequirementText','UpdateXIRRLinkedDealText','ReferencingDealLevelReturn']"></wj-flex-grid-filter>
+                  <wj-flex-grid-column [header]="'Select'" [binding]="'IsActive'" [width]="35" [dataType]="'Boolean'">
+                    <ng-template wjFlexGridCellTemplate [cellType]="'ColumnHeader'" let cell="cell">
+                      <input (change)="SelectAll(flex)" type="checkbox" id="chkSelectAll" />
+                    </ng-template>
+                  </wj-flex-grid-column>
+
+                  <wj-flex-grid-column [header]="'Return Name'" [binding]="'ReturnName'" [width]="210" [isReadOnly]="true"></wj-flex-grid-column>
+                  <wj-flex-grid-column [header]="'Description'" [binding]="'Comments'" [width]="170" [isReadOnly]="true"></wj-flex-grid-column>
+                  <wj-flex-grid-column [header]="'Type'" [binding]="'Type'" [width]="170" [isReadOnly]="true"></wj-flex-grid-column>
+                  <wj-flex-grid-column [header]="'Tags'" [binding]="'Tags'" [width]="210" [isReadOnly]="true"></wj-flex-grid-column>
+                  <wj-flex-grid-column [header]="'Scenario'" [binding]="'AnalysisName'" [width]="180" [isReadOnly]="true"></wj-flex-grid-column>
+                  <wj-flex-grid-column [header]="'Calculation Status'" [binding]="'Status'" [isReadOnly]="true" [width]="150" show-filter="true">
+
+                    <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
+                      <div [ngStyle]="{color: cell.item.Status == 'Failed' ? 'red' : cell.item.Status == 'Completed'?'green': cell.item.Status == 'Running'? 'Orange':cell.item.Status == 'Processing'? 'blue':cell.item.Status == 'CalcSubmit'? 'blue':cell.item.Status == 'Dependents'? 'chocolate' :'blue'}">
+                        {{cell.item.Status}}
+                      </div>
+                    </ng-template>
+                  </wj-flex-grid-column>
+
+                  <wj-flex-grid-column [header]="'Error Details'" [binding]="'ErrorDetails'" [width]="190" [isReadOnly]="true">
+                    <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
+                      <div data-toggle="tooltip" data-placement="top" title={{cell.item.ErrorDetails}}>
+                        {{cell.item.ErrorDetails}}
+                      </div>
+                    </ng-template>
+                  </wj-flex-grid-column>
+                  <wj-flex-grid-column [header]="'Last Calculated'" [binding]="'UpdatedDate'" [width]="170" type="datetime" format="MM-dd-yyyy hh:mm:ss" align="right" [isReadOnly]="true"></wj-flex-grid-column>
+                  <wj-flex-grid-column [header]="'Archival Requirement'" [binding]="'ArchivalRequirementText'" [width]="190" [isReadOnly]="true"></wj-flex-grid-column>
+                  <wj-flex-grid-column [header]="'Update XIRR to Linked Deal'" [binding]="'UpdateXIRRLinkedDealText'" [width]="210" [isReadOnly]="true"></wj-flex-grid-column>
+                  <!--<wj-flex-grid-column [header]="'Referencing Deal Level Return'" [binding]="'ReferencingDealLevelReturn'" [width]="190" [isReadOnly]="true"></wj-flex-grid-column>-->
+
+                </wj-flex-grid>
+                <wj-menu #ctxMenu
+                         [header]="'Context Menu'"
+                         style="display:none"
+                         (itemClicked)="menuItemClicked(ctxMenu, $event)">
+
+
+                  <wj-menu-item cmd="cmdReset" cmd-param="1">
+                    Configure
+                  </wj-menu-item>
+
+                  <wj-menu-item cmd="cmdUpdate" cmd-param="2">
+                    View Results
+                  </wj-menu-item>
+                  <!--<wj-menu-item cmd="cmdUpdate" cmd-param="2">
+                    Download Cashflows
+                  </wj-menu-item>-->
+                  <wj-menu-item cmd="cmdUpdate" cmd-param="2">
+                    Associated Notes Data
+                  </wj-menu-item>
+                  <wj-menu-item cmd="cmdUpdate" cmd-param="2" *ngIf="showDeleteOption">
+                    Delete
+                  </wj-menu-item>
+
+                  <!--HideNonSuperAdminUser()-->
+
+                </wj-menu>
+              </div>
+              <div id="myModalDelete" class="modal">
+                <div class="modal-dialog" draggable="true" id="myModal-Delete" style="min-height:300px;width:500px">
+                  <!-- Modal content -->
+                  <div class="modal-content" style="padding:0px;border:0px;">
+                    <div class="modal-header" style="background:#2196f3 !important">
+                      <span class="customheading" style="color:white !important">Delete: Return</span>
+                      <span class="close" (click)="CloseDeletePopUp()">×</span>
+                    </div>
+                    <div class="modal-body">
+                      <span class="customheading">Are you sure you want to delete return {{selectedreturnname}}?</span>
+                    </div>
+                    <div class="modal-footer" style="background-color:white !important;">
+                      <button type="button" (click)="CloseDeletePopUp()" class="custombutton" style="width:100px !important">Cancel</button>
+                      <button type="button" (click)="deletexirrRow()" class="custombutton" style="width:100px !important">Ok</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="tab-pane fade" id="XIRRDashboard">
+
+          <div class="xirrdashboardtab" style="margin-top:0px;">
+            <div class="form-group row pD10">
+              <div class="col-sm-12 customgridpadding" style="margin-left:15px !important;">
+                <div>
+                  <table>
+                    <tr>
+                      <td>Select Return Name</td>
+                      <td style="width:300px;">
+
+                        <select [(ngModel)]="selectedxirrconfigid" id="SearchReturnName" name="SearchReturnName" class="ibox1" #Client="ngModel" (change)="ClientChange($event.target.value,$event)">
+                          <option *ngFor="let lst of _lstXIRRConfig" value={{lst.XIRRConfigID}}>
+                            {{lst.ReturnName}}
+                          </option>
+                        </select>
+                      </td>
+                      <td>
+                        <button type="button" class="custombutton" (click)="GetXIRROutputPortfolioLevel()" style="width:200px !important;line-height:35px !important;">Get Result</button>
+                      </td>
+                      <td *ngIf="_isShownDownloadCashflowButton">
+                        <button type="button" class="custombutton" (click)="DownloadXIRROutputFromDashboard()" style="width:200px !important;line-height:35px !important;">Download XIRR</button>
+                      </td>
+                      <td *ngIf="_isShownDownloadCashflowButton">
+                        <button type="button" class="custombutton" (click)="DownloadXIRRInputCashflowFromDashboard()" style="width:200px !important;line-height:35px !important;">Download Cashflow</button>
+                      </td>
+                      <td *ngIf="_isShownDownloadCashflowButton">
+                        <button type="button" class="custombutton" id="btnXIRRCalcdash" (click)="XIRRCalcDashBoard()" style="float: right !important; width: 120px !important; line-height: 35px !important;">Calc XIRR</button>
+                      </td>
+
+                    </tr>
+                  </table>
+
+                  <div class="wrapper center-block" style="margin-top:5px;margin-bottom:5px;padding-left:0px;" *ngIf="_isshowxirrinfodiv" (click)="showarrow()">
+                    <div class="panel-group" id="accordion" role="tablist" aria-multiselectable="true">
+                      <div class="panel panel-default">
+                        <div class="panel-heading active" role="tab" id="headingOne">
+                          <h4 class="panel-title">
+                            <a role="button" data-toggle="collapse" data-parent="#accordion" href="#collapseOne" aria-expanded="true" aria-controls="collapseOne">
+                              Configuration Setup &nbsp;-&nbsp; {{selectedreturnname}}
+                            </a>
+                          </h4>
+                        </div>
+                        <div id="collapseOne" class="panel-collapse collapse in" role="tabpanel" aria-labelledby="headingOne">
+                          <div class="panel-body">
+                            <table>
+                              <tr *ngIf="_isshowpoolinfo"><td class="xirrdashboardPrameter">Pool</td> <td class="xirrdashboardPrametervalue"> {{selectedPool}}</td></tr>
+                              <tr *ngIf="_isshowptype"><td class="xirrdashboardPrameter">Product Type</td> <td class="xirrdashboardPrametervalue"> {{selectedProductType}}</td></tr>
+                              <tr *ngIf="_isshowstate"><td class="xirrdashboardPrameter">State</td> <td class="xirrdashboardPrametervalue"> {{selectedState}}</td></tr>
+                              <tr *ngIf="_isshowdtype"><td class="xirrdashboardPrameter">Deal Type</td> <td class="xirrdashboardPrametervalue"> {{selectedDelType}}</td></tr>
+
+                              <tr *ngIf="_isshowdLoanStatus"><td class="xirrdashboardPrameter">Loan Status</td> <td class="xirrdashboardPrametervalue"> {{selectedLoanStatus}}</td></tr>
+                              <tr *ngIf="_isshowdMSA"><td class="xirrdashboardPrameter">MSA</td> <td class="xirrdashboardPrametervalue"> {{selectedMSA}}</td></tr>
+                              <tr *ngIf="_isshowdVintageYear"><td class="xirrdashboardPrameter">Vintage Year</td> <td class="xirrdashboardPrametervalue"> {{selectedVintageYear}}</td></tr>
+
+                              <tr><td class="xirrdashboardPrameter">Scenario</td> <td class="xirrdashboardPrametervalue"> {{selectedscenrio}}</td></tr>
+                            </table>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div *ngIf="_isshownoresultfound" class="alert alert-info fade in">
+                    <span>No XIRR found for this Return. Please search with different Return or Calc this Return.</span>
+                  </div>
+                </div>
+                <div *ngIf="isshowportfoliodata" style="margin-bottom:10px;">
+
+                  <span class="customheading">
+                    Portfolio Level XIRR<span *ngIf="_isshowportreturnname">
+                      <span style="font-size:12px;">
+                        : Calculated on: {{LastCalculated | date: 'EEEE, MMMM d, y h:mm a'}}
+                        <span *ngIf="calcstatus=='Completed'" class="badge badge-success">Completed</span>
+                        <span *ngIf="calcstatus=='Failed'" class="badge badge-danger">Failed</span>
+                        <span *ngIf="calcstatus=='Running'" class="badge badge-warning">Running</span>
+                      </span>
+
+                    </span>
+                  </span>
+                  <br />
+                  <br />
+                  <wj-flex-grid id="flexXIRROutput" #flexXIRROutput [itemsSource]="XIRROutputPortfoli" [allowSorting]="false" [headersVisibility]="'Column'"
+                                [allowDelete]="false" class="gridSize"
+                                [wjContextMenu]="ctxAggreMenu" (contextmenu)="onContextAggregateMenu(flexXIRROutput, $event)" keyActionTab="Cycle">
+                    <!--<wj-flex-grid-column [name]="'ReturnName'" [header]="'Return Name'" [binding]="'ReturnName'" [width]="'*'"></wj-flex-grid-column>-->
+                    <wj-flex-grid-column [name]="''" [header]="' '" [binding]="'Y_Axis'" [width]="200" [isReadOnly]="true"></wj-flex-grid-column>
+                    <wj-flex-grid-column [name]="'LoanStatus'" [header]="'Loan Status'" [binding]="'LoanStatus'" [width]="200" [isReadOnly]="true"></wj-flex-grid-column>
+                    <wj-flex-grid-column *ngFor="let col of columnsXIRR"
+                                         [header]="col"
+                                         [binding]="col"
+                                         [format]="'p7'"
+                                         [width]="130"
+                                         [isReadOnly]="true" [align]="'right'">
+                    </wj-flex-grid-column>
+
+                  </wj-flex-grid>
+                  <wj-menu #ctxAggreMenu
+                           [header]="'Context Menu'"
+                           style="display:none"
+                           (itemClicked)="menuAggregateItemClicked(ctxAggreMenu, $event)">
+
+                    <wj-menu-item cmd="cmdViewResult" cmd-param="2">
+                      View Results
+                    </wj-menu-item>
+
+                    <wj-menu-item cmd="cmdDownloadCashflow" cmd-param="1">
+                      Download cashflow
+                    </wj-menu-item>
+                  </wj-menu>
+                </div>
+                <div *ngIf="_isnodealxirrfound">
+                  <div class="alert alert-info fade in">
+                    <span>No Deal level XIRR found for this Return. Please search with different Return or Calc this Return.</span>
+                  </div>
+                </div>
+                <div *ngIf="_isxirrdealdetail">
+                  <table style="width: 100% !important; margin-bottom:5px;">
+                    <tr>
+                      <td>
+                        <span class="customheading">
+                          Deal Level XIRR
+                          <span *ngIf="_isshowDealreturnname">
+
+                            <span style="font-size:12px;">
+                              <span>As of {{CutoffDateOverrideFormatted}}</span>
+                              : Last Calculated on: {{LastCalculated | date: 'EEEE, MMMM d, y h:mm a'}}
+                              <span *ngIf="calcstatus=='Completed'" class="badge badge-success">Completed</span>
+                              <span *ngIf="calcstatus=='Failed'" class="badge badge-danger">Failed</span>
+                              <span *ngIf="calcstatus=='Running'" class="badge badge-warning">Running</span>
+                            </span>
+                          </span>
+                        </span>
+                      </td>
+                      <td style="width: 135px; padding: 0px !important;">
+                        <div>
+                          Cutoff Date Override
+                        </div>
+                      </td>
+                      <td style="width: 200px; padding: 0px !important;">
+                        <wj-input-date [(value)]="_xirrConfig.CutoffDateOverride" name="CutoffDateOverride" [(ngModel)]="CutoffDateOverride" id="CutoffDateOverride" [format]="'M/d/yyyy'" class="ibox1 rightalign" [isRequired]="false" [placeholder]="'M/d/yyyy'" [itemValidator]="validator"></wj-input-date>
+                      </td>
+                      <td style="width: 200px; padding: 0px !important;">
+                        <button type="button" style="float: right !important; width: 180px !important; line-height: 35px !important;" class="custombutton" (click)="UpdateXIRRDealOutputCalculated()">Refresh Result</button>
+                      </td>
+                      <td style="width: 200px; padding: 0px !important;">
+                        <button type="button" style="float: right !important; width: 180px !important; line-height: 35px !important;" class="custombutton" (click)="ShowAttributesDialogforDealXIRRArchive(_xirrConfig.CutoffDateOverride)">Archive</button>
+                      </td>
+                      <td style="width: 200px; padding: 0px !important;">
+                        <button type="button" style="float: right !important; width: 180px !important; line-height: 35px !important;" class="custombutton" (click)="GetExportExcelXIRROutputDealLevel()">Export to Excel</button>
+                      </td>
+
+                    </tr>
+                  </table>
+
+                  <wj-flex-grid #flexDealLevelinfo [itemsSource]="ListDealLevelinfo" class="gridSize xirrdashboardDealeveldata" auto-size-mode="Headers"
+                                [allowResizing]="'Both'" [allowAddNew]="flase" keyActionTab="Cycle" [frozenColumns]="2" [frozenRows]="1">
+                    <wj-flex-grid-filter #filter [filterColumns]="['DealID','DealName','LegalDealID','LegalDealName','Location','PropertyType','ClosingDate','Maturity','XIRR','DealType','VintageYear','Composite','MKTG_ProductType','PoolName','ProductType','State','LoanStatus','MSA','WholeLoanInvestment','SubordinateDebtInvestment','SeniorDebtInvestment','OutstandingBalance', 'CapitalInvested', 'ProjCapitalInvested', 'RealizedProceeds', 'UnrealizedProceeds' , 'TotalProceeds','MultipleCalculation', 'WholeLoanSpread', 'SubDebtSpread', 'SeniorDebtSpread']"></wj-flex-grid-filter>
+
+                    <!--<wj-flex-grid-column [header]="'Deal ID'" [binding]="'DealID'" [width]="180" [isReadOnly]="true"></wj-flex-grid-column>-->
+                    <wj-flex-grid-column [header]="'Deal ID'" [binding]="'DealID'" [width]="140" [isReadOnly]="true">
+                      <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
+                        <div>
+                          <a routerLink='/dealdetail/{{cell.item.DealID}}' target="_blank" routerLinkActive="active">{{cell.item.DealID}}</a>
+                        </div>
+                      </ng-template>
+                    </wj-flex-grid-column>
+
+                    <wj-flex-grid-column [header]="'Deal Name'" [binding]="'DealName'" [width]="180" [isReadOnly]="true"></wj-flex-grid-column>
+                    <wj-flex-grid-column [header]="'Legal Deal ID'" [binding]="'LegalDealID'" [width]="130" [isReadOnly]="true"></wj-flex-grid-column>
+                    <wj-flex-grid-column [header]="'Legal Deal Name'" [binding]="'LegalDealName'" [width]="180" [isReadOnly]="true"></wj-flex-grid-column>
+
+                    <wj-flex-grid-column [header]="'Estimated Gross IRR'" [binding]="'XIRR'" [align]="'right'" [width]="160" format="p7" [dataType]="'Number'" [isReadOnly]="true"></wj-flex-grid-column>
+
+
+                    <wj-flex-grid-column [header]="'Pool Name'" [binding]="'PoolName'" [width]="140" [isReadOnly]="true"></wj-flex-grid-column>
+                    <wj-flex-grid-column [header]="'Product Type'" [binding]="'ProductType'" [width]="140" [isReadOnly]="true"></wj-flex-grid-column>
+                    <wj-flex-grid-column [header]="'State'" [binding]="'State'" [width]="140" [isReadOnly]="true"></wj-flex-grid-column>
+                    <wj-flex-grid-column [header]="'Deal Type'" [binding]="'DealType'" [width]="140" [isReadOnly]="true"></wj-flex-grid-column>
+                    <wj-flex-grid-column [header]="'Loan Status'" [binding]="'LoanStatus'" [width]="140" [isReadOnly]="true"></wj-flex-grid-column>
+                    <wj-flex-grid-column [header]="'MSA'" [binding]="'MSA'" [width]="140" [isReadOnly]="true"></wj-flex-grid-column>
+                    <wj-flex-grid-column [header]="'Vintage Year'" [binding]="'VintageYear'" [align]="'right'" [dataType]="'Number'" [width]="140" [isReadOnly]="true"></wj-flex-grid-column>
+
+
+                    <wj-flex-grid-column [header]="'Closing Date'" [binding]="'ClosingDate'" [align]="'right'" [width]="140" [format]="'MM/dd/yyyy'" [dataType]="'Date'" [isReadOnly]="true"></wj-flex-grid-column>
+                    <wj-flex-grid-column [header]="'Scheduled Maturity Or Actual Payoff'" [binding]="'Maturity'" [align]="'right'" [width]="245" [format]="'MM/dd/yyyy'" [dataType]="'Date'" [isReadOnly]="true"></wj-flex-grid-column>
+
+                    <wj-flex-grid-column [header]="'Whole Loan Investment'" [binding]="'WholeLoanInvestment'" [align]="'right'" [width]="160" format="n2" [dataType]="'Number'" [aggregate]="'Avg'" [isReadOnly]="true"></wj-flex-grid-column>
+                    <wj-flex-grid-column [header]="'Subordinate Debt Investment'" [binding]="'SubordinateDebtInvestment'" [align]="'right'" [width]="160" format="n2" [dataType]="'Number'" [aggregate]="'Avg'" [isReadOnly]="true"></wj-flex-grid-column>
+                    <wj-flex-grid-column [header]="'Senior Debt Investment'" [binding]="'SeniorDebtInvestment'" [align]="'right'" [width]="160" format="n2" [dataType]="'Number'" [aggregate]="'Avg'" [isReadOnly]="true"></wj-flex-grid-column>
+                    <wj-flex-grid-column [header]="'Outstanding Balance'" [binding]="'OutstandingBalance'" [align]="'right'" [width]="160" format="n2" [dataType]="'Number'" [aggregate]="'Avg'" [isReadOnly]="true"></wj-flex-grid-column>
+                    <wj-flex-grid-column [header]="'Capital Invested'" [binding]="'CapitalInvested'" [align]="'right'" [width]="160" format="n2" [dataType]="'Number'" [aggregate]="'Avg'" [isReadOnly]="true"></wj-flex-grid-column>
+                    <wj-flex-grid-column [header]="'Proj Capital Invested'" [binding]="'ProjCapitalInvested'" [align]="'right'" [width]="160" format="n2" [dataType]="'Number'" [aggregate]="'Avg'" [isReadOnly]="true"></wj-flex-grid-column>
+                    <wj-flex-grid-column [header]="'Realized Proceeds'" [binding]="'RealizedProceeds'" [align]="'right'" [width]="160" format="n2" [dataType]="'Number'" [aggregate]="'Avg'" [isReadOnly]="true"></wj-flex-grid-column>
+                    <wj-flex-grid-column [header]="'Unrealized Proceeds'" [binding]="'UnrealizedProceeds'" [align]="'right'" [width]="160" format="n2" [dataType]="'Number'" [aggregate]="'Avg'" [isReadOnly]="true"></wj-flex-grid-column>
+                    <wj-flex-grid-column [header]="'Total Proceeds'" [binding]="'TotalProceeds'" [align]="'right'" [width]="160" format="n2" [dataType]="'Number'" [aggregate]="'Avg'" [isReadOnly]="true"></wj-flex-grid-column>
+                    <wj-flex-grid-column [header]="'Gross Multiples'" [binding]="'GrossMultiples'" [align]="'right'" [width]="160" format="n2" [dataType]="'Number'" [aggregate]="'Avg'" [isReadOnly]="true"></wj-flex-grid-column>
+                    <wj-flex-grid-column [header]="'Whole Loan Spread'" [binding]="'WholeLoanSpread'" [align]="'right'" [width]="160" format="p7" [dataType]="'Number'" [aggregate]="'Avg'" [isReadOnly]="true"></wj-flex-grid-column>
+                    <wj-flex-grid-column [header]="'Sub Debt Spread'" [binding]="'SubDebtSpread'" [align]="'right'" [width]="160" format="p7" [dataType]="'Number'" [aggregate]="'Avg'" [isReadOnly]="true"></wj-flex-grid-column>
+                    <wj-flex-grid-column [header]="'Senior Debt Spread'" [binding]="'SeniorDebtSpread'" [align]="'right'" [width]="160" format="p7" [dataType]="'Number'" [aggregate]="'Avg'" [isReadOnly]="true"></wj-flex-grid-column>
+
+                  </wj-flex-grid>
+
+                </div>
+              </div>
+
+
+              <!--col end-->
+            </div>
+
+          </div>
+        </div>
+
+
+        <div class="tab-pane fade in" id="tabArchive">
+          <div class="box1a" style="margin-top:0px;">
+            <!--<h3>Archives</h3>-->
+            <div class="form-group row pD10">
+
+              <div class="clearfix"></div>
+              <div class="col-sm-12 customgridpadding">
+
+                <wj-flex-grid id="Archivesflex" #Archivesflex [itemsSource]="_cvarchivesOutputlist" [allowResizing]="'Both'" keyActionTab="Cycle"
+                              allow-sorting="false" allow-add class="wijmogridcss" style="height:calc(99.8vh - 260px);">
+                  <wj-flex-grid-column [header]="'Archive Date'" [binding]="'ArchiveDate'" [width]="110" align="right" [isReadOnly]="true"></wj-flex-grid-column>
+                  <wj-flex-grid-column [header]="'Return Name'" [binding]="'ReturnName'" [width]="210" align="left" [isReadOnly]="true"></wj-flex-grid-column>
+                  <wj-flex-grid-column [header]="'Tags'" [binding]="'Tags'" [width]="100" align="left" [isReadOnly]="true">
+
+                    <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
+                      <div data-toggle="tooltip" data-placement="top" title={{cell.item.Tags}}>
+                        {{cell.item.Tags}}
+                      </div>
+                    </ng-template>
+                  </wj-flex-grid-column>
+                  <wj-flex-grid-column [header]="'Deal / Portfolio'" [binding]="'Type'" [width]="110" align="left" [isReadOnly]="true"></wj-flex-grid-column>
+                  <wj-flex-grid-column [header]="'Excluded Transactions'" [binding]="'TransactionType'" [width]="300" align="left" [isReadOnly]="true">
+                    <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
+                      <div data-toggle="tooltip" data-placement="top" title={{cell.item.TransactionType}}>
+                        {{cell.item.TransactionType}}
+                      </div>
+                    </ng-template>
+                  </wj-flex-grid-column>
+                  <wj-flex-grid-column [header]="'Scenario'" [binding]="'Scenario'" [width]="210" align="left" [isReadOnly]="true">
+                    <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
+                      <div data-toggle="tooltip" data-placement="top" title={{cell.item.Scenario}}>
+                        {{cell.item.Scenario}}
+                      </div>
+                    </ng-template>
+                  </wj-flex-grid-column>
+                  <!--<wj-flex-grid-column [header]="'Input File'" [binding]="'FileNameInput'" [width]="200" align="right"></wj-flex-grid-column>
+                  <wj-flex-grid-column [header]="'Output File'" [binding]="'FileNameOutput'" [width]="200" align="right"></wj-flex-grid-column>-->
+
+
+                  <wj-flex-grid-column [header]="'Comments'" [binding]="'Comments'" [width]="110" align="left" [isReadOnly]="true"></wj-flex-grid-column>
+                  <wj-flex-grid-column [name]="'buttons'" [header]="'Download CashFlow File'" [isReadOnly]="true" align="left" [width]="170">
+                    <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
+                      <a style="text-decoration: underline; cursor: pointer;" (click)="XIRRDownloadArchive(cell.item.FileNameInput,'input')"><img style="height:25px;width:25px;margin-left:75px;" src="../../assets/images/icon_xls.png" /></a>
+                    </ng-template>
+                  </wj-flex-grid-column>
+                  <wj-flex-grid-column [name]="'buttons'" [header]="'Download Output File'" [isReadOnly]="true" align="left" [width]="150">
+                    <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
+                      <a style="text-decoration: underline; cursor: pointer;" (click)="XIRRDownloadArchive(cell.item.FileNameOutput,'output')"><img style="height:25px;width:25px;margin-left:75px;" src="../../assets/images/icon_xls.png" /></a>
+                    </ng-template>
+                  </wj-flex-grid-column>
+                </wj-flex-grid>
+              </div>
+            </div>
+          </div>
+        </div>
+
+
+        <div id="noteTags" class="tab-pane  fade">
+          <div class="form-group row pD10">
+            <div class="col-sm-12 customgridpadding">
+              <button type="button" class="custombutton" id="btnLogin" (click)="TagMasterXIRRValidation()" style="float: right  !important; width:120px !important">Save</button>
+
+              <wj-flex-grid id="TagMasterXIRRflex" #TagMasterXIRRflex [itemsSource]="_tagmasterXIRRlist" [allowResizing]="'Both'" keyActionTab="Cycle"
+                            allow-sorting="false" [allowAddNew]="true" allow-add class="wijmogridcss" style="height:calc(99.8vh - 260px);">
+                <wj-flex-grid-column [header]="'Tag Name'" [binding]="'Name'" [width]="210"></wj-flex-grid-column>
+                <wj-flex-grid-column [header]="'View'" [isReadOnly]="true" align="center" [width]="145">
+                  <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
+                    <div>
+                      <a *ngIf="cell.item.IsTagAssociate != 0" style="text-decoration: underline;cursor:pointer" (click)="GetViewAttachedNotes(cell.item.TagMasterXIRRID)" routerLinkActive="active">
+                        View
+                      </a>
+                    </div>
+                  </ng-template>
+                </wj-flex-grid-column>
+                <wj-flex-grid-column [name]="'buttons'" [header]="'Delete'" [isReadOnly]="true" align="left" [width]="80">
+                  <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
+                    <a *ngIf="cell.item.IsTagAssociate == 0"
+                       style="text-decoration: underline;" (click)="showNoteTagDeleteDialog('Note Tag',cell.item.TagMasterXIRRID,cell.row.index)">Delete</a>
+                  </ng-template>
+                </wj-flex-grid-column>
+              </wj-flex-grid>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+
+      <div id="dialogoverlay"></div>
+      <div id="dialogbox">
+        <div>
+          <div id="dialogboxhead"></div>
+          <div id="dialogboxbody"></div>
+          <div id="dialogboxfoot"><span class="btn custombutton" (click)="ok()">Ok</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="myModalXIRRTagsViewNotes" class="modal">
+      <div class="modal-dialog" id="myModalXIRRTagsViewNotes" style="width:900px;min-height:400px;">
+        <div class="modal-content" style="padding:0px;border:0px;">
+
+          <div class="modal-header" style="background:#2196f3 !important">
+            <span class="close" (click)="CloseXIRRViewNotes()">×</span>
+            <span class="customheading" style="color:white !important"> View Attached Notes ({{this.AttachedNotesCount}})</span>
+          </div>
+
+          <div class="modal-body">
+            <div class="form-group row pD10">
+              <wj-flex-grid #XiRRTagsViewNotes [itemsSource]="lstTagsViewNotes"
+                            class="gridSize" style="max-height: 500px; min-height: 500px;">
+                <wj-flex-grid-filter #filter></wj-flex-grid-filter>
+                <wj-flex-grid-column [header]="'DealID'" [binding]="'DealID'" [isReadOnly]="true" align="left" [width]="130"></wj-flex-grid-column>
+                <wj-flex-grid-column [header]="'Deal Name'" [binding]="'DealName'" [isReadOnly]="true" align="left" [width]="170"></wj-flex-grid-column>
+                <wj-flex-grid-column [header]="'NoteID'" [binding]="'NoteID'" [isReadOnly]="true" align="left" [width]="150"></wj-flex-grid-column>
+                <wj-flex-grid-column [header]="'Note Name'" [binding]="'NoteName'" [isReadOnly]="true" align="left" [width]="150"></wj-flex-grid-column>
+                <wj-flex-grid-column [header]="'Financing Source'" [binding]="'FinancingSourceType'" [isReadOnly]="true" align="left" [width]="235"></wj-flex-grid-column>
+
+              </wj-flex-grid>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <div id="ModalArchiveDateValidate" class="modal">
+      <div class="modal-dialog" draggable="true" id="ModalArchiveDateValidate" style="min-height:300px;width:395px">
+        <!-- Modal content -->
+        <div class="modal-content" style="padding:0px;border:0px;">
+          <div class="modal-header" style="background:#2196f3 !important">
+            <span class="customheading" style="color:white !important" id="spnHeader">Archive Date Validation</span>
+            <span class="close" (click)="ClosePopUpArchiveDateValidate()">×</span>
+          </div>
+
+          <div class="modal-body">
+            <span class="customheading">This archive is already present. Do you want to override?</span>
+          </div>
+          <div class="modal-footer" style="background-color:white !important;">
+            <button type="button" class="custombutton" style="width:100px !important" (click)="XIRRArchive()">Yes</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="ModalDealLevelXIRRArchiveDateValidate" class="modal">
+      <div class="modal-dialog" draggable="true" id="ModalArchiveDateValidate" style="min-height:300px;width:395px">
+        <!-- Modal content -->
+        <div class="modal-content" style="padding:0px;border:0px;">
+          <div class="modal-header" style="background:#2196f3 !important">
+            <span class="customheading" style="color:white !important" id="spnHeader">Archive Date Validation</span>
+            <span class="close" (click)="ClosePopUpDealLevelArchiveDateValidate()">×</span>
+          </div>
+
+          <div class="modal-body">
+            <span class="customheading">This archive is already present. Do you want to override?</span>
+          </div>
+          <div class="modal-footer" style="background-color:white !important;">
+            <button type="button" class="custombutton" style="width:100px !important" (click)="XIRRArchivefromDealLevelXIRR()">Yes</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="ModalXIRRArchive" class="modal">
+      <div class="modal-dialog" draggable="true" id="myModalgen" style="min-height:300px;width:395px">
+        <!-- Modal content -->
+        <div class="modal-content" style="padding:0px;border:0px;">
+          <div class="modal-header" style="background:#2196f3 !important">
+            <span class="customheading" style="color:white !important" id="spnHeader">Archive</span>
+            <span class="close" (click)="ClosePopUpReportFileAttribute()">×</span>
+          </div>
+
+          <div class="modal-body">
+            <div class="form-group">
+              <label class="lab1">
+                Archive Date
+                <wj-input-date name="archiveInputDate" [(ngModel)]="archiveInputDate" #reportInputDates="ngModel" id="archiveInputDate" [format]="'M/d/yyyy'" [isRequired]="false" [placeholder]="'M/d/yyyy'" class="ibox1" [itemValidator]="validator"></wj-input-date>
+              </label>
+              <label class="lab1">Comments</label>
+              <input class="ibox1" id="txtarchiveComments" type="text" name="archiveComments" [(ngModel)]="archiveComments">
+
+            </div>
+          </div>
+
+          <!--<div *ngIf="_dvInValidJson" class="alert alert-danger fade in">-->
+          <!--<a href="#" class="close" data-dismiss="alert" aria-label="close" title="close">×</a>-->
+          <!--<strong>{{_dvInValidJsonMsg}}</strong>
+          </div>-->
+          <div class="modal-footer" style="background-color:white !important;">
+            <!--<button type="button" (click)="ClosePopUpDialog()" class="custombutton" style="width:100px !important">Cancel</button>-->
+            <!--<textarea class="ibox1" rows="50" cols="150" style="height:300px;width: 95%;color:black" id="txtDefaultAttribute"></textarea>-->
+            <button type="button" class="custombutton" style="width:100px !important" (click)="ValidateArchiveDate()">Submit</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+
+    <div id="ModalXIRRArchiveDealLevelXIRR" class="modal">
+      <div class="modal-dialog" draggable="true" id="myModalgen" style="min-height:300px;width:395px">
+        <!-- Modal content -->
+        <div class="modal-content" style="padding:0px;border:0px;">
+          <div class="modal-header" style="background:#2196f3 !important">
+            <span class="customheading" style="color:white !important" id="spnHeader">Archive</span>
+            <span class="close" (click)="ClosePopUp()">×</span>
+          </div>
+
+          <div class="modal-body">
+            <div class="form-group">
+              <label class="lab1">
+                Archive Date
+                <wj-input-date name="archiveInputDate" [(ngModel)]="archiveInputDate" #reportInputDates="ngModel" id="archiveInputDate" [format]="'M/d/yyyy'" [isRequired]="false" [placeholder]="'M/d/yyyy'" class="ibox1" [itemValidator]="validator"></wj-input-date>
+              </label>
+              <label class="lab1">Comments</label>
+              <input class="ibox1" id="txtarchiveComments" type="text" name="archiveComments" [(ngModel)]="archiveComments">
+              <span style="color: red;">This archive is already present. Do you want to override?</span>
+            </div>
+          </div>
+
+          <!--<div *ngIf="_dvInValidJson" class="alert alert-danger fade in">-->
+          <!--<a href="#" class="close" data-dismiss="alert" aria-label="close" title="close">×</a>-->
+          <!--<strong>{{_dvInValidJsonMsg}}</strong>
+          </div>-->
+          <div class="modal-footer" style="background-color:white !important;">
+            <!--<button type="button" (click)="ClosePopUpDialog()" class="custombutton" style="width:100px !important">Cancel</button>-->
+            <!--<textarea class="ibox1" rows="50" cols="150" style="height:300px;width: 95%;color:black" id="txtDefaultAttribute"></textarea>-->
+            <button type="button" class="custombutton" style="width:100px !important" (click)="ValidateArchiveDateDealLevelXIRR()">Submit</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="customboxTags" class="modal">
+      <div class="modal-dialog" draggable="true" id="myModal-Delete" style="min-height:300px;width:500px">
+        <!-- Modal content -->
+        <div class="modal-content" style="padding:0px;border:0px;">
+          <div class="modal-header" style="background:#2196f3 !important">
+            <span class="customheading" style="color:white !important">Delete</span>
+            <span class="close" (click)="CloseNoteTagPopUp()">×</span>
+          </div>
+
+          <div class="modal-body">
+            <span class="customheading">
+              {{ _MsgText }}
+            </span>
+
+          </div>
+          <div class="modal-footer" style="background-color:white !important;">
+            <button type="button" (click)="CloseNoteTagPopUp()" class="custombutton" style="width:100px !important">Cancel</button>
+            <button type="button" class="custombutton" style="width:100px !important" (click)="deleteNoteTags()">Ok</button>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+</form>

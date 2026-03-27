@@ -1,4 +1,4 @@
-import { Component, ViewChild, Input, Output, EventEmitter, OnInit, AfterViewInit } from "@angular/core";
+import { Component, ViewChild, Input, Output, EventEmitter, OnInit, AfterViewInit, ElementRef } from "@angular/core";
 import { Router, ActivatedRoute } from '@angular/router';
 import { TranscationreconciliationService } from '../../core/services/transactionReconciliation.service';
 import { PermissionService } from '../../core/services/permission.service';
@@ -9,6 +9,7 @@ import { FormsModule } from '@angular/forms';
 import { RouterModule, Routes } from '@angular/router';
 import { FileUploadService } from '../../core/services/fileUpload.service';
 //import { Ng2FileInputModule, Ng2FileInputService, Ng2FileInputAction } from 'ng2-file-input';
+
 import * as wjNg2Input from '@grapecity/wijmo.angular2.input';
 import { WjCoreModule } from '@grapecity/wijmo.angular2.core';
 import { WjGridModule } from '@grapecity/wijmo.angular2.grid';
@@ -17,9 +18,27 @@ import { WjGridFilterModule } from '@grapecity/wijmo.angular2.grid.filter';
 import * as wjcGrid from '@grapecity/wijmo.grid';
 import { Paginated } from '../../core/common/paginated.service';
 import { dealService } from '../../core/services/deal.service';
+import { NoteService } from '../../core/services/note.service';
 import { dndDirectiveModule } from "../../directives/dnd.directive";
 import * as wjcInput from '@grapecity/wijmo.input';
+import { off } from "process";
+import { FlexGridFilter } from '@grapecity/wijmo.grid.filter';
 declare var $: any;
+function readBase64(file): Promise<any> {
+  var reader = new FileReader();
+  var future = new Promise((resolve, reject) => {
+    reader.addEventListener("load", function () {
+      resolve(reader.result);
+    }, false);
+
+    reader.addEventListener("error", function (event) {
+      reject(event);
+    }, false);
+
+    reader.readAsDataURL(file);
+  });
+  return future;
+}
 
 @Component({
   templateUrl: "./transactionReconciliation.html",
@@ -37,7 +56,7 @@ export class TranscationreconciliationComponent extends Paginated {
   errors: Array<string> = [];
   public actionLog: string = "";
   public fileList: FileList;
-  public myFileInputIdentifier: string = "tHiS_Id_IS_sPeeCiAL";
+  private myFileInputIdentifier: string = "tHiS_Id_IS_sPeeCiAL";
   public isProcessComplete: boolean = false;
   _ShowdivMsgWar: boolean = false;
   _WarmsgdashBoad: any;
@@ -68,18 +87,30 @@ export class TranscationreconciliationComponent extends Paginated {
   NoteName: any;
   norecord: boolean = false;
   isReconcHistory: boolean = false;
+  ShowAllTrans: boolean = false;
   _M61chkSelectAll: boolean = false;
   _ServicerSelectAll: boolean = false;
   _IgnoreSelectAll: boolean = false;
   _UnreconcileSelectAll: boolean = false;
   // _EmptySearchMsg: boolean = false;
   _isFilterapply: boolean = false;
-  files = [];
-  _servicer: any;
+  _isFilter: boolean = false;
   TransactionSplitParent: any = [];
   TransactionSplit: any;
   parentTrans: any;
+  TotalamtUsedCalc: any;
+  public _basecurrencyname: any;
+  SplitServicingAmount: any;
+  SplitFinal_ValueUsedInCalc: any;
+  SplitDelta: any;
   hti: any;
+  lstallTransactionType: any;
+  TransactionType: any = 0;
+  ShowAllUnrecTrans: boolean = false;
+  lstfinancingsource: any;
+  filterState: string = '';
+  startRemitDate: any;
+  EndRemitDate: any;
   @ViewChild('flextrans') flextrans: wjcGrid.FlexGrid;
   @ViewChild('flexallTransactions') flexallTransactions: wjcGrid.FlexGrid;
   @ViewChild('flexSplitParentTrans') flexSplitParentTrans: wjcGrid.FlexGrid;
@@ -88,43 +119,66 @@ export class TranscationreconciliationComponent extends Paginated {
   @ViewChild('multiselDeltaNonZero') multiselDeltaNonZero: wjNg2Input.WjMultiSelect
   @ViewChild('multiselNotes') multiselNotes: wjNg2Input.WjMultiSelect
   @ViewChild('multiselDeals') multiselDeals: wjNg2Input.WjMultiSelect
+  @ViewChild('multiselTransactionType') multiselTransactionType: wjNg2Input.WjMultiSelect
   @ViewChild('ctxSplitMenu') ctxSplitMenu: wjcInput.Menu;
-  SplitServicingAmount: any;
-  SplitFinal_ValueUsedInCalc: any;
-  SplitDelta: any;
-  constructor(//private ng2FileInputService: Ng2FileInputService,
+  @ViewChild('M61chkSelectAll') M61chkSelectAll: ElementRef;
+  @ViewChild('ServicerchkSelectAll') ServicerchkSelectAll: ElementRef;
+  @ViewChild('multiselFinancingSource') multiselFinancingSource: wjNg2Input.WjMultiSelect;
+  @ViewChild('filter', { static: false }) flexfilter!: FlexGridFilter;
+  constructor(
     public fileUploadService: FileUploadService,
     public permissionService: PermissionService,
     public utilityService: UtilityService,
     public transserv: TranscationreconciliationService,
     public dealSrv: dealService,
+    public noteService: NoteService,
     private _router: Router) {
     // this.GetUserPermission();
     super(50, 1, 0);
     this.GetAllServicer();
     this.GetAllLookups();
     this.GetAllDealsForFilter();
-    //this.GetAllNotes();
+    this.GetAllTransactionType();
+    this.GetFinancingSource();
     this.ScenarioId = window.localStorage.getItem("scenarioid");
     this.utilityService.setPageTitle("M61-Transaction Reconciliation");
   }
+  saveFilterState() {
+    if (this.flexfilter) {
+      this.filterState = this.flexfilter.filterDefinition;
+    }
+  }
 
+  restoreFilterState() {
+    if (this.flexfilter && this.filterState) {
+      this.flexfilter.filterDefinition = this.filterState;
+    }
+  }
 
   // Component views are initialized
   ngAfterViewInit() {
-
+    var type = "";
+    
     this.flextrans.scrollPositionChanged.addHandler(() => {
       var myDiv = $('#flextrans').find('div[wj-part="root"]');
       if (!this.isReconcHistory) {
         if (myDiv.prop('offsetHeight') + myDiv.scrollTop() >= myDiv.prop('scrollHeight')) {
           if (this.flextrans.rows.length < this._totalCount) {
             this._pageIndex = this.pagePlus(1);
-            this.GetAllTranscationNew();
+
+            if (this.ShowAllTrans) {
+              type = "ShowAllTransaction";
+            } else {
+              type = "";
+            }
+            if (JSON.parse(this.filterState).filters.length == 0)
+              this.GetAllTranscationNew(type);
+            else
+              this._pageIndex = 1;
           }
         }
       }
     });
-
   }
 
 
@@ -135,11 +189,25 @@ export class TranscationreconciliationComponent extends Paginated {
       this.lstRecontype = data.filter(x => x.ParentID == "82");
       this.lstDeltaNonZero = data.filter(x => x.ParentID == "83");
       this.lstddlOverideValue = data.filter(x => x.ParentID == "108");
+
       this._bindGridDropdows();
 
     });
   }
 
+
+
+
+  GetFinancingSource(): void {
+    this.noteService.GetFinancingSource().subscribe(res => {
+      if (res.Succeeded) {
+        this.lstfinancingsource = res.lstfinancingsource;
+        for (var i = 0; i < this.lstfinancingsource.length; i++) {
+          this.lstfinancingsource[i].selected = true;
+        }
+      }
+    });
+  }
   GetAllNotes() {
     this.transserv.getAllNotes().subscribe(res => {
       if (res.Succeeded) {
@@ -181,24 +249,42 @@ export class TranscationreconciliationComponent extends Paginated {
         if (this.lstServicer.length > 0) {
           this.closeDate = new Date(this.lstServicer[0].CloseDate.toString());
         }
-
+        this.lstServicer = this.lstServicer.filter(x => x.SericerName != 'ManualCashFlowRecon');
         this.GetAllTranscationNew();
       }
     })
-
-
   }
 
+
+
+  GetAllTransactionType(): void {
+    this.transserv.getAllTransactionType().subscribe(res => {
+      if (res.Succeeded) {
+        this.lstallTransactionType = res.dt;
+      }
+    })
+  }
 
   Reconciliation(): void {
     this.isProcessComplete = true;
     var exceptionmessage = '';
     var isValidate = true;
-    if (this.lsttranscation.length > 0) {
-      var reconTrans = this.lsttranscation.filter(x => x.M61Value == true || x.ServicerValue == true || x.Ignore == true || x.OverrideValue != null);
+    if (this.flextrans.rows.length > 0) {
+      var rectrans = [];
+      for (var k = 0; k < this.flextrans.rows.length; k++) {
+        rectrans.push(this.flextrans.rows[k].dataItem);
+      }
 
+      var reconTrans = rectrans.filter(x => x.M61Value == true || x.ServicerValue == true || x.Ignore == true || x.OverrideValue != null);
+      var errnotes = '';
       if (reconTrans.length > 0) {
         for (var i = 0; i < reconTrans.length; i++) {
+          if (this.ShowAllUnrecTrans)
+            reconTrans[i]["ShowAllUnrecTrans"] = true;
+          else
+            reconTrans[i]["ShowAllUnrecTrans"] = false;
+
+
           if (!reconTrans[i].OverrideReasonText) {
             if (reconTrans[i].Exception == 'Exception' && (reconTrans[i].comments == '' || !reconTrans[i].comments)) {
               if (isValidate) {
@@ -217,6 +303,48 @@ export class TranscationreconciliationComponent extends Paginated {
             }
           }
 
+
+          if (reconTrans[i].RemittanceDate == null || reconTrans[i].RemittanceDate == "") {
+            isValidate = false;
+            exceptionmessage = "Please enter Remit Date before reconciling.";
+          }
+
+          if (reconTrans[i].AddlInterest || reconTrans[i].TotalInterest) {
+            if (reconTrans[i].TransactionType == 'InterestPaid') {  //line added by vishal
+
+              var totCashCapital = Math.abs(parseFloat(reconTrans[i].AddlInterest)) + Math.abs(parseFloat(reconTrans[i].TotalInterest));
+              totCashCapital = parseFloat(totCashCapital.toFixed(2));
+              if (reconTrans[i].M61Value) {
+                if (totCashCapital != reconTrans[i].CalculatedAmount) {
+                  isValidate = false;
+                  errnotes += reconTrans[i].CRENoteID + ", ";
+                }
+              }
+              if (reconTrans[i].ServicerValue) {
+                if (totCashCapital != reconTrans[i].ServicingAmount) {
+                  isValidate = false;
+                  errnotes += reconTrans[i].CRENoteID + ", ";
+                }
+              }
+
+              if (reconTrans[i].OverrideValue) {
+                if (totCashCapital != reconTrans[i].OverrideValue) {
+                  isValidate = false;
+                  errnotes += reconTrans[i].CRENoteID + ", ";
+                }
+              }
+
+            }
+          }
+          //if (reconTrans[i].AddlInterest || reconTrans[i].TotalInterest) {
+          //  var totCashCapital = parseFloat(reconTrans[i].AddlInterest) + parseFloat(reconTrans[i].TotalInterest);
+          //  if (totCashCapital == reconTrans[i].CalculatedAmount || totCashCapital == reconTrans[i].ServicingAmount || totCashCapital == reconTrans[i].OverrideValue) {
+          //    isValidate = false;
+          //    exceptionmessage = "Sum of Cash Interest and Capitalized Interest can not be equal to M61 Amount/ Servicing Amount/Override Value.";
+          //  }
+          //}
+
+
           if (isValidate) {
             if (reconTrans[i].TransactionDate != null) {
               reconTrans[i].TransactionDate = this.convertDateToBindable(reconTrans[i].TransactionDate);
@@ -231,33 +359,70 @@ export class TranscationreconciliationComponent extends Paginated {
 
             if (reconTrans[i].Delta % 1 == 0) {
               reconTrans[i].Delta = (reconTrans[i].Delta * 100 / 100).toFixed(2);// = 0.000001;
-            }
-
-            if (reconTrans[i].ActualDelta % 1 == 0) {
+            } else
+              reconTrans[i].Delta = reconTrans[i].Delta.toString();
+            if (reconTrans[i].ActualDelta % 1 == 0)
               reconTrans[i].ActualDelta = (reconTrans[i].ActualDelta * 100 / 100).toFixed(2);
-            }
+            else
+              reconTrans[i].ActualDelta = reconTrans[i].ActualDelta.toString();
 
             if (reconTrans[i].Adjustment % 1 == 0) {
               reconTrans[i].Adjustment = (reconTrans[i].Adjustment * 100 / 100).toFixed(2);
             }
+            else
+              reconTrans[i].Adjustment = reconTrans[i].Adjustment.toString();
 
-            if (reconTrans[i].AddlInterest % 1 == 0) {
+            if (reconTrans[i].AddlInterest % 1 == 0)
               reconTrans[i].AddlInterest = (reconTrans[i].AddlInterest * 100 / 100).toFixed(2);
-            }
+            else
+              reconTrans[i].AddlInterest = (reconTrans[i].AddlInterest).toString();
 
-            if (reconTrans[i].TotalInterest % 1 == 0) {
+            if (reconTrans[i].TotalInterest % 1 == 0)
               reconTrans[i].TotalInterest = (reconTrans[i].TotalInterest * 100 / 100).toFixed(2);
-            }
+            else
+              reconTrans[i].TotalInterest = reconTrans[i].TotalInterest.toString();
 
-            if (reconTrans[i].ServicingAmount % 1 == 0) {
+            if (reconTrans[i].ServicingAmount % 1 == 0)
               reconTrans[i].ServicingAmount = (reconTrans[i].ServicingAmount * 100 / 100).toFixed(2);
-            }
+            else
+              reconTrans[i].ServicingAmount = (reconTrans[i].ServicingAmount).toString();
 
             if (reconTrans[i].CalculatedAmount % 1 == 0) {
               reconTrans[i].CalculatedAmount = (reconTrans[i].CalculatedAmount * 100 / 100).toFixed(2);
             }
-          }
+            else
+              reconTrans[i].CalculatedAmount = (reconTrans[i].CalculatedAmount).toString();
 
+            //commented by vishal
+            //if (reconTrans[i].OverrideValue % 1 == 0) {
+            //  reconTrans[i].OverrideValue = (reconTrans[i].OverrideValue * 100 / 100).toFixed(2);
+            //}
+            //else
+            //  reconTrans[i].OverrideValue = (reconTrans[i].OverrideValue).toString();
+
+            if (reconTrans[i].OverrideReason) {
+              reconTrans[i].OverrideReason = (reconTrans[i].OverrideReason).toString();
+            }
+            if (!(Number(reconTrans[i].OverrideReasonText).toString() == "NaN" || Number(reconTrans[i].OverrideReasonText) == 0)) {
+              reconTrans[i].OverrideReason = reconTrans[i].OverrideReasonText.toString();
+            }
+
+            if (reconTrans[i].OverrideReasonText) {
+              reconTrans[i].OverrideReasonText = (reconTrans[i].OverrideReasonText).toString();
+            }
+
+
+            if (reconTrans[i].DueDateAlreadyReconciled) {
+              if (reconTrans[i].DueDateAlreadyReconciled == "Yes") {
+                reconTrans[i].DueDateAlreadyReconciled = 1;
+              }
+              else {
+                reconTrans[i].DueDateAlreadyReconciled = 0;
+              }
+
+            }
+
+          }
         }
         if (isValidate) {
           this.transserv.InsertupdateTranscation(reconTrans).subscribe(res => {
@@ -265,7 +430,13 @@ export class TranscationreconciliationComponent extends Paginated {
               if (this._pageIndex != 1)
                 this._pageIndex = 1;
               this._isFilterapply = false;
-              this.GetAllTranscationNew();
+              if (this._isFilter) {
+                this.FilterData();
+              }
+              else {
+                this.GetAllTranscationNew();
+                this.TransactionType = 0;
+              }
               this._Showmessagediv = true;
               this._ShowmessagedivMsg = res.Message;
               this.isProcessComplete = false;
@@ -279,40 +450,18 @@ export class TranscationreconciliationComponent extends Paginated {
               this.isProcessComplete = false;
 
             }
-
-            //setTimeout(function () {
-            //  this._Showmessagediv = false;
-            //  this._ShowdivMsgWar = false;
-            //   this._ShowmessagedivMsg = '';
-            // this._WarmsgdashBoad = '';
-            // }.bind(this), 3000);
           })
         }
         else {
-          //this._ShowdivMsgWar = true;
-          //this._WarmsgdashBoad = 'Please enter comment for the notes having Exception before reconciling.';
+          if (errnotes != "") {
+            errnotes = errnotes.slice(0, errnotes.length - 2);
+            exceptionmessage = "Sum of cash and capitalized interest should be equal to the amount being reconciled for the following note(s): " + errnotes;
+          }
+
           this.CustomAlert(exceptionmessage);
           this.isProcessComplete = false;
           this._Showmessagediv = false;
           this._ShowmessagedivMsg = '';
-          // for (var i = 0; i < this.lsttranscation.length; i++) {
-
-          //     this.lsttranscation[i].M61Value = false;
-          //     this.lsttranscation[i].ServicerValue = false;
-          //     this.lsttranscation[i].Ignore = false;
-          //     this.lsttranscation[i].OverrideValue = null;
-
-          // }
-
-          //// this.GetAllTranscation();
-          // this.flextrans.invalidate();
-          // setTimeout(function () {
-          // this._Showmessagediv = false;
-          //   this._ShowdivMsgWar = false;
-          // this._ShowmessagedivMsg = '';
-          //   this._WarmsgdashBoad = '';
-          // }.bind(this), 2000);
-
         }
       }
       else {
@@ -327,29 +476,76 @@ export class TranscationreconciliationComponent extends Paginated {
 
 
   SaveReconcile(): void {
-    //if (this.lsttranscation[0].Delta % 1 == 0) {
-    //    this.lsttranscation[0].Delta = (this.lsttranscation[0].Delta * 100 / 100).toFixed(2);// = 0.000001;
-    //}
-
-    //if (this.lsttranscation[0].ActualDelta % 1 == 0) {
-    //    this.lsttranscation[0].ActualDelta = (this.lsttranscation[0].ActualDelta * 100 / 100).toFixed(2);
-    //}
-
-    //if (this.lsttranscation[0].Adjustment % 1 == 0) {
-    //    this.lsttranscation[0].Adjustment = (this.lsttranscation[0].Adjustment * 100 / 100).toFixed(2);
-    //}
-
-    //if (this.lsttranscation[0].AddlInterest % 1 == 0) {
-    //    this.lsttranscation[0].AddlInterest = (this.lsttranscation[0].AddlInterest * 100 / 100).toFixed(2);
-    //}
-
-    //if (this.lsttranscation[0].TotalInterest % 1 == 0) {
-    //    this.lsttranscation[0].TotalInterest = (this.lsttranscation[0].TotalInterest * 100 / 100).toFixed(2);
-    //}
-
-
     this.isProcessComplete = true;
     if (this.lsttranscation.length > 0) {
+      for (var i = 0; i < this.lsttranscation.length; i++) {
+        if (this.lsttranscation[i].Delta % 1 == 0) {
+          this.lsttranscation[i].Delta = (this.lsttranscation[i].Delta * 100 / 100).toFixed(2);// = 0.000001;
+        }
+        else
+          this.lsttranscation[i].Delta = this.lsttranscation[i].Delta.toString();
+
+        if (this.lsttranscation[i].ActualDelta % 1 == 0) {
+          this.lsttranscation[i].ActualDelta = (this.lsttranscation[i].ActualDelta * 100 / 100).toFixed(2);
+        }
+        else
+          this.lsttranscation[i].ActualDelta = this.lsttranscation[i].ActualDelta.toString();
+
+        if (this.lsttranscation[i].Adjustment % 1 == 0) {
+          this.lsttranscation[i].Adjustment = parseFloat((this.lsttranscation[i].Adjustment * 100 / 100).toFixed(2));
+        } else
+          this.lsttranscation[i].Adjustment = this.lsttranscation[i].Adjustment.toString();
+
+
+        if (this.lsttranscation[i].AddlInterest % 1 == 0) {
+          this.lsttranscation[i].AddlInterest = (this.lsttranscation[i].AddlInterest * 100 / 100).toFixed(2);
+        } else
+          this.lsttranscation[i].AddlInterest = this.lsttranscation[i].AddlInterest.toString();
+
+        if (this.lsttranscation[i].TotalInterest % 1 == 0) {
+          this.lsttranscation[i].TotalInterest = (this.lsttranscation[i].TotalInterest * 100 / 100).toFixed(2);
+        } else
+          this.lsttranscation[i].TotalInterest = this.lsttranscation[i].TotalInterest.toString();
+
+        if (this.lsttranscation[i].ServicingAmount % 1 == 0) {
+          this.lsttranscation[i].ServicingAmount = (this.lsttranscation[i].ServicingAmount * 100 / 100).toFixed(2);
+        } else
+          this.lsttranscation[i].ServicingAmount = this.lsttranscation[i].ServicingAmount.toString();
+
+        if (this.lsttranscation[i].CalculatedAmount % 1 == 0) {
+          this.lsttranscation[i].CalculatedAmount = (this.lsttranscation[i].CalculatedAmount * 100 / 100).toFixed(2);
+        } else
+          this.lsttranscation[i].CalculatedAmount = this.lsttranscation[i].CalculatedAmount.toString();
+
+        if (this.lsttranscation[i].OverrideValue) {
+          if (this.lsttranscation[i].OverrideValue % 1 == 0) {
+            this.lsttranscation[i].OverrideValue = (this.lsttranscation[i].OverrideValue * 100 / 100).toFixed(2);
+          }
+          else
+            this.lsttranscation[i].OverrideValue = (this.lsttranscation[i].OverrideValue).toString();
+        }
+        if (this.lsttranscation[i].OverrideReason) {
+          this.lsttranscation[i].OverrideReason = (this.lsttranscation[i].OverrideReason).toString();
+        }
+
+        if (this.lsttranscation[i].OverrideReasonText) {
+          this.lsttranscation[i].OverrideReasonText = (this.lsttranscation[i].OverrideReasonText).toString();
+        }
+
+        if (this.lsttranscation[i].DueDateAlreadyReconciled) {
+          if (this.lsttranscation[i].DueDateAlreadyReconciled == "Yes") {
+            this.lsttranscation[i].DueDateAlreadyReconciled = 1;
+          }
+          else {
+            this.lsttranscation[i].DueDateAlreadyReconciled = 0;
+          }
+
+        }
+
+
+      }
+
+
       this.transserv.SaveTranscation(this.lsttranscation).subscribe(res => {
         if (res.Succeeded) {
           this._Showmessagediv = true;
@@ -427,31 +623,40 @@ export class TranscationreconciliationComponent extends Paginated {
       var colOverReas = this.flextrans.columns.getColumn('OverrideReasonText');
 
       if (colOverReas) {
-        // colOverReas.showDropDown = true;
-        colOverReas.dataMap = this._buildDataMap(this.lstddlOverideValue, 'LookupID', 'Name');
+        colOverReas.showDropDown = true;
+        colOverReas.dataMap = this._buildDataMap(this.lstddlOverideValue);
       }
     }
   }
 
-  private _buildDataMap(items: any, key: any, value: any): wjcGrid.DataMap {
+  private _buildDataMap(items): wjcGrid.DataMap {
     var map = [];
-    if (items) {
-      for (var i = 0; i < items.length; i++) {
-        var obj = items[i];
-        map.push({ key: obj[key], value: obj[value] });
-      }
+
+    for (var i = 0; i < items.length; i++) {
+      var obj = items[i];
+      map.push({ key: obj['LookupID'], value: obj['Name'] });
     }
     return new wjcGrid.DataMap(map, 'key', 'value');
   }
 
 
   GetAllTranscationNew(type: any = ""): void {
+    this.saveFilterState();
     var data: any;
     var type: any;
     if (!this._isFilterapply) {
       this.isProcessComplete = true;
+      if (type == "") {
+        if (this.ShowAllTrans) {
+          type = "ShowAllTransaction";
+        } else {
+          type = "";
+        }
+      }
+
       this.transserv.getAllTranscationNew(type, this._pageIndex, this._pageSize).subscribe(res => {
         if (res.Succeeded) {
+          this.flextrans.columns[8].isReadOnly = true;
           this._showhistory = false;
           data = res.dtCalcReq;
           this._totalCount = res.TotalCount;
@@ -463,7 +668,7 @@ export class TranscationreconciliationComponent extends Paginated {
           else {
             this.lsttranscation = this.lsttranscation.concat(data);
           }
-
+         
           //format date
           if (this.lsttranscation.length > 0) {
             this._istransRecordexist = true;
@@ -483,6 +688,7 @@ export class TranscationreconciliationComponent extends Paginated {
               }
 
               if (this.lsttranscation[i].Delta % 1 == 0) {
+
                 this.lsttranscation[i].Delta = (this.lsttranscation[i].Delta * 100 / 100).toFixed(2);
               }
 
@@ -509,21 +715,24 @@ export class TranscationreconciliationComponent extends Paginated {
               if (this.lsttranscation[i].CalculatedAmount % 1 == 0) {
                 this.lsttranscation[i].CalculatedAmount = (this.lsttranscation[i].CalculatedAmount * 100 / 100).toFixed(2);
               }
-
             }
           }
 
+
+         // Restore filters after data loads
+          setTimeout(function () {
+          this.restoreFilterState();
+          }.bind(this), 100);
 
           if (type == "RefreshM61Amount") {
             this._Showmessagediv = true;
             this._ShowmessagedivMsg = "M61 values updated successfully.";
             this._ShowdivMsgWar = false;
-            // setTimeout(function () {
-            //  this._Showmessagediv = false;
-            //   this._ShowmessagedivMsg = '';
-            //   this._WarmsgdashBoad = '';
+            setTimeout(function () {
+              this._Showmessagediv = false;
+              this._ShowmessagedivMsg = '';
 
-            //  }.bind(this), 2000);
+            }.bind(this), 2000);
           }
 
         }
@@ -532,15 +741,64 @@ export class TranscationreconciliationComponent extends Paginated {
         }
       });
     }
+    else {
+
+      for (var i = 0; i < this.lsttranscation.length; i++) {
+        if (this.lsttranscation[i].DueDateAlreadyReconciled == 1) {
+          this.lsttranscation[i].DueDateAlreadyReconciled = "Yes";
+        }
+        else {
+          this.lsttranscation[i].DueDateAlreadyReconciled = "No";
+        }
+
+      }
+
+    }
+   
+      
+   
   }
 
 
   ReconciledHistory(val): void {
     this.IsReconciled = val;
-    this.GetAllDealsForFilter()
+   // this.GetAllDealsForFilter();
+    this.ShowAllUnrecTrans = false;
 
   }
 
+  onChangeShowAllTransaction(val): void {
+    if (val) {
+      this.ShowAllTrans = true;
+      this._pageIndex = 1;
+    } else {
+      this.ShowAllTrans = false;
+      this._pageIndex = 1;
+    }
+    this.GetAllTranscationNew();
+  }
+
+  onChangeShowAllUnreconTransaction(val): void {
+    if (val) {
+      this.ShowAllUnrecTrans = true;
+      var date = new Date();
+      var firstDay = this.convertDateToBindable(new Date(date.getFullYear(), date.getMonth(), 1));
+      var lastDay = this.convertDateToBindable(new Date(date.getFullYear(), date.getMonth() + 1, 0));
+      this.startDate = firstDay;
+      this.EndDate = lastDay;
+      this.IsException = false;
+      this.IsReconciled = false;
+      this.ShowAllTrans = false;
+      $('#btnSave').prop('disabled', true);
+      this.onChangeShowAllTransaction(false);
+    }
+    else {
+      $('#btnSave').prop('disabled', false);
+      this.ShowAllUnrecTrans = false;
+      this.startDate = null;
+      this.EndDate = null;
+    }
+  }
 
 
   getExceptions(val): void {
@@ -549,17 +807,25 @@ export class TranscationreconciliationComponent extends Paginated {
 
   public unRecCheckbox(item, val) {
     this.flextrans.invalidate();
+    var isReccc = this.lsttranscation.filter(x => x.Transcationid == item.Transcationid)
     if (val == true) {
-      item.isRecon = 1;
+      isReccc[0].isRecon = 1;
+     // item.isRecon = 1;
     }
     else {
-      item.isRecon = 0;
+      isReccc[0].isRecon =0;
     }
   }
 
 
   Unreconcile(): void {
-    var unrec = this.lsttranscation.filter(x => x.isRecon == 1);
+    var unrec = [];
+    for (var i = 0; i < this.flextrans.rows.length; i++) {
+      if (this.flextrans.rows[i].dataItem.isRecon == true) {
+        unrec.push(this.flextrans.rows[i].dataItem);
+      }
+    }
+  // var unrec = this.lsttranscation.filter(x => x.isRecon == 1);
     if (unrec.length > 0) {
       this.isProcessComplete = true;
 
@@ -573,11 +839,20 @@ export class TranscationreconciliationComponent extends Paginated {
         if (unrec[i].RemittanceDate != null) {
           unrec[i].RemittanceDate = this.convertDateToBindable(unrec[i].RemittanceDate);
         }
+        if (unrec[i].DueDateAlreadyReconciled == "Yes") {
+          unrec[i].DueDateAlreadyReconciled = 1;
+        }
+        else {
+          unrec[i].DueDateAlreadyReconciled = 0;
+        }
       }
       this.transserv.UnreconcileTranscation(unrec).subscribe(res => {
         if (res.Succeeded) {
           this._isFilterapply = false;
+          this._isFilter = false;
+
           this.GetAllTranscationNew();
+          this.TransactionType = 0;
           this._Showmessagediv = true;
           this._ShowmessagedivMsg = res.Message;
           this.isProcessComplete = false;
@@ -586,17 +861,12 @@ export class TranscationreconciliationComponent extends Paginated {
           this._ShowdivMsgWar = false;
         }
         else {
-          this._ShowdivMsgWar = false;
-          this._Showmessagediv = true;
+          this._ShowdivMsgWar = true;
+          this._Showmessagediv = false;
           this._WarmsgdashBoad = res.Message;
           this.isProcessComplete = false;
         }
-        // setTimeout(function () {
-        //   this._Showmessagediv = false;
-        //  this._ShowmessagedivMsg = '';
-        //   this._WarmsgdashBoad = '';
 
-        // }.bind(this), 2000);
       });
     }
     else {
@@ -607,10 +877,17 @@ export class TranscationreconciliationComponent extends Paginated {
     this.startDate = null;
     this.EndDate = null;
     this._isFilterapply = false;
+    this._isFilter = false;
     this.NonZeroDeltaFilter = 0;
+    this.TransactionType = 0;
     this._pageIndex = 1;
     this.IsReconciled = false;
     this.multiselDeals.checkedItems = [];
+    this.multiselTransactionType.checkedItems = [];
+    this.multiselFinancingSource.checkedItems = [];
+    this.ShowAllTrans = false;
+    this.IsException = false;
+    this.ShowAllUnrecTrans = false;
     this.GetAllTranscationNew();
 
   }
@@ -641,6 +918,16 @@ export class TranscationreconciliationComponent extends Paginated {
     if (this.multiselDeals != undefined)
       var Dealsfilter = "'" + this.multiselDeals.checkedItems.map(({ CREDealID }) => CREDealID).join("','");
 
+    if (this.multiselTransactionType != undefined)
+      var TransactionTypefilter = "'" + this.multiselTransactionType.checkedItems.map(({ TransactionType }) => TransactionType).join("','");
+
+
+    if (this.multiselFinancingSource != undefined)
+    //  var FinancingSourcefilter = "'" + this.multiselFinancingSource.checkedItems.map(({ FinancingSourceName }) => FinancingSourceName).join("','");
+
+    var FinancingSourceIDfilter = "'" + this.multiselFinancingSource.checkedItems.map(({ FinancingSourceMasterID }) => FinancingSourceMasterID).join("','");
+
+
     var searchstr = '';
     searchstr = "#" + this.convertDateToBindable(this.startDate);
     searchstr = searchstr + "#" + this.convertDateToBindable(this.EndDate);
@@ -649,19 +936,45 @@ export class TranscationreconciliationComponent extends Paginated {
     searchstr = searchstr + "#" + Dealsfilter + "'";
     searchstr = searchstr + "#" + this.IsReconciled;
     searchstr = searchstr + "#" + this.IsException;
+    searchstr = searchstr + "#" + TransactionTypefilter + "'";
+    searchstr = searchstr + "#" + this.ShowAllTrans;
+    searchstr = searchstr + "#" + FinancingSourceIDfilter + "'";
+    searchstr = searchstr + "#" + this.ShowAllUnrecTrans;
+    searchstr = searchstr + "#" + this.convertDateToBindable(this.startRemitDate);
+    searchstr = searchstr + "#" + this.convertDateToBindable(this.EndRemitDate);
+
     this.isReconcHistory = this.IsReconciled;
+
+
+    if (this.ShowAllUnrecTrans) {
+      this.flextrans.columns[8].isReadOnly = false;
+      this.flextrans.columns[11].isReadOnly = false;
+    }
+    else {
+      this.flextrans.columns[8].isReadOnly = true;
+      this.flextrans.columns[11].isReadOnly = true;
+    }
+
 
     this.transserv.FilterTranscations(searchstr).subscribe(res => {
       if (res.Succeeded) {
         this._ShowdivMsgWar = false;
         this._WarmsgdashBoad = '';
         this._isFilterapply = true;
+        this._isFilter = true;
         this.lsttranscation = res.dtCalcReq;
         if (this.lsttranscation.length > 0) {
           for (var i = 0; i < this.lsttranscation.length; i++) {
             if (this.lsttranscation[i].DateDue != null) {
               this.lsttranscation[i].DateDue = new Date(this.lsttranscation[i].DateDue.toString());
             }
+
+
+            if (this.lsttranscation[i].LastAccountingCloseDate != null) {
+              this.lsttranscation[i].LastAccountingCloseDate = new Date(this.lsttranscation[i].LastAccountingCloseDate.toString());
+            }
+
+
 
             if (this.lsttranscation[i].TransactionDate != null) {
               this.lsttranscation[i].TransactionDate = new Date(this.lsttranscation[i].TransactionDate.toString());
@@ -785,52 +1098,17 @@ export class TranscationreconciliationComponent extends Paginated {
     });
   }
 
-  public onAction(event: any, servicer: any, mode: any) {
-    // $('.ng2-file-input-file-text').text('');
-
+  public onAction(event: any, servicer: any) {
+    $('.ng2-file-input-file-text').text('');
     this._servicerName = servicer.SericerName;
     this._servicerid = servicer.ServicerMasterID;
-
-
-    if (mode == 'drop') {
-      this.files.push(event);
-    } else {
-      this.files.push(event.target.files);
-    }
-    if (this.files.length > 1) {
-      this.actionLog = '';
-      this.actionLog += "\n currentFiles: " + this.getFileNames(this.files);
-    }
-    else {
-      if (mode == 'drop') {
-        this.actionLog += "\n currentFiles: " + event[0].name;
-        this.filename = event[0].name;
-      }
-      else {
-        this.actionLog += "\n currentFiles: " + event.target.files[0].name;
-        this.filename = event.target.files[0].name;
-      }
-
-
-    }
-
-
-    this.showDialog();
-    //this.actionLog += "\n currentFiles: " + this.getFileNames(event.currentFiles);
-    //console.log(this.actionLog);
+    this.actionLog += "\n currentFiles: " + this.getFileNames(event.currentFiles);
+    console.log(this.actionLog);
     //let fileList: FileList = event.currentFiles;
-    //  this.fileList = event.currentFiles;
+    this.fileList = event.currentFiles;
     //this.saveFiles(this.fileList);
   }
 
-  public onClick(servicer: any) {
-    this._servicer = servicer;
-  }
-
-  onFileDropped(event: any) {
-    this.onAction(event, this._servicer, 'drop');
-
-  }
 
   convertDateToBindable(date) {
     if (date) {
@@ -869,22 +1147,20 @@ export class TranscationreconciliationComponent extends Paginated {
     this.actionLog += "\n Action: Could not remove file";
   }
 
-  public resetFileInput(file): void {
-    // this.ng2FileInputService.reset(this.myFileInputIdentifier);
-  }
+  //public resetFileInput(file): void {
+  //  this.ng2FileInputService.reset(this.myFileInputIdentifier);
+  //}
 
 
-  public logCurrentFiles(): void {
-    //let files = this.ng2FileInputService.getCurrentFiles(this.myFileInputIdentifier);
-    //this.actionLog += "\n The currently added files are: " + this.getFileNames(files);
-  }
-
-
-  private getFileNames(files): string {
+  //public logCurrentFiles(): void {
+  //  let files = this.ng2FileInputService.getCurrentFiles(this.myFileInputIdentifier);
+  //  this.actionLog += "\n The currently added files are: " + this.getFileNames(files);
+  //}
+  private getFileNames(files: File[]): string {
     let names = files.map(file => file.name);
-    var newnames = names ? names.join(", ") : "No files currently added.";
-    return newnames;
+    return names ? names.join(", ") : "No files currently added.";
   }
+
   private isValidFiles(files) {
     // Check Number of files
     if (files.length > this.maxFiles) {
@@ -901,14 +1177,14 @@ export class TranscationreconciliationComponent extends Paginated {
       .map(function (x) { return x.toLocaleUpperCase().trim() });
     for (var i = 0; i < files.length; i++) {
       // Get file extension
-      var ext = files[i][0].name.toUpperCase().split('.').pop() || files[i][0].name;
+      var ext = files[i].name.toUpperCase().split('.').pop() || files[i].name;
       // Check the extension exists
       var exists = extensions.includes(ext);
       if (!exists) {
         this.errors.push("Please upload files with " + this.fileExt + " extension.");
       }
       // Check file size
-      this.isValidFileSize(files[i][0]);
+      this.isValidFileSize(files[i]);
     }
   }
 
@@ -934,8 +1210,10 @@ export class TranscationreconciliationComponent extends Paginated {
 
     //}
     //else {
+
     this.isProcessComplete = true;
-    let files = this.files;
+    // this.fileList = this.filename;
+    let files = this.fileList;
     this.errors = []; // Clear error     
     this.ClosePopUp();
     if (!(Boolean(files))) {
@@ -954,7 +1232,7 @@ export class TranscationreconciliationComponent extends Paginated {
     else if (files.length > 0) {
       let formData: FormData = new FormData();
       for (var j = 0; j < files.length; j++) {
-        formData.append("file[]", files[j][0], files[j][0].name);
+        formData.append("file[]", files[j], files[j].name);
       }
 
       var user = JSON.parse(localStorage.getItem('user'));
@@ -964,14 +1242,17 @@ export class TranscationreconciliationComponent extends Paginated {
         Servicerid: this._servicerid,
         ScenarioId: this.ScenarioId
       }
+
+
       this.transserv.uploadfile(formData, parameters)
         .subscribe(res => {
-          if (res["Succeeded"]) {
+          if (res.Succeeded) {
             this._istransRecordexist = true;
             this.GetAllTranscationNew();
             this.GetAllDealsForFilter();
+            this.GetAllTransactionType();
             this._Showmessagediv = true;
-            var smessage = res["Message"].split('==');
+            var smessage = res.Message.split('==');
             this._ShowmessagedivMsg = smessage[1];
             this.isProcessComplete = false;
             this._ShowdivMsgWar = false;
@@ -979,7 +1260,7 @@ export class TranscationreconciliationComponent extends Paginated {
           else {
             this.uploadStatus.emit(true);
             this._ShowdivMsgWar = true;
-            var smessage = res["Message"].split('==');
+            var smessage = res.Message.split('==');
             this._WarmsgdashBoad = smessage[1];
             this.isProcessComplete = false;
             this._Showmessagediv = false;
@@ -997,7 +1278,6 @@ export class TranscationreconciliationComponent extends Paginated {
       this.isProcessComplete = false;
       return;
     }
-    this.files = [];
     //}
   }
 
@@ -1094,8 +1374,6 @@ export class TranscationreconciliationComponent extends Paginated {
             if (this.allTransactions[i].TransactionDate != null) {
               this.allTransactions[i].TransactionDate = new Date(this.allTransactions[i].TransactionDate.toString());
             }
-
-
           }
         }
 
@@ -1140,7 +1418,7 @@ export class TranscationreconciliationComponent extends Paginated {
   DownloadDocument(selectedValue, SericerFile) {
 
     //filename, originalfilename, storagetype, documentStorageID
-    var storagetype = 'LocalStorage';
+    var storagetype = 'AzureBlob';
     var documentStorageID = '';
     var filename = SericerFile;
     var originalfilename = SericerFile;
@@ -1186,7 +1464,9 @@ export class TranscationreconciliationComponent extends Paginated {
         }
       );
   }
+
   ClearSelection() {
+    this._M61chkSelectAll = false;
     this.lsttranscation.forEach((obj, i) => {
       obj.ServicerValue = false,
         obj.M61Value = false,
@@ -1206,22 +1486,35 @@ export class TranscationreconciliationComponent extends Paginated {
     var M61_Check = this.flextrans.getColumn("M61Value").index;
     var Servicer_Check = this.flextrans.getColumn("ServicerValue").index;
     var Ignore_Check = this.flextrans.getColumn("Ignore").index;
+    var WriteOff_index = this.flextrans.getColumn("WriteOffAmount").index;
+    var ServicingAmt_index = this.flextrans.getColumn("ServicingAmount").index;
+    var CalculatedAmt_index = this.flextrans.getColumn("CalculatedAmount").index;
+    var TotalInterest_index = this.flextrans.getColumn("TotalInterest").index;
+
     if (e.col == Adjustment_index) {
       var Delta = this.flextrans.getCellData(e.row, Delta_index, false);
       var Adjustment = this.flextrans.getCellData(e.row, Adjustment_index, false);
+      var WriteOffAmount = this.flextrans.getCellData(e.row, WriteOff_index, false);
 
       if (Delta == null && Delta == undefined) Delta = 0;
       if (Adjustment == null && Adjustment == undefined) Adjustment = 0;
-
-      var ActualDelta = parseFloat(Delta) + parseFloat(Adjustment);
+      WriteOffAmount = WriteOffAmount || 0;
+      var ActualDelta = parseFloat(Delta) + parseFloat(Adjustment) + parseFloat(WriteOffAmount);
       //  this.lsttranscation[e.row].ActualDelta = ActualDelta.toFixed(2);
       this.flextrans.setCellData(e.row, ActualDelta_index, ActualDelta);
 
       //this.flextrans.setCellData(e.row, ActualDelta_index, ActualDelta, true);
       this.flextrans.invalidate();
     }
+    if (e.col == WriteOff_index) {
+      var Delta = this.flextrans.getCellData(e.row, Delta_index, false);
+      var Adjustment = this.flextrans.getCellData(e.row, Adjustment_index, false);
+      var WriteOffAmount = this.flextrans.getCellData(e.row, WriteOff_index, false);
+      WriteOffAmount = WriteOffAmount || 0;
+      var ActualDelta = parseFloat(Delta) + parseFloat(Adjustment) + parseFloat(WriteOffAmount);
+      this.flextrans.setCellData(e.row, ActualDelta_index, ActualDelta);
+    }
     if (e.col == Override_index || e.col == Overridereason_index) {
-
       var iserr = false;
       if (!(Number(this.lsttranscation[e.row].OverrideReasonText).toString() == "NaN" || Number(this.lsttranscation[e.row].OverrideReasonText) == 0)) {
         this.lsttranscation[e.row].OverrideReason = Number(this.lsttranscation[e.row].OverrideReasonText);
@@ -1265,6 +1558,7 @@ export class TranscationreconciliationComponent extends Paginated {
             this.flextrans.setCellData(e.row, Delta_index, Serv_Value - M61_Value);
           if (OverRideValue == 0) {
             this.flextrans.setCellData(e.row, Delta_index, 0 - M61_Value);
+            this.flextrans.setCellData(e.row, TotalInterest_index, 0);
           }
         }
         else {
@@ -1274,11 +1568,9 @@ export class TranscationreconciliationComponent extends Paginated {
         var Adjustment = this.flextrans.getCellData(e.row, Adjustment_index, false);
         var Delta = this.flextrans.getCellData(e.row, Delta_index, false);
 
-        //if (Adjustment == null && Adjustment == undefined) Adjustment = 0;
-        //if (Delta == null && Delta == undefined) Delta=0;
+
 
         ActualDelta = parseFloat(Delta) + parseFloat(Adjustment);
-        // this.lsttranscation[e.row].ActualDelta = ActualDelta.toFixed(2);
         this.flextrans.setCellData(e.row, ActualDelta_index, ActualDelta);
         this.flextrans.invalidate();
       }
@@ -1336,6 +1628,34 @@ export class TranscationreconciliationComponent extends Paginated {
 
       this.flextrans.invalidate();
     }
+
+
+    if (e.col == ServicingAmt_index) {
+      var ServicingAmt = this.flextrans.getCellData(e.row, ServicingAmt_index, false);
+      var CalculatedAmt = this.flextrans.getCellData(e.row, CalculatedAmt_index, false);
+      Delta = ServicingAmt - CalculatedAmt;
+      this.flextrans.setCellData(e.row, Delta_index, Delta);
+      //  var Delta = this.flextrans.getCellData(e.row, Delta_index, false);
+      var Adjustment = this.flextrans.getCellData(e.row, Adjustment_index, false);
+      var WriteOffAmount = this.flextrans.getCellData(e.row, WriteOff_index, false);
+
+      if (Delta == null && Delta == undefined) Delta = 0;
+      if (Adjustment == null && Adjustment == undefined) Adjustment = 0;
+      WriteOffAmount = WriteOffAmount || 0;
+      var ActualDelta = parseFloat(Delta) + parseFloat(Adjustment) + parseFloat(WriteOffAmount);
+      //  this.lsttranscation[e.row].ActualDelta = ActualDelta.toFixed(2);
+      this.flextrans.setCellData(e.row, ActualDelta_index, ActualDelta);
+
+      //this.flextrans.setCellData(e.row, ActualDelta_index, ActualDelta, true);
+      this.flextrans.invalidate();
+    }
+
+    if (e.col == TotalInterest_index) {
+      var OverRideValue = this.flextrans.getCellData(e.row, Override_index, false);
+      if (OverRideValue == 0) {
+        this.flextrans.setCellData(e.row, TotalInterest_index, 0);
+      }
+    }
   }
 
 
@@ -1352,6 +1672,8 @@ export class TranscationreconciliationComponent extends Paginated {
     var Servicer_Check = this.flextrans.getColumn("ServicerValue").index;
     var Ignore_Check = this.flextrans.getColumn("Ignore").index;
     var OverrideReason_ddl = this.flextrans.getColumn("OverrideReason").index;
+    var OverrideValue_index = this.flextrans.getColumn("OverrideValue").index;
+    var TotalInterest_index = this.flextrans.getColumn("TotalInterest").index;
 
     var sel = this.flextrans.selection;
     if (e.col == Adjustment_index) {
@@ -1362,9 +1684,9 @@ export class TranscationreconciliationComponent extends Paginated {
         if (Delta == null && Delta == undefined) Delta = 0;
         if (Adjustment == null && Adjustment == undefined) Adjustment = 0;
 
-        var ActualDelta = (Delta + Adjustment);
+        ActualDelta = parseFloat(Delta) + parseFloat(Adjustment);
         this.lsttranscation[tprow].ActualDelta = ActualDelta;
-        //this.flextrans.setCellData(e.row, ActualDelta_index, ActualDelta, true);
+        this.flextrans.setCellData(e.row, ActualDelta_index, ActualDelta, true);
         this.flextrans.invalidate();
       }
     }
@@ -1392,7 +1714,7 @@ export class TranscationreconciliationComponent extends Paginated {
 
           if (OverRideValue == 0) {
             this.flextrans.setCellData(tprow, Delta_index, 0 - M61_Value);
-
+            this.flextrans.setCellData(e.row, TotalInterest_index, 0);
           }
           this.flextrans.invalidate();
         }
@@ -1408,14 +1730,15 @@ export class TranscationreconciliationComponent extends Paginated {
         if (Adjustment == null && Adjustment == undefined) Adjustment = 0;
         if (Delta == null && Delta == undefined) Delta = 0;
 
-        var ActualDelta = (Delta + Adjustment);
+        var ActualDelta = parseFloat(Delta) + parseFloat(Adjustment);
         this.lsttranscation[tprow].ActualDelta = ActualDelta;
+        this.flextrans.setCellData(tprow, ActualDelta_index, ActualDelta);
         this.flextrans.invalidate();
 
       }
     }
 
-    if (e.col == OverrideReason_ddl) {
+    if (e.col == OverrideReason_ddl || e.col == OverrideValue_index) {
       for (var tprow = sel.topRow; tprow <= sel.bottomRow; tprow++) {
         var OverReas = this.flextrans.getCellData(tprow, OverrideReason_ddl, false);
 
@@ -1431,19 +1754,21 @@ export class TranscationreconciliationComponent extends Paginated {
       }
     }
 
+
+    if (e.col == TotalInterest_index) {
+      var OverRideValue = this.flextrans.getCellData(tprow, Override_index, false);
+      if (OverRideValue == 0) {
+        this.flextrans.setCellData(tprow, TotalInterest_index, 0);
+      }
+    }
+
   }
 
 
 
   sortingColumn(flextrans: wjcGrid.FlexGrid, e: wjcGrid.CellEditEndingEventArgs): void {
     setTimeout(function () {
-      //for (var i = 0; i < this.lsttranscation.length; i++) {
-      //    this.lsttranscation[i].Ignore = false;
-      //    this.lsttranscation[i].ServicerValue = false;
-      //    this.lsttranscation[i].M61Value = false;
-      //}
-
-      this.flextrans.invalidate();
+     // this.flextrans.invalidate();
       for (var i = 0; i < this.flextrans.rows.length; i++) {
         if (this.flextrans.rows[0]._data.isRecon == false) {
           this._showhistory = true;
@@ -1452,35 +1777,37 @@ export class TranscationreconciliationComponent extends Paginated {
           this.isProcessComplete = false;
         }
       }
-      this.flextrans.invalidate();
+     // this.flextrans.invalidate();
     }.bind(this), 100);
   }
-
   M61SelectAll() {
+
+    this.ServicerchkSelectAll.nativeElement.Value = "off";
     this._M61chkSelectAll = !this._M61chkSelectAll;
     this._ServicerSelectAll = false;
     this._IgnoreSelectAll = false;
     for (var i = 0; i <= this.flextrans.rows.length; i++) {
       if (this.flextrans.rows[i]) {
-        var flexrowdata: any = this.flextrans.rows[i];
-        flexrowdata._data.M61Value = this._M61chkSelectAll;
-        flexrowdata._data.ServicerValue = false;
-        flexrowdata._data.Ignore = false;
+        this.flextrans.rows[i].dataItem.M61Value = this._M61chkSelectAll;
+        this.flextrans.rows[i].dataItem.ServicerValue = false;
+        this.flextrans.rows[i].dataItem.Ignore = false;
       }
     }
     this.flextrans.invalidate();
   }
 
   ServicerSelectAll() {
+
+    this.M61chkSelectAll.nativeElement.value = "off";
     this._ServicerSelectAll = !this._ServicerSelectAll;
     this._M61chkSelectAll = false;
     this._IgnoreSelectAll = false;
     for (var i = 0; i <= this.flextrans.rows.length; i++) {
       if (this.flextrans.rows[i]) {
-        var flexrowdata: any = this.flextrans.rows[i];
-        flexrowdata._data.ServicerValue = this._ServicerSelectAll;
-        flexrowdata._data.M61Value = false;
-        flexrowdata._data.Ignore = false;
+        this.flextrans.rows[i].dataItem.ServicerValue = this._ServicerSelectAll;
+        this.flextrans.rows[i].dataItem.M61Value = false;
+        this.flextrans.rows[i].dataItem.Ignore = false;
+
       }
     }
     this.flextrans.invalidate();
@@ -1493,24 +1820,33 @@ export class TranscationreconciliationComponent extends Paginated {
 
     for (var i = 0; i <= this.flextrans.rows.length; i++) {
       if (this.flextrans.rows[i]) {
-        var flexrowdata: any = this.flextrans.rows[i];
-        if (!flexrowdata._data.OverrideValue) {
-          flexrowdata._data.Ignore = this._IgnoreSelectAll;
-          flexrowdata._data.ServicerValue = false;
-          flexrowdata._data.M61Value = false;
+        if (!this.flextrans.rows[i].dataItem.OverrideValue) {
+          this.flextrans.rows[i].dataItem.Ignore = this._IgnoreSelectAll;
+          this.flextrans.rows[i].dataItem.ServicerValue = false;
+          this.flextrans.rows[i].dataItem.M61Value = false;
         }
       }
     }
     this.flextrans.invalidate();
   }
 
+  //reconcilledSelectAll() {
+  //  this._reconcilledchkSelectAll = !this._reconcilledchkSelectAll;
+
+  //  for (var i = 0; i <= this.flextrans.rows.length; i++) {
+  //    if (this.flextrans.rows[i]) {
+  //      this.flextrans.rows[i].dataItem.DueDateAlreadyReconciled = this._reconcilledchkSelectAll;
+  //    }
+  //  }
+  //  this.flextrans.invalidate();
+  //}
+
 
   UnreconcileSelectAll() {
     this._UnreconcileSelectAll = !this._UnreconcileSelectAll;
     for (var i = 0; i <= this.flextrans.rows.length; i++) {
-      if (this.flextrans.rows[i]) {
-        var flexrowdata: any = this.flextrans.rows[i];
-        flexrowdata._data.isRecon = this._UnreconcileSelectAll;
+      if (this.flextrans.rows[i].dataItem.LastAccountingCloseDate < this.flextrans.rows[i].dataItem.DateDue) {
+        this.flextrans.rows[i].dataItem.isRecon = this._UnreconcileSelectAll;
       }
     }
     this.flextrans.invalidate();
@@ -1520,16 +1856,9 @@ export class TranscationreconciliationComponent extends Paginated {
 
 
   filterChanged() {
+    this.saveFilterState();
     setTimeout(function () {
-      for (var i = 0; i < this.lsttranscation.length; i++) {
-        if (this.lsttranscation[i].isRecon == true) {
-          this.lsttranscation[i].Ignore = false;
-          this.lsttranscation[i].ServicerValue = false;
-          this.lsttranscation[i].M61Value = false;
-        }
-      }
-
-      this.flextrans.invalidate();
+      this.restoreFilterState(); 
       for (var i = 0; i < this.flextrans.rows.length; i++) {
         if (this.flextrans.rows[0]._data.isRecon == false) {
           this._showhistory = true;
@@ -1538,7 +1867,8 @@ export class TranscationreconciliationComponent extends Paginated {
           this.isProcessComplete = false;
         }
       }
-      this.flextrans.invalidate();
+     // this.flextrans.invalidate();
+    
     }.bind(this), 100);
   }
 
@@ -1550,19 +1880,24 @@ export class TranscationreconciliationComponent extends Paginated {
     this._pageIndex = 1;
     this.IsReconciled = false;
     this.multiselDeals.checkedItems = [];
-    this.GetAllTranscationNew("RefreshM61Amount");
+    var showallRefreshAmount;
+    if (this.ShowAllTrans)
+      showallRefreshAmount = "ShowAllTransaction" + "_" + "RefreshM61Amount";
+    else
+      showallRefreshAmount = "RefreshM61Amount";
+
+    this.GetAllTranscationNew(showallRefreshAmount);
   }
 
   onContextMenu(grid, e) {
     var hti = grid.hitTest(e);
     if (hti.panel && hti.panel === grid.cells && hti.panel.columns[hti.col].binding === "ServicingAmount") {
-      if (grid.rows[hti.row]._data["SplitTransactionid"] == null && (grid.rows[hti.row]._data["TransactionType"] == 'ExitFee' || grid.rows[hti.row]._data["TransactionType"] == 'ExtensionFee')) {
+      if (grid.rows[hti.row]._data["SplitTransactionid"] == null && grid.rows[hti.row]._data["isRecon"] == true && (grid.rows[hti.row]._data["TransactionType"] == 'ExitFee' || grid.rows[hti.row]._data["TransactionType"] == 'ExtensionFee' || grid.rows[hti.row]._data["TransactionType"] == 'ScheduledPrincipalPaid' || grid.rows[hti.row]._data["TransactionType"] == 'PIKPrincipalPaid' || grid.rows[hti.row]._data["TransactionType"] == 'FundingOrRepayment' || grid.rows[hti.row]._data["TransactionType"] == 'AdditionalFeesExcludedFromLevelYield' || grid.rows[hti.row]._data["TransactionType"] == 'Balloon' || grid.rows[hti.row]._data["TransactionType"] == 'InterestPaid' || grid.rows[hti.row]._data["TransactionType"] == 'PIKInterestPaid' || grid.rows[hti.row]._data["TransactionType"] == 'UnusedFeeExcludedFromLevelYield')) {
         e.preventDefault();
         this.hti = hti;
         this.ctxSplitMenu.show(e);
       }
       else {
-
         this.ctxSplitMenu.hide();
       }
     }
@@ -1576,19 +1911,27 @@ export class TranscationreconciliationComponent extends Paginated {
   menuSplitItemClicked(s, e) {
     var { row: selectedRow, col: selectedCol } = this.flextrans.selection;
     var { row: clickedRow, col: clickedCol } = this.hti;
-    debugger;
-    this.TransactionSplitParent = this.lsttranscation[clickedRow];
+    this.TransactionSplitParent = this.flextrans.rows[clickedRow].dataItem;//= this.lsttranscation[clickedRow];
+
     //this.TransactionSplitParent = this.lsttranscation.filter(x => x.Transcationid == ParentTrans.Transcationid);
     // this.flexSplitParentTrans.invalidate();
     this.TransactionSplitParent.RemittanceDate = this.convertDateToBindable(this.TransactionSplitParent.RemittanceDate);
 
-
     this.parentTrans = this.lsttranscation.filter(x => x.Transcationid == this.TransactionSplitParent.Transcationid);
+    if (this.parentTrans[0].DueDateAlreadyReconciled == "Yes") {
+      this.parentTrans[0].DueDateAlreadyReconciled = 1;
+    }
+    else {
+      this.parentTrans[0].DueDateAlreadyReconciled = 0;
+    }
     var modal = document.getElementById('myModalSplitTrans');
     modal.style.display = "block";
     $.getScript("/js/jsDrag.js");
+
     this.SplitServicingAmount = this.TransactionSplitParent.ServicingAmount ? this.formatNumberforTwoDecimalplaces(parseFloat(this.TransactionSplitParent.ServicingAmount)) : 0;
-    this.SplitFinal_ValueUsedInCalc = this.TransactionSplitParent.Final_ValueUsedInCalc ? this.formatNumberforTwoDecimalplaces(parseFloat(this.TransactionSplitParent.Final_ValueUsedInCalc)) : 0;
+    this.TransactionSplitParent.Final_ValueUsedInCalc = this.TransactionSplitParent.Final_ValueUsedInCalc != undefined ? this.TransactionSplitParent.Final_ValueUsedInCalc : 0;
+    this.SplitFinal_ValueUsedInCalc = this.TransactionSplitParent.Final_ValueUsedInCalc != undefined ? this.formatNumberforTwoDecimalplaces(parseFloat(this.TransactionSplitParent.Final_ValueUsedInCalc)) : 0;
+    this.TransactionSplitParent.Delta = parseFloat(this.TransactionSplitParent.ServicingAmount) - parseFloat(this.TransactionSplitParent.Final_ValueUsedInCalc);
     this.SplitDelta = this.TransactionSplitParent.Delta ? this.formatNumberforTwoDecimalplaces(parseFloat(this.TransactionSplitParent.Delta)) : 0;
     this.isProcessComplete = true;
     if (this.lsttranscation.length > 0) {
@@ -1607,17 +1950,216 @@ export class TranscationreconciliationComponent extends Paginated {
           this.isProcessComplete = false;
           this._Showmessagediv = false;
         }
-        this.isProcessComplete = false;
-        this.flextrans.invalidate();
+        //this.isProcessComplete = false;
+        // this.flextrans.invalidate();
         this.flexSplitTrans.invalidate();
 
       });
-    } else {
-      this.isProcessComplete = false;
     }
-
+    //  this.isProcessComplete = false;
 
   }
+
+
+  CloseSplitTransaction() {
+    this.isProcessComplete = false;
+    this.TransactionSplit = null;
+    var modalSplit = document.getElementById('myModalSplitTrans');
+    modalSplit.style.display = "none";
+  }
+
+
+  ChangeReceived(chkReceived, rowdata) {
+    var TotalamtUsedCalc = 0;
+    if (chkReceived == true) {
+      this.TransactionSplit[rowdata.index].ServicingAmount_Distr = this.TransactionSplit[rowdata.index].M61Amount;
+      this.TransactionSplit[rowdata.index].Received = true;
+
+    }
+    else {
+      this.TransactionSplit[rowdata.index].ServicingAmount_Distr = null;
+      this.TransactionSplit[rowdata.index].Received = false;
+    }
+
+    for (var i = 0; i < this.TransactionSplit.length; i++) {
+      if (this.TransactionSplit[i].OverrideValue == null || this.TransactionSplit[i].OverrideValue == "") {
+        if (this.TransactionSplit[i].Received == true) {
+          TotalamtUsedCalc += parseFloat(this.TransactionSplit[i].ServicingAmount_Distr)
+        }
+      }
+      else {
+        TotalamtUsedCalc += parseFloat(this.TransactionSplit[i].OverrideValue)
+      }
+    }
+
+    this.TransactionSplitParent.Final_ValueUsedInCalc = TotalamtUsedCalc.toFixed(2);
+    this.TransactionSplitParent.Delta = parseFloat(this.TransactionSplitParent.ServicingAmount) - parseFloat(this.TransactionSplitParent.Final_ValueUsedInCalc);
+
+    // this.TransactionSplitParent.Delta = this.TransactionSplitParent.Delta.toFixed(2);
+
+
+    this.SplitFinal_ValueUsedInCalc = this.formatNumberforTwoDecimalplaces(TotalamtUsedCalc);
+    this.SplitDelta = this.TransactionSplitParent.Delta ? this.formatNumberforTwoDecimalplaces(this.TransactionSplitParent.Delta) : 0;
+    this.flexSplitTrans.invalidate();
+  }
+
+  celleditSplitTrans(flexSplitTrans: wjcGrid.FlexGrid, e: wjcGrid.CellEditEndingEventArgs) {
+    var TotalamtUsedCalc = 0;
+    for (var i = 0; i < this.TransactionSplit.length; i++) {
+      if (this.TransactionSplit[i].OverrideValue == null || this.TransactionSplit[i].OverrideValue == "") {
+        if (this.TransactionSplit[i].Received == true) {
+          TotalamtUsedCalc += parseFloat(this.TransactionSplit[i].ServicingAmount_Distr ? this.TransactionSplit[i].ServicingAmount_Distr : 0)
+        }
+      }
+      else {
+        TotalamtUsedCalc += parseFloat(this.TransactionSplit[i].OverrideValue)
+      }
+
+    }
+    this.TransactionSplitParent.Final_ValueUsedInCalc = TotalamtUsedCalc.toFixed(2);
+    this.TransactionSplitParent.Delta = parseFloat(this.TransactionSplitParent.ServicingAmount) - parseFloat(this.TransactionSplitParent.Final_ValueUsedInCalc);
+
+    //this.TransactionSplitParent.Delta = this.TransactionSplitParent.Delta.toFixed(2);
+
+
+    this.SplitFinal_ValueUsedInCalc = this.formatNumberforTwoDecimalplaces(TotalamtUsedCalc);
+    this.SplitDelta = this.TransactionSplitParent.Delta ? this.formatNumberforTwoDecimalplaces(this.TransactionSplitParent.Delta) : 0;
+
+    this.flexSplitTrans.invalidate();
+  }
+
+  SplitTrasaction() {
+
+    var exceptionmessage = '';
+    var isValidate = true;
+    if (this.TransactionSplit.length > 0) {
+      var reconSplit = this.TransactionSplit.filter(x => x.Received == true);
+
+      if (reconSplit.length > 0) {
+        for (var i = 0; i < reconSplit.length; i++) {
+          if (reconSplit[i].OverrideValue && (reconSplit[i].comments == '' || !reconSplit[i].comments)) {
+            if (isValidate) {
+              exceptionmessage = 'Please enter comment for the overridden value(s).';
+              isValidate = false;
+            }
+          }
+
+          if (reconSplit[i].ServicingAmount_Distr == null) {
+            if (isValidate) {
+              exceptionmessage = 'All the selected checkboxes should have a value in Servicer Amount column.';
+              isValidate = false;
+            }
+          }
+          if (reconSplit[i].M61Amount % 1 == 0) {
+            reconSplit[i].M61Amount = (reconSplit[i].M61Amount * 100 / 100).toFixed(2);
+          }
+        }
+      }
+
+      var totalSum = 0;
+      for (var i = 0; i < reconSplit.length; i++) {
+
+        if (reconSplit[i].ServicingAmount_Distr) {
+          totalSum += parseFloat(reconSplit[i].ServicingAmount_Distr)
+        }
+
+      }
+
+      if (totalSum == 0 && reconSplit.length == 0) {
+        exceptionmessage = 'Please select the transaction(s) to split.';
+        isValidate = false;
+      }
+      else {
+        if (parseFloat(totalSum.toFixed(2)) != parseFloat(parseFloat(this.TransactionSplitParent.ServicingAmount).toFixed(2))) {
+          exceptionmessage = 'Total servicer amount should be equal to remit amount.';
+          isValidate = false;
+        }
+      }
+    }
+    this.isProcessComplete = true;
+
+    for (var i = 0; i < reconSplit.length; i++) {
+      if (reconSplit[i].DueDate != null) {
+        reconSplit[i].DueDate = this.convertDateToBindable(reconSplit[i].DueDate);
+      }
+
+      if (reconSplit[i].ServicingAmount_Distr) {
+        reconSplit[i].ServicingAmount_Distr = reconSplit[i].ServicingAmount_Distr.toFixed(2);
+      }
+
+      if (reconSplit[i].DueDateAlreadyReconciled == 1) {
+        reconSplit[i].DueDateAlreadyReconciled = "Yes";
+      }
+      else {
+        reconSplit[i].DueDateAlreadyReconciled = "No";
+      }
+    }
+
+    if (isValidate) {
+      this.transserv.ReconcileSplitTranscation(reconSplit).subscribe(res => {
+        if (res.Succeeded) {
+          //this._isFilterapply = false;
+         this._pageIndex = 1;
+          this.isProcessComplete = false;
+          this.CloseSplitTransaction();
+          this.GetAllTranscationNew();
+          this.GetAllTransactionType();
+          this.flextrans.invalidate();
+        }
+      })
+    }
+    else {
+      if (reconSplit.length > 0) {
+        for (var i = 0; i < reconSplit.length; i++) {
+          if (reconSplit[i].ServicingAmount_Distr) {
+            reconSplit[i].ServicingAmount_Distr = parseFloat(reconSplit[i].ServicingAmount_Distr);
+          }
+        }
+      }
+      this.CustomAlert(exceptionmessage);
+      this.isProcessComplete = false;
+
+    }
+
+  }
+
+  importServicerFile(event: any, servicer: any) {
+    this._servicerName = servicer.SericerName;
+    this._servicerid = servicer.ServicerMasterID;
+    //  this.actionLog += "\n currentFiles: " + this.getFileNames(event.target.files[0].name);
+    // console.log(this.actionLog);
+    let fileList: FileList = event.currentFiles;
+    this.fileList = event.target.files;
+    this.filename = event.target.files[0].name;
+    this.showDialog();
+  }
+
+  public onFileSelected(event: EventEmitter<File[]>) {
+    const file: File = event[0];
+
+    console.log(file);
+
+    readBase64(file)
+      .then(function (data) {
+        console.log(data);
+      })
+
+  }
+
+  beginEditTransaction(flextrans: wjcGrid.FlexGrid, e: wjcGrid.CellEditEndingEventArgs) {
+    var CapitalizedInterestcolindex = 17;
+    var CashInterestcolindex = 18;
+    var currentColIndex = e.col;
+    if (currentColIndex == CapitalizedInterestcolindex || currentColIndex == CashInterestcolindex) {
+      if (flextrans.rows[e.row].dataItem.OverrideValue != null)
+        e.cancel = false;
+      else
+        e.cancel = true;
+    }
+
+  }
+
+
 
   formatNumberforTwoDecimalplaces(data) {
     if (data) {
@@ -1654,84 +2196,17 @@ export class TranscationreconciliationComponent extends Paginated {
     }
   }
 
-  CloseSplitTransaction() {
-    var modalSplit = document.getElementById('myModalSplitTrans');
-    modalSplit.style.display = "none";
-  }
-
-
-  ChangeReceived(chkReceived, rowdata) {
-    var TotalamtUsedCalc = 0;
-    debugger;
-    if (chkReceived == true) {
-      this.TransactionSplit[rowdata.index].ServicingAmount_Distr = this.TransactionSplit[rowdata.index].M61Amount;
-      this.TransactionSplit[rowdata.index].Received = true;
-
-    }
-    else {
-      this.TransactionSplit[rowdata.index].ServicingAmount_Distr = null;
-      this.TransactionSplit[rowdata.index].Received = false;
-    }
-
-    for (var i = 0; i < this.TransactionSplit.length; i++) {
-      if (this.TransactionSplit[i].OverrideAmount == null || this.TransactionSplit[i].OverrideAmount == "") {
-        if (this.TransactionSplit[i].Received == true) {
-          TotalamtUsedCalc += parseFloat(this.TransactionSplit[i].M61Amount)
-        }
-      }
-      else {
-        TotalamtUsedCalc += parseFloat(this.TransactionSplit[i].OverrideAmount)
-      }
-    }
-    this.TransactionSplitParent.Final_ValueUsedInCalc = TotalamtUsedCalc.toFixed(2);
-    this.TransactionSplitParent.Delta = this.TransactionSplitParent.ServicingAmount_Distr - this.TransactionSplitParent.Final_ValueUsedInCalc;
-
-    this.TransactionSplitParent.Delta = this.TransactionSplitParent.Delta.toFixed(2);
-    this.flexSplitTrans.invalidate();
-  }
-
-  celleditSplitTrans(flexSplitTrans: wjcGrid.FlexGrid, e: wjcGrid.CellEditEndingEventArgs) {
-    var TotalamtUsedCalc = 0;
-    var ss = flexSplitTrans;
-    for (var i = 0; i < this.TransactionSplit.length; i++) {
-      if (this.TransactionSplit[i].OverrideAmount == null || this.TransactionSplit[i].OverrideAmount == "") {
-        if (this.TransactionSplit[i].Received == true) {
-          TotalamtUsedCalc += parseFloat(this.TransactionSplit[i].M61Amount)
-        }
-      }
-      else {
-        TotalamtUsedCalc += parseFloat(this.TransactionSplit[i].OverrideAmount)
-      }
-    }
-    this.TransactionSplitParent.Final_ValueUsedInCalc = TotalamtUsedCalc.toFixed(2);
-    this.TransactionSplitParent.Delta = this.TransactionSplitParent.ServicingAmount_Distr - this.TransactionSplitParent.Final_ValueUsedInCalc;
-
-    this.TransactionSplitParent.Delta = this.TransactionSplitParent.Delta.toFixed(2);
-    this.flexSplitTrans.invalidate();
-  }
-
-  SplitTrasaction() {
-    debugger;
-    this.isProcessComplete = true;
-
-    this.transserv.ReconcileSplitTranscation(this.TransactionSplit).subscribe(res => {
-      if (res.Succeeded) {
-        this.isProcessComplete = false;
-        this.CloseSplitTransaction();
-        this.GetAllTranscationNew();
-      }
-    })
-
-
-  }
 }
 const routes: Routes = [
 
   { path: '', component: TranscationreconciliationComponent }]
 
 @NgModule({
-  imports: [FormsModule, CommonModule, RouterModule.forChild(routes), WjCoreModule, WjGridModule, WjInputModule, WjGridFilterModule, dndDirectiveModule], // Ng2FileInputModule.forRoot()
+  imports: [FormsModule, CommonModule, RouterModule.forChild(routes), WjCoreModule, WjGridModule, WjInputModule, WjGridFilterModule],
   declarations: [TranscationreconciliationComponent]
 })
 
-export class transcationReconciliationComponentModule { }
+export class TranscationreconciliationComponentModule {
+
+}
+

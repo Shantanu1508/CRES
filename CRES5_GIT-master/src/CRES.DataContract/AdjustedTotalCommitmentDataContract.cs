@@ -1,4 +1,8 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
 
 namespace CRES.DataContract
 {
@@ -24,12 +28,12 @@ namespace CRES.DataContract
         public DateTime? UpdatedDate { get; set; }
         public string TypeText { get; set; }
         public decimal? NoteAdjustedTotalCommitment { get; set; }
-        public decimal? NoteAggregatedTotalCommitment { get; set; }
+     //   public decimal? NoteAggregatedTotalCommitment { get; set; }
         public decimal? NoteTotalCommitment { get; set; }
-        public decimal? TotalRequiredEquity { get; set; }
-        public decimal? TotalAdditionalEquity { get; set; }
+        public decimal? TotalRequiredEquity {get;set;}
+        public decimal? TotalAdditionalEquity {get;set;}
 
-        public Boolean? ExcludeFromCommitmentCalculation { get; set; }
+       // public Boolean? ExcludeFromCommitmentCalculation { get; set; }
 
         public string CommitmentType { get; set; }
         public decimal? TotalEquityatClosing { get; set; }

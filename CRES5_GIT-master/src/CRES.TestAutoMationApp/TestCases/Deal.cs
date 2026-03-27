@@ -1,5 +1,6 @@
-﻿using CRES.TestAutoMationApp.Utility;
+﻿using System;
 using OpenQA.Selenium;
+using CRES.TestAutoMationApp.Utility;
 using OpenQA.Selenium.Support.UI;
 //using CRES.TestAutoMation.TestCases;
 
@@ -107,7 +108,7 @@ namespace CRES.TestAutoMationApp.Pages
 
         public By addScenarioBtn = By.ClassName("custombutton");
         public By scenarioName = By.Id("ScenarioName");
-        // public By calculationMode = By.Name("CalculationMode");
+       // public By calculationMode = By.Name("CalculationMode");
         public By addIndexScenarioBtn = By.ClassName("custombutton");
         public By indexName = By.Id("IndexesName");
         public By indexDescription = By.Id("Description");
@@ -159,13 +160,13 @@ namespace CRES.TestAutoMationApp.Pages
         public By email = By.XPath("//*[@id=\"flex\"]/div[1]/div[2]/div[1]/div[123]");
         public By loginName = By.XPath("//*[@id=\"flex\"]/div[1]/div[2]/div[1]/div[125]");
         public By role = By.XPath("//*[@id=\"flex\"]/div[1]/div[2]/div[1]/div[126]");
-        public By dropRole = By.XPath("//*[@id=\"flex\"]/div[1]/div[2]/div[1]/div[126]/div/span");
+        public By dropRole= By.XPath("//*[@id=\"flex\"]/div[1]/div[2]/div[1]/div[126]/div/span");
         public By selectRole = By.XPath("/html/body/div[2]/div[4]");
         public By status = By.XPath("//*[@id=\"flex\"]/div[1]/div[2]/div[1]/div[127]");
-        public By dropStatus = By.XPath("//*[@id=\"flex\"]/div[1]/div[2]/div[1]/div[127]/div/span");
-        public By statusSelect = By.XPath("/html/body/div[2]/div[1]");
+        public By dropStatus= By.XPath("//*[@id=\"flex\"]/div[1]/div[2]/div[1]/div[127]/div/span");
+        public By statusSelect=By.XPath("/html/body/div[2]/div[1]");
         public By timeZone = By.XPath("//*[@id=\"flex\"]/div[1]/div[2]/div[1]/div[128]");
-        public By dropTimeZone = By.XPath("//*[@id=\"flex\"]/div[1]/div[2]/div[1]/div[128]/div/span");
+        public By dropTimeZone= By.XPath("//*[@id=\"flex\"]/div[1]/div[2]/div[1]/div[128]/div/span");
         public By timeZoneSelect = By.XPath("/html/body/div[2]/div[54]");
         public By usersaveBtn = By.ClassName("custombutton");
         public By sucessfullyMsg = By.XPath("/html/body/div/ng-component/div/div[2]/div/div/div[2]/userpermission/div/div[1]/div");
@@ -198,7 +199,7 @@ namespace CRES.TestAutoMationApp.Pages
 
 
 
-
+        
         public IWebElement btnLogin()
         {
             IWebElement btnLogin = driver.FindElement(By.Id("login"));
@@ -276,7 +277,7 @@ namespace CRES.TestAutoMationApp.Pages
         }
         public void clickTotalCommitment()
         {
-            util.WaitForElementVisible(totalCommitementTab);
+            util.WaitForElementVisible(totalCommitementTab); 
             driver.FindElement(totalCommitementTab).Click();
         }
         public void Username()
@@ -682,8 +683,8 @@ namespace CRES.TestAutoMationApp.Pages
         }
 
         //public void CalculationMode()
-        // {
-        // util.IsElementVisible(calculationMode);
+       // {
+           // util.IsElementVisible(calculationMode);
         //}
         public void WorkAprvElmnt()
         {

@@ -12,16 +12,16 @@ namespace CRES.BusinessLogic
     {
         private CalculationManagerRespository _calculationrespository = new CalculationManagerRespository();
 
-        public List<CalculationManagerDataContract> RefreshcalculationStatus(CalculationManagerDataContract DCcalc, Guid? UserID, string Enablem61Calculation)
+        public List<CalculationManagerDataContract> RefreshcalculationStatus(CalculationManagerDataContract DCcalc, Guid? UserID)
         {
-            List<CalculationManagerDataContract> lstDeals = _calculationrespository.RefreshCalculationStatus(DCcalc, UserID, Enablem61Calculation).ToList();
+            List<CalculationManagerDataContract> lstDeals = _calculationrespository.RefreshCalculationStatus(DCcalc, UserID).ToList();
 
             return lstDeals;
         }
 
-        public bool QueueNotesForCalculation(List<CalculationManagerDataContract> nlist, string username)
+        public bool QueueNotesForCalculation(List<CalculationManagerDataContract> nlist, string username, string RequestFrom = "")
         {
-            Thread thread = new Thread(() => CallQueueNotesForCalculation(nlist, username));
+            Thread thread = new Thread(() => CallQueueNotesForCalculation(nlist, username, RequestFrom));
             thread.Start();
 
             //bool status = _calculationrespository.QueueNotesForCalculation(nlist, username);
@@ -30,9 +30,9 @@ namespace CRES.BusinessLogic
             return true;
         }
 
-        public void CallQueueNotesForCalculation(List<CalculationManagerDataContract> nlist, string username)
+        public void CallQueueNotesForCalculation(List<CalculationManagerDataContract> nlist, string username, string RequestFrom = "")
         {
-            bool status = _calculationrespository.QueueNotesForCalculation(nlist, username);
+            bool status = _calculationrespository.QueueNotesForCalculation(nlist, username, RequestFrom);
         }
 
         public List<CalculationManagerDataContract> NotesListForCalculation()
@@ -74,7 +74,14 @@ namespace CRES.BusinessLogic
         {
             return _calculationrespository.GetCalcRequestCount();
         }
-
+        public void QueueNotesForCalculationForDuplicateTransaction()
+        {
+            _calculationrespository.QueueNotesForCalculationForDuplicateTransaction();
+        }
+        public void QueueNotesForCalculationIfDWoutofSync()
+        {
+            _calculationrespository.QueueNotesForCalculationIfDWoutofSync();
+        }
         public void UpdateCalculationStatus(string noteid, string statustext, Guid? AnalysisID)
         {
             _calculationrespository.UpdateCalculationStatus(noteid, statustext, AnalysisID);
@@ -123,50 +130,82 @@ namespace CRES.BusinessLogic
         {
             return _calculationrespository.DeleteBatchCalculationRequestByAnalysisID(AnalysisID);
         }
-
+        public void UpdateCalcStatusBYAnalysisIDAndType(string AnalysisID, string Type, Guid? UserID)
+        {
+            _calculationrespository.UpdateCalcStatusBYAnalysisIDAndType(AnalysisID, Type, UserID);
+        }
         public DataTable CancelBatchRequestByAnalysisID(string AnalysisID)
         {
             return _calculationrespository.CancelBatchRequestByAnalysisID(AnalysisID);
+        }
+
+        public void UpdateBatchDetailWhenCancel(string AnalysisID)
+        {
+            _calculationrespository.UpdateBatchDetailWhenCancel(AnalysisID);
         }
         public DataTable GetCurrentoffsetbyuserID(Guid? UserID)
         {
             return _calculationrespository.GetCurrentoffsetbyuserID(UserID);
         }
-
         public DataTable GetTransactionCategory(Guid? UserID)
         {
             return _calculationrespository.GetTransactionCategory(UserID);
         }
-
         public void UpdateCalculationTimeInMinByNoteID(Guid noteid, int? CalculationTimeInMin)
         {
             _calculationrespository.UpdateCalculationTimeInMinByNoteID(noteid, CalculationTimeInMin);
         }
-
         public void InsertIntoCalculatorStatistics(string noteid, decimal? calctime, decimal? dbtime, decimal? totaltime, string analysisid)
         {
             _calculationrespository.InsertIntoCalculatorStatistics(noteid, calctime, dbtime, totaltime, analysisid);
         }
 
+        public void UpdateNoteCalculatedWeightedSpread(string NoteID, decimal? WeightedSpread)
+        {
+            _calculationrespository.UpdateNoteCalculatedWeightedSpread(NoteID, WeightedSpread);
+        }
         public DataTable GetTransactionGroup(Guid? UserID)
         {
             return _calculationrespository.GetTransactionGroup(UserID);
         }
-
         public void InsertUpdatedNoteWiseEndingBalance(Guid NoteID, Guid? UserID)
         {
             _calculationrespository.InsertUpdatedNoteWiseEndingBalance(NoteID, UserID);
         }
 
+        public void CalcNetCapitalInvestedbyNoteId(string NoteID)
+        {
+            _calculationrespository.CalcNetCapitalInvestedbyNoteId(NoteID);
+        }
         public void InsertExceptionsOfCalculatorComponent(Guid? NoteId, Guid? AnalysisID, string UserID)
         {
             _calculationrespository.InsertExceptionsOfCalculatorComponent(NoteId, AnalysisID, UserID);
         }
 
-
-        public void InsertNoteCommitmentDataFromCaluclator(List<NoteCommitmentEquityDataContract> calcNoteCommitmentdata)
+        public void CancelBatchCalculation(string AnalysisID, bool calledfromgobalcancel)
         {
-            _calculationrespository.InsertNoteCommitmentDataFromCaluclator(calcNoteCommitmentdata);
+            try
+            {
+                //1 ) update batch request table
+                UpdateBatchDetailWhenCancel(AnalysisID);
+                //2 ) update v1 notes
+                DataTable dt = CancelBatchRequestByAnalysisID(AnalysisID);
+                V1CalcLogic vc = new V1CalcLogic();
+                if (dt.Rows.Count > 0)
+                {
+                    vc.CallBatchCancelAPI(dt);
+                }
+                if (calledfromgobalcancel == true)
+                {
+                    //3 ) Delete calc request
+                    DeleteBatchCalculationRequestByAnalysisID(AnalysisID);
+                }
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+
         }
     }
 }

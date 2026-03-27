@@ -1,8 +1,12 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
 
 namespace CRES.DataContract
 {
-    public class ServicingOneTimeFeesTableDataContract
+   public class ServicingOneTimeFeesTableDataContract
     {
         public Guid? NoteID { get; set; }
         public Guid? AccountID { get; set; }
@@ -17,7 +21,7 @@ namespace CRES.DataContract
         public int? IsCapitalized { get; set; }
         public string IsCapitalizedText { get; set; }
         public decimal? Value { get; set; }
-
+      
         public string CreatedBy { get; set; }
         public DateTime? CreatedDate { get; set; }
         public string UpdatedBy { get; set; }

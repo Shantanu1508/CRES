@@ -1,0 +1,87 @@
+<form #f="ngForm">
+  <div class="col-sm-12">
+    <div class="head fixheaderdiv">
+
+      <div id="sucessmessagediv" *ngIf="_Showsuccessmessage" class="alert alert-success fade in">
+        <strong>{{_messageSuccess }}</strong>
+      </div>
+
+      <div id="sucessmessagewar" *ngIf="_ShowmessageWarning" class="alert alert-warning fade in">
+        <strong>{{_ShowmessageWarning }}</strong>
+      </div>
+
+      <h1 style="display: inline-block;margin-top: 10px;">Manual Entry: {{JournalEntryMasterIDheader}}</h1>
+
+      <span *ngIf="_isShowCancel">
+        <button type="button" style="width: 140px !important; margin-right: 30px !important" class="custombutton" (click)="Cancel()">Cancel</button>
+      </span>
+      <span *ngIf="_isShowSave">
+        <button type="button" style="width: 140px !important;" class="custombutton" (click)="SaveJournalLedger()">Save</button>
+      </span>
+    </div>
+
+    <div class="fmst fixheadercontent">
+      <div class="box1a">
+
+        <div class="form-group row pD10">
+          <!--<div class="col-sm-3">
+        <label class="lab1">Journal Entry Master ID</label>
+        <wj-input-number [isRequired]="false" [(ngModel)]="_journal.JournalEntryMasterID" name="JournalEntryMasterID" id="JournalEntryMasterID" #JournalEntryMasterID="ngModel" class="ibox1 rightalign"></wj-input-number>
+      </div>-->
+          <div class="col-sm-12">
+            <table>
+              <tr>
+                <td>Manual Entry Date</td>&nbsp;&nbsp;
+                <td><wj-input-date name="JournalEntryDate" [(ngModel)]="_journal.JournalEntryDate" id="JournalEntryDate" #JournalEntryDate="ngModel" [format]="'M/d/yyyy'" class="ibox1 rightalign" [isRequired]="false" [placeholder]="'M/d/yyyy'" style="width:300px"></wj-input-date></td>
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+                <td>Comments</td>&nbsp;&nbsp;
+                <td><input class="ibox1" type="text" name="Comments" [(ngModel)]="_journal.Comments" id="Comments" #Comments="ngModel" style="width:300px"></td>
+                <td><div *ngIf="_ShowLastUpdated" style=" border-left: 1px solid black; height:45px;" class="vl"></div></td>
+                <td>
+                  <div *ngIf="_ShowLastUpdated">
+                    <span style="font-weight:bold">Journal Entry was last updated on </span>{{LastUpdatedDate | date: 'EEEE, MMMM d, y h:mm a'}}&nbsp;<!--{{_timezoneAbbreviation}}-->
+                    <span>by {{LastUpdatedBy}}</span>
+                  </div>
+
+                </td>
+              </tr>
+            </table>
+            </div>             
+          </div>
+
+        <div class="form-group row pD10" style="min-height: calc(88vh - 100px);">
+          <div class="col-sm-12 customgridpadding">
+            <wj-flex-grid id="flexJournalLedger" #flexJournalLedger [itemsSource]="cvJournalLedger" class="gridSize JournalLedger"
+                          auto-size-mode="Headers" [allowAddNew]="true" keyActionTab="Cycle"
+                          [allowResizing]="'Both'"
+                          style="min-height: calc(99vh - 200px)"
+                          (initialized)="addFooterRowngrid(flexJournalLedger)"
+                          (cellEditEnded)="onCellEditEnded(flexJournalLedger,$event)">
+              <wj-flex-grid-filter #filter [filterColumns]="['DebtEquityAccountID','TransactionDate','TransactionTypeText','TransactionAmount','CommentsDetail']"></wj-flex-grid-filter>
+              <wj-flex-grid-column [name]="'JeAccount'" [header]="'Account'" [binding]="'DebtEquityAccountID'" [align]="'right'" [width]="170"></wj-flex-grid-column>
+              <wj-flex-grid-column [name]="'JeTransactionDate'" [header]="'Transaction Date'" [binding]="'TransactionDate'" [align]="'right'" [width]="150"></wj-flex-grid-column>
+              <wj-flex-grid-column [name]="'JeTransactionType'" [header]="'Transaction Type'" [binding]="'TransactionTypeText'" [width]="180"></wj-flex-grid-column>
+              <wj-flex-grid-column [name]="'JeTransactionAmount'" [header]="'Transaction Amount'" [aggregate]="'Sum'" [binding]="'TransactionAmount'" [align]="'right'" [width]="180" format="n2"></wj-flex-grid-column>
+              <wj-flex-grid-column [name]="'JeComment'" [header]="'Comments'" [binding]="'CommentsDetail'" [width]="570"></wj-flex-grid-column>
+              <wj-flex-grid-column [name]="'JeassetLiablity'" [header]="'Asset Or Liability'" [binding]="'AssetOrLiability'" [width]="160"></wj-flex-grid-column>
+            </wj-flex-grid>
+          </div>
+        </div>
+      </div>
+
+      <div id="dialogoverlay"></div>
+      <div id="dialogbox">
+
+        <div>
+          <div class="modal-header" style="background:#2196f3 !important">
+            <span class="customheading" style="color:white !important">CRES - Validation Error</span>
+            <span class="close" (click)="ok()">×</span>
+          </div>
+          <div id="dialogboxbody"></div>
+          <div id="dialogboxfoot"><span class="btn custombutton" (click)="ok()">Ok</span></div>
+        </div>
+      </div>
+
+    </div>
+    </div>
+</form>

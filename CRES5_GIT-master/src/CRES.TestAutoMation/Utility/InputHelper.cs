@@ -11,6 +11,7 @@ using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
 
+
 namespace CRES.TestAutoMation.Utility
 {
     public class InputHelper
@@ -109,30 +110,7 @@ namespace CRES.TestAutoMation.Utility
                     }
                 }
 
-                //// set test name
-                //var testCaseName = string.IsNullOrEmpty(testName) ? sheetName : testName;
-
-                //if (diffParam != null && diffParam.Any())
-                //{
-                //    try
-                //    {
-                //  testCaseName = TestCaseName(diffParam, testParams, testCaseName);
-                //    }
-                //    catch (Exception ex)
-                //    {
-                //        throw ex;
-                //    }
-                //}
-                //else
-                //{
-                //    testCaseName = testCaseName + "_row(" + row + ")";
-                //}
-
-                //var data = new TestCaseData(testParams);
-                //data.SetName(testCaseName);
-                //yield return data;
-
-
+                
             }
             return parmeters;
         }
@@ -167,11 +145,12 @@ namespace CRES.TestAutoMation.Utility
         {
             XSSFWorkbook wb;
             XSSFSheet sh;
+            ExcelUtility.ThrowIfExcelFileIsOpen(Path);
 
-            using (var fs = new FileStream(Path, FileMode.Open, FileAccess.Read))
-            {
+
+            using var fs = new FileStream(Path, FileMode.Open, FileAccess.Read);
                 wb = new XSSFWorkbook(fs);
-            }
+            
 
             DataTable DT = new DataTable();
             DT.Rows.Clear();

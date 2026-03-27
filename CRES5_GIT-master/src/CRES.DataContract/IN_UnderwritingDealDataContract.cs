@@ -1,4 +1,8 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
 
 namespace CRES.DataContract
 {
@@ -9,7 +13,7 @@ namespace CRES.DataContract
         public string DealName { get; set; }
         public int? StatusID { get; set; }
 
-
+ 
         public string AssetManager { get; set; }
         public string DealCity { get; set; }
         public string DealState { get; set; }

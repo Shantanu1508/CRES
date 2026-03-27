@@ -6,6 +6,7 @@ export class NoteAdditionalListObject {
   ModuleId: number;
   noteobj: Note;
   noteValue: string;
+  lstMaturity: Array<Maturity>;
   // lstMaturity: Array<Maturity>;
   MaturityScenariosList: Array<Maturity>;
   // lstRateSpreadSchedule: Array<RateSpreadSchedule>;
@@ -40,6 +41,7 @@ export class NoteAdditionalListObject {
 
   lstServicerDropDateSetup: Array<ServicerDropDateSetup>
   ParentNoteID: string;
+  EnableM61Calculations: number;
   deleteMarketPriceList: Array<NoteMarketPrice>;
 }
 
@@ -166,7 +168,15 @@ export class PIKSchedule {
   ModuleId: number
   Value: number
 
+  PeriodicRateCapAmount: number
+  PeriodicRateCapPercent: number
 
+  PIKSetUp: number
+  PIKSetUpText: string
+  PIKPercentage: number
+  PIKCurrentPayRate: number
+  PIKSeparateCompounding: number
+  PIKSeparateCompoundingText: string
 }
 
 export class FutureFunding {

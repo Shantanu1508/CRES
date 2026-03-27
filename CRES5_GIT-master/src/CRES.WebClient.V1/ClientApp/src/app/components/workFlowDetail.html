@@ -32,12 +32,12 @@
         <button class="custombutton" (click)="DiscardChanges()">
           Cancel
         </button>
-        <span *ngIf="_isShowbtnRejected && _workflow.StatusName!='Projected' && rolename=='Asset Manager'">
+        <span *ngIf="_isShowbtnRejected && _workflow.StatusName!='Projected' && (rolename=='Asset Manager' || rolename=='Super Admin')">
           <div class="btn-group" style="float:right;margin-right:10px;">
             <button type="button" id="btnRejected" class="custombutton dropdown-toggle" data-toggle="dropdown">Reject<b class="caret"></b></button>
             <ul class="dropdown-menu dropdown-menu-right">
               <li *ngFor="let item of lstRejectList">
-                <a style="padding-left: 30px;" (click)="saveWorkFlowDetail($event,'Rejected')" class="{{item.StatusName}}" innerHTML="{{item.StatusDisplayName}}">
+                <a style="padding-left: 30px;" (click)="saveWorkFlowDetail($event,'Rejected')" id={{item.StatusName}} class={{item.StatusName}} innerHTML="{{item.StatusDisplayName}}">
                 </a>
               </li>
             </ul>
@@ -48,20 +48,21 @@
                 Save & Draft
             </button>
         </span>-->
-        <span *ngIf="rolename=='Asset Manager' && !_wfAdditionalData.Applied && IsShowSaveAndStatusButton==true">
+        <span *ngIf="(rolename=='Asset Manager'|| rolename=='Super Admin' || rolename=='Admin') && !_wfAdditionalData.Applied && IsShowSaveAndStatusButton==true">
           <button class="custombutton" style="width:200px!important;" (click)="saveWorkFlowDetail('','Save')">
             Save
           </button>
         </span>
-        <span *ngIf="_isShowbtnApproval && _workflow.StatusName!='Completed' && _IsTeamApproval==false && IsShowSaveAndStatusButton==true">
+        <span *ngIf="_isShowbtnApproval && _workflow.StatusName!='Completed' && _IsTeamApproval==false && IsShowSaveAndStatusButton==true && _workflow.AmOversightMsg==''">
           <button class="custombutton" style="width:300px!important;" (click)="ValidateWireConfirmAndsaveWorkFlowDetail('','Approved')" innerHTML="{{_workflow.NextStatusDisplayNameWithFormat}}">
 
             <!--Approved ()-->
           </button>
         </span>
-        <span *ngIf="(_isShowPreliminary || _isShowRevisedPreliminary || _isShowFinal || _isShowRevisedFinal || _isShowServicer || _isShowRevisedServicer) && rolename=='Asset Manager' && _wfamount>0">
+        <span *ngIf="(_isShowPreliminary || _isShowRevisedPreliminary || _isShowFinal || _isShowRevisedFinal || _isShowServicer || _isShowRevisedServicer) && rolename=='Asset Manager' && _wfamount>0 && !_SkipWorkflowNotification">
           <div class="btn-group" style="float:right;margin-right:10px;">
-            <button type="button" id="btnNotify" class="custombutton dropdown-toggle" data-toggle="dropdown">Notify<b class="caret"></b></button>
+            <button *ngIf="_workflow.TaskTypeID == 502" type="button" id="btnNotify" class="custombutton-special dropdown-toggle" data-toggle="dropdown">Revise or Cancel<b class="caret"></b></button>
+            <button *ngIf="_workflow.TaskTypeID != 502" type="button" id="btnNotify" class="custombutton dropdown-toggle" data-toggle="dropdown">Notify<b class="caret"></b></button>
             <ul class="dropdown-menu dropdown-menu-right">
               <li *ngIf="_isShowPreliminary">
                 <a style="padding-left: 30px;" (click)="Notify(_Preliminary)">
@@ -73,6 +74,22 @@
                   Revised Preliminary Notification
                 </a>
               </li>
+              <li *ngIf="((!_isShowPreliminary && !_isShowRevisedFinal)||(_isShowRevisedFinal && _workflow.StatusName!='Completed')) && _workflow.TaskTypeID == 502">
+                <a style="padding-left: 30px;" (click)="Notify(_CancelPreliminary)">
+                  Cancel Preliminary Notification
+                </a>
+              </li>
+
+              <li *ngIf="_workflow.StatusName!='Projected' && _workflow.StatusName!='Under Review' && _workflow.StatusName!='Completed'">
+                <a style="padding-left: 30px;" (click)="SendInternalNotificion(_Resend1stApproval)">
+                  Resend 1st/2nd Approval Notification
+                </a>
+              </li>
+              <!--<li *ngIf="_workflow.StatusName!='Projected' && _workflow.StatusName!='Under Review' && _workflow.StatusName!='1st Approval'">
+                  <a style="padding-left: 30px;" (click)="SendInternalNotificion(_Resend2ndApproval)">
+                      Resend 2nd Approval Notification
+                  </a>
+              </li>-->
 
               <li *ngIf="_isShowFinal">
                 <a style="padding-left: 30px;" (click)="ValidateWireConfirmOnNotify(_Final)">
@@ -87,12 +104,13 @@
             </ul>
           </div>
         </span>
-
+        <span *ngIf="rolename=='Super Admin' && (_workflow.TaskTypeID == 502 || _workflow.TaskTypeID == 719) && _workflow.StatusName!='Completed'">
+          <button class="custombutton" style="width:200px!important;" (click)="showCompleteViaScriptPopUp()">
+            Force Complete
+          </button>
+        </span>
         <span *ngIf="_isShowDownloadDoc">
-          <a (click)="downloadboxdocument()"> <img class="boxlogo" src="../../images/box-logo.png" title="Open Draw Folder" style="cursor: pointer;" /></a>
-          <!--<button class="custombutton" style="width:200px!important;" (click)="downloadboxdocument()">
-              Download Box Document
-          </button>-->
+          <a (click)="downloadboxdocument()"> <img class="boxlogo" src="assets/images/box-logo.png" title="Open Draw Folder" style="cursor: pointer;" /></a>
         </span>
 
 
@@ -102,18 +120,18 @@
         <button class="custombutton" (click)="DiscardChanges()">
           Cancel
         </button>
-        <span *ngIf="_isShowbtnRejected && _workflow.StatusName!='Projected' && rolename=='Asset Manager'">
+        <span *ngIf="_isShowbtnRejected && _workflow.StatusName!='Projected' && (rolename=='Asset Manager' || rolename=='Super Admin')">
           <div class="btn-group" style="float:right;margin-right:10px;">
             <button type="button" id="btnRejected" class="custombutton dropdown-toggle" data-toggle="dropdown">Reject<b class="caret"></b></button>
             <ul class="dropdown-menu dropdown-menu-right">
               <li *ngFor="let item of lstRejectList">
-                <a style="padding-left: 30px;" (click)="saveWorkFlowDetailWithoutEmail($event,'Rejected')" class="{{item.StatusName}}" innerHTML="{{item.StatusDisplayName}}">
+                <a style="padding-left: 30px;" (click)="saveWorkFlowDetailWithoutEmail($event,'Rejected')" id={{item.StatusName}} class="{{item.StatusName}}" innerHTML="{{item.StatusDisplayName}}">
                 </a>
               </li>
             </ul>
           </div>
         </span>
-        <span *ngIf="rolename=='Asset Manager' && !_wfAdditionalData.Applied">
+        <span *ngIf="(rolename=='Asset Manager'|| rolename=='Super Admin' || rolename=='Admin') && !_wfAdditionalData.Applied">
           <button class="custombutton" style="width:200px!important;" (click)="saveWorkFlowDetailWithoutEmail('','Save')">
             Save
           </button>
@@ -124,26 +142,31 @@
             <!--Approved ()-->
           </button>
         </span>
-        <span *ngIf="((_isShowFinalPayOff || _isShowRevisedFinalPayOff) && _wfamount<0)">
+        <span *ngIf="((_isShowFinalPayOff || _isShowRevisedFinalPayOff) && _wfamount<0 && _workflow.PurposeTypeId == 630)">
           <div class="btn-group" style="float:right;margin-right:10px;">
             <button type="button" id="btnNotify" class="custombutton dropdown-toggle" data-toggle="dropdown">Notify<b class="caret"></b></button>
             <ul class="dropdown-menu dropdown-menu-right">
 
               <li *ngIf="_isShowFinalPayOff">
                 <a style="padding-left: 30px;" (click)="ValidateWireConfirmNegativAmtOnNotify(_FinalWithoutApproval)">
-                  Final PayOff Notification
+                  Final Payoff Notification
                 </a>
               </li>
               <li *ngIf="_isShowRevisedFinalPayOff">
                 <a style="padding-left: 30px;" (click)="ValidateWireConfirmNegativAmtOnNotify(_RevisedFinalWithoutApproval)">
-                  Revised Final PayOff Notification
+                  Revised Final Payoff Notification
                 </a>
               </li>
             </ul>
           </div>
         </span>
+        <span *ngIf="rolename=='Super Admin' && _workflow.TaskTypeID == 502 && _workflow.StatusName!='Completed'">
+          <button class="custombutton" style="width:200px!important;" (click)="showCompleteViaScriptPopUp()">
+            Force Complete
+          </button>
+        </span>
         <span *ngIf="_isShowDownloadDoc">
-          <a (click)="downloadboxdocument()"> <img class="boxlogo" src="../../images/box-logo.png" title="Open Draw Folder" style="cursor: pointer;" /></a>
+          <a (click)="downloadboxdocument()"> <img class="boxlogo" src="assets/images/box-logo.png" title="Open Draw Folder" style="cursor: pointer;" /></a>
           <!--<button class="custombutton" style="width:200px!important;" (click)="downloadboxdocument()">
               Download Box Document
           </button>-->
@@ -152,11 +175,11 @@
 
       </span>
 
-      <div *ngIf="_Showmessagediv" class="alert alert-success fade in">
+      <div *ngIf="_Showmessagediv" class="alert alert-success fade in mar-right">
         <strong>{{_ShowmessagedivMsg}}</strong>
       </div>
 
-      <div *ngIf="_ShowmessagedivWar" class="alert alert-warning fade in">
+      <div *ngIf="_ShowmessagedivWar" class="alert alert-warning fade in mar-right">
         <strong>{{_ShowmessagedivMsgWar}}</strong>
       </div>
 
@@ -168,37 +191,37 @@
         <div class="cssload-whirlpool"></div>
       </div>
 
-      <div class="box1a" *ngIf="_workflow.TaskTypeID==502">
+      <div class="{{_ShowmessagedivWar==true? 'box1awithMar':'box1a'}}" *ngIf="_workflow.TaskTypeID==502">
         <div class="form-group row pD10">
           <!--<h3>Current Status: {{_workflow.StatusName}}</h3>-->
           <div class="col-sm-3">
             <label class="lab1">
-              <b>Deal Name:</b>
+              <b>Deal Name: </b>
               <b> <a style="color: #2196f3 !important;" routerLink='/dealdetail/{{_wfAdditionalData.CREDealID}}' routerLinkActive="active">{{_wfAdditionalData.DealName}}</a></b>
             </label>
 
           </div>
           <!--<div class="col-sm-3">
-              <label class="lab1">Deal Name</label>
-              <input class="ibox1" type="text" [(ngModel)]="_wfAdditionalData.DealName" name="txtDealName" #Tag2="ngModel" id="txtDealNameId" readonly>
-          </div>-->
+      <label class="lab1">Deal Name</label>
+      <input class="ibox1" type="text" [(ngModel)]="_wfAdditionalData.DealName" name="txtDealName" #Tag2="ngModel" id="txtDealNameId" readonly>
+  </div>-->
 
           <div class="col-sm-3">
             <label class="lab1"><b>Purpose:</b> {{_wfAdditionalData.PurposeIDText}}</label>
             <!--<label class="lab1">Purpose</label>
-            <input class="ibox1" type="text" [(ngModel)]="_wfAdditionalData.PurposeIDText" name="PurposeIDText" #Tag2="ngModel" id="PurposeIDText" readonly>-->
+    <input class="ibox1" type="text" [(ngModel)]="_wfAdditionalData.PurposeIDText" name="PurposeIDText" #Tag2="ngModel" id="PurposeIDText" readonly>-->
           </div>
 
           <div class="col-sm-3">
             <label class="lab1"><b>Total Funding Amount:</b> {{_totalfundingamount}}</label>
             <!--<label class="lab1">Funding Amount</label>
-            <input class="ibox1" type="text" [(ngModel)]="_wfAdditionalData.Amount" name="Amount" #Tag2="ngModel" id="Amount" readonly>-->
+    <input class="ibox1" type="text" [(ngModel)]="_wfAdditionalData.Amount" name="Amount" #Tag2="ngModel" id="Amount" readonly>-->
           </div>
 
           <div class="col-sm-3">
             <label class="lab1"><b>Funding Date:</b> {{_wfAdditionalData.Date | date: 'MM/dd/yyyy'}}</label>
             <!--<label class="lab1">Funding Date</label>
-            <input class="ibox1" type="text" [(ngModel)]="_wfAdditionalData.Date" name="Date" #Tag2="ngModel" id="Date" readonly>-->
+    <input class="ibox1" type="text" [(ngModel)]="_wfAdditionalData.Date" name="Date" #Tag2="ngModel" id="Date" readonly>-->
             <!--<wj-input-date [(value)]="_wfAdditionalData.Date" id="Date" [format]="'M/d/yyyy'" class="ibox1 rightalign" [isRequired]="false" [placeholder]="'M/d/yyyy'"></wj-input-date>-->
           </div>
 
@@ -234,552 +257,659 @@
             <label class="lab1"><b>AM Oversight:</b> {{_wfAdditionalData.AMTeamLeadUser}}</label>
           </div>
           <!--<div class="col-sm-3" style="margin-top:20px">
-              <label class="lab1"><b>Download File:</b> <a class="cur-pointer" (click)="DownloadInvoice()" title="Click to download" routerLinkActive="active"><img src="../../images/pdf-file-document.png" /></a></label>
-          </div>-->
+      <label class="lab1"><b>Download File:</b> <a class="cur-pointer" (click)="DownloadInvoice()" title="Click to download" routerLinkActive="active"><img src="../../images/pdf-file-document.png" /></a></label>
+  </div>-->
+          <div class="col-sm-3" style="margin-top:20px">
+            <label class="lab1"><b>Deal Status:</b> {{_wfAdditionalData.WatchlistStatus}}</label>
+          </div>
+          <div class="col-sm-6" style="margin-top:20px">
+            <label class="lab1"><b>Outstanding Draw Fees:</b> {{_outstandingDrawFees}}</label>
+          </div>
         </div>
       </div>
-      <div class="box1a" *ngIf="_workflow.TaskTypeID==719">
-        <div class="form-group row pD10">
-          <!--<h3>Current Status: {{_workflow.StatusName}}</h3>-->
-          <div class="col-sm-3">
-            <label class="lab1">
-              <b>Deal Name:</b>
-              <b> <a style="color: #2196f3 !important;" routerLink='/dealdetail/{{_wfAdditionalData.CREDealID}}' routerLinkActive="active">{{_wfAdditionalData.DealName}}</a></b>
-            </label>
+        <div class="{{_ShowmessagedivWar==true? 'box1awithMar':'box1a'}}" *ngIf="_workflow.TaskTypeID==719">
+          <div class="form-group row pD10">
+            <!--<h3>Current Status: {{_workflow.StatusName}}</h3>-->
+            <div class="col-sm-3">
+              <label class="lab1">
+                <b>Deal Name:</b>
+                <b> <a style="color: #2196f3 !important;" routerLink='/dealdetail/{{_wfAdditionalData.CREDealID}}' routerLinkActive="active">{{_wfAdditionalData.DealName}}</a></b>
+              </label>
 
+            </div>
+            <!--<div class="col-sm-3">
+          <label class="lab1">Deal Name</label>
+          <input class="ibox1" type="text" [(ngModel)]="_wfAdditionalData.DealName" name="txtDealName" #Tag2="ngModel" id="txtDealNameId" readonly>
+      </div>-->
+
+            <div class="col-sm-3">
+              <label class="lab1"><b>Purpose:</b> {{_wfAdditionalData.PurposeIDText}}</label>
+              <!--<label class="lab1">Purpose</label>
+        <input class="ibox1" type="text" [(ngModel)]="_wfAdditionalData.PurposeIDText" name="PurposeIDText" #Tag2="ngModel" id="PurposeIDText" readonly>-->
+            </div>
+
+            <div class="col-sm-3">
+              <label class="lab1"><b>Reserve Funding Amount:</b> {{_totalfundingamount}}</label>
+              <!--<label class="lab1">Funding Amount</label>
+        <input class="ibox1" type="text" [(ngModel)]="_wfAdditionalData.Amount" name="Amount" #Tag2="ngModel" id="Amount" readonly>-->
+            </div>
+
+            <div class="col-sm-3">
+              <label class="lab1"><b>Reserve Funding Date:</b> {{_wfAdditionalData.Date | date: 'MM/dd/yyyy'}}</label>
+              <!--<label class="lab1">Funding Date</label>
+        <input class="ibox1" type="text" [(ngModel)]="_wfAdditionalData.Date" name="Date" #Tag2="ngModel" id="Date" readonly>-->
+              <!--<wj-input-date [(value)]="_wfAdditionalData.Date" id="Date" [format]="'M/d/yyyy'" class="ibox1 rightalign" [isRequired]="false" [placeholder]="'M/d/yyyy'"></wj-input-date>-->
+            </div>
+
+            <div class="col-sm-3" style="margin-top:20px">
+              <label class="lab1"><b>Comment:</b> {{_wfAdditionalData.Comment}}</label>
+            </div>
+
+            <div class="col-sm-9" style="margin-top:20px">
+              <label class="lab1">
+                <b>Status:</b>
+                <span innerHTML=' {{_workflow.StatusDisplayNameWithFormat}}'>
+                </span>
+              </label>
+            </div>
+
+
+            <div class="col-sm-3" style="margin-top:20px">
+              <label class="lab1"><b>Primary Asset Manager:</b> {{_wfAdditionalData.AssetManager}}</label>
+            </div>
+
+            <div class="col-sm-3" style="margin-top:20px">
+              <label class="lab1"><b>Alternate Asset Manager:</b> {{_wfAdditionalData.AMSecondUser}}</label>
+            </div>
+
+            <div class="col-sm-3" style="margin-top:20px">
+              <label class="lab1"><b>AM Oversight:</b> {{_wfAdditionalData.AMTeamLeadUser}}</label>
+            </div>
+            <!--<div class="col-sm-3" style="margin-top:20px">
+          <label class="lab1"><b>Download File:</b> <a class="cur-pointer" (click)="DownloadInvoice()" title="Click to download" routerLinkActive="active"><img src="../../images/pdf-file-document.png" /></a></label>
+      </div>-->
+            <div class="col-sm-3" style="margin-top:20px">
+              <label class="lab1"><b>Deal Status:</b> {{_wfAdditionalData.WatchlistStatus}}</label>
+            </div>
           </div>
-          <!--<div class="col-sm-3">
-              <label class="lab1">Deal Name</label>
-              <input class="ibox1" type="text" [(ngModel)]="_wfAdditionalData.DealName" name="txtDealName" #Tag2="ngModel" id="txtDealNameId" readonly>
-          </div>-->
-
-          <div class="col-sm-3">
-            <label class="lab1"><b>Purpose:</b> {{_wfAdditionalData.PurposeIDText}}</label>
-            <!--<label class="lab1">Purpose</label>
-            <input class="ibox1" type="text" [(ngModel)]="_wfAdditionalData.PurposeIDText" name="PurposeIDText" #Tag2="ngModel" id="PurposeIDText" readonly>-->
-          </div>
-
-          <div class="col-sm-3">
-            <label class="lab1"><b>Reserve Funding Amount:</b> {{_totalfundingamount}}</label>
-            <!--<label class="lab1">Funding Amount</label>
-            <input class="ibox1" type="text" [(ngModel)]="_wfAdditionalData.Amount" name="Amount" #Tag2="ngModel" id="Amount" readonly>-->
-          </div>
-
-          <div class="col-sm-3">
-            <label class="lab1"><b>Reserve Funding Date:</b> {{_wfAdditionalData.Date | date: 'MM/dd/yyyy'}}</label>
-            <!--<label class="lab1">Funding Date</label>
-            <input class="ibox1" type="text" [(ngModel)]="_wfAdditionalData.Date" name="Date" #Tag2="ngModel" id="Date" readonly>-->
-            <!--<wj-input-date [(value)]="_wfAdditionalData.Date" id="Date" [format]="'M/d/yyyy'" class="ibox1 rightalign" [isRequired]="false" [placeholder]="'M/d/yyyy'"></wj-input-date>-->
-          </div>
-
-          <div class="col-sm-3" style="margin-top:20px">
-            <label class="lab1"><b>Comment:</b> {{_wfAdditionalData.Comment}}</label>
-          </div>
-
-          <div class="col-sm-9" style="margin-top:20px">
-            <label class="lab1">
-              <b>Status:</b>
-              <span innerHTML=' {{_workflow.StatusDisplayNameWithFormat}}'>
-              </span>
-            </label>
-          </div>
-
-
-          <div class="col-sm-3" style="margin-top:20px">
-            <label class="lab1"><b>Primary Asset Manager:</b> {{_wfAdditionalData.AssetManager}}</label>
-          </div>
-
-          <div class="col-sm-3" style="margin-top:20px">
-            <label class="lab1"><b>Alternate Asset Manager:</b> {{_wfAdditionalData.AMSecondUser}}</label>
-          </div>
-
-          <div class="col-sm-3" style="margin-top:20px">
-            <label class="lab1"><b>AM Oversight:</b> {{_wfAdditionalData.AMTeamLeadUser}}</label>
-          </div>
-          <!--<div class="col-sm-3" style="margin-top:20px">
-              <label class="lab1"><b>Download File:</b> <a class="cur-pointer" (click)="DownloadInvoice()" title="Click to download" routerLinkActive="active"><img src="../../images/pdf-file-document.png" /></a></label>
-          </div>-->
         </div>
-      </div>
-      <div class="box1a">
-        <h3 *ngIf="_isShowWorkActualWorkflow">{{chkListTitle}} Draw Approval Checklist</h3>
-        <h3 *ngIf="_isShowWorkflowWithoutValidationAndEmail">{{_wfAdditionalData.PurposeIDText}} Approval checklist</h3>
+        <div class="box1a">
+          <h3 *ngIf="_isShowWorkActualWorkflow">{{chkListTitle}} Draw Approval Checklist</h3>
+          <h3 *ngIf="_isShowWorkflowWithoutValidationAndEmail">{{_wfAdditionalData.PurposeIDText}} Approval Checklist</h3>
 
-        <div class="form-group row pD10">
-          <div class="col-sm-12">
-            <wj-flex-grid id="flexWFCheckList" #flexWFCheckList [itemsSource]="cvwfCheckListData" [allowAddNew]="true" [allowResizing]="'Both'" class="gridSize"
-                          selection-mode="Row" style="height:320px" (beginningEdit)="cellEditbeginCheckList(flexWFCheckList,$event)" (initialized)="init(flexWFCheckList)" (cellEditEnded)="cellEditEndedChecklist(flexWFCheckList,$event)">
+          <div class="form-group row pD10">
+            <div class="col-sm-12">
+              <wj-flex-grid id="flexWFCheckList" #flexWFCheckList [itemsSource]="cvwfCheckListData" [allowAddNew]="true" [allowResizing]="'Both'" class="gridSize"
+                            selection-mode="Row" style="height:320px" (beginningEdit)="cellEditbeginCheckList(flexWFCheckList,$event)" (initialized)="init(flexWFCheckList)" (cellEditEnded)="cellEditEndedChecklist(flexWFCheckList,$event)"
+                            (pasted)="PastedWFCheckList(flexWFCheckList,$event)"
+                            (pasting)="PastingWFCheckList(flexWFCheckList,$event)"
+
+                            >
 
 
-              <wj-flex-grid-column [header]="'Checklist'" [binding]="'CheckListName'" [width]="255" align="left" [wordWrap]="true">
-                <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
-                  <div>
-                    {{cell.item.CheckListName}}<b><span *ngIf="cell.item.IsMandatory" [ngStyle]="{color: 'red'}">*</span></b>
-                  </div>
-                </ng-template>
-              </wj-flex-grid-column>
+                <wj-flex-grid-column [header]="'Checklist'" [binding]="'CheckListName'" [width]="300" align="left" [wordWrap]="true">
+                  <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
+                    <div>
+                      {{cell.item.CheckListName}}<b><span *ngIf="cell.item.IsMandatory" [ngStyle]="{color: 'red'}">*</span></b>
+                    </div>
+                  </ng-template>
+                </wj-flex-grid-column>
 
-              <wj-flex-grid-column [name]="'CheckListStatus'" [header]="'Status'" [binding]="'CheckListStatusText'" [width]="120"></wj-flex-grid-column>
-              <wj-flex-grid-column [header]="'Comment'" [binding]="'Comment'" [width]="350" align="left"></wj-flex-grid-column>
-              <wj-flex-grid-column [name]="'buttons'" [header]="'Delete'" [isReadOnly]="true" align="left" [width]="100">
-                <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
-                  <div *ngIf="cell.item.CheckListMasterId==null">
-                    <a style="text-decoration: underline;cursor:pointer" (click)="showDeleteDialog(cell.row.index)">Delete</a>
-                  </div>
-                </ng-template>
-              </wj-flex-grid-column>
-            </wj-flex-grid>
-          </div>
-
-          <div class="col-sm-12">
-            <label class="lab-special">Special Instructions</label>
-            <button class="custombutton-special" (click)="OverWriteDefaultInstruction()" type="button" *ngIf="_workflow.PurposeTypeId == 520">
-              Overwrite to Default
-            </button>
-            <textarea class="ibox1 special-inst" type="text" id="SpecialInstructions" [(ngModel)]="_workflow.SpecialInstructions" name="SpecialInstructions" #SpecialInstructions="ngModel" style="height: 84px !important;"></textarea>
-          </div>
-
-          <div class="col-sm-12">
-            <label class="lab1">Additional Comments</label>
-            <textarea class="ibox1" type="text" id="AdditionalComments" [(ngModel)]="_workflow.AdditionalComments" name="AdditionalComments" #AdditionalComments="ngModel" style="height: 84px !important"></textarea>
-          </div>
-
-          <!--<div class="col-sm-12">
-              <label class="lab1">Comment</label>
-              <textarea class="ibox1" type="text" id="Comments" [(ngModel)]="_workflow.Comment" name="Comments" #Comments="ngModel" style="height: 84px !important"></textarea>
-          </div>-->
-        </div>
-      </div>
-      <div class="box1a" *ngIf="_isShowDrawFee">
-        <h3>Draw Fees</h3>
-        <div class="form-group row pD10">
-          <div id="drawFeeInvoicedivs" (keydown)="handleKeyDown($event)">
-            <div class="col-sm-12" style="margin-left:-6px !important;">
-              <div class="col-sm-3" style="margin-left: -8px !important;">
-                <label class="lab1">
-                  Auto Send Draw Fee Invoice
-                  <select class="ibox2" style="width:43% !important;" [(ngModel)]="_drawFeeInvoice.AutoSendInvoice" #AutoSendInvoice="ngModel" name="AutoSendInvoice">
-                    <option value=571>Yes</option>
-                    <option value=572>No</option>
-                  </select>
-                </label>
-              </div>
-              <div class="col-sm-3" style="line-height: 36px;margin-left: 3px;">
-                <label class="lab1">
-                  <b>Invoice Status:</b>
-                  <span *ngIf="!((_drawFeeInvoice.AutoSendInvoice=='571' && _drawFeeInvoice.DrawFeeStatus=='692') ||(_drawFeeInvoice.AutoSendInvoice=='572' && _drawFeeInvoice.DrawFeeStatus=='692' && _wfAdditionalData.Applied=='0'))">
-                    <a *ngIf="_drawFeeInvoice.DrawFeeStatus != '696' && _drawFeeInvoice.DrawFeeStatus != '692'" (click)="DownloadInvoice()" style="cursor:pointer">{{_drawFeeInvoice.DrawFeeStatusText}}</a>
-
-                    <span *ngIf="_drawFeeInvoice.DrawFeeStatus=='696' || _drawFeeInvoice.DrawFeeStatus=='692'">{{_drawFeeInvoice.DrawFeeStatusText}} </span>
-                  </span>
-                  <!--<span *ngIf="!((_drawFeeInvoice.AutoSendInvoice=='571' && _drawFeeInvoice.DrawFeeStatus=='692') ||(_drawFeeInvoice.AutoSendInvoice=='572' && _drawFeeInvoice.DrawFeeStatus=='692' && _wfAdditionalData.Applied=='0'))">{{_drawFeeInvoice.DrawFeeStatusText}}</span>-->
-                </label>
-              </div>
-              <div class="col-sm-3" style="line-height: 36px;margin-left: 3px;">
-                <label class="lab1" *ngIf="_drawFeeInvoice.DrawFeeInvoiceDetailID!=0"><b>Invoice #:</b> <span>{{_drawFeeInvoice.InvoiceNoUI}}</span></label>
-              </div>
-              <div class="col-sm-3">
-
-                <div style="margin:0px;padding:0px;" *ngIf="rolename=='Asset Manager' && IsShowSaveAndStatusButton==true && (_drawFeeInvoice.DrawFeeStatus==0 || _drawFeeInvoice.DrawFeeStatus==692 || _drawFeeInvoice.DrawFeeStatus==696)">
-                  <button class="custombutton" (click)="CheckAndCreateCustomer()" id="btnSaveInvoice" type="submit">Save</button>
-                </div>
-                <div style="margin:0px;padding:0px;" *ngIf="rolename=='Asset Manager' && IsShowSaveAndStatusButton==true && (_drawFeeInvoice.DrawFeeStatus==0 || _drawFeeInvoice.DrawFeeStatus==692 || _drawFeeInvoice.DrawFeeStatus==696)">
-                  <button class="custombutton" (click)="enableDrawSection()">Edit</button>
-                </div>
-              </div>
+                <wj-flex-grid-column [name]="'CheckListStatus'" [header]="'Status'" [binding]="'CheckListStatusText'" [width]="150"></wj-flex-grid-column>
+                <wj-flex-grid-column [header]="'Comment'" [binding]="'Comment'" [width]="350" align="left"></wj-flex-grid-column>
+                <wj-flex-grid-column [name]="'buttons'" [header]="'Delete'" [isReadOnly]="true" align="left" [width]="100">
+                  <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
+                    <div *ngIf="cell.item.CheckListMasterId==null">
+                      <a style="text-decoration: underline;cursor:pointer" (click)="showDeleteDialog(cell.row.index)">Delete</a>
+                    </div>
+                  </ng-template>
+                </wj-flex-grid-column>
+              </wj-flex-grid>
             </div>
-
-            <div class="col-sm-12" style="margin-top:10px"></div>
-            <div class="col-sm-3">
-              <label class="lab1">Draw Fee Amount</label>
-              <!--<input class="ibox1" type="number" [(ngModel)]="_drawFeeInvoice.Amount" (change)="onChangeDrawfeeAmount()" name="Amount" #Amount="ngModel" [format]="'n2'">-->
-              <wj-input-number name="Amount" [(ngModel)]="_drawFeeInvoice.Amount" #Amount="ngModel" [isRequired]="false" class="ibox1 rightalign" [format]="'n2'"></wj-input-number>
-            </div>
-            <div class="col-sm-3">
-              <label class="lab1">Borrower First Name</label>
-              <input class="ibox1" type="text" [(ngModel)]="_drawFeeInvoice.FirstName" name="FirstName" #FirstName="ngModel">
-            </div>
-            <div class="col-sm-3">
-              <label class="lab1">Borrower Last Name</label>
-              <input class="ibox1" type="text" [(ngModel)]="_drawFeeInvoice.LastName" name="LastName" #LastName="ngModel">
-            </div>
-            <div class="col-sm-3">
-              <label class="lab1">Title</label>
-              <input class="ibox1" type="text" [(ngModel)]="_drawFeeInvoice.Designation" name="Designation" #Designation="ngModel">
-            </div>
-            <div class="col-sm-3">
-              <label class="lab1">Company Name</label>
-              <input class="ibox1" type="text" [(ngModel)]="_drawFeeInvoice.CompanyName" name="CompanyName" #CompanyName="ngModel">
-            </div>
-            <div class="col-sm-3">
-              <label class="lab1">Borrower Address</label>
-              <input class="ibox1" type="text" [(ngModel)]="_drawFeeInvoice.Address" name="Address" #Address="ngModel">
-            </div>
-            <div class="col-sm-3">
-              <label class="lab1">City</label>
-              <input class="ibox1" type="text" [(ngModel)]="_drawFeeInvoice.City" name="City" #City="ngModel">
-            </div>
-            <div class="col-sm-3">
-              <label class="lab1">State</label>
-              <select class="ibox1" [(ngModel)]="_drawFeeInvoice.StateID" #StateID="ngModel" name="StateID">
-                <option *ngFor="let state of lstStates"
-                        value={{state.StatesID}}>
-                  {{state.StatesName}}
-                </option>
-              </select>
-              <!--<input class="ibox1" type="text" [(ngModel)]="_drawFeeInvoice.State" name="State" #State="ngModel">-->
-            </div>
-            <div class="col-sm-3">
-              <label class="lab1">Zip</label>
-              <input class="ibox1" type="text" [(ngModel)]="_drawFeeInvoice.Zip" name="Zip" #Zip="ngModel">
-            </div>
-            <div class="col-sm-3">
-              <label class="lab1 display-inline">Borrower Primary Email Address(es)</label>
+            <div class="col-sm-12 col-sm-12-no-overflow">
+              <label class="lab1 display-inline">Additional Email Address(es) to Include in Capital Calls</label>
               <div class="tooltip-new">
-                <img src="../../images/info_icon.png" />
+                <img src="assets/images/info_icon.png" />
                 <span class="tooltiptext">You can input multiple comma/semicolon separated email addresses</span>
               </div>
-              <input class="ibox1" type="text" [(ngModel)]="_drawFeeInvoice.Email1" name="Email1" #Email1="ngModel">
+              <input class="ibox1" type="text" [(ngModel)]="_workflow.AdditionalEmail" name="AdditionalEmail" #AdditionalEmail="ngModel">
             </div>
-            <div class="col-sm-3">
-              <label class="lab1 display-inline">Borrower Cc Email Address(es)</label>
-              <div class="tooltip-new">
-                <img src="../../images/info_icon.png" />
-                <span class="tooltiptext">You can input multiple comma/semicolon separated email addresses. Assigned AMs and A/R will automatically be Cc’d.</span>
-              </div>
-              <input class="ibox1" type="text" [(ngModel)]="_drawFeeInvoice.Email2" name="Email2" #Email1="ngModel">
+            <div class="col-sm-12">
+              <label class="lab-special">Special Instructions</label>
+              <button class="custombutton-special" (click)="OverWriteDefaultInstruction()" type="button" *ngIf="_workflow.PurposeTypeId == 520">
+                Overwrite to Default
+              </button>
+              <textarea class="ibox1 special-inst" type="text" id="SpecialInstructions" [(ngModel)]="_workflow.SpecialInstructions" name="SpecialInstructions" #SpecialInstructions="ngModel" style="height: 84px !important;"></textarea>
+            </div>
 
-
-            </div>
-            <div class="col-sm-3">
-              <label class="lab1">Borrower Phone No.</label>
-              <input class="ibox1" type="text" [(ngModel)]="_drawFeeInvoice.PhoneNo" name="PhoneNo" #PhoneNo="ngModel">
-            </div>
-            <div class="col-sm-3">
-              <label class="lab1">Alternate Phone</label>
-              <input class="ibox1" type="text" [(ngModel)]="_drawFeeInvoice.AlternatePhone" name="AlternatePhone" #AlternatePhone="ngModel">
-            </div>
-            <div class="col-sm-9">
-              <label class="lab1">Comment (for internal reference only)</label>
-              <input class="ibox1" type="text" [(ngModel)]="_drawFeeInvoice.Comment" name="Comment" #Comment="ngModel">
+            <div class="col-sm-12">
+              <label class="lab1">Additional Comments</label>
+              <textarea class="ibox1" type="text" id="AdditionalComments" [(ngModel)]="_workflow.AdditionalComments" name="AdditionalComments" #AdditionalComments="ngModel" style="height: 84px !important"></textarea>
             </div>
 
             <!--<div class="col-sm-12">
-                        <div class="activitymodule" id="activitymodule">
-                            <table width="100%">
-            <tr>
-                <td width="20%">Auto Send Draw Fee Invoice</td>
-                <td width="60%">
-                    <div class="col-sm-3">
-                        <select class="ibox1" [(ngModel)]="_drawFeeInvoice.AutoSendInvoice" #AutoSendInvoice="ngModel"  name="AutoSendInvoice">
-                            <option value=571>Yes</option>
-                            <option value=572>No</option>
-                        </select>
-                    </div>
-                </td>
-                <td width="20%">
-                    <button class="custombutton" (click)="InsertUpdateDrawFeeInvoice()">Save</button>
-                </td>
-            </tr>
-            </table>
-
-                            <table width="100%" class="drawfee-background">
-
-                                <tr>
-                    <td width="20%"></td>
-                    <td width="60%"></td>
-                    <td width="20%">Invoice # <span>123456789</span></td>
-                </tr>
-                                <tr>
-                    <td>Draw Fee Amount</td>
-                    <td>
-                        <div class="col-sm-5">
-                            <input class="ibox1" type="text" [(ngModel)]="_drawFeeInvoice.Amount" name="Amount" #Amount="ngModel">
-                        </div>
-                    </td>
-                    <td></td>
-                </tr>
-                                <tr>
-                    <td>First Name</td>
-                    <td>
-                        <div class="col-sm-5">
-                            <input class="ibox1" type="text" [(ngModel)]="_drawFeeInvoice.FirstName" name="FirstName" #FirstName="ngModel">
-                        </div>
-                    </td>
-                    <td></td>
-                </tr>
-                <tr>
-                    <td>Last Name</td>
-                    <td>
-                        <div class="col-sm-5">
-                            <input class="ibox1" type="text" [(ngModel)]="_drawFeeInvoice.LastName" name="LastName" #LastName="ngModel">
-                        </div>
-                    </td>
-                    <td></td>
-                </tr>
-                <tr>
-                    <td>Designation</td>
-                    <td>
-                        <div class="col-sm-5">
-                            <input class="ibox1" type="text" [(ngModel)]="_drawFeeInvoice.Designation" name="Designation" #Designation="ngModel">
-                        </div>
-                    </td>
-                    <td></td>
-                </tr>
-                                <tr>
-                                    <td>Company Name</td>
-                                    <td>
-                                        <div class="col-sm-5">
-                                            <input class="ibox1" type="text" [(ngModel)]="_drawFeeInvoice.CompanyName" name="CompanyName" #CompanyName="ngModel">
-                                        </div>
-                                    </td>
-                                    <td></td>
-                                </tr>
-                                <tr>
-                                    <td>Address</td>
-                                    <td>
-                                        <div class="col-sm-5">
-                                            <input class="ibox1" type="text" [(ngModel)]="_drawFeeInvoice.Address" name="Address" #Address="ngModel">
-                                        </div>
-                                    </td>
-                                    <td></td>
-                                </tr>
-                                <tr>
-                                    <td>City</td>
-                                    <td>
-                                        <div class="col-sm-5">
-                                            <input class="ibox1" type="text" [(ngModel)]="_drawFeeInvoice.City" name="City" #City="ngModel">
-                                        </div>
-                                    </td>
-                                    <td></td>
-                                </tr>
-                                <tr>
-                                    <td>State</td>
-                                    <td>
-                                        <div class="col-sm-5">
-                                            <input class="ibox1" type="text" [(ngModel)]="_drawFeeInvoice.State" name="State" #State="ngModel">
-                                        </div>
-                                    </td>
-                                    <td></td>
-                                </tr>
-                                <tr>
-                                    <td>Zip</td>
-                                    <td>
-                                        <div class="col-sm-5">
-                                            <input class="ibox1" type="text" [(ngModel)]="_drawFeeInvoice.Zip" name="Zip" #Zip="ngModel">
-                                        </div>
-                                    </td>
-                                    <td></td>
-                                </tr>
-                                <tr>
-                                    <td>Email 1</td>
-                                    <td>
-                                        <div class="col-sm-5">
-                                            <input class="ibox1" type="text" [(ngModel)]="_drawFeeInvoice.Email1" name="Email1" #Email1="ngModel">
-                                        </div>
-                                    </td>
-                                    <td></td>
-                                </tr>
-                                <tr>
-                                    <td>Email 2</td>
-                                    <td>
-                                        <div class="col-sm-5">
-                                            <input class="ibox1" type="text" [(ngModel)]="_drawFeeInvoice.Email2" name="Email2" #Email2="ngModel">
-                                        </div>
-                                    </td>
-                                    <td></td>
-                                </tr>
-                                <tr>
-                                    <td>Phone No.</td>
-                                    <td>
-                                        <div class="col-sm-5">
-                                            <input class="ibox1" type="text" [(ngModel)]="_drawFeeInvoice.PhoneNo" name="PhoneNo" #PhoneNo="ngModel">
-                                        </div>
-                                    </td>
-                                    <td></td>
-                                </tr>
-                                <tr>
-                                    <td>Alternate Phone</td>
-                                    <td>
-                                        <div class="col-sm-5">
-                                            <input class="ibox1" type="text" [(ngModel)]="_drawFeeInvoice.AlternatePhone" name="AlternatePhone" #AlternatePhone="ngModel">
-                                        </div>
-                                    </td>
-                                    <td></td>
-                                </tr>
-                                <tr>
-                                    <td>Comment</td>
-                                    <td>
-                                        <div class="col-sm-5">
-                                            <input class="ibox1" type="text" [(ngModel)]="_drawFeeInvoice.Comment" name="Comment" #Comment="ngModel">
-                                        </div>
-                                    </td>
-                                    <td></td>
-                                </tr>
-                                <tr>
-                                    <td>Date :<a href="javascript:void(0)">Invoice Download</a></td>
-                                    <td>
-                                    </td>
-                                    <td></td>
-                                </tr>
-                            </table>
-                        </div>
-                    </div>-->
+          <label class="lab1">Comment</label>
+          <textarea class="ibox1" type="text" id="Comments" [(ngModel)]="_workflow.Comment" name="Comments" #Comments="ngModel" style="height: 84px !important"></textarea>
+      </div>-->
           </div>
         </div>
-      </div>
-      <div class="box1a">
-        <h3>Activity log</h3>
-        <div class="form-group row pD10">
-          <div class="col-sm-12">
-            <div class="activitymodule" id="activitymodule">
-              <div id="activitycontent" class="acitivitycontent" *ngFor="let comment of lstWFComments">
-                <div style="width:100% !important;float:left;" id="dbcontent" *ngIf="comment.Comment != 'Checklist updated' ">
-                  <div [ngClass]="comment.UColor">
-                    {{comment.CommentedByFirstLetter}}
-                  </div>
-                  <div class="activitymain">
-                    <div class="activityitemsummary">
-                      <span class="fontcolor" [innerHTML]="comment.DelegatedUserName"></span>
-                      <span class="fontcolor" [innerHTML]="comment.Login"></span>
-                      <span *ngIf="comment.Login != '' || comment.StatusName!=''" class="fontcolor" [innerHTML]="comment.StatusName">,</span>
-                      <span class="divtime">{{comment.CreatedDate | date: 'EEEE, MMMM d, y h:mm a'}} {{comment.Abbreviation}}</span>
-                    </div>
+        <div class="box1a" *ngIf="_isShowPropertyManager">
+          <h3>Property Manager</h3>
+          <div class="form-group row pD10">
+            <div id="propertymanagerdiv">
+              <div class="col-sm-12" style="margin-top:10px"></div>
+              <div class="col-sm-5">
+                <label class="lab-special">Email Address(es)</label>
+                <div class="tooltip-new">
+                  <img src="assets/images/info_icon.png" />
+                  <span class="tooltiptext">You can input multiple comma/semicolon separated email addresses</span>
+                </div>
+                <!--<input class="ibox1" type="number" [(ngModel)]="_drawFeeInvoice.Amount" (change)="onChangeDrawfeeAmount()" name="Amount" #Amount="ngModel" [format]="'n2'">-->
+                <input class="ibox1" type="text" [(ngModel)]="_workflow.PropertyManagerEmail" name="PropertyManagerEmail" #PropertyManagerEmail="ngModel">
+              </div>
+              <div class="col-sm-1 bnt-prop-mgr">
+                <button class="custombutton" (click)="UpdatePropertyManagerEmail()">Save</button>
+              </div>
 
-                    <div class="activityitemdescription" *ngIf="comment.Comment!= '' ">
-                      <span [innerHTML]="comment.Comment" *ngIf="comment.Comment!= 'Checklist updated' "></span>
-                      <i><span [innerHTML]="comment.Comment" *ngIf="comment.Comment == 'Checklist updated' "></span></i>
-                    </div>
-                    <div *ngIf="comment.Comment == '' ">
-                      <br />
-                    </div>
+            </div>
+          </div>
+        </div>
+        <div class="box1a" *ngIf="_isShowDrawFee">
+          <h3>Draw Fees</h3>
+          <div class="form-group row pD10">
+            <div id="drawFeeInvoicedivs" (keydown)="handleKeyDown($event)">
+              <div class="col-sm-12" style="margin-left:-6px !important;">
+                <div class="col-sm-3" style="margin-left: -8px !important;">
+                  <label class="lab1">
+                    Auto Send Draw Fee Invoice
+                    <select class="ibox2" style="width:43% !important;" [(ngModel)]="_drawFeeInvoice.AutoSendInvoice" #AutoSendInvoice="ngModel" name="AutoSendInvoice">
+                      <option value=571>Yes</option>
+                      <option value=572>No</option>
+                    </select>
+                  </label>
+                </div>
+                <div class="col-sm-3" style="line-height: 36px;margin-left: 3px;">
+                  <label class="lab1">
+                    <b>Invoice Status:</b>
+                    <span *ngIf="!((_drawFeeInvoice.AutoSendInvoice=='571' && _drawFeeInvoice.DrawFeeStatus=='692') ||(_drawFeeInvoice.AutoSendInvoice=='572' && _drawFeeInvoice.DrawFeeStatus=='692' && _wfAdditionalData.Applied=='0'))">
+                      <a *ngIf="_drawFeeInvoice.DrawFeeStatus != '696' && _drawFeeInvoice.DrawFeeStatus != '692'" (click)="DownloadInvoice()" style="cursor:pointer">{{_drawFeeInvoice.DrawFeeStatusText}}</a>
+
+                      <span *ngIf="_drawFeeInvoice.DrawFeeStatus=='696' || _drawFeeInvoice.DrawFeeStatus=='692'">{{_drawFeeInvoice.DrawFeeStatusText}} </span>
+                    </span>
+                    <!--<span *ngIf="!((_drawFeeInvoice.AutoSendInvoice=='571' && _drawFeeInvoice.DrawFeeStatus=='692') ||(_drawFeeInvoice.AutoSendInvoice=='572' && _drawFeeInvoice.DrawFeeStatus=='692' && _wfAdditionalData.Applied=='0'))">{{_drawFeeInvoice.DrawFeeStatusText}}</span>-->
+                  </label>
+                </div>
+                <div class="col-sm-3" style="line-height: 36px;margin-left: 3px;">
+                  <label class="lab1" *ngIf="_drawFeeInvoice.DrawFeeInvoiceDetailID!=0"><b>Invoice #:</b> <span>{{_drawFeeInvoice.InvoiceNoUI}}</span></label>
+                </div>
+                <div class="col-sm-3">
+                  <!--<div style="margin:0px;padding:0px;" *ngIf="rolename=='Asset Manager' && IsShowSaveAndStatusButton==true && (_drawFeeInvoice.DrawFeeStatus==0 || _drawFeeInvoice.DrawFeeStatus==692 || _drawFeeInvoice.DrawFeeStatus==696)">
+              <button class="custombutton" (click)="UpdateSponsorDetailFromBackshop()" id="btnRefresh" type="submit">Refresh</button>
+            </div>-->
+                  <div style="margin:0px;padding:0px;" *ngIf="rolename=='Asset Manager' && IsShowSaveAndStatusButton==true && (_drawFeeInvoice.DrawFeeStatus==0 || _drawFeeInvoice.DrawFeeStatus==692 || _drawFeeInvoice.DrawFeeStatus==696)">
+                    <button class="custombutton" (click)="CheckAndCreateCustomer()" id="btnSaveInvoice" type="submit">Save</button>
+                  </div>
+                  <div style="margin:0px;padding:0px;" *ngIf="rolename=='Asset Manager' && IsShowSaveAndStatusButton==true && (_drawFeeInvoice.DrawFeeStatus==0 || _drawFeeInvoice.DrawFeeStatus==692 || _drawFeeInvoice.DrawFeeStatus==696)">
+                    <button class="custombutton" (click)="enableDrawSection()">Edit</button>
                   </div>
                 </div>
+              </div>
+
+              <div class="col-sm-12" style="margin-top:10px"></div>
+              <div class="col-sm-3">
+                <label class="lab1">Draw Fee Amount</label>
+                <!--<input class="ibox1" type="number" [(ngModel)]="_drawFeeInvoice.Amount" (change)="onChangeDrawfeeAmount()" name="Amount" #Amount="ngModel" [format]="'n2'">-->
+                <wj-input-number name="Amount" [(ngModel)]="_drawFeeInvoice.Amount" #Amount="ngModel" [isRequired]="false" class="ibox1 rightalign" [format]="'n2'"></wj-input-number>
+              </div>
+              <!--<div class="col-sm-3">
+          <label class="lab1">Borrower Name</label>
+          <input class="ibox1" type="text" [(ngModel)]="_drawFeeInvoice.FirstName" name="FirstName" #FirstName="ngModel" [attr.disabled]="true">
+        </div>-->
+              <div class="col-sm-3">
+                <label class="lab1">Borrower First Name</label>
+                <input class="ibox1" type="text" [(ngModel)]="_drawFeeInvoice.FirstName" name="FirstName" #FirstName="ngModel">
+              </div>
+              <div class="col-sm-3">
+                <label class="lab1">Borrower Last Name</label>
+                <input class="ibox1" type="text" [(ngModel)]="_drawFeeInvoice.LastName" name="LastName" #LastName="ngModel">
+              </div>
+              <div class="col-sm-3">
+                <label class="lab1">Title</label>
+                <input class="ibox1" type="text" [(ngModel)]="_drawFeeInvoice.Designation" name="Designation" #Designation="ngModel">
+              </div>
+              <div class="clearfix"></div>
+              <div class="col-sm-3">
+                <label class="lab1">Company Name</label>
+                <input class="ibox1" type="text" [(ngModel)]="_drawFeeInvoice.CompanyName" name="CompanyName" #CompanyName="ngModel">
+              </div>
+              <div class="col-sm-3">
+                <label class="lab1">Borrower Address</label>
+                <input class="ibox1" type="text" [(ngModel)]="_drawFeeInvoice.Address" name="Address" #Address="ngModel">
+              </div>
+              <div class="col-sm-3">
+                <label class="lab1">City</label>
+                <input class="ibox1" type="text" [(ngModel)]="_drawFeeInvoice.City" name="City" #City="ngModel">
+              </div>
+              <div class="col-sm-3">
+                <label class="lab1">State</label>
+                <select class="ibox1" [(ngModel)]="_drawFeeInvoice.StateID" #StateID="ngModel" name="StateID">
+                  <option *ngFor="let state of lstStates"
+                          value={{state.StatesID}}>
+                    {{state.StatesName}}
+                  </option>
+                </select>
+                <!--<input class="ibox1" type="text" [(ngModel)]="_drawFeeInvoice.State" name="State" #State="ngModel">-->
+              </div>
+              <div class="col-sm-3">
+                <label class="lab1">Zip</label>
+                <input class="ibox1" type="text" [(ngModel)]="_drawFeeInvoice.Zip" name="Zip" #Zip="ngModel">
+              </div>
+              <div class="col-sm-3">
+                <label class="lab1 display-inline">Borrower Primary Email Address(es)</label>
+                <div class="tooltip-new">
+                  <img src="assets/images/info_icon.png" />
+                  <span class="tooltiptext">You can input multiple comma/semicolon separated email addresses</span>
+                </div>
+                <input class="ibox1" type="text" [(ngModel)]="_drawFeeInvoice.Email1" name="Email1" #Email1="ngModel" [attr.disabled]="true">
+              </div>
+
+              <div class="col-sm-3">
+                <label class="lab1 display-inline">Borrower Cc Email Address(es)</label>
+                <div class="tooltip-new">
+                  <img src="assets/images/info_icon.png" />
+                  <span class="tooltiptext">You can input multiple comma/semicolon separated email addresses. Assigned AMs and A/R will automatically be Cc’d.</span>
+                </div>
+                <input class="ibox1" type="text" [(ngModel)]="_drawFeeInvoice.Email2" name="Email2" #Email1="ngModel">
+
+
+              </div>
+              <div class="col-sm-3">
+                <label class="lab1">Borrower Phone No.</label>
+                <input class="ibox1" type="text" [(ngModel)]="_drawFeeInvoice.PhoneNo" name="PhoneNo" #PhoneNo="ngModel">
+              </div>
+              <div class="col-sm-3">
+                <label class="lab1">Alternate Phone</label>
+                <input class="ibox1" type="text" [(ngModel)]="_drawFeeInvoice.AlternatePhone" name="AlternatePhone" #AlternatePhone="ngModel">
+              </div>
+              <div class="col-sm-9">
+                <label class="lab1">Comment (for internal reference only)</label>
+                <input class="ibox1" type="text" [(ngModel)]="_drawFeeInvoice.Comment" name="Comment" #Comment="ngModel">
+              </div>
+
+              <!--<div class="col-sm-12">
+                    <div class="activitymodule" id="activitymodule">
+                        <table width="100%">
+        <tr>
+            <td width="20%">Auto Send Draw Fee Invoice</td>
+            <td width="60%">
+                <div class="col-sm-3">
+                    <select class="ibox1" [(ngModel)]="_drawFeeInvoice.AutoSendInvoice" #AutoSendInvoice="ngModel"  name="AutoSendInvoice">
+                        <option value=571>Yes</option>
+                        <option value=572>No</option>
+                    </select>
+                </div>
+            </td>
+            <td width="20%">
+                <button class="custombutton" (click)="InsertUpdateDrawFeeInvoice()">Save</button>
+            </td>
+        </tr>
+        </table>
+
+                        <table width="100%" class="drawfee-background">
+
+                            <tr>
+                <td width="20%"></td>
+                <td width="60%"></td>
+                <td width="20%">Invoice # <span>123456789</span></td>
+            </tr>
+                            <tr>
+                <td>Draw Fee Amount</td>
+                <td>
+                    <div class="col-sm-5">
+                        <input class="ibox1" type="text" [(ngModel)]="_drawFeeInvoice.Amount" name="Amount" #Amount="ngModel">
+                    </div>
+                </td>
+                <td></td>
+            </tr>
+                            <tr>
+                <td>First Name</td>
+                <td>
+                    <div class="col-sm-5">
+                        <input class="ibox1" type="text" [(ngModel)]="_drawFeeInvoice.FirstName" name="FirstName" #FirstName="ngModel">
+                    </div>
+                </td>
+                <td></td>
+            </tr>
+            <tr>
+                <td>Last Name</td>
+                <td>
+                    <div class="col-sm-5">
+                        <input class="ibox1" type="text" [(ngModel)]="_drawFeeInvoice.LastName" name="LastName" #LastName="ngModel">
+                    </div>
+                </td>
+                <td></td>
+            </tr>
+            <tr>
+                <td>Designation</td>
+                <td>
+                    <div class="col-sm-5">
+                        <input class="ibox1" type="text" [(ngModel)]="_drawFeeInvoice.Designation" name="Designation" #Designation="ngModel">
+                    </div>
+                </td>
+                <td></td>
+            </tr>
+                            <tr>
+                                <td>Company Name</td>
+                                <td>
+                                    <div class="col-sm-5">
+                                        <input class="ibox1" type="text" [(ngModel)]="_drawFeeInvoice.CompanyName" name="CompanyName" #CompanyName="ngModel">
+                                    </div>
+                                </td>
+                                <td></td>
+                            </tr>
+                            <tr>
+                                <td>Address</td>
+                                <td>
+                                    <div class="col-sm-5">
+                                        <input class="ibox1" type="text" [(ngModel)]="_drawFeeInvoice.Address" name="Address" #Address="ngModel">
+                                    </div>
+                                </td>
+                                <td></td>
+                            </tr>
+                            <tr>
+                                <td>City</td>
+                                <td>
+                                    <div class="col-sm-5">
+                                        <input class="ibox1" type="text" [(ngModel)]="_drawFeeInvoice.City" name="City" #City="ngModel">
+                                    </div>
+                                </td>
+                                <td></td>
+                            </tr>
+                            <tr>
+                                <td>State</td>
+                                <td>
+                                    <div class="col-sm-5">
+                                        <input class="ibox1" type="text" [(ngModel)]="_drawFeeInvoice.State" name="State" #State="ngModel">
+                                    </div>
+                                </td>
+                                <td></td>
+                            </tr>
+                            <tr>
+                                <td>Zip</td>
+                                <td>
+                                    <div class="col-sm-5">
+                                        <input class="ibox1" type="text" [(ngModel)]="_drawFeeInvoice.Zip" name="Zip" #Zip="ngModel">
+                                    </div>
+                                </td>
+                                <td></td>
+                            </tr>
+                            <tr>
+                                <td>Email 1</td>
+                                <td>
+                                    <div class="col-sm-5">
+                                        <input class="ibox1" type="text" [(ngModel)]="_drawFeeInvoice.Email1" name="Email1" #Email1="ngModel">
+                                    </div>
+                                </td>
+                                <td></td>
+                            </tr>
+                            <tr>
+                                <td>Email 2</td>
+                                <td>
+                                    <div class="col-sm-5">
+                                        <input class="ibox1" type="text" [(ngModel)]="_drawFeeInvoice.Email2" name="Email2" #Email2="ngModel">
+                                    </div>
+                                </td>
+                                <td></td>
+                            </tr>
+                            <tr>
+                                <td>Phone No.</td>
+                                <td>
+                                    <div class="col-sm-5">
+                                        <input class="ibox1" type="text" [(ngModel)]="_drawFeeInvoice.PhoneNo" name="PhoneNo" #PhoneNo="ngModel">
+                                    </div>
+                                </td>
+                                <td></td>
+                            </tr>
+                            <tr>
+                                <td>Alternate Phone</td>
+                                <td>
+                                    <div class="col-sm-5">
+                                        <input class="ibox1" type="text" [(ngModel)]="_drawFeeInvoice.AlternatePhone" name="AlternatePhone" #AlternatePhone="ngModel">
+                                    </div>
+                                </td>
+                                <td></td>
+                            </tr>
+                            <tr>
+                                <td>Comment</td>
+                                <td>
+                                    <div class="col-sm-5">
+                                        <input class="ibox1" type="text" [(ngModel)]="_drawFeeInvoice.Comment" name="Comment" #Comment="ngModel">
+                                    </div>
+                                </td>
+                                <td></td>
+                            </tr>
+                            <tr>
+                                <td>Date :<a href="javascript:void(0)">Invoice Download</a></td>
+                                <td>
+                                </td>
+                                <td></td>
+                            </tr>
+                        </table>
+                    </div>
+                </div>-->
+            </div>
+          </div>
+        </div>
+        <div class="box1a" *ngIf="_isShowPayOffFields">
+          <h3>Full Payoff Fees</h3>
+          <div class="form-group row pD10">
+            <div id="payoffdiv">
+              <div class="col-sm-12" style="margin-top:10px"></div>
+              <div class="col-sm-3">
+                <label class="lab1">Prepayment Premium</label>
+                <!--<input class="ibox1" type="number" [(ngModel)]="_drawFeeInvoice.Amount" (change)="onChangeDrawfeeAmount()" name="Amount" #Amount="ngModel" [format]="'n2'">-->
+                <wj-input-number name="PrepayPremium" [(ngModel)]="_workflow.PrepayPremium" #PrepayPremium="ngModel" [isRequired]="false" class="ibox1 rightalign" [format]="'n2'" [min]="0.0"></wj-input-number>
+              </div>
+              <div class="col-sm-3">
+                <label class="lab1">Exit Fee</label>
+                <wj-input-number name="ExitFee" [(ngModel)]="_workflow.ExitFee" #ExitFee="ngModel" [isRequired]="false" class="ibox1 rightalign" [format]="'n2'" [min]="0.0"></wj-input-number>
+              </div>
+              <div class="col-sm-3">
+                <label class="lab1">Exit Fee %</label>
+                <wj-input-number name="ExitFeePercentage" [(ngModel)]="_workflow.ExitFeePercentage" #ExitFeePercentage="ngModel" [isRequired]="false" class="ibox1 rightalign" [format]="'p9'" [min]="0.0" [max]="1.00"></wj-input-number>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="box1a">
+          <h3>Activity Log</h3>
+          <div class="form-group row pD10">
+            <div class="col-sm-12">
+              <div class="activitymodule" id="activitymodule">
+                <div id="activitycontent" class="acitivitycontent" *ngFor="let comment of lstWFComments">
+                  <div style="width:100% !important;float:left;" id="dbcontent" *ngIf="comment.Comment != 'Checklist updated' ">
+                    <div [ngClass]="comment.UColor">
+                      {{comment.CommentedByFirstLetter}}
+                    </div>
+                    <div class="activitymain">
+                      <div class="activityitemsummary">
+                        <span class="fontcolor" [innerHTML]="comment.DelegatedUserName"></span>
+                        <span class="fontcolor" [innerHTML]="comment.Login"></span>
+                        <span *ngIf="comment.Login != '' || comment.StatusName!=''" class="fontcolor activity-mar" [innerHTML]="comment.StatusName">,</span>
+                        <span class="divtime activity-mar">{{comment.CreatedDate | date: 'EEEE, MMMM d, y h:mm a'}} {{comment.Abbreviation}}</span>
+                      </div>
+
+                      <div class="activityitemdescription" *ngIf="comment.Comment!= '' ">
+                        <span [innerHTML]="comment.Comment" *ngIf="comment.Comment!= 'Checklist updated' "></span>
+                        <i><span [innerHTML]="comment.Comment" *ngIf="comment.Comment == 'Checklist updated' "></span></i>
+                      </div>
+                      <div *ngIf="comment.Comment == '' ">
+                        <br />
+                      </div>
+                    </div>
+                  </div>
+
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!--Pop up for delete-->
+        <div id="myModalDelete" class="modal">
+          <div class="modal-dialog" draggable="true" id="myModal-Delete" style="min-height:300px;width:500px">
+            <!-- Modal content -->
+            <div class="modal-content" style="padding:0px;border:0px;">
+              <div class="modal-header" style="background:#2196f3 !important">
+                <span class="customheading" style="color:white !important">Delete check list item</span>
+                <span class="close" (click)="CloseDeletePopUp()">×</span>
+              </div>
+
+              <div class="modal-body">
+                <span class="customheading">Are you sure you want to delete it?</span>
+
+              </div>
+              <div class="modal-footer" style="background-color:white !important;">
+                <button type="button" (click)="CloseDeletePopUp()" class="custombutton" style="width:100px !important">Cancel</button>
+                <button type="button" (click)="deleteRow()" class="custombutton" style="width:100px !important">Ok</button>
+              </div>
+
+
+            </div>
+          </div>
+        </div>
+        <div id="myModalWFNotification" class="modal">
+          <div class="modal-dialog" id="myModal-CreateRole" style="min-height:300px;width:70%;">
+            <!-- Modal content -->
+            <div class="modal-content" style="padding:0px;border:0px;">
+              <div class="modal-header" style="background:#2196f3 !important">
+                <span class="customheading" style="color:white !important">{{_notificationTittle}}</span>
+                <button type="button" (click)="CloseWFNotificationDialogWithConfirm()" class="custombuttonGrey" style="width:100px !important" id="btnCancelNotification">Cancel</button>
+                <button type="button" class="custombuttonGreen" style="width:100px !important" (click)="SendWFNotificationWithTimeZone('EST')" *ngIf="isShowSendButton">Send</button>
+                <!--<span class="close" (click)="CloseWFNotificationDialog()">×</span>-->
+              </div>
+
+              <div class="modal-body">
+                <!--<div *ngIf="_alertinfodiv" class="alert alert-info fade in">
+      <strong>{{_alertinfomessage}}</strong>
+  </div>
+  <div *ngIf="_ShowSuccessmessageRolediv" class="alert alert-success fade in">
+      <strong>{{_ShowSuccessRolemessage}}</strong>
+  </div>-->
+                <div *ngIf="_IsShowMsg" class="alert alert-warning fade in">
+                  <strong>{{_MsgText}}</strong>
+                </div>
+
+                <label class="lab1 margin-btm-zero">To:</label>
+                <textarea style="font-family: inherit;font-size: inherit;resize:vertical;overflow:auto;" class="ibox1 margin-btm-5" id="EmailToIds" [attr.disabled]="true" [(ngModel)]="_wfNotificationDetail.EmailToIds" name="EmailToIds" #EmailToIds="ngModel"></textarea>
+
+                <label class="lab1 margin-btm-zero">CC:</label>
+                <textarea style="font-family: inherit;font-size: inherit;resize:vertical;overflow:auto;" class="ibox1 margin-btm-5" id="EmailCCIds" [attr.disabled]="_CanChangeRecipientList === false ? 'disabled' : null" [(ngModel)]="_wfNotificationDetail.EmailCCIds" name="EmailCCIds" #EmailCCIds="ngModel"></textarea>
+                <label class="lab1 margin-btm-zero">Subject:</label>
+                <textarea style="font-family: inherit;font-size: inherit;resize:vertical;overflow:auto;" class="ibox1 margin-btm-5" id="Subject" [attr.disabled]="true" [(ngModel)]="_wfNotificationDetail.Subject" name="Subject" #subject="ngModel"></textarea>
+                <!--<label class="lab1 margin-btm-zero">Header:</label>
+  <textarea style="font-family: inherit;font-size: inherit;resize:vertical;overflow:auto;" class="ibox1 input-lg margin-btm-5" rows="5" cols="60" name="WFHeader" id="WFHeader" [attr.disabled]="_CanChangeHeader === false ? 'disabled' : null" [(ngModel)]="_wfNotificationDetail.WFHeader" #WFHeader="ngModel" draggable="false"></textarea>-->
+
+                <label class="lab1 margin-btm-zero" *ngIf="_wfAdditionalData.RevisedMessage != undefined && _wfAdditionalData.RevisedMessage != '' && (notificatio_type==_RevisedPreliminary || notificatio_type==_RevisedFinal)">Revised Instructions:</label>
+                <textarea *ngIf="_wfAdditionalData.RevisedMessage != undefined && _wfAdditionalData.RevisedMessage != '' && (notificatio_type==_RevisedPreliminary || notificatio_type==_RevisedFinal)" style="font-family: inherit;font-size: inherit;resize:vertical;overflow:auto;" class="ibox1 input-lg margin-btm-5 special-inst" rows="3" cols="60" name="RevisedMessage" id="RevisedMessage" [attr.disabled]="true" [(ngModel)]="_wfAdditionalData.RevisedMessage" #RevisedMessage="ngModel" draggable="false"></textarea>
+                <label class="lab1 margin-btm-zero" *ngIf="_workflow.SpecialInstructions != undefined && _workflow.SpecialInstructions != '' && (notificatio_type==_RevisedPreliminary || notificatio_type==_RevisedFinal)">Special Instructions:</label>
+                <textarea *ngIf="_workflow.SpecialInstructions != undefined && _workflow.SpecialInstructions != ''" style="font-family: inherit;font-size: inherit;resize:vertical;overflow:auto;" class="ibox1 input-lg margin-btm-5 special-inst" rows="5" cols="60" name="SpecialInstructions" id="SpecialInstructions" [attr.disabled]="true" [(ngModel)]="_workflow.SpecialInstructions" #SpecialInstructions="ngModel" draggable="false"></textarea>
+                <label class="lab1 margin-btm-zero">Body:</label>
+                <textarea style="font-family: inherit;font-size: inherit;resize:vertical;overflow:auto;" class="ibox1 input-lg margin-btm-5" rows="5" cols="60" name="WFBody" id="WFBody" [attr.disabled]="_CanChangeBody === false ? 'disabled' : null" [(ngModel)]="_wfNotificationDetail.WFBody" #WFBody="ngModel" draggable="false"></textarea>
+                <label class="lab1 margin-btm-zero" *ngIf="_workflow.TaskTypeID==502 && this.noteswithAmount!=''">Note Details:</label>
+                <div class="margin-btm-5" [innerHTML]="trustedNoteDetail" *ngIf="_workflow.TaskTypeID==502"></div>
+                <label class="lab1 margin-btm-zero" *ngIf="_workflow.AdditionalComments != undefined && _workflow.AdditionalComments != ''">Additional Comments:</label>
+                <textarea *ngIf="_workflow.AdditionalComments != undefined && _workflow.AdditionalComments != ''" style="font-family: inherit;font-size: inherit;resize:vertical;overflow:auto;" class="ibox1 input-lg margin-btm-5" rows="5" cols="60" name="AdditionalComments" id="AdditionalComments" [attr.disabled]="true" [(ngModel)]="_workflow.AdditionalComments" #AdditionalComments="ngModel" draggable="false"></textarea>
+                <label class="lab1 margin-btm-zero" *ngIf="_isShowChecklist">Checklist Detail:</label>
+                <div class="margin-btm-5" [innerHTML]="sanitizer.bypassSecurityTrustHtml(checklistInTable)" *ngIf="_isShowChecklist"></div>
+                <div *ngIf="_workflow.TaskTypeID==502 && noteswithAllocationAmount != undefined && noteswithAllocationAmount != ''
+        && delphinoteswithAmount != undefined && delphinoteswithAmount != ''">
+                  <label class="lab1 margin-btm-zero" >Allocation Amount:</label>
+                  <div class="margin-btm-5" [innerHTML]="noteswithAllocationAmount" *ngIf="_workflow.TaskTypeID==502 && _wflstNoteAllocationAmount.length>0" id="dvAllocationAmount"></div>
+                </div>
+                <div *ngIf="_workflow.TaskTypeID==502 && noteswithAllocationPercentage != undefined && noteswithAllocationPercentage != ''
+        && delphinoteswithAmount != undefined && delphinoteswithAmount != ''">
+                  <label class="lab1 margin-btm-zero" >Allocation Percentage:</label>
+                  <div class="margin-btm-5" [innerHTML]="noteswithAllocationPercentage" *ngIf="_workflow.TaskTypeID==502" id="dvAllocationPercentage"></div>
+                </div>
+
+                <label class="lab1 margin-btm-zero">Footer:</label>
+                <textarea style="font-family: inherit;font-size: inherit;resize:vertical;overflow:auto;" class="ibox1 input-lg margin-btm-5" rows="5" cols="60" name="WFFooter" id="WFFooter" [attr.disabled]="_CanChangeFooter === false ? 'disabled' : null" [(ngModel)]="_wfNotificationDetail.WFFooter" #WFFooter="ngModel" draggable="false"></textarea>
 
               </div>
             </div>
           </div>
         </div>
-      </div>
+        <div id="myModalWFNotificationForNegativeAmt" class="modal">
+          <div class="modal-dialog" id="myModal-CreateRole" style="min-height:300px;width:70%;">
+            <!-- Modal content -->
+            <div class="modal-content" style="padding:0px;border:0px;">
+              <div class="modal-header" style="background:#2196f3 !important">
+                <span class="customheading" style="color:white !important">{{_notificationTittle}}</span>
+                <button type="button" (click)="CloseWFNotificationDialogForNegativeAmtWithConfirm()" class="custombuttonGrey" style="width:100px !important" id="btnCancelNotificationForNegativeAmt">Cancel</button>
+                <button type="button" class="custombuttonGreen" style="width:100px !important" (click)="SendWFNotificationForNegativeAmt()">Send</button>
+                <!--<span class="close" (click)="CloseWFNotificationDialog()">×</span>-->
+              </div>
 
-      <!--Pop up for delete-->
-      <div id="myModalDelete" class="modal">
-        <div class="modal-dialog" draggable="true" id="myModal-Delete" style="min-height:300px;width:500px">
-          <!-- Modal content -->
-          <div class="modal-content" style="padding:0px;border:0px;">
-            <div class="modal-header" style="background:#2196f3 !important">
-              <span class="customheading" style="color:white !important">Delete check list item</span>
-              <span class="close" (click)="CloseDeletePopUp()">×</span>
+              <div class="modal-body">
+                <!--<div *ngIf="_alertinfodiv" class="alert alert-info fade in">
+              <strong>{{_alertinfomessage}}</strong>
+          </div>
+          <div *ngIf="_ShowSuccessmessageRolediv" class="alert alert-success fade in">
+              <strong>{{_ShowSuccessRolemessage}}</strong>
+          </div>-->
+                <div *ngIf="_IsShowMsg" class="alert alert-warning fade in">
+                  <strong>{{_MsgText}}</strong>
+                </div>
+
+                <label class="lab1 margin-btm-zero">To:</label>
+                <textarea style="font-family: inherit;font-size: inherit;resize:vertical;overflow:auto;" class="ibox1 margin-btm-5" id="EmailToIdsN" [attr.disabled]="true" [(ngModel)]="_wfNotificationDetail.EmailToIds" name="EmailToIdsN" #EmailToIds="ngModel"></textarea>
+
+                <label class="lab1 margin-btm-zero">CC:</label>
+                <textarea style="font-family: inherit;font-size: inherit;resize:vertical;overflow:auto;" class="ibox1 margin-btm-5" id="EmailCCIdsN" [attr.disabled]="_CanChangeRecipientList === false ? 'disabled' : null" [(ngModel)]="_wfNotificationDetail.EmailCCIds" name="EmailCCIdsN" #EmailCCIdsN="ngModel"></textarea>
+                <label class="lab1 margin-btm-zero">Subject:</label>
+                <textarea style="font-family: inherit;font-size: inherit;resize:vertical;overflow:auto;" class="ibox1 margin-btm-5" id="SubjectN" [attr.disabled]="true" [(ngModel)]="_wfNotificationDetail.Subject" name="SubjectN" #subject="ngModel"></textarea>
+                <!--<label class="lab1 margin-btm-zero">Header:</label>
+          <textarea style="font-family: inherit;font-size: inherit;resize:vertical;overflow:auto;" class="ibox1 input-lg margin-btm-5" rows="5" cols="60" name="WFHeader" id="WFHeader" [attr.disabled]="_CanChangeHeader === false ? 'disabled' : null" [(ngModel)]="_wfNotificationDetail.WFHeader" #WFHeader="ngModel" draggable="false"></textarea>-->
+                <label class="lab1 margin-btm-zero" *ngIf="_wfAdditionalData.RevisedMessage != undefined && _wfAdditionalData.RevisedMessage != '' && (notificatio_type==_RevisedPreliminary || notificatio_type==_RevisedFinal)">Revised Instructions:</label>
+                <textarea *ngIf="_wfAdditionalData.RevisedMessage != undefined && _wfAdditionalData.RevisedMessage != '' && (notificatio_type==_RevisedPreliminary || notificatio_type==_RevisedFinal)" style="font-family: inherit;font-size: inherit;resize:vertical;overflow:auto;" class="ibox1 input-lg margin-btm-5 special-inst" rows="3" cols="60" name="RevisedMessage" id="RevisedMessage" [attr.disabled]="true" [(ngModel)]="_wfAdditionalData.RevisedMessage" #RevisedMessage="ngModel" draggable="false"></textarea>
+                <label class="lab1 margin-btm-zero" *ngIf="_workflow.SpecialInstructions != undefined && _workflow.SpecialInstructions != ''">Special Instructions:</label>
+                <textarea *ngIf="_workflow.SpecialInstructions != undefined && _workflow.SpecialInstructions != ''" style="font-family: inherit;font-size: inherit;resize:vertical;overflow:auto;" class="ibox1 input-lg margin-btm-5 special-inst" rows="5" cols="60" name="SpecialInstructionsN" id="SpecialInstructionsN" [attr.disabled]="true" [(ngModel)]="_workflow.SpecialInstructions" #SpecialInstructionsN="ngModel" draggable="false"></textarea>
+                <label class="lab1 margin-btm-zero">Body:</label>
+                <textarea style="font-family: inherit;font-size: inherit;resize:vertical;overflow:auto;" class="ibox1 input-lg margin-btm-5" rows="5" cols="60" name="WFBodyN" id="WFBodyN" [attr.disabled]="_CanChangeBody === false ? 'disabled' : null" [(ngModel)]="_wfNotificationDetail.WFBody" #WFBodyN="ngModel" draggable="false"></textarea>
+                <div class="margin-btm-5" [innerHTML]="trustedPayOffDetail" *ngIf="_workflow.PurposeTypeId==630"></div>
+                <label class="lab1 margin-btm-zero" *ngIf="_workflow.AdditionalComments != undefined && _workflow.AdditionalComments != ''">Additional Comments:</label>
+                <textarea *ngIf="_workflow.AdditionalComments != undefined && _workflow.AdditionalComments != ''" style="font-family: inherit;font-size: inherit;resize:vertical;overflow:auto;" class="ibox1 input-lg margin-btm-5" rows="5" cols="60" name="AdditionalCommentsN" id="AdditionalCommentsN" [attr.disabled]="true" [(ngModel)]="_workflow.AdditionalComments" #AdditionalCommentsN="ngModel" draggable="false"></textarea>
+                <label class="lab1 margin-btm-zero">Footer:</label>
+                <textarea style="font-family: inherit;font-size: inherit;resize:vertical;overflow:auto;" class="ibox1 input-lg margin-btm-5" rows="5" cols="60" name="WFFooterN" id="WFFooterN" [attr.disabled]="_CanChangeFooter === false ? 'disabled' : null" [(ngModel)]="_wfNotificationDetail.WFFooter" #WFFooterN="ngModel" draggable="false"></textarea>
+
+              </div>
             </div>
-
-            <div class="modal-body">
-              <span class="customheading">Are you sure you want to delete it?</span>
-
-            </div>
-            <div class="modal-footer" style="background-color:white !important;">
-              <button type="button" (click)="CloseDeletePopUp()" class="custombutton" style="width:100px !important">Cancel</button>
-              <button type="button" (click)="deleteRow()" class="custombutton" style="width:100px !important">Ok</button>
-            </div>
-
-
           </div>
         </div>
-      </div>
-      <div id="myModalWFNotification" class="modal">
-        <div class="modal-dialog" id="myModal-CreateRole" style="min-height:300px;width:70%;">
-          <!-- Modal content -->
-          <div class="modal-content" style="padding:0px;border:0px;">
-            <div class="modal-header" style="background:#2196f3 !important">
-              <span class="customheading" style="color:white !important">{{_notificationTittle}}</span>
-              <button type="button" (click)="CloseWFNotificationDialogWithConfirm()" class="custombuttonGrey" style="width:100px !important" id="btnCancelNotification">Cancel</button>
-              <button type="button" class="custombuttonGreen" style="width:100px !important" (click)="SendWFNotificationWithTimeZone('EST')" *ngIf="isShowSendButton">Send</button>
-              <!--<span class="close" (click)="CloseWFNotificationDialog()">×</span>-->
-            </div>
-
-            <div class="modal-body">
-              <!--<div *ngIf="_alertinfodiv" class="alert alert-info fade in">
-                  <strong>{{_alertinfomessage}}</strong>
-              </div>
-              <div *ngIf="_ShowSuccessmessageRolediv" class="alert alert-success fade in">
-                  <strong>{{_ShowSuccessRolemessage}}</strong>
-              </div>-->
-              <div *ngIf="_IsShowMsg" class="alert alert-warning fade in">
-                <strong>{{_MsgText}}</strong>
+        <div id="myModalCompleteViaScript" class="modal">
+          <div class="modal-dialog" draggable="true" id="myModal-CompleteViaScript" style="min-height:300px;width:500px">
+            <!-- Modal content -->
+            <div class="modal-content" style="padding:0px;border:0px;">
+              <div class="modal-header" style="background:#2196f3 !important">
+                <span class="customheading" style="color:white !important">Complete workflow</span>
+                <span class="close" (click)="CloseCompleteViaScriptPopUp()">×</span>
               </div>
 
-              <label class="lab1 margin-btm-zero">To:</label>
-              <textarea style="font-family: inherit;font-size: inherit;resize:vertical;overflow:auto;" class="ibox1 margin-btm-5" id="EmailToIds" [attr.disabled]="true" [(ngModel)]="_wfNotificationDetail.EmailToIds" name="EmailToIds" #EmailToIds="ngModel"></textarea>
+              <div class="modal-body">
+                <span class="customheading">Are you sure you want to mark this draw as completed?</span>
 
-              <label class="lab1 margin-btm-zero">CC:</label>
-              <textarea style="font-family: inherit;font-size: inherit;resize:vertical;overflow:auto;" class="ibox1 margin-btm-5" id="EmailCCIds" [attr.disabled]="_CanChangeRecipientList === false ? 'disabled' : null" [(ngModel)]="_wfNotificationDetail.EmailCCIds" name="EmailCCIds" #EmailCCIds="ngModel"></textarea>
-              <label class="lab1 margin-btm-zero">Subject:</label>
-              <textarea style="font-family: inherit;font-size: inherit;resize:vertical;overflow:auto;" class="ibox1 margin-btm-5" id="Subject" [attr.disabled]="true" [(ngModel)]="_wfNotificationDetail.Subject" name="Subject" #subject="ngModel"></textarea>
-              <!--<label class="lab1 margin-btm-zero">Header:</label>
-              <textarea style="font-family: inherit;font-size: inherit;resize:vertical;overflow:auto;" class="ibox1 input-lg margin-btm-5" rows="5" cols="60" name="WFHeader" id="WFHeader" [attr.disabled]="_CanChangeHeader === false ? 'disabled' : null" [(ngModel)]="_wfNotificationDetail.WFHeader" #WFHeader="ngModel" draggable="false"></textarea>-->
+              </div>
+              <div class="modal-footer" style="background-color:white !important;">
+                <button type="button" (click)="CloseCompleteViaScriptPopUp()" class="custombutton" style="width:100px !important">Cancel</button>
+                <button type="button" (click)="CompleteWorkflowViaScript()" class="custombutton" style="width:100px !important">Ok</button>
+              </div>
 
-              <label class="lab1 margin-btm-zero" *ngIf="_workflow.SpecialInstructions != undefined && _workflow.SpecialInstructions != ''">Special Instructions:</label>
-              <textarea *ngIf="_workflow.SpecialInstructions != undefined && _workflow.SpecialInstructions != ''" style="font-family: inherit;font-size: inherit;resize:vertical;overflow:auto;" class="ibox1 input-lg margin-btm-5 special-inst" rows="5" cols="60" name="SpecialInstructions" id="SpecialInstructions" [attr.disabled]="true" [(ngModel)]="_workflow.SpecialInstructions" #SpecialInstructions="ngModel" draggable="false"></textarea>
-              <label class="lab1 margin-btm-zero">Body:</label>
-              <textarea style="font-family: inherit;font-size: inherit;resize:vertical;overflow:auto;" class="ibox1 input-lg margin-btm-5" rows="5" cols="60" name="WFBody" id="WFBody" [attr.disabled]="_CanChangeBody === false ? 'disabled' : null" [(ngModel)]="_wfNotificationDetail.WFBody" #WFBody="ngModel" draggable="false"></textarea>
-              <label class="lab1 margin-btm-zero" *ngIf="_workflow.TaskTypeID==502">Note Details:</label>
-              <div class="margin-btm-5" [innerHTML]="trustedNoteDetail" *ngIf="_workflow.TaskTypeID==502"></div>
-              <label class="lab1 margin-btm-zero" *ngIf="_workflow.AdditionalComments != undefined && _workflow.AdditionalComments != ''">Additional Comments:</label>
-              <textarea *ngIf="_workflow.AdditionalComments != undefined && _workflow.AdditionalComments != ''" style="font-family: inherit;font-size: inherit;resize:vertical;overflow:auto;" class="ibox1 input-lg margin-btm-5" rows="5" cols="60" name="AdditionalComments" id="AdditionalComments" [attr.disabled]="true" [(ngModel)]="_workflow.AdditionalComments" #AdditionalComments="ngModel" draggable="false"></textarea>
-              <label class="lab1 margin-btm-zero" *ngIf="_isShowChecklist">Checklist Detail:</label>
-              <div class="margin-btm-5" [innerHTML]="sanitizer.bypassSecurityTrustHtml(checklistInTable)" *ngIf="_isShowChecklist"></div>
-              <label class="lab1 margin-btm-zero">Footer:</label>
-              <textarea style="font-family: inherit;font-size: inherit;resize:vertical;overflow:auto;" class="ibox1 input-lg margin-btm-5" rows="5" cols="60" name="WFFooter" id="WFFooter" [attr.disabled]="_CanChangeFooter === false ? 'disabled' : null" [(ngModel)]="_wfNotificationDetail.WFFooter" #WFFooter="ngModel" draggable="false"></textarea>
 
             </div>
           </div>
         </div>
       </div>
-      <div id="myModalWFNotificationForNegativeAmt" class="modal">
-        <div class="modal-dialog" id="myModal-CreateRole" style="min-height:300px;width:70%;">
-          <!-- Modal content -->
-          <div class="modal-content" style="padding:0px;border:0px;">
-            <div class="modal-header" style="background:#2196f3 !important">
-              <span class="customheading" style="color:white !important">{{_notificationTittle}}</span>
-              <button type="button" (click)="CloseWFNotificationDialogForNegativeAmtWithConfirm()" class="custombuttonGrey" style="width:100px !important" id="btnCancelNotificationForNegativeAmt">Cancel</button>
-              <button type="button" class="custombuttonGreen" style="width:100px !important" (click)="SendWFNotificationForNegativeAmt()">Send</button>
-              <!--<span class="close" (click)="CloseWFNotificationDialog()">×</span>-->
-            </div>
-
-            <div class="modal-body">
-              <!--<div *ngIf="_alertinfodiv" class="alert alert-info fade in">
-                  <strong>{{_alertinfomessage}}</strong>
-              </div>
-              <div *ngIf="_ShowSuccessmessageRolediv" class="alert alert-success fade in">
-                  <strong>{{_ShowSuccessRolemessage}}</strong>
-              </div>-->
-              <div *ngIf="_IsShowMsg" class="alert alert-warning fade in">
-                <strong>{{_MsgText}}</strong>
-              </div>
-
-              <label class="lab1 margin-btm-zero">To:</label>
-              <textarea style="font-family: inherit;font-size: inherit;resize:vertical;overflow:auto;" class="ibox1 margin-btm-5" id="EmailToIdsN" [attr.disabled]="true" [(ngModel)]="_wfNotificationDetail.EmailToIds" name="EmailToIdsN" #EmailToIds="ngModel"></textarea>
-
-              <label class="lab1 margin-btm-zero">CC:</label>
-              <textarea style="font-family: inherit;font-size: inherit;resize:vertical;overflow:auto;" class="ibox1 margin-btm-5" id="EmailCCIdsN" [attr.disabled]="_CanChangeRecipientList === false ? 'disabled' : null" [(ngModel)]="_wfNotificationDetail.EmailCCIds" name="EmailCCIdsN" #EmailCCIdsN="ngModel"></textarea>
-              <label class="lab1 margin-btm-zero">Subject:</label>
-              <textarea style="font-family: inherit;font-size: inherit;resize:vertical;overflow:auto;" class="ibox1 margin-btm-5" id="SubjectN" [attr.disabled]="true" [(ngModel)]="_wfNotificationDetail.Subject" name="SubjectN" #subject="ngModel"></textarea>
-              <!--<label class="lab1 margin-btm-zero">Header:</label>
-              <textarea style="font-family: inherit;font-size: inherit;resize:vertical;overflow:auto;" class="ibox1 input-lg margin-btm-5" rows="5" cols="60" name="WFHeader" id="WFHeader" [attr.disabled]="_CanChangeHeader === false ? 'disabled' : null" [(ngModel)]="_wfNotificationDetail.WFHeader" #WFHeader="ngModel" draggable="false"></textarea>-->
-
-              <label class="lab1 margin-btm-zero" *ngIf="_workflow.SpecialInstructions != undefined && _workflow.SpecialInstructions != ''">Special Instructions:</label>
-              <textarea *ngIf="_workflow.SpecialInstructions != undefined && _workflow.SpecialInstructions != ''" style="font-family: inherit;font-size: inherit;resize:vertical;overflow:auto;" class="ibox1 input-lg margin-btm-5 special-inst" rows="5" cols="60" name="SpecialInstructionsN" id="SpecialInstructionsN" [attr.disabled]="true" [(ngModel)]="_workflow.SpecialInstructions" #SpecialInstructionsN="ngModel" draggable="false"></textarea>
-              <label class="lab1 margin-btm-zero">Body:</label>
-              <textarea style="font-family: inherit;font-size: inherit;resize:vertical;overflow:auto;" class="ibox1 input-lg margin-btm-5" rows="5" cols="60" name="WFBodyN" id="WFBodyN" [attr.disabled]="_CanChangeBody === false ? 'disabled' : null" [(ngModel)]="_wfNotificationDetail.WFBody" #WFBodyN="ngModel" draggable="false"></textarea>
-              <label class="lab1 margin-btm-zero" *ngIf="_workflow.AdditionalComments != undefined && _workflow.AdditionalComments != ''">Additional Comments:</label>
-              <textarea *ngIf="_workflow.AdditionalComments != undefined && _workflow.AdditionalComments != ''" style="font-family: inherit;font-size: inherit;resize:vertical;overflow:auto;" class="ibox1 input-lg margin-btm-5" rows="5" cols="60" name="AdditionalCommentsN" id="AdditionalCommentsN" [attr.disabled]="true" [(ngModel)]="_workflow.AdditionalComments" #AdditionalCommentsN="ngModel" draggable="false"></textarea>
-              <label class="lab1 margin-btm-zero">Footer:</label>
-              <textarea style="font-family: inherit;font-size: inherit;resize:vertical;overflow:auto;" class="ibox1 input-lg margin-btm-5" rows="5" cols="60" name="WFFooterN" id="WFFooterN" [attr.disabled]="_CanChangeFooter === false ? 'disabled' : null" [(ngModel)]="_wfNotificationDetail.WFFooter" #WFFooterN="ngModel" draggable="false"></textarea>
-
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
   </div>
   <div id="dialogoverlay"></div>
   <div id="dialogbox">

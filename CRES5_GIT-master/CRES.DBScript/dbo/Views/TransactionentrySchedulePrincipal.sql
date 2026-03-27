@@ -1,5 +1,4 @@
-﻿
-Create View [dbo].[TransactionentrySchedulePrincipal]
+﻿CREATE View [dbo].[TransactionentrySchedulePrincipal]
 As
 Select  
 DealName
@@ -11,4 +10,5 @@ Where Scenario = 'Default'
 and DealName not Like '%Test%' 
 and Type = 'ScheduledPrincipalPaid'
 and T.date <=GETDATE()  and DealName not like '%Copy%'
+and T.AccountTypeID = 1
 Group by DealName, Noteid

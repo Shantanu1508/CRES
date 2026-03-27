@@ -1,5 +1,4 @@
-﻿
-CREATE PROCEDURE [DW].[usp_ImportInterimDropDate]
+﻿CREATE PROCEDURE [DW].[usp_ImportInterimDropDate]
 	
 AS
 BEGIN
@@ -67,7 +66,7 @@ Left Join Note N on NF.CRENoteID = N.NoteID
 
 Union All
 
-Select NoteID
+Select n.CRENoteID
 ,ISNULL(T.Date,'1999')Date
 , Amount 
 
@@ -81,7 +80,9 @@ Select NoteID
 
 
 from TransactionEntry T
-Where Type = 'Balloon' 
+Inner join core.account acc on acc.accountid = T.AccountID
+Inner join cre.note n on n.account_accountid = acc.accountid
+Where Type = 'Balloon' and acc.AccountTypeID = 1
 and AnalysisID = 'C10F3372-0FC2-4861-A9F5-148F1F80804F'
 
 

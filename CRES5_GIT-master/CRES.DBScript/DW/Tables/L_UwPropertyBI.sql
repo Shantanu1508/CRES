@@ -182,6 +182,10 @@
     [PropertyPositionLastChangedDate]           DATETIME         NULL,
     [ExcludeProperty]                           BIT              NULL,
     [DownPaymentSourceCD_F]                     NVARCHAR (256)   NULL,
-    [ExistingDebt]                              DECIMAL (28, 15) NULL
+    [ExistingDebt]                              DECIMAL (28, 15) NULL,
+    [L_UwPropertyBI_AutoID]                     INT              IDENTITY (1, 1) NOT NULL,
+    CONSTRAINT [PK_L_UwPropertyBI_AutoID] PRIMARY KEY CLUSTERED ([L_UwPropertyBI_AutoID] ASC)
 );
+
+
 

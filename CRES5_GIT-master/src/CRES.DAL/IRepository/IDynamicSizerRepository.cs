@@ -2,11 +2,14 @@
 using System;
 using System.Collections.Generic;
 using System.Data;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
 
 namespace CRES.DAL.IRepository
 {
     public interface IDynamicSizerRepository
-    {
+    { 
         List<DataDictionaryDataContract> GetDataDictionary();
         List<RefreshLookupDataContract> RefreshLookupList();
         DealDataContract SaveJSONDeal(DealDataContract _dealDc, string UserID);
@@ -21,5 +24,9 @@ namespace CRES.DAL.IRepository
         List<TransactionEntryVSTO> GetTransactionEntryByBatchID(int batchID);
         List<PeriodicCashflowVSTO> GetNotePeriodicCalcByNoteId(int batchID);
         DataTable GetXIRROutputByBatchID(int batchID);
+        string CheckDuplicateDealSettlement(String Credealid, string DealName, string Username, string Password);
+
+        string CheckDuplicateNoteSettlement(String Credealid, string CRENoteID);
+        DataTable CalculateXIRRAfterDealSave_FromSizer(String Credealid, string username);
     }
 }

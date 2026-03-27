@@ -1,4 +1,8 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
 
 namespace CRES.DataContract
 {
@@ -24,7 +28,7 @@ namespace CRES.DataContract
         public string Email2 { get; set; }
         public string PhoneNo { get; set; }
         public string AlternatePhone { get; set; }
-        public string Comment { get; set; }
+        public string Comment { get; set; }      
         public int ObjectTypeID { get; set; }
 
     }

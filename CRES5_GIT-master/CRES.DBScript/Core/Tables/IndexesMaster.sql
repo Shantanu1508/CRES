@@ -7,6 +7,11 @@
     [CreatedDate]       DATETIME         NULL,
     [UpdatedBy]         NVARCHAR (256)   NULL,
     [UpdatedDate]       DATETIME         NULL,
+    [Status] INT NULL DEFAULT ((1)) ,
     CONSTRAINT [PK_IndexesMasterID] PRIMARY KEY CLUSTERED ([IndexesMasterID] ASC)
 );
+
+GO
+ALTER TABLE [Core].[IndexesMaster] ENABLE CHANGE_TRACKING WITH (TRACK_COLUMNS_UPDATED = ON);
+GO
 

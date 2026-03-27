@@ -215,8 +215,8 @@ namespace CRES.TestAutoMation.Practice
                         Console.WriteLine("\n_lstDeal[loop].CREDealID.ToString() = " + _lstDeal[loop].CREDealID.ToString());
                         util.OpenUrlMultiBrowser(Noteid_Href, driver);
 
-                        _autoMationOutputData.CREID = _lstDeal[loop].CREDealID;
-                        _autoMationOutputData.Name = _lstDeal[loop].DealName;
+                        _autoMationOutputData.DealID = _lstDeal[loop].CREDealID;
+                        _autoMationOutputData.DealName = _lstDeal[loop].DealName;
 
                         System.Threading.Thread.Sleep(3000);
                         dealPage.CheckDealPageLoaded();
@@ -449,7 +449,7 @@ namespace CRES.TestAutoMation.Practice
                 driver = new ChromeDriver();
                 Actions actions = new Actions(driver);
 
-                CRES_Login loginapp = new CRES_Login();
+                Login_Verification loginapp = new Login_Verification();
                 Login login = new Login(driver);
                 deal = new Deal(driver);
                 // CreateNewDeal createDeal = new CreateNewDeal(driver);
@@ -592,7 +592,7 @@ namespace CRES.TestAutoMation.Practice
                             //............................................................................................................
                             test = extent.CreateTest("Note Calculation Validation").Info("Test started");
                             BrowserHelper helper = new BrowserHelper();
-                            helper.DeleteChromeDriverInstances();
+                            helper.DeleteBrowserDriverInstances();
 
                             string randomstring = DateTime.Now.ToString("MMddyyyyhhmmss");
                             AutomationLogic autologic = new AutomationLogic();

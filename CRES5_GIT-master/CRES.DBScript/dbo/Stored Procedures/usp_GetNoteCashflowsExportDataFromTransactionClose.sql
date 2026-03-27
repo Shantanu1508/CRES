@@ -159,6 +159,7 @@ from
 	when te.[Type] = 'StubInterest' then Cast(n.InitialIndexValueOverride  as nvarchar(256))
 	when te.[Type] in ('PIKInterest','PIKInterestPaid') then Cast(tblTr.PIKLiborPercentage as nvarchar(256))
 	else null end) as LIBORPercentage,
+
 	(case when te.[Type] = 'PIKInterest' then Cast(tblTr.PIKInterestPercentage as nvarchar(256)) else '' end) as PIKInterestPercentage,
 	(case 
 		when te.[Type] in ('InterestPaid','StubInterest') then Cast(tblTr.SpreadPercentage as nvarchar(256)) 

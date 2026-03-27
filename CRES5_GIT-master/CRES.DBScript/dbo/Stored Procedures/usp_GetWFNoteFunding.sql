@@ -60,10 +60,14 @@ From(
 		 and fs.Date = Cast(getdate() AS DATE))    
 		 +    
 		 ISNULL((select SUM((ISNULL(EndingBalance,0)))  
-		 from [CRE].[NotePeriodicCalc] np  
+		 from [CRE].[NotePeriodicCalc] np 
+		 Inner join core.account acc on acc.accountid = np.AccountID
+		Inner join cre.note n on n.account_accountid = acc.accountid
+
 		 where PeriodEndDate = CAST(getdate() - 1 as Date)
 		 and AnalysisID = 'C10F3372-0FC2-4861-A9F5-148F1F80804F'
-		 and np.noteid = n.noteid 
+		 and n.noteid = n.noteid 
+		 and acc.AccounttypeID = 1
 		 ) ,0)     
 	,0) EstBls
 	

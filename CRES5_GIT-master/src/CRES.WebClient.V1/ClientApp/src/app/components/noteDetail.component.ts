@@ -10,12 +10,12 @@ import { Search } from "../core/domain/search.model";
 import { SearchService } from '../core/services/search.service';
 import { NoteAdditionalList } from "../core/domain/noteAdditionalList.model";
 import { NoteAdditionalListObject } from "../core/domain/noteAdditionalListObject.model";
-import { FinancingWareComponent } from "./financingWarehouse.component";
+
+import { financingWarehouseService } from '../core/services/financingWarehouse.service';
+
 import { Paginated } from '../core/common/paginated.service';
 import * as wjcCore from '@grapecity/wijmo';
-import * as wjcGrid from '@grapecity/wijmo.grid';
-import * as wjNg2Input from '@grapecity/wijmo.angular2.input';
-import * as wjcInput from '@grapecity/wijmo.input';
+import { WjCoreModule } from '@grapecity/wijmo.angular2.core';
 import { NoteCashflowsExportDataList } from "../core/domain/noteCashflowsExportDataList.model";
 import { ModuleWithProviders, Input, Inject, enableProdMode, NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
@@ -40,6 +40,9 @@ import { Scenario, RuleType } from '../core/domain/scenario.model';
 import { devDashBoard } from './../core/domain/devDashBoard.model';
 import { CalculationManagerService } from '../core/services/calculationManager.service';
 import { dndDirectiveModule } from "../directives/dnd.directive";
+import * as wjcGrid from '@grapecity/wijmo.grid';
+import * as wjcInput from '@grapecity/wijmo.input';
+import * as wjNg2Input from '@grapecity/wijmo.angular2.input';
 
 declare var XLSX: any;
 declare var $: any;
@@ -50,20 +53,22 @@ declare var $: any;
   providers: [NoteService, dealService, UtilityService, MembershipService, FileUploadService, functionService]
 })
 
-export class NoteDetailComponent extends Paginated {
+export class NoteDetailComponent extends Paginated implements OnInit {
   cvRateSpreadScheduleList: wjcCore.CollectionView;
   cvNotePrepayAndAdditionalFeeScheduleList: wjcCore.CollectionView;
   cvNoteStrippingList: wjcCore.CollectionView;
   cvNoteServicingLog: wjcCore.CollectionView;
   cvDeletedNoteServicingLog: wjcCore.CollectionView;
   cvNoteServicerDropDateSetup: wjcCore.CollectionView;
-
-
+  cvEditRateSpreadScheduleList: wjcCore.CollectionView;
+  cvEditFeeScheduleList: wjcCore.CollectionView;
+  cvEditPIKSchedulelist: wjcCore.CollectionView;
   public _note: Note;
   public _noteDateObjects: NoteDateObjects;
   public _noteext: NoteAdditionalList;
   private _ruletype: RuleType;
   public _noteextt: NoteAdditionalListObject;
+  public _noteEditList: NoteAdditionalListObject;
   public _validationobject: NoteAdditionalList;
   public lstnotesexceptions: any = [];
   public _ExceptionListCount: number = 1;
@@ -92,9 +97,18 @@ export class NoteDetailComponent extends Paginated {
   public _isShowCalcbutton: boolean = true;
   public _norecordfound: boolean = true;
 
+  public showpikAdditionalrate: boolean = true;
+  public showpikAccrualrate: boolean = true;
+  public showpikAccruesrate: boolean = true;
+  public showpikwithPIKSeparateCompounding: boolean = true;
+
+  public showCurrentPayRate: boolean = true;
+
+  showpiksetupdiv: boolean = true;
   public _isShowServicingDropDate: boolean = false;
-
-
+  public _isShowScenariodiv: boolean = false;
+  public _isShowRuleTypediv: boolean = false;
+  public _isShowbtnResetdiv: boolean = false;
   public _noteCashflowsExportDataList: NoteCashflowsExportDataList;
   public _userdefaultsetting: userdefaultsetting;
   public _liborindexMsg: boolean = true;
@@ -114,7 +128,7 @@ export class NoteDetailComponent extends Paginated {
   exceptionscount_critical: number = 0;
   public _isExceptionscount: boolean = false;
   public _isShowActivityLog: boolean = false;
-
+  public _isShowNoteRules: boolean = false;
   public _showamortcheck: boolean = false;
   public _showgaapcheck: boolean = false;
   public _isRuleTabClicked: boolean = false;
@@ -124,9 +138,6 @@ export class NoteDetailComponent extends Paginated {
   public _lstRuleTypeSetupNew: any = [];
   public _lstRuleTypeSetuptobesend: any = [];
   public _lstRuleTypeSetupfilter: any = [];
-  public _isShowScenariodiv: boolean = false;
-  public _isShowRuleTypediv: boolean = false;
-  public _isShowbtnResetdiv: boolean = false;
   public _Showmessagedivrule: boolean = false;
   public _ShowmessagedivruleMsg: string = '';
   lstAccountingMode: any;
@@ -161,7 +172,7 @@ export class NoteDetailComponent extends Paginated {
   lstDebtType: any;
   lstBillingNotes: any;
   lstCapStack: any;
-
+  lstPool: any;
   lstServicerName: any;
 
   lstFeeTypeLookUp: any;
@@ -173,6 +184,8 @@ export class NoteDetailComponent extends Paginated {
   lstScenario: any;
   lstInterestCalculationRuleForPaydowns: any;
   lstInterestCalculationRuleForPaydownsAmort: any;
+  lstAccrualPeriodType: any;
+  lstAccrualPeriodBusinessDayAdj: any;
   //  lstddlOverideComment: any;
   TargetAccountID: any;
   SourceAccountID: any;
@@ -183,7 +196,7 @@ export class NoteDetailComponent extends Paginated {
   Servicing_Date: Date;
   Servicing_Value: any;
   Servicing_IsCapitalized: any;
-
+  MaturityType: number;
   PIKSchedule_StartDate: Date;
   PIKSchedule_EndDate: Date;
   PIKSchedule_SourceAccountID: any;
@@ -191,11 +204,14 @@ export class NoteDetailComponent extends Paginated {
   PIKSchedule_TargetAccountID: any;
   PIKSchedule_TargetAccount: any;
   PIKSchedule_AdditionalIntRate: any;
+
   PIKSchedule_AdditionalSpread: any;
   PIKSchedule_IndexFloor: any;
   PIKSchedule_IntCompoundingRate: any;
   PIKSchedule_IntCompoundingSpread: any;
   PIKSchedule_IntCapAmt: any;
+  PIKSchedule_PeriodicRateCapAmount: any;
+  PIKSchedule_PeriodicRateCapPercent: any;
   PIKSchedule_PurBal: any;
   PIKSchedule_AccCapBal: any;
 
@@ -205,7 +221,12 @@ export class NoteDetailComponent extends Paginated {
 
   PIKSchedule_PIKIntCalcMethodID: any;
   PIKSchedule_PIKIntCalcMethodIDText: any;
-
+  PIKSetUp: any;
+  PIKSetUpText: any;
+  PIKPercentage: any;
+  PIKCurrentPayRate: any;
+  PIKSeparateCompounding: any;
+  PIKSeparateCompoundingText: any;
   Ratespread_EffectiveDate: Date;
   PrepayAndAdditionalFeeSchedule_EffectiveDate: Date;
   StrippingSchedule_EffectiveDate: Date;
@@ -221,7 +242,7 @@ export class NoteDetailComponent extends Paginated {
   FinancingSchedule_EffectiveDateOld: Date;
   DefaultSchedule_EffectiveDateOld: Date;
   PIKSchedule_EffectiveDateOld: Date;
-
+  dataMapValueType: any;
   public _result: any;
   public _pagePath: any;
   public _searchObj: Search;
@@ -268,8 +289,9 @@ export class NoteDetailComponent extends Paginated {
   @ViewChild('ctxMenu') ctxMenu: wjcInput.Menu;
   @ViewChild('flexmarketprice') flexmarketprice: wjcGrid.FlexGrid;
   @ViewChild('flexnotecommitments') flexnotecommitments: wjcGrid.FlexGrid;
-
-
+  @ViewChild('NoteEditRSSData') flexEditRSS: wjcGrid.FlexGrid;
+  @ViewChild('NoteEditFEEData') flexEditFee: wjcGrid.FlexGrid;
+  @ViewChild('NoteEditPIKData') flexEditPIK: wjcGrid.FlexGrid;
   public rssupdatedRowNo: any = [];
   public rssrowsToUpdate: any = [];
   public prepayrowsToUpdate: any = [];
@@ -312,8 +334,9 @@ export class NoteDetailComponent extends Paginated {
 
   //   @ViewChild('pikAsync') sourceaccount: wjNg2Input.WjAutoComplete;
 
-  public _financingWhouse: FinancingWareComponent;
 
+  public maturityTypeList: any = [];
+  public lstMaturity: any = [];
   public ShowHideFlagMaturity: boolean = false;
   public ShowHideFlagBalanceTransactionSchedule: boolean = false;
   public ShowHideFlagDefaultSchedule: boolean = false;
@@ -322,10 +345,13 @@ export class NoteDetailComponent extends Paginated {
   public ShowHideFlagFinancingSchedule: boolean = false;
   public ShowHideFlagPIKSchedule: boolean = false;
   public ShowHideFlagPrepayAndAdditionalFeeSchedule: boolean = false;
+  public ShowHideEditPrepayAndAdditionalFeeSchedule: boolean = false;
   public ShowHideFlagRateSpreadSchedule: boolean = false;
+  public ShowHideEditRateSpreadSchedule: boolean = false;
+  public ShowHideEditPIKSchedule: boolean = false;
   public ShowHideFlagServicingFeeSchedule: boolean = false;
   public ShowHideFlagStrippingSchedule: boolean = false;
-  
+
   public ShowHideFlagFutureFunding: boolean = false;
   public ShowHideFlagLiborSchedule: boolean = false;
   public ShowFlagHideFixedAmortSchedule: boolean = false;
@@ -349,7 +375,7 @@ export class NoteDetailComponent extends Paginated {
   public currentActivityDate: Date;
   public strActivity: string = '';
   public firstDat: string;
-  
+
   public prevEndDateBeforeEdit: Date;
 
 
@@ -422,6 +448,8 @@ export class NoteDetailComponent extends Paginated {
   public _isShowMsgForUseRuletoDetermine: boolean = false;
   public gParentNoteid: any;
   public EnableM61Calculations: any;
+  public FullIOTermFlag: any;
+
   public EmptynoteperiodiccalcMsgString: any;
 
   public ModifyCalcValue: number = 123;
@@ -443,6 +471,7 @@ export class NoteDetailComponent extends Paginated {
   public _isCallConcurrentCheck: boolean = false;
   public isProcessComplete: boolean = false;
   public fileList: FileList;
+  public files = [];
   errors: Array<string> = [];
   @Input() fileExt: string = "JPG, JPEG, PNG, XLS, XLSX, CSV, PDF, DOC, DOCX";
   @Input() maxFiles: number = 5;
@@ -458,7 +487,7 @@ export class NoteDetailComponent extends Paginated {
   public _dvEmptyDocumentMsg: boolean = false;
   public IsOpenDocImportTab: boolean = false;
   public _isShowDocImport: boolean = false;
-  public _isShowNoteRules: boolean = false;
+
   public actionLog: string = "";
   public _uploadedDocumentLogID: number;
   ListHoliday: any;
@@ -500,7 +529,8 @@ export class NoteDetailComponent extends Paginated {
   public listtransactiongroup: any = [];
   @ViewChild('multiseltransactioncategory') multiseltransactioncategory: wjNg2Input.WjMultiSelect
   @ViewChild('multiseltransactiongroup') multiseltransactiongroup: wjNg2Input.WjMultiSelect
-  @ViewChild('RuleTypeList') RuleTypeList: wjcGrid.FlexGrid;
+  @ViewChild('selectColumnGroups') selectColumnGroups: wjNg2Input.WjMultiSelect
+
   ListNoteMarketPrice: wjcCore.CollectionView;
   public changedlstmarketnote: any = [];
   public originallstnotemarketprice: any = [];
@@ -519,13 +549,691 @@ export class NoteDetailComponent extends Paginated {
   public _basecurrencyname: any;
   public holidayCalendarNamelist: any = [];
   @ViewChild('flexMaturity') flexMaturity: wjcGrid.FlexGrid;
+  @ViewChild('RuleTypeList') RuleTypeList: wjcGrid.FlexGrid;
   public maturityList: any = [];
   public maturityEffectiveDate: any;
   public maturityExpectedMaturityDate: any;
   public maturityOpenPrepaymentDate: any;
   public maturityActualPayoffDate: any;
   public maturityGroupName: any;
-  public files = [];
+  isResetMenuShow: boolean = false;
+  lstAdjustmentType: any;
+
+  public lstXIRRTags: any = [];
+  lstNoteEditRSSlist: any = [];
+  lstNoteEditFEElist: any = [];
+  lstNoteEditPIKSchedulelist: any = [];
+  deleteRateSpreadSchedulePopup: any = [];
+  deleteFeeSchedulePopup: any = [];
+  deletePIKSchedulePopup: any = [];
+  newEffectiveDates: any;
+  existingEffectiveDatesRSS: any;
+  existingEffectiveDatesFEE: any;
+  existingEffectiveDatesPIK: any;
+  lstCheckDuplicateTransactionCashflow: any;
+  lstPIKSetuptype: any;
+  lstPIKReasonCodetype: any;
+  lstPIKCompoundingType: any;
+  lstPIKCashIntCalc: any;
+  lstPIKImpactinCommit: any;
+
+  columnGroupHeaders: any[] = [];
+  selectedColumnGroups: any[] = [];
+
+  getColumnGroups(): any[] {
+    const groups = [
+      { binding: 'PeriodEndDate', header: 'Period End Date', align: 'right' },
+      { binding: 'Month', header: 'Month', align: 'right', format: 'n0' },
+      {
+        header: 'Balance', align: 'center', collapseTo: 'BeginningBalance', columns: [
+          {
+            binding: 'BeginningBalance', header: 'Beginning balance', align: 'right', aggregate: 'Sum', format: 'n2', cellTemplate: (cell: any) => {
+              const BeginningBalance = cell.item.BeginningBalance;
+              const color = BeginningBalance < 0 ? 'red' : 'darkgreen';
+              return `<div style="color: ${color};">${BeginningBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>`;
+            }
+          },
+          {
+            binding: 'TotalFutureAdvancesForThePeriod', header: 'Total future advances for the period', align: 'right', aggregate: 'Sum', format: 'n2', cellTemplate: (cell: any) => {
+              const TotalFutureAdvancesForThePeriod = cell.item.TotalFutureAdvancesForThePeriod;
+              const color = TotalFutureAdvancesForThePeriod < 0 ? 'red' : 'darkgreen';
+              return `<div style="color: ${color};">${TotalFutureAdvancesForThePeriod.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>`;
+            }
+          },
+          {
+            binding: 'TotalDiscretionaryCurtailmentsforthePeriod', header: 'Total discretionary curtailments for the period', align: 'right', aggregate: 'Sum', format: 'n2', cellTemplate: (cell: any) => {
+              const TotalDiscretionaryCurtailmentsforthePeriod = cell.item.TotalDiscretionaryCurtailmentsforthePeriod;
+              const color = TotalDiscretionaryCurtailmentsforthePeriod < 0 ? 'red' : 'darkgreen';
+              return `<div style="color: ${color};">${TotalDiscretionaryCurtailmentsforthePeriod.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>`;
+            }
+          },
+          {
+            binding: 'ScheduledPrincipal', header: 'Scheduled Principal', align: 'right', aggregate: 'Sum', format: 'n2', cellTemplate: (cell: any) => {
+              const ScheduledPrincipal = cell.item.ScheduledPrincipal;
+              const color = ScheduledPrincipal < 0 ? 'red' : 'darkgreen';
+              return `<div style="color: ${color};">${ScheduledPrincipal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>`;
+            }
+          },
+          //{
+          //  binding: 'PrincipalPaid', header: 'Principal Paid', align: 'right', aggregate: 'Sum', format: 'n2', cellTemplate: (cell: any) => {
+          //    const PrincipalPaid = cell.item.PrincipalPaid;
+          //    const color = PrincipalPaid < 0 ? 'red' : 'darkgreen';
+          //    return `<div style="color: ${color};">${PrincipalPaid.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>`;
+          //  }
+          //},
+          {
+            binding: 'NetPIKAmountForThePeriod', header: 'Net PIK Amount For The Period', align: 'right', aggregate: 'Sum', format: 'n2', cellTemplate: (cell: any) => {
+              const NetPIKAmountForThePeriod = cell.item.NetPIKAmountForThePeriod;
+              const color = NetPIKAmountForThePeriod < 0 ? 'red' : 'darkgreen';
+              return `<div style="color: ${color};">${NetPIKAmountForThePeriod.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>`;
+            }
+          },
+          {
+            binding: 'BalloonPayment', header: 'Balloon Payment', align: 'right', aggregate: 'Sum', format: 'n2', cellTemplate: (cell: any) => {
+              const BalloonPayment = cell.item.BalloonPayment;
+              const color = BalloonPayment < 0 ? 'red' : 'darkgreen';
+              return `<div style="color: ${color};">${BalloonPayment.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>`;
+            }
+          },
+          {
+            binding: 'EndingBalance', header: 'Ending Balance', align: 'right', aggregate: 'Sum', format: 'n2', cellTemplate: (cell: any) => {
+              const EndingBalance = cell.item.EndingBalance;
+              const color = EndingBalance < 0 ? 'red' : 'darkgreen';
+              return `<div style="color: ${color};">${EndingBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>`;
+            }
+          },
+        ]
+      },
+      {
+        header: 'Clean Cost', align: 'center', collapseTo: 'GrossDeferredFees', columns: [
+          {
+            binding: 'GrossDeferredFees', header: 'Gross Deferred Fees', align: 'right', aggregate: 'Sum', format: 'n2', cellTemplate: (cell: any) => {
+              const GrossDeferredFees = cell.item.GrossDeferredFees;
+              const color = GrossDeferredFees < 0 ? 'red' : 'darkgreen';
+              return `<div style="color: ${color};">${GrossDeferredFees.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>`;
+            }
+          },
+          {
+            binding: 'CleanCost', header: 'Clean Cost', align: 'right', aggregate: 'Sum', format: 'n2', cellTemplate: (cell: any) => {
+              const CleanCost = cell.item.CleanCost;
+              const color = CleanCost < 0 ? 'red' : 'darkgreen';
+              return `<div style="color: ${color};">${CleanCost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>`;
+            }
+          },
+        ]
+      },
+      {
+        header: 'Amortized Cost', align: 'center', collapseTo: 'TotalAmortAccrualForPeriod', columns: [
+          {
+            binding: 'TotalAmortAccrualForPeriod', header: 'Amort of Deferred Fees', align: 'right', aggregate: 'Sum', format: 'n2', cellTemplate: (cell: any) => {
+              const TotalAmortAccrualForPeriod = cell.item.TotalAmortAccrualForPeriod;
+              const color = TotalAmortAccrualForPeriod < 0 ? 'red' : 'darkgreen';
+              return `<div style="color: ${color};">${TotalAmortAccrualForPeriod.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>`;
+            }
+          },
+          {
+            binding: 'AccumulatedAmort', header: 'Accumulated Amort of Deferred Fees', align: 'right', aggregate: 'Sum', format: 'n2', cellTemplate: (cell: any) => {
+              const AccumulatedAmort = cell.item.AccumulatedAmort;
+              const color = AccumulatedAmort < 0 ? 'red' : 'darkgreen';
+              return `<div style="color: ${color};">${AccumulatedAmort.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>`;
+            }
+          },
+          {
+            binding: 'DiscountPremiumAccrual', header: 'Amort of (Discount) / Premium', align: 'right', aggregate: 'Sum', format: 'n2', cellTemplate: (cell: any) => {
+              const DiscountPremiumAccrual = cell.item.DiscountPremiumAccrual;
+              const color = DiscountPremiumAccrual < 0 ? 'red' : 'darkgreen';
+              return `<div style="color: ${color};">${DiscountPremiumAccrual.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>`;
+            }
+          },
+          {
+            binding: 'DiscountPremiumAccumulatedAmort', header: 'Accumulated Amort of (Discount) / Premium', align: 'right', aggregate: 'Sum', format: 'n2', cellTemplate: (cell: any) => {
+              const DiscountPremiumAccumulatedAmort = cell.item.DiscountPremiumAccumulatedAmort;
+              const color = DiscountPremiumAccumulatedAmort < 0 ? 'red' : 'darkgreen';
+              return `<div style="color: ${color};">${DiscountPremiumAccumulatedAmort.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>`;
+            }
+          },
+          {
+            binding: 'CapitalizedCostAccrual', header: 'Amort of Capitalized Cost', align: 'right', aggregate: 'Sum', format: 'n2', cellTemplate: (cell: any) => {
+              const CapitalizedCostAccrual = cell.item.CapitalizedCostAccrual;
+              const color = CapitalizedCostAccrual < 0 ? 'red' : 'darkgreen';
+              return `<div style="color: ${color};">${CapitalizedCostAccrual.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>`;
+            }
+          },
+          {
+            binding: 'CapitalizedCostAccumulatedAmort', header: 'Accumulated Amort of Capitalized Cost', align: 'right', aggregate: 'Sum', format: 'n2', cellTemplate: (cell: any) => {
+              const CapitalizedCostAccumulatedAmort = cell.item.CapitalizedCostAccumulatedAmort;
+              const color = CapitalizedCostAccumulatedAmort < 0 ? 'red' : 'darkgreen';
+              return `<div style="color: ${color};">${CapitalizedCostAccumulatedAmort.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>`;
+            }
+          },
+          {
+            binding: 'AmortizedCost', header: 'Amortized Cost', align: 'right', aggregate: 'Sum', format: 'n2', cellTemplate: (cell: any) => {
+              const AmortizedCost = cell.item.AmortizedCost;
+              const color = AmortizedCost < 0 ? 'red' : 'darkgreen';
+              return `<div style="color: ${color};">${AmortizedCost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>`;
+            }
+          }
+        ]
+      },
+      {
+        header: 'GAAP Interest Income', align: 'center', collapseTo: 'ReversalofPriorInterestAccrual', columns: [
+          {
+            binding: 'ReversalofPriorInterestAccrual', header: 'Reversal of Prior Interest Accrual', align: 'right', aggregate: 'Sum', format: 'n2', cellTemplate: (cell: any) => {
+              const ReversalofPriorInterestAccrual = cell.item.ReversalofPriorInterestAccrual;
+              const color = ReversalofPriorInterestAccrual < 0 ? 'red' : 'darkgreen';
+              return `<div style="color: ${color};">${ReversalofPriorInterestAccrual.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>`;
+            }
+          },
+          {
+            binding: 'InterestReceivedinCurrentPeriod', header: 'Interest Received in Current Period', align: 'right', aggregate: 'Sum', format: 'n2', cellTemplate: (cell: any) => {
+              const InterestReceivedinCurrentPeriod = cell.item.InterestReceivedinCurrentPeriod;
+              const color = InterestReceivedinCurrentPeriod < 0 ? 'red' : 'darkgreen';
+              return `<div style="color: ${color};">${InterestReceivedinCurrentPeriod.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>`;
+            }
+          },
+          {
+            binding: 'CurrentPeriodInterestAccrual', header: 'Current Period Interest Accrual', align: 'right', aggregate: 'Sum', format: 'n2', cellTemplate: (cell: any) => {
+              const CurrentPeriodInterestAccrual = cell.item.CurrentPeriodInterestAccrual;
+              const color = CurrentPeriodInterestAccrual < 0 ? 'red' : 'darkgreen';
+              return `<div style="color: ${color};">${CurrentPeriodInterestAccrual.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>`;
+            }
+          },
+          {
+            binding: 'CurrentPeriodPIKInterestAccrual', header: 'Current Period PIK Interest Accrual', align: 'right', aggregate: 'Sum', format: 'n2', cellTemplate: (cell: any) => {
+              const CurrentPeriodPIKInterestAccrual = cell.item.CurrentPeriodPIKInterestAccrual;
+              const color = CurrentPeriodPIKInterestAccrual < 0 ? 'red' : 'darkgreen';
+              return `<div style="color: ${color};">${CurrentPeriodPIKInterestAccrual.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>`;
+            }
+          },
+          {
+            binding: 'InterestSuspenseAccountActivityforthePeriod', header: 'Interest Suspense Account Activity for the Period', align: 'right', aggregate: 'Sum', format: 'n2', cellTemplate: (cell: any) => {
+              const InterestSuspenseAccountActivityforthePeriod = cell.item.InterestSuspenseAccountActivityforthePeriod;
+              const color = InterestSuspenseAccountActivityforthePeriod < 0 ? 'red' : 'darkgreen';
+              return `<div style="color: ${color};">${InterestSuspenseAccountActivityforthePeriod.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>`;
+            }
+          },
+          {
+            binding: 'InterestSuspenseAccountBalance', header: 'Interest Suspense Account Balance', align: 'right', aggregate: 'Sum', format: 'n2', cellTemplate: (cell: any) => {
+              const InterestSuspenseAccountBalance = cell.item.InterestSuspenseAccountBalance;
+              const color = InterestSuspenseAccountBalance < 0 ? 'red' : 'darkgreen';
+              return `<div style="color: ${color};">${InterestSuspenseAccountBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>`;
+            }
+          },
+          {
+            binding: 'TotalGAAPInterestFortheCurrentPeriod', header: 'Total GAAP Interest for the Current Period', align: 'right', aggregate: 'Sum', format: 'n2', cellTemplate: (cell: any) => {
+              const TotalGAAPInterestFortheCurrentPeriod = cell.item.TotalGAAPInterestFortheCurrentPeriod;
+              const color = TotalGAAPInterestFortheCurrentPeriod < 0 ? 'red' : 'darkgreen';
+              return `<div style="color: ${color};">${TotalGAAPInterestFortheCurrentPeriod.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>`;
+            }
+          },
+          {
+            binding: 'CashInterest', header: 'Cash Interest', align: 'right', aggregate: 'Sum', format: 'n2', cellTemplate: (cell: any) => {
+              const CashInterest = cell.item.CashInterest;
+              const color = CashInterest < 0 ? 'red' : 'darkgreen';
+              return `<div style="color: ${color};">${CashInterest.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>`;
+            }
+          }, {
+            binding: 'CapitalizedInterest', header: 'Capitalized Interest', align: 'right', aggregate: 'Sum', format: 'n2', cellTemplate: (cell: any) => {
+              const CapitalizedInterest = cell.item.CapitalizedInterest;
+              const color = CapitalizedInterest < 0 ? 'red' : 'darkgreen';
+              return `<div style="color: ${color};">${CapitalizedInterest.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>`;
+            }
+          }
+        ]
+      },
+      {
+        header: 'Book Value', align: 'center', collapseTo: 'EndingGAAPBookValue', columns: [
+          {
+            binding: 'EndingGAAPBookValue', header: 'Ending GAAP book value', align: 'right', aggregate: 'Sum', format: 'n2', cellTemplate: (cell: any) => {
+              const EndingGAAPBookValue = cell.item.EndingGAAPBookValue;
+              const color = EndingGAAPBookValue < 0 ? 'red' : 'darkgreen';
+              return `<div style="color: ${color};">${EndingGAAPBookValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>`;
+            }
+          }
+        ]
+      },
+      {
+        header: 'Coupon', align: 'center', collapseTo: 'AllInCouponRate', columns: [
+          { binding: 'AllInCouponRate', header: 'All In coupon rate', align: 'right', aggregate: 'Sum', format: 'p9' },
+          {
+            binding: 'CurrentPeriodInterestAccrualPeriodEnddate', header: 'Monthly Interest Income', align: 'right', aggregate: 'Sum', format: 'n2', cellTemplate: (cell: any) => {
+              const CurrentPeriodInterestAccrualPeriodEnddate = cell.item.CurrentPeriodInterestAccrualPeriodEnddate;
+              const color = CurrentPeriodInterestAccrualPeriodEnddate < 0 ? 'red' : 'darkgreen';
+              return `<div style="color: ${color};">${CurrentPeriodInterestAccrualPeriodEnddate.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>`;
+            }
+          },
+          {
+            binding: 'CurrentPeriodPIKInterestAccrualPeriodEnddate', header: 'Monthly PIK Interest Income', align: 'right', aggregate: 'Sum', format: 'n2', cellTemplate: (cell: any) => {
+              const CurrentPeriodPIKInterestAccrualPeriodEnddate = cell.item.CurrentPeriodPIKInterestAccrualPeriodEnddate;
+              const color = CurrentPeriodPIKInterestAccrualPeriodEnddate < 0 ? 'red' : 'darkgreen';
+              return `<div style="color: ${color};">${CurrentPeriodPIKInterestAccrualPeriodEnddate.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>`;
+            }
+          },
+          {
+            binding: 'DropDateInterestDeltaBalance', header: 'Drop Date Interest Delta Balance', align: 'right', aggregate: 'Sum', format: 'n2', cellTemplate: (cell: any) => {
+              const DropDateInterestDeltaBalance = cell.item.DropDateInterestDeltaBalance;
+              const color = DropDateInterestDeltaBalance < 0 ? 'red' : 'darkgreen';
+              return `<div style="color: ${color};">${DropDateInterestDeltaBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>`;
+            }
+          }
+        ]
+      },
+      {
+        binding: 'EndOfPeriodWAL', header: 'End of Period WAL', align: 'right', aggregate: 'Sum', format: 'n2', cellTemplate: (cell: any) => {
+          const EndOfPeriodWAL = cell.item.EndOfPeriodWAL;
+          const color = EndOfPeriodWAL < 0 ? 'red' : 'darkgreen';
+          return `<div style="color: ${color};">${EndOfPeriodWAL.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>`;
+        }
+      },
+      {
+        header: 'PIK', align: 'center', collapseTo: 'AllInPIKRate', columns: [
+          { binding: 'AllInPIKRate', header: 'All In PIK Rate', align: 'right', aggregate: 'Sum', format: 'p9' },
+          {
+            binding: 'PIKInterestPercentage', header: 'PIK Interest Percentage', align: 'right', aggregate: 'Sum', format: 'n2', cellTemplate: (cell: any) => {
+              const PIKInterestPercentage = cell.item.PIKInterestPercentage;
+              const color = PIKInterestPercentage < 0 ? 'red' : 'darkgreen';
+              return `<div style="color: ${color};">${PIKInterestPercentage.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>`;
+            }
+          },
+          {
+            binding: 'PIKInterestFromPIKSourceNote', header: 'PIK interest from PIK source note', align: 'right', aggregate: 'Sum', format: 'n2', cellTemplate: (cell: any) => {
+              const PIKInterestFromPIKSourceNote = cell.item.PIKInterestFromPIKSourceNote;
+              const color = PIKInterestFromPIKSourceNote < 0 ? 'red' : 'darkgreen';
+              return `<div style="color: ${color};">${PIKInterestFromPIKSourceNote.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>`;
+            }
+          },
+          {
+            binding: 'PIKInterestTransferredToRelatedNote', header: 'PIK interest transferred to related note', align: 'right', aggregate: 'Sum', format: 'n2', cellTemplate: (cell: any) => {
+              const PIKInterestTransferredToRelatedNote = cell.item.PIKInterestTransferredToRelatedNote;
+              const color = PIKInterestTransferredToRelatedNote < 0 ? 'red' : 'darkgreen';
+              return `<div style="color: ${color};">${PIKInterestTransferredToRelatedNote.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>`;
+            }
+          },
+
+          {
+            binding: 'PIKInterestForThePeriod', header: 'PIK interest for the period', align: 'right', aggregate: 'Sum', format: 'n2', cellTemplate: (cell: any) => {
+              const PIKInterestForThePeriod = cell.item.PIKInterestForThePeriod;
+              const color = PIKInterestForThePeriod < 0 ? 'red' : 'darkgreen';
+              return `<div style="color: ${color};">${PIKInterestForThePeriod.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>`;
+            }
+          },
+          {
+            binding: 'PIKInterestPaidForThePeriod', header: 'PIK Interest Paid For The Period', align: 'right', aggregate: 'Sum', format: 'n2', cellTemplate: (cell: any) => {
+              const PIKInterestPaidForThePeriod = cell.item.PIKInterestPaidForThePeriod;
+              const color = PIKInterestPaidForThePeriod < 0 ? 'red' : 'darkgreen';
+              return `<div style="color: ${color};">${PIKInterestPaidForThePeriod.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>`;
+            }
+          },
+          {
+            binding: 'PIKInterestAppliedForThePeriod', header: 'PIK Interest Applied For The Period', align: 'right', aggregate: 'Sum', format: 'n2', cellTemplate: (cell: any) => {
+              const PIKInterestAppliedForThePeriod = cell.item.PIKInterestAppliedForThePeriod;
+              const color = PIKInterestAppliedForThePeriod < 0 ? 'red' : 'darkgreen';
+              return `<div style="color: ${color};">${PIKInterestAppliedForThePeriod.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>`;
+            }
+          },
+          {
+            binding: 'PIKPrincipalPaidForThePeriod', header: 'PIK Principal Paid For the Period', align: 'right', aggregate: 'Sum', format: 'n2', cellTemplate: (cell: any) => {
+              const PIKPrincipalPaidForThePeriod = cell.item.PIKPrincipalPaidForThePeriod;
+              const color = PIKPrincipalPaidForThePeriod < 0 ? 'red' : 'darkgreen';
+              return `<div style="color: ${color};">${PIKPrincipalPaidForThePeriod.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>`;
+            }
+          },
+          {
+            binding: 'BeginningPIKBalanceNotInsideLoanBalance', header: 'Separately Compounded Beginning PIK Balance', align: 'right', aggregate: 'Sum', format: 'n2', cellTemplate: (cell: any) => {
+              const BeginningPIKBalanceNotInsideLoanBalance = cell.item.BeginningPIKBalanceNotInsideLoanBalance;
+              const color = BeginningPIKBalanceNotInsideLoanBalance < 0 ? 'red' : 'darkgreen';
+              return `<div style="color: ${color};">${BeginningPIKBalanceNotInsideLoanBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>`;
+            }
+          },
+          {
+            binding: 'PIKInterestForPeriodNotInsideLoanBalance', header: 'Separately Compounded PIK Interest', align: 'right', aggregate: 'Sum', format: 'n2', cellTemplate: (cell: any) => {
+              const PIKInterestForPeriodNotInsideLoanBalance = cell.item.PIKInterestForPeriodNotInsideLoanBalance;
+              const color = PIKInterestForPeriodNotInsideLoanBalance < 0 ? 'red' : 'darkgreen';
+              return `<div style="color: ${color};">${PIKInterestForPeriodNotInsideLoanBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>`;
+            }
+          },
+          {
+            binding: 'PIKBalanceBalloonPayment', header: 'Separately Compounded PIK Balloon', align: 'right', aggregate: 'Sum', format: 'n2', cellTemplate: (cell: any) => {
+              const PIKBalanceBalloonPayment = cell.item.PIKBalanceBalloonPayment;
+              const color = PIKBalanceBalloonPayment < 0 ? 'red' : 'darkgreen';
+              return `<div style="color: ${color};">${PIKBalanceBalloonPayment.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>`;
+            }
+          },
+          {
+            binding: 'EndingPIKBalanceNotInsideLoanBalance', header: 'Separately Compounded Ending PIK Balance', align: 'right', aggregate: 'Sum', format: 'n2', cellTemplate: (cell: any) => {
+              const EndingPIKBalanceNotInsideLoanBalance = cell.item.EndingPIKBalanceNotInsideLoanBalance;
+              const color = EndingPIKBalanceNotInsideLoanBalance < 0 ? 'red' : 'darkgreen';
+              return `<div style="color: ${color};">${EndingPIKBalanceNotInsideLoanBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>`;
+            }
+          },
+        ]
+      },
+      {
+        header: 'Coupon Stripping', align: 'center', collapseTo: 'TotalCouponStrippedforthePeriod', columns: [
+          {
+            binding: 'TotalCouponStrippedforthePeriod', header: 'Total coupon stripped for the period', align: 'right', aggregate: 'Sum', format: 'n2', cellTemplate: (cell: any) => {
+              const TotalCouponStrippedforthePeriod = cell.item.TotalCouponStrippedforthePeriod;
+              const color = TotalCouponStrippedforthePeriod < 0 ? 'red' : 'darkgreen';
+              return `<div style="color: ${color};">${TotalCouponStrippedforthePeriod.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>`;
+            }
+          },
+          {
+            binding: 'CouponStrippedonPaymentDate', header: 'Coupon stripped on payment date', align: 'right', aggregate: 'Sum', format: 'n2', cellTemplate: (cell: any) => {
+              const CouponStrippedonPaymentDate = cell.item.CouponStrippedonPaymentDate;
+              const color = CouponStrippedonPaymentDate < 0 ? 'red' : 'darkgreen';
+              return `<div style="color: ${color};">${CouponStrippedonPaymentDate.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>`;
+            }
+          },
+        ]
+      },
+      {
+        header: 'Shortfall & Recovery', align: 'center', collapseTo: 'ScheduledPrincipalShortfall', columns: [
+          {
+            binding: 'ScheduledPrincipalShortfall', header: 'Scheduled principal shortfall', align: 'right', aggregate: 'Sum', format: 'n2', cellTemplate: (cell: any) => {
+              const ScheduledPrincipalShortfall = cell.item.ScheduledPrincipalShortfall;
+              const color = ScheduledPrincipalShortfall < 0 ? 'red' : 'darkgreen';
+              return `<div style="color: ${color};">${ScheduledPrincipalShortfall.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>`;
+            }
+          },
+          {
+            binding: 'PrincipalShortfall', header: 'Principal Shortfall', align: 'right', aggregate: 'Sum', format: 'n2', cellTemplate: (cell: any) => {
+              const PrincipalShortfall = cell.item.PrincipalShortfall;
+              const color = PrincipalShortfall < 0 ? 'red' : 'darkgreen';
+              return `<div style="color: ${color};">${PrincipalShortfall.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>`;
+            }
+          },
+          {
+            binding: 'PrincipalLoss', header: 'Principal Loss', align: 'right', aggregate: 'Sum', format: 'n2', cellTemplate: (cell: any) => {
+              const PrincipalLoss = cell.item.PrincipalLoss;
+              const color = PrincipalLoss < 0 ? 'red' : 'darkgreen';
+              return `<div style="color: ${color};">${PrincipalLoss.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>`;
+            }
+          },
+          {
+            binding: 'InterestForPeriodShortfall', header: 'Interest for period shortfall', align: 'right', aggregate: 'Sum', format: 'n2', cellTemplate: (cell: any) => {
+              const InterestForPeriodShortfall = cell.item.InterestForPeriodShortfall;
+              const color = InterestForPeriodShortfall < 0 ? 'red' : 'darkgreen';
+              return `<div style="color: ${color};">${InterestForPeriodShortfall.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>`;
+            }
+          },
+          {
+            binding: 'InterestPaidOnPMTDateShortfall', header: 'Interest paid on payment date shortfall', align: 'right', aggregate: 'Sum', format: 'n2', cellTemplate: (cell: any) => {
+              const InterestPaidOnPMTDateShortfall = cell.item.InterestPaidOnPMTDateShortfall;
+              const color = InterestPaidOnPMTDateShortfall < 0 ? 'red' : 'darkgreen';
+              return `<div style="color: ${color};">${InterestPaidOnPMTDateShortfall.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>`;
+            }
+          },
+          {
+            binding: 'CumulativeInterestPaidOnPMTDateShortfall', header: 'Cumulative interest paid on payment date shortfall', align: 'right', aggregate: 'Sum', format: 'n2', cellTemplate: (cell: any) => {
+              const CumulativeInterestPaidOnPMTDateShortfall = cell.item.CumulativeInterestPaidOnPMTDateShortfall;
+              const color = CumulativeInterestPaidOnPMTDateShortfall < 0 ? 'red' : 'darkgreen';
+              return `<div style="color: ${color};">${CumulativeInterestPaidOnPMTDateShortfall.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>`;
+            }
+          },
+          {
+            binding: 'InterestShortfallLoss', header: 'Interest shortfall loss', align: 'right', aggregate: 'Sum', format: 'n2', cellTemplate: (cell: any) => {
+              const InterestShortfallLoss = cell.item.InterestShortfallLoss;
+              const color = InterestShortfallLoss < 0 ? 'red' : 'darkgreen';
+              return `<div style="color: ${color};">${InterestShortfallLoss.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>`;
+            }
+          },
+          {
+            binding: 'InterestShortfallRecovery', header: 'Interest shortfall recovery', align: 'right', aggregate: 'Sum', format: 'n2', cellTemplate: (cell: any) => {
+              const InterestShortfallRecovery = cell.item.InterestShortfallRecovery;
+              const color = InterestShortfallRecovery < 0 ? 'red' : 'darkgreen';
+              return `<div style="color: ${color};">${InterestShortfallRecovery.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>`;
+            }
+          },
+        ]
+      },
+      {
+        header: 'Financing', align: 'center', collapseTo: 'BeginningFinancingBalance', columns: [
+          {
+            binding: 'BeginningFinancingBalance', header: 'Beginning financing balance', align: 'right', aggregate: 'Sum', format: 'n2', cellTemplate: (cell: any) => {
+              const BeginningFinancingBalance = cell.item.BeginningFinancingBalance;
+              const color = BeginningFinancingBalance < 0 ? 'red' : 'darkgreen';
+              return `<div style="color: ${color};">${BeginningFinancingBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>`;
+            }
+          },
+          { binding: 'Totalfinancingdraws', header: 'Total financing draws/curtailments for period', align: 'right', aggregate: 'Sum', format: 'n2' },
+          {
+            binding: 'FinancingBalloon', header: 'Financing Balloon', align: 'right', aggregate: 'Sum', format: 'n2', cellTemplate: (cell: any) => {
+              const FinancingBalloon = cell.item.FinancingBalloon;
+              const color = FinancingBalloon < 0 ? 'red' : 'darkgreen';
+              return `<div style="color: ${color};">${FinancingBalloon.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>`;
+            }
+          },
+          {
+            binding: 'EndingFinancingBalance', header: 'Ending Financing Balance', align: 'right', aggregate: 'Sum', format: 'n2', cellTemplate: (cell: any) => {
+              const EndingFinancingBalance = cell.item.EndingFinancingBalance;
+              const color = EndingFinancingBalance < 0 ? 'red' : 'darkgreen';
+              return `<div style="color: ${color};">${EndingFinancingBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>`;
+            }
+          },
+          {
+            binding: 'FinancingInterestPaid', header: 'Financing Interest Paid', align: 'right', aggregate: 'Sum', format: 'n2', cellTemplate: (cell: any) => {
+              const FinancingInterestPaid = cell.item.FinancingInterestPaid;
+              const color = FinancingInterestPaid < 0 ? 'red' : 'darkgreen';
+              return `<div style="color: ${color};">${FinancingInterestPaid.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>`;
+            }
+          },
+          {
+            binding: 'FinancingFeesPaid', header: 'Financing Fees Paid', align: 'right', aggregate: 'Sum', format: 'n2', cellTemplate: (cell: any) => {
+              const FinancingFeesPaid = cell.item.FinancingFeesPaid;
+              const color = FinancingFeesPaid < 0 ? 'red' : 'darkgreen';
+              return `<div style="color: ${color};">${FinancingFeesPaid.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>`;
+            }
+          },
+          {
+            binding: 'PeriodLeveredYield', header: 'Period Levered Yield', align: 'right', aggregate: 'Sum', format: 'n2', cellTemplate: (cell: any) => {
+              const PeriodLeveredYield = cell.item.PeriodLeveredYield;
+              const color = PeriodLeveredYield < 0 ? 'red' : 'darkgreen';
+              return `<div style="color: ${color};">${PeriodLeveredYield.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>`;
+            }
+          },
+        ]
+      },
+      {
+        header: 'All-In Basis', align: 'center', collapseTo: 'DeferredFeesReceivable', columns: [
+          {
+            binding: 'DeferredFeesReceivable', header: 'Deferred Fees Receivable', align: 'right', aggregate: 'Sum', format: 'n2', cellTemplate: (cell: any) => {
+              const DeferredFeesReceivable = cell.item.DeferredFeesReceivable;
+              const color = DeferredFeesReceivable < 0 ? 'red' : 'darkgreen';
+              return `<div style="color: ${color};">${DeferredFeesReceivable.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>`;
+            }
+          },
+          {
+            binding: 'FeeStrippedforthePeriod', header: 'Fee Stripped for the Period', align: 'right', aggregate: 'Sum', format: 'n2', cellTemplate: (cell: any) => {
+              const FeeStrippedforthePeriod = cell.item.FeeStrippedforthePeriod;
+              const color = FeeStrippedforthePeriod < 0 ? 'red' : 'darkgreen';
+              return `<div style="color: ${color};">${FeeStrippedforthePeriod.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>`;
+            }
+          },
+          {
+            binding: 'AdditionalFeeAccrual', header: 'Additional Fee Accrual', align: 'right', aggregate: 'Sum', format: 'n2', cellTemplate: (cell: any) => {
+              const AdditionalFeeAccrual = cell.item.AdditionalFeeAccrual;
+              const color = AdditionalFeeAccrual < 0 ? 'red' : 'darkgreen';
+              return `<div style="color: ${color};">${AdditionalFeeAccrual.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>`;
+            }
+          },
+          {
+            binding: 'ExitFeeAccrual', header: 'Exit Fee Accrual', align: 'right', aggregate: 'Sum', format: 'n2', cellTemplate: (cell: any) => {
+              const ExitFeeAccrual = cell.item.ExitFeeAccrual;
+              const color = ExitFeeAccrual < 0 ? 'red' : 'darkgreen';
+              return `<div style="color: ${color};">${ExitFeeAccrual.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>`;
+            }
+          },
+          {
+            binding: 'AllInBasisValuation', header: 'All-In Basis(Valuation)', align: 'right', aggregate: 'Sum', format: 'n2', cellTemplate: (cell: any) => {
+              const AllInBasisValuation = cell.item.AllInBasisValuation;
+              const color = AllInBasisValuation < 0 ? 'red' : 'darkgreen';
+              return `<div style="color: ${color};">${AllInBasisValuation.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>`;
+            }
+          },
+        ]
+      },
+      {
+        header: 'PV Basis', align: 'center', collapseTo: 'ActualCashFlows', columns: [
+          {
+            binding: 'ActualCashFlows', header: 'Actual cashflows', align: 'right', aggregate: 'Sum', format: 'n2', cellTemplate: (cell: any) => {
+              const cashFlowValue = cell.item.ActualCashFlows;
+              const color = cashFlowValue < 0 ? 'red' : 'darkgreen';
+              return `<div style="color: ${color};">${cashFlowValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>`;
+            }
+          },
+          {
+            binding: 'GAAPCashFlows', header: 'GAAP cashflows', align: 'right', aggregate: 'Sum', format: 'n2', cellTemplate: (cell: any) => {
+              const GAAPCashFlows = cell.item.GAAPCashFlows;
+              const color = GAAPCashFlows < 0 ? 'red' : 'darkgreen';
+              return `<div style="color: ${color};">${GAAPCashFlows.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>`;
+            }
+          },
+          {
+            binding: 'AmortAccrualLevelYield', header: 'Amort accrual level yield', align: 'right', aggregate: 'Sum', format: 'n2', cellTemplate: (cell: any) => {
+              const AmortAccrualLevelYield = cell.item.AmortAccrualLevelYield;
+              const color = AmortAccrualLevelYield < 0 ? 'red' : 'darkgreen';
+              return `<div style="color: ${color};">${AmortAccrualLevelYield.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>`;
+            }
+          },
+          {
+            binding: 'EndingPreCapPVBasis', header: 'Ending Pre Cap PVBasis', align: 'right', aggregate: 'Sum', format: 'n2', cellTemplate: (cell: any) => {
+              const EndingPreCapPVBasis = cell.item.EndingPreCapPVBasis;
+              const color = EndingPreCapPVBasis < 0 ? 'red' : 'darkgreen';
+              return `<div style="color: ${color};">${EndingPreCapPVBasis.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>`;
+            }
+          },
+          {
+            binding: 'LevelYieldIncomeForThePeriod', header: 'Level Yield Income For The Period', width: 150, align: 'right', aggregate: 'Sum', format: 'n2', cellTemplate: (cell: any) => {
+              const LevelYieldIncomeForThePeriod = cell.item.LevelYieldIncomeForThePeriod;
+              const color = LevelYieldIncomeForThePeriod < 0 ? 'red' : 'darkgreen';
+              return `<div style="color: ${color};">${LevelYieldIncomeForThePeriod.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>`;
+            }
+          },
+          {
+            binding: 'PVAmortTotalIncomeMethod', header: 'PVAmort Total Income Method', align: 'right', aggregate: 'Sum', format: 'n2', cellTemplate: (cell: any) => {
+              const PVAmortTotalIncomeMethod = cell.item.PVAmortTotalIncomeMethod;
+              const color = PVAmortTotalIncomeMethod < 0 ? 'red' : 'darkgreen';
+              return `<div style="color: ${color};">${PVAmortTotalIncomeMethod.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>`;
+            }
+          },
+          {
+            binding: 'EndingCleanCostLY', header: 'Ending Clean Cost LY', align: 'right', aggregate: 'Sum', format: 'n2', cellTemplate: (cell: any) => {
+              const EndingCleanCostLY = cell.item.EndingCleanCostLY;
+              const color = EndingCleanCostLY < 0 ? 'red' : 'darkgreen';
+              return `<div style="color: ${color};">${EndingCleanCostLY.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>`;
+            }
+          },
+          {
+            binding: 'EndingAccumAmort', header: 'Ending Accum GAAP Amort', align: 'right', aggregate: 'Sum', format: 'n2', cellTemplate: (cell: any) => {
+              const EndingAccumAmort = cell.item.EndingAccumAmort;
+              const color = EndingAccumAmort < 0 ? 'red' : 'darkgreen';
+              return `<div style="color: ${color};">${EndingAccumAmort.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>`;
+            }
+          },
+          {
+            binding: 'PVAmortForThePeriod', header: 'GAAP Amort for the period', align: 'right', aggregate: 'Sum', format: 'n2', cellTemplate: (cell: any) => {
+              const PVAmortForThePeriod = cell.item.PVAmortForThePeriod;
+              const color = PVAmortForThePeriod < 0 ? 'red' : 'darkgreen';
+              return `<div style="color: ${color};">${PVAmortForThePeriod.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>`;
+            }
+          },
+          {
+            binding: 'EndingSLBasis', header: 'Ending SL Basis', align: 'right', aggregate: 'Sum', format: 'n2', cellTemplate: (cell: any) => {
+              const EndingSLBasis = cell.item.EndingSLBasis;
+              const color = EndingSLBasis < 0 ? 'red' : 'darkgreen';
+              return `<div style="color: ${color};">${EndingSLBasis.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>`;
+            }
+          },
+          {
+            binding: 'SLAmortForThePeriod', header: 'SL Amort For The Period', align: 'right', aggregate: 'Sum', format: 'n2', cellTemplate: (cell: any) => {
+              const SLAmortForThePeriod = cell.item.SLAmortForThePeriod;
+              const color = SLAmortForThePeriod < 0 ? 'red' : 'darkgreen';
+              return `<div style="color: ${color};">${SLAmortForThePeriod.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>`;
+            }
+          },
+          {
+            binding: 'SLAmortOfTotalFeesInclInLY', header: 'SL Amort Of Total Fees Incl In LY', align: 'right', aggregate: 'Sum', format: 'n2', cellTemplate: (cell: any) => {
+              const SLAmortOfTotalFeesInclInLY = cell.item.SLAmortOfTotalFeesInclInLY;
+              const color = SLAmortOfTotalFeesInclInLY < 0 ? 'red' : 'darkgreen';
+              return `<div style="color: ${color};">${SLAmortOfTotalFeesInclInLY.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>`;
+            }
+          },
+          {
+            binding: 'SLAmortOfDiscountPremium', header: 'SL Amort Of Discount Premium', align: 'right', aggregate: 'Sum', format: 'n2', cellTemplate: (cell: any) => {
+              const SLAmortOfDiscountPremium = cell.item.SLAmortOfDiscountPremium;
+              const color = SLAmortOfDiscountPremium < 0 ? 'red' : 'darkgreen';
+              return `<div style="color: ${color};">${SLAmortOfDiscountPremium.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>`;
+            }
+          },
+          {
+            binding: 'SLAmortOfCapCost', header: 'SL Amort Of Cap Cost', align: 'right', aggregate: 'Sum', format: 'n2', cellTemplate: (cell: any) => {
+              const SLAmortOfCapCost = cell.item.SLAmortOfCapCost;
+              const color = SLAmortOfCapCost < 0 ? 'red' : 'darkgreen';
+              return `<div style="color: ${color};">${SLAmortOfCapCost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>`;
+            }
+          },
+          {
+            binding: 'EndingAccumSLAmort', header: 'Ending Accum SL Amort', align: 'right', aggregate: 'Sum', format: 'n2', cellTemplate: (cell: any) => {
+              const EndingAccumSLAmort = cell.item.EndingAccumSLAmort;
+              const color = EndingAccumSLAmort < 0 ? 'red' : 'darkgreen';
+              return `<div style="color: ${color};">${EndingAccumSLAmort.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>`;
+            }
+          },
+          {
+            binding: 'EndingPreCapGAAPBasis', header: 'Ending PreCap GAAP Basis', align: 'right', aggregate: 'Sum', format: 'n2', cellTemplate: (cell: any) => {
+              const EndingPreCapGAAPBasis = cell.item.EndingPreCapGAAPBasis;
+              const color = EndingPreCapGAAPBasis < 0 ? 'red' : 'darkgreen';
+              return `<div style="color: ${color};">${EndingPreCapGAAPBasis.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>`;
+            }
+          }
+        ]
+      },
+      {
+        header: 'Reporting', align: 'center', collapseTo: 'ActualCashFlows', columns: [
+          {
+            binding: 'RemainingUnfundedCommitment', header: 'Unfunded Commitment', align: 'right', aggregate: 'Sum', format: 'n2', cellTemplate: (cell: any) => {
+              const RemainingUnfundedCommitment = cell.item.RemainingUnfundedCommitment;
+              const color = RemainingUnfundedCommitment < 0 ? 'red' : 'darkgreen';
+              return `<div style="color: ${color};">${RemainingUnfundedCommitment.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>`;
+            }
+          },
+          {
+            binding: 'AverageDailyBalance', header: 'Average Daily Balance', align: 'right', aggregate: 'Sum', format: 'n2', cellTemplate: (cell: any) => {
+              const AverageDailyBalance = cell.item.AverageDailyBalance;
+              const color = AverageDailyBalance < 0 ? 'red' : 'darkgreen';
+              return `<div style="color: ${color};">${AverageDailyBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>`;
+            }
+          },
+          {
+            binding: 'InterestPastDue', header: 'Interest Past Due', align: 'right', aggregate: 'Sum', format: 'n2', cellTemplate: (cell: any) => {
+              const InterestPastDue = cell.item.InterestPastDue;
+              const color = InterestPastDue < 0 ? 'red' : 'darkgreen';
+              return `<div style="color: ${color};">${InterestPastDue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>`;
+            }
+          },
+        ]
+      }
+    ]
+    //this.columnGroupHeaders = groups.map(group => ({header: group.header}));
+    // Collect all individual column headers
+    this.columnGroupHeaders = [];
+    groups.forEach(group => {
+      if (group.columns) {
+        group.columns.forEach(column => {
+          this.columnGroupHeaders.push({ header: column.header });
+        });
+      }
+      else {
+        this.columnGroupHeaders.push({ header: group.header });
+      }
+    });
+    return groups;
+  }
+
+  animated = true;
+  columnGroups = this.getColumnGroups();
+  checkedItems: any[] = [];
+  lstNoteTranchePercentage: any;
 
   constructor(private activatedRoute: ActivatedRoute,
     //private ng2FileInputService: Ng2FileInputService,
@@ -549,6 +1257,7 @@ export class NoteDetailComponent extends Paginated {
     this._noteext = new NoteAdditionalList();
     this._devDashBoard = new devDashBoard('');
     this._noteextt = new NoteAdditionalListObject();
+    this._noteEditList = new NoteAdditionalListObject();
     this._validationobject = new NoteAdditionalList();
     this._noteArchieveext = new NoteAdditionalList();
     this._noteArchieveextt = new NoteAdditionalListObject();
@@ -597,13 +1306,290 @@ export class NoteDetailComponent extends Paginated {
     //manish
     this.GetFinancingSource();
     this.getDealMaturitybyID();
+    this.GetAllTagNameXIRR();
     //    setTimeout(() => {
     //       this.GetTransactionCategory();
     //  }, 8000);
+
+  }
+  ngOnInit(): void {
+    this.checkedItems = [...this.columnGroupHeaders];
   }
 
+  onMultiSelectInitialized() {
+    const dropDown = this.selectColumnGroups.dropDown;
+    const footer = document.createElement('div');
+    footer.className = 'footer-button';
+    footer.style.display = 'block';
+    footer.innerHTML = '<button class="custombutton">Apply</button>';
 
+    dropDown.appendChild(footer);
 
+    if (footer) {
+      const button = footer.querySelector('.custombutton') as HTMLButtonElement;
+      if (button) {
+        button.addEventListener('click', () => this.toggleColumns());
+      }
+    }
+  }
+
+  onSelectionChanged(s, e) {
+    this.selectedColumnGroups = s.checkedItems;
+  }
+
+  toggleColumns() {
+    this._isnoteperiodiccalcFetching = true;
+    setTimeout(function () {
+      this.columnGroups.forEach(group => {
+        if (group.columns && Array.isArray(group.columns)) {
+          group.columns.forEach((column: any) => {
+            const selectedColumn = this.selectedColumnGroups.find(item => item.header === column.header);
+            this.flexnoteperiodiccalc.getColumn(column.binding).visible = !!selectedColumn;
+          });
+        } else {
+          const selectedGroup = this.selectedColumnGroups.find(item => item.header === group.header);
+          this.flexnoteperiodiccalc.getColumn(group.binding).visible = !!selectedGroup;
+        }
+      });
+      this._isnoteperiodiccalcFetching = false;
+    }.bind(this), 1000);
+  }
+
+  private _buildDataMapWithoutLookupForRuleType(items): wjcGrid.DataMap {
+    var map = [];
+
+    for (var i = 0; i < items.length; i++) {
+      var obj = items[i];
+      map.push({ key: obj['FileName'], value: obj['FileName'] });
+    }
+    return new wjcGrid.DataMap(map, 'key', 'value');
+  }
+
+  invalidateRulestab() {
+    if (!this._isRuleTabClicked) {
+      localStorage.setItem('ClickedTabId', 'aRulestab');
+      this._isRuleTabClicked = true;
+    }
+
+    if (this._note.BalanceAware == true) {
+      this._isShowScenariodiv = false;
+      this._isShowRuleTypediv = false;
+      this._isShowbtnResetdiv = false;
+      this._Showmessagedivrule = true;
+      this._ShowmessagedivruleMsg = "This note belongs to the deal which is set as Balance Aware Deal. To edit the rules, uncheck the balance aware checkbox on deal's Main Tab and save the deal.";
+    }
+    else {
+      this._isShowScenariodiv = true;
+      this._isShowRuleTypediv = true;
+      this._isShowbtnResetdiv = true;
+      this._Showmessagedivrule = false;
+      this._ShowmessagedivruleMsg = "";
+    }
+    this.getAllDistinctScenario();
+    this.getAllRuleType();
+    this.GetAllRuleTypeDetail();
+    this.GetRuleTypeSetupByDealid();
+  }
+
+  getAllRuleType() {
+    this.scenarioService.getallruletype().subscribe(res => {
+      if (res.Succeeded) {
+        this._lstruletype = res.lstScenariorule;
+        this._lstgetallrule = res.lstScenariorule;
+      }
+    });
+
+  }
+
+  GetAllRuleTypeDetail() {
+    this.scenarioService.getallruletypedetail().subscribe(res => {
+      if (res.Succeeded) {
+        this._lstruletypedetail = res.lstScenarioRuleDetail;
+        var RuleType = this.RuleTypeList;
+        if (RuleType) {
+          var colRuleType = RuleType.columns.getColumn('FileName');
+          if (colRuleType) {
+            // colRuleType.showDropDown = true;
+            colRuleType.dataMap = this._buildDataMapWithoutLookupForRuleType(this._lstruletypedetail);
+          }
+        }
+
+      }
+
+    });
+  }
+
+  GetRuleTypeSetupByDealid() {
+    this._ruletype.NoteID = this._note.NoteId;
+    this.noteService.getruletypesetupbynoteid(this._ruletype).subscribe(res => {
+      if (res.Succeeded) {
+        this._lstRuleTypeSetupfilter = res.lstScenariorule;
+        this.OnChangeScenarioName(this._ruletype.AnalysisID);
+      }
+    });
+  }
+
+  cellRuleTypeEditHandler = function (s, e) {
+    var col = s.columns[e.col];
+    if (col.binding == 'FileName') {
+      var RuleTypeName = s.rows[e.row].dataItem.RuleTypeName
+      switch (RuleTypeName) {
+        case RuleTypeName:
+          this.lstRuleTypebyruleid = this._lstruletypedetail.filter(x => x.RuleTypeName == RuleTypeName)
+          this.lstRuleTypebyruleid.sort(this.sortByName);
+          col.dataMap = this._buildDataMapWithoutLookupForRuleType(this.lstRuleTypebyruleid);
+          break;
+
+      }
+    }
+  }
+
+  celleditRuleType(s: wjcGrid.FlexGrid, e: wjcGrid.CellEditEndingEventArgs) {
+    var RuleTypeFileNameerror = "";
+    var rowdata = this.RuleTypeList.rows[e.row].dataItem;
+    if (this._ruletype.AnalysisID == undefined) {
+      RuleTypeFileNameerror = "<p>" + "Please Select a Scenario" + "</p>";
+      this.CustomAlert(RuleTypeFileNameerror);
+      return;
+    }
+    if (Object.keys(rowdata).length > 0) {
+      var newFileName = rowdata.FileName;
+      if (this._lstRuleTypeSetuptobesend.length > 0) {
+        for (var h = 0; h < this._lstRuleTypeSetuptobesend.length; h++) {
+          if (this._lstRuleTypeSetuptobesend[h].RuleTypeName == rowdata.RuleTypeName && this._lstRuleTypeSetuptobesend[h].AnalysisID == this._ruletype.AnalysisID) {
+            this._lstRuleTypeSetuptobesend[h]["FileName"] = newFileName;
+          }
+
+        }
+      }
+
+    }
+  }
+
+  OnChangeScenarioName(newvalue) {
+    this._lstruletype = [];
+    this.RuleTypeList.invalidate();
+    if (this._lstRuleTypeSetupfilter != null) {
+
+      this._lstruletype = this._lstRuleTypeSetupfilter.filter(x => x.AnalysisID == newvalue);
+
+      this.RuleTypeList.invalidate();
+    }
+    if (this._lstgetallrule.length > 0) {
+      for (var h = 0; h < this._lstgetallrule.length; h++) {
+        var _lstgetallrule = this._lstruletype.filter(x => x.RuleTypeName == this._lstgetallrule[h].RuleTypeName)
+        if (_lstgetallrule.length == 0) {
+          this._lstruletype.push({
+            'AnalysisID': newvalue,
+            'NoteID': this._note.NoteId,
+            'RuleTypeMasterID': this._lstgetallrule[h].RuleTypeMasterID,
+            'RuleTypeDetailID': "",
+            'RuleTypeName': this._lstgetallrule[h].RuleTypeName,
+            'FileName': "",
+
+          });
+        }
+
+      }
+    }
+
+    var newanalysisid = this._lstRuleTypeSetuptobesend.filter(x => x.AnalysisID == newvalue)
+    if (newanalysisid.length != 0) {
+      this._lstruletype = [];
+      setTimeout(function () {
+        this._lstruletype = newanalysisid;
+      }.bind(this), 100);
+    }
+    else {
+      if (newvalue != undefined) {
+        if (this._lstruletype.length > 0) {
+          for (var h = 0; h < this._lstruletype.length; h++) {
+            this._lstRuleTypeSetuptobesend.push({
+              'AnalysisID': newvalue,
+              'NoteID': this._note.NoteId,
+              'RuleTypeMasterID': this._lstruletype[h].RuleTypeMasterID,
+              'RuleTypeDetailID': this._lstruletype[h].RuleTypeDetailID,
+              'RuleTypeName': this._lstruletype[h].RuleTypeName,
+              'FileName': this._lstruletype[h].FileName,
+
+            });
+          }
+        }
+      }
+    }
+  }
+
+  ResetRuleType() {
+    if (this._lstRuleTypeSetupfilter != null) {
+      if (this._lstRuleTypeSetupfilter.length > 0) {
+        for (var h = 0; h < this._lstRuleTypeSetupfilter.length; h++) {
+          if (this._lstRuleTypeSetupfilter[h].AnalysisID == this._ruletype.AnalysisID) {
+            this._lstRuleTypeSetupfilter[h]["FileName"] = "";
+
+          }
+        }
+      }
+      this._lstruletype = this._lstRuleTypeSetupfilter.filter(x => x.AnalysisID == this._ruletype.AnalysisID);
+    }
+    else {
+      this._lstruletype = [];
+      this.RuleTypeList.invalidate();
+    }
+    if (this._lstgetallrule.length > 0) {
+      for (var h = 0; h < this._lstgetallrule.length; h++) {
+        var _lstgetallrule = this._lstruletype.filter(x => x.RuleTypeName == this._lstgetallrule[h].RuleTypeName)
+        if (_lstgetallrule.length == 0) {
+          this._lstruletype.push({
+            'AnalysisID': this._ruletype.AnalysisID,
+            'NoteID': this._note.NoteId,
+            'RuleTypeMasterID': this._lstgetallrule[h].RuleTypeMasterID,
+            'RuleTypeDetailID': "",
+            'RuleTypeName': this._lstgetallrule[h].RuleTypeName,
+            'FileName': "",
+
+          });
+        }
+
+      }
+    }
+    if (this._lstRuleTypeSetuptobesend.length > 0) {
+      for (var h = 0; h < this._lstRuleTypeSetuptobesend.length; h++) {
+        if (this._lstRuleTypeSetuptobesend[h].AnalysisID == this._ruletype.AnalysisID) {
+          this._lstRuleTypeSetuptobesend[h]["FileName"] = "";
+
+        }
+      }
+    }
+
+  }
+
+  AddUpdateNoteRuleTypeSetup() {
+    var RuleTypeDetailID = 0;
+    if (this._lstRuleTypeSetuptobesend.length > 0) {
+
+      for (var h = 0; h < this._lstRuleTypeSetuptobesend.length; h++) {
+        if (this._lstRuleTypeSetuptobesend[h].FileName != "" && this._lstRuleTypeSetuptobesend[h].FileName != null) {
+          RuleTypeDetailID = this._lstruletypedetail.find(x => x.FileName == this._lstRuleTypeSetuptobesend[h].FileName).RuleTypeDetailID
+        }
+        else {
+          RuleTypeDetailID = 0;
+        }
+        this._lstRuleTypeSetupNew.push({
+          'AnalysisID': this._lstRuleTypeSetuptobesend[h].AnalysisID,
+          'NoteID': this._lstRuleTypeSetuptobesend[h].NoteID,
+          'RuleTypeMasterID': this._lstRuleTypeSetuptobesend[h].RuleTypeMasterID,
+          'RuleTypeDetailID': RuleTypeDetailID,
+
+        });
+      }
+
+    }
+    this.noteService.addupdatenoteruletypesetup(this._lstRuleTypeSetupNew).subscribe(res => {
+      if (res.Succeeded) {
+
+      }
+    });
+  }
   getAllDistinctScenario(): void {
     var _userData = JSON.parse(localStorage.getItem('user'));
     this._scenariodc.UserID = _userData.UserID;
@@ -632,12 +1618,12 @@ export class NoteDetailComponent extends Paginated {
     this.getFeeCouponStripReceivableDataByNoteId();
   }
 
-  /*
+
   ChangeFundingappied(ScheduleID: string, _value: boolean, flexGridrw: wjcGrid.Row): void {
 
     if (_value == true) {
       if (this._noteext.ListFutureFundingScheduleTab[flexGridrw.index].Date == undefined) {
-        flexGridrw.index.rows[flexGridrw.index].Applied = false;
+        this.futurefundingflex.rows[flexGridrw.index].dataItem.Applied = false;
         this.futurefundingflex.invalidate();
         this.CustomAlert("Date can not be blank.")
         return;
@@ -648,7 +1634,7 @@ export class NoteDetailComponent extends Paginated {
         if (minDate.toJSON()) {
           var wcDate = new Date(flexGridrw.dataItem.Date);
           if (wcDate.toString() != minDate.toString()) {
-            this.futurefundingflex.rows[flexGridrw.index].Applied = false;
+            this.futurefundingflex.rows[flexGridrw.index].dataItem.Applied = false;
             this.futurefundingflex.invalidate();
             //  this.CustomAlert("Before confirming " + minDate.toLocaleDateString("en-US") + " record .Other date is not allowed to confirm.")
             this.CustomAlert("You can't confirm wire on a later date without confirming all wires in between.")
@@ -672,7 +1658,7 @@ export class NoteDetailComponent extends Paginated {
       if (maxDate.toJSON()) {
         var wcDate = new Date(flexGridrw.dataItem.Date);
         if (wcDate.toString() != maxDate.toString()) {
-          this.futurefundingflex.rows[flexGridrw.index].Applied = true;
+          this.futurefundingflex.rows[flexGridrw.index].dataItem.Applied = true;
           this.futurefundingflex.invalidate();
           //  this.CustomAlert("Before unchecking " + maxDate.toLocaleDateString("en-US") + " record .Other date is not allowed to uncheck.")
           this.CustomAlert("You can't remove a wire confirmation on an earlier date without removing the wire confirmation on later dates.")
@@ -715,21 +1701,15 @@ export class NoteDetailComponent extends Paginated {
       this._noteext.ListFutureFundingScheduleTab.find(x => x.ScheduleID == ScheduleID).Applied = _value;
     }
   }
-  */
 
-  //For remove the Leave Page dialog
-  @HostListener('window:beforeunload', ['$event'])
-  public beforeunloadHandler($event) {
+  ////For remove the Leave Page dialog
+  //@HostListener('window:beforeunload', ['$event'])
+  //public beforeunloadHandler($event) {
 
-    if (this.initialised > 1) {
-      $event.returnValue = "Are you sure?";
-    }
-  }
-
-
-
-
-
+  //  if (this.initialised > 1) {
+  //    $event.returnValue = "Are you sure?";
+  //  }
+  //}
 
   // Component views are initialized
   ngAfterViewInit() {
@@ -783,6 +1763,7 @@ export class NoteDetailComponent extends Paginated {
     if (this._note.FinancingInitialMaturityDate != null) { this._note.FinancingInitialMaturityDate = new Date(this._note.FinancingInitialMaturityDate.toString()); }
     if (this._note.FinancingExtendedMaturityDate != null) { this._note.FinancingExtendedMaturityDate = new Date(this._note.FinancingExtendedMaturityDate.toString()); }
     if (this._note.ClosingDate != null) { this._note.ClosingDate = new Date(this._note.ClosingDate.toString()); }
+    if (this._note.LastAccountingCloseDate != null) { this._note.LastAccountingCloseDate = new Date(this._note.LastAccountingCloseDate.toString()); }
 
     //if (this._note.ExtendedMaturityScenario1 != null) { this._note.ExtendedMaturityScenario1 = new Date(this._note.ExtendedMaturityScenario1.toString()); }
     // if (this._note.ExtendedMaturityScenario2 != null) { this._note.ExtendedMaturityScenario2 = new Date(this._note.ExtendedMaturityScenario2.toString()); }
@@ -793,7 +1774,10 @@ export class NoteDetailComponent extends Paginated {
     if (this._note.ValuationDate != null) { this._note.ValuationDate = new Date(this._note.ValuationDate.toString()); }
 
     if (this._note.lastCalcDateTime != null) { this._note.lastCalcDateTime = new Date(this._note.lastCalcDateTime.toString()); }
+    if (this._note.AccountingCloseDate != null) { this._note.AccountingCloseDate = new Date(this._note.AccountingCloseDate.toString()); }
     if (this._note.NoteTransferDate != null) { this._note.NoteTransferDate = new Date(this._note.NoteTransferDate.toString()); }
+
+    if (this._note.FirstIndexDeterminationDateOverride != null) { this._note.FirstIndexDeterminationDateOverride = new Date(this._note.FirstIndexDeterminationDateOverride.toString()); }
   }
 
   public lstnotePeriodicOutputs: any;
@@ -821,9 +1805,11 @@ export class NoteDetailComponent extends Paginated {
         if (res.lstnotePeriodicOutputs[0] != null) {
           this._note.lastCalcDateTime = res.lstnotePeriodicOutputs[0].UpdatedDate;
           this._note.CalculationStatus = res.lstnotePeriodicOutputs[0].CalculationStatus;
+          this._note.AccountingCloseDate = res.lstnotePeriodicOutputs[0].AccountingCloseDate;
         }
         else {
           this._note.CalculationStatus = "";
+          this._note.ErrorMessage = "";
         }
 
         this.ConvertToBindableDate(this._noteext.lstnotePeriodicOutputs, "NotePeriodicCalc", "en-US");
@@ -831,8 +1817,8 @@ export class NoteDetailComponent extends Paginated {
 
         setTimeout(function () {
           this.flexnoteperiodiccalc.autoSizeColumns(0, this.flexnoteperiodiccalc.columns.length - 1, false, 20);
+          this.flexnoteperiodiccalc.invalidate();
           this._isnoteperiodiccalcFetching = false;
-          //this.grdCalcData.invalidate();
         }.bind(this), 5000);
       }
       else {
@@ -882,6 +1868,12 @@ export class NoteDetailComponent extends Paginated {
             if (this.lstTransactionEntry[i].DueDate) {
               this.lstTransactionEntry[i].DueDate = new Date(this.lstTransactionEntry[i].DueDate.toString());
             }
+
+            if (this.lstTransactionEntry[i].AccountingCloseDate) {
+              this.lstTransactionEntry[i].AccountingCloseDate = new Date(this.lstTransactionEntry[i].AccountingCloseDate.toString());
+            }
+
+
             if (this.lstTransactionEntry[i].RemitDate) {
               this.lstTransactionEntry[i].RemitDate = new Date(this.lstTransactionEntry[i].RemitDate.toString());
             }
@@ -974,18 +1966,26 @@ export class NoteDetailComponent extends Paginated {
     this.HideAllTabs();
 
     this._note.AnalysisID = this.ScenarioId;
+
     this.noteService.getNoteByNoteID(this._note).subscribe(res => {
       if (res.Succeeded) {
         if (res.StatusCode == 404) {
           localStorage.setItem('divWarNote', JSON.stringify(true));
           // localStorage.setItem('divWarMsgNote', JSON.stringify(true));
           localStorage.setItem('divWarMsgNote', JSON.stringify('Note not exists in our system.'));
-          this._router.navigate(['note']);
+          // this._router.navigate(['note']);
+          this._router.navigate(['login']);
         }
         else {
           if (typeof res.UserPermissionList !== 'undefined' && res.UserPermissionList.length > 0) {
+
+
             this.getAllfinancingWarehouse();
             this._note = res.NoteData;
+
+            if (this._note.PIKInterestAddedToBalanceBasedOnBusinessAdjustedDate == null) {
+              this._note.PIKInterestAddedToBalanceBasedOnBusinessAdjustedDate = 4;
+            }
             var notecommitmentdata = res.dtNoteCommitment;
 
             //to fetch note market price
@@ -1188,6 +2188,9 @@ export class NoteDetailComponent extends Paginated {
         case "PrepayAndAdditionalFeeSchedule":
           if (this._noteext.NotePrepayAndAdditionalFeeScheduleList.length > 0) {
             for (var i = 0; i < Data.length; i++) {
+              //if (this._noteext.NotePrepayAndAdditionalFeeScheduleList[i].EffectiveDate != null) {
+              //  this._noteext.NotePrepayAndAdditionalFeeScheduleList[i].EffectiveDate = new Date(Data[i].EffectiveDate.toString());
+              //}
               if (this._noteext.NotePrepayAndAdditionalFeeScheduleList[i].StartDate != null) {
                 this._noteext.NotePrepayAndAdditionalFeeScheduleList[i].StartDate = new Date(Data[i].StartDate.toString());
               }
@@ -1203,6 +2206,9 @@ export class NoteDetailComponent extends Paginated {
               if (this._noteext.RateSpreadScheduleList[i].Date != null) {
                 this._noteext.RateSpreadScheduleList[i].Date = new Date(Data[i].Date.toString());
               }
+              //if (this._noteext.RateSpreadScheduleList[i].EffectiveDate != null) {
+              //  this._noteext.RateSpreadScheduleList[i].EffectiveDate = new Date(Data[i].EffectiveDate.toString());
+              //}
             }
           }
           break;
@@ -1411,7 +2417,14 @@ export class NoteDetailComponent extends Paginated {
         this.ConvertToBindableDate(this._noteext.ListFixedAmortScheduleTab, "AmortSchedule", "en-US");
         this.ConvertToBindableDate(this._noteext.ListFeeCouponStripReceivable, "FeeCouponStripReceivable", "en-US");
 
-
+        if (this._noteext.ListFutureFundingScheduleTab !== undefined && this._noteext.ListFutureFundingScheduleTab !== null) {
+          for (var i = 0; i < this._noteext.ListFutureFundingScheduleTab.length; i++) {
+            if (this._noteext.ListFutureFundingScheduleTab[i].AdjustmentType) {
+              //  this._noteext.ListFutureFundingScheduleTab[i].SNonCommitmentAdj = this._noteext.ListFutureFundingScheduleTab[i].NonCommitmentAdj ? "Yes" : "No";
+              this._noteext.ListFutureFundingScheduleTab[i].AdjustmentTypeText = this.lstAdjustmentType.find(x => x.LookupID == this._noteext.ListFutureFundingScheduleTab[i].AdjustmentType).Name;
+            }
+          }
+        }
         setTimeout(function () {
           this.AppliedReadOnly();
         }.bind(this), 500);
@@ -1458,12 +2471,27 @@ export class NoteDetailComponent extends Paginated {
     }
   }
 
+
+
   fetchNoteAdditinallist(): void {
     var l_noteid = this._noteext.NoteId;
 
     this.noteService.getNoteAdditinalListByNoteID(this._noteext).subscribe(res => {
       if (res.Succeeded) {
         this._noteext = res.NoteAdditinalList;
+        this.lstNoteEditRSSlist = res.NoteList_RSSFEE.RateSpreadScheduleList;
+        this.lstNoteEditFEElist = res.NoteList_RSSFEE.NotePrepayAndAdditionalFeeScheduleList;
+        this.lstNoteEditPIKSchedulelist = res.NoteList_RSSFEE.NotePIKScheduleList;
+
+        if (this.lstNoteEditRSSlist != null) {
+          this.existingEffectiveDatesRSS = this.lstNoteEditRSSlist.map(item => item.EffectiveDate);
+        }
+        if (this.lstNoteEditFEElist != null) {
+          this.existingEffectiveDatesFEE = this.lstNoteEditFEElist.map(item => item.EffectiveDate);
+        }
+        if (this.lstNoteEditPIKSchedulelist != null) {
+          this.existingEffectiveDatesPIK = this.lstNoteEditPIKSchedulelist.map(item => item.EffectiveDate);
+        }
 
         this._noteext.NoteId = l_noteid;
 
@@ -1471,7 +2499,6 @@ export class NoteDetailComponent extends Paginated {
           //  alert('changed ' + this.initialised);
           this.initialised += 1;
         });
-
 
         if (this._noteext.MaturityScenariosList != null) {
           if (this._noteext.MaturityScenariosList[0].EffectiveDate != null)
@@ -1510,14 +2537,24 @@ export class NoteDetailComponent extends Paginated {
 
           this.PIKSchedule_SourceAccountID = this._noteext.NotePIKScheduleList[0].SourceAccountID;
           this.PIKSchedule_SourceAccount = this._noteext.NotePIKScheduleList[0].SourceAccount;
+          if (this.PIKSchedule_SourceAccount == undefined) {
+            this.PIKSchedule_SourceAccount = "";
+          }
           this.PIKSchedule_TargetAccountID = this._noteext.NotePIKScheduleList[0].TargetAccountID;
           this.PIKSchedule_TargetAccount = this._noteext.NotePIKScheduleList[0].TargetAccount;
+          if (this.PIKSchedule_TargetAccount == undefined) {
+            this.PIKSchedule_TargetAccount = "";
+          }
           this.PIKSchedule_AdditionalIntRate = this._noteext.NotePIKScheduleList[0].AdditionalIntRate;
+
+
           this.PIKSchedule_AdditionalSpread = this._noteext.NotePIKScheduleList[0].AdditionalSpread;
           this.PIKSchedule_IndexFloor = this._noteext.NotePIKScheduleList[0].IndexFloor;
           this.PIKSchedule_IntCompoundingRate = this._noteext.NotePIKScheduleList[0].IntCompoundingRate;
           this.PIKSchedule_IntCompoundingSpread = this._noteext.NotePIKScheduleList[0].IntCompoundingSpread;
           this.PIKSchedule_IntCapAmt = this._noteext.NotePIKScheduleList[0].IntCapAmt;
+          this.PIKSchedule_PeriodicRateCapPercent = this._noteext.NotePIKScheduleList[0].PeriodicRateCapPercent;
+          this.PIKSchedule_PeriodicRateCapAmount = this._noteext.NotePIKScheduleList[0].PeriodicRateCapAmount;
           this.PIKSchedule_PurBal = this._noteext.NotePIKScheduleList[0].PurBal;
           this.PIKSchedule_AccCapBal = this._noteext.NotePIKScheduleList[0].AccCapBal;
 
@@ -1528,7 +2565,11 @@ export class NoteDetailComponent extends Paginated {
           this.PIKSchedule_PIKIntCalcMethodIDText = this._noteext.NotePIKScheduleList[0].PIKIntCalcMethodIDText;
           this.PIKSchedule_PIKIntCalcMethodID = this._noteext.NotePIKScheduleList[0].PIKIntCalcMethodID;
 
-
+          this.PIKSetUp = this._noteext.NotePIKScheduleList[0].PIKSetUp;
+          this.PIKSetUpText = this._noteext.NotePIKScheduleList[0].PIKSetUpText;
+          this.PIKPercentage = this._noteext.NotePIKScheduleList[0].PIKPercentage;
+          this.PIKCurrentPayRate = this._noteext.NotePIKScheduleList[0].PIKCurrentPayRate;
+          this.PIKSeparateCompounding = this._noteext.NotePIKScheduleList[0].PIKSeparateCompounding;
 
           this.PIKSchedule_PIKComments = this._noteext.NotePIKScheduleList[0].PIKComments;
 
@@ -1552,21 +2593,7 @@ export class NoteDetailComponent extends Paginated {
         this.ConvertToBindableDate(this._noteext.lstServicerDropDateSetup, "ServicinglogDropDate", "en-US");
 
 
-        //if (this._noteext.lstNoteServicingLog) {
 
-        //    this.cvNoteServicingLog = new wjcCore.CollectionView(this._noteext.lstNoteServicingLog);
-        //    this.cvNoteServicingLog.trackChanges = true;
-        //    setTimeout(() => {
-        //        this.flexservicelog.invalidate();
-        //        this.ServicingLogReadOnly();
-        //    }, 1000);
-
-        //}
-        //else {
-        //    this._noteext.lstNoteServicingLog = [];
-        //    this.cvNoteServicingLog = new wjcCore.CollectionView(this._noteext.lstNoteServicingLog);
-        //    this.cvNoteServicingLog.trackChanges = true;
-        //}
         this.ServicingLog_refreshlist = this._noteext.lstNoteServicingLog;
         if (this._noteext.lstNoteServicingLog) {
           this.GetTransactionCategory();
@@ -1643,7 +2670,7 @@ export class NoteDetailComponent extends Paginated {
         }
 
 
-
+        this.showhidepikcompundingsetup();
         this.getAllScheduleLatestDataByNoteId();
 
         this.futurefundingflex.isReadOnly = true;
@@ -1683,6 +2710,73 @@ export class NoteDetailComponent extends Paginated {
     }
   }
 
+  ClearNoteUsedPikSetup() {
+
+    if (this.PIKSetUp == 871) {//PIK Rate
+
+      this.PIKPercentage = null;
+      this.PIKSeparateCompounding = null;
+      this.PIKSchedule_IntCompoundingRate = null;
+      this.PIKSchedule_IntCompoundingSpread = null;
+      this.PIKCurrentPayRate = null;
+    } else if (this.PIKSetUp == 870) {
+      //As a % of Coupon
+      this.PIKSchedule_AdditionalIntRate = null;
+      this.PIKSchedule_AdditionalSpread = null;
+      this.PIKCurrentPayRate = null;
+      if (this.PIKSeparateCompounding != 3) {
+        this.PIKSchedule_IntCompoundingRate = null;
+        this.PIKSchedule_IntCompoundingSpread = null;
+      }
+    }
+    else if (this.PIKSetUp == 891) {//Over Current Pay Rate
+      this.PIKSchedule_AdditionalIntRate = null;
+      this.PIKSchedule_AdditionalSpread = null;
+      this.PIKPercentage = null;
+      if (this.PIKSeparateCompounding != 3) {
+        this.PIKSchedule_IntCompoundingRate = null;
+        this.PIKSchedule_IntCompoundingSpread = null;
+      }
+    }
+  }
+
+  showhidepikcompundingsetup() {
+    this.showpiksetupdiv = true;
+    this.showCurrentPayRate = false;
+    if (this.PIKSetUp == null || this.PIKSetUp == 0 || this.PIKSetUp == 871) {
+      this.showpikAdditionalrate = true;
+      this.showpikAccrualrate = false;
+      this.showpikAccruesrate = false;
+      this.showpikwithPIKSeparateCompounding = false
+
+      this.showpiksetupdiv = true;
+    } else if (this.PIKSetUp == 870) {
+      if (this.PIKSeparateCompounding == 3) {
+        this.showpikAdditionalrate = false;
+        this.showpikAccrualrate = true;
+        this.showpikAccruesrate = true;
+        this.showpikwithPIKSeparateCompounding = true;
+
+      } else {
+        this.showpiksetupdiv = false;
+        this.showpikAccruesrate = true;
+        this.showpikwithPIKSeparateCompounding = true;
+      }
+
+    } else if (this.PIKSetUp == 891) {
+      this.showpikwithPIKSeparateCompounding = true;
+      this.showpikAccruesrate = false;
+      this.showCurrentPayRate = true;
+
+      if (this.PIKSeparateCompounding == 3) {
+        this.showpikAdditionalrate = false;
+        this.showpikAccrualrate = true;
+      } else {
+        this.showpiksetupdiv = false;
+      }
+    }
+  }
+
   ServicingLogReadOnly() {
     if (this._noteext.lstNoteServicingLog) {
       for (var i = 0; i <= (this._noteext.lstNoteServicingLog.length - 1); i++) {
@@ -1717,12 +2811,127 @@ export class NoteDetailComponent extends Paginated {
               this.flexservicelog.rows[i].cssClass = "customgridrowcolor";
             }
           }
+
+
+          if (this.flexservicelog.rows[i].dataItem.ServicerMasterID == 6) {
+            if (this.flexservicelog.rows[i]) {
+              this.flexservicelog.rows[i].isReadOnly = true;
+              this.flexservicelog.rows[i].cssClass = "customgridActualcolor";
+            }
+          }
         }
       }
 
 
     }
     this.flexservicelog.invalidate();
+  }
+
+  RssFeePikModulename: any;
+
+  EditDialogRSSFEE(modulename) {
+
+    this.RssFeePikModulename = modulename;
+
+    if (modulename == 'Rate Spread Schedule') {
+      this.lstNoteEditRSSlist;
+
+      for (var i = 0; i < this.lstNoteEditRSSlist.length; i++) {
+        if (this.lstNoteEditRSSlist[i].EffectiveDate != null) {
+          this.lstNoteEditRSSlist[i].EffectiveDate = new Date(this.lstNoteEditRSSlist[i].EffectiveDate.toString());
+        }
+        if (this.lstNoteEditRSSlist[i].Date != null) {
+          this.lstNoteEditRSSlist[i].Date = new Date(this.lstNoteEditRSSlist[i].Date.toString());
+        }
+      }
+
+      if (this.lstNoteEditRSSlist != null && this.lstNoteEditRSSlist.length > 0) {
+        this.cvEditRateSpreadScheduleList = new wjcCore.CollectionView(this.lstNoteEditRSSlist);
+        this.cvEditRateSpreadScheduleList.trackChanges = true;
+      }
+      else {
+        this.lstNoteEditRSSlist = [];
+        this.cvEditRateSpreadScheduleList = new wjcCore.CollectionView(this.lstNoteEditRSSlist);
+        this.cvEditRateSpreadScheduleList.trackChanges = true;
+      }
+
+      var modal = document.getElementById('myModalEditNoteRSS');
+      modal.style.display = "block";
+      $.getScript("/js/jsDrag.js");
+    }
+
+    else if (modulename == 'Fee Schedule') {
+      this.lstNoteEditFEElist;
+      for (var i = 0; i < this.lstNoteEditFEElist.length; i++) {
+        if (this.lstNoteEditFEElist[i].EffectiveDate != null) {
+          this.lstNoteEditFEElist[i].EffectiveDate = new Date(this.lstNoteEditFEElist[i].EffectiveDate.toString());
+        }
+        if (this.lstNoteEditFEElist[i].StartDate != null) {
+          this.lstNoteEditFEElist[i].StartDate = new Date(this.lstNoteEditFEElist[i].StartDate.toString());
+        }
+        if (this.lstNoteEditFEElist[i].ScheduleEndDate != null) {
+          this.lstNoteEditFEElist[i].ScheduleEndDate = new Date(this.lstNoteEditFEElist[i].ScheduleEndDate.toString());
+        }
+      }
+
+      if (this.lstNoteEditFEElist != null && this.lstNoteEditFEElist.length > 0) {
+        this.cvEditFeeScheduleList = new wjcCore.CollectionView(this.lstNoteEditFEElist);
+        this.cvEditFeeScheduleList.trackChanges = true;
+      }
+      else {
+        this.lstNoteEditFEElist = [];
+        this.cvEditFeeScheduleList = new wjcCore.CollectionView(this.lstNoteEditFEElist);
+        this.cvEditFeeScheduleList.trackChanges = true;
+      }
+
+      var modal = document.getElementById('myModalEditNoteFEE');
+      modal.style.display = "block";
+      $.getScript("/js/jsDrag.js");
+    }
+
+    else if (modulename == 'PIK Schedule') {
+      this.lstNoteEditPIKSchedulelist;
+
+      for (var i = 0; i < this.lstNoteEditPIKSchedulelist.length; i++) {
+        if (this.lstNoteEditPIKSchedulelist[i].EffectiveDate != null) {
+          this.lstNoteEditPIKSchedulelist[i].EffectiveDate = new Date(this.lstNoteEditPIKSchedulelist[i].EffectiveDate.toString());
+        }
+        if (this.lstNoteEditPIKSchedulelist[i].StartDate != null) {
+          this.lstNoteEditPIKSchedulelist[i].StartDate = new Date(this.lstNoteEditPIKSchedulelist[i].StartDate.toString());
+        }
+        if (this.lstNoteEditPIKSchedulelist[i].EndDate != null) {
+          this.lstNoteEditPIKSchedulelist[i].EndDate = new Date(this.lstNoteEditPIKSchedulelist[i].EndDate.toString());
+        }
+      }
+
+      if (this.lstNoteEditPIKSchedulelist != null && this.lstNoteEditPIKSchedulelist.length > 0) {
+        this.cvEditPIKSchedulelist = new wjcCore.CollectionView(this.lstNoteEditPIKSchedulelist);
+        this.cvEditPIKSchedulelist.trackChanges = true;
+      }
+      else {
+        this.lstNoteEditPIKSchedulelist = [];
+        this.cvEditPIKSchedulelist = new wjcCore.CollectionView(this.lstNoteEditPIKSchedulelist);
+        this.cvEditPIKSchedulelist.trackChanges = true;
+      }
+
+      this.flexEditPIK.itemFormatter = function (panel, r, c, cell) {
+        if (panel.cellType != wjcGrid.CellType.Cell) {
+          return;
+        }
+        if (panel.columns[c].header == 'Impact in Commitment Calc'
+          || panel.columns[c].header == 'Cash Interest Calc-PIK Balance updated on Business Adjusted Pmt Date'
+          || panel.columns[c].header == 'Source Account'
+          || panel.columns[c].header == 'Target Account') {
+          cell.style.backgroundColor = '#cfcfcf';
+        }
+      }
+      var modal = document.getElementById('myModalEditNotePIK');
+      modal.style.display = "block";
+      $.getScript("/js/jsDrag.js");
+
+    }
+
+    this._bindGridDropdows();
   }
 
 
@@ -1741,18 +2950,16 @@ export class NoteDetailComponent extends Paginated {
     if (this._noteext.lstFinancingFeeSchedule != null) this.ShowHideFlagFinancingFeeSchedule = true;
     if (this._noteext.NoteFinancingScheduleList != null) this.ShowHideFlagFinancingSchedule = true;
     if (this._noteext.NotePrepayAndAdditionalFeeScheduleList != null) this.ShowHideFlagPrepayAndAdditionalFeeSchedule = true;
+    if (this._noteext.NotePrepayAndAdditionalFeeScheduleList != null) this.ShowHideEditPrepayAndAdditionalFeeSchedule = true;
     if (this._noteext.RateSpreadScheduleList != null) this.ShowHideFlagRateSpreadSchedule = true;
+    if (this._noteext.RateSpreadScheduleList != null) this.ShowHideEditRateSpreadSchedule = true;
+    if (this._noteext.NotePIKScheduleList != null) this.ShowHideEditPIKSchedule = true;
     if (this.Servicing_EffectiveDate != null) this.ShowHideFlagServicingFeeSchedule = true;
     if (this._noteext.NoteStrippingList != null) this.ShowHideFlagStrippingSchedule = true;
     if (this._noteext.NotePIKScheduleList != null) this.ShowHideFlagPIKSchedule = true;
   }
 
   SaveNote(objNote): void {
-
-
-    //  alert('txthiddenID');
-    //  document.getElementById("txthiddenID").focus();
-    // this._note.SelectedMaturityDate = this.MaturityDate;
     this._note.RequestType = null;
     this.ValidateNoteAndSave();
 
@@ -1761,6 +2968,13 @@ export class NoteDetailComponent extends Paginated {
 
   SaveNotefunc(objNote, notevalue): void {
     this._isNoteSaving = true;
+
+    //clear old pik values which are not used
+    if (this.PIKSetUp == 871) {
+      //PIK Rate  
+      objNote.PIKSeparateCompounding = null;
+    }
+    this.ClearNoteUsedPikSetup();
 
     this.convertdate();
     this.initialised = 0;
@@ -1773,25 +2987,26 @@ export class NoteDetailComponent extends Paginated {
         }
         objNote.ListNoteMarketPrice = [];
         objNote.ListNoteMarketPrice = this.changedlstmarketnote;
+
       }
       else {
         objNote.ListNoteMarketPrice = [];
       }
+
     }
     else if (notevalue == "Copy") {
       objNote.ListNoteMarketPrice = this._note.ListNoteMarketPrice;
     }
-
     this._noteextt.ParentNoteID = this.gParentNoteid;
     this._noteextt.noteValue = notevalue;
-
     this.noteService.addNote(objNote).subscribe(res => {
       if (res.Succeeded) {
         //  this._isNoteSaving = false;
         this._noteextt.NoteId = res.newNoteID;
         this._note.NoteId = res.newNoteID;
         this.SaveNoteextralist(true);
-        this.SendPushNotification(notificationNoteId);
+        this.AddUpdateNoteRuleTypeSetup();
+        // this.SendPushNotification(notificationNoteId);
       }
       else {
         this.utilityService.navigateToSignIn();
@@ -1823,7 +3038,34 @@ export class NoteDetailComponent extends Paginated {
           this._noteext.RateSpreadScheduleList[i].IntCalcMethodID = Number(filteredarray[0].LookupID);
         }
       }
+      //manish
+      if (!(Number(this._noteext.RateSpreadScheduleList[i].IndexNameText).toString() == "NaN" || Number(this._noteext.RateSpreadScheduleList[i].IndexNameText) == 0)) {
+        this._noteext.RateSpreadScheduleList[i].IndexNameID = Number(this._noteext.RateSpreadScheduleList[i].IndexNameText);
+
+        this._noteext.RateSpreadScheduleList[i].IndexNameText = this.lstIndextype.find(x => x.LookupID == this._noteext.RateSpreadScheduleList[i].IndexNameID).Name
+      } else {
+        var filteredarray = this.lstIndextype.filter(x => x.Name == this._noteext.RateSpreadScheduleList[i].IndexNameText)
+
+        if (filteredarray.length != 0) {
+          this._noteext.RateSpreadScheduleList[i].IndexNameID = Number(filteredarray[0].LookupID);
+        }
+      }
+
+
+      if (!(Number(this._noteext.RateSpreadScheduleList[i].DeterminationDateHolidayListText).toString() == "NaN" || Number(this._noteext.RateSpreadScheduleList[i].DeterminationDateHolidayListText) == 0)) {
+        this._noteext.RateSpreadScheduleList[i].DeterminationDateHolidayList = Number(this._noteext.RateSpreadScheduleList[i].DeterminationDateHolidayListText);
+
+        this._noteext.RateSpreadScheduleList[i].DeterminationDateHolidayListText = this.holidayCalendarNamelist.find(x => x.HolidayMasterID == this._noteext.RateSpreadScheduleList[i].DeterminationDateHolidayList).CalendarName
+      } else {
+        var filteredarray = this.holidayCalendarNamelist.filter(x => x.CalendarName == this._noteext.RateSpreadScheduleList[i].DeterminationDateHolidayListText)
+
+        if (filteredarray.length != 0) {
+          this._noteext.RateSpreadScheduleList[i].DeterminationDateHolidayList = Number(filteredarray[0].HolidayMasterID);
+        }
+      }
+
       this._noteext.RateSpreadScheduleList[i].EffectiveDate = this.Ratespread_EffectiveDate;
+      //this._noteext.RateSpreadScheduleList[i].AccountID = this._note.AccountID
       this._noteext.RateSpreadScheduleList[i].ModuleId = 14;
     }
 
@@ -1853,6 +3095,7 @@ export class NoteDetailComponent extends Paginated {
 
 
         this._noteext.NotePrepayAndAdditionalFeeScheduleList[i].EffectiveDate = this.PrepayAndAdditionalFeeSchedule_EffectiveDate;
+        //this._noteext.NotePrepayAndAdditionalFeeScheduleList[i].AccountID = this._note.AccountID
         this._noteext.NotePrepayAndAdditionalFeeScheduleList[i].ModuleId = 13;
       }
     }
@@ -1955,14 +3198,14 @@ export class NoteDetailComponent extends Paginated {
         this.flexservicelogToUpdate = [];
         // debugger;
         for (var i = 0; i < this.flexservicelogupdatedRowNo.length; i++) {
-          var filterval = this.ServicingLog_refreshlist.filter(x => x.row_num == this.flexservicelogupdatedrow_num[i])
+          var filterval = this._noteext.lstNoteServicingLog.filter(x => x.row_num == this.flexservicelogupdatedrow_num[i])
           if (filterval.length != 0) {
             if (!(Number(filterval[0].TransactionTypeText).toString() == "NaN" || Number(filterval[0].TransactionTypeText) == 0)) {
               filterval[0].TransactionType = Number(filterval[0].TransactionTypeText);
               //var filteredarray = this.listtransactiontype.filter(x => x.TransactionTypesID == this.ServicingLog_refreshlist[this.flexservicelogupdatedRowNo[i]].TransactionType);
               var filteredarray = this.listtransactiontype.filter(x => x.TransactionTypesID == filterval[0].TransactionType);
 
-              filterval.TransactionTypeText = filteredarray[0].TransactionName;
+              filterval[0].TransactionTypeText = filteredarray[0].TransactionName;
             }
 
             this.flexservicelogToUpdate.push(filterval[0]);
@@ -1988,6 +3231,7 @@ export class NoteDetailComponent extends Paginated {
     if (this._noteext.ListFutureFundingScheduleTab) {
       for (var i = 0; i < this._noteext.ListFutureFundingScheduleTab.length; i++) {
         this._noteext.ListFutureFundingScheduleTab[i].ModuleId = 10;
+
       }
     }
 
@@ -2021,7 +3265,20 @@ export class NoteDetailComponent extends Paginated {
         this._noteextt.MaturityScenariosList[0].EffectiveDate = this.MaturityEffectiveDate;
         this._noteextt.MaturityScenariosList[0].Date = this.MaturityDate;
         this._noteextt.MaturityScenariosList[0].ModuleId = 11;
+        this._noteextt.MaturityScenariosList[0].MaturityID = this.MaturityType;
+
       }
+    }
+    if (this.maturityTypeList != null) {
+      for (var i = 0; i < this.maturityTypeList.length; i++) {
+        this.lstMaturity.push({
+          'Date': this.maturityTypeList[i].MaturityDate,
+          'MaturityID': this.maturityTypeList[i].MaturityType
+
+
+        });
+      }
+      this._noteextt.lstMaturity = this.lstMaturity;
     }
     //ServicingFeeSchedule
     if (!!this.Servicing_EffectiveDate) {
@@ -2048,9 +3305,9 @@ export class NoteDetailComponent extends Paginated {
         if (this.PIKSchedule_StartDate != null) {
           this._noteextt.NotePIKScheduleList[0].StartDate = this.PIKSchedule_StartDate;
         }
-        if (this.PIKSchedule_EndDate != null) {
-          this._noteextt.NotePIKScheduleList[0].EndDate = this.PIKSchedule_EndDate;
-        }
+
+        this._noteextt.NotePIKScheduleList[0].EndDate = this.PIKSchedule_EndDate;
+
 
         if (this.SourceAccountID != null) {
           this._noteextt.NotePIKScheduleList[0].SourceAccountID = this.SourceAccountID
@@ -2070,6 +3327,7 @@ export class NoteDetailComponent extends Paginated {
         //    this._noteextt.lstPIKSchedule[0].TargetAccountID = this.TargetAccountID
         // this._noteextt.lstPIKSchedule[0].TargetAccount = this.TargetAccountID
         this._noteextt.NotePIKScheduleList[0].AdditionalIntRate = this.PIKSchedule_AdditionalIntRate
+
         this._noteextt.NotePIKScheduleList[0].AdditionalSpread = this.PIKSchedule_AdditionalSpread
         this._noteextt.NotePIKScheduleList[0].IndexFloor = this.PIKSchedule_IndexFloor
         this._noteextt.NotePIKScheduleList[0].IntCompoundingRate = this.PIKSchedule_IntCompoundingRate
@@ -2084,6 +3342,17 @@ export class NoteDetailComponent extends Paginated {
 
         this._noteextt.NotePIKScheduleList[0].PIKIntCalcMethodID = this.PIKSchedule_PIKIntCalcMethodID
         this._noteextt.NotePIKScheduleList[0].PIKIntCalcMethodIDText = this.PIKSchedule_PIKIntCalcMethodIDText
+
+        this._noteextt.NotePIKScheduleList[0].PeriodicRateCapAmount = this.PIKSchedule_PeriodicRateCapAmount
+        this._noteextt.NotePIKScheduleList[0].PeriodicRateCapPercent = this.PIKSchedule_PeriodicRateCapPercent
+
+        this._noteextt.NotePIKScheduleList[0].PIKSetUp = this.PIKSetUp
+        this._noteextt.NotePIKScheduleList[0].PIKSetUpText = this.PIKSetUpText
+        this._noteextt.NotePIKScheduleList[0].PIKPercentage = this.PIKPercentage
+        this._noteextt.NotePIKScheduleList[0].PIKCurrentPayRate = this.PIKCurrentPayRate
+        this._noteextt.NotePIKScheduleList[0].PIKSeparateCompounding = this.PIKSeparateCompounding
+        this._noteextt.NotePIKScheduleList[0].PIKSeparateCompoundingText = this.PIKSeparateCompoundingText
+
 
         this._noteextt.NotePIKScheduleList[0].ModuleId = 12;
       }
@@ -2140,14 +3409,10 @@ export class NoteDetailComponent extends Paginated {
         //get last funding updated date
         this.noteService.GetLastUpdatedDateAndUpdatedByForSchedule(this._note).subscribe(res => {
           if (res.Succeeded) {
-
             this._note.FFLastUpdatedDate_String = res.NoteAllScheduleLatestRecord.LastUpdatedDate_String_FF;
             this._note.UpdatedByFF = res.NoteAllScheduleLatestRecord.LastUpdatedBy_FF;
           }
         });
-
-        //
-
 
         if (calc) {
           this._note.CalculationStatus = "Running";
@@ -2162,6 +3427,10 @@ export class NoteDetailComponent extends Paginated {
             localStorage.setItem('divSucessMsgNote', JSON.stringify(res.Message));
             this._Showmessagenotediv = true;
             this._ShowmessagenotedivMsg = res.Message;
+            this.exceptionscount_critical = 0;
+            this.exceptionscount_normal = 0;
+            this.lstnotesexceptions = [];
+
           }
           else {
             this._copymessagediv = false;
@@ -2170,6 +3439,10 @@ export class NoteDetailComponent extends Paginated {
             localStorage.setItem('divInfoMsgNote', JSON.stringify(res.Message));
             this._ShowmessagenotedivWar = true;
             this._ShowmessagenotedivMsgWar = res.Message;
+            this.exceptionscount_critical = res.TotalCount;
+            this.exceptionscount_normal = 0;
+            this.lstnotesexceptions = res.Allexceptionslist;
+
           }
           if (res.Succeeded == false) {
             this._copymessagediv = false;
@@ -2179,58 +3452,12 @@ export class NoteDetailComponent extends Paginated {
             this._ShowmessagenotedivMsgWar = res.Message;
           }
 
-          //if (this._noteCopyMsg != null) {
-          //    //    localStorage.setItem('divSucessNote', JSON.stringify(true));
-          //    //    localStorage.setItem('divSucessMsgNote', JSON.stringify(this._noteCopyMsg));
 
-          //    localStorage.setItem('divInfoNote', JSON.stringify(false));
-
-          //    this._copymessagediv = true;
-          //    this._copymessagedivMsg = this._noteCopyMsg;
-          //    //  this.CloseCopyPopUp();
-          //    // this._isNoteSaveonly = false;
-
-
-          //    this._copymessagediv = true;
-          //    this._copymessagedivMsg = this._noteCopyMsg;
-          //    if (this._isCopyandopen == true) {
-          //        var notenewcopied;//= ['notedetail', this._noteextt.NoteId];
-          //        if (window.location.href.indexOf("notedetail/a") > -1) {
-          //            notenewcopied = ['notedetail', this._noteextt.NoteId]
-          //        }
-          //        else {
-          //            notenewcopied = ['notedetail/a', this._noteextt.NoteId]
-          //        }
-
-          //        this._router.navigate(notenewcopied);
-          //    }
-          //    this.CloseCopyPopUp();
-          //    //}
-          //    //else {
-          //    //    this.CloseCopyPopUp();
-          //    //}
-
-          //    setTimeout(() => {
-
-          //        this._copymessagediv = false;
-          //        this._noteCopyMsg = null;
-          //        this._isCopyonly = false;
-          //        this._Showmessagenotediv = false;
-          //        this._ShowmessagenotedivWar = false;
-          //    }, 2000);
-          //}
-          //else {
           if (!this.isSaveOnly) {
             this._router.navigate(['note']);
           }
           else if (this.isSaveOnly) {
-            //alert('this.isSaveOnly ');
-            //call function for reload all schedule grids Ex. Ratesprit
 
-            //this.fetchNoteAdditinallist();
-            //this.fetchNote();                            
-
-            // get return url from route parameters or default to '/'
             var returnUrl = this._router.url;
             if (window.location.href.indexOf("notedetail/a") > -1) {
               returnUrl = returnUrl.toString().replace('notedetail/a/', 'notedetail/');
@@ -2239,8 +3466,6 @@ export class NoteDetailComponent extends Paginated {
             else if (returnUrl.indexOf("notedetail/") > -1) {
               returnUrl = returnUrl.toString().replace('notedetail/', 'notedetail/a/');
             }
-
-            //var returnUrl = '/notedetail/a/dad85096-fe89-4a9c-b159-643069fe6e3a'; //this._router.url; //this.activatedRoute.url;
             this._router.navigate([returnUrl]);
           }
 
@@ -2248,7 +3473,7 @@ export class NoteDetailComponent extends Paginated {
             this._Showmessagenotediv = false;
             this._ShowmessagenotedivWar = false;
           }, 2000);
-          //}
+
         }
       }
       else {
@@ -2271,15 +3496,522 @@ export class NoteDetailComponent extends Paginated {
     })
   }
 
-  Cancel(): void {
-    this._router.navigate(['note']);
+
+  showConfirmationDialog(name) {
+    var modalConfirm = document.getElementById('myModalConfirmationBox');
+    var messageElement = document.getElementById('confirmationMessage');
+    var heading = document.getElementById('heading');
+    var btn = document.getElementById('yesbtn');
+
+    messageElement.innerHTML = 'This will update historical records. Are you sure you want to update this?';
+    heading.innerHTML = 'Update';
+    btn.style.visibility = 'visible';
+
+    var locale = "en-US";
+    var options: any = { year: "numeric", month: "numeric", day: "numeric" };
+
+    if (name == 'EditRSS') {
+      var sel = this.flexEditRSS.selection;
+      var editedRowIndex = sel.topRow;
+      var currentItem = this.lstNoteEditRSSlist.findIndex(x => x.ScheduleID == this.flexEditRSS.rows[editedRowIndex].dataItem.ScheduleID);
+
+      var rssformatDate: Date;
+      var isCopy = sel.bottomRow !== undefined;
+      if (isCopy) {
+        // Handle copied data scenario
+        for (var tprow = currentItem; tprow <= currentItem; tprow++) {
+          var flag = this.CheckDuplicateDateAndValue(this.lstNoteEditRSSlist, tprow);
+          if (flag == true) {
+            var formatValuetype = this.lstRateSpreadSch_ValueType.filter(x => x.LookupID == this.lstNoteEditRSSlist[tprow].ValueTypeText);
+
+            rssformatDate = this.lstNoteEditRSSlist[tprow].Date;
+
+            if (rssformatDate.toString().indexOf("GMT") == -1) {
+              messageElement.innerHTML = "Date - " + rssformatDate + " and Value Type - " + formatValuetype[0].Name + " already in list";
+            } else {
+              messageElement.innerHTML = "Date - " + rssformatDate.toLocaleDateString(locale, options) + " and Value Type - " + formatValuetype[0].Name + " already in list";
+            }
+            heading.innerHTML = "CRES - Validation Error";
+            btn.style.visibility = 'hidden';
+
+          }
+        }
+      }
+      else {
+        // Handle single cell edit scenario
+        var flag = this.CheckDuplicateDateAndValue(this.lstNoteEditRSSlist, currentItem);
+        if (flag == true) {
+          var formatValuetype = this.lstRateSpreadSch_ValueType.filter(x => x.LookupID == this.lstNoteEditRSSlist[currentItem].ValueTypeText);
+
+
+          rssformatDate = this.lstNoteEditRSSlist[currentItem].Date;
+
+          if (rssformatDate.toString().indexOf("GMT") == -1) {
+            messageElement.innerHTML = "Date - " + rssformatDate + " and Value Type - " + formatValuetype[0].Name + " already in list";
+          } else {
+            messageElement.innerHTML = "Date - " + rssformatDate.toLocaleDateString(locale, options) + " and Value Type - " + formatValuetype[0].Name + " already in list";
+          }
+          heading.innerHTML = "CRES - Validation Error";
+          btn.style.visibility = 'hidden';
+
+        }
+      }
+    }
+
+    if (name == 'EditFEE') {
+      var sel = this.flexEditFee.selection;
+      var editedRowIndex = sel.topRow;
+      var currentItem = this.lstNoteEditFEElist.findIndex(x => x.ScheduleID == this.flexEditFee.rows[editedRowIndex].dataItem.ScheduleID);
+
+      var feeformatDate: Date;
+      var isCopy = sel.bottomRow !== undefined;
+      if (isCopy) {
+        // Handle copied data scenario
+        for (var tprow = currentItem; tprow <= currentItem; tprow++) {
+          var flag = this.CheckDuplicateDateAndValue(this.lstNoteEditFEElist, tprow);
+          if (flag == true) {
+            var formatValuetype = this.lstPrepayAdditinalFee_ValueType.filter(x => x.LookupID == this.lstNoteEditFEElist[tprow].ValueTypeText);
+
+            feeformatDate = this.lstNoteEditFEElist[tprow].Date;
+
+            if (feeformatDate.toString().indexOf("GMT") == -1) {
+              messageElement.innerHTML = "Date - " + feeformatDate + " and Value Type - " + formatValuetype[0].Name + " already in list";
+            } else {
+              messageElement.innerHTML = "Date - " + feeformatDate.toLocaleDateString(locale, options) + " and Value Type - " + formatValuetype[0].Name + " already in list";
+            }
+            heading.innerHTML = "CRES - Validation Error";
+            btn.style.visibility = 'hidden';
+
+          }
+        }
+      }
+      else {
+        // Handle single cell edit scenario
+        var flag = this.CheckDuplicateDateAndValue(this.lstNoteEditFEElist, currentItem);
+        if (flag == true) {
+          var formatValuetype = this.lstPrepayAdditinalFee_ValueType.filter(x => x.LookupID == this.lstNoteEditFEElist[currentItem].ValueTypeText);
+
+
+          feeformatDate = this.lstNoteEditFEElist[currentItem].Date;
+
+          if (feeformatDate.toString().indexOf("GMT") == -1) {
+            messageElement.innerHTML = "Date - " + feeformatDate + " and Value Type - " + formatValuetype[0].Name + " already in list";
+          } else {
+            messageElement.innerHTML = "Date - " + feeformatDate.toLocaleDateString(locale, options) + " and Value Type - " + formatValuetype[0].Name + " already in list";
+          }
+          heading.innerHTML = "CRES - Validation Error";
+          btn.style.visibility = 'hidden';
+
+        }
+      }
+    }
+
+    if (name == 'EditPIK') {
+      var sel = this.flexEditPIK.selection;
+      var editedRowIndex = sel.topRow;
+      var currentItem = this.lstNoteEditPIKSchedulelist.findIndex(x => x.ScheduleID == this.flexEditPIK.rows[editedRowIndex].dataItem.ScheduleID);
+
+      var pikformatDate: Date;
+      var isCopy = sel.bottomRow !== undefined;
+      if (isCopy) {
+        // Handle copied data scenario
+        for (var tprow = currentItem; tprow <= currentItem; tprow++) {
+          var flag = this.CheckDuplicateDateAndValue(this.lstNoteEditPIKSchedulelist, tprow);
+          if (flag == true) {
+            pikformatDate = this.lstNoteEditPIKSchedulelist[tprow].Date;
+
+            if (pikformatDate.toString().indexOf("GMT") == -1) {
+              messageElement.innerHTML = "Date - " + pikformatDate + " already in list";
+            } else {
+              messageElement.innerHTML = "Date - " + pikformatDate.toLocaleDateString(locale, options) + " already in list";
+            }
+            heading.innerHTML = "CRES - Validation Error";
+            btn.style.visibility = 'hidden';
+
+          }
+        }
+      }
+      else {
+        // Handle single cell edit scenario
+        var flag = this.CheckDuplicateDateAndValue(this.lstNoteEditPIKSchedulelist, currentItem);
+        if (flag == true) {
+
+          pikformatDate = this.lstNoteEditPIKSchedulelist[currentItem].Date;
+
+          if (pikformatDate.toString().indexOf("GMT") == -1) {
+            messageElement.innerHTML = "Date - " + pikformatDate + " already in list";
+          } else {
+            messageElement.innerHTML = "Date - " + pikformatDate.toLocaleDateString(locale, options) + " already in list";
+          }
+          heading.innerHTML = "CRES - Validation Error";
+          btn.style.visibility = 'hidden';
+
+        }
+      }
+    }
+
+    modalConfirm.style.display = "block";
+    $.getScript("/js/jsDrag.js");
+
+  }
+
+
+  CloseConfirmPopUp() {
+    var modalConfirm = document.getElementById('myModalConfirmationBox');
+    modalConfirm.style.display = "none";
+    $.getScript("/js/jsDrag.js");
   }
 
 
 
+  UpdateNoteEditlistRSSFEEPIK(): void {
+
+    //===========================================================
+    if (this.lstNoteEditRSSlist) {
+      for (var i = 0; i < this.lstNoteEditRSSlist.length; i++) {
+        if (!(Number(this.lstNoteEditRSSlist[i].ValueTypeText).toString() == "NaN" || Number(this.lstNoteEditRSSlist[i].ValueTypeText) == 0)) {
+          this.lstNoteEditRSSlist[i].ValueTypeID = Number(this.lstNoteEditRSSlist[i].ValueTypeText);
+          this.lstNoteEditRSSlist[i].ValueTypeText = this.lstRateSpreadSch_ValueType.find(x => x.LookupID == this.lstNoteEditRSSlist[i].ValueTypeID).Name
+        }
+        else {
+          var filteredarray = this.lstRateSpreadSch_ValueType.filter(x => x.Name == this.lstNoteEditRSSlist[i].ValueTypeText)
+          if (filteredarray.length != 0) {
+            this.lstNoteEditRSSlist[i].ValueTypeID = Number(filteredarray[0].LookupID);
+          }
+        }
+
+        if (!(Number(this.lstNoteEditRSSlist[i].IntCalcMethodText).toString() == "NaN" || Number(this.lstNoteEditRSSlist[i].IntCalcMethodText) == 0)) {
+          this.lstNoteEditRSSlist[i].IntCalcMethodID = Number(this.lstNoteEditRSSlist[i].IntCalcMethodText);
+          this.lstNoteEditRSSlist[i].IntCalcMethodText = this.lstIntCalcMethodID.find(x => x.LookupID == this.lstNoteEditRSSlist[i].IntCalcMethodID).Name
+        } else {
+          var filteredarray = this.lstIntCalcMethodID.filter(x => x.Name == this.lstNoteEditRSSlist[i].IntCalcMethodText)
+          if (filteredarray.length != 0) {
+            this.lstNoteEditRSSlist[i].IntCalcMethodID = Number(filteredarray[0].LookupID);
+          }
+        }
+        if (!(Number(this.lstNoteEditRSSlist[i].IndexNameText).toString() == "NaN" || Number(this.lstNoteEditRSSlist[i].IndexNameText) == 0)) {
+          this.lstNoteEditRSSlist[i].IndexNameID = Number(this.lstNoteEditRSSlist[i].IndexNameText);
+
+          this.lstNoteEditRSSlist[i].IndexNameText = this.lstIndextype.find(x => x.LookupID == this.lstNoteEditRSSlist[i].IndexNameID).Name
+        } else {
+          var filteredarray = this.lstIndextype.filter(x => x.Name == this.lstNoteEditRSSlist[i].IndexNameText)
+
+          if (filteredarray.length != 0) {
+            this.lstNoteEditRSSlist[i].IndexNameID = Number(filteredarray[0].LookupID);
+          }
+        }
+
+
+        if (!(Number(this.lstNoteEditRSSlist[i].DeterminationDateHolidayListText).toString() == "NaN" || Number(this.lstNoteEditRSSlist[i].DeterminationDateHolidayListText) == 0)) {
+          this.lstNoteEditRSSlist[i].DeterminationDateHolidayList = Number(this.lstNoteEditRSSlist[i].DeterminationDateHolidayListText);
+
+          this.lstNoteEditRSSlist[i].DeterminationDateHolidayListText = this.holidayCalendarNamelist.find(x => x.HolidayMasterID == this.lstNoteEditRSSlist[i].DeterminationDateHolidayList).CalendarName
+        } else {
+          var filteredarray = this.holidayCalendarNamelist.filter(x => x.CalendarName == this.lstNoteEditRSSlist[i].DeterminationDateHolidayListText)
+
+          if (filteredarray.length != 0) {
+            this.lstNoteEditRSSlist[i].DeterminationDateHolidayList = Number(filteredarray[0].HolidayMasterID);
+          }
+        }
+
+        this.lstNoteEditRSSlist[i].AccountID = this._note.AccountID
+        this.lstNoteEditRSSlist[i].ModuleId = 14;
+      }
+    }
+
+    if (this.lstNoteEditFEElist) {
+      for (var i = 0; i < this.lstNoteEditFEElist.length; i++) {
+        if (!(Number(this.lstNoteEditFEElist[i].ValueTypeText).toString() == "NaN" || Number(this.lstNoteEditFEElist[i].ValueTypeText) == 0)) {
+          this.lstNoteEditFEElist[i].ValueTypeID = Number(this.lstNoteEditFEElist[i].ValueTypeText);
+        }
+        else {
+          var filteredarray = this.lstPrepayAdditinalFee_ValueType.filter(x => x.Name == this.lstNoteEditFEElist[i].ValueTypeText)
+          if (filteredarray.length != 0) {
+            this.lstNoteEditFEElist[i].ValueTypeID = Number(filteredarray[0].LookupID);
+          }
+        }
+
+        if (!(Number(this.lstNoteEditFEElist[i].ApplyTrueUpFeatureText).toString() == "NaN" || Number(this.lstNoteEditFEElist[i].ApplyTrueUpFeatureText) == 0)) {
+          this.lstNoteEditFEElist[i].ApplyTrueUpFeatureID = Number(this.lstNoteEditFEElist[i].ApplyTrueUpFeatureText);
+        }
+        else {
+
+          var filteredarray1 = this.lstPrepayAdditinalFee_lstApplyTrueUpFeature.filter(x => x.Name == this.lstNoteEditFEElist[i].ApplyTrueUpFeatureText)
+          if (filteredarray1.length != 0) {
+            this.lstNoteEditFEElist[i].ApplyTrueUpFeatureID = Number(filteredarray1[0].LookupID);
+          }
+        }
+
+
+        this.lstNoteEditFEElist[i].AccountID = this._note.AccountID
+        this.lstNoteEditFEElist[i].ModuleId = 13;
+      }
+    }
+
+    if (this.lstNoteEditPIKSchedulelist) {
+      for (var i = 0; i < this.lstNoteEditPIKSchedulelist.length; i++) {
+        if (!(Number(this.lstNoteEditPIKSchedulelist[i].PIKSetUpText).toString() == "NaN" || Number(this.lstNoteEditPIKSchedulelist[i].PIKSetUpText) == 0)) {
+          this.lstNoteEditPIKSchedulelist[i].PIKSetUp = Number(this.lstNoteEditPIKSchedulelist[i].PIKSetUpText);
+          this.lstNoteEditPIKSchedulelist[i].PIKSetUpText = this.lstPIKSetuptype.find(x => x.LookupID == this.lstNoteEditPIKSchedulelist[i].PIKSetUp).Name
+        }
+        else {
+          var filteredarray = this.lstPIKSetuptype.filter(x => x.Name == this.lstNoteEditPIKSchedulelist[i].PIKSetUpText)
+          if (filteredarray.length != 0) {
+            this.lstNoteEditPIKSchedulelist[i].PIKSetUp = Number(filteredarray[0].LookupID);
+          }
+        }
+
+        if (!(Number(this.lstNoteEditPIKSchedulelist[i].PIKIntCalcMethodIDText).toString() == "NaN" || Number(this.lstNoteEditPIKSchedulelist[i].PIKIntCalcMethodIDText) == 0)) {
+          this.lstNoteEditPIKSchedulelist[i].PIKIntCalcMethodID = Number(this.lstNoteEditPIKSchedulelist[i].PIKIntCalcMethodIDText);
+          this.lstNoteEditPIKSchedulelist[i].PIKIntCalcMethodIDText = this.lstPIKInterestCalcmethod.find(x => x.LookupID == this.lstNoteEditPIKSchedulelist[i].PIKIntCalcMethodID).Name
+        } else {
+          var filteredarray = this.lstPIKInterestCalcmethod.filter(x => x.Name == this.lstNoteEditPIKSchedulelist[i].PIKIntCalcMethodIDText)
+          if (filteredarray.length != 0) {
+            this.lstNoteEditPIKSchedulelist[i].PIKIntCalcMethodID = Number(filteredarray[0].LookupID);
+          }
+        }
+        if (!(Number(this.lstNoteEditPIKSchedulelist[i].PIKReasonCodeIDtext).toString() == "NaN" || Number(this.lstNoteEditPIKSchedulelist[i].PIKReasonCodeIDtext) == 0)) {
+          this.lstNoteEditPIKSchedulelist[i].PIKReasonCodeID = Number(this.lstNoteEditPIKSchedulelist[i].PIKReasonCodeIDtext);
+          this.lstNoteEditPIKSchedulelist[i].PIKReasonCodeIDtext = this.lstPIKReasonCodetype.find(x => x.LookupID == this.lstNoteEditPIKSchedulelist[i].PIKReasonCodeID).Name
+        } else {
+          var filteredarray = this.lstPIKReasonCodetype.filter(x => x.Name == this.lstNoteEditPIKSchedulelist[i].PIKReasonCodeIDtext)
+          if (filteredarray.length != 0) {
+            this.lstNoteEditPIKSchedulelist[i].PIKReasonCodeID = Number(filteredarray[0].LookupID);
+          }
+        }
+
+        this.lstNoteEditPIKSchedulelist[i].AccountID = this._note.AccountID
+        this.lstNoteEditPIKSchedulelist[i].ModuleId = 12;
+      }
+    }
+
+    if (this.lstNoteEditRSSlist) {
+      for (var i = 0; i < this.lstNoteEditRSSlist.length; i++) {
+        if (this.lstNoteEditRSSlist[i].EffectiveDate != null) {
+          this.lstNoteEditRSSlist[i].EffectiveDate = this.convertDatetoGMT(this.lstNoteEditRSSlist[i].EffectiveDate);
+        }
+        if (this.lstNoteEditRSSlist[i].Date != null) {
+          this.lstNoteEditRSSlist[i].Date = this.convertDatetoGMT(this.lstNoteEditRSSlist[i].Date);
+        }
+      }
+    }
+    if (this.lstNoteEditFEElist) {
+      for (var i = 0; i < this.lstNoteEditFEElist.length; i++) {
+
+        if (this.lstNoteEditFEElist[i].EffectiveDate != null) {
+          this.lstNoteEditFEElist[i].EffectiveDate = this.convertDatetoGMT(this.lstNoteEditFEElist[i].EffectiveDate);
+        }
+        if (this.lstNoteEditFEElist[i].StartDate != null) {
+          this.lstNoteEditFEElist[i].StartDate = this.convertDatetoGMT(this.lstNoteEditFEElist[i].StartDate);
+        }
+
+        if (this.lstNoteEditFEElist[i].ScheduleEndDate != null) {
+          this.lstNoteEditFEElist[i].ScheduleEndDate = this.convertDatetoGMT(this.lstNoteEditFEElist[i].ScheduleEndDate);
+        }
+      }
+    }
+    if (this.lstNoteEditPIKSchedulelist) {
+      for (var i = 0; i < this.lstNoteEditPIKSchedulelist.length; i++) {
+
+        if (this.lstNoteEditPIKSchedulelist[i].EffectiveDate != null) {
+          this.lstNoteEditPIKSchedulelist[i].EffectiveDate = this.convertDatetoGMT(this.lstNoteEditPIKSchedulelist[i].EffectiveDate);
+        }
+        if (this.lstNoteEditPIKSchedulelist[i].StartDate != null) {
+          this.lstNoteEditPIKSchedulelist[i].StartDate = this.convertDatetoGMT(this.lstNoteEditPIKSchedulelist[i].StartDate);
+        }
+
+        if (this.lstNoteEditPIKSchedulelist[i].EndDate != null) {
+          this.lstNoteEditPIKSchedulelist[i].EndDate = this.convertDatetoGMT(this.lstNoteEditPIKSchedulelist[i].EndDate);
+        }
+
+      }
+    }
+    //===========================================================
+
+    //RSS
+    if (this.RssFeePikModulename == "Rate Spread Schedule") {
+
+      //Delete list append
+      for (i = 0; i < this.deleteRateSpreadSchedulePopup.length; i++) {
+        this.lstNoteEditRSSlist.push(this.deleteRateSpreadSchedulePopup[i]);
+      }
+
+      // Validation for New Effective Date RSS
+      this.newEffectiveDates = this.lstNoteEditRSSlist
+        .filter(item => !item.isdeleted)
+        .map(item => {
+          const date = new Date(item.EffectiveDate);
+          return new Date(date.getFullYear(), date.getMonth(), date.getDate()).toString();
+        });
+
+      for (var i = 0; i < this.existingEffectiveDatesRSS.length; i++) {
+        this.existingEffectiveDatesRSS[i] = new Date(this.existingEffectiveDatesRSS[i]).toString();
+      }
+
+      const invalidDates = this.newEffectiveDates.filter(newDate => !this.existingEffectiveDatesRSS.includes(newDate));
+
+      if (invalidDates.length > 0) {
+        this.CloseConfirmPopUp();
+        this.CustomAlert("You cannot enter a new Effective Date.");
+        return;
+      }
+      else {
+        this._noteEditList.RateSpreadScheduleList = this.lstNoteEditRSSlist;
+      }
+    }
+
+    //FEE
+    if (this.RssFeePikModulename == "Fee Schedule") {
+
+      if (this.deleteFeeSchedulePopup) {
+        for (var i = 0; i < this.deleteFeeSchedulePopup.length; i++) {
+
+          if (this.deleteFeeSchedulePopup[i].EffectiveDate != null) {
+            this.deleteFeeSchedulePopup[i].EffectiveDate = this.convertDatetoGMT(this.deleteFeeSchedulePopup[i].EffectiveDate);
+          }
+          if (this.deleteFeeSchedulePopup[i].StartDate != null) {
+            this.deleteFeeSchedulePopup[i].StartDate = this.convertDatetoGMT(this.deleteFeeSchedulePopup[i].StartDate);
+          }
+
+          if (this.deleteFeeSchedulePopup[i].ScheduleEndDate != null) {
+            this.deleteFeeSchedulePopup[i].ScheduleEndDate = this.convertDatetoGMT(this.deleteFeeSchedulePopup[i].ScheduleEndDate);
+          }
+        }
+      }
+
+      //Delete list append
+      for (i = 0; i < this.deleteFeeSchedulePopup.length; i++) {
+        this.lstNoteEditFEElist.push(this.deleteFeeSchedulePopup[i]);
+      }
+
+      // Validation for New Effective Date FEE
+      this.newEffectiveDates = this.lstNoteEditFEElist
+        .filter(item => !item.isdeleted)
+        .map(item => {
+          const date = new Date(item.EffectiveDate);
+          return new Date(date.getFullYear(), date.getMonth(), date.getDate()).toString();
+        });
+
+      for (var i = 0; i < this.existingEffectiveDatesFEE.length; i++) {
+        this.existingEffectiveDatesFEE[i] = new Date(this.existingEffectiveDatesFEE[i]).toString();
+      }
+
+      const invalidDates = this.newEffectiveDates.filter(newDate => !this.existingEffectiveDatesFEE.includes(newDate));
+
+      if (invalidDates.length > 0) {
+        this.CloseConfirmPopUp();
+        this.CustomAlert("You cannot enter a new Effective Date.");
+        return;
+      }
+      else {
+        this._noteEditList.NotePrepayAndAdditionalFeeScheduleList = this.lstNoteEditFEElist;
+      }
+    }
+
+    //PIK
+    if (this.RssFeePikModulename == "PIK Schedule") {
+
+      if (this.deletePIKSchedulePopup) {
+        for (var i = 0; i < this.deletePIKSchedulePopup.length; i++) {
+
+          if (this.deletePIKSchedulePopup[i].EffectiveDate != null) {
+            this.deletePIKSchedulePopup[i].EffectiveDate = this.convertDatetoGMT(this.deletePIKSchedulePopup[i].EffectiveDate);
+          }
+          if (this.deletePIKSchedulePopup[i].StartDate != null) {
+            this.deletePIKSchedulePopup[i].StartDate = this.convertDatetoGMT(this.deletePIKSchedulePopup[i].StartDate);
+          }
+
+          if (this.deletePIKSchedulePopup[i].EndDate != null) {
+            this.deletePIKSchedulePopup[i].EndDate = this.convertDatetoGMT(this.deletePIKSchedulePopup[i].EndDate);
+          }
+
+          this.deletePIKSchedulePopup[i].AccountID = this._note.AccountID
+        }
+      }
+
+      //Delete list append
+      for (i = 0; i < this.deletePIKSchedulePopup.length; i++) {
+        this.lstNoteEditPIKSchedulelist.push(this.deletePIKSchedulePopup[i]);
+      }
+
+      // Validation for New Effective Date FEE
+      this.newEffectiveDates = this.lstNoteEditPIKSchedulelist
+        .filter(item => !item.isdeleted)
+        .map(item => {
+          const date = new Date(item.EffectiveDate);
+          return new Date(date.getFullYear(), date.getMonth(), date.getDate()).toString();
+        });
+
+      for (var i = 0; i < this.existingEffectiveDatesPIK.length; i++) {
+        this.existingEffectiveDatesPIK[i] = new Date(this.existingEffectiveDatesPIK[i]).toString();
+      }
+
+      const invalidDates = this.newEffectiveDates.filter(newDate => !this.existingEffectiveDatesPIK.includes(newDate));
+
+      if (invalidDates.length > 0) {
+        this.CloseConfirmPopUp();
+        this.CustomAlert("You cannot enter a new Effective Date.");
+        return;
+      }
+      else {
+        this._noteEditList.NotePIKScheduleList = this.lstNoteEditPIKSchedulelist;
+      }
+    }
+
+    this._noteEditList.NoteId = this._note.NoteId;
+    this._noteEditList.EnableM61Calculations = this.EnableM61Calculations;
+
+    this.noteService.UpdateNoteEditlistRSSFEEPIK(this._noteEditList).subscribe(res => {
+      if (res.Succeeded) {
+        this._isNoteSaving = false;
+        this.CloseConfirmPopUp();
+        this.ClosePopUpNoteRSS();
+        this.ClosePopUpNoteFEE();
+        this.ClosePopUpNotePIK();
+
+        this._Showmessagenotediv = true;
+        this._ShowmessagenotedivMsg = `${this.RssFeePikModulename} Updated Successfully`;
+        setTimeout(function () {
+          this._isNoteSaving = false;
+          this._Showmessagenotediv = false;
+          this._ShowmessagenotedivMsg = false;
+
+          var returnUrl = this._router.url;
+          if (window.location.href.indexOf("notedetail/a") > -1) {
+            returnUrl = returnUrl.toString().replace('notedetail/a/', 'notedetail/');
+
+          }
+          else if (returnUrl.indexOf("notedetail/") > -1) {
+            returnUrl = returnUrl.toString().replace('notedetail/', 'notedetail/a/');
+          }
+          this._router.navigate([returnUrl]);
+
+        }.bind(this), 2000);
+
+      }
+      else {
+        this._ShowmessagenotedivWar = true;
+        this._isNoteSaving = false;
+        this._ShowmessagenotedivMsgWar = "Error occurred while updating Note Additional , please contact to system administrator.";
+        this.CloseConfirmPopUp();
+        this.ClosePopUpNoteRSS();
+        this.ClosePopUpNoteFEE();
+        this.ClosePopUpNotePIK();
+
+        setTimeout(function () {
+          this._isNoteSaving = false;
+          this._Showmessagenotediv = false;
+          this._ShowmessagenotedivWar = false;
+        }.bind(this), 5000);
+      }
+    })
+  }
+
+  Cancel(): void {
+    this._router.navigate(['note']);
+  }
+
   GetAllNoteLookups(): void {
-
-
     this.noteService.getAllLookupById().subscribe(res => {
       var data = res.lstLookups;
 
@@ -2306,7 +4038,8 @@ export class NoteDetailComponent extends Paginated {
       this.lstFinancingSource = data.filter(x => x.ParentID == "71");
       this.lstDebtType = data.filter(x => x.ParentID == "72");
       this.lstCapStack = data.filter(x => x.ParentID == "73");
-
+      this.lstPool = data.filter(x => x.ParentID == "74");
+      this.lstPool.sort(this.sortByPoolName);
 
       this.lstPrepayAdditinalFee_ValueType = this.lstFeeTypeLookUp;
       this.lstPrepayAdditinalFee_lstApplyTrueUpFeature = data.filter(x => x.ParentID == "95");
@@ -2315,17 +4048,27 @@ export class NoteDetailComponent extends Paginated {
       this.lstScenario = window.localStorage.getItem("lstScenario");
       this.lstInterestCalculationRuleForPaydowns = data.filter(x => x.ParentID == "99");
       this.lstInterestCalculationRuleForPaydownsAmort = data.filter(x => x.ParentID == "99");
+      this.lstAccrualPeriodType = data.filter(x => x.ParentID == "136");
+      this.lstAccrualPeriodBusinessDayAdj = data.filter(x => x.ParentID == "137");
       // this.lstddlOverideComment = data.filter(x => x.ParentID == "108");
       //this.lstRoundingNote = data.filter(x => x.ParentID == "95");
       this.lstStrategy = data.filter(x => x.ParentID == "110");
+      this.lstAdjustmentType = data.filter(x => x.ParentID == "141");
       if (this._note.EnableM61Calculations == 3) {
         this.lstNoteDeleteFilter = this.lstNoteDeleteFilter.filter(x => x.LookupID != "685");
       }
 
       this.lstPIKInterestCalcmethod = data.filter(x => x.ParentID == "25");
+      this.lstPIKSetuptype = data.filter(x => x.ParentID == "146");
+      this.lstPIKReasonCodetype = data.filter(x => x.ParentID == "111");
+      this.lstPIKCompoundingType = data.filter(x => x.ParentID == "2");
+      this.lstPIKCashIntCalc = data.filter(x => x.ParentID == "2");
+      this.lstPIKImpactinCommit = data.filter(x => x.ParentID == "2");
 
+      setTimeout(() => {
+        this._bindGridDropdows();
+      }, 10000);
 
-      this._bindGridDropdows();
     });
   }
 
@@ -2591,6 +4334,7 @@ export class NoteDetailComponent extends Paginated {
   }
 
   showCopyDialog(noteid) {
+    this._isNoteSaving = false;
     var modalcopy = document.getElementById('myModalCopyNote');
     this._note.CopyName = null;
     this._note.CopyCRENoteId = null;
@@ -2654,7 +4398,7 @@ export class NoteDetailComponent extends Paginated {
   }
 
   CreateNote(CRENoteID, Name, creDeal, Isopen) {
-    this._isNoteSaving = true;
+    this._isNoteSaving = false;
 
     if (CRENoteID != null && Name != null && this.Copy_Dealid != null) {
       this._note.CopyCRENoteId = CRENoteID;
@@ -2753,9 +4497,15 @@ export class NoteDetailComponent extends Paginated {
             this._ShowmessagenotedivWar = false;
           }, 2000);
         }
+      }
+      else {
+        this._ShowmessagenotedivWar = true;
+        this.CloseCopyPopUp();
+        this._ShowmessagenotedivMsgWar = "Error occurred while creating Copy Note, please contact to system administrator.";
 
-
-
+        //setTimeout(function () {
+        //    this._ShowmessagenotedivWar = false;
+        //}.bind(this), 5000);
       }
     });
     return this._noteExistMsg;
@@ -2824,6 +4574,20 @@ export class NoteDetailComponent extends Paginated {
     this._isCalcJsonResponseFetched = false;
     modal.style.display = "none";
   }
+
+  ClosePopUpNoteRSS() {
+    var modal = document.getElementById('myModalEditNoteRSS');
+    modal.style.display = "none";
+  }
+  ClosePopUpNoteFEE() {
+    var modal = document.getElementById('myModalEditNoteFEE');
+    modal.style.display = "none";
+  }
+  ClosePopUpNotePIK() {
+    var modal = document.getElementById('myModalEditNotePIK');
+    modal.style.display = "none";
+  }
+
   ClosePopUpScriptEngine() {
     var modal = document.getElementById('myModalScriptEngine');
     this._isNoteSaving = false;
@@ -2942,17 +4706,29 @@ export class NoteDetailComponent extends Paginated {
     var flexdefaultsch = this.flexdefaultsch;
     var flexservicelog = this.flexservicelog;
     var futurefundingflex = this.futurefundingflex;
-
+    var flexEditRSS = this.flexEditRSS;
+    var flexEditFee = this.flexEditFee;
+    var flexEditPIK = this.flexEditPIK;
 
     if (flexrss) {
       var colrssValueType = flexrss.columns.getColumn('ValueTypeText');
       var colrssIntCalcMethod = flexrss.columns.getColumn('IntCalcMethodText');
+      var colrssIndexNameText = flexrss.columns.getColumn('IndexNameText');
+      var colrssDeterminationDateHolidayListText = flexrss.columns.getColumn('DeterminationDateHolidayListText');
+
 
       if (colrssValueType) {
         //colrssValueType.showDropDown = true;
         colrssValueType.dataMap = this._buildDataMap(this.lstRateSpreadSch_ValueType, 'LookupID', 'Name');
+
+        this.dataMapValueType = this._buildDataMap(this.lstRateSpreadSch_ValueType, 'LookupID', 'Name');
         //colrssIntCalcMethod.showDropDown = true;
         colrssIntCalcMethod.dataMap = this._buildDataMap(this.lstIntCalcMethodID, 'LookupID', 'Name');
+
+
+        // colrssIndexNameText.showDropDown = true;
+        colrssIndexNameText.dataMap = this._buildDataMap(this.lstIndextype, 'LookupID', 'Name');
+        colrssDeterminationDateHolidayListText.dataMap = this._buildDataMap_holidayCalendarNamelist(this.holidayCalendarNamelist);
       }
     }
 
@@ -2970,6 +4746,75 @@ export class NoteDetailComponent extends Paginated {
       }
 
     }
+
+    if (flexEditRSS) {
+      var colrssValueType = flexEditRSS.columns.getColumn('ValueTypeText');
+      var colrssIntCalcMethod = flexEditRSS.columns.getColumn('IntCalcMethodText');
+      var colrssIndexNameText = flexEditRSS.columns.getColumn('IndexNameText');
+      var colrssDeterminationDateHolidayListText = flexEditRSS.columns.getColumn('DeterminationDateHolidayListText');
+
+      if (colrssValueType) {
+        //colrssValueType.showDropDown = true;
+        colrssValueType.dataMap = this._buildDataMap(this.lstRateSpreadSch_ValueType, 'LookupID', 'Name');
+
+        this.dataMapValueType = this._buildDataMap(this.lstRateSpreadSch_ValueType, 'LookupID', 'Name');
+        //colrssIntCalcMethod.showDropDown = true;
+        colrssIntCalcMethod.dataMap = this._buildDataMap(this.lstIntCalcMethodID, 'LookupID', 'Name');
+
+
+        // colrssIndexNameText.showDropDown = true;
+        colrssIndexNameText.dataMap = this._buildDataMap(this.lstIndextype, 'LookupID', 'Name');
+        colrssDeterminationDateHolidayListText.dataMap = this._buildDataMap_holidayCalendarNamelist(this.holidayCalendarNamelist);
+      }
+    }
+
+    if (flexEditFee) {
+      var colPrepayValueType = flexEditFee.columns.getColumn('ValueTypeText');
+      if (colPrepayValueType) {
+        //colPrepayValueType.showDropDown = true;
+        colPrepayValueType.dataMap = this._buildDataMap(this.lstPrepayAdditinalFee_ValueType, 'LookupID', 'Name');
+      }
+
+      var colPrepayApplyTrueUpFeatureText = flexEditFee.columns.getColumn('ApplyTrueUpFeatureText');
+      if (colPrepayApplyTrueUpFeatureText) {
+        //colPrepayApplyTrueUpFeatureText.showDropDown = true;
+        colPrepayApplyTrueUpFeatureText.dataMap = this._buildDataMap(this.lstPrepayAdditinalFee_lstApplyTrueUpFeature, 'LookupID', 'Name');
+      }
+
+    }
+
+    if (flexEditPIK) {
+      var colPikIntCalcMethod = flexEditPIK.columns.getColumn('PIKIntCalcMethodIDText');
+      if (colPikIntCalcMethod) {
+        colPikIntCalcMethod.dataMap = this._buildDataMap(this.lstPIKInterestCalcmethod, 'LookupID', 'Name');
+      }
+
+      var colPikSetup = flexEditPIK.columns.getColumn('PIKSetUpText');
+      if (colPikSetup) {
+        colPikSetup.dataMap = this._buildDataMap(this.lstPIKSetuptype, 'LookupID', 'Name');
+      }
+
+      var colPikReasonCode = flexEditPIK.columns.getColumn('PIKReasonCodeIDtext');
+      if (colPikReasonCode) {
+        colPikReasonCode.dataMap = this._buildDataMap(this.lstPIKReasonCodetype, 'LookupID', 'Name');
+      }
+
+      var colPIKSeparateCompounding = flexEditPIK.columns.getColumn('PIKSeparateCompounding');
+      if (colPIKSeparateCompounding) {
+        colPIKSeparateCompounding.dataMap = this._buildDataMap(this.lstPIKCompoundingType, 'LookupID', 'Name');
+      }
+
+      var colPIKCashIntCalc = flexEditPIK.columns.getColumn('PIKInterestAddedToBalanceBasedOnBusinessAdjustedDate');
+      if (colPIKCashIntCalc) {
+        colPIKCashIntCalc.dataMap = this._buildDataMap(this.lstPIKCashIntCalc, 'LookupID', 'Name');
+      }
+
+      var colImpactCommitmentCalc = flexEditPIK.columns.getColumn('ImpactCommitmentCalc');
+      if (colImpactCommitmentCalc) {
+        colImpactCommitmentCalc.dataMap = this._buildDataMap(this.lstPIKImpactinCommit, 'LookupID', 'Name');
+      }
+    }
+
     if (flexstripping) {
       var colstrippingValueType = flexstripping.columns.getColumn('ValueTypeText');
       if (colstrippingValueType) {
@@ -3047,6 +4892,17 @@ export class NoteDetailComponent extends Paginated {
       for (var i = 0; i < items.length; i++) {
         var obj = items[i];
         map.push({ key: obj[key], value: obj[value] });
+      }
+    }
+    return new wjcGrid.DataMap(map, 'key', 'value');
+  }
+
+  private _buildDataMap_holidayCalendarNamelist(items): wjcGrid.DataMap {
+    var map = [];
+    if (items) {
+      for (var i = 0; i < items.length; i++) {
+        var obj = items[i];
+        map.push({ key: obj['HolidayMasterID'], value: obj['CalendarName'] });
       }
     }
     return new wjcGrid.DataMap(map, 'key', 'value');
@@ -3226,8 +5082,8 @@ export class NoteDetailComponent extends Paginated {
       this._isCallConcurrentCheck = true;
       setTimeout(() => {
         this.futurefundingflex.invalidate();
-        this.futurefundingflex.autoSizeColumns(0, this.futurefundingflex.columns.length, false, 20);
-        this.futurefundingflex.columns[0].width = 120; // for Note Id
+        //this.futurefundingflex.autoSizeColumns(0, this.futurefundingflex.columns.length, false, 20);
+        //this.futurefundingflex.columns[0].width = 120; // for Note Id
         this.IsOpenshowfuturefundingflex = true;
         this.AppliedReadOnly();
       }, 200);
@@ -3329,9 +5185,13 @@ export class NoteDetailComponent extends Paginated {
         if (res.Succeeded) {
           var data = res.dwstatus;
           if (data != null) {
+            this._islastCalcDateTime = true;
             if (data.CalcStatus == "Completed") {
               this._note.lastCalcDateTime = data.LastUpdated;
               this._note.CalculationStatus = data.CalcStatus;
+              this._note.CalcEngineTypeText = data.CalcEngineTypeText;
+              this._note.ErrorMessage = data.ErrorMessage;
+              this._note.AccountingCloseDate = data.AccountingCloseDate;
             }
             else {
               this.showcalcstatus();
@@ -3339,6 +5199,7 @@ export class NoteDetailComponent extends Paginated {
           }
           else {
             this._note.CalculationStatus = "";
+            this._note.CalcEngineTypeText = "";
           }
         }
       });
@@ -3401,17 +5262,26 @@ export class NoteDetailComponent extends Paginated {
           if (!(data.CalcStatus == "Completed")) {
             this._note.lastCalcDateTime = data.LastUpdated;
             this._note.CalculationStatus = data.CalcStatus;
+            this._note.ErrorMessage = data.ErrorMessage;
+            this._note.AccountingCloseDate = data.AccountingCloseDate;
           }
           else {
             this.ShowTransaction();
+            clearInterval(status);
             this._note.lastCalcDateTime = data.LastUpdated;
+            this._note.AccountingCloseDate = data.AccountingCloseDate;
             this._note.CalculationStatus = data.CalcStatus;
+            this._note.ErrorMessage = data.ErrorMessage;
+          }
+          if (data.CalcStatus === undefined || data.CalcStatus == null || data.CalcStatus == '') {
+            this._note.CalculationStatus = "Nevercalculated";
+            this._note.ErrorMessage = "";
             clearInterval(status);
           }
         }
 
       });
-    }, 2000);
+    }, 5000);
   }
 
   shownoteoutputnpvflex() {
@@ -3423,7 +5293,7 @@ export class NoteDetailComponent extends Paginated {
     //alert('close');
     if (!this.IsOpenClosingTab) {
       setTimeout(() => {
-        //alert('close123456');
+        this._bindGridDropdows();
         this.flexPrepay.invalidate(true);
         this.flexrss.invalidate(true);
         // this.flexstripping.invalidate();
@@ -3436,7 +5306,7 @@ export class NoteDetailComponent extends Paginated {
   FinancingTab() {
     if (!this.IsOpenFinancingTab) {
       setTimeout(() => {
-        //alert('close123456');
+        this._bindGridDropdows();
         this.flexfinancingfee.invalidate();
         this.flexFinancingSch.invalidate();
         this.IsOpenFinancingTab = true;
@@ -3448,6 +5318,7 @@ export class NoteDetailComponent extends Paginated {
   ServicingTab() {
     if (!this.IsOpenServicingTab) {
       setTimeout(() => {
+        this._bindGridDropdows();
         this.flexdefaultsch.invalidate();
         this.IsOpenServicingTab = true;
       }, 200);
@@ -3460,6 +5331,7 @@ export class NoteDetailComponent extends Paginated {
     if (!this.IsOpenServicinglogTab) {
       this._isNoteSaving = true;
       setTimeout(() => {
+        this._bindGridDropdows();
         if (this.listtransactiontype) {
           this.getTransactionTypes();
         }
@@ -3490,6 +5362,20 @@ export class NoteDetailComponent extends Paginated {
   }
 
   //*****************periodic data code start *****************//
+  CopyGridDataWithHeader(s: wjcGrid.FlexGrid, e: wjcGrid.CellEditEndingEventArgs) {
+    // get clip text
+    var text = s.getClipString();
+    // add headers
+    var sel = s.selection,
+      hdr = '';
+    for (var c = sel.leftCol; c <= sel.rightCol; c++) {
+      if (hdr) hdr += '\t';
+      hdr += s.columns[c].header;
+    }
+    text = hdr + '\r\n' + text;
+    wjcCore.Clipboard.copy(text);
+    e.cancel = true;
+  }
 
   public getPeriodicDataByNoteId(_note) {
     this._note = _note;
@@ -3503,7 +5389,7 @@ export class NoteDetailComponent extends Paginated {
     this._note.RequestType = "Calculator";
 
     if (this.modulename == 'Calculator') {
-      this._signalRService.SendCalcNotification("CALCMGR" + '|*|' + appsettings.Notificationsettings._notificationenvironment);
+      //   this._signalRService.SendCalcNotification("CALCMGR" + '|*|' + appsettings.Notificationsettings._notificationenvironment);
       //run calculator 
       this.RunCalculator();
     }
@@ -3680,13 +5566,14 @@ export class NoteDetailComponent extends Paginated {
               default:
                 break;
             }
-
-            for (var i = 0; i < this.setlstPeriodicDataList.length; i++) {
-              if (this.setlstPeriodicDataList[i].Date != null) {
-                this.setlstPeriodicDataList[i].Date = new Date(this.setlstPeriodicDataList[i].Date.toString());
+            if (_note.modulename == 'FundingSchedule') {
+              for (var i = 0; i < this.setlstPeriodicDataList.length; i++) {
+                if (this.setlstPeriodicDataList[i].Date != null) {
+                  this.setlstPeriodicDataList[i].Date = new Date(this.setlstPeriodicDataList[i].Date.toString());
+                }
               }
             }
-
+            this.columns = [];
             //=======================
 
             if (_note.modulename == 'FundingSchedule' || _note.modulename == 'PIKScheduleDetail' || _note.modulename == 'LIBORSchedule' || _note.modulename == 'AmortSchedule') {
@@ -3720,14 +5607,23 @@ export class NoteDetailComponent extends Paginated {
               return false;
             });
 
-            if (_note.modulename == 'LIBORSchedule')
-              for (var j = 1; j < header.length; j++) {
+            if (_note.modulename == 'Maturity') {
+              for (var j = 0; j < header.length; j++) {
                 this.Addcolumn(header[j], header[j], 'p5')
               }
-            else
-              for (var j = 1; j < header.length; j++) {
-                this.Addcolumn(header[j], header[j], 'n2')
-              }
+            }
+
+            else {
+
+              if (_note.modulename == 'LIBORSchedule')
+                for (var j = 1; j < header.length; j++) {
+                  this.Addcolumn(header[j], header[j], 'p5')
+                }
+              else
+                for (var j = 1; j < header.length; j++) {
+                  this.Addcolumn(header[j], header[j], 'n2')
+                }
+            }
 
             //================
 
@@ -3749,11 +5645,8 @@ export class NoteDetailComponent extends Paginated {
                 data = this.setlstPeriodicDataList;
                 //this.grdPeriodicData.invalidate();
                 data.forEach((obj, i) => { // FETCH ALL DATA AND PUSH IN FLEX GRID!!!
-                  //this.grdPeriodicData.rows.push(new wijmo.grid.Row(obj));
-                  //if (this.grdPeriodicData != null)
                   {
-                    // alert('i' + this.grdPeriodicData.rows.length + 'data ' + this.lstPeriodicDataList.length);
-                    //if (this.grdPeriodicData.rows.length == this.lstPeriodicDataList.length)
+
                     {
                       setTimeout(() => {
                         var colCount = this.grdPeriodicData.columns.length;
@@ -3775,9 +5668,9 @@ export class NoteDetailComponent extends Paginated {
               });
             }
 
-            //setTimeout(function () {
-            //  this.grdPeriodicData.autoSizeColumns(0, this.grdPeriodicData.columns.length - 1, false, 20);
-            //}.bind(this), 1000);
+            setTimeout(function () {
+              this.grdPeriodicData.autoSizeColumns(0, this.grdPeriodicData.columns.length - 1, false, 20);
+            }.bind(this), 1000);
 
             // return true;
           } else {
@@ -3807,13 +5700,16 @@ export class NoteDetailComponent extends Paginated {
         this._isPeriodicDataFetching = false;
         this._Showmessagenotediv = true;
         this._ShowmessagenotedivMsg = res.Message;
-        this.showcalcstatus();
+        if (res.DealCalcuStatus == "CalcSubmit") {
+          this._note.CalculationStatus = "CalcSubmit";
+        } else {
+          this._note.CalculationStatus = "Processing";
+        }
         setTimeout(function () {
           this._Showmessagenotediv = false;
           this._ShowmessagenotedivMsg = "";
-          //   console.log(this._ShowmessagedivWar);
-        }.bind(this), 5000);
-
+          this.showcalcstatus();
+        }.bind(this), 6000);
         return true;
       }
       else {
@@ -4231,10 +6127,21 @@ export class NoteDetailComponent extends Paginated {
     this._note.InterestCalculationRuleForPaydowns = newvalue;
   }
 
+  InterestCalculationRuleForPIKPaydownsChange(newvalue): void {
+    this._note.InterestCalculationRuleForPIKPaydowns = newvalue;
+  }
+
   InterestCalculationRuleForPaydownsAmortChange(newvalue): void {
     this._note.InterestCalculationRuleForPaydownsAmort = newvalue;
   }
 
+  AccrualPeriodTypeChange(newvalue): void {
+    this._note.AccrualPeriodType = newvalue;
+  }
+
+  AccrualPeriodBusinessDayAdjChange(newvalue): void {
+    this._note.AccrualPeriodBusinessDayAdj = newvalue;
+  }
 
 
   FundChange(newvalue): void {
@@ -4271,7 +6178,8 @@ export class NoteDetailComponent extends Paginated {
 
   PIKSeparateCompoundingChange(newvalue)
     : void {
-    this._note.PIKSeparateCompounding = newvalue;
+    this.PIKSeparateCompounding = newvalue;
+    this.showhidepikcompundingsetup();
   }
 
   PIKSchedulePIKReasonCodeIDChange(newvalue)
@@ -4281,6 +6189,11 @@ export class NoteDetailComponent extends Paginated {
   PIKInterestCalcmethodChange(newvalue)
     : void {
     this.PIKSchedule_PIKIntCalcMethodID = newvalue;
+  }
+  PIKSetUpmethodChange(newvalue)
+    : void {
+    this.PIKSetUp = newvalue;
+    this.showhidepikcompundingsetup();
   }
 
   LoanTypeChange(newvalue): void {
@@ -4312,6 +6225,12 @@ export class NoteDetailComponent extends Paginated {
   //Enabling M61 Calculation
   EnablingCalculationChange(newvalue): void {
     this._note.EnableM61Calculations = newvalue;
+  }
+  FullIOTermFlagChange(newvalue): void {
+    this._note.FullIOTermFlag = newvalue;
+  }
+  NoteTypeChange(newvalue): void {
+    this._note.NoteType = newvalue;
   }
 
   DeleteDataManagementDropdown(newvalue): void {
@@ -4385,6 +6304,9 @@ export class NoteDetailComponent extends Paginated {
   FinancingPayFrequencyChange(newvalue): void {
     this._note.FinancingPayFrequency = newvalue;
   }
+  ImpactCommitmentCalcChange(newvalue): void {
+    this._note.ImpactCommitmentCalc = newvalue;
+  }
   CashflowEngineChange(newvalue): void {
     if (newvalue == 300) {
       this._isShowCalcbutton = false;
@@ -4398,6 +6320,16 @@ export class NoteDetailComponent extends Paginated {
   }
   RoundingNoteChange(newvalue): void {
     this._note.RoundingNote = newvalue;
+  }
+
+  InterestOnlyNoteChange(newvalue): void {
+    this._note.InterestOnlyNote = newvalue;
+  }
+  ConstantPaymentMethodChange(newvalue): void {
+    this._note.ConstantPaymentMethod = newvalue;
+  }
+  PaymentDateAccrualPeriodChange(newvalue): void {
+    this._note.PaymentDateAccrualPeriod = newvalue;
   }
 
   SaveOnly(SaveOnly) {
@@ -4576,6 +6508,10 @@ export class NoteDetailComponent extends Paginated {
         case "PrepayAndAdditionalFeeSchedule":
 
           for (var i = 0; i < Data.length; i++) {
+
+            //if (this._noteext.NotePrepayAndAdditionalFeeScheduleList[i].EffectiveDate != null) {
+            //  this._noteext.NotePrepayAndAdditionalFeeScheduleList[i].EffectiveDate = this.convertDatetoGMT(this._noteext.NotePrepayAndAdditionalFeeScheduleList[i].EffectiveDate);
+            //}
             if (this._noteext.NotePrepayAndAdditionalFeeScheduleList[i].StartDate != null) {
               this._noteext.NotePrepayAndAdditionalFeeScheduleList[i].StartDate = this.convertDatetoGMT(this._noteext.NotePrepayAndAdditionalFeeScheduleList[i].StartDate);
             }
@@ -4787,6 +6723,8 @@ export class NoteDetailComponent extends Paginated {
       if (this._note.FinancingExtendedMaturityDate != null) { this._note.FinancingExtendedMaturityDate = this.convertDatetoGMT(this._note.FinancingExtendedMaturityDate); }
 
       if (this._note.ClosingDate != null) { this._note.ClosingDate = this.convertDatetoGMT(this._note.ClosingDate); }
+      if (this._note.LastAccountingCloseDate != null) { this._note.LastAccountingCloseDate = this.convertDatetoGMT(this._note.LastAccountingCloseDate); }
+
 
       // if (this._note.ExtendedMaturityScenario1 != null) { this._note.ExtendedMaturityScenario1 = this.convertDatetoGMT(this._note.ExtendedMaturityScenario1); }
       // if (this._note.ExtendedMaturityScenario2 != null) { this._note.ExtendedMaturityScenario2 = this.convertDatetoGMT(this._note.ExtendedMaturityScenario2); }
@@ -4796,6 +6734,8 @@ export class NoteDetailComponent extends Paginated {
       if (this._note.PurchaseDate != null) { this._note.PurchaseDate = this.convertDatetoGMT(this._note.PurchaseDate); }
       if (this._note.ValuationDate != null) { this._note.ValuationDate = this.convertDatetoGMT(this._note.ValuationDate); }
       if (this._note.lastCalcDateTime != null) { this._note.lastCalcDateTime = this.convertDatetoGMT(this._note.lastCalcDateTime); }
+
+      if (this._note.AccountingCloseDate != null) { this._note.AccountingCloseDate = this.convertDatetoGMT(this._note.AccountingCloseDate); }
 
       if (this.MaturityEffectiveDate != null) { this.MaturityEffectiveDate = this.convertDatetoGMT(this.MaturityEffectiveDate); }
       if (this.MaturityDate != null) { this.MaturityDate = this.convertDatetoGMT(this.MaturityDate); }
@@ -4816,6 +6756,7 @@ export class NoteDetailComponent extends Paginated {
       if (this.FinancingSchedule_EffectiveDate != null) { this.FinancingSchedule_EffectiveDate = this.convertDatetoGMT(this.FinancingSchedule_EffectiveDate); }
       if (this.DefaultSchedule_EffectiveDate != null) { this.DefaultSchedule_EffectiveDate = this.convertDatetoGMT(this.DefaultSchedule_EffectiveDate); }
       if (this._note.NoteTransferDate != null) { this._note.NoteTransferDate = this.convertDatetoGMT(this._note.NoteTransferDate); }
+      if (this._note.FirstIndexDeterminationDateOverride != null) { this._note.FirstIndexDeterminationDateOverride = this.convertDatetoGMT(this._note.FirstIndexDeterminationDateOverride); }
       this._isConvertDate = true;
     }
   }
@@ -4903,7 +6844,7 @@ export class NoteDetailComponent extends Paginated {
           //   alert("Date " + this._noteext.lstPIKDetailScheduleTab[sel.topRow].Date.toString() + " already in list");
 
           var locale = "en-US"
-          var options:any = { year: "numeric", month: "numeric", day: "numeric" };
+          var options: any = { year: "numeric", month: "numeric", day: "numeric" };
 
           rssformatDate = this._noteext.ListPIKfromPIKSourceNoteTab[sel.topRow].Date;
           if (rssformatDate.toString().indexOf("GMT") == -1)
@@ -4935,7 +6876,7 @@ export class NoteDetailComponent extends Paginated {
         if (flag == true) {
           var formatDate: Date;
           var locale = "en-US"
-          var options:any = { year: "numeric", month: "numeric", day: "numeric" };
+          var options: any = { year: "numeric", month: "numeric", day: "numeric" };
           formatDate = this._noteext.ListLiborScheduleTab[sel.topRow].Date;
 
           if (formatDate.toString().indexOf("GMT") == -1)
@@ -4952,7 +6893,7 @@ export class NoteDetailComponent extends Paginated {
         if (flag == true) {
           var formatDate: Date;
           var locale = "en-US"
-          var options:any = { year: "numeric", month: "numeric", day: "numeric" };
+          var options: any = { year: "numeric", month: "numeric", day: "numeric" };
           formatDate = this._noteext.ListLiborScheduleTab[sel.topRow].Date;
 
           if (formatDate.toString().indexOf("GMT") == -1)
@@ -5023,6 +6964,48 @@ export class NoteDetailComponent extends Paginated {
       this.ListNoteMarketPrice.removeAt(this.deleteRowIndex);
     }
 
+    if (this.modulename == "Rate Spread Schedule History") {
+      if (this.flexEditRSS.rows[this.deleteRowIndex]) {
+
+        // Finding schedule id to delete the row
+        var delrowIndex = this.lstNoteEditRSSlist.findIndex(x => x.ScheduleID == this.flexEditRSS.rows[this.deleteRowIndex].dataItem.ScheduleID);
+        if (delrowIndex !== -1) {
+          var delrow = this.lstNoteEditRSSlist[delrowIndex];
+          this.deleteRateSpreadSchedulePopup.push(delrow);
+          this.lstNoteEditRSSlist[delrowIndex].isdeleted = true;
+        }
+      }
+      this.cvEditRateSpreadScheduleList.removeAt(this.deleteRowIndex);
+    }
+
+    if (this.modulename == "Fee Schedule History") {
+      if (this.flexEditFee.rows[this.deleteRowIndex]) {
+
+        //finding schedule id to delete the row
+        var delrowfeeindex = this.lstNoteEditFEElist.findIndex(x => x.ScheduleID == this.flexEditFee.rows[this.deleteRowIndex].dataItem.ScheduleID);
+        if (delrowfeeindex !== -1) {
+          var delrowfee = this.lstNoteEditFEElist[delrowfeeindex];
+          this.deleteFeeSchedulePopup.push(delrowfee);
+          this.lstNoteEditFEElist[delrowfeeindex].isdeleted = true;
+        }
+      }
+      this.cvEditFeeScheduleList.removeAt(this.deleteRowIndex);
+    }
+
+    if (this.modulename == "PIK Schedule History") {
+      if (this.flexEditPIK.rows[this.deleteRowIndex]) {
+
+        //finding schedule id to delete the row
+        var delrowpikindex = this.lstNoteEditPIKSchedulelist.findIndex(x => x.ScheduleID == this.flexEditPIK.rows[this.deleteRowIndex].dataItem.ScheduleID);
+        if (delrowpikindex !== -1) {
+          var delrowpik = this.lstNoteEditPIKSchedulelist[delrowpikindex];
+          this.deletePIKSchedulePopup.push(delrowpik);
+          this.lstNoteEditPIKSchedulelist[delrowpikindex].isdeleted = true;
+        }
+      }
+      this.cvEditPIKSchedulelist.removeAt(this.deleteRowIndex);
+    }
+
     this.CloseDeletePopUp();
   }
 
@@ -5051,6 +7034,26 @@ export class NoteDetailComponent extends Paginated {
           var filteredarray = this.lstIntCalcMethodID.filter(x => x.Name == this._noteArchieveext.RateSpreadScheduleList[i].IntCalcMethodText)
           if (filteredarray.length != 0) {
             this._noteArchieveext.RateSpreadScheduleList[i].IntCalcMethodID = Number(filteredarray[0].LookupID);
+          }
+        }
+
+        if (!(Number(this._noteArchieveext.RateSpreadScheduleList[i].IndexNameText).toString() == "NaN" || Number(this._noteArchieveext.RateSpreadScheduleList[i].IndexNameText) == 0)) {
+          this._noteArchieveext.RateSpreadScheduleList[i].IndexNameID = Number(this._noteArchieveext.RateSpreadScheduleList[i].IndexNameText);
+        }
+        else {
+          var filteredarray = this.lstRateSpreadSch_ValueType.filter(x => x.Name == this._noteArchieveext.RateSpreadScheduleList[i].IndexNameText)
+          if (filteredarray.length != 0) {
+            this._noteArchieveext.RateSpreadScheduleList[i].IndexNameID = Number(filteredarray[0].LookupID);
+          }
+        }
+
+        if (!(Number(this._noteArchieveext.RateSpreadScheduleList[i].DeterminationDateHolidayListText).toString() == "NaN" || Number(this._noteArchieveext.RateSpreadScheduleList[i].DeterminationDateHolidayListText) == 0)) {
+          this._noteArchieveext.RateSpreadScheduleList[i].DeterminationDateHolidayList = Number(this._noteArchieveext.RateSpreadScheduleList[i].DeterminationDateHolidayListText);
+        }
+        else {
+          var filteredarray = this.lstRateSpreadSch_ValueType.filter(x => x.Name == this._noteArchieveext.RateSpreadScheduleList[i].DeterminationDateHolidayListText)
+          if (filteredarray.length != 0) {
+            this._noteArchieveext.RateSpreadScheduleList[i].DeterminationDateHolidayList = Number(filteredarray[0].LookupID);
           }
         }
 
@@ -5129,57 +7132,6 @@ export class NoteDetailComponent extends Paginated {
 
     this.noteService.addNoteArchieveExtralist(this._noteArchieveextt).subscribe(res => {
       if (res.Succeeded) {
-        //if (savebtnclick) {
-        //    this._isNoteSaving = false;
-
-        //    if (res.TotalCount == 0) {
-        //        this._copymessagediv = false;
-        //        this._isNoteSaveonly = true;
-        //        localStorage.setItem('divSucessNote', JSON.stringify(true));
-        //        localStorage.setItem('divSucessMsgNote', JSON.stringify(res.Message));
-        //    }
-        //    else {
-        //        this._copymessagediv = false;
-        //        this._isNoteSaveonly = true;
-        //        localStorage.setItem('divInfoNote', JSON.stringify(true));
-        //        localStorage.setItem('divInfoMsgNote', JSON.stringify(res.Message));
-        //    }
-        //    if (res.Succeeded == false) {
-        //        this._copymessagediv = false;
-        //        localStorage.setItem('divWarNote', JSON.stringify(true));
-        //        localStorage.setItem('divWarMsgNote', JSON.stringify(res.Message));
-        //    }
-
-        //    if (this._noteCopyMsg != null) {
-        //        //    localStorage.setItem('divSucessNote', JSON.stringify(true));
-        //        //    localStorage.setItem('divSucessMsgNote', JSON.stringify(this._noteCopyMsg));
-
-        //        localStorage.setItem('divInfoNote', JSON.stringify(false));
-
-        //        this._copymessagediv = true;
-        //        this._copymessagedivMsg = this._noteCopyMsg;
-        //        //  this.CloseCopyPopUp();
-        //        // this._isNoteSaveonly = false;
-
-        //        if (this._isCopyandopen == true) {
-        //            this._copymessagediv = true;
-        //            this._copymessagedivMsg = this._noteCopyMsg;
-        //            var notenewcopied = ['\notedetail', this._noteextt.NoteId]
-        //            this._router.navigate(notenewcopied);
-        //        }
-        //        else {
-        //            this.CloseCopyPopUp();
-        //        }
-
-        //        setTimeout(() => {
-        //            this._copymessagediv = false;
-        //            this._noteCopyMsg = null;
-        //        }, 1000);
-        //    }
-        //    else {
-        //        this._router.navigate(['note']);
-        //    }
-        //}
       }
     })
   }
@@ -5244,19 +7196,28 @@ export class NoteDetailComponent extends Paginated {
     }
   }
 
+  delDown(e, grid) {
+    let row = grid.selection.row, col = grid.selection.col;
+    if (grid.columns[col].binding == 'FeeAmountOverride' || grid.columns[col].binding == 'BaseAmountOverride') {
+      grid.setCellData(row, col, null, null);
+    }
+  }
   rowEditEndedDateAndValue(modulename): void {
     switch (modulename) {
       case "RateSpreadSchedule":
         var sel = this.flexrss.selection;
+        var editedRowIndex = sel.topRow;
+        var currentItem = this._noteext.RateSpreadScheduleList.findIndex(x => x.ScheduleID == this.flexrss.rows[editedRowIndex].dataItem.ScheduleID);
+
         var rssformatDate: Date;
-        var flag = this.CheckDuplicateDateAndValue(this._noteext.RateSpreadScheduleList, sel.topRow);
+        var flag = this.CheckDuplicateDateAndValue(this._noteext.RateSpreadScheduleList, currentItem);
         if (flag == true) {
-          var formatValuetype = this.lstRateSpreadSch_ValueType.filter(x => x.LookupID == this._noteext.RateSpreadScheduleList[sel.topRow].ValueTypeText);
+          var formatValuetype = this.lstRateSpreadSch_ValueType.filter(x => x.LookupID == this._noteext.RateSpreadScheduleList[currentItem].ValueTypeText);
 
           var locale = "en-US"
-          var options:any = { year: "numeric", month: "numeric", day: "numeric" };
+          var options: any = { year: "numeric", month: "numeric", day: "numeric" };
 
-          rssformatDate = this._noteext.RateSpreadScheduleList[sel.topRow].Date;
+          rssformatDate = this._noteext.RateSpreadScheduleList[currentItem].Date;
 
           if (rssformatDate.toString().indexOf("GMT") == -1) {
             this.CustomAlert("Date - " + rssformatDate + " and value type - " + formatValuetype[0].Name + " already in list");
@@ -5264,8 +7225,8 @@ export class NoteDetailComponent extends Paginated {
           else {
             this.CustomAlert("Date - " + rssformatDate.toLocaleDateString(locale, options) + " and value type - " + formatValuetype[0].Name + " already in list");
           }
-          this._noteext.RateSpreadScheduleList[sel.topRow].Date = this.prevDateBeforeEdit;
-          this._noteext.RateSpreadScheduleList[sel.topRow].ValueTypeText = this.valueType;
+          this._noteext.RateSpreadScheduleList[currentItem].Date = this.prevDateBeforeEdit;
+          this._noteext.RateSpreadScheduleList[currentItem].ValueTypeText = this.valueType;
         }
 
 
@@ -5383,22 +7344,27 @@ export class NoteDetailComponent extends Paginated {
 
   CopiedDataValidate(modulename): void {
     try {
+      const options: Intl.DateTimeFormatOptions = { year: 'numeric', month: 'numeric', day: 'numeric' };
       switch (modulename) {
         case "RateSpreadSchedule":
           var sel = this.flexrss.selection;
+          var editedRowIndex = sel.topRow;
+          var currentItem = this._noteext.RateSpreadScheduleList.findIndex(x => x.ScheduleID == this.flexrss.rows[editedRowIndex].dataItem.ScheduleID);
+
           var rssformatDate: Date;
 
-          for (var tprow = sel.topRow; tprow <= sel.bottomRow; tprow++) {
+          for (var tprow = currentItem; tprow <= sel.bottomRow; tprow++) {
             var rateValue = (this._noteext.RateSpreadScheduleList[tprow].Value).toString();
             if (rateValue.includes("%"))
               this._noteext.RateSpreadScheduleList[tprow].Value = parseFloat(rateValue.substring(0, rateValue.length - 1)) / 100;
+
 
             var flag = this.CheckDuplicateDateAndValue(this._noteext.RateSpreadScheduleList, tprow);
             if (flag == true) {
               var formatValuetype = this.lstRateSpreadSch_ValueType.filter(x => x.LookupID == this._noteext.RateSpreadScheduleList[tprow].ValueTypeText);
 
               var locale = "en-US"
-              var options: any = { year: "numeric", month: "numeric", day: "numeric" };
+              //var options = { year: "numeric", month: "numeric", day: "numeric" };
 
               rssformatDate = this._noteext.RateSpreadScheduleList[tprow].Date;
               if (rssformatDate.toString().indexOf("GMT") == -1) {
@@ -5410,30 +7376,82 @@ export class NoteDetailComponent extends Paginated {
               //this._noteext.RateSpreadScheduleList[tprow].Date = this.prevDateBeforeEdit;
               this._noteext.RateSpreadScheduleList[tprow].ValueTypeText = "";
             }
-            break;
+            for (var i = 0; i < this._noteext.RateSpreadScheduleList.length; i++) {
+              if (i == 0) {
+                var RateValue = (this._noteext.RateSpreadScheduleList[i].Value).toString();
+                if (RateValue.includes("%"))
+                  this._noteext.RateSpreadScheduleList[i].Value = parseFloat(RateValue.substring(0, RateValue.length - 1)) / 100;
+
+              }
+            }
           }
+          break;
+
         case "PrepayFeeSchedule":
           var sel = this.flexPrepay.selection;
           var prepayformatDate: Date;
 
           for (var tprow = sel.topRow; tprow <= sel.bottomRow; tprow++) {
+
+            var PrepayFeeValue = (this._noteext.NotePrepayAndAdditionalFeeScheduleList[tprow].Value).toString();
+            if (PrepayFeeValue.includes("%"))
+              this._noteext.NotePrepayAndAdditionalFeeScheduleList[tprow].Value = parseFloat(PrepayFeeValue.substring(0, PrepayFeeValue.length - 1)) / 100;
+
+            var PrepayIncludedLevelYield = (this._noteext.NotePrepayAndAdditionalFeeScheduleList[tprow].IncludedLevelYield).toString();
+            if (PrepayIncludedLevelYield.includes("%"))
+              this._noteext.NotePrepayAndAdditionalFeeScheduleList[tprow].IncludedLevelYield = parseFloat(PrepayIncludedLevelYield.substring(0, PrepayIncludedLevelYield.length - 1)) / 100;
+
+
+            var PrepayPercentageOfFeeToBeStripped = (this._noteext.NotePrepayAndAdditionalFeeScheduleList[tprow].PercentageOfFeeToBeStripped).toString();
+            if (PrepayPercentageOfFeeToBeStripped.includes("%"))
+              this._noteext.NotePrepayAndAdditionalFeeScheduleList[tprow].PercentageOfFeeToBeStripped = parseFloat(PrepayPercentageOfFeeToBeStripped.substring(0, PrepayPercentageOfFeeToBeStripped.length - 1)) / 100;
+
+
             var flag = this.CheckDuplicateStartDateAndValue(this._noteext.NotePrepayAndAdditionalFeeScheduleList, tprow);
             if (flag == true) {
               var formatValuetype = this.lstPrepayAdditinalFee_ValueType.filter(x => x.LookupID == this._noteext.NotePrepayAndAdditionalFeeScheduleList[tprow].ValueTypeText);
 
               var locale = "en-US"
-              var options: any= { year: "numeric", month: "numeric", day: "numeric" };
+              //var options = { year: "numeric", month: "numeric", day: "numeric" };
 
               prepayformatDate = this._noteext.NotePrepayAndAdditionalFeeScheduleList[tprow].StartDate;
-              //if (prepayformatDate.toString().indexOf("GMT") == -1)
-              //  this.CustomAlert("Date - " + prepayformatDate + " and value type - " + formatValuetype[0].Name + " already in list");
-              //else
-              //  this.CustomAlert("Date - " + prepayformatDate.toLocaleDateString(locale, options) + " and value type - " + formatValuetype[0].Name + " already in list");
-              //this._noteext.RateSpreadScheduleList[tprow].Date = this.prevDateBeforeEdit;
-              this._noteext.NotePrepayAndAdditionalFeeScheduleList[tprow].ValueTypeText = "";
+
+
+
+              //this._noteext.NotePrepayAndAdditionalFeeScheduleList[tprow].Date = this.prevDateBeforeEdit;
+              this._noteext.NotePrepayAndAdditionalFeeScheduleList[tprow].ValueTypeText = this.valueType;
+              //var IncludedLevelYield = (this._noteext.NotePrepayAndAdditionalFeeScheduleList[tprow].IncludedLevelYield).toString();
+              //if (IncludedLevelYield.includes("%"))
+              //    this._noteext.NotePrepayAndAdditionalFeeScheduleList[tprow].IncludedLevelYield = parseFloat(IncludedLevelYield.substring(0, IncludedLevelYield.length - 1)) / 100;
+
+              // this._noteext.RateSpreadScheduleList[tprow].Date = this.prevDateBeforeEdit;
+              //this._noteext.NotePrepayAndAdditionalFeeScheduleList[tprow].ValueTypeText = this.valueType;
             }
-            break;
+            //for (var i = 0; i < this._noteext.NotePrepayAndAdditionalFeeScheduleList.length; i++) {
+            //    if (i == 0) {
+            //        var IncludedLevelYield = (this._noteext.NotePrepayAndAdditionalFeeScheduleList[i].IncludedLevelYield).toString();
+            //        if (IncludedLevelYield.includes("%"))
+            //            this._noteext.NotePrepayAndAdditionalFeeScheduleList[i].IncludedLevelYield = parseFloat(IncludedLevelYield.substring(0, IncludedLevelYield.length - 1)) / 100;
+
+
+            //        var PrepayValue = (this._noteext.NotePrepayAndAdditionalFeeScheduleList[i].Value).toString();
+            //        if (PrepayValue.includes("%"))
+            //            this._noteext.NotePrepayAndAdditionalFeeScheduleList[i].Value = parseFloat(PrepayValue.substring(0, PrepayValue.length - 1)) / 100;
+
+
+
+            //        var PrepayPercentageOfFeeToBeStripped = (this._noteext.NotePrepayAndAdditionalFeeScheduleList[i].PercentageOfFeeToBeStripped).toString();
+            //        if (PrepayPercentageOfFeeToBeStripped.includes("%"))
+            //            this._noteext.NotePrepayAndAdditionalFeeScheduleList[i].PercentageOfFeeToBeStripped = parseFloat(PrepayPercentageOfFeeToBeStripped.substring(0, PrepayPercentageOfFeeToBeStripped.length - 1)) / 100;
+
+            //        //   this._noteext.RateSpreadScheduleList[tprow].Date = this.prevDateBeforeEdit;
+            //        //this._noteext.NotePrepayAndAdditionalFeeScheduleList[tprow].ValueTypeText = this.valueType;
+
+            //    }
+            //}
           }
+          break;
+
         case "StrippingSchedule":
           var sel = this.flexstripping.selection;
           var StripSchformatDate: Date;
@@ -5445,7 +7463,7 @@ export class NoteDetailComponent extends Paginated {
               var formatValuetype = this.lstStrippingSch_ValueType.filter(x => x.LookupID == this._noteext.NoteStrippingList[tprow].ValueTypeText);
 
               var locale = "en-US"
-              var options: any = { year: "numeric", month: "numeric", day: "numeric" };
+              //var options = { year: "numeric", month: "numeric", day: "numeric" };
 
               StripSchformatDate = this._noteext.NoteStrippingList[tprow].StartDate;
               if (StripSchformatDate.toString().indexOf("GMT") == -1)
@@ -5455,8 +7473,9 @@ export class NoteDetailComponent extends Paginated {
               //this._noteext.RateSpreadScheduleList[tprow].Date = this.prevDateBeforeEdit;
               this._noteext.NoteStrippingList[tprow].ValueTypeText = "";
             }
-            break;
           }
+          break;
+
         case "FinancingFeeSchedule":
 
           var sel = this.flexfinancingfee.selection;
@@ -5468,7 +7487,7 @@ export class NoteDetailComponent extends Paginated {
               var formatValuetype = this.lstFinancingFeeSch_ValueType.filter(x => x.LookupID == this._noteext.lstFinancingFeeSchedule[tprow].ValueTypeText);
 
               var locale = "en-US"
-              var options: any = { year: "numeric", month: "numeric", day: "numeric" };
+              //var options = { year: "numeric", month: "numeric", day: "numeric" };
 
               StripSchformatDate = this._noteext.lstFinancingFeeSchedule[tprow].Date;
               if (StripSchformatDate.toString().indexOf("GMT") == -1)
@@ -5478,20 +7497,25 @@ export class NoteDetailComponent extends Paginated {
               //this._noteext.RateSpreadScheduleList[tprow].Date = this.prevDateBeforeEdit;
               this._noteext.lstFinancingFeeSchedule[tprow].ValueTypeText = "";
             }
-            break;
           }
+          break;
 
         case "FinancingSchedule":
           var sel = this.flexFinancingSch.selection;
           var StripSchformatDate: Date;
 
           for (var tprow = sel.topRow; tprow <= sel.bottomRow; tprow++) {
+
+            var FinancingValue = (this._noteext.NoteFinancingScheduleList[tprow].Value).toString();
+            if (FinancingValue.includes("%"))
+              this._noteext.NoteFinancingScheduleList[tprow].Value = parseFloat(FinancingValue.substring(0, FinancingValue.length - 1)) / 100;
+
             var flag = this.CheckDuplicateDateAndValue(this._noteext.NoteFinancingScheduleList, tprow);
             if (flag == true) {
               var formatValuetype = this.lstFinancingSch_ValueType.filter(x => x.LookupID == this._noteext.NoteFinancingScheduleList[tprow].ValueTypeText);
 
               var locale = "en-US"
-              var options: any = { year: "numeric", month: "numeric", day: "numeric" };
+              //var options = { year: "numeric", month: "numeric", day: "numeric" };
 
               StripSchformatDate = this._noteext.NoteFinancingScheduleList[tprow].Date;
               if (StripSchformatDate.toString().indexOf("GMT") == -1)
@@ -5500,9 +7524,11 @@ export class NoteDetailComponent extends Paginated {
                 this.CustomAlert("Date - " + StripSchformatDate.toLocaleDateString(locale, options) + " and value type - " + formatValuetype[0].Name + " already in list");
               //this._noteext.RateSpreadScheduleList[tprow].Date = this.prevDateBeforeEdit;
               this._noteext.NoteFinancingScheduleList[tprow].ValueTypeText = "";
+
+
             }
-            break;
           }
+          break;
 
         case "DefaultSchedule":
           var sel = this.flexdefaultsch.selection;
@@ -5514,7 +7540,7 @@ export class NoteDetailComponent extends Paginated {
               var formatValuetype = this.lstDefaultSch_ValueType.filter(x => x.LookupID == this._noteext.NoteDefaultScheduleList[tprow].ValueTypeText);
 
               var locale = "en-US"
-              var options: any = { year: "numeric", month: "numeric", day: "numeric" };
+              //var options = { year: "numeric", month: "numeric", day: "numeric" };
 
               StripSchformatDate = this._noteext.NoteDefaultScheduleList[tprow].StartDate;
               if (StripSchformatDate.toString().indexOf("GMT") == -1)
@@ -5524,8 +7550,9 @@ export class NoteDetailComponent extends Paginated {
               //this._noteext.RateSpreadScheduleList[tprow].Date = this.prevDateBeforeEdit;
               this._noteext.NoteDefaultScheduleList[tprow].ValueTypeText = "";
             }
-            break;
           }
+          break;
+
       }
     }
     catch (err) {
@@ -5901,6 +7928,26 @@ export class NoteDetailComponent extends Paginated {
     return ret_val
   }
 
+
+  CheckDuplicateTransactionCashflow(): void {
+    this._isnoteperiodiccalcFetching = true;
+    var downloadCashFlow = new DownloadCashFlow();
+    downloadCashFlow.Pagename = "Note";
+    downloadCashFlow.AnalysisID = this.ScenarioId;
+    downloadCashFlow.NoteId = this._note.NoteId;
+    this.noteService.CheckDuplicateTransactionCashflow(downloadCashFlow).subscribe(res => {
+      this.lstCheckDuplicateTransactionCashflow = res.CheckDuplicateData
+      if (this.lstCheckDuplicateTransactionCashflow != null) {
+        this.CustomAlert("There is a duplicate transaction we found in cashflow download, please try after some time.");
+      }
+      else {
+        this.downloadNoteCashflowsExportData();
+      }
+      this._isnoteperiodiccalcFetching = false;
+    });
+  }
+
+
   downloadNoteCashflowsExportData(): void {
     console.log(this._note.StatusID);
     if (this._CritialExceptionListCount > 0) {
@@ -6094,6 +8141,7 @@ export class NoteDetailComponent extends Paginated {
     if (this.FinancingSchedule_EffectiveDate != null) { this._noteDateObjects.FinancingSchedule_EffectiveDate = (this.FinancingSchedule_EffectiveDate); }
     if (this.DefaultSchedule_EffectiveDate != null) { this._noteDateObjects.DefaultSchedule_EffectiveDate = (this.DefaultSchedule_EffectiveDate); }
     if (this._note.NoteTransferDate != null) { this._noteDateObjects.NoteTransferDate = (this._note.NoteTransferDate); }
+    if (this._note.FirstIndexDeterminationDateOverride != null) { this._noteDateObjects.FirstIndexDeterminationDateOverride = (this._note.FirstIndexDeterminationDateOverride); }
   }
 
 
@@ -6149,14 +8197,31 @@ export class NoteDetailComponent extends Paginated {
       if (this.FinancingSchedule_EffectiveDate != null) { this.FinancingSchedule_EffectiveDate = this._noteDateObjects.FinancingSchedule_EffectiveDate; }
       if (this.DefaultSchedule_EffectiveDate != null) { this.DefaultSchedule_EffectiveDate = this._noteDateObjects.DefaultSchedule_EffectiveDate; }
       if (this._note.NoteTransferDate != null) { this._note.NoteTransferDate = this._noteDateObjects.NoteTransferDate; }
+
+      if (this._note.FirstIndexDeterminationDateOverride != null) { this._note.FirstIndexDeterminationDateOverride = this._noteDateObjects.FirstIndexDeterminationDateOverride; }
     }.bind(this), 30000);
+  }
+
+  Checkequal(dt1, dt2) {
+    var equal = null;
+    var date1 = new Date(dt1);
+    var date2 = new Date(dt2);
+    if (date1 > date2) {
+      equal = false;
+    } else if (date1 < date2) {
+      equal = false;
+    } else {
+      equal = true;
+    }
+
+    return equal;
   }
 
   ValidateNoteAndSave(): void {
     var errorstring = "";
     var effectiveerror = "";
     var amorterrorstring = "";
-
+    var RuleTypeFileNameerror = '';
     var purposeerrorstring = "";
     var msg = "";
     var msgmatfundingdate = "";
@@ -6167,41 +8232,14 @@ export class NoteDetailComponent extends Paginated {
     var currentmatdate: any;
     var errorlstmarketprice = "";
     var errmarketprice = "";
-    //if (this._note.ActualPayoffDate != null) {
-    //    currentmatdate = this._note.ActualPayoffDate
-    //} else {
-    //    if (this._note.SelectedMaturityDate < currentdate) {
-    //        if (this._note.ExtendedMaturityScenario1 < currentdate) {
-    //            if (this._note.ExtendedMaturityScenario2 < currentdate) {
-    //                if (this._note.ExtendedMaturityScenario3 < currentdate) {
-    //                    if (this._note.FullyExtendedMaturityDate < currentdate) {
-    //                        currentmatdate = currentdate;
-    //                    }
-    //                    else {
-    //                        currentmatdate = this._note.FullyExtendedMaturityDate;
-    //                    }
-    //                }
-    //                else {
-    //                    currentmatdate = this._note.ExtendedMaturityScenario3;
-    //                }
+    var effectiveDateerrorstring = "";
 
-    //            } else {
-    //                currentmatdate = this._note.ExtendedMaturityScenario2;
-    //            }
-    //        }
-    //        else {
-    //            currentmatdate = this._note.ExtendedMaturityScenario1;
-    //        }
-
-    //    } else {
-    //        currentmatdate = this._note.SelectedMaturityDate;
-    //    }
-    //}
     for (var i = 0; i < this._noteext.RateSpreadScheduleList.length; i++) {
       if (this._noteext.RateSpreadScheduleList[i].ValueTypeText) {
         if (!(this._noteext.RateSpreadScheduleList[i].Date)) {
           //var a = this._noteext.RateSpreadScheduleList[i].Date;
           amorterrorstring = "<p>" + "Please enter rate spread schedule start date." + "</p>";
+
         }
       }
     }
@@ -6223,6 +8261,110 @@ export class NoteDetailComponent extends Paginated {
       }
 
     }
+    if (this._noteext.RateSpreadScheduleList.length > 0) {
+      if (!this.Ratespread_EffectiveDate) {
+        amorterrorstring = amorterrorstring + "<p>" + "Please enter Rate Spread Effective date." + "</p>";
+      }
+    }
+    if (this._noteext.NotePrepayAndAdditionalFeeScheduleList.length > 0) {
+      if (!this.PrepayAndAdditionalFeeSchedule_EffectiveDate) {
+        amorterrorstring = amorterrorstring + "<p>" + "Please enter Fee schedule Effective date." + "</p>";
+      }
+    }
+
+    if (this._noteext.lstFinancingFeeSchedule.length > 0) {
+      if (this._noteext.lstFinancingFeeSchedule[0].Date) {
+        if (!this.FinancingFeeSchedule_EffectiveDate) {
+          amorterrorstring = amorterrorstring + "<p>" + "Please enter Financing fee schedule Effective date." + "</p>";
+        }
+      }
+    }
+
+    if (this.PIKSchedule_EndDate != null) {
+      if (this.PIKSchedule_EndDate < this.PIKSchedule_StartDate) {
+        amorterrorstring = amorterrorstring + "<p>" + "PIK End Date must be greater than PIK Start Date." + "</p>";
+      }
+    }
+
+    //if (this._note.LastAccountingCloseDate != null) {
+    //  if (this.Ratespread_EffectiveDate != null)
+    //  {
+    //    if (this.Checkequal(this.Ratespread_EffectiveDate, this._note.ClosingDate) == false)
+    //    {
+    //      var neweffective = new Date(this.Ratespread_EffectiveDate);
+    //      var oldeffective = new Date(this.Ratespread_EffectiveDateOld);
+    //      if (neweffective != oldeffective) {
+    //        if (this.Ratespread_EffectiveDate < this._note.LastAccountingCloseDate)
+    //        {
+    //          amorterrorstring = amorterrorstring + "<p>" + "Rate Spread effective date cannnot be before last accounting date " + this.convertDateToBindable(this._note.LastAccountingCloseDate) + ".</p>";
+    //        }
+
+    //      } else {
+    //        if (this.cvRateSpreadScheduleList.itemsEdited.length > 0) {
+    //          if (this.Ratespread_EffectiveDate < this._note.LastAccountingCloseDate) {
+    //            amorterrorstring = amorterrorstring + "<p>" + "Rate Spread effective date cannnot be before last accounting date " + this.convertDateToBindable(this._note.LastAccountingCloseDate) + ".</p>";
+    //          }
+    //        }
+    //      }
+    //    }
+    //  }
+    //}
+
+    if (this._note.LastAccountingCloseDate != null) {
+      if (this.Ratespread_EffectiveDate != null) {
+
+        var neweffective = new Date(this.Ratespread_EffectiveDate);
+        var oldeffective = new Date(this.Ratespread_EffectiveDateOld);
+
+        if (this.Checkequal(neweffective, oldeffective) == false) {
+          if (this.Ratespread_EffectiveDate < this._note.LastAccountingCloseDate) {
+            amorterrorstring = amorterrorstring + "<p>" + "Rate spread schedule effective date cannnot be before last accounting date " + this.convertDateToBindable(this._note.LastAccountingCloseDate) + ".</p>";
+          }
+
+        } else {
+          if (this.cvRateSpreadScheduleList.itemsEdited.length > 0) {
+            if (this.Ratespread_EffectiveDate < this._note.LastAccountingCloseDate) {
+              amorterrorstring = amorterrorstring + "<p>" + "Rate spread schedule effective date cannnot be before last accounting date " + this.convertDateToBindable(this._note.LastAccountingCloseDate) + ".</p>";
+            }
+          }
+        }
+
+      }
+
+      if (this.PrepayAndAdditionalFeeSchedule_EffectiveDate != null) {
+
+        var neweffective = new Date(this.PrepayAndAdditionalFeeSchedule_EffectiveDate);
+        var oldeffective = new Date(this.PrepayAndAdditionalFeeSchedule_EffectiveDateOld);
+
+        if (this.Checkequal(neweffective, oldeffective) == false) {
+          if (this.PrepayAndAdditionalFeeSchedule_EffectiveDate < this._note.LastAccountingCloseDate) {
+            amorterrorstring = amorterrorstring + "<p>" + "Fee schedule effective date cannnot be before last accounting date " + this.convertDateToBindable(this._note.LastAccountingCloseDate) + ".</p>";
+          }
+
+        } else {
+          if (this.cvNotePrepayAndAdditionalFeeScheduleList.itemsEdited.length > 0) {
+            if (this.PrepayAndAdditionalFeeSchedule_EffectiveDate < this._note.LastAccountingCloseDate) {
+              amorterrorstring = amorterrorstring + "<p>" + "Fee schedule effective date cannnot be before last accounting date " + this.convertDateToBindable(this._note.LastAccountingCloseDate) + ".</p>";
+            }
+          }
+        }
+
+      }
+
+    }
+
+
+
+
+
+    if (this._noteext.NoteFinancingScheduleList.length > 0) {
+      if (this._noteext.NoteFinancingScheduleList[0].Date) {
+        if (!this.FinancingSchedule_EffectiveDate) {
+          amorterrorstring = amorterrorstring + "<p>" + "Please enter Financing schedule Effective date." + "</p>";
+        }
+      }
+    }
+
     if (this.chkDateValidation()) {
 
 
@@ -6251,7 +8393,7 @@ export class NoteDetailComponent extends Paginated {
           var newdate = (this.PIKSchedule_EffectiveDate);
           var olddate = (this.PIKSchedule_EffectiveDateOld);
           if (newdate < olddate) {
-            effectiveerror = effectiveerror + "<p>" + "Effective date in pik schedule cannot be smaller than " + olddate.toLocaleDateString("en-US").toString().replace('T00', 'T17').split(' ', 4).join(' ') + "</p>";
+            effectiveerror = effectiveerror + "<p>" + "Effective date in PIK Schedule cannot be smaller than " + olddate.toLocaleDateString("en-US").toString().replace('T00', 'T17').split(' ', 4).join(' ') + "</p>";
           }
         }
 
@@ -6275,15 +8417,11 @@ export class NoteDetailComponent extends Paginated {
             }
           }
           if (flag == false) {
-            if (!(this._note.ListNoteMarketPrice[j].Date == null || this._note.ListNoteMarketPrice[j].Date.toString() == "")) {
-              this.changedlstmarketnote.push(this._note.ListNoteMarketPrice[j]);
-            }
+            this.changedlstmarketnote.push(this._note.ListNoteMarketPrice[j]);
           }
         }
         else {
-          if (!(this._note.ListNoteMarketPrice[j].Date == null || this._note.ListNoteMarketPrice[j].Date.toString() == "")) {
-            this.changedlstmarketnote.push(this._note.ListNoteMarketPrice[j]);
-          }
+          this.changedlstmarketnote.push(this._note.ListNoteMarketPrice[j]);
         }
       }
 
@@ -6446,6 +8584,7 @@ export class NoteDetailComponent extends Paginated {
       if (this.FinancingSchedule_EffectiveDate != null) { this.chkDateValidationToControl(this.FinancingSchedule_EffectiveDate, "FinancingSchedule_EffectiveDate"); }
       if (this.DefaultSchedule_EffectiveDate != null) { this.chkDateValidationToControl(this.DefaultSchedule_EffectiveDate, "DefaultSchedule_EffectiveDate"); }
       if (this._note.NoteTransferDate != null) { this.chkDateValidationToControl(this._note.NoteTransferDate, "NoteTransferDate"); }
+      if (this._note.FirstIndexDeterminationDateOverride != null) { this.chkDateValidationToControl(this._note.FirstIndexDeterminationDateOverride, "FirstIndexDeterminationDateOverride"); }
     }
 
     //Grid control validation
@@ -6767,9 +8906,9 @@ export class NoteDetailComponent extends Paginated {
     }
     else if (e.col.toString() == "3") {
       for (var tprow = 0; tprow <= this.futurefundingflex.rows.length - 1; tprow++) {
-        var flexrowdata: any = this.futurefundingflex.rows[tprow];
-        if (this.futurefundingflex.rows[tprow].isReadOnly == false && flexrowdata._data.Applied == true) {
-          flexrowdata._data.Applied = false;
+
+        if (this.futurefundingflex.rows[tprow].isReadOnly == false && this.futurefundingflex.rows[tprow].dataItem.Applied == true) {
+          this.futurefundingflex.rows[tprow].dataItem.Applied = false;
           this.CustomAlert("Please enter Date or Amount before checking Wire confirm.");
           this.futurefundingflex.select(this.futurefundingflex.rows.length - 1, 0);
           // focus on select row and ready for editing
@@ -6794,14 +8933,14 @@ export class NoteDetailComponent extends Paginated {
     return sDate;
   }
 
-  ImportDocument() { 
+  ImportDocument() {
+
     this.saveFiles();
   }
   saveFiles() {
     this.isProcessComplete = true;
-    let files = this.files; //this.fileList;
+    let files = this.files;
     this.errors = []; // Clear error
-
     if (!(Boolean(files)) || files == null || files.length == 0) {
       this.errors.push("Please select file with " + this.fileExt + " extension.");
       this.CustomAlert(this.errors);
@@ -6836,11 +8975,9 @@ export class NoteDetailComponent extends Paginated {
       this.fileUploadService.uploadObjectDocumentByStorageType(formData, parameters)
         .subscribe(
           success => {
-
             this.IsOpenActivityTab = false;
             //alert('success ' + success);
-            var _smessage = success["Message"];
-            var smessage = _smessage.toString().split('==');
+            var smessage = success.Message.split('==');
             //alert(smessage);
             //alert(smessage[0]);
             if (smessage[0] == "Success") {
@@ -6888,11 +9025,10 @@ export class NoteDetailComponent extends Paginated {
           },
           error => {
 
-            console.log(error);
             this.isProcessComplete = false;
             this.uploadStatus.emit(true);
             this.errors.push(error.ExceptionMessage);
-          });
+          })
       this.files = [];
     }
 
@@ -6912,7 +9048,7 @@ export class NoteDetailComponent extends Paginated {
           this.ClosePopUpArchive();
           this.getDocumentList()
           this._isNoteSaving = false;
-        
+
           this._Showmessagenotediv = true;
           this._ShowmessagenotedivMsg = "File archived successfully";
           setTimeout(function () {
@@ -7023,21 +9159,29 @@ export class NoteDetailComponent extends Paginated {
     }
   }
 
-  ///////// Doc Import ///////////////////
   onFileDropped(files) {
-    this.onAction(files,'drop');
+    this.onAction(files, 'drop');
   }
 
-  public onAction(event: any,mode:any) {
+  public onAction(event: any, mode: any) {
+
     if (mode == 'drop') {
       this.files.push(event);
     } else {
       this.files.push(event.target.files);
     }
-    //this.actionLog += "\n currentFiles: " + this.getFileNames(event.currentFiles);
-    //console.log(this.actionLog);
+    if (this.files.length > 1) {
+      this.actionLog = '';
+      this.actionLog += "\n currentFiles: " + this.getFileNames(this.files);
+    }
+    else {
+      if (mode == 'drop') {
+        this.actionLog += "\n currentFiles: " + event[0].name;
+      } else {
+        this.actionLog += "\n currentFiles: " + event.target.files[0].name;
+      }
+    }
     //let fileList: FileList = event.currentFiles;
-    
     //this.saveFiles(this.fileList);
   }
 
@@ -7057,10 +9201,18 @@ export class NoteDetailComponent extends Paginated {
   }
 
   public resetFileInput(): void {
-   // this.ng2FileInputService.reset(this.myFileInputIdentifier);
+    // this.ng2FileInputService.reset(this.myFileInputIdentifier);
   }
 
-
+  public logCurrentFiles(): void {
+    //let files = this.ng2FileInputService.getCurrentFiles(this.myFileInputIdentifier);
+    //this.actionLog += "\n The currently added files are: " + this.getFileNames(files);
+  }
+  public getFileNames(files): string {
+    let names = files.map(file => file.name);
+    var newnames = names ? names.join(", ") : "No files currently added.";
+    return newnames;
+  }
 
 
   private isValidFiles(files) {
@@ -7323,6 +9475,10 @@ export class NoteDetailComponent extends Paginated {
     var hti = grid.hitTest(e);
     if (hti.panel && hti.panel === grid.cells && hti.panel.columns[hti.col].binding === "CalculatedAmount") {
       if (this.ServicingLog_refreshlist[hti.row]["AllowCalculationOverride"] == 3) {
+        if (this.ServicingLog_refreshlist[hti.row]["SourceType"] == "Modified")
+          this.isResetMenuShow = true;
+        else
+          this.isResetMenuShow = false;
         if (this.ServicingLog_refreshlist[hti.row]["TransactionTypeText"] != "PIKPrincipalFunding") {
           e.preventDefault();
           this.hti = hti;
@@ -7652,16 +9808,21 @@ export class NoteDetailComponent extends Paginated {
   }
 
   ContextMenuResetdialogbox() {
-    this._noteext.lstNoteServicingLog[this._ClckservicelogRow]["CalculatedAmount"] = this._noteext.lstNoteServicingLog[this._ClckservicelogRow]["TransactionEntryAmount"];
-    this._noteext.lstNoteServicingLog[this._ClckservicelogRow]["Final_ValueUsedInCalc"] = this._noteext.lstNoteServicingLog[this._ClckservicelogRow]["TransactionEntryAmount"];
-    this._noteext.lstNoteServicingLog[this._ClckservicelogRow]["SourceType"] = "Modified";
-    this._noteext.lstNoteServicingLog[this._ClckservicelogRow]["ServicerMasterID"] = 7;
+    let rownum;
+    this.ServicingLog_refreshlist[this._ClckservicelogRow]["CalculatedAmount"] = this.ServicingLog_refreshlist[this._ClckservicelogRow]["TransactionEntryAmount"];
+    this.ServicingLog_refreshlist[this._ClckservicelogRow]["Final_ValueUsedInCalc"] = this.ServicingLog_refreshlist[this._ClckservicelogRow]["TransactionEntryAmount"];
+    this.ServicingLog_refreshlist[this._ClckservicelogRow]["SourceType"] = "Modified";
+    this.ServicingLog_refreshlist[this._ClckservicelogRow]["ServicerMasterID"] = 99;
     this.flexservicelog.invalidate();
     this.CloseContextMenuDialog();
-    var sr = this._noteext.lstNoteServicingLog[this._ClckservicelogRow];
+    var sr = this.ServicingLog_refreshlist[this._ClckservicelogRow];
+    var serv = this._noteext.lstNoteServicingLog.filter(x => x.TransactionId == this.ServicingLog_refreshlist[this._ClckservicelogRow].TransactionId);
+    if (serv)
+      rownum = serv[0].row_num;
     var count = this.flexservicelogupdatedRowNo.indexOf(this._ClckservicelogRow);
     if (count == -1) {
-      this.flexservicelogupdatedRowNo.push(this._ClckservicelogRow);
+      this.flexservicelogupdatedrow_num.push(rownum);
+      this.flexservicelogupdatedRowNo.push(rownum);
       this.flexservicelogToUpdate.push(sr);
     }
   }
@@ -7764,12 +9925,13 @@ export class NoteDetailComponent extends Paginated {
     var sel = s.selectedItems;
     var datearr = '';
     var formatDate = '';
+    var arrDate = this._note.ListNoteMarketPrice.filter(x => x.NoteID == this._note.CRENoteID);
     var flag = false;
     for (var j = 0; j < sel.length; j++) {
       var seldate = new Date(sel[j].Date).getDate() + '/' + new Date(sel[j].Date).getMonth() + '/' + new Date(sel[j].Date).getFullYear();
-      for (var k = 0; k < this._note.ListNoteMarketPrice.length; k++) {
+      for (var k = 0; k < arrDate.length; k++) {
 
-        var _notedate = new Date(this._note.ListNoteMarketPrice[k].Date).getDate() + '/' + new Date(this._note.ListNoteMarketPrice[k].Date).getMonth() + '/' + new Date(this._note.ListNoteMarketPrice[k].Date).getFullYear();
+        var _notedate = new Date(arrDate[k].Date).getDate() + '/' + new Date(arrDate[k].Date).getMonth() + '/' + new Date(arrDate[k].Date).getFullYear();
         if (_notedate == seldate) {
           flag = true;
         }
@@ -7798,10 +9960,15 @@ export class NoteDetailComponent extends Paginated {
       }
     }
 
+    for (var m = 0; m < this._note.ListNoteMarketPrice.length; m++) {
+      this._note.ListNoteMarketPrice[m].NoteID = this._note.CRENoteID;
+    }
+
     if (distinct.length > 0) {
       datearr = distinct.join(" , ");
+      this.CustomAlert("Date " + datearr + " already in list");
     }
-    this.CustomAlert("Date " + datearr + " already in list");
+
 
   }
 
@@ -7879,7 +10046,16 @@ export class NoteDetailComponent extends Paginated {
 
     // this._noteext.lstNoteServicingLog = this.ServicingLog_refreshlist;
   }
-
+  sortByName(a, b) {
+    var textA = a.FileName.toUpperCase();
+    var textB = b.FileName.toUpperCase();
+    return (textA < textB) ? -1 : (textA > textB) ? 1 : 0;
+  }
+  sortByPoolName(a, b) {
+    var textA = a.Name.toUpperCase();
+    var textB = b.Name.toUpperCase();
+    return (textA < textB) ? -1 : (textA > textB) ? 1 : 0;
+  }
   dynamicSort(property) {
     var sortOrder = 1;
     if (property[0] === "-") {
@@ -7895,6 +10071,7 @@ export class NoteDetailComponent extends Paginated {
     }
   }
   formatNumberforTwoDecimalplaces(data) {
+    data = data ? data : 0;
     var num = parseFloat(data.toFixed(2));
     var str = num.toString();
     var numarray = str.split('.');
@@ -7942,6 +10119,8 @@ export class NoteDetailComponent extends Paginated {
         this.maturityList = data;
         //this.maturityList = data.filter(x => x.MaturityType.toString() == "708" || x.MaturityType.toString() == "709" || x.MaturityType.toString() == "710");
         this.ConvertToBindableMaturityListDates(this.maturityList);
+        this.maturityTypeList = data.filter(x => x.MaturityType.toString() == "708" || x.MaturityType.toString() == "709" || x.MaturityType.toString() == "710");
+
         //var othermatlist = data.filter(x => x.MaturityType.toString() == "711" || x.MaturityType.toString() == "712" || x.MaturityType.toString() == "713");
         if (data.length > 0) {
           this.maturityEffectiveDate = this.maturityList[0].EffectiveDate;
@@ -7949,6 +10128,8 @@ export class NoteDetailComponent extends Paginated {
           this.maturityOpenPrepaymentDate = this.maturityList[0].OpenPrepaymentDate;
           this.maturityActualPayoffDate = this.maturityList[0].ActualPayoffDate;
           this.maturityGroupName = this.maturityList[0].MaturityGroupName;
+          this.MaturityDate = this.maturityList[0].MaturityDate;
+
         }
         else {
           this.maturityEffectiveDate = null;
@@ -7957,7 +10138,9 @@ export class NoteDetailComponent extends Paginated {
           this.maturityExpectedMaturityDate = null;
           this.maturityGroupName = this.maturityList[0].MaturityGroupName;
         }
-        this.flexMaturity.invalidate();
+        if (this.flexMaturity) {
+          this.flexMaturity.invalidate();
+        }
       }
     });
   }
@@ -8002,241 +10185,54 @@ export class NoteDetailComponent extends Paginated {
     XLSX.writeFile(wb, fileName);
   }
 
-  private _buildDataMapWithoutLookupForRuleType(items): wjcGrid.DataMap {
-    var map = [];
-
-    for (var i = 0; i < items.length; i++) {
-      var obj = items[i];
-      map.push({ key: obj['FileName'], value: obj['FileName'] });
-    }
-    return new wjcGrid.DataMap(map, 'key', 'value');
-  }
-
-  invalidateRulestab() {
-    if (!this._isRuleTabClicked) {
-      localStorage.setItem('ClickedTabId', 'aRulestab');
-      this._isRuleTabClicked = true;
-    }
-
-    if (this._note.BalanceAware == true) {
-      this._isShowScenariodiv = false;
-      this._isShowRuleTypediv = false;
-      this._isShowbtnResetdiv = false;
-      this._Showmessagedivrule = true;
-      this._ShowmessagedivruleMsg = "This note belongs to the deal which is set as Balance Aware Deal. To edit the rules, uncheck the balance aware checkbox on deal's Main Tab and save the deal.";
-    }
-    else {
-      this._isShowScenariodiv = true;
-      this._isShowRuleTypediv = true;
-      this._isShowbtnResetdiv = true;
-      this._Showmessagedivrule = false;
-      this._ShowmessagedivruleMsg = "";
-    }
-    this.getAllDistinctScenario();
-    this.getAllRuleType();
-    this.GetAllRuleTypeDetail();
-    this.GetRuleTypeSetupByDealid();
-  }
-
-  getAllRuleType() {
-    this.scenarioService.getallruletype().subscribe(res => {
+  GetAllTagNameXIRR() {
+    this.noteService.GetAllTagsNameXIRR().subscribe(res => {
       if (res.Succeeded) {
-        this._lstruletype = res.lstScenariorule;
-        this._lstgetallrule = res.lstScenariorule;
-      }
-    });
-
-  }
-
-  GetAllRuleTypeDetail() {
-    this.scenarioService.getallruletypedetail().subscribe(res => {
-      if (res.Succeeded) {
-        this._lstruletypedetail = res.lstScenarioRuleDetail;
-        var RuleType = this.RuleTypeList;
-        if (RuleType) {
-          var colRuleType = RuleType.columns.getColumn('FileName');
-          if (colRuleType) {
-            colRuleType.showDropDown = true;
-            colRuleType.dataMap = this._buildDataMapWithoutLookupForRuleType(this._lstruletypedetail);
-          }
-        }
-
-      }
-
-    });
-  }
-
-  GetRuleTypeSetupByDealid() {
-    this._ruletype.NoteID = this._note.NoteId;
-    this.noteService.getruletypesetupbynoteid(this._ruletype).subscribe(res => {
-      if (res.Succeeded) {
-        this._lstRuleTypeSetupfilter = res.lstScenariorule;
-        this.OnChangeScenarioName(this._ruletype.AnalysisID);
+        this.lstXIRRTags = res.dt;
       }
     });
   }
 
-  cellRuleTypeEditHandler = function (s, e) {
-    var col = s.columns[e.col];
-    if (col.binding == 'FileName') {
-      var RuleTypeName = s.rows[e.row].dataItem.RuleTypeName
-      switch (RuleTypeName) {
-        case RuleTypeName:
-          this.lstRuleTypebyruleid = this._lstruletypedetail.filter(x => x.RuleTypeName == RuleTypeName)
-          this.lstRuleTypebyruleid.sort(this.sortByName);
-          col.dataMap = this._buildDataMapWithoutLookupForRuleType(this.lstRuleTypebyruleid);
-          break;
-
-      }
-    }
-  }
-
-  celleditRuleType(s: wjcGrid.FlexGrid, e: wjcGrid.CellEditEndingEventArgs) {
-    var RuleTypeFileNameerror = "";
-    var rowdata = this.RuleTypeList.rows[e.row].dataItem;
-    if (this._ruletype.AnalysisID == undefined) {
-      RuleTypeFileNameerror = "<p>" + "Please Select a Scenario" + "</p>";
-      this.CustomAlert(RuleTypeFileNameerror);
-      return;
-    }
-    if (Object.keys(rowdata).length > 0) {
-      var newFileName = rowdata.FileName;
-      if (this._lstRuleTypeSetuptobesend.length > 0) {
-        for (var h = 0; h < this._lstRuleTypeSetuptobesend.length; h++) {
-          if (this._lstRuleTypeSetuptobesend[h].RuleTypeName == rowdata.RuleTypeName && this._lstRuleTypeSetuptobesend[h].AnalysisID == this._ruletype.AnalysisID) {
-            this._lstRuleTypeSetuptobesend[h]["FileName"] = newFileName;
-          }
-
-        }
-      }
-
-    }
-  }
-
-  OnChangeScenarioName(newvalue) {
-    this._lstruletype = [];
-    this.RuleTypeList.invalidate();
-    if (this._lstRuleTypeSetupfilter != null) {
-
-      this._lstruletype = this._lstRuleTypeSetupfilter.filter(x => x.AnalysisID == newvalue);
-
-      this.RuleTypeList.invalidate();
-    }
-    if (this._lstgetallrule.length > 0) {
-      for (var h = 0; h < this._lstgetallrule.length; h++) {
-        var _lstgetallrule = this._lstruletype.filter(x => x.RuleTypeName == this._lstgetallrule[h].RuleTypeName)
-        if (_lstgetallrule.length == 0) {
-          this._lstruletype.push({
-            'AnalysisID': newvalue,
-            'NoteID': this._note.NoteId,
-            'RuleTypeMasterID': this._lstgetallrule[h].RuleTypeMasterID,
-            'RuleTypeDetailID': "",
-            'RuleTypeName': this._lstgetallrule[h].RuleTypeName,
-            'FileName': "",
-
-          });
-        }
-
-      }
-    }
-
-    var newanalysisid = this._lstRuleTypeSetuptobesend.filter(x => x.AnalysisID == newvalue)
-    if (newanalysisid.length != 0) {
-      this._lstruletype = [];
-      setTimeout(function () {
-        this._lstruletype = newanalysisid;
-      }.bind(this), 100);
-    }
-    else {
-      if (newvalue != undefined) {
-        if (this._lstruletype.length > 0) {
-          for (var h = 0; h < this._lstruletype.length; h++) {
-            this._lstRuleTypeSetuptobesend.push({
-              'AnalysisID': newvalue,
-              'NoteID': this._note.NoteId,
-              'RuleTypeMasterID': this._lstruletype[h].RuleTypeMasterID,
-              'RuleTypeDetailID': this._lstruletype[h].RuleTypeDetailID,
-              'RuleTypeName': this._lstruletype[h].RuleTypeName,
-              'FileName': this._lstruletype[h].FileName,
-
-            });
-          }
-        }
-      }
-    }
-  }
-
-  ResetRuleType() {
-    if (this._lstRuleTypeSetupfilter != null) {
-      if (this._lstRuleTypeSetupfilter.length > 0) {
-        for (var h = 0; h < this._lstRuleTypeSetupfilter.length; h++) {
-          if (this._lstRuleTypeSetupfilter[h].AnalysisID == this._ruletype.AnalysisID) {
-            this._lstRuleTypeSetupfilter[h]["FileName"] = "";
-
-          }
-        }
-      }
-      this._lstruletype = this._lstRuleTypeSetupfilter.filter(x => x.AnalysisID == this._ruletype.AnalysisID);
-    }
-    else {
-      this._lstruletype = [];
-      this.RuleTypeList.invalidate();
-    }
-    if (this._lstgetallrule.length > 0) {
-      for (var h = 0; h < this._lstgetallrule.length; h++) {
-        var _lstgetallrule = this._lstruletype.filter(x => x.RuleTypeName == this._lstgetallrule[h].RuleTypeName)
-        if (_lstgetallrule.length == 0) {
-          this._lstruletype.push({
-            'AnalysisID': this._ruletype.AnalysisID,
-            'NoteID': this._note.NoteId,
-            'RuleTypeMasterID': this._lstgetallrule[h].RuleTypeMasterID,
-            'RuleTypeDetailID': "",
-            'RuleTypeName': this._lstgetallrule[h].RuleTypeName,
-            'FileName': "",
-
-          });
-        }
-
-      }
-    }
-    if (this._lstRuleTypeSetuptobesend.length > 0) {
-      for (var h = 0; h < this._lstRuleTypeSetuptobesend.length; h++) {
-        if (this._lstRuleTypeSetuptobesend[h].AnalysisID == this._ruletype.AnalysisID) {
-          this._lstRuleTypeSetuptobesend[h]["FileName"] = "";
-
-        }
-      }
-    }
-
-  }
-
-  AddUpdateNoteRuleTypeSetup() {
-    var RuleTypeDetailID = 0;
-    if (this._lstRuleTypeSetuptobesend.length > 0) {
-
-      for (var h = 0; h < this._lstRuleTypeSetuptobesend.length; h++) {
-        if (this._lstRuleTypeSetuptobesend[h].FileName != "" && this._lstRuleTypeSetuptobesend[h].FileName != null) {
-          RuleTypeDetailID = this._lstruletypedetail.find(x => x.FileName == this._lstRuleTypeSetuptobesend[h].FileName).RuleTypeDetailID
-        }
-        else {
-          RuleTypeDetailID = 0;
-        }
-        this._lstRuleTypeSetupNew.push({
-          'AnalysisID': this._lstRuleTypeSetuptobesend[h].AnalysisID,
-          'NoteID': this._lstRuleTypeSetuptobesend[h].NoteID,
-          'RuleTypeMasterID': this._lstRuleTypeSetuptobesend[h].RuleTypeMasterID,
-          'RuleTypeDetailID': RuleTypeDetailID,
-
-        });
-      }
-
-    }
-    this.noteService.addupdatenoteruletypesetup(this._lstRuleTypeSetupNew).subscribe(res => {
+  getNoteTranchePercentage() {
+    this.noteService.getNoteTranchePercentagebyNoteid(this._note.NoteId).subscribe(res => {
       if (res.Succeeded) {
-
+        var data = res.dt;
+        this.lstNoteTranchePercentage = data;
       }
     });
+
+    this.setFocus();
   }
+
+  UpdateNoteTranchePercentageFromBackshop() {
+
+    this._isNoteSaving = true;
+    this.noteService.UpdateNoteTranchePercentage(this._note.CRENoteID).subscribe(res => {
+      if (res.Succeeded) {
+        this.getNoteTranchePercentage();
+        this._Showmessagenotediv = true;
+        this._ShowmessagenotedivMsg = 'Note tranche percentage updated successfully';
+        this._isNoteSaving = false;
+        setTimeout(() => {
+          this._Showmessagenotediv = false;
+          this._ShowmessagenotedivMsg = '';
+        }, 2000);
+      }
+      else {
+        this._isNoteSaving = false;
+        this._ShowmessagenotedivWar = true;
+        this._ShowmessagenotedivMsgWar = "Something went wrong. please try after some time.";
+
+        setTimeout(function () {
+          this._ShowmessagenotedivMsgWar = '';
+          this._ShowmessagenotedivWar = false;
+        }.bind(this), 2000);
+      }
+    });
+
+   
+  }
+
 }
 const routes: Routes = [
 

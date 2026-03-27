@@ -22,7 +22,10 @@
     [DealFundingAutoID]         INT              IDENTITY (1, 1) NOT NULL,
     [RequiredEquity]            DECIMAL (28, 15) NULL,
     [AdditionalEquity]          DECIMAL (28, 15) NULL,
-    [GeneratedBy]            INT   NULL
+    [GeneratedBy]            INT   NULL,
+    [NonCommitmentAdj]          BIT              NULL,
+	[GeneratedByUserID]           NVARCHAR (256)   NULL,
+    AdjustmentType           INT  NUll,
     CONSTRAINT [PK_DealFundingID] PRIMARY KEY CLUSTERED ([DealFundingID] ASC),
     CONSTRAINT [FK_DealFunding_DealID] FOREIGN KEY ([DealID]) REFERENCES [CRE].[Deal] ([DealID])
 );
@@ -39,3 +42,7 @@ CREATE NONCLUSTERED INDEX [IX_DealFunding_DealID]
     ON [CRE].[DealFunding]([DealID] ASC)
     INCLUDE([LegalDeal_DealFundingID]);
 
+
+GO
+ALTER TABLE [CRE].[DealFunding] ENABLE CHANGE_TRACKING WITH (TRACK_COLUMNS_UPDATED = ON);
+GO

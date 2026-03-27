@@ -20,6 +20,9 @@ BEGIN
 	begin
 	update CRE.InvoiceDetail set DrawFeeStatus = @DrawFeeStatus
 	where  InvoiceDetailID = @InvoiceDetailID
+	---update workflow checklist item 'Outstanding Draw Fees'---
+	 select @DealID=DealID from cre.InvoiceDetail where InvoiceDetailID=@InvoiceDetailID
+	 exec [usp_UpdateWFCheckListForOutstandingDrawFees] 502,@DealID,''
 	end
 	if(@FileName is not null and @FileName<>'')
 	begin

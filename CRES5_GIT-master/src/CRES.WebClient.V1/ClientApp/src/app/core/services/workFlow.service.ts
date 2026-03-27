@@ -16,6 +16,7 @@ export class WFService {
   private _wfGetAllWorkflowAPI: string = 'api/wfcontroller/getallworkflow';
   private _wfGetAllWorkflowByFilterTypeAPI: string = 'api/wfcontroller/getallworkflowbyfiltertype';
   private _wfGetWFCommentsByTaskIdAPI: string = 'api/wfcontroller/GetWFCommentsByTaskId';
+
   private _getfundingdetailbydealidAPI: string = 'api/deal/getfundingdetailbydealid';
   private _getfundingdetailbydealfundingidAPI: string = 'api/deal/getfundingdetailbyfundingid';
   private _getWFNotificationConfigByNotificationTypeAPI: string = 'api/wfcontroller/getWFNotificationConfigByNotificationType';
@@ -34,7 +35,12 @@ export class WFService {
   private _getallStatesMasterAPI: string = 'api/wfcontroller/getallStatesMaster';
   private _SendWFNotificationForNegativeAmtAPI: string = 'api/wfcontroller/sendwfnotificationfornegativeamt';
   private _GetReserveScheduleBreakDownAPI: string = 'api/wfcontroller/getreserveschedulebreakdown';
-
+  private _CompleteWorkflowViaScriptAPI: string = 'api/wfcontroller/completeworkflowviascript';
+  private _wfUpdatePropertyManagerAPI: string = 'api/wfcontroller/updatepropertymanageremail';
+  private _wfSendInternalNotificionAPI: string = 'api/wfcontroller/sendinternalnotificion';
+  private _wfCancelNotificationAPI: string = 'api/wfcontroller/cancelnotification';
+  private _SaveWFDashboardAPI: string = 'api/wfcontroller/savewfdashboard';
+  private _updateSponsorDetailFromBackshopAPI: string = 'api/wfcontroller/updatesponsordetail';
 
   constructor(public datasrv: DataService) { }
 
@@ -150,6 +156,35 @@ export class WFService {
   GetReserveScheduleBreakDown(_workflow: Workflow) {
     this.datasrv.set(this._GetReserveScheduleBreakDownAPI);
     return this.datasrv.post(JSON.stringify(_workflow));
+  }
+
+  //Complete Workflow Via Script
+  CompleteWorkflowViaScript(_workflow: Workflow) {
+    this.datasrv.set(this._CompleteWorkflowViaScriptAPI);
+    return this.datasrv.post(JSON.stringify(_workflow));
+  }
+  UpdatePropertyManagerEmail(_workflow: Workflow) {
+    this.datasrv.set(this._wfUpdatePropertyManagerAPI);
+    return this.datasrv.post(JSON.stringify(_workflow));
+  }
+
+  SendInternalNotificion(_workflow: Workflow) {
+    this.datasrv.set(this._wfSendInternalNotificionAPI);
+    return this.datasrv.post(JSON.stringify(_workflow));
+  }
+
+  CancelNotification(_wfNotificationDetail: WFNotificationDetailDataContract) {
+    this.datasrv.set(this._wfCancelNotificationAPI);
+    return this.datasrv.post(JSON.stringify(_wfNotificationDetail));
+  }
+  SaveWFDashboard(WFList: any) {
+    this.datasrv.set(this._SaveWFDashboardAPI);
+    return this.datasrv.post(JSON.stringify(WFList));
+  }
+
+  UpdateSponsorDetailFromBackshop(_credealid: string) {
+    this.datasrv.set(this._updateSponsorDetailFromBackshopAPI);
+    return this.datasrv.post(JSON.stringify(_credealid));
   }
 }
 

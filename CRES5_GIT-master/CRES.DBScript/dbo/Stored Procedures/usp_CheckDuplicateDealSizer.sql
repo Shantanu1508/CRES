@@ -1,11 +1,12 @@
-﻿
+﻿-- Procedure
+
 
 CREATE PROCEDURE [DBO].[usp_CheckDuplicateDealSizer] 
 (
 	@CREDealID nvarchar(256),
 	@DealName nvarchar(256),
 	@Username  nvarchar(256),
-	@Password  nvarchar(256)
+	@Password  nvarchar(256) = NULL
 )
 AS
 BEGIN
@@ -51,4 +52,5 @@ if (@Functionres =2)
 
 
 END
+GO
 

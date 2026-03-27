@@ -7,8 +7,8 @@
 	EndingBalance                       DECIMAL (28, 15) NULL,
 	GrossDeferredFees                   DECIMAL (28, 15) NULL,
 	CleanCost                           DECIMAL (28, 15) NULL,
-	CurrentPeriodInterestAccrualPeriodEnddate          DECIMAL (28, 15) NULL,
-	CurrentPeriodPIKInterestAccrualPeriodEnddate          DECIMAL (28, 15) NULL,
+	CurrentPeriodInterestAccrual          DECIMAL (28, 15) NULL,
+	CurrentPeriodPIKInterestAccrual          DECIMAL (28, 15) NULL,
 	InterestSuspenseAccountBalance          DECIMAL (28, 15) NULL,
     [AnalysisID]                        UNIQUEIDENTIFIER NULL
 	);

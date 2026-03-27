@@ -21,12 +21,14 @@ CREATE TABLE #tblListNotes(
 INSERT INTO #tblListNotes(CRENoteID)
 select Value from fn_Split(@MultipleNoteids);
 --=================
-	SELECT  NoteID,convert(varchar,Date,101) as Date,Amount
-	FROM CRE.TransactionEntry
-	WHERE [Type]='InterestPaid' 
+	SELECT  n.NoteID,convert(varchar,Date,101) as Date,Amount
+	FROM CRE.TransactionEntry tr
+	Inner JOIN [CORE].[Account] acc ON acc.AccountID = tr.AccountID
+	Inner join cre.note n on n.Account_AccountID = acc.AccountID
+	WHERE [Type]='InterestPaid' and acc.AccountTypeID = 1
 	and [Date] >= @StartDate 
 	and [Date]<= @EndDate
 	and AnalysisID = 'C10F3372-0FC2-4861-A9F5-148F1F80804F'
-	and  NoteID IN (SELECT NoteID FROM CRE.Note WHERE CRENoteID in (Select CRENoteID from #tblListNotes))
-	GROUP BY NoteID,Date,Amount
+	and n.NoteID IN (SELECT NoteID FROM CRE.Note WHERE CRENoteID in (Select CRENoteID from #tblListNotes))
+	GROUP BY n.NoteID,Date,Amount
 END

@@ -1,8 +1,11 @@
-﻿using CRES.DAL.Repository;
+﻿using CRES.DAL.Helper;
+using CRES.DAL.Repository;
 using CRES.DataContract;
 using System;
 using System.Collections.Generic;
 using System.Data;
+using System.Linq;
+using CRES.DAL;
 
 namespace CRES.BusinessLogic
 {
@@ -37,7 +40,7 @@ namespace CRES.BusinessLogic
 
         public string WellsDailyExtractBulkInsert(DataTable dt, string DestTableName)
         {
-            return _documentRepository.WellsDailyExtractBulkInsert(dt, DestTableName);
+           return _documentRepository.WellsDailyExtractBulkInsert(dt, DestTableName);
         }
         public string BulkInsertForNoteMatrix(DataTable dt, JsonFileConfiguration fileConf)
         {
@@ -49,9 +52,9 @@ namespace CRES.BusinessLogic
         {
             return _documentRepository.InsertIntoNoteMatrix();
         }
-        public string BulkInsert(DataTable dt, string DestTableName, List<FileImportColumnMappingDataContract> columnMapping, bool IsTruncateRequired)
+        public string BulkInsert(DataTable dt, string DestTableName, List<FileImportColumnMappingDataContract> columnMapping, bool IsTruncateRequired, bool IsExecuteProc, List<string> ProcName)
         {
-            return _documentRepository.BulkInsert(dt, DestTableName, columnMapping, IsTruncateRequired);
+            return _documentRepository.BulkInsert(dt, DestTableName, columnMapping, IsTruncateRequired, IsExecuteProc, ProcName);
         }
     }
 }

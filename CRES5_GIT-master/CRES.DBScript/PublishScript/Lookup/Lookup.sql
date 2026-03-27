@@ -1,6 +1,4 @@
-﻿
-
---:r .\Script.PostDeployment_Lookup.sql
+﻿--:r .\Script.PostDeployment_Lookup.sql
 --Print('Lookup completed')
 
 --:r .\OneTime_2.16\1.InsertDataDictionary.sql
@@ -1088,7 +1086,7 @@ INSERT INTO [Core].[Lookup]([ParentID],[Name],[Value],[SortOrder],[StatusID],[Cr
 (124  ,'Principal Balance',null,0,1,'Kbaderia',GETDATE(),'Kbaderia',GETDATE()),
 (124  ,'Original Commitment',null,0,1,'Kbaderia',GETDATE(),'Kbaderia',GETDATE()),
 (124  ,'Current Commitment',null,0,1,'Kbaderia',GETDATE(),'Kbaderia',GETDATE()),
-(124  ,'Initial Future Funding',null,0,1,'Kbaderia',GETDATE(),'Kbaderia',GETDATE()),
+(124  ,'Initial Funding',null,0,1,'Kbaderia',GETDATE(),'Kbaderia',GETDATE()),
 
 (125  ,'User Entered',null,0,1,'Kbaderia',GETDATE(),'Kbaderia',GETDATE()),
 (125  ,'Auto Spread',null,0,1,'Kbaderia',GETDATE(),'Kbaderia',GETDATE()),
@@ -1129,7 +1127,7 @@ INSERT INTO [Core].[Lookup]([ParentID],[Name],[Value],[SortOrder],[StatusID],[Cr
 (127  ,'CoreCalculator',null,0,1,'Kbaderia',GETDATE(),'Kbaderia',GETDATE()),
 (127  ,'PrepayCalculator',null,0,1,'Kbaderia',GETDATE(),'Kbaderia',GETDATE()),
 
-(32  ,'1M USD SOFR',null,0,1,'Kbaderia',GETDATE(),'Kbaderia',GETDATE()),
+(32  ,'1M Term SOFR',null,0,1,'Kbaderia',GETDATE(),'Kbaderia',GETDATE()),
 (19  ,'Index Name',null,0,1,'Kbaderia',GETDATE(),'Kbaderia',GETDATE()),
 
 (74  ,'Delphi VIII',null,0,1,'Kbaderia',GETDATE(),'Kbaderia',GETDATE()),
@@ -1149,11 +1147,219 @@ INSERT INTO [Core].[Lookup]([ParentID],[Name],[Value],[SortOrder],[StatusID],[Cr
 (74  ,'SILAC',null,0,1,'Kbaderia',GETDATE(),'Kbaderia',GETDATE()),
 
 
-(130  ,'dealfunding_automation',null,0,1,'Kbaderia',GETDATE(),'Kbaderia',GETDATE()),
+(130  ,'AutoSpread_UnderwritingDataChanged',null,0,1,'Kbaderia',GETDATE(),'Kbaderia',GETDATE()),
 
 (74  ,'Equitrust',null,0,1,'Kbaderia',GETDATE(),'Kbaderia',GETDATE()),
 
-(131  ,'ACORECreditPartnersII',null,0,1,'Kbaderia',GETDATE(),'Kbaderia',GETDATE())
+(131  ,'ACORECreditPartnersII',null,0,1,'Kbaderia',GETDATE(),'Kbaderia',GETDATE()),
+(132  ,'MissingParentClient',null,0,1,'Kbaderia',GETDATE(),'Kbaderia',GETDATE()),
+
+(133  ,'Daily',null,0,1,'Kbaderia',GETDATE(),'Kbaderia',GETDATE()),
+(133  ,'Monthly',null,1,1,'Kbaderia',GETDATE(),'Kbaderia',GETDATE()),
+(133  ,'Quarterly',null,2,1,'Kbaderia',GETDATE(),'Kbaderia',GETDATE()),
+(133  ,'Annually',null,3,1,'Kbaderia',GETDATE(),'Kbaderia',GETDATE()),
+
+
+(134  ,'C# (Existing)',null,1,1,'Kbaderia',GETDATE(),'Kbaderia',GETDATE()),
+(134  ,'V1 (New)',null,2,1,'Kbaderia',GETDATE(),'Kbaderia',GETDATE()),
+
+(130  ,'All_AutoSpread_Deals',null,0,1,'Kbaderia',GETDATE(),'Kbaderia',GETDATE()),
+(130  ,'FundingMoveToNextMonth',null,0,1,'Kbaderia',GETDATE(),'Kbaderia',GETDATE()),
+(130  ,'AmortizationAutoWire',null,0,1,'Kbaderia',GETDATE(),'Kbaderia',GETDATE()),
+
+(54 ,'GenerateAutomationNotification',null,0,1,'Kbaderia',GETDATE(),'Kbaderia',GETDATE()),
+(54 ,'GenerateAutomationFundingNotification',null,0,1,'Kbaderia',GETDATE(),'Kbaderia',GETDATE()),
+
+(134  ,'-',null,0,1,'Kbaderia',GETDATE(),'Kbaderia',GETDATE()),
+(74  ,'Aksia',null,0,1,'Kbaderia',GETDATE(),'Kbaderia',GETDATE()),
+(130  ,'CommitmentDiscrepancy',null,0,1,'Kbaderia',GETDATE(),'Kbaderia',GETDATE()),
+(130  ,'Phantom_Deal',null,0,1,'Kbaderia',GETDATE(),'Kbaderia',GETDATE()),
+
+
+(135 ,'Credit',null,0,1,'Kbaderia',GETDATE(),'Kbaderia',GETDATE()),
+(135 ,'Debit',null,0,1,'Kbaderia',GETDATE(),'Kbaderia',GETDATE()),
+
+(40  ,'SaveDBPending',null,0,1,'Kbaderia',GETDATE(),'Kbaderia',GETDATE()),
+
+
+(136 ,'By Initial accrual end date',null,0,1,'Kbaderia',GETDATE(),'Kbaderia',GETDATE()),
+(136 ,'By First Payment date',null,0,1,'Kbaderia',GETDATE(),'Kbaderia',GETDATE()),
+
+(137 ,'None',null,0,1,'Kbaderia',GETDATE(),'Kbaderia',GETDATE()),
+(137 ,'Next Business day ',null,0,1,'Kbaderia',GETDATE(),'Kbaderia',GETDATE()),
+(137 ,'Previous Business day',null,0,1,'Kbaderia',GETDATE(),'Kbaderia',GETDATE()),
+(137 ,'Closest Business day',null,0,1,'Kbaderia',GETDATE(),'Kbaderia',GETDATE()),
+
+(74  ,'Delphi IX',null,0,1,'Kbaderia',GETDATE(),'Kbaderia',GETDATE()),
+
+(138  ,'Sizer',null,0,1,'Kbaderia',GETDATE(),'Kbaderia',GETDATE()),
+(138  ,'Settlement',null,0,1,'Kbaderia',GETDATE(),'Kbaderia',GETDATE()),
+(138  ,'None',null,0,1,'Kbaderia',GETDATE(),'Kbaderia',GETDATE()),
+
+(54  ,'ValuationModuleEmailNotification',null,0,1,'Kbaderia',GETDATE(),'Kbaderia',GETDATE()),
+(125  ,'User Name',null,0,1,'Kbaderia',GETDATE(),'Kbaderia',GETDATE()),
+
+(54 ,'FundingDrawBusinessdayNotification',null,0,1,'Kbaderia',GETDATE(),'Kbaderia',GETDATE()),
+(54 ,'ChathamFinancialDailyRateNotification',null,0,1,'Kbaderia',GETDATE(),'Kbaderia',GETDATE()),
+
+(139  ,'Foreclosure UCC',null,0,1,'Kbaderia',GETDATE(),'Kbaderia',GETDATE()),
+(139  ,'Forbearance',null,0,1,'Kbaderia',GETDATE(),'Kbaderia',GETDATE()),
+(139  ,'Foreclosure Mortgage',null,0,1,'Kbaderia',GETDATE(),'Kbaderia',GETDATE()),
+(139  ,'Maturity Default',null,0,1,'Kbaderia',GETDATE(),'Kbaderia',GETDATE()),
+(139  ,'Payment Default',null,0,1,'Kbaderia',GETDATE(),'Kbaderia',GETDATE()),
+(139  ,'Technical Default',null,0,1,'Kbaderia',GETDATE(),'Kbaderia',GETDATE()),
+ 
+(140  ,'Cost Recovery',null,0,1,'Kbaderia',GETDATE(),'Kbaderia',GETDATE()),
+(140  ,'Non Accrual',null,0,1,'Kbaderia',GETDATE(),'Kbaderia',GETDATE()),
+(69,'DealServicingWatchlist','Special Servicing Watchlist',0,1,'Kbaderia',GETDATE(),'Kbaderia',GETDATE()),
+
+(141  ,'Non-Commitment Adjustment','NONCOMITADJ',0,1,'Kbaderia',GETDATE(),'Kbaderia',GETDATE()),
+(141  ,'Revolver','REVOLVER',0,1,'Kbaderia',GETDATE(),'Kbaderia',GETDATE()),
+(141  ,'NA','NA',0,1,'Kbaderia',GETDATE(),'Kbaderia',GETDATE()),
+
+(32  ,'SOFR',null,0,1,'Kbaderia',GETDATE(),'Kbaderia',GETDATE()),
+(32  ,'3M Term SOFR',null,0,1,'Kbaderia',GETDATE(),'Kbaderia',GETDATE()),
+(130  ,'FundingMoveTo15Businessdays',null,0,1,'Kbaderia',GETDATE(),'Kbaderia',GETDATE()),
+(50  ,'Principal Writeoff','Negative',13,1,'Kbaderia',GETDATE(),'Kbaderia',GETDATE()),
+
+(3  ,'GeneralSetupDetailsLiabilityNote','General Setup Details Liability Note',0,1,'Kbaderia',GETDATE(),'Kbaderia',GETDATE()),
+
+(27  ,'Debt',null,0,1,'Kbaderia',GETDATE(),'Kbaderia',GETDATE()),
+(27  ,'Equity',null,0,1,'Kbaderia',GETDATE(),'Kbaderia',GETDATE()),
+(27  ,'LiabilityNote',null,0,1,'Kbaderia',GETDATE(),'Kbaderia',GETDATE()),
+
+(45  ,'DebtName',null,0,1,'Kbaderia',GETDATE(),'Kbaderia',GETDATE()),
+(45  ,'EquityName',null,0,1,'Kbaderia',GETDATE(),'Kbaderia',GETDATE()),
+(45  ,'LiabilityNoteID',null,0,1,'Kbaderia',GETDATE(),'Kbaderia',GETDATE()),
+(45  ,'LiabilityName',null,0,1,'Kbaderia',GETDATE(),'Kbaderia',GETDATE()),
+ 
+(3  ,'GeneralSetupDetailsDebt','General Setup Details Debt',0,1,'Kbaderia',GETDATE(),'Kbaderia',GETDATE()),
+(3  ,'GeneralSetupDetailsEquity','General Setup Details Equity',0,1,'Kbaderia',GETDATE(),'Kbaderia',GETDATE()),
+
+(130  ,'FundingMoveTo1BusinessdaysWF',null,0,1,'Kbaderia',GETDATE(),'Kbaderia',GETDATE()),
+(54 ,'FundingMoveTo1BusinessdaysWFNotification',null,0,1,'Kbaderia',GETDATE(),'Kbaderia',GETDATE()),
+(25  ,'Actual/Actual',null,0,1,'Kbaderia',GETDATE(),'Kbaderia',GETDATE()),
+
+(142  ,'Legal Extension',null,0,1,'Kbaderia',GETDATE(),'Kbaderia',GETDATE()),
+(142  ,'Temporary Extension',null,0,1,'Kbaderia',GETDATE(),'Kbaderia',GETDATE()),
+
+(111  ,'Deferral Interest Payments',null,0,1,'Kbaderia',GETDATE(),'Kbaderia',GETDATE()),
+(143  ,'Berkadia Reserve Workflow Email',null,0,1,'Kbaderia',GETDATE(),'Kbaderia',GETDATE()),
+(93  ,'AM Oversight',null,0,1,'Kbaderia',GETDATE(),'Kbaderia',GETDATE()),
+(144  ,'3 Months',null,0,1,'Kbaderia',GETDATE(),'Kbaderia',GETDATE()),
+(144  ,'6 Months',null,0,1,'Kbaderia',GETDATE(),'Kbaderia',GETDATE()),
+(144  ,'9 Months',null,0,1,'Kbaderia',GETDATE(),'Kbaderia',GETDATE()),
+(144  ,'12 Months',null,0,1,'Kbaderia',GETDATE(),'Kbaderia',GETDATE()),
+(144  ,'2 Years',null,0,1,'Kbaderia',GETDATE(),'Kbaderia',GETDATE()),
+(144  ,'3 Years',null,0,1,'Kbaderia',GETDATE(),'Kbaderia',GETDATE()),
+
+(145  ,'Last Month',null,0,1,'Kbaderia',GETDATE(),'Kbaderia',GETDATE()),
+(145  ,'Last Quarter',null,0,1,'Kbaderia',GETDATE(),'Kbaderia',GETDATE()),
+(145  ,'Override Cutoff Date',null,0,1,'Kbaderia',GETDATE(),'Kbaderia',GETDATE()),
+(84,'Fee on Note Balance',null,0,1,'Kbaderia',GETDATE(),'Kbaderia',GETDATE()),
+(85,'End Of  Period',null,0,1,'Kbaderia',GETDATE(),'Kbaderia',GETDATE()),
+
+
+(146  ,'As a % of Coupon',null,0,1,'Kbaderia',GETDATE(),'Kbaderia',GETDATE()),
+(146  ,'PIK Rate',null,0,1,'Kbaderia',GETDATE(),'Kbaderia',GETDATE()),
+
+(94  ,'Default Interest',null,0,1,'Kbaderia',GETDATE(),'Kbaderia',GETDATE()),
+
+(78  ,'Satisfied',null,0,1,'Kbaderia',GETDATE(),'Kbaderia',GETDATE()),
+(78  ,'Unsatisfied',null,0,1,'Kbaderia',GETDATE(),'Kbaderia',GETDATE()),
+(50  ,'Net Property Income/Loss','Both',99,1,'Kbaderia',GETDATE(),'Kbaderia',GETDATE()),
+(106 ,'Principal Writeoff Curtailment',null,1,2,'Kbaderia',GETDATE(),'Kbaderia',GETDATE()),
+(130 ,'CommitmentDiscrepancyM61VsBackshop',null,0,1,'Kbaderia',GETDATE(),'Kbaderia',GETDATE()),
+
+(32  ,'PRIME',null,0,1,'Kbaderia',GETDATE(),'Kbaderia',GETDATE()),
+(50  ,	'Equity Distribution'	  ,'Negative',99,1,'Kbaderia',GETDATE(),'Kbaderia',GETDATE()),
+
+(78  ,'Lender',null,0,1,'Kbaderia',GETDATE(),'Kbaderia',GETDATE()),
+(78  ,'Operating Account',null,0,1,'Kbaderia',GETDATE(),'Kbaderia',GETDATE()),
+
+(40  ,'CalcWait',null,0,1,'Kbaderia',GETDATE(),'Kbaderia',GETDATE()),
+(74  ,'Delphi X',null,0,1,'Kbaderia',GETDATE(),'Kbaderia',GETDATE()),
+
+(147  ,'Phantom',null,0,1,'Kbaderia',GETDATE(),'Kbaderia',GETDATE()),
+(147  ,'Mod',null,0,1,'Kbaderia',GETDATE(),'Kbaderia',GETDATE()),
+(147  ,'Refinance',null,0,1,'Kbaderia',GETDATE(),'Kbaderia',GETDATE()),
+(147  ,'REO',null,0,1,'Kbaderia',GETDATE(),'Kbaderia',GETDATE()),
+(148  ,'Lien & Priority',null,0,1,'Kbaderia',GETDATE(),'Kbaderia',GETDATE()),
+(148  ,'Custom',null,0,1,'Kbaderia',GETDATE(),'Kbaderia',GETDATE()),
+
+(56  ,'Equity',null,10,1,'Kbaderia',GETDATE(),'Kbaderia',GETDATE()),
+(146  ,'Over Current Pay Rate',null,0,1,'Kbaderia',GETDATE(),'Kbaderia',GETDATE()),
+(130  ,'FundingMoveTo1BusinessdaysBackDate',null,0,1,'Kbaderia',GETDATE(),'Kbaderia',GETDATE()),
+(54 ,'SendServicerBalanceForBerkadiaNotification',null,0,1,'Kbaderia',GETDATE(),'Kbaderia',GETDATE()),
+
+(74  ,'AOC II',null,0,1,'Kbaderia',GETDATE(),'Kbaderia',GETDATE()),
+(54 ,'SendServicerBalanceForWellsNotification',null,0,1,'Kbaderia',GETDATE(),'Kbaderia',GETDATE()),
+(141  ,'Non-Commitment Adjustment (PA)','NONCOMITADJPA',0,1,'Kbaderia',GETDATE(),'Kbaderia',GETDATE()),
+(141  ,'Commitment Adjustment (PA)','COMITADJPA',0,1,'Kbaderia',GETDATE(),'Kbaderia',GETDATE()),
+(54 ,'SendGenericNotification',null,0,1,'Kbaderia',GETDATE(),'Kbaderia',GETDATE()),
+
+--calculation status
+(40  ,'Pause',null,0,1,'Kbaderia',GETDATE(),'Kbaderia',GETDATE()),
+(40  ,'Pause_Dependents',null,0,1,'Kbaderia',GETDATE(),'Kbaderia',GETDATE()),
+
+(149  ,'REO',null,0,1,'Kbaderia',GETDATE(),'Kbaderia',GETDATE()),
+(149  ,'Debt',null,0,1,'Kbaderia',GETDATE(),'Kbaderia',GETDATE()),
+
+(142  ,'Maturity Default',null,0,1,'Kbaderia',GETDATE(),'Kbaderia',GETDATE()),
+(94  ,'Processing Fee','PROCESSINGFEE',0,1,'Kbaderia',GETDATE(),'Kbaderia',GETDATE()),
+(150  ,'Current','Current',0,1,'Kbaderia',GETDATE(),'Kbaderia',GETDATE()),
+(150  ,'Preceding','Preceding',0,1,'Kbaderia',GETDATE(),'Kbaderia',GETDATE()),
+
+(74 ,'Delphi XI',null,0,1,'Kbaderia',GETDATE(),'Kbaderia',GETDATE()),
+
+(3  ,'PrepayAndAdditionalFeeScheduleLiability','Prepay And Additional Fee Schedule Liability',0,1,'Kbaderia',GETDATE(),'Kbaderia',GETDATE()),
+(3  ,'RateSpreadScheduleLiability','RateSpread Schedule Liability',0,1,'Kbaderia',GETDATE(),'Kbaderia',GETDATE()),
+(127  ,'BalanceCalculator',null,0,1,'Kbaderia',GETDATE(),'Kbaderia',GETDATE()),
+(127  ,'FeeInterestCalculator',null,0,1,'Kbaderia',GETDATE(),'Kbaderia',GETDATE()),
+
+(32  ,'5 Year Treasury',null,0,1,'Kbaderia',GETDATE(),'Kbaderia',GETDATE()),
+(32  ,'10 Year Treasury',null,0,1,'Kbaderia',GETDATE(),'Kbaderia',GETDATE()),
+
+(3  ,'LiabilityInterestExpense','LiabilityInterestExpense',0,1,'Kbaderia',GETDATE(),'Kbaderia',GETDATE()),
+(151  ,'Repo',null,0,1,'Kbaderia',GETDATE(),'Kbaderia',GETDATE()),
+(151  ,'NoN',null,0,1,'Kbaderia',GETDATE(),'Kbaderia',GETDATE()),
+(151  ,'Sale',null,0,1,'Kbaderia',GETDATE(),'Kbaderia',GETDATE()),
+(151  ,'Sub Debt',null,0,1,'Kbaderia',GETDATE(),'Kbaderia',GETDATE()),
+(151  ,'Whole Loan',null,0,1,'Kbaderia',GETDATE(),'Kbaderia',GETDATE()),
+(151  ,'TBD',null,0,1,'Kbaderia',GETDATE(),'Kbaderia',GETDATE()),
+(151  ,'WL - CPACE',null,0,1,'Kbaderia',GETDATE(),'Kbaderia',GETDATE()),
+(151  ,'Mortgage',null,0,1,'Kbaderia',GETDATE(),'Kbaderia',GETDATE()),
+(151  ,'CLO',null,0,1,'Kbaderia',GETDATE(),'Kbaderia',GETDATE()),
+(151  ,'Subline',null,0,1,'Kbaderia',GETDATE(),'Kbaderia',GETDATE()),
+(152  ,'REIT',null,0,1,'Kbaderia',GETDATE(),'Kbaderia',GETDATE()),
+(152  ,'Non REIT',null,0,1,'Kbaderia',GETDATE(),'Kbaderia',GETDATE()),
+
+(153  ,'Legal',null,0,1,'Kbaderia',GETDATE(),'Kbaderia',GETDATE()),
+(153  ,'ACORE Processing',null,0,1,'Kbaderia',GETDATE(),'Kbaderia',GETDATE()),
+(153  ,'Servicer Fee',null,0,1,'Kbaderia',GETDATE(),'Kbaderia',GETDATE()),
+(153  ,'Draw Fee',null,0,1,'Kbaderia',GETDATE(),'Kbaderia',GETDATE()),
+(153 ,'Late Payment Charge',null,0,1,'Kbaderia',GETDATE(),'Kbaderia',GETDATE()),
+(153 ,'Misc. Fee',null,0,1,'Kbaderia',GETDATE(),'Kbaderia',GETDATE()),
+
+(86  ,'30/360',null,0,1,'Kbaderia',GETDATE(),'Kbaderia',GETDATE()),
+(86  ,'Actual/365',null,0,1,'Kbaderia',GETDATE(),'Kbaderia',GETDATE()),
+(127  ,'FeeCalculator',null,0,1,'Kbaderia',GETDATE(),'Kbaderia',GETDATE()),
+
+(54  ,'DiscrepancyForCalcGapBtnDefAndFullyScenario',null,0,1,'Kbaderia',GETDATE(),'Kbaderia',GETDATE()),
+(138  ,'Backshop pipeline',null,0,1,'Kbaderia',GETDATE(),'Kbaderia',GETDATE()),
+(52 ,'Prepay Date',null,9,1,'Kbaderia',GETDATE(),'Kbaderia',GETDATE()),
+(149  ,'PA',null,0,1,'Kbaderia',GETDATE(),'Kbaderia',GETDATE()),
+
+--(27  ,'EquityShortName',null,0,1,'Kbaderia',GETDATE(),'Kbaderia',GETDATE()),
+--(27  ,'DebtFinancialInstitution',null,0,1,'Kbaderia',GETDATE(),'Kbaderia',GETDATE()),
+
+(45  ,'EquityShortName',null,0,1,'Kbaderia',GETDATE(),'Kbaderia',GETDATE()),
+(45  ,'DebtFinancialInstitution',null,0,1,'Kbaderia',GETDATE(),'Kbaderia',GETDATE()),
+
+
+(154  ,'Projected',null,0,1,'Kbaderia',GETDATE(),'Kbaderia',GETDATE()),
+(154  ,'Planned',null,0,1,'Kbaderia',GETDATE(),'Kbaderia',GETDATE()),
+(154  ,'Completed',null,0,1,'Kbaderia',GETDATE(),'Kbaderia',GETDATE())
 
 
 Update core.lookup set Value='CA',Value1='CAPITAL RESERVE' where name = 'CapEx' and ParentID =76
@@ -1240,10 +1446,11 @@ Update core.lookup set VAlue = 'Delphi Fixed' where ParentID = 71 and Name  = 'D
 
 --Workflow type
 Update core.lookup SET VALUE1='WF_FUll' WHERE ParentID=50
-Update core.lookup SET VALUE1='WF_UNDERREVIEW' WHERE ParentID=50 and LookupID in (630,631,315,629)
+Update core.lookup SET VALUE1='WF_UNDERREVIEW' WHERE ParentID=50 and LookupID in (630,631,315,629,840,879)
 Update core.lookup SET VALUE1='WF_Reserve' WHERE ParentID=119 and LookupID in (717)
 
 
 update core.lookup set IsInternal = 1 where ParentID in (1,2,3,5,11,12,13,14,15,16,19,21,25,29,32,33,38,43,44,50,51,67,72,78,80,95,99)
+update core.Lookup set [Value]='Draw Fee' where [name] ='Draw Fee' and ParentID=94
 
 GO

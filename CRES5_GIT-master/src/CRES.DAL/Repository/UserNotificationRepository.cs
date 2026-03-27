@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Data.SqlClient;
+using System.Linq;
 
 namespace CRES.DAL.Repository
 {
@@ -67,7 +68,7 @@ namespace CRES.DAL.Repository
             SqlParameter[] sqlparam = new SqlParameter[] { p1, p2 };
             var isresult = hp.ExecNonquery("dbo.usp_ClearNotification", sqlparam);
             // var isresult = _dbContext.usp_ClearNotification(notificationid, updatedby);
-            iscleared = isresult == -1 ? true : false;
+            iscleared =isresult == -1 ? true : false;
             return iscleared;
 
         }
@@ -82,7 +83,7 @@ namespace CRES.DAL.Repository
             var isresult = hp.ExecNonquery("dbo.usp_ClearAllUserNotification", sqlparam);
             //var isresult=_dbContext.usp_ClearAllUserNotification(userid);
 
-            iscleared = isresult == -1 ? true : false;
+            iscleared =isresult == -1 ? true : false;
             return iscleared;
         }
 
@@ -135,7 +136,7 @@ namespace CRES.DAL.Repository
             dt = hp.ExecDataTable("dbo.usp_GetNotificationSubscriptionByUserID", sqlparam);
             //ObjectParameter totalCount = new ObjectParameter("TotalCount", typeof(int));
             // var lstSubscription = _dbContext.usp_GetNotificationSubscriptionByUserID(userId, PageIndex, PageSize, totalCount);
-            TotalCount = string.IsNullOrEmpty(Convert.ToString(p4.Value)) ? 0 : Convert.ToInt32(p4.Value);
+            TotalCount = string.IsNullOrEmpty(Convert.ToString(p4.Value))? 0:Convert.ToInt32(p4.Value);
 
             foreach (DataRow dr in dt.Rows)
             {
@@ -159,7 +160,7 @@ namespace CRES.DAL.Repository
             foreach (var SubItem in subscriptionDataContract)
             {
 
-                SqlParameter p1 = new SqlParameter { ParameterName = "@NotificationSubscriptionID", Value = new Guid(SubItem.NotificationSubscriptionID) };
+                SqlParameter p1 = new SqlParameter { ParameterName = "@NotificationSubscriptionID", Value = new Guid(SubItem.NotificationSubscriptionID)};
                 SqlParameter p2 = new SqlParameter { ParameterName = "@Notification_NotificationID", Value = new Guid(SubItem.NotificationID) };
                 SqlParameter p3 = new SqlParameter { ParameterName = "@User_UserID", Value = new Guid(SubItem.User_UserID), };
                 SqlParameter p4 = new SqlParameter { ParameterName = "@CreatedBy", Value = SubItem.CreatedBy };

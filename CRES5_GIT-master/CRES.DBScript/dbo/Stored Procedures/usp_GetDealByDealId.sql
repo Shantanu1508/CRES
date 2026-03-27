@@ -1,4 +1,6 @@
-﻿
+﻿-- Procedure
+-- Procedure
+
 -- [dbo].[usp_GetDealByDealId]'00000000-0000-0000-0000-000000000000','5848ca08-b9b0-4b93-9e0b-311c560f58f4'      
 -- [dbo].[usp_GetDealByDealId] 'EB318B15-3EDD-4601-9C8D-2D5C4C3613BE','5848ca08-b9b0-4b93-9e0b-311c560f58f4'      
 -- [dbo].[usp_GetDealByDealId] 'D73C24C9-797C-4165-8EF3-C1AE5839C513','B0E6697B-3534-4C09-BE0A-04473401AB93'      
@@ -26,8 +28,12 @@ BEGIN
 IF EXISTS( SELECT DealID FROM CRE.Deal where CAST(DealID AS VARCHAR(500)) = @Dealid OR CREDealID = @Dealid and isdeleted=0)      
 BEGIN      
       
+    
+    
     -- select @Dealid from CREDealID      
- SELECT @Dealid  = d.DealID FROM CRE.Deal d WHERE CAST(DealID AS VARCHAR(500)) = @Dealid OR CREDealID = @Dealid and isdeleted=0;      
+ SELECT @Dealid  = d.DealID FROM CRE.Deal d WHERE CAST(DealID AS VARCHAR(500)) = @Dealid OR CREDealID = @Dealid and isdeleted=0; 
+ 
+
           
  Declare @BaseCurrencyName nvarchar(max) = ISNULL((SELECT TOP 1  ISNULL(REPLACE(l.Name,'CAD','USD'),'USD') as Name      
            FROM cre.note n      
@@ -44,7 +50,12 @@ BEGIN
  Declare @max_ExtensionMat date = null;      
       
  Declare @last_wireconfirmdate_db date;      
- SET @last_wireconfirmdate_db = (Select MAX([date]) from cre.dealfunding where applied = 1 and dealid = @Dealid)      
+ SET @last_wireconfirmdate_db = (Select MAX([date]) from cre.dealfunding where applied = 1 and dealid = @Dealid)  
+ 
+  --shahid
+        declare @XIRRConfigID int
+        select @XIRRConfigID=XIRRConfigID from cre.XIRRConfig where ReturnName='Whole Loan Return (Excl. 3rd Party)'
+ --
        
  Select @max_ExtensionMat = MAX(mat.MaturityDate)      
  from [CORE].Maturity mat            
@@ -119,10 +130,9 @@ BEGIN
  ,dbo.[ufn_GetTimeByTimeZone]((Select Max(df.UpdatedDate)  from [CRE].[DealFunding] df where df.DealID = d.DealID),@UserID)as lastUpdatedFF      
  --,(Select Max(df.UpdatedDate) from [CRE].[DealFunding] df where df.DealID = d.DealID) as lastUpdatedFF      
  --,(select  top 1 FirstName +' '+ LastName from CRE.DealFunding  df left join App.[User]  u  on u.UserID =  df.UpdatedBy) as LastUpdatedByFF      
- ,(CASE When EXISTS (SELECT 1 WHERE d.UpdatedBy LIKE REPLACE('00000000-0000-0000-0000-000000000000', '0', '[0-9a-fA-F]')) THEN (select  top 1 u.[Login]  from CRE.DealFunding  df left join App.[User]  u  on u.UserID =  d.UpdatedBy) ELSE d.UpdatedBy END) as
-  
-    
- LastUpdatedByFF      
+ ,
+ (CASE When EXISTS (SELECT 1 WHERE d.UpdatedBy LIKE REPLACE('00000000-0000-0000-0000-000000000000', '0', '[0-9a-fA-F]')) THEN 
+ (select  top 1 FirstName +' '+ LastName from CRE.DealFunding  df left join App.[User]  u  on u.UserID =  df.UpdatedBy where df.DealID=@Dealid) ELSE d.UpdatedBy END) as LastUpdatedByFF      
  ,200 AS StatusCode       
  ,(Select Cast(format(Max(df.UpdatedDate),'MM/dd/yyyy hh:mm:ss tt') as nvarchar(256))  from [CRE].[DealFunding] df where df.DealID = d.DealID) as LastUpdatedFF_String      
  ,d.DealRule      
@@ -176,13 +186,40 @@ BEGIN
  ,tlbprepay.SpreadCalcMethodtext      
  ,tlbprepay.GreaterOfSMOrBaseAmtTimeSpread      
  ,tlbprepay.HasNoteLevelSMSchedule      
- ,tlbprepay.Includefeesincredits      
+ ,tlbprepay.Includefeesincredits    
+ ,tlbprepay.MinimumMultipleDue
+ ,tlbprepay.OpenPaymentDate
  ,@last_wireconfirmdate_db as LastWireConfirmDate_db      
  ,d.PropertyTypeMajorID    
  ,d.LoanStatusID 
  ,d.PrepayDate
  ,d.ICMFullyFundedEquity
  ,d.EquityAtClosing 
+ ,d.CalcEngineType
+ ,lCalcEngineType.name as CalcEngineTypeText
+,d.AllowGaapComponentInCashflowDownload
+,lAllowGaapComponentInCashflowDownload.name as AllowGaapComponentInCashflowDownloadText
+,WatchlistStatus as  WatchlistStatus
+,d.AccountID as DealAccountID
+ ,xd.XIRRValue
+ ,d.EnableAutoDistributePrincipalWriteoff
+ ,d.PrepaymentGroupSize
+,d.PrepaymentAllocationMethod
+,b.Bookmark
+,d.MaturityAdjMonthsOverride
+,d.ExcludeDealFromLiability
+,LiabilitySource
+,lLiabilitySource.name as LiabilitySourceText
+,InternalRefi      
+,l11.Name InternalRefiText
+,PortfolioLoan      
+,l12.Name PortfolioLoanText
+,AssigningLoanToTakeoutLender      
+,l14.Name AssigningLoanToTakeoutLenderText  
+,NettingofReservesEscrows      
+,l15.Name NettingofReservesEscrowsText  
+,CASE WHEN ls.LoanStatusDesc IS NULL Then 'N' ELSE 'Y' END AS isPipeline
+
  FROM CRE.Deal d      
  Left Join Core.Lookup l1 on d.DealType=l1.LookupID      
  Left Join Core.Lookup l2 on d.LoanProgram=l2.LookupID      
@@ -204,7 +241,15 @@ BEGIN
  Left Join Core.Lookup lAmortizationMethod on d.AmortizationMethod=lAmortizationMethod.LookupID      
  Left Join Core.Lookup lReduceAmortizationForCurtailments on d.ReduceAmortizationForCurtailments=lReduceAmortizationForCurtailments.LookupID      
  Left Join Core.Lookup lBusinessDayAdjustmentForAmort on d.BusinessDayAdjustmentForAmort=lBusinessDayAdjustmentForAmort.LookupID      
- Left Join Core.Lookup lNoteDistributionMethod on d.NoteDistributionMethod=lNoteDistributionMethod.LookupID      
+ Left Join Core.Lookup lNoteDistributionMethod on d.NoteDistributionMethod=lNoteDistributionMethod.LookupID   
+ Left Join Core.Lookup lAllowGaapComponentInCashflowDownload on d.AllowGaapComponentInCashflowDownload=lAllowGaapComponentInCashflowDownload.LookupID 
+ Left Join Core.Lookup lLiabilitySource on d.LiabilitySource=lLiabilitySource.LookupID 
+  
+ Left Join Core.Lookup l11 on d.InternalRefi=l11.LookupID    
+ Left Join Core.Lookup l12 on d.PortfolioLoan=l12.LookupID      
+ Left Join Core.Lookup l14 on d.AssigningLoanToTakeoutLender=l14.LookupID      
+ Left Join Core.Lookup l15 on d.NettingofReservesEscrows=l15.LookupID      
+
  Left Join (      
   SELECT top 1  dd.DealID,n.DayoftheMonth,min(n.FirstPaymentDate) as FirstPaymentDate        
   FROM [CRE].[Deal] dd        
@@ -214,6 +259,20 @@ BEGIN
   group by dd.DealID,n.DayoftheMonth        
  )a ON a.DealID = d.DealID      
  Left Join Core.Lookup lRepaymentAutoSpreadMethod on d.RepaymentAutoSpreadMethodID = lRepaymentAutoSpreadMethod.Lookupid      
+
+Left Join(
+	SELECT 
+	dd.DealID,
+	CASE
+		WHEN b.AccountID IS NOT NULL THEN 'Pin' 
+		ELSE 'Unpin'
+	END AS Bookmark
+	FROM [CRE].[BookMark] b        
+		left join [CRE].[Deal] dd on dd.AccountID=b.AccountID        
+		WHERE b.UserID = @UserID        
+		and dd.dealid = @Dealid   
+)b ON b.DealID = d.DealID 
+
  lEFT joIN(      
   Select e.DealID      
   ,e.EffectiveDate as EffectiveDate_Prepay           
@@ -226,7 +285,9 @@ BEGIN
   ,lSpreadCalcMethod.name as SpreadCalcMethodtext      
   ,ps.[GreaterOfSMOrBaseAmtTimeSpread]      
   ,ISNULL(ps.HasNoteLevelSMSchedule,0) as HasNoteLevelSMSchedule     
-  ,ISNULL(ps.[Includefeesincredits],0) as Includefeesincredits       
+  ,ISNULL(ps.[Includefeesincredits],0) as Includefeesincredits  
+  ,ps.MinimumMultipleDue
+  ,ps.OpenPaymentDate
   from [CORE].prepaySchedule ps      
   INNER JOIN [CORE].[EventDeal] e on e.EventDealID = ps.EventDealID      
   INNER JOIN       
@@ -243,7 +304,19 @@ BEGIN
   left JOin core.Lookup lBaseAmount on lBaseAmount.lookupid = ps.BaseAmountType      
   where e.StatusID = 1  and e.dealid = @Dealid      
  )tlbprepay on tlbprepay.Dealid = d.dealid      
-    
+ Left Join Core.Lookup lCalcEngineType on d.CalcEngineType=lCalcEngineType.LookupID   
+ Left Join CRE.XIRROutputDealLevel xd on xd.DealAccountID=d.AccountID and xd.XIRRConfigID=@XIRRConfigID
+ 
+ LEFT JOIN cre.loanstatus ls on d.LoanStatusID = ls.LoanStatusID
+	and ls.LoanStatusDesc in (
+	'Inquiry',
+	'Dead',
+	'Quote / Proposal',
+	'Term Sheet Issued',
+	'Term Sheet Signed',
+	'Credit Committee Approved',
+	'Committed')
+ 
  where d.DealID = @Dealid and d.IsDeleted = 0      
       
 END      
@@ -359,8 +432,16 @@ BEGIN
  ,null as PrepayDate     
  ,null as ICMFullyFundedEquity
  ,null as EquityAtClosing  
- 
-      
+ ,null as CalcEngineType
+ ,null as AllowGaapComponentInCashflowDownload
+ ,''WatchlistStatus
+ ,cast(cast(0 as binary) as uniqueidentifier) as DealAccountID
+ ,null as XIRRValue
+ ,null as EnableAutoDistributePrincipalWriteoff
+ ,null as Bookmark
+ ,null as MaturityAdjMonthsOverride
+ ,null as ExcludeDealFromLiability
+ ,'N' as isPipeline
 END          
       
 SET TRANSACTION ISOLATION LEVEL READ COMMITTED      

@@ -26,7 +26,11 @@
     [TaskTypeIDText]           NVARCHAR (256)   NULL,
     [SubmitTypeText]           NVARCHAR (256)   NULL,
     [PurposeID]                INT              NULL,
-    GeneratedBy int null,
-    GeneratedByBI NVARCHAR(100) NULL
+    [GeneratedBy]              INT              NULL,
+    [GeneratedByBI]            NVARCHAR (100)   NULL,
+    [L_WorkFlowBI_AutoID]      INT              IDENTITY (1, 1) NOT NULL,
+    CONSTRAINT [PK_L_WorkFlowBI_AutoID] PRIMARY KEY CLUSTERED ([L_WorkFlowBI_AutoID] ASC)
 );
+
+
 

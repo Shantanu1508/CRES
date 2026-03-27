@@ -1,4 +1,5 @@
-﻿CREATE TYPE [dbo].[TableTypeFeeInvoice] AS TABLE
+﻿
+CREATE TYPE [dbo].[TableTypeFeeInvoice] AS TABLE
 (
 	InvoiceDetailID int,
 	ObjectID Uniqueidentifier NULL,

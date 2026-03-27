@@ -49,7 +49,17 @@ BEGIN
 	FS.InitialFundingID,
 	LInitialFundingID.name as InitialFundingText,
 	FS.M61AdjustedCommitmentID,
-	LM61AdjustedCommitmentID.name as M61AdjustedCommitmentText
+	LM61AdjustedCommitmentID.name as M61AdjustedCommitmentText,
+	FS.PIKFundingID,
+	LPIKFundingID.name as PIKFundingText,
+	FS.PIKPrincipalPaymentID,
+	LPIKPrincipalPaymentID.name as PIKPrincipalPaymentText,
+	FS.CurtailmentID,
+	LCurtailmentID.name as CurtailmentText,
+	FS.UpsizeAmountID,
+	LUpsizeAmountID.name as UpsizeAmountText,
+	FS.UnfundedCommitmentID,
+	LUnfundedCommitmentID.name as UnfundedCommitmentText
 
 	from [CRE].[FeeSchedulesConfig] FS
 	LEFT JOIN [CORE].[Lookup] LFeePaymentFrequencyID ON LFeePaymentFrequencyID.LookupID = FS.FeePaymentFrequencyID AND LFeePaymentFrequencyID.ParentID=89 
@@ -65,6 +75,11 @@ BEGIN
 	LEFT JOIN [CORE].[Lookup] LFeeNameTransID ON LFeeNameTransID.LookupID = FS.FeeNameTransID AND LFeeNameTransID.ParentID=94
 	LEFT JOIN [CORE].[Lookup] LInitialFundingID ON LInitialFundingID.LookupID = FS.InitialFundingID AND LInitialFundingID.ParentID=91
 	LEFT JOIN [CORE].[Lookup] LM61AdjustedCommitmentID ON LM61AdjustedCommitmentID.LookupID = FS.M61AdjustedCommitmentID AND LM61AdjustedCommitmentID.ParentID=91
+	LEFT JOIN [CORE].[Lookup] LPIKFundingID ON LPIKFundingID.LookupID = FS.PIKFundingID AND LPIKFundingID.ParentID=91
+	LEFT JOIN [CORE].[Lookup] LPIKPrincipalPaymentID ON LPIKPrincipalPaymentID.LookupID = FS.PIKPrincipalPaymentID AND LPIKPrincipalPaymentID.ParentID=91
+	LEFT JOIN [CORE].[Lookup] LCurtailmentID ON LCurtailmentID.LookupID = FS.CurtailmentID AND LCurtailmentID.ParentID=91
+	LEFT JOIN [CORE].[Lookup] LUpsizeAmountID ON LUpsizeAmountID.LookupID = FS.UpsizeAmountID AND LUpsizeAmountID.ParentID=91
+	LEFT JOIN [CORE].[Lookup] LUnfundedCommitmentID ON LUnfundedCommitmentID.LookupID = FS.UnfundedCommitmentID AND LUnfundedCommitmentID.ParentID=91
 	
 	where ISNULL(IsActive,1)  = 1
 	order by FS.FeeTypeNameText

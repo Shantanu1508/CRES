@@ -3,6 +3,9 @@ using CRES.DataContract;
 using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Collections.Generic;
+using System.Data;
+using System.Linq;
+using System.Net;
 
 namespace CRES.Services.Controllers
 {
@@ -13,7 +16,7 @@ namespace CRES.Services.Controllers
         [HttpPost]
         [Services.Controllers.IsAuthenticate]
         [Route("api/portfolio/addupdateportfolio")]
-        public IActionResult AddUpdatePortfolio([FromBody] PortfolioDataContract _portfolioDataContract)
+        public IActionResult AddUpdatePortfolio([FromBody]PortfolioDataContract _portfolioDataContract)
         {
             GenericResult _authenticationResult = null;
 
@@ -23,9 +26,7 @@ namespace CRES.Services.Controllers
             {
 
                 var headerUserID = string.Empty;
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
                 IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
                 if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
                 {
                     headerUserID = Convert.ToString(Request.Headers["TokenUId"]);
@@ -33,7 +34,7 @@ namespace CRES.Services.Controllers
                 _portfolioDataContract.CreatedBy = headerUserID;
                 status = portfoliologic.AddUpdateFortfolio(_portfolioDataContract);
 
-                if (status == 0)
+                if (status==0)
                 {
 
                     _authenticationResult = new GenericResult()
@@ -43,7 +44,7 @@ namespace CRES.Services.Controllers
 
                     };
                 }
-                else if (status == 1)
+                else if (status ==1)
                 {
                     _authenticationResult = new GenericResult()
                     {
@@ -69,13 +70,11 @@ namespace CRES.Services.Controllers
         [HttpPost]
         [Services.Controllers.IsAuthenticate]
         [Route("api/portfolio/getportfoliodetailbyid")]
-        public IActionResult GetPortfolioDetailByID([FromBody] PortfolioDataContract portfolioDC)
+        public IActionResult GetPortfolioDetailByID([FromBody]PortfolioDataContract portfolioDC)
         {
             GenericResult _authenticationResult = null;
             PortfolioDataContract _portfolioDC = new PortfolioDataContract();
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
 
             var headerUserID = new Guid();
             if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
@@ -133,9 +132,7 @@ namespace CRES.Services.Controllers
         public IActionResult GetAllPortfolio()
         {
             GenericResult _authenticationResult = null;
-#pragma warning disable CS0168 // The variable 'headerValues' is declared but never used
             IEnumerable<string> headerValues;
-#pragma warning restore CS0168 // The variable 'headerValues' is declared but never used
             var headerUserID = new Guid();
             if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
             {
@@ -150,7 +147,7 @@ namespace CRES.Services.Controllers
             PortfolioLogic portfoliologic = new PortfolioLogic();
 
             int? totalCount;
-
+           
 
             try
             {
@@ -176,6 +173,162 @@ namespace CRES.Services.Controllers
                 };
             }
 
+            return Ok(_authenticationResult);
+        }
+
+        [HttpPost]
+        [Services.Controllers.IsAuthenticate]
+        [Services.Controllers.DeflateCompression]
+        [Route("api/portfolio/getXIRROutputByObjectID")]
+        public IActionResult GetXIRROutputByObjectID([FromBody] string PortfolioMasterID)
+        {
+            GenericResult _authenticationResult = null;
+            IEnumerable<string> headerValues;
+
+            var headerUserID = string.Empty;
+            TagXIRRLogic TagXIRRLogic = new TagXIRRLogic();
+            if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
+            {
+                headerUserID = Convert.ToString(Request.Headers["TokenUId"]);
+            }
+            DataTable dt = new DataTable();
+            DataTable dtCalcReq = new DataTable();
+            try
+            {
+                dt = TagXIRRLogic.GetXIRROutputByObjectID("Portfolio", PortfolioMasterID);
+                dtCalcReq = TagXIRRLogic.GetXIRRCalculationStatusByObjectID(PortfolioMasterID, headerUserID);
+                if (dt.Rows.Count > 0 || dtCalcReq.Rows.Count>0)
+                {
+                    _authenticationResult = new GenericResult()
+                    {
+                        Succeeded = true,
+                        Message = "Succeeded",
+                        dt = dt,
+                        dtCalcReq = dtCalcReq
+                    };
+                }
+                else
+                {
+                    _authenticationResult = new GenericResult()
+                    {
+                        Succeeded = true,
+                        Message = "No Data."
+                    };
+                }
+            }
+            catch (Exception ex)
+            {
+
+                _authenticationResult = new GenericResult()
+                {
+                    Succeeded = false,
+                    Message = ex.Message
+                };
+            }
+            return Ok(_authenticationResult);
+        }
+
+
+        [HttpPost]
+        [Services.Controllers.IsAuthenticate]
+        [Services.Controllers.DeflateCompression]
+        [Route("api/portfolio/getXIRRViewNotesByObjectID")]
+        public IActionResult GetXIRRViewNotesByObjectID([FromBody] PortfolioDataContract portfolioDC)
+        {
+            GenericResult _authenticationResult = null;
+            IEnumerable<string> headerValues;
+
+            var headerUserID = string.Empty;
+            TagXIRRLogic TagXIRRLogic = new TagXIRRLogic();
+            if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
+            {
+                headerUserID = Convert.ToString(Request.Headers["TokenUId"]);
+            }
+            DataTable dt = new DataTable();
+            DataTable dtCalcReq = new DataTable();
+            try
+            {
+                dt = TagXIRRLogic.GetXIRRViewNotesByObjectID(portfolioDC.PortfolioMasterGuid.ToString(), portfolioDC.XIRRConfigID);
+                //dtCalcReq = TagXIRRLogic.GetXIRRCalculationStatusByObjectID(portfolioDC.PortfolioMasterGuid.ToString(), headerUserID);
+                if (dt.Rows.Count > 0)
+                {
+                    _authenticationResult = new GenericResult()
+                    {
+                        Succeeded = true,
+                        Message = "Succeeded",
+                        dt = dt,
+                        dtCalcReq=dtCalcReq
+                    };
+                }
+                else
+                {
+                    _authenticationResult = new GenericResult()
+                    {
+                        Succeeded = true,
+                        Message = "No Data."
+                    };
+                }
+            }
+            catch (Exception ex)
+            {
+
+                _authenticationResult = new GenericResult()
+                {
+                    Succeeded = false,
+                    Message = ex.Message
+                };
+            }
+            return Ok(_authenticationResult);
+        }
+
+
+        [HttpPost]
+        [Services.Controllers.IsAuthenticate]
+        [Services.Controllers.DeflateCompression]
+        [Route("api/portfolio/GetXIRRCalculationStatusByObjectID")]
+        public IActionResult GetXIRRCalculationStatusByObjectID([FromBody] string PortfolioMasterID)
+        {
+            GenericResult _authenticationResult = null;
+            IEnumerable<string> headerValues;
+
+            var headerUserID = string.Empty;
+            TagXIRRLogic TagXIRRLogic = new TagXIRRLogic();
+            if (!string.IsNullOrEmpty(Request.Headers["TokenUId"]))
+            {
+                headerUserID = Convert.ToString(Request.Headers["TokenUId"]);
+            }      
+            DataTable dtCalcReq = new DataTable();
+            try
+            {
+              
+                dtCalcReq = TagXIRRLogic.GetXIRRCalculationStatusByObjectID(PortfolioMasterID, headerUserID);
+                if (dtCalcReq.Rows.Count > 0)
+                {
+                    _authenticationResult = new GenericResult()
+                    {
+                        Succeeded = true,
+                        Message = "Succeeded",               
+                        dtCalcReq = dtCalcReq
+                    };
+                }
+                else
+                {
+                    _authenticationResult = new GenericResult()
+                    {
+                        Succeeded = true,
+                        Message = "No Data."
+                    };
+                }
+            }
+            catch (Exception ex)
+            {
+
+                _authenticationResult = new GenericResult()
+                {
+                    Succeeded = false,
+                    Message = ex.Message
+                };
+            }
             return Ok(_authenticationResult);
         }
     }

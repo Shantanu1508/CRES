@@ -41,10 +41,11 @@ n.Noteid
 	,Amount*-1					
 				from Note N
 			 inner Join CalendarBI C1 on N.FullyExtendedMaturityDate = C1.date
-			 Left Join Transactionentry T on T.NoteID =  N.NoteID
+			 Left Join Transactionentry T on T.NoteID =  N.NoteID and T.AccountTypeID = 1
 
 			 where Type = 'Balloon'
 			 and AnalysisID = 'C10F3372-0FC2-4861-A9F5-148F1F80804F'
+			 and T.AccountTypeID = 1
 
 			 )A
 			

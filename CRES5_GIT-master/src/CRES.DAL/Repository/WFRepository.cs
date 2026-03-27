@@ -1,22 +1,22 @@
-﻿using CRES.DataContract;
+﻿
+using CRES.DAL.IRepository;
+using CRES.DataContract;
 using CRES.Utilities;
 using System;
 using System.Collections.Generic;
+using System.Configuration;
 using System.Data;
-
 using System.Data.SqlClient;
-
+using System.Linq;
 using CRES.DataContract.WorkFlow;
-#pragma warning disable CS0105 // The using directive for 'CRES.DAL.IRepository' appeared previously in this namespace
-#pragma warning restore CS0105 // The using directive for 'CRES.DAL.IRepository' appeared previously in this namespace
 using Microsoft.Extensions.Configuration;
 using System.IO;
 
 namespace CRES.DAL.Repository
 {
-    public class WFRepository
+    public class WFRepository 
     {
-
+       
 
         SqlConnection connection = new SqlConnection();
         public WFDetailDataContract GetWorkflowDetailByTaskId(WFDetailDataContract wfDetailDataContract, string UserID)
@@ -29,7 +29,7 @@ namespace CRES.DAL.Repository
             SqlParameter p1 = new SqlParameter { ParameterName = "@TaskTypeID", Value = wfDetailDataContract.TaskTypeID };
             SqlParameter p2 = new SqlParameter { ParameterName = "@TaskID", Value = wfDetailDataContract.TaskID };
             SqlParameter p3 = new SqlParameter { ParameterName = "@UserID", Value = UserID };
-            SqlParameter[] sqlparam = new SqlParameter[] { p1, p2, p3 };
+            SqlParameter[] sqlparam = new SqlParameter[] { p1, p2,p3};
             dt = hp.ExecDataTable("dbo.usp_GetWorkflowDetailByTaskId", sqlparam);
 
             // var wfList = dbContext.usp_GetWorkflowDetailByTaskId(TaskID, UserID);
@@ -38,29 +38,32 @@ namespace CRES.DAL.Repository
             {
                 _wfDetailDataContract.WFTaskDetailId = CommonHelper.ToInt32(dr["WFTaskDetailID"]);
                 _wfDetailDataContract.TaskID = Convert.ToString(dr["TaskID"]);
-                _wfDetailDataContract.TaskTypeID = CommonHelper.ToInt32(dr["TaskTypeID"]);
-                _wfDetailDataContract.SubmitType = CommonHelper.ToInt32(dr["SubmitType"]);
-                _wfDetailDataContract.Comment = Convert.ToString(dr["Comment"]);
-                _wfDetailDataContract.WFStatusPurposeMappingID = CommonHelper.ToInt32(dr["WFStatusPurposeMappingID"]);
+                _wfDetailDataContract.TaskTypeID = CommonHelper.ToInt32(dr["TaskTypeID"]); 
+                _wfDetailDataContract.SubmitType = CommonHelper.ToInt32(dr["SubmitType"]); 
+                _wfDetailDataContract.Comment = Convert.ToString(dr["Comment"]); 
+                _wfDetailDataContract.WFStatusPurposeMappingID = CommonHelper.ToInt32(dr["WFStatusPurposeMappingID"]); 
 
-                _wfDetailDataContract.PurposeTypeId = CommonHelper.ToInt32(dr["PurposeTypeId"]);
-                _wfDetailDataContract.OrderIndex = CommonHelper.ToInt32(dr["OrderIndex"]);
-                _wfDetailDataContract.WFStatusMasterID = CommonHelper.ToInt32(dr["WFStatusMasterID"]);
-                _wfDetailDataContract.StatusName = Convert.ToString(dr["StatusName"]);
-                _wfDetailDataContract.StatusDisplayName = Convert.ToString(dr["StatusDisplayName"]);
-                _wfDetailDataContract.TaskTypeIDText = Convert.ToString(dr["TaskTypeIDText"]);
-                _wfDetailDataContract.SubmitTypeText = Convert.ToString(dr["SubmitTypeText"]);
+                _wfDetailDataContract.PurposeTypeId = CommonHelper.ToInt32(dr["PurposeTypeId"]); 
+                _wfDetailDataContract.OrderIndex = CommonHelper.ToInt32(dr["OrderIndex"]); 
+                _wfDetailDataContract.WFStatusMasterID = CommonHelper.ToInt32(dr["WFStatusMasterID"]); 
+                _wfDetailDataContract.StatusName = Convert.ToString(dr["StatusName"]); 
+				_wfDetailDataContract.StatusDisplayName =Convert.ToString(dr["StatusDisplayName"]);
+                _wfDetailDataContract.TaskTypeIDText = Convert.ToString(dr["TaskTypeIDText"]); 
+                _wfDetailDataContract.SubmitTypeText = Convert.ToString(dr["SubmitTypeText"]); 
                 _wfDetailDataContract.NextWFStatusPurposeMappingID = CommonHelper.ToInt32(dr["NextWFStatusPurposeMappingID"]);
                 _wfDetailDataContract.NextWFStatusMasterID = CommonHelper.ToInt32(dr["NextWFStatusMasterID"]);
-                _wfDetailDataContract.NextStatusName = Convert.ToString(dr["NextStatusName"]);
-                _wfDetailDataContract.NextOrderIndex = CommonHelper.ToInt32(dr["NextOrderIndex"]);
-                _wfDetailDataContract.wfFlag = Convert.ToString(dr["wfFlag"]);
+                _wfDetailDataContract.NextStatusName = Convert.ToString(dr["NextStatusName"]); 
+                _wfDetailDataContract.NextOrderIndex = CommonHelper.ToInt32(dr["NextOrderIndex"]); 
+                _wfDetailDataContract.wfFlag = Convert.ToString(dr["wfFlag"]); 
                 _wfDetailDataContract.wf_isAllow = Convert.ToInt32(dr["wf_isAllow"]);
                 _wfDetailDataContract.NextStatusDisplayName = Convert.ToString(dr["NextStatusDisplayName"]);
                 _wfDetailDataContract.wf_isAllowReject = Convert.ToInt32(dr["wf_isAllowReject"]);
                 _wfDetailDataContract.WorkFlowType = Convert.ToString(dr["WorkFlowType"]);
                 _wfDetailDataContract.IsDisableFundingTeamApproval = Convert.ToInt32(dr["IsDisableFundingTeamApproval"]);
                 _wfDetailDataContract.IsOnlyPrimaryUser = Convert.ToInt32(dr["IsOnlyPrimaryUser"]);
+                _wfDetailDataContract.DealID = Convert.ToString(dr["DealID"]);
+                _wfDetailDataContract.OriginalWFStatusPurposeMappingID = CommonHelper.ToInt32(dr["OriginalWFStatusPurposeMappingID"]);
+                _wfDetailDataContract.AmOversightMsg = Convert.ToString(dr["AmOversightMsg"]);
             }
 
             if (_wfDetailDataContract.TaskID == null)
@@ -81,32 +84,31 @@ namespace CRES.DAL.Repository
             SqlParameter p1 = new SqlParameter { ParameterName = "@TaskTypeID", Value = wfDetailDataContract.TaskTypeID };
             SqlParameter p2 = new SqlParameter { ParameterName = "@TaskID", Value = wfDetailDataContract.TaskID };
             SqlParameter p3 = new SqlParameter { ParameterName = "@UserID", Value = UserID };
-            SqlParameter[] sqlparam = new SqlParameter[] { p1, p2, p3 };
+            SqlParameter[] sqlparam = new SqlParameter[] { p1, p2,p3 };
             dt = hp.ExecDataTable("dbo.usp_GetWorkflowAdditionalDetailByTaskId", sqlparam);
-            // var wfList = dbContext.usp_GetWorkflowAdditionalDetailByTaskId(TaskID, UserID);
-
+           // var wfList = dbContext.usp_GetWorkflowAdditionalDetailByTaskId(TaskID, UserID);
             foreach (DataRow dr in dt.Rows)
             {
                 _wfAdditionalDataContarct.WFTaskDetailID = CommonHelper.ToInt32(dr["WFTaskDetailID"]);
                 _wfAdditionalDataContarct.TaskID = Convert.ToString(dr["TaskID"]);
                 _wfAdditionalDataContarct.Date = CommonHelper.ToDateTime(dr["Date"]);
                 _wfAdditionalDataContarct.Amount = CommonHelper.ToDecimal(dr["Amount"]);
-                _wfAdditionalDataContarct.PurposeID = CommonHelper.ToInt32(dr["PurposeID"]);
-                _wfAdditionalDataContarct.PurposeIDText = Convert.ToString(dr["PurposeIDText"]);
+                _wfAdditionalDataContarct.PurposeID = CommonHelper.ToInt32(dr["PurposeID"]); 
+                _wfAdditionalDataContarct.PurposeIDText = Convert.ToString(dr["PurposeIDText"]); 
                 _wfAdditionalDataContarct.Applied = CommonHelper.ToBoolean(dr["Applied"]);
-                _wfAdditionalDataContarct.Comment = Convert.ToString(dr["Comment"]);
-                _wfAdditionalDataContarct.DrawFundingID = Convert.ToString(dr["DrawFundingID"]);
-                _wfAdditionalDataContarct.DealName = Convert.ToString(dr["dealname"]);
-                _wfAdditionalDataContarct.CREDealID = Convert.ToString(dr["CREDealID"]);
-                _wfAdditionalDataContarct.BoxDocumentLink = Convert.ToString(dr["BoxDocumentLink"]);
-                _wfAdditionalDataContarct.DeadLineDate = CommonHelper.ToDateTime(dr["DeadLineDate"]);
+                _wfAdditionalDataContarct.Comment = Convert.ToString(dr["Comment"]); 
+                _wfAdditionalDataContarct.DrawFundingID = Convert.ToString(dr["DrawFundingID"]); 
+                _wfAdditionalDataContarct.DealName = Convert.ToString(dr["dealname"]); 
+                _wfAdditionalDataContarct.CREDealID = Convert.ToString(dr["CREDealID"]); 
+                _wfAdditionalDataContarct.BoxDocumentLink = Convert.ToString(dr["BoxDocumentLink"]); 
+                _wfAdditionalDataContarct.DeadLineDate = CommonHelper.ToDateTime(dr["DeadLineDate"]); 
                 _wfAdditionalDataContarct.IsPreliminaryNotification = Convert.ToBoolean(dr["IsPreliminaryNotification"]);
                 _wfAdditionalDataContarct.IsRevisedPreliminaryNotification = Convert.ToBoolean(dr["IsRevisedPreliminaryNotification"]);
                 _wfAdditionalDataContarct.IsFinalNotification = Convert.ToBoolean(dr["IsFinalNotification"]);
                 _wfAdditionalDataContarct.IsRevisedFinalNotification = Convert.ToBoolean(dr["IsRevisedFinalNotification"]);
                 _wfAdditionalDataContarct.IsServicerNotification = Convert.ToBoolean(dr["IsServicerNotification"]);
                 _wfAdditionalDataContarct.IsRevisedServicerNotification = Convert.ToBoolean(dr["IsRevisedServicerNotification"]);
-                _wfAdditionalDataContarct.CreatedByName = Convert.ToString(dr["CreatedByName"]);
+                _wfAdditionalDataContarct.CreatedByName = Convert.ToString(dr["CreatedByName"]); 
                 _wfAdditionalDataContarct.AMEmails = Convert.ToString(dr["AMEmails"]).Trim().Trim(',');
                 _wfAdditionalDataContarct.AdditionalComments = Convert.ToString(dr["AdditionalComment"]);
                 _wfAdditionalDataContarct.SpecialInstructions = Convert.ToString(dr["SpecialInstruction"]);
@@ -119,7 +121,7 @@ namespace CRES.DAL.Repository
                 _wfAdditionalDataContarct.AMSecondUser = Convert.ToString(dr["AMSecondUser"]);
                 _wfAdditionalDataContarct.BaseCurrencyName = Convert.ToString(dt.Rows[0]["BaseCurrencyName"]);
                 _wfAdditionalDataContarct.ServicerName = Convert.ToString(dt.Rows[0]["ServicerName"]);
-                _wfAdditionalDataContarct.IsREODeal = dr["IsREODeal"] == DBNull.Value ? false : Convert.ToBoolean(dr["IsREODeal"]);
+                _wfAdditionalDataContarct.IsREODeal = dr["IsREODeal"] == DBNull.Value?false:Convert.ToBoolean(dr["IsREODeal"]);
                 _wfAdditionalDataContarct.IsFinalNotificationPayOff = Convert.ToBoolean(dr["IsFinalNotificationPayOff"]);
                 _wfAdditionalDataContarct.IsRevisedFinalNotificationPayOff = Convert.ToBoolean(dr["IsRevisedFinalNotificationPayOff"]);
                 _wfAdditionalDataContarct.ExitFee = CommonHelper.ToDecimal(dr["ExitFee"]);
@@ -130,9 +132,15 @@ namespace CRES.DAL.Repository
                 _wfAdditionalDataContarct.LastPrelimSentDate = CommonHelper.ToDateTime(dr["LastPrelimSentDate"]);
                 _wfAdditionalDataContarct.IsCancelFinalSent = Convert.ToBoolean(dr["IsCancelFinalSent"]);
                 _wfAdditionalDataContarct.AdditionalGroupEmail = Convert.ToString(dr["AdditionalGroupEmail"]);
-
-
-
+                _wfAdditionalDataContarct.RevisedMessage = Convert.ToString(dr["RevisedMessage"]);
+                _wfAdditionalDataContarct.AdditionalEmail = Convert.ToString(dr["AdditionalEmail"]);
+                _wfAdditionalDataContarct.NotesWithFinancingSourceNone = Convert.ToString(dr["NotesWithFinancingSourceNone"]);
+                _wfAdditionalDataContarct.AMEmailsWithoutWellsBerkadia = Convert.ToString(dr["AMEmailsWithoutWellsBerkadia"]);
+                _wfAdditionalDataContarct.WatchlistStatus = Convert.ToString(dr["WatchlistStatus"]);
+                _wfAdditionalDataContarct.TotalPendingInvoice = Convert.ToInt32(dr["TotalPendingInvoice"]);
+                _wfAdditionalDataContarct.TotalPendingInvoiceAmt = Convert.ToDecimal(dr["TotalPendingInvoiceAmt"]);
+                _wfAdditionalDataContarct.IsPrelimDisabled = Convert.ToBoolean(dr["IsPrelimDisabled"]);
+                _wfAdditionalDataContarct.CREDealIDWithREO = Convert.ToString(dr["CREDealIDWithREO"]);
             }
 
             if (_wfAdditionalDataContarct.TaskID == null)
@@ -153,7 +161,7 @@ namespace CRES.DAL.Repository
             SqlParameter p1 = new SqlParameter { ParameterName = "@TaskTypeID", Value = wfDetailDataContract.TaskTypeID };
             SqlParameter p2 = new SqlParameter { ParameterName = "@TaskID", Value = wfDetailDataContract.TaskID };
             SqlParameter p3 = new SqlParameter { ParameterName = "@UserID", Value = UserID };
-            SqlParameter[] sqlparam = new SqlParameter[] { p1, p2, p3 };
+            SqlParameter[] sqlparam = new SqlParameter[] { p1, p2,p3 };
             dt = hp.ExecDataTable("dbo.usp_GetStatusMasterByTaskId", sqlparam);
             //var wfList = dbContext.usp_GetStatusMasterByTaskId(TaskID, UserID);
 
@@ -163,8 +171,8 @@ namespace CRES.DAL.Repository
                 _wfStatus.TaskID = Convert.ToString(dr["TaskID"]);
                 _wfStatus.OrderIndex = CommonHelper.ToInt32(dr["OrderIndex"]);
                 _wfStatus.WFStatusMasterID = CommonHelper.ToInt32(dr["WFStatusMasterID"]);
-                _wfStatus.StatusName = Convert.ToString(dr["StatusName"]);
-                _wfStatus.StatusDisplayName = Convert.ToString(dr["StatusDisplayName"]);
+                _wfStatus.StatusName = Convert.ToString(dr["StatusName"]); 
+                _wfStatus.StatusDisplayName = Convert.ToString(dr["StatusDisplayName"]); 
                 _wfStatus.WFStatusPurposeMappingID = Convert.ToInt32(dr["WFStatusPurposeMappingID"]);
                 _lstwfStatus.Add(_wfStatus);
             }
@@ -187,7 +195,7 @@ namespace CRES.DAL.Repository
             SqlParameter p1 = new SqlParameter { ParameterName = "@TaskTypeID", Value = wfDetailDataContract.TaskTypeID };
             SqlParameter p2 = new SqlParameter { ParameterName = "@TaskID", Value = wfDetailDataContract.TaskID };
             SqlParameter p3 = new SqlParameter { ParameterName = "@UserID", Value = UserID };
-            SqlParameter[] sqlparam = new SqlParameter[] { p1, p2, p3 };
+            SqlParameter[] sqlparam = new SqlParameter[] { p1, p2,p3 };
             dt = hp.ExecDataTable("dbo.usp_GetCheckListByTaskId", sqlparam);
             //var wfList = dbContext.usp_GetCheckListByTaskId(TaskID, UserID);
 
@@ -197,19 +205,28 @@ namespace CRES.DAL.Repository
                 _wfCheckListDataContract.WFTaskDetailID = Convert.ToInt32(dr["WFTaskDetailID"]);
                 _wfCheckListDataContract.TaskID = Convert.ToString(dr["TaskID"]);
                 _wfCheckListDataContract.WFCheckListDetailID = dr["WFCheckListDetailID"];
-                _wfCheckListDataContract.CheckListMasterId = CommonHelper.ToInt32(dr["WFCheckListMasterID"]);
-                _wfCheckListDataContract.CheckListName = Convert.ToString(dr["CheckListName"]);
-                _wfCheckListDataContract.CheckListStatus = CommonHelper.ToInt32(dr["CheckListStatus"]);
-                _wfCheckListDataContract.CheckListStatusText = Convert.ToString(dr["CheckListStatusText"]);
+                _wfCheckListDataContract.CheckListMasterId = CommonHelper.ToInt32(dr["WFCheckListMasterID"]); 
+                _wfCheckListDataContract.CheckListName = Convert.ToString(dr["CheckListName"]); 
+                _wfCheckListDataContract.CheckListStatus = CommonHelper.ToInt32(dr["CheckListStatus"]); 
+                _wfCheckListDataContract.CheckListStatusText = Convert.ToString(dr["CheckListStatusText"]); 
                 _wfCheckListDataContract.Comment = Convert.ToString(dr["Comment"]);
-                _wfCheckListDataContract.IsMandatory = CommonHelper.ToBoolean(dr["IsMandatory"]);
-                if (_wfCheckListDataContract.CheckListMasterId == 6 || _wfCheckListDataContract.CheckListMasterId == 9
+                _wfCheckListDataContract.IsMandatory = CommonHelper.ToBoolean(dr["IsMandatory"]) ;
+                if (_wfCheckListDataContract.CheckListMasterId == 6 || _wfCheckListDataContract.CheckListMasterId == 9 
                     || _wfCheckListDataContract.CheckListMasterId == 18 || _wfCheckListDataContract.CheckListMasterId == 15
                     || _wfCheckListDataContract.CheckListMasterId == 16 || _wfCheckListDataContract.CheckListMasterId == 17
                     )
                 {
                     _wfCheckListDataContract.RowId = 2;
                 }
+                else if (_wfCheckListDataContract.CheckListMasterId == 19)
+                {
+                    _wfCheckListDataContract.RowId = 3;
+                }
+                else if (_wfCheckListDataContract.CheckListMasterId == 21)
+                {
+                    _wfCheckListDataContract.RowId = 4;
+                }
+
                 else
                 {
                     _wfCheckListDataContract.RowId = 1;
@@ -294,7 +311,7 @@ namespace CRES.DAL.Repository
             DataTable dt = new DataTable();
 
             // ObjectParameter totalCount = new ObjectParameter("TotalCount", typeof(int));
-
+           
             List<WorkflowListDataContract> lstWFDC = new List<WorkflowListDataContract>();
             Helper.Helper hp = new Helper.Helper();
             SqlParameter p1 = new SqlParameter { ParameterName = "@UserID", Value = userId };
@@ -305,36 +322,36 @@ namespace CRES.DAL.Repository
             dt = hp.ExecDataTable("dbo.usp_GetAllWorkflowDetail", sqlparam);
 
             // var lstWorkflow = dbContext.usp_GetAllWorkflowDetail(userId, PageIndex, PageSize, totalCount).ToList();
-            TotalCount = Convert.ToInt32(p4.Value.ToString() == "" ? 0 : p4.Value);
+             TotalCount = Convert.ToInt32(p4.Value.ToString() == "" ? 0 : p4.Value);
 
             foreach (DataRow dr in dt.Rows)
             {
                 WorkflowListDataContract _wfDC = new WorkflowListDataContract();
 
 
-                _wfDC.WFTaskDetailID = Convert.ToInt32(dr["WFTaskDetailID"]);
+                _wfDC.WFTaskDetailID =Convert.ToInt32(dr["WFTaskDetailID"]);
                 _wfDC.TaskID = Convert.ToString(dr["TaskID"]);
-                _wfDC.TaskTypeID = CommonHelper.ToInt32(dr["TaskTypeID"]);
-                _wfDC.SubmitType = CommonHelper.ToInt32(dr["SubmitType"]);
-                _wfDC.WorkFlowComment = Convert.ToString(dr["WorkFlowComment"]);
-                _wfDC.StatusName = Convert.ToString(dr["StatusName"]);
+                _wfDC.TaskTypeID = CommonHelper.ToInt32(dr["TaskTypeID"]); 
+                _wfDC.SubmitType = CommonHelper.ToInt32(dr["SubmitType"]); 
+                _wfDC.WorkFlowComment = Convert.ToString(dr["WorkFlowComment"]); 
+                _wfDC.StatusName = Convert.ToString(dr["StatusName"]); 
 
 
-                _wfDC.CREDealID = Convert.ToString(dr["CREDealID"]);
-                _wfDC.DealName = Convert.ToString(dr["DealName"]);
+                _wfDC.CREDealID = Convert.ToString(dr["CREDealID"]); 
+                _wfDC.DealName = Convert.ToString(dr["DealName"]); 
 
                 _wfDC.Deadline = CommonHelper.ToDateTime(dr["Deadline"]);
                 _wfDC.Fundingdate = CommonHelper.ToDateTime(dr["Fundingdate"]);
 
                 _wfDC.Amount = CommonHelper.ToDecimal(dr["Amount"]);
-                _wfDC.Username = Convert.ToString(dr["Username"]);
+                _wfDC.Username = Convert.ToString(dr["Username"]); 
 
                 lstWFDC.Add(_wfDC);
             }
             return lstWFDC;
         }
 
-        public List<WorkflowListDataContract> GetAllWorkflowByFiltertype(Guid? userId, string filterType, int? PageSize, int? PageIndex, out int? TotalCount)
+        public List<WorkflowListDataContract> GetAllWorkflowByFiltertype(Guid? userId, string filterType, string CREDealID, int? PageSize, int? PageIndex, out int? TotalCount)
         {
             List<DateTime> lst = new List<DateTime>();
             DateTime dt1 = DateTime.Now;
@@ -349,7 +366,8 @@ namespace CRES.DAL.Repository
             SqlParameter p3 = new SqlParameter { ParameterName = "@PgeIndex", Value = PageIndex };
             SqlParameter p4 = new SqlParameter { ParameterName = "@PageSize", Value = PageSize };
             SqlParameter p5 = new SqlParameter { ParameterName = "@TotalCount", Direction = ParameterDirection.Output, Size = int.MaxValue };
-            SqlParameter[] sqlparam = new SqlParameter[] { p1, p2, p3, p4, p5 };
+            SqlParameter p6 = new SqlParameter { ParameterName = "@CREDealID", Value = CREDealID };
+            SqlParameter[] sqlparam = new SqlParameter[] { p1, p2, p3, p4, p5, p6 };
             dt = hp.ExecDataTable("dbo.usp_GetAllWorkflowDetailByFiltertype", sqlparam);
 
             // var lstWorkflow = dbContext.usp_GetAllWorkflowDetailByFiltertype(userId, filterType, PageIndex, PageSize, totalCount).ToList();
@@ -382,6 +400,9 @@ namespace CRES.DAL.Repository
                 _wfDC.PurposeID = CommonHelper.ToInt32(dr["PurposeID"]);
                 _wfDC.PurposeIDText = Convert.ToString(dr["PurposeIDText"]);
                 _wfDC.FundingApprovalRequired = Convert.ToString(dr["FundingApprovalRequired"]);
+                _wfDC.PAMUsername = Convert.ToString(dr["PAMUsername"]);
+                _wfDC.AMOUsername = Convert.ToString(dr["AMOUsername"]);
+                _wfDC.UserID = CommonHelper.ToGuid(dr["UserID"]);
                 lstWFDC.Add(_wfDC);
             }
             return lstWFDC;
@@ -392,7 +413,6 @@ namespace CRES.DAL.Repository
         {
 
             List<WFNotificationDataContract> lstWorkflowNotification = new List<WFNotificationDataContract>();
-#pragma warning disable CS0168 // The variable 'ex' is declared but never used
             try
             {
 
@@ -414,7 +434,6 @@ namespace CRES.DAL.Repository
             {
 
             }
-#pragma warning restore CS0168 // The variable 'ex' is declared but never used
             return lstWorkflowNotification;
         }
 
@@ -428,12 +447,12 @@ namespace CRES.DAL.Repository
             SqlParameter p1 = new SqlParameter { ParameterName = "@TaskID", Value = wfDetailDataContract.TaskID };
             SqlParameter p2 = new SqlParameter { ParameterName = "@TaskTypeID", Value = wfDetailDataContract.TaskTypeID };
             SqlParameter p3 = new SqlParameter { ParameterName = "@UserID", Value = UserID };
-
-            SqlParameter[] sqlparam = new SqlParameter[] { p1, p2, p3 };
+            
+            SqlParameter[] sqlparam = new SqlParameter[] { p1, p2,p3 };
             dt = hp.ExecDataTable("dbo.usp_GetWFCommentsByTaskId", sqlparam);
 
             //var wfList = dbContext.usp_GetWFCommentsByTaskId(TaskID, UserID);
-
+            
             foreach (DataRow dr in dt.Rows)
             {
                 WFDetailDataContract _wfDC = new WFDetailDataContract();
@@ -483,7 +502,7 @@ namespace CRES.DAL.Repository
             SqlParameter[] sqlparam = new SqlParameter[] { p1, p2 };
             dt = hp.ExecDataTable("CRE.usp_GetWFNotificationConfigByNotificationType", sqlparam);
 
-            // var wfList = dbContext.usp_GetWFNotificationConfigByNotificationType(DCNotificationMaster.WFNotificationMasterID, new Guid(DCNotificationMaster.CreatedBy));
+           // var wfList = dbContext.usp_GetWFNotificationConfigByNotificationType(DCNotificationMaster.WFNotificationMasterID, new Guid(DCNotificationMaster.CreatedBy));
 
             foreach (DataRow dr in dt.Rows)
             {
@@ -491,10 +510,10 @@ namespace CRES.DAL.Repository
 
 
                 _wfNDC.WFNotificationConfigID = Convert.ToInt32(dr["WFNotificationConfigID"]);
-                if (Convert.ToString(dr["WFNotificationConfigGuID"]) != "")
-                {
+                    if (Convert.ToString(dr["WFNotificationConfigGuID"]) != "")
+                     {
                     _wfNDC.WFNotificationConfigGuID = new Guid(Convert.ToString(dr["WFNotificationConfigGuID"]));
-                }
+                     }
 
                 _wfNDC.Name = Convert.ToString(dr["Name"]);
                 _wfNDC.WFNotificationMasterID = Convert.ToInt32(dr["WFNotificationMasterID"]);
@@ -513,8 +532,8 @@ namespace CRES.DAL.Repository
 
 
 
-                _wfNotificationDataContract.Add(_wfNDC);
-            }
+            _wfNotificationDataContract.Add(_wfNDC);
+        }
 
             if (_wfNotificationDataContract.Count == 0)
             {
@@ -654,7 +673,7 @@ namespace CRES.DAL.Repository
             SqlParameter p1 = new SqlParameter { ParameterName = "@TaskTypeID", Value = wfDetailDataContract.TaskTypeID };
             SqlParameter p2 = new SqlParameter { ParameterName = "@DealFundingID", Value = new Guid(wfDetailDataContract.TaskID) };
             SqlParameter p3 = new SqlParameter { ParameterName = "@UserID", Value = UserID };
-            SqlParameter[] sqlparam = new SqlParameter[] { p1, p2, p3 };
+            SqlParameter[] sqlparam = new SqlParameter[] { p1, p2,p3 };
             dt = hp.ExecDataTable("CRE.usp_GetWFNotificationMasterEmail", sqlparam);
             // var wfList = dbContext.usp_GetWFNotificationMasterEmail(DealFundingID, UserID);
 
@@ -696,14 +715,13 @@ namespace CRES.DAL.Repository
 
 
             DataTable dt = new DataTable();
-#pragma warning disable CS0168 // The variable 'ex' is declared but never used
             try
             {
                 Helper.Helper hp = new Helper.Helper();
                 SqlParameter p1 = new SqlParameter { ParameterName = "@TaskID", Value = wfDetailDataContract.TaskID };
                 SqlParameter p2 = new SqlParameter { ParameterName = "@TaskTypeID", Value = wfDetailDataContract.TaskTypeID };
                 SqlParameter p3 = new SqlParameter { ParameterName = "@UserID", Value = UserID };
-                SqlParameter[] sqlparam = new SqlParameter[] { p1, p2, p3 };
+                SqlParameter[] sqlparam = new SqlParameter[] { p1, p2,p3 };
                 dt = hp.ExecDataTable("usp_GetWFRejectStatusByTaskId", sqlparam);
 
                 if (dt != null)
@@ -726,7 +744,6 @@ namespace CRES.DAL.Repository
             {
 
             }
-#pragma warning restore CS0168 // The variable 'ex' is declared but never used
 
             return _lstwfStatus;
         }
@@ -735,7 +752,6 @@ namespace CRES.DAL.Repository
 
             DataTable dt = new DataTable();
             WFDetailDataContract wfdt = new WFDetailDataContract();
-#pragma warning disable CS0168 // The variable 'ex' is declared but never used
             try
             {
                 Helper.Helper hp = new Helper.Helper();
@@ -760,7 +776,6 @@ namespace CRES.DAL.Repository
             {
 
             }
-#pragma warning restore CS0168 // The variable 'ex' is declared but never used
 
             return wfdt;
         }
@@ -770,7 +785,6 @@ namespace CRES.DAL.Repository
             DataTable dt = new DataTable();
             int StatusCode = 0;
             WFDetailDataContract wfdt = new WFDetailDataContract();
-#pragma warning disable CS0168 // The variable 'ex' is declared but never used
             try
             {
                 Helper.Helper hp = new Helper.Helper();
@@ -791,7 +805,6 @@ namespace CRES.DAL.Repository
             {
 
             }
-#pragma warning restore CS0168 // The variable 'ex' is declared but never used
 
             return StatusCode;
         }
@@ -799,7 +812,6 @@ namespace CRES.DAL.Repository
         {
             DataTable dt = new DataTable();
             List<WFStatusPurposeMappingDataContract> statuspurposemapping = new List<WFStatusPurposeMappingDataContract>();
-#pragma warning disable CS0168 // The variable 'ex' is declared but never used
             try
             {
                 Helper.Helper hp = new Helper.Helper();
@@ -833,7 +845,6 @@ namespace CRES.DAL.Repository
             {
 
             }
-#pragma warning restore CS0168 // The variable 'ex' is declared but never used
 
             return statuspurposemapping;
 
@@ -854,7 +865,6 @@ namespace CRES.DAL.Repository
         {
 
             List<WFNotificationDataContract> lstWorkflowNotification = new List<WFNotificationDataContract>();
-#pragma warning disable CS0168 // The variable 'ex' is declared but never used
             try
             {
                 Helper.Helper hp = new Helper.Helper();
@@ -873,19 +883,18 @@ namespace CRES.DAL.Repository
             {
 
             }
-#pragma warning restore CS0168 // The variable 'ex' is declared but never used
             return lstWorkflowNotification;
 
         }
 
-        public string GetConnectionString()
+            public string GetConnectionString()
         {
 
             IConfigurationBuilder builder = new ConfigurationBuilder();
             builder.AddJsonFile(Path.Combine(Directory.GetCurrentDirectory(), "appsettings.json"));
             var root = builder.Build();
             return root.GetSection("Application").GetSection("ConnectionStrings").Value;
-            //connstring = "Data Source = 192.168.1.250; Initial Catalog = CRES4_QA; user id=admin;password=admin1*";
+                //connstring = "Data Source = 192.168.1.250; Initial Catalog = CRES4_QA; user id=admin;password=admin1*";
         }
 
         public DrawFeeInvoiceDataContract GetDrawFeeInvoiceDetailByTaskID(string TaskID, string UserID)
@@ -893,7 +902,6 @@ namespace CRES.DAL.Repository
 
             DataTable dt = new DataTable();
             DrawFeeInvoiceDataContract drawdt = new DrawFeeInvoiceDataContract();
-#pragma warning disable CS0168 // The variable 'ex' is declared but never used
             try
             {
                 Helper.Helper hp = new Helper.Helper();
@@ -945,7 +953,6 @@ namespace CRES.DAL.Repository
             {
 
             }
-#pragma warning restore CS0168 // The variable 'ex' is declared but never used
 
             return drawdt;
         }
@@ -976,7 +983,6 @@ namespace CRES.DAL.Repository
             int ID = 0;
             DataTable dt = new DataTable();
             DrawFeeInvoiceDataContract drawdt = new DrawFeeInvoiceDataContract();
-#pragma warning disable CS0168 // The variable 'ex' is declared but never used
             try
             {
                 Helper.Helper hp = new Helper.Helper();
@@ -996,7 +1002,6 @@ namespace CRES.DAL.Repository
             {
                 ID = 0;
             }
-#pragma warning restore CS0168 // The variable 'ex' is declared but never used
 
             return ID;
         }
@@ -1007,6 +1012,9 @@ namespace CRES.DAL.Repository
             dt = hp.ExecDataTable("usp_GetWorkFlowStatus");
             return dt;
         }
+        
+
+        
 
         public string UpdateDrawFeeInvoiceDetailStatus(string UserID, DrawFeeInvoiceDataContract drawFeeDC)
         {
@@ -1022,11 +1030,11 @@ namespace CRES.DAL.Repository
                 SqlParameter p4 = new SqlParameter { ParameterName = "@FileName", Value = drawFeeDC.FileName };
                 SqlParameter p5 = new SqlParameter { ParameterName = "@InvoiceNumber", Value = drawFeeDC.InvoiceNo };
                 SqlParameter p6 = new SqlParameter { ParameterName = "@AmountPaid", Value = drawFeeDC.AmountPaid };
-                SqlParameter p7 = new SqlParameter { ParameterName = "@PaymentDate", Value = drawFeeDC.PaymentDate == DateTime.MinValue ? null : drawFeeDC.PaymentDate };
+                SqlParameter p7 = new SqlParameter { ParameterName = "@PaymentDate", Value = drawFeeDC.PaymentDate==DateTime.MinValue? null: drawFeeDC.PaymentDate };
                 SqlParameter p8 = new SqlParameter { ParameterName = "@InvoiceGuid", Value = drawFeeDC.InvoiceGuid };
                 SqlParameter p9 = new SqlParameter { ParameterName = "@PreAssignedInvoiceNo", Value = drawFeeDC.PreAssignedInvoiceNo };
                 SqlParameter p10 = new SqlParameter { ParameterName = "@IsLogActivity", Value = drawFeeDC.IsLogActivity };
-                SqlParameter[] sqlparam = new SqlParameter[] { p1, p2, p3, p4, p5, p6, p7, p8, p9, p10 };
+                SqlParameter[] sqlparam = new SqlParameter[] { p1, p2,p3,p4,p5,p6,p7,p8,p9,p10};
                 //SqlParameter[] sqlparam = new SqlParameter[] { p1, p2,p3,p4,p5,p6,p7,p8};
                 dt = hp.ExecDataTable("usp_UpdateInvoiceDetailStatus", sqlparam);
             }
@@ -1044,12 +1052,11 @@ namespace CRES.DAL.Repository
             DataTable dt = new DataTable();
             List<DrawFeeInvoiceDataContract> lstdraw = new List<DrawFeeInvoiceDataContract>();
             DrawFeeInvoiceDataContract drawdt = null;
-#pragma warning disable CS0168 // The variable 'ex' is declared but never used
             try
             {
                 Helper.Helper hp = new Helper.Helper();
                 SqlParameter p1 = new SqlParameter { ParameterName = "@UserID", Value = UserID };
-                SqlParameter[] sqlparam = new SqlParameter[] { p1 };
+                SqlParameter[] sqlparam = new SqlParameter[] { p1};
                 dt = hp.ExecDataTable("usp_GetAllPendingInvoice", sqlparam);
 
                 if (dt != null)
@@ -1091,7 +1098,6 @@ namespace CRES.DAL.Repository
             {
 
             }
-#pragma warning restore CS0168 // The variable 'ex' is declared but never used
 
             return lstdraw;
         }
@@ -1102,7 +1108,6 @@ namespace CRES.DAL.Repository
             DataTable dt = new DataTable();
             List<DrawFeeInvoiceDataContract> lstdraw = new List<DrawFeeInvoiceDataContract>();
             DrawFeeInvoiceDataContract drawdt = null;
-#pragma warning disable CS0168 // The variable 'ex' is declared but never used
             try
             {
                 Helper.Helper hp = new Helper.Helper();
@@ -1149,8 +1154,9 @@ namespace CRES.DAL.Repository
                         drawdt.SenderFirstName = Convert.ToString(dr["SenderFirstName"]);
                         drawdt.SenderLastName = Convert.ToString(dr["SenderLastName"]);
                         drawdt.SenderEmail = Convert.ToString(dr["SenderEmail"]);
-                        drawdt.FundingAmount = CommonHelper.ToDecimal(dr["FundingAmount"]);
-                        drawdt.InvoiceTypeID = Convert.ToInt32(dr["InvoiceTypeID"]);
+                        drawdt.FundingAmount= CommonHelper.ToDecimal(dr["FundingAmount"]);
+                        drawdt.InvoiceTypeID= Convert.ToInt32(dr["InvoiceTypeID"]);
+                        drawdt.IsManualInvoice= Convert.ToBoolean(dr["IsManualInvoice"]);
                         lstdraw.Add(drawdt);
                     }
                 }
@@ -1160,12 +1166,11 @@ namespace CRES.DAL.Repository
             {
 
             }
-#pragma warning restore CS0168 // The variable 'ex' is declared but never used
 
             return lstdraw;
         }
 
-
+      
         public DataTable GetAllFeeInvoice(Guid? userId, string DealID, int? PageSize, int? PageIndex, out int? TotalCount)
         {
             DataTable dt = new DataTable();
@@ -1175,7 +1180,7 @@ namespace CRES.DAL.Repository
             SqlParameter p3 = new SqlParameter { ParameterName = "@PgeIndex", Value = PageIndex };
             SqlParameter p4 = new SqlParameter { ParameterName = "@PageSize", Value = PageSize };
             SqlParameter p5 = new SqlParameter { ParameterName = "@totalCount", Direction = ParameterDirection.Output, Size = int.MaxValue };
-            SqlParameter[] sqlparam = new SqlParameter[] { p1, p2, p3, p4, p5 };
+            SqlParameter[] sqlparam = new SqlParameter[] { p1, p2, p3, p4,p5 };
             dt = hp.ExecDataTable("dbo.usp_GetAllFeeInvoice", sqlparam);
 
             // var lstWorkflow = dbContext.usp_GetAllWorkflowDetail(userId, PageIndex, PageSize, totalCount).ToList();
@@ -1184,33 +1189,33 @@ namespace CRES.DAL.Repository
         }
 
 
+        
 
-
-        public DrawFeeInvoiceDataContract CheckQBDCompanyCustomer(DrawFeeInvoiceDataContract drawFeeDC)
+       public DrawFeeInvoiceDataContract CheckQBDCompanyCustomer(DrawFeeInvoiceDataContract drawFeeDC)
         { //
             DataTable dt = new DataTable();
             DrawFeeInvoiceDataContract drawdt = new DrawFeeInvoiceDataContract();
+           
+                Helper.Helper hp = new Helper.Helper();
+                SqlParameter p1 = new SqlParameter { ParameterName = "@CustomerAccountName", Value = drawFeeDC.DealName };
+                SqlParameter p2 = new SqlParameter { ParameterName = "@CompanyName", Value = drawFeeDC.CompanyName };
+                SqlParameter[] sqlparam = new SqlParameter[] { p1, p2};
+                dt = hp.ExecDataTable("usp_CheckQBDCompanyCustomer", sqlparam);
 
-            Helper.Helper hp = new Helper.Helper();
-            SqlParameter p1 = new SqlParameter { ParameterName = "@CustomerAccountName", Value = drawFeeDC.DealName };
-            SqlParameter p2 = new SqlParameter { ParameterName = "@CompanyName", Value = drawFeeDC.CompanyName };
-            SqlParameter[] sqlparam = new SqlParameter[] { p1, p2 };
-            dt = hp.ExecDataTable("usp_CheckQBDCompanyCustomer", sqlparam);
-
-            if (dt != null)
-            {
-                foreach (DataRow dr in dt.Rows)
+                if (dt != null)
                 {
-                    drawdt.IsExistCustomer = Convert.ToInt32(dr["IsExistCustomer"]) == 1;
-                    drawdt.IsExistCompany = Convert.ToInt32(dr["IsExistCompany"]) == 1;
-                    drawdt.ID = Convert.ToString(dr["ID"]);
+                    foreach (DataRow dr in dt.Rows)
+                    {
+                        drawdt.IsExistCustomer = Convert.ToInt32(dr["IsExistCustomer"])==1;
+                        drawdt.IsExistCompany = Convert.ToInt32(dr["IsExistCompany"])==1;
+                        drawdt.ID = Convert.ToString(dr["ID"]);
                 }
-            }
+                }
             return drawdt;
         }
 
 
-        public string AddUpdateQBDCustomer(string UserID, QBDCustomerInputDataContract QbdCustomer)
+        public string AddUpdateQBDCustomer(string UserID,QBDCustomerInputDataContract QbdCustomer)
         {
             string result = "success";
             try
@@ -1224,7 +1229,7 @@ namespace CRES.DAL.Repository
                 SqlParameter p3 = new SqlParameter { ParameterName = "@CustomerAccountName", Value = QbdCustomer.FullName };
                 SqlParameter p4 = new SqlParameter { ParameterName = "@CustomerNo", Value = QbdCustomer.CustomerNo };
                 SqlParameter p5 = new SqlParameter { ParameterName = "@ContactID", Value = QbdCustomer.ContactID };
-                SqlParameter[] sqlparam = new SqlParameter[] { p1, p2, p3, p4, p5 };
+                SqlParameter[] sqlparam = new SqlParameter[] { p1, p2, p3,p4,p5};
                 hp.ExecNonquery("usp_InsertUpdateQBDCustomer", sqlparam);
             }
             catch (Exception ex)
@@ -1234,7 +1239,7 @@ namespace CRES.DAL.Repository
             return result;
         }
 
-        public QBDCompanyDataContract GetQuickBookCompany(string UserID, QBDCompanyDataContract qbdCompany)
+        public QBDCompanyDataContract GetQuickBookCompany(string UserID,QBDCompanyDataContract qbdCompany)
         {
             DataTable dt = new DataTable();
             QBDCompanyDataContract comp = new QBDCompanyDataContract();
@@ -1270,7 +1275,7 @@ namespace CRES.DAL.Repository
             {
                 Helper.Helper hp = new Helper.Helper();
                 DataTable dt = new DataTable();
-
+               
                 SqlParameter p1 = new SqlParameter { ParameterName = "@UserID", Value = UserID };
 
                 SqlParameter[] sqlparam = new SqlParameter[] { p1 };
@@ -1283,7 +1288,7 @@ namespace CRES.DAL.Repository
             }
         }
 
-        public DataTable SaveFeeInvoices(DataTable dtFeeInvoice, string UserID)
+        public DataTable SaveFeeInvoices(DataTable dtFeeInvoice,string UserID)
         {
             try
             {
@@ -1293,7 +1298,7 @@ namespace CRES.DAL.Repository
                 SqlParameter p1 = new SqlParameter { ParameterName = "@TableTypeFeeInvoice", Value = dtFeeInvoice };
                 SqlParameter p2 = new SqlParameter { ParameterName = "@UserID", Value = UserID };
 
-                SqlParameter[] sqlparam = new SqlParameter[] { p1, p2 };
+                SqlParameter[] sqlparam = new SqlParameter[] { p1,p2 };
                 dt = hp.ExecDataTable("dbo.usp_SaveFeeInvoice", sqlparam);
                 return dt;
             }
@@ -1310,11 +1315,10 @@ namespace CRES.DAL.Repository
             DataTable dt = new DataTable();
             List<DrawFeeInvoiceDataContract> lstDrawDc = new List<DrawFeeInvoiceDataContract>();
             DrawFeeInvoiceDataContract drawdt = null;
-#pragma warning disable CS0168 // The variable 'ex' is declared but never used
             try
             {
                 Helper.Helper hp = new Helper.Helper();
-                SqlParameter[] sqlparam = new SqlParameter[] { };
+                SqlParameter[] sqlparam = new SqlParameter[] {};
                 dt = hp.ExecDataTable("usp_GetMissingQBDCustomer", sqlparam);
 
                 if (dt != null)
@@ -1359,7 +1363,6 @@ namespace CRES.DAL.Repository
             {
 
             }
-#pragma warning restore CS0168 // The variable 'ex' is declared but never used
 
             return lstDrawDc;
         }
@@ -1370,7 +1373,6 @@ namespace CRES.DAL.Repository
             DataTable dt = new DataTable();
             List<DrawFeeInvoiceDataContract> lstdraw = new List<DrawFeeInvoiceDataContract>();
             DrawFeeInvoiceDataContract drawdt = null;
-#pragma warning disable CS0168 // The variable 'ex' is declared but never used
             try
             {
                 Helper.Helper hp = new Helper.Helper();
@@ -1428,7 +1430,6 @@ namespace CRES.DAL.Repository
             {
 
             }
-#pragma warning restore CS0168 // The variable 'ex' is declared but never used
 
             return lstdraw;
         }
@@ -1442,7 +1443,7 @@ namespace CRES.DAL.Repository
             Helper.Helper hp = new Helper.Helper();
             SqlParameter p1 = new SqlParameter { ParameterName = "@InvoiceDetailID", Value = InvoiceDetailID };
             SqlParameter p2 = new SqlParameter { ParameterName = "@UserID", Value = UserID };
-            SqlParameter[] sqlparam = new SqlParameter[] { p1, p2 };
+            SqlParameter[] sqlparam = new SqlParameter[] { p1, p2};
             dt = hp.ExecDataTable("usp_GetDealPrimaryAM", sqlparam);
             if (dt != null)
             {
@@ -1471,7 +1472,7 @@ namespace CRES.DAL.Repository
             {
                 foreach (DataRow dr in dt.Rows)
                 {
-                    invoiceDC.InvoiceConfigID = Convert.ToInt32(dr["InvoiceConfigID"]);
+                    invoiceDC.InvoiceConfigID= Convert.ToInt32(dr["InvoiceConfigID"]);
                     invoiceDC.InvoiceTypeID = Convert.ToInt32(dr["InvoiceTypeID"]);
                     invoiceDC.InvoiceCode = Convert.ToString(dr["InvoiceCode"]);
                     invoiceDC.Template = Convert.ToString(dr["Template"]);
@@ -1546,7 +1547,6 @@ namespace CRES.DAL.Repository
             DataTable dt = new DataTable();
             List<DrawFeeInvoiceDataContract> lstdraw = new List<DrawFeeInvoiceDataContract>();
             DrawFeeInvoiceDataContract drawdt = null;
-#pragma warning disable CS0168 // The variable 'ex' is declared but never used
             try
             {
                 Helper.Helper hp = new Helper.Helper();
@@ -1607,16 +1607,14 @@ namespace CRES.DAL.Repository
             {
 
             }
-#pragma warning restore CS0168 // The variable 'ex' is declared but never used
 
             return lstdraw;
         }
-        public DrawFeeInvoiceDataContract GetInvoiceDetailByObjectTypeID(int ObjectTypeID, string @ObjectID, string UserID)
+        public DrawFeeInvoiceDataContract GetInvoiceDetailByObjectTypeID(int ObjectTypeID, string @ObjectID,string UserID)
         {
 
             DataTable dt = new DataTable();
             DrawFeeInvoiceDataContract drawdt = new DrawFeeInvoiceDataContract();
-#pragma warning disable CS0168 // The variable 'ex' is declared but never used
             try
             {
                 Helper.Helper hp = new Helper.Helper();
@@ -1669,7 +1667,6 @@ namespace CRES.DAL.Repository
             {
 
             }
-#pragma warning restore CS0168 // The variable 'ex' is declared but never used
 
             return drawdt;
         }
@@ -1679,7 +1676,6 @@ namespace CRES.DAL.Repository
             DataTable dt = new DataTable();
             List<DrawFeeInvoiceDataContract> lstdraw = new List<DrawFeeInvoiceDataContract>();
             DrawFeeInvoiceDataContract drawdt = null;
-#pragma warning disable CS0168 // The variable 'ex' is declared but never used
             try
             {
                 Helper.Helper hp = new Helper.Helper();
@@ -1739,7 +1735,6 @@ namespace CRES.DAL.Repository
             {
 
             }
-#pragma warning restore CS0168 // The variable 'ex' is declared but never used
 
             return lstdraw;
         }
@@ -1750,7 +1745,6 @@ namespace CRES.DAL.Repository
             DataTable dt = new DataTable();
             List<DrawFeeInvoiceDataContract> lstDrawDc = new List<DrawFeeInvoiceDataContract>();
             DrawFeeInvoiceDataContract drawdt = null;
-#pragma warning disable CS0168 // The variable 'ex' is declared but never used
             try
             {
                 Helper.Helper hp = new Helper.Helper();
@@ -1798,7 +1792,6 @@ namespace CRES.DAL.Repository
             {
 
             }
-#pragma warning restore CS0168 // The variable 'ex' is declared but never used
 
             return lstDrawDc;
         }
@@ -1808,7 +1801,7 @@ namespace CRES.DAL.Repository
             DataTable dt = new DataTable();
             DrawFeeInvoiceDataContract drawdt = new DrawFeeInvoiceDataContract();
             try
-            {
+            { 
                 Helper.Helper hp = new Helper.Helper();
                 SqlParameter p1 = new SqlParameter { ParameterName = "@XMLAdditionalInfo", Value = _wfDetailDataContract.ToXML().Replace(" xsi:nil=\"true\"", "") };
                 SqlParameter p2 = new SqlParameter { ParameterName = "@UserID", Value = UserID };
@@ -1862,7 +1855,7 @@ namespace CRES.DAL.Repository
 
                     dbCmd.Parameters.AddWithValue("DealFundingID", _wfDetailDataContract.TaskID);
                     dbCmd.Parameters.AddWithValue("TaskTypeID", _wfDetailDataContract.TaskTypeID);
-                    dbCmd.Parameters.AddWithValue("UserID", string.IsNullOrEmpty(_wfDetailDataContract.CreatedBy) ? "" : _wfDetailDataContract.CreatedBy);
+                    dbCmd.Parameters.AddWithValue("UserID", string.IsNullOrEmpty(_wfDetailDataContract.CreatedBy)?"": _wfDetailDataContract.CreatedBy);
                     dbCmd.Parameters.AddWithValue("CheckListDetail", dtCheckList);
                     connection.Open();
                     dbCmd.ExecuteNonQuery();
@@ -1893,7 +1886,6 @@ namespace CRES.DAL.Repository
             DataTable dt = new DataTable();
             List<InvoiceSplitOutputDataContract> lstDrawDc = new List<InvoiceSplitOutputDataContract>();
             InvoiceSplitOutputDataContract drawdt = null;
-#pragma warning disable CS0168 // The variable 'ex' is declared but never used
             try
             {
                 Helper.Helper hp = new Helper.Helper();
@@ -1902,7 +1894,7 @@ namespace CRES.DAL.Repository
                 SqlParameter p3 = new SqlParameter { ParameterName = "@FeeAmount", Value = _param.FeeAmount };
                 SqlParameter p4 = new SqlParameter { ParameterName = "@UserID", Value = UserID };
 
-                SqlParameter[] sqlparam = new SqlParameter[] { p1, p2, p3, p4 };
+                SqlParameter[] sqlparam = new SqlParameter[] { p1, p2,p3,p4 };
                 dt = hp.ExecDataTable("dbo.usp_GetInvoiceSplit", sqlparam);
                 if (dt != null)
                 {
@@ -1920,7 +1912,6 @@ namespace CRES.DAL.Repository
             catch (Exception ex)
             {
             }
-#pragma warning restore CS0168 // The variable 'ex' is declared but never used
             return lstDrawDc;
         }
 
@@ -1935,7 +1926,7 @@ namespace CRES.DAL.Repository
             SqlParameter p3 = new SqlParameter { ParameterName = "@SystemInvoiceNo", Value = _DrawFeeInvoice.InvoiceNoUI };
             SqlParameter p4 = new SqlParameter { ParameterName = "@StateAbbr", Value = _DrawFeeInvoice.State };
             SqlParameter p5 = new SqlParameter { ParameterName = "@InvoiceType", Value = _DrawFeeInvoice.InvoiceTypeName };
-            SqlParameter[] sqlparam = new SqlParameter[] { p1, p2, p3, p4, p5 };
+            SqlParameter[] sqlparam = new SqlParameter[] { p1, p2,p3,p4,p5 };
             dt = hp.ExecDataTable("usp_ValidateInvoiceAPIParams", sqlparam);
             if (dt != null)
             {
@@ -1953,18 +1944,17 @@ namespace CRES.DAL.Repository
             return drawDC;
         }
 
-        public DrawFeeInvoiceDataContract GetInvoiceDetailByID(string UserID, int InvoiceDetailID)
+        public DrawFeeInvoiceDataContract GetInvoiceDetailByID(string UserID,int InvoiceDetailID)
         {
 
             DataTable dt = new DataTable();
             DrawFeeInvoiceDataContract drawdt = new DrawFeeInvoiceDataContract();
-#pragma warning disable CS0168 // The variable 'ex' is declared but never used
             try
             {
                 Helper.Helper hp = new Helper.Helper();
                 SqlParameter p1 = new SqlParameter { ParameterName = "@InvoiceDetailID", Value = InvoiceDetailID };
                 SqlParameter p2 = new SqlParameter { ParameterName = "@UserID", Value = UserID };
-                SqlParameter[] sqlparam = new SqlParameter[] { p1, p2 };
+                SqlParameter[] sqlparam = new SqlParameter[] { p1,p2 };
                 dt = hp.ExecDataTable("usp_GetInvoiceDetailByID", sqlparam);
 
                 if (dt != null)
@@ -2021,7 +2011,6 @@ namespace CRES.DAL.Repository
             {
 
             }
-#pragma warning restore CS0168 // The variable 'ex' is declared but never used
 
             return drawdt;
         }
@@ -2033,7 +2022,7 @@ namespace CRES.DAL.Repository
 
             Helper.Helper hp = new Helper.Helper();
             SqlParameter p1 = new SqlParameter { ParameterName = "@AccountName", Value = AccountName };
-            SqlParameter[] sqlparam = new SqlParameter[] { p1 };
+            SqlParameter[] sqlparam = new SqlParameter[] { p1};
             dt = hp.ExecDataTable("usp_GetCustomerByAccountName", sqlparam);
             if (dt != null)
             {
@@ -2068,7 +2057,7 @@ namespace CRES.DAL.Repository
                 SqlParameter p1 = new SqlParameter { ParameterName = "@UserID", Value = _wfDetailDataContract.CreatedBy };
                 SqlParameter p2 = new SqlParameter { ParameterName = "@CREDealIDOrDealID", Value = _wfDetailDataContract.CREDealID };
                 SqlParameter p3 = new SqlParameter { ParameterName = "@PropertyManagerEmail", Value = _wfDetailDataContract.PropertyManagerEmail };
-                SqlParameter[] sqlparam = new SqlParameter[] { p1, p2, p3 };
+                SqlParameter[] sqlparam = new SqlParameter[] { p1, p2,p3 };
                 hp.ExecNonquery("usp_UpdatePropertyManagerEmail", sqlparam);
             }
             catch (Exception ex)
@@ -2085,7 +2074,6 @@ namespace CRES.DAL.Repository
             DataTable dt = new DataTable();
             List<DrawFeeInvoiceDataContract> lstdraw = new List<DrawFeeInvoiceDataContract>();
             DrawFeeInvoiceDataContract drawdt = null;
-#pragma warning disable CS0168 // The variable 'ex' is declared but never used
             try
             {
                 Helper.Helper hp = new Helper.Helper();
@@ -2143,7 +2131,6 @@ namespace CRES.DAL.Repository
             {
 
             }
-#pragma warning restore CS0168 // The variable 'ex' is declared but never used
 
             return lstdraw;
         }
@@ -2158,7 +2145,7 @@ namespace CRES.DAL.Repository
             SqlParameter p2 = new SqlParameter { ParameterName = "@TaskTypeID", Value = TaskTypeID };
             SqlParameter p3 = new SqlParameter { ParameterName = "@TaskID", Value = TaskID };
             SqlParameter p4 = new SqlParameter { ParameterName = "@UserID", Value = UserID };
-            SqlParameter[] sqlparam = new SqlParameter[] { p1, p2, p3, p4 };
+            SqlParameter[] sqlparam = new SqlParameter[] { p1, p2,p3,p4 };
             dt = hp.ExecDataTable("usp_GetDealPrimaryAMByDealOrTaskType", sqlparam);
             if (dt != null)
             {
@@ -2178,7 +2165,6 @@ namespace CRES.DAL.Repository
         {
 
             WFNotificationDetailDataContract wDC = new WFNotificationDetailDataContract();
-#pragma warning disable CS0168 // The variable 'ex' is declared but never used
             try
             {
 
@@ -2196,7 +2182,7 @@ namespace CRES.DAL.Repository
                     {
                         wDC.EmailToIds = Convert.ToString(dr["EmailToIds"]);
                         wDC.EmailCCIds = Convert.ToString(dr["EmailCCIds"]);
-
+                       
                     }
                 }
                 //
@@ -2206,8 +2192,559 @@ namespace CRES.DAL.Repository
             {
 
             }
-#pragma warning restore CS0168 // The variable 'ex' is declared but never used
             return wDC;
+        }
+
+        public DataTable GetParentClientMissingEmail()
+        {
+            DataTable dt = new DataTable();
+            try
+            {
+                Helper.Helper hp = new Helper.Helper();
+                dt = hp.ExecDataTable("dbo.usp_GetParentClientMissingEmail");
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+            return dt;
+        }
+
+
+        public string SaveWFDashboard(List<WFDashboardDataContract> lstWorkflow, string UserID)
+        {
+            string result = "success";
+            try
+            {
+                Helper.Helper hp = new Helper.Helper();
+                SqlParameter p1 = new SqlParameter { ParameterName = "@UserID", Value = UserID };
+                SqlParameter p2 = new SqlParameter { ParameterName = "@XMLWFList", Value = lstWorkflow.ToXML().Replace(" xsi:nil=\"true\"", "") };
+                SqlParameter[] sqlparam = new SqlParameter[] { p1, p2 };
+                hp.ExecNonquery("usp_SaveWFDashboard", sqlparam);
+            }
+            catch (Exception ex)
+            {
+                result = ex.Message;
+            }
+
+            return result;
+        }
+
+        public List<DrawFeeInvoiceDataContract> GetAllInvoiceQueuedForSandbox(string UserID)
+        {
+
+            DataTable dt = new DataTable();
+            List<DrawFeeInvoiceDataContract> lstdraw = new List<DrawFeeInvoiceDataContract>();
+            DrawFeeInvoiceDataContract drawdt = null;
+            try
+            {
+                Helper.Helper hp = new Helper.Helper();
+                SqlParameter p1 = new SqlParameter { ParameterName = "@UserID", Value = UserID };
+                SqlParameter[] sqlparam = new SqlParameter[] { p1 };
+                dt = hp.ExecDataTable("usp_GetAllInvoiceQueued_forSandbox", sqlparam);
+
+                if (dt != null)
+                {
+                    foreach (DataRow dr in dt.Rows)
+                    {
+                        drawdt = new DrawFeeInvoiceDataContract();
+                        drawdt.DrawFeeInvoiceDetailID = Convert.ToInt32(dr["InvoiceDetailID"]);
+                        drawdt.InvoiceNo = Convert.ToString(dr["InvoiceNo"]);
+                        drawdt.TaskID = new Guid(dr["TaskID"].ToString());
+                        drawdt.Amount = CommonHelper.ToDecimal(dr["Amount"]);
+                        drawdt.FirstName = Convert.ToString(dr["FirstName"]);
+                        drawdt.LastName = Convert.ToString(dr["LastName"]);
+                        drawdt.Designation = Convert.ToString(dr["Designation"]);
+                        drawdt.CompanyName = Convert.ToString(dr["CompanyName"]);
+                        drawdt.Address = Convert.ToString(dr["Address"]);
+                        drawdt.City = Convert.ToString(dr["City"]);
+                        drawdt.State = Convert.ToString(dr["State"]);
+                        drawdt.Zip = Convert.ToString(dr["Zip"]);
+                        drawdt.Email1 = Convert.ToString(dr["Email1"]);
+                        drawdt.Email2 = Convert.ToString(dr["Email2"]);
+                        drawdt.PhoneNo = Convert.ToString(dr["PhoneNo"]);
+                        drawdt.AlternatePhone = Convert.ToString(dr["AlternatePhone"]);
+                        drawdt.Comment = Convert.ToString(dr["Comment"]);
+                        drawdt.AutoSendInvoice = Convert.ToInt32(dr["AutoSendInvoice"]);
+                        drawdt.CreatedBy = Convert.ToString(dr["CreatedBy"]);
+                        drawdt.CreatedDate = Convert.ToDateTime(dr["CreatedDate"]);
+                        drawdt.UpdatedBy = Convert.ToString(dr["UpdatedBy"]);
+                        drawdt.UpdatedDate = Convert.ToDateTime(dr["UpdatedDate"]);
+                        drawdt.FileName = Convert.ToString(dr["FileName"]);
+                        drawdt.FundingDate = Convert.ToDateTime(dr["Date"]);
+                        drawdt.InvoiceNoUI = Convert.ToString(dr["InvoiceNoUI"]);
+                        drawdt.CreDealID = Convert.ToString(dr["CreDealID"]);
+                        drawdt.DealName = Convert.ToString(dr["DealName"]);
+                        drawdt.InvoiceCode = Convert.ToString(dr["InvoiceCode"]);
+                        drawdt.DrawNo = Convert.ToString(dr["DrawNo"]);
+                        drawdt.TemplateName = Convert.ToString(dr["TemplateName"]);
+                        drawdt.AMEmails = Convert.ToString(dr["AMEmails"]);
+                        drawdt.SenderFirstName = Convert.ToString(dr["SenderFirstName"]);
+                        drawdt.SenderLastName = Convert.ToString(dr["SenderLastName"]);
+                        drawdt.SenderEmail = Convert.ToString(dr["SenderEmail"]);
+                        drawdt.FundingAmount = CommonHelper.ToDecimal(dr["FundingAmount"]);
+                        drawdt.InvoiceTypeID = Convert.ToInt32(dr["InvoiceTypeID"]);
+                        drawdt.IsManualInvoice = Convert.ToBoolean(dr["IsManualInvoice"]);
+                        lstdraw.Add(drawdt);
+                    }
+                }
+
+            }
+            catch (Exception ex)
+            {
+
+            }
+
+            return lstdraw;
+        }
+
+        public string UpdateDrawFeeInvoiceDetailStatusForSandbox(string UserID, DrawFeeInvoiceDataContract drawFeeDC)
+        {
+            string result = "success";
+            DataTable dt = new DataTable();
+            DrawFeeInvoiceDataContract drawdt = new DrawFeeInvoiceDataContract();
+            try
+            {
+                Helper.Helper hp = new Helper.Helper();
+                SqlParameter p1 = new SqlParameter { ParameterName = "@UserID", Value = UserID };
+                SqlParameter p2 = new SqlParameter { ParameterName = "@TaskID", Value = drawFeeDC.TaskID };
+                SqlParameter p3 = new SqlParameter { ParameterName = "@InvoiceNumber", Value = drawFeeDC.InvoiceNo };
+                SqlParameter[] sqlparam = new SqlParameter[] { p1, p2, p3};
+                //SqlParameter[] sqlparam = new SqlParameter[] { p1, p2,p3,p4,p5,p6,p7,p8};
+                dt = hp.ExecDataTable("usp_UpdateInvoiceDetailStatusForSandbox", sqlparam);
+            }
+            catch (Exception ex)
+            {
+                result = ex.Message;
+            }
+
+            return result;
+        }
+
+        public List<DrawFeeInvoiceDataContract> GetMissingQBDCustomerInSandbox()
+        {
+
+            DataTable dt = new DataTable();
+            List<DrawFeeInvoiceDataContract> lstDrawDc = new List<DrawFeeInvoiceDataContract>();
+            DrawFeeInvoiceDataContract drawdt = null;
+            try
+            {
+                Helper.Helper hp = new Helper.Helper();
+                SqlParameter[] sqlparam = new SqlParameter[] { };
+                dt = hp.ExecDataTable("usp_GetMissingQBDCustomerInSandbox", sqlparam);
+
+                if (dt != null)
+                {
+                    foreach (DataRow dr in dt.Rows)
+                    {
+                        drawdt = new DrawFeeInvoiceDataContract();
+                        drawdt.DrawFeeInvoiceDetailID = Convert.ToInt32(dr["InvoiceDetailID"]);
+                        drawdt.TaskID = new Guid(dr["TaskID"].ToString());
+                        drawdt.Amount = CommonHelper.ToDecimal(dr["Amount"]);
+                        drawdt.FirstName = Convert.ToString(dr["FirstName"]);
+                        drawdt.LastName = Convert.ToString(dr["LastName"]);
+                        drawdt.Designation = Convert.ToString(dr["Designation"]);
+                        drawdt.CompanyName = Convert.ToString(dr["CompanyName"]);
+                        drawdt.Address = Convert.ToString(dr["Address"]);
+                        drawdt.City = Convert.ToString(dr["City"]);
+                        drawdt.State = Convert.ToString(dr["State"]);
+                        drawdt.Zip = Convert.ToString(dr["Zip"]);
+                        drawdt.Email1 = Convert.ToString(dr["Email1"]);
+                        drawdt.Email2 = Convert.ToString(dr["Email2"]);
+                        drawdt.PhoneNo = Convert.ToString(dr["PhoneNo"]);
+                        drawdt.AlternatePhone = Convert.ToString(dr["AlternatePhone"]);
+                        drawdt.Comment = Convert.ToString(dr["Comment"]);
+                        drawdt.AutoSendInvoice = Convert.ToInt32(dr["AutoSendInvoice"]);
+                        drawdt.CreatedBy = Convert.ToString(dr["CreatedBy"]);
+                        drawdt.CreatedDate = Convert.ToDateTime(dr["CreatedDate"]);
+                        drawdt.UpdatedBy = Convert.ToString(dr["UpdatedBy"]);
+                        drawdt.UpdatedDate = Convert.ToDateTime(dr["UpdatedDate"]);
+                        drawdt.FileName = Convert.ToString(dr["FileName"]);
+                        drawdt.InvoiceNo = Convert.ToString(dr["InvoiceNo"]);
+                        drawdt.DrawFeeStatus = Convert.ToInt32(dr["DrawFeeStatus"]);
+                        drawdt.StateID = Convert.ToInt32(dr["StateID"]);
+                        drawdt.InvoiceNoUI = Convert.ToString(dr["SystemInvoiceNo"]);
+                        drawdt.DealName = Convert.ToString(dr["DealName"]);
+                        drawdt.CreDealID = Convert.ToString(dr["CreDealID"]);
+                        lstDrawDc.Add(drawdt);
+                    }
+                }
+
+            }
+            catch (Exception ex)
+            {
+
+            }
+
+            return lstDrawDc;
+        }
+
+        public string AddUpdateQBDCustomerForSandbox(string UserID, QBDCustomerInputDataContract QbdCustomer)
+        {
+            string result = "success";
+            try
+            {
+                DataTable dt = new DataTable();
+                DrawFeeInvoiceDataContract drawdt = new DrawFeeInvoiceDataContract();
+
+                Helper.Helper hp = new Helper.Helper();
+                SqlParameter p1 = new SqlParameter { ParameterName = "@UserID", Value = UserID };
+                SqlParameter p2 = new SqlParameter { ParameterName = "@CustomerAccountName", Value = QbdCustomer.FullName };
+                SqlParameter p3 = new SqlParameter { ParameterName = "@CustomerNo", Value = QbdCustomer.CustomerNo };
+                SqlParameter p4 = new SqlParameter { ParameterName = "@ContactID", Value = QbdCustomer.ContactID };
+                SqlParameter[] sqlparam = new SqlParameter[] { p1, p2, p3, p4 };
+                hp.ExecNonquery("usp_InsertUpdateQBDCustomerForSandbox", sqlparam);
+            }
+            catch (Exception ex)
+            {
+                result = ex.Message;
+            }
+            return result;
+        }
+
+        public DrawFeeInvoiceDataContract GetInvoiceDetailByInvoiceNo(string UserID, string InvoiceNo)
+        {
+
+            DataTable dt = new DataTable();
+            DrawFeeInvoiceDataContract drawdt = new DrawFeeInvoiceDataContract();
+            try
+            {
+                Helper.Helper hp = new Helper.Helper();
+                SqlParameter p1 = new SqlParameter { ParameterName = "@InvoiceNo", Value = InvoiceNo };
+                SqlParameter p2 = new SqlParameter { ParameterName = "@UserID", Value = UserID };
+                SqlParameter[] sqlparam = new SqlParameter[] { p1, p2 };
+                dt = hp.ExecDataTable("usp_GetInvoiceDetailByInvoiceNo", sqlparam);
+
+                if (dt != null)
+                {
+                    foreach (DataRow dr in dt.Rows)
+                    {
+                        drawdt.DrawFeeInvoiceDetailID = Convert.ToInt32(dr["InvoiceDetailID"]);
+                        drawdt.InvoiceNo = Convert.ToString(dr["InvoiceNo"]);
+                        drawdt.Amount = CommonHelper.ToDecimal(dr["Amount"]);
+                        drawdt.FirstName = Convert.ToString(dr["FirstName"]);
+                        drawdt.LastName = Convert.ToString(dr["LastName"]);
+                        drawdt.Designation = Convert.ToString(dr["Designation"]);
+                        drawdt.CompanyName = Convert.ToString(dr["CompanyName"]);
+                        drawdt.Address = Convert.ToString(dr["Address"]);
+                        drawdt.City = Convert.ToString(dr["City"]);
+                        drawdt.State = Convert.ToString(dr["State"]);
+                        drawdt.Zip = Convert.ToString(dr["Zip"]);
+                        drawdt.Email1 = Convert.ToString(dr["Email1"]);
+                        drawdt.Email2 = Convert.ToString(dr["Email2"]);
+                        drawdt.PhoneNo = Convert.ToString(dr["PhoneNo"]);
+                        drawdt.AlternatePhone = Convert.ToString(dr["AlternatePhone"]);
+                        drawdt.Comment = Convert.ToString(dr["Comment"]);
+                        drawdt.AutoSendInvoice = Convert.ToInt32(dr["AutoSendInvoice"]);
+                        drawdt.CreatedBy = Convert.ToString(dr["CreatedBy"]);
+                        drawdt.CreatedDate = Convert.ToDateTime(dr["CreatedDate"]);
+                        drawdt.UpdatedBy = Convert.ToString(dr["UpdatedBy"]);
+                        drawdt.UpdatedDate = Convert.ToDateTime(dr["UpdatedDate"]);
+                        drawdt.FileName = Convert.ToString(dr["FileName"]);
+                        drawdt.InvoiceNoUI = Convert.ToString(dr["InvoiceNoUI"]);
+                        drawdt.CreDealID = Convert.ToString(dr["CreDealID"]);
+                        drawdt.DealName = Convert.ToString(dr["DealName"]);
+                        drawdt.AMEmails = Convert.ToString(dr["AMEmails"]);
+                        drawdt.SenderFirstName = Convert.ToString(dr["SenderFirstName"]);
+                        drawdt.SenderLastName = Convert.ToString(dr["SenderLastName"]);
+                        drawdt.SenderEmail = Convert.ToString(dr["SenderEmail"]);
+                        //drawdt.FundingAmount = CommonHelper.ToDecimal(dr["FundingAmount"]);
+                        drawdt.InvoiceDate = Convert.ToDateTime(dr["InvoiceDate"]);
+                        drawdt.InvoiceDateOriginal = Convert.ToDateTime(dr["InvoiceDateOriginal"]);
+                        drawdt.InvoiceDueDate = Convert.ToDateTime(dr["InvoiceDueDate"]);
+                        drawdt.CurrentDate = Convert.ToDateTime(dr["CurrentDate"]);
+                        drawdt.InvoiceTypeID = Convert.ToInt32(dr["InvoiceTypeID"]);
+                        drawdt.InvoiceTypeName = Convert.ToString(dr["InvoiceTypeName"]);
+                        drawdt.ObjectID = Convert.ToString(dr["ObjectID"]);
+                        drawdt.ObjectTypeID = Convert.ToInt32(dr["ObjectTypeID"]);
+                        drawdt.EmailCC = Convert.ToString(dr["EmailCC"]);
+                        drawdt.UploadedFrom = Convert.ToString(dr["UploadedFrom"]);
+                        drawdt.InvoiceComment = Convert.ToString(dr["InvoiceComment"]);
+                        break;
+                    }
+                }
+
+            }
+            catch (Exception ex)
+            {
+
+            }
+
+            return drawdt;
+        }
+
+        public int CheckWFConcurrency(string UserID, WFConcurrencyParams prms)
+        {
+            DataTable dt = new DataTable();
+            int Status = 0;
+            WFDetailDataContract wfdt = new WFDetailDataContract();
+            try
+            {
+                Helper.Helper hp = new Helper.Helper();
+                SqlParameter p1 = new SqlParameter { ParameterName = "@UserID", Value = UserID };
+                SqlParameter p2 = new SqlParameter { ParameterName = "@xmlWorkflow", Value = prms.ToXML() };
+                SqlParameter[] sqlparam = new SqlParameter[] { p1, p2 };
+
+                dt = hp.ExecDataTable("usp_CheckWorkflowConcurrency", sqlparam);
+
+                if (dt != null)
+                {
+                    if (dt.Rows.Count > 0)
+                        Status = Convert.ToInt32(dt.Rows[0]["Status"]);
+                }
+
+            }
+            catch (Exception ex)
+            {
+                Status = 2;
+            }
+
+            return Status;
+        }
+
+        public string UpdateSponsorDetailFromBackshop(string DealID, string UserID)
+        {
+            string result = "success";
+            try
+            {
+                DataTable dt = new DataTable();
+                DrawFeeInvoiceDataContract drawdt = new DrawFeeInvoiceDataContract();
+
+                Helper.Helper hp = new Helper.Helper();
+                //SqlParameter p1 = new SqlParameter { ParameterName = "@UserID", Value = UserID };
+                SqlParameter p1 = new SqlParameter { ParameterName = "@DealID", Value = DealID };
+                SqlParameter[] sqlparam = new SqlParameter[] { p1};
+                hp.ExecNonquery("usp_UpdateSponsorDetailFromBackshop", sqlparam);
+            }
+            catch (Exception ex)
+            {
+                result = ex.Message;
+            }
+            return result;
+        }
+
+        public DrawFeeInvoiceDataContract GetFormatedSponsorDetailFromBackshop(string DealID, string UserID)
+        {
+
+            DataTable dt = new DataTable();
+            DrawFeeInvoiceDataContract drawdt = new DrawFeeInvoiceDataContract();
+            try
+            {
+                Helper.Helper hp = new Helper.Helper();
+                SqlParameter p1 = new SqlParameter { ParameterName = "@DealID", Value = DealID };
+                SqlParameter[] sqlparam = new SqlParameter[] { p1};
+                dt = hp.ExecDataTable("usp_getFormatedSponsorDetailFromBackshop", sqlparam);
+
+                if (dt != null)
+                {
+                    foreach (DataRow dr in dt.Rows)
+                    {
+                        drawdt.FirstName = Convert.ToString(dr["Sponsor"]);
+                        drawdt.Email1 = Convert.ToString(dr["EmailIDs"]);
+                        break;
+                    }
+                }
+
+            }
+            catch (Exception ex)
+            {
+
+            }
+
+            return drawdt;
+        }
+
+        public void saveInvoicesLanding(DataTable dtInvoices)
+        {
+            try
+            {
+                Helper.Helper hp = new Helper.Helper();
+                if (dtInvoices.Rows.Count > 0)
+                    hp.ExecDataTablewithtable("usp_InsertInvoicesLanding", dtInvoices, "tbltype_Invoices");
+            }
+            catch (Exception)
+            {
+                throw;
+            }
+        }
+
+        public List<DrawFeeInvoiceDataContract> GetAllInvoicesFromInvoiceLanding(string UserID)
+        {
+
+            DataTable dt = new DataTable();
+            List<DrawFeeInvoiceDataContract> lstdraw = new List<DrawFeeInvoiceDataContract>();
+            DrawFeeInvoiceDataContract drawdt = null;
+            try
+            {
+                Helper.Helper hp = new Helper.Helper();
+                SqlParameter p1 = new SqlParameter { ParameterName = "@UserID", Value = UserID };
+                SqlParameter[] sqlparam = new SqlParameter[] { p1 };
+                dt = hp.ExecDataTable("usp_GetAllInvoicesFromInvoiceLanding", sqlparam);
+
+                if (dt != null)
+                {
+                    foreach (DataRow dr in dt.Rows)
+                    {
+                        drawdt = new DrawFeeInvoiceDataContract();
+                        drawdt.DrawFeeInvoiceDetailID = Convert.ToInt32(dr["InvoiceDetailID"]);
+                        drawdt.InvoiceNo = Convert.ToString(dr["InvoiceNo"]);
+                        drawdt.TaskID = new Guid(dr["TaskID"].ToString());
+                        drawdt.Amount = CommonHelper.ToDecimal(dr["Amount"]);
+                        drawdt.FirstName = Convert.ToString(dr["FirstName"]);
+                        drawdt.LastName = Convert.ToString(dr["LastName"]);
+                        drawdt.Designation = Convert.ToString(dr["Designation"]);
+                        drawdt.CompanyName = Convert.ToString(dr["CompanyName"]);
+                        drawdt.Address = Convert.ToString(dr["Address"]);
+                        drawdt.City = Convert.ToString(dr["City"]);
+                        drawdt.State = Convert.ToString(dr["State"]);
+                        drawdt.Zip = Convert.ToString(dr["Zip"]);
+                        drawdt.Email1 = Convert.ToString(dr["Email1"]);
+                        drawdt.Email2 = Convert.ToString(dr["Email2"]);
+                        drawdt.PhoneNo = Convert.ToString(dr["PhoneNo"]);
+                        drawdt.AlternatePhone = Convert.ToString(dr["AlternatePhone"]);
+                        drawdt.Comment = Convert.ToString(dr["Comment"]);
+                        drawdt.AutoSendInvoice = Convert.ToInt32(dr["AutoSendInvoice"]);
+                        drawdt.CreatedBy = Convert.ToString(dr["CreatedBy"]);
+                        drawdt.CreatedDate = Convert.ToDateTime(dr["CreatedDate"]);
+                        drawdt.UpdatedBy = Convert.ToString(dr["UpdatedBy"]);
+                        drawdt.UpdatedDate = Convert.ToDateTime(dr["UpdatedDate"]);
+                        drawdt.FileName = Convert.ToString(dr["FileName"]);
+                        drawdt.FundingDate = Convert.ToDateTime(dr["Date"]);
+                        drawdt.InvoiceNoUI = Convert.ToString(dr["InvoiceNoUI"]);
+                        drawdt.CreDealID = Convert.ToString(dr["CreDealID"]);
+                        drawdt.DealName = Convert.ToString(dr["DealName"]);
+                        drawdt.InvoiceCode = Convert.ToString(dr["InvoiceCode"]);
+                        drawdt.DrawNo = Convert.ToString(dr["DrawNo"]);
+                        drawdt.TemplateName = Convert.ToString(dr["TemplateName"]);
+                        drawdt.AMEmails = Convert.ToString(dr["AMEmails"]);
+                        drawdt.SenderFirstName = Convert.ToString(dr["SenderFirstName"]);
+                        drawdt.SenderLastName = Convert.ToString(dr["SenderLastName"]);
+                        drawdt.SenderEmail = Convert.ToString(dr["SenderEmail"]);
+                        drawdt.FundingAmount = CommonHelper.ToDecimal(dr["FundingAmount"]);
+                        drawdt.InvoiceTypeID = Convert.ToInt32(dr["InvoiceTypeID"]);
+                        drawdt.IsManualInvoice = Convert.ToBoolean(dr["IsManualInvoice"]);
+                        lstdraw.Add(drawdt);
+                    }
+                }
+
+            }
+            catch (Exception ex)
+            {
+
+            }
+
+            return lstdraw;
+        }
+
+        public List<InvoicesLandingDataContract> GetAllReadyToPayInvoicesFromLanding(string UserID)
+        {
+
+            DataTable dt = new DataTable();
+            List<InvoicesLandingDataContract> lstdraw = new List<InvoicesLandingDataContract>();
+            InvoicesLandingDataContract drawdt = null;
+            try
+            {
+                Helper.Helper hp = new Helper.Helper();
+                SqlParameter p1 = new SqlParameter { ParameterName = "@UserID", Value = UserID };
+                SqlParameter[] sqlparam = new SqlParameter[] { p1 };
+                dt = hp.ExecDataTable("usp_GetAllReadyToPayInvoicesFromLanding", sqlparam);
+
+                if (dt != null)
+                {
+                    foreach (DataRow dr in dt.Rows)
+                    {
+                        drawdt = new InvoicesLandingDataContract();
+                        drawdt.InvoiceDetailID = Convert.ToInt32(dr["InvoiceDetailID"]);
+                        //drawdt.InvoiceNo = Convert.ToString(dr["InvoiceNo"]);
+                        drawdt.AmountPaid = CommonHelper.ToDecimal(dr["AmountPaid"]);
+                        drawdt.PaymentDate = Convert.ToDateTime(dr["PaymentDate"]);
+                        lstdraw.Add(drawdt);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+
+            }
+
+            return lstdraw;
+        }
+
+        public string UpdateInvoiceDetailLandingStatus(string UserID, int InvoiceDetailID,string Status)
+        {
+            string result = "success";
+            DataTable dt = new DataTable();
+            DrawFeeInvoiceDataContract drawdt = new DrawFeeInvoiceDataContract();
+            try
+            {
+                Helper.Helper hp = new Helper.Helper();
+                SqlParameter p1 = new SqlParameter { ParameterName = "@UserID", Value = UserID };
+                SqlParameter p2 = new SqlParameter { ParameterName = "@InvoiceDetailID", Value = InvoiceDetailID };
+                SqlParameter p3 = new SqlParameter { ParameterName = "@Status", Value = Status };
+                SqlParameter[] sqlparam = new SqlParameter[] { p1, p2, p3};
+                //SqlParameter[] sqlparam = new SqlParameter[] { p1, p2,p3,p4,p5,p6,p7,p8};
+                dt = hp.ExecDataTable("usp_UpdateInvoiceDetailLandingStatus", sqlparam);
+            }
+            catch (Exception ex)
+            {
+                result = ex.Message;
+            }
+
+            return result;
+        }
+
+        public string DeleteInvoiceDetailLanding(string UserID, int InvoiceDetailID)
+        {
+            string result = "success";
+            DataTable dt = new DataTable();
+            DrawFeeInvoiceDataContract drawdt = new DrawFeeInvoiceDataContract();
+            try
+            {
+                Helper.Helper hp = new Helper.Helper();
+                SqlParameter p1 = new SqlParameter { ParameterName = "@UserID", Value = UserID };
+                SqlParameter p2 = new SqlParameter { ParameterName = "@InvoiceDetailID", Value = InvoiceDetailID };
+                SqlParameter[] sqlparam = new SqlParameter[] { p1, p2, };
+                //SqlParameter[] sqlparam = new SqlParameter[] { p1, p2,p3,p4,p5,p6,p7,p8};
+                dt = hp.ExecDataTable("usp_DeleteInvoiceDetailLanding", sqlparam);
+            }
+            catch (Exception ex)
+            {
+                result = ex.Message;
+            }
+
+            return result;
+        }
+
+        public void updateInvoicesLanding(DataTable dtInvoices)
+        {
+            try
+            {
+                Helper.Helper hp = new Helper.Helper();
+                if (dtInvoices.Rows.Count > 0)
+                    hp.ExecDataTablewithtable("usp_UpdateInvoicesLanding", dtInvoices, "tbltype_Invoices");
+            }
+            catch (Exception)
+            {
+                throw;
+            }
+        }
+
+        public void updateInvoice(string UserID, DrawFeeInvoiceDataContract drawFeeDC)
+        {
+            try
+            {
+                Helper.Helper hp = new Helper.Helper();
+                SqlParameter p1 = new SqlParameter { ParameterName = "@UserID", Value = UserID };
+                SqlParameter p2 = new SqlParameter { ParameterName = "@InvoiceDetailID", Value = drawFeeDC.DrawFeeInvoiceDetailID };
+                SqlParameter p3 = new SqlParameter { ParameterName = "@InvoiceTypeFreeText", Value = drawFeeDC.InvoiceTypeFreeText };
+
+                SqlParameter[] sqlparam = new SqlParameter[] { p1, p2, p3 };
+                hp.ExecDataTable("usp_UpdateInvoice", sqlparam);
+            }
+            catch (Exception)
+            {
+                throw;
+            }
         }
     }
 }

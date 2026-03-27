@@ -9,9 +9,13 @@ BEGIN
 
 SET NOCOUNT ON;		
 
+Declare @AccountID uniqueidentifier;
+SET @AccountID = (Select n.Account_AccountID from cre.note n Inner Join core.Account acc on acc.AccountID =n.Account_AccountID where acc.IsDeleted <> 1)
+
 update 
  Core.CalculationRequests set 
 StatusID = (Select lookupid from CORE.Lookup where name = @StatusText and ParentID = 40)
-where NoteID=@NoteID AND AnalysisID=@AnalysisID
+where AccountId = @AccountID --NoteID=@NoteID 
+AND AnalysisID=@AnalysisID
 
 END

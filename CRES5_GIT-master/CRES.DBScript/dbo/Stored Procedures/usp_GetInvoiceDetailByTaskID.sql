@@ -1,4 +1,4 @@
--- [usp_GetInvoiceDetailByTaskID] 'a670a6b7-9993-40cd-a6e2-48d9bd47e794','b4718098-fbab-46b6-8d0a-4905b80f6493'
+﻿-- [usp_GetInvoiceDetailByTaskID] 'a670a6b7-9993-40cd-a6e2-48d9bd47e794','b4718098-fbab-46b6-8d0a-4905b80f6493'
 
 CREATE PROCEDURE [dbo].[usp_GetInvoiceDetailByTaskID] 
 (

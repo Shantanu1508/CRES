@@ -66,14 +66,14 @@ export class forgotpassword implements OnInit {
     }
     this.membershipService.ForgotPasswordByAuthenticationkey(this._changepasswrd).subscribe(res => {
       if (res.Succeeded) {
-        this._ShowSuccessmessage = "Your password has been sent to your email. If no email has arrived check your spam folder."
+        this._ShowSuccessmessage = "An email with a link to reset your password has just been sent to the email address registered with us. If no email has arrived check your spam folder."
         this._ShowSuccessmessagediv = true;
         setTimeout(() => {
           this._ShowSuccessmessagediv = false;
         }, 5000);
 
         localStorage.setItem('_IsShowMessage', JSON.stringify(true));
-        localStorage.setItem('_SucessMsg', JSON.stringify('Your password has been sent to your email. If no email has arrived check your spam folder.'));
+        localStorage.setItem('_SucessMsg', JSON.stringify('An email with a link to reset your password has just been sent to the email address registered with us. If no email has arrived check your spam folder.'));
 
         if (this.returnUrl == "/") {
           let link = ['/login'];
@@ -84,24 +84,27 @@ export class forgotpassword implements OnInit {
         }
       }
       else {
-        this._ShowSuccessmessage = "Your password has been sent to your email. If no email has arrived check your spam folder"
-        this._ShowSuccessmessagediv = true;
 
-        localStorage.setItem('_IsShowMessage', JSON.stringify(true));
-        localStorage.setItem('_SucessMsg', JSON.stringify('Your password has been sent to your email. If no email has arrived check your spam folder.'));
+        //for Error message
+
+        this.Messageerror = "Email id is not associated to any account enter different email id or please reach out to M61 Support."
+        this._Showmessagediv = true;
+
+        //localStorage.setItem('_IsShowMessage', JSON.stringify(true));
+        //localStorage.setItem('_SucessMsg', JSON.stringify('An email with a link to reset your password has just been sent to the email address registered with us. If no email has arrived check your spam folder.'));
 
 
         setTimeout(() => {
-          this._ShowSuccessmessagediv = false;
+          this._Showmessagediv = false;
         }, 5000);
 
-        if (this.returnUrl == "/") {
-          let link = ['/login'];
-          this._router.navigate(link);
-        }
-        else {
-          this._router.navigate([this.returnUrl]);
-        }
+        //if (this.returnUrl == "/") {
+        //  let link = ['/login'];
+        //  this._router.navigate(link);
+        //}
+        //else {
+        //  this._router.navigate([this.returnUrl]);
+        //}
       }
     })
 

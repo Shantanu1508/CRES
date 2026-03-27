@@ -1,4 +1,4 @@
-﻿Create View dbo.EffectiveDateAnalysis
+﻿CREATE View dbo.EffectiveDateAnalysis
 as
 Select  d.dealname,d.credealid,n.crenoteid,acc.name as Notename,
 n.actualpayoffdate, n.FullyExtendedmaturitydate,ISNULL(actualpayoffdate,FullyExtendedmaturitydate) as MaturityDateBI,
@@ -44,7 +44,7 @@ LEft Join(
 		INNER JOIN [CORE].[Event] e on e.EventID = fs.EventId
 		INNER JOIN [CORE].[Account] acc ON acc.AccountID = e.AccountID
 		INNER JOIN [CRE].[Note] n ON n.Account_AccountID = acc.AccountID
-		where  acc.IsDeleted = 0	and e.StatusID = 1
+		where  acc.IsDeleted = 0	
 	)a group by noteid,crenoteid
 )tblMat on tblMat.noteid = n.noteid
 

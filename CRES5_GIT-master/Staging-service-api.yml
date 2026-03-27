@@ -1,0 +1,48 @@
+# Starter pipeline
+# Start with a minimal pipeline that you can customize to build and deploy your code.
+# Add steps that build, run tests, deploy, and more:
+# https://aka.ms/yaml
+
+trigger:
+  branches: 
+    include:
+      - Staging
+  paths:
+    include:
+      - src/CRES.ServiceMVC/*
+
+pool:
+  vmImage: 'windows-2022'
+
+variables:
+  buildConfiguration: 'Release'
+
+steps:
+
+- script: echo Hello, world!
+  displayName: 'Run script for API'
+
+# Delete previous zip files
+- script: del /s /q $(System.DefaultWorkingDirectory)\*.zip
+  displayName: 'Delete previous zip files'
+
+- task: DotNetCoreCLI@2
+  inputs:
+    command: 'build'
+    projects: 'src/CRES.ServiceMVC/CRES.ServiceMVC.csproj'
+    workingDirectory: 'src/CRES.ServiceMVC'
+  
+- task: DotNetCoreCLI@2
+  inputs:
+    command: 'publish'
+    publishWebProjects: false
+    projects: 'src/CRES.ServiceMVC/CRES.ServiceMVC.csproj'
+    workingDirectory: 'src/CRES.ServiceMVC'
+
+- task: AzureRmWebAppDeployment@4
+  inputs:
+    ConnectionType: 'AzureRM'
+    azureSubscription: 'Microsoft Partner Network 3'
+    appType: 'webApp'
+    WebAppName: 'Stagingcres4api'
+    packageForLinux: '$(System.DefaultWorkingDirectory)/**/*.zip'

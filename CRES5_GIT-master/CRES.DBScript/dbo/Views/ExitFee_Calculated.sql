@@ -43,7 +43,7 @@ Outer Apply  (Select Notekey, MAX(Date1) Date1, SUm(T1.Amount )Balloon_plus_Repa
     Inner join Dw.AnalysisBI A on A.AnalysisKey = T1.AnalysisID  
     Outer apply (Select MAX(date) Date1 from dbo.Transactionentry T2  
        Where T1.noteid = T2.Noteid and T2.Type in ('Balloon',  'FundingOrRepayment')   
-         
+         and T2.AccountTypeID = 1
        Group by NoteID   
          
        )z3  

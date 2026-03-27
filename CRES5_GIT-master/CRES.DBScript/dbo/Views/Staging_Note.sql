@@ -190,7 +190,7 @@ CapStackBI as CapStack,
 FundBI as FundName ,  
    
 PoolBI as [Pool],  
-
+null as Pik_NonPIK,
 --Pik_NonPIK = Case when CreNoteid in (Select CreNoteid from(Select n.crenoteid,(Select count(piks.StartDate)   
 --       from [dbo].[Ex_Staging_PIKSchedule] piks  
 --       inner join [Ex_Staging_Event] e on e.EventID = piks.EventId  
@@ -207,25 +207,7 @@ n.ServicerNameBI  as ServicerName,
 n.BusinessdaylafrelativetoPMTDate,
 n.DayoftheMonth,
 n.InterestCalculationRuleForPaydownsBI as InterestCalculationRuleForPaydowns,
-n.PIKInterestAddedToBalanceBasedOnBusinessAdjustedDateBI as PIKInterestAddedToBalanceBasedOnBusinessAdjustedDate  ,
-
-n.Pik_NonPIK,
-n.HasFundingRepayment,
-n.FullAccrualHasRepayment,
-n.HasAmortTerm_Or_FixedAmort,
-n.HasAmortTerm,
-n.HasOnlyRepayment,
-n.HasFixedAmort,
-n.HasScheduledPrincipal,
-n.HasPIkPrincipalpaid,
-n.HasPIkInterestpaid,
-
-n.InitialFundingEquCommit,
-n.HasDSMonthlyOverride,
-n.FixedPIK,
-n.FloatingPIK
-
-
+n.PIKInterestAddedToBalanceBasedOnBusinessAdjustedDateBI as PIKInterestAddedToBalanceBasedOnBusinessAdjustedDate  
   
 FROM [DW].[Staging_Note] n  
   

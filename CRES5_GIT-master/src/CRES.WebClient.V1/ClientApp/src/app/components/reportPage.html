@@ -25,7 +25,7 @@
     </div>
   </div>
 
-  <div *ngIf="!_checkstatusofuserrole" style="margin-top:60px; margin-bottom:-55px;" id="powerbistatus">
+  <div *ngIf="!_checkstatusofuserrole" style="margin-top:60px;display:none;margin-bottom:-55px;" id="powerbistatus">
     <div *ngIf="! _fetchingstatus" class="alert alert-info">
       {{initialfetchingmsg}}
       <span class="loader"><span class="loader-box"></span><span class="loader-box"></span><span class="loader-box"></span></span>
@@ -80,11 +80,16 @@
 
               <div *ngIf="cell.item.ReportType=='PowerBI'">
                 <img src="../../assets/images/PowerBI_icon_24X24.png" height="20" width="20" />
-                <a routerLink='/reportdetail/{{cell.item.Id}}' routerLinkActive="active">{{cell.item.Name}}</a>
+                <!--<a href="{{cell.item.EmbedUrl}}" target="_blank">{{cell.item.Name}}</a>-->
+                <a routerLink='/reportdetail/{{cell.item.TenantId}}/{{cell.item.ReportFileGUID}}' routerLinkActive="active" class="padleft">{{cell.item.Name}}</a>
+              </div>
+              <div *ngIf="cell.item.ReportType=='PowerBINewPage'">
+                <img src="../../assets/images/PowerBI_icon_24X24.png" height="20" width="20" />
+                <a href="{{cell.item.EmbedUrl}}" target="_blank" class="padleft">{{cell.item.Name}}</a>
               </div>
               <div *ngIf="cell.item.ReportType=='Acore'">
                 <img src="../../assets/images/reportsIcon.png" height="20" width="20" />
-                <a href="javascript:void(0)" (click)="ShowAttributesDialog(cell.item.ReportFileGUID, cell.item.Name)" routerLinkActive="active">{{cell.item.Name}}</a>
+                <a href="javascript:void(0)" (click)="ShowAttributesDialog(cell.item.ReportFileGUID, cell.item.Name)" routerLinkActive="active" class="padleft">{{cell.item.Name}}</a>
               </div>
             </ng-template>
 

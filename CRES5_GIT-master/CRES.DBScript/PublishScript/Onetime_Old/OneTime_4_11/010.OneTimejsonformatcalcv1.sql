@@ -1,0 +1,2 @@
+﻿UPDATE cre.JsonFormatCalcV1  set [key] = 'initfund' where [key] = 'initbal' and [Type] = 'dictionary';
+Update [CRE].[JsonFormatCalcV1] Set [Key] = 'intsuspensebal' Where [Type]='noteperiodiccalc' AND [Key]='intsusbalper';

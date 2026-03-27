@@ -23,7 +23,7 @@ namespace CRES.BusinessLogic
         }
         public string InsertDelegateHistory(UserDelegationConfigDataContract udc)
         {
-            return udr.InsertDelegateHistory(udc);
+          return  udr.InsertDelegateHistory(udc);
         }
 
         public bool RevokeUserDelegateConfigByUserDelegateConfigID(Guid userDelegateConfigID)

@@ -28,16 +28,17 @@ IF(@Intent ='TotalInterestPaid')
  BEGIN  
   Select DealName, SUM(SumInterestAmount) as Amount  
   FROM(  
-   Select d.DealName,tr.noteid,n.crenoteid,SUM(tr.Amount) as SumInterestAmount  
-   from cre.transactionEntry Tr  
-   inner join cre.note n on n.noteid=tr.noteid   
-   inner join cre.deal d on d.DealID = n.DealID  
-   inner join core.account acc on acc.AccountID = n.Account_AccountID  
-   where tr.analysisID = @Analysisid and tr.[Type] in ('InterestPaid')  
-   --and tr.date <= CAST(getdate() as date)  
-   and d.dealname = @DealValue --IIF(@DealNature = 'name',d.DealName,d.credealid) = @DealValue  
-   and acc.IsDeleted<>1  
-   group by tr.noteid,n.crenoteid, d.DealName  
+        Select d.DealName,n.noteid,n.crenoteid,SUM(tr.Amount) as SumInterestAmount  
+        from cre.transactionEntry Tr  
+        Inner Join core.account acc on acc.accountid = tr.accountid
+        inner join cre.note n on n.account_accountid = acc.AccountID   
+        inner join cre.deal d on d.DealID = n.DealID  
+  
+        where tr.analysisID = @Analysisid and tr.[Type] in ('InterestPaid')  
+        --and tr.date <= CAST(getdate() as date)  
+        and d.dealname = @DealValue --IIF(@DealNature = 'name',d.DealName,d.credealid) = @DealValue  
+        and acc.IsDeleted<>1  
+        group by n.noteid,n.crenoteid, d.DealName  
    )a  
   group by DealName  
  END  
@@ -45,15 +46,15 @@ IF(@Intent ='TotalInterestPaid')
  BEGIN  
   Select DealName, SUM(SumInterestAmount) as Amount, convert(varchar,@StartDate,101) as StartDate, convert(varchar,@EndDate,101)  as EndDate  
   FROM(  
-  Select d.DealName,tr.noteid,n.crenoteid,SUM(tr.Amount) as SumInterestAmount  
+  Select d.DealName,n.noteid,n.crenoteid,SUM(tr.Amount) as SumInterestAmount  
   from cre.transactionEntry Tr  
-  inner join cre.note n on n.noteid=tr.noteid   
+  inner join cre.note n on n.Account_AccountID=tr.AccountID   
   inner join cre.deal d on d.DealID = n.DealID  
   where tr.analysisID =  @Analysisid and tr.[Type] in ('InterestPaid')  
   and d.dealname = @DealValue  --IIF(@DealNature = 'name',d.DealName,d.credealid) = @DealValue  
   and Date >= @StartDate  
   and Date <= @EndDate  
-  group by tr.noteid,n.crenoteid, d.DealName  
+  group by n.noteid,n.crenoteid, d.DealName  
   )a  
   group by DealName  
  END  
@@ -104,8 +105,10 @@ IF(@Intent = 'DealCurrentDebtBalance')
   SELECT Deal,SUM(EndingBalance) as [SubDebtBalance] ,convert(varchar,@EndDate,101) as [Date]  
   FROM(  
    SELECT a.Deal,ISNULL(EndingBalance,0) as EndingBalance  
-   ,ROW_NUMBER() Over (Partition by npc.noteid Order by npc.noteid,npc.PeriodEndDate desc) as rno  
+   ,ROW_NUMBER() Over (Partition by npc.accountid Order by npc.accountid,npc.PeriodEndDate desc) as rno  
    from cre.NotePeriodicCalc npc  
+   Inner join core.account acc on acc.accountid = npc.AccountID
+    Inner join cre.note n on n.account_accountid = acc.accountid and acc.AccounttypeID = 1
    left join ( SELECT n.NoteId,d.DealName as Deal, n.lienposition,n.priority from cre.note n   
       inner join core.Account acc on acc.AccountID = n.Account_AccountID  
       inner join cre.deal d on d.DealID = n.DealID  
@@ -114,10 +117,10 @@ IF(@Intent = 'DealCurrentDebtBalance')
       and d.IsDeleted<>1  
       and n.lienposition <> 353  
       and n.priority <> 1  
-      )a on a.NoteID = npc.NoteID  
+    )a on a.NoteID = n.NoteID
    WHERE npc.AnalysisID = @Analysisid  
    and cast(PeriodEndDate as date) <= @EndDate  
-   and a.NoteID = npc.NoteID  
+   and a.NoteID = n.NoteID
   )b WHERE rno=1  
   group by Deal  
  END  

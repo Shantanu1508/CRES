@@ -26,14 +26,18 @@
     <div *ngIf="_dvEmptyIndexesSearchMsg" class="alert alert-danger fade in" style="margin-top:18px;">
       <strong>No matching records found</strong>
     </div>
-
+     
     <div class="fmst fixheadercontent">
       <div class="">
         <div class="form-group row pD10">
           <div class="col-sm-12">
-            <wj-flex-grid id="flexindexes" #flexindexes [itemsSource]="lstIndexesData" [allowResizing]="'Both'" auto-generate-columns="true" allow-add-new="true" allow-sorting="true" showFilterIcons="true" style="height:calc(99.8vh - 140px);">
+            <span class="customheading" style="margin-bottom:10px;">
+              Show all Indexes
+              <input #ShowAllActiveInactiveIndexes type="checkbox" id="ShowAllActiveInactiveIndexes" name="ShowAllActiveInactiveIndexes" [checked]="_chkShowAllActiveInactiveIndexes" (change)="onChangeShowAllActiveInactiveIndexes(ShowAllActiveInactiveIndexes.checked)" />
+            </span>
+            <wj-flex-grid id="flexindexes" #flexindexes [itemsSource]="data" [allowResizing]="'Both'" auto-generate-columns="true" allow-add-new="true" allow-sorting="true" showFilterIcons="true" style="height:calc(99.8vh - 140px);">
               <wj-flex-grid-filter #filter></wj-flex-grid-filter>
-              <wj-flex-grid-column [header]="'Index Scenario'" [isReadOnly]="true" [width]="150">
+              <wj-flex-grid-column [header]="'Index Scenario'" [isReadOnly]="true" [width]="270">
                 <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
                   <div>
                     <a href='/#/indexesdetail/{{cell.item.IndexesMasterGuid}}' routerLinkActive="active">{{cell.item.IndexesName}}</a>
@@ -41,6 +45,7 @@
                 </ng-template>
               </wj-flex-grid-column>
               <wj-flex-grid-column [header]="'Description'" [binding]="'Description'" [isReadOnly]="true" [width]="'*'"></wj-flex-grid-column>
+              <wj-flex-grid-column [header]="'Status'" [binding]="'StatusText'" [isReadOnly]="true" [width]="112"></wj-flex-grid-column>
             </wj-flex-grid>
           </div>
         </div>

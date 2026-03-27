@@ -1,8 +1,12 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
 
 namespace CRES.DataContract
 {
-    public class CalculatorOutputJsonInfoDataContract
+   public class CalculatorOutputJsonInfoDataContract
     {
         public Guid? CalculatorOutputJsonInfoID { get; set; }
         public Guid? CalculationRequestID { get; set; }

@@ -19,7 +19,7 @@ namespace CRES.TestAutoMation.Practice
             SqlCommand command;
             SqlDataReader dataReader;
             string sql, output = "";
-            sql = "Select CreNoteID from cre.Note ";
+            sql = "Select top 10 CreNoteID from cre.Note ";
             command = new SqlCommand(sql, cnn);
             dataReader = command.ExecuteReader();
 

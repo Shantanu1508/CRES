@@ -19,5 +19,6 @@ namespace CRES.DAL.IRepository
         SchedulerConfigDataContract GetSchedulerConfigByID(string UserID, SchedulerConfigDataContract schedulerConfig);
         List<RuleTypeDataContract> GetAllRules();
         string GetContentByRuleTypeDetailID(int RuleTypeDetailID);
+        List<UserDataContract> GetFCApprover(Guid? UserID);
     }
 }

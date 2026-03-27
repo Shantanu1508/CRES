@@ -1,15 +1,19 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
 
 namespace CRES.DataContract
 {
     public partial class NoteRateSpreadScheduleDataContract
     {
         public NoteRateSpreadScheduleDataContract()
-        {
-
+        { 
+    
         }
 
-        //    public int NoteRateSpreadScheduleID { get; set; }
+    //    public int NoteRateSpreadScheduleID { get; set; }
         public int? NoteID { get; set; }
         public DateTime? EffectiveDate { get; set; }
         public DateTime? RateorSpreadChangeDate { get; set; }
@@ -31,5 +35,7 @@ namespace CRES.DataContract
         public DateTime? CreatedDate { get; set; }
         public string UpdatedBy { get; set; }
         public DateTime? UpdatedDate { get; set; }
+
+        public DateTime? FirstIndexDeterminationDateOverride { get; set; }
     }
 }

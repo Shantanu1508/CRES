@@ -1,6 +1,6 @@
 ﻿--[dbo].[usp_GetFutureFundingScheduleDataByDealId] '51229850-8bed-4687-9dd2-784908033535'
 
-CREATE PROCEDURE [dbo].[usp_GetFutureFundingScheduleDataByDealId] 
+Create PROCEDURE [dbo].[usp_GetFutureFundingScheduleDataByDealId] 
 (
     @Dealid UNIQUEIDENTIFIER
 )
@@ -78,11 +78,12 @@ CREATE TABLE #tblFinal
 	EventID UNIQUEIDENTIFIER null,
 	PurposeID int null,
 	PurposeText nvarchar(256),
-	Applied bit null,
+	Applied bit null,	
 	CreatedBy nvarchar(256),
 	CreatedDate datetime,
 	UpdatedBy nvarchar(256),
-	UpdatedDate datetime
+	UpdatedDate datetime,
+	AdjustmentType nvarchar(256)
 )
 --====================================
 
@@ -109,7 +110,7 @@ WHILE @@FETCH_STATUS = 0
 BEGIN
 --------------------------
 --Print (COnvert(nvarchar(256),@EffectiveDate,101))
-INSERT INTO #tblFinal(NoteID,AccountID,Date,Value,EffectiveDate,EffectiveStartDate,EffectiveEndDate,EventTypeID,EventTypeText,EventID,PurposeID,PurposeText,Applied,CreatedBy,CreatedDate,UpdatedBy,UpdatedDate)
+INSERT INTO #tblFinal(NoteID,AccountID,Date,Value,EffectiveDate,EffectiveStartDate,EffectiveEndDate,EventTypeID,EventTypeText,EventID,PurposeID,PurposeText,Applied,CreatedBy,CreatedDate,UpdatedBy,UpdatedDate,AdjustmentType)
 Select   
 n.NoteID
 ,acc.AccountID
@@ -128,20 +129,22 @@ n.NoteID
 ,fs.[CreatedDate]
 ,fs.[UpdatedBy]
 ,fs.[UpdatedDate]
+,LAdjustmentType.name as AdjustmentType
 from [CORE].[FundingSchedule] fs  
 INNER JOIN [CORE].[Event] eve ON eve.EventID = fs.EventId  
 INNER JOIN [CORE].[Account] acc ON acc.AccountID = eve.AccountID  
 INNER JOIN [CRE].[Note] n ON n.Account_AccountID = acc.AccountID  
 INNER JOIN [CORE].[Lookup] LEventTypeID ON LEventTypeID.LookupID = eve.EventTypeID  
 left JOIN [CORE].[Lookup] LPurposeID ON LPurposeID.LookupID = fs.PurposeID  
+left JOIN [CORE].[Lookup] LAdjustmentType ON LAdjustmentType.LookupID = fs.AdjustmentType 
 where n.NoteID = @Noteid  and acc.IsDeleted = 0  
 and eve.StatusID = 1
 and eve.eventid = @EventID
 Order by eve.EffectiveStartDate,fs.[Date]  
 -----------------------------------
 
-INSERT INTO #tblFinal(NoteID,AccountID,Date,Value,EffectiveDate,EffectiveStartDate,EffectiveEndDate,EventTypeID,EventTypeText,EventID,PurposeID,PurposeText,Applied,CreatedBy,CreatedDate,UpdatedBy,UpdatedDate)
-Select NoteID,AccountID,Date,Value,EffectiveDate,EffectiveStartDate,EffectiveEndDate,EventTypeID,EventTypeText,EventID,PurposeID,PurposeText,Applied,CreatedBy,CreatedDate,UpdatedBy,UpdatedDate
+INSERT INTO #tblFinal(NoteID,AccountID,Date,Value,EffectiveDate,EffectiveStartDate,EffectiveEndDate,EventTypeID,EventTypeText,EventID,PurposeID,PurposeText,Applied,CreatedBy,CreatedDate,UpdatedBy,UpdatedDate,AdjustmentType)
+Select NoteID,AccountID,Date,Value,EffectiveDate,EffectiveStartDate,EffectiveEndDate,EventTypeID,EventTypeText,EventID,PurposeID,PurposeText,Applied,CreatedBy,CreatedDate,UpdatedBy,UpdatedDate,AdjustmentType
 From(
 Select   
 n.NoteID  
@@ -161,6 +164,7 @@ n.NoteID
 ,fs.[CreatedDate]  
 ,fs.[UpdatedBy]  
 ,fs.[UpdatedDate]
+,LAdjustmentType.name as AdjustmentType
 ,ROW_NUmber() over(partition by fs.Date order by fs.date,eve.EffectiveStartDate desc) as rno
 from [CORE].[FundingSchedule] fs  
 INNER JOIN [CORE].[Event] eve ON eve.EventID = fs.EventId  
@@ -168,6 +172,7 @@ INNER JOIN [CORE].[Account] acc ON acc.AccountID = eve.AccountID
 INNER JOIN [CRE].[Note] n ON n.Account_AccountID = acc.AccountID  
 INNER JOIN [CORE].[Lookup] LEventTypeID ON LEventTypeID.LookupID = eve.EventTypeID  
 left JOIN [CORE].[Lookup] LPurposeID ON LPurposeID.LookupID = fs.PurposeID  
+left JOIN [CORE].[Lookup] LAdjustmentType ON LAdjustmentType.LookupID = fs.AdjustmentType 
 where n.NoteID = @Noteid  and acc.IsDeleted = 0  
 and eve.StatusID = 1
 
@@ -201,7 +206,7 @@ DEALLOCATE CursorEffDate
 
 
 
-Select NoteID,AccountID,Date,Value,EffectiveDate,EffectiveStartDate,EffectiveEndDate,EventTypeID,EventTypeText,EventID,PurposeID,PurposeText,Applied,CreatedBy,CreatedDate,UpdatedBy,UpdatedDate 
+Select NoteID,AccountID,Date,Value,EffectiveDate,EffectiveStartDate,EffectiveEndDate,EventTypeID,EventTypeText,EventID,PurposeID,PurposeText,Applied,CreatedBy,CreatedDate,UpdatedBy,UpdatedDate,AdjustmentType
 from #tblFinal 
 ORDER BY NoteID DESC
 

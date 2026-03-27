@@ -5,13 +5,8 @@ BEGIN
 	SET NOCOUNT ON;
 
 SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED 
-
 --Declare @analysisID UNIQUEIDENTIFIER  = (Select analysisID from core.analysis where [Name] = 'Default')
-
-
 Truncate table [DW].[NotePeriodicCalcByEntityBI_All] 
-
-
 INSERT INTO [DW].[NotePeriodicCalcByEntityBI_All]
 (NotePeriodicCalcID,
 NotePeriodicCalcAutoID ,
@@ -106,7 +101,9 @@ AnalysisName,
 FeeStrippedforthePeriod,
 PIKInterestPercentage,
 FinancingSource,
-ClientName
+ClientName,
+PIKInterestAppliedForThePeriod,
+PIKPrincipalPaidForThePeriod
 )
 
 Select 
@@ -123,12 +120,16 @@ cf.[Month],
 (cf.ActualCashFlows  * PercentofNote)  as ActualCashFlows,
 (cf.GAAPCashFlows  * PercentofNote)  as GAAPCashFlows,
 (cf.EndingGAAPBookValue  * PercentofNote)  as EndingGAAPBookValue,
-(cf.TotalGAAPIncomeforthePeriod  * PercentofNote)  as TotalGAAPIncomeforthePeriod,
-(cf.InterestAccrualforthePeriod  * PercentofNote)  as InterestAccrualforthePeriod,
-(cf.PIKInterestAccrualforthePeriod  * PercentofNote)  as PIKInterestAccrualforthePeriod,
+
+null as TotalGAAPIncomeforthePeriod,
+null as InterestAccrualforthePeriod,
+null as PIKInterestAccrualforthePeriod,
+
 (cf.TotalAmortAccrualForPeriod  * PercentofNote)  as TotalAmortAccrualForPeriod,
 (cf.AccumulatedAmort  * PercentofNote)  as AccumulatedAmort,
 (cf.BeginningBalance  * PercentofNote)  as BeginningBalance,
+--((cf.BeginningBalance + ISNULL(BeginningPIKBalanceNotInsideLoanBalance,0))  * PercentofNote)  as BeginningBalance,
+
 (cf.TotalFutureAdvancesForThePeriod  * PercentofNote)  as TotalFutureAdvancesForThePeriod,
 (cf.TotalDiscretionaryCurtailmentsforthePeriod  * PercentofNote)  as TotalDiscretionaryCurtailmentsforthePeriod,
 (cf.InterestPaidOnPaymentDate  * PercentofNote)  as InterestPaidOnPaymentDate,
@@ -137,7 +138,11 @@ cf.[Month],
 (cf.ScheduledPrincipal  * PercentofNote)  as ScheduledPrincipal,
 (cf.PrincipalPaid  * PercentofNote)  as PrincipalPaid,
 (cf.BalloonPayment  * PercentofNote)  as BalloonPayment,
+
 (cf.EndingBalance  * PercentofNote)  as EndingBalance,
+--((cf.EndingBalance + ISNULL(cf.EndingPIKBalanceNotInsideLoanBalance,0) )  * PercentofNote)  as EndingBalance,
+
+
 --(cf.ExitFeeIncludedInLevelYield  * PercentofNote)  as ExitFeeIncludedInLevelYield,
 --(cf.ExitFeeExcludedFromLevelYield  * PercentofNote)  as ExitFeeExcludedFromLevelYield,
 --(cf.AdditionalFeesIncludedInLevelYield  * PercentofNote)  as AdditionalFeesIncludedInLevelYield,
@@ -192,8 +197,10 @@ cf.[Month],
 (cf.CurrentPeriodInterestAccrual  * PercentofNote)  as CurrentPeriodInterestAccrual,
 (cf.TotalGAAPInterestFortheCurrentPeriod  * PercentofNote)  as TotalGAAPInterestFortheCurrentPeriod,
 (cf.InvestmentBasis  * PercentofNote)  as InvestmentBasis,
-(cf.CurrentPeriodInterestAccrualPeriodEnddate  * PercentofNote)  as CurrentPeriodInterestAccrualPeriodEnddate,
-(cf.AccruedInterestBI  * PercentofNote)  as AccruedInterestBI,
+
+(cf.CurrentPeriodInterestAccrualPeriodEnddate  * PercentofNote)  as CurrentPeriodInterestAccrualPeriodEnddate,  ---(cf.CurrentPeriodInterestAccrual  * PercentofNote) 
+
+0 as AccruedInterestBI,	---(cf.AccruedInterestBI  * PercentofNote)  as AccruedInterestBI,
 (cf.LIBORPercentage  * PercentofNote)  as LIBORPercentage,
 (cf.SpreadPercentage  * PercentofNote)  as SpreadPercentage,
 cf.CreatedBy,
@@ -201,13 +208,19 @@ cf.CreatedDate,
 cf.UpdatedBy,
 cf.UpdatedDate,
 cf.AnalysisID,
-cf.AnalysisName,
+ana.AnalysisName,
 (cf.FeeStrippedforthePeriod  * PercentofNote)  as FeeStrippedforthePeriod, 
 (cf.PIKInterestPercentage  * PercentofNote)  as PIKInterestPercentage,
 
 
 LFinancingSourceID.FinancingSourceName as FinancingSource,
-c.ClientName
+c.ClientName,
+
+((cf.PIKInterestAppliedForThePeriod + ISNULL(PIKInterestForPeriodNotInsideLoanBalance,0))  * PercentofNote)  as PIKInterestAppliedForThePeriod, 
+((cf.PIKPrincipalPaidForThePeriod + ISNULL(PIKBalanceBalloonPayment,0))  * PercentofNote)  as PIKPrincipalPaidForThePeriod
+
+
+
 
 from cre.note n 
 inner join core.account acc on acc.accountid = n.account_accountid
@@ -215,11 +228,62 @@ inner join cre.deal d on d.dealid = n.dealid
 left join CRE.NoteTranchePercentage np on np.crenoteid = n.crenoteid
 left join [CRE].[FinancingSourceMaster] LFinancingSourceID on LFinancingSourceID.FinancingSourceMasterID = n.FinancingSourceID
 left join cre.Client c on c.ClientID = n.ClientID
-inner join DW.NotePeriodicCalcBI cf on cf.noteid = n.noteid and cf.analysisID in (Select analysisID from core.analysis where [Name] in ('Default','Fully Extended (FWCV)','Expected Maturity Date (with Prepay, FWCV)','Expected Maturity Date (with Prepay, Index Flat)') )
+inner join cre.NotePeriodicCalc cf on n.account_accountid = cf.accountid
+and cf.analysisID in (
+'C10F3372-0FC2-4861-A9F5-148F1F80804F',
+'928387E0-8D5F-4387-98D3-37D8A84F038D',
+'6B4415BB-B467-4D20-9DDA-6C016C174236',
+'81F49F3A-C196-4E10-829E-AAF593552889',
+'D8F8AF6D-B9C7-4015-A610-41D34941EEB5',
+'261CA4F1-A0AF-45C1-8CF6-053DAFAAA835',
+'45CF083B-4755-4A8C-982A-7DC6D7B8E5F2'
+
+	--Select analysisID from core.analysis where [Name] in (
+	--'Default','Fully Extended (FWCV)','Expected Maturity Date (with Prepay, FWCV)','Expected Maturity Date (with Prepay, Index Flat)',
+	--'Expected Maturity Date (with Prepay, 300BPS Pop Up)',
+	--'Expected Maturity Date (with Prepay, FWCV Shift Downward 50bps)',
+	--'Expected Maturity Date (with Prepay, FWCV Shift Upward 50bps)'
+	--) 
+)
 and cf.PeriodEndDate >= CAST(DateADD(year,-1,getdate())  as Date) ---and cf.PeriodEndDate <= CAST(getdate() as Date))
+Left Join
+(
+	Select analysisID,Name as AnalysisName 
+	from core.analysis 
+	where analysisID in (
+	'C10F3372-0FC2-4861-A9F5-148F1F80804F',
+	'928387E0-8D5F-4387-98D3-37D8A84F038D',
+	'6B4415BB-B467-4D20-9DDA-6C016C174236',
+	'81F49F3A-C196-4E10-829E-AAF593552889',
+	'D8F8AF6D-B9C7-4015-A610-41D34941EEB5',
+	'261CA4F1-A0AF-45C1-8CF6-053DAFAAA835',
+	'45CF083B-4755-4A8C-982A-7DC6D7B8E5F2')
+
+	--[Name] in ('Default','Fully Extended (FWCV)','Expected Maturity Date (with Prepay, FWCV)','Expected Maturity Date (with Prepay, Index Flat)',
+	--'Expected Maturity Date (with Prepay, 300BPS Pop Up)',
+	--'Expected Maturity Date (with Prepay, FWCV Shift Downward 50bps)',
+	--'Expected Maturity Date (with Prepay, FWCV Shift Upward 50bps)'
+	--) 
+
+)ana on ana.analysisID = cf.analysisID
 
 where acc.isdeleted <> 1 and d.isdeleted <> 1
-and cf.analysisID in (Select analysisID from core.analysis where [Name] in ('Default','Fully Extended (FWCV)','Expected Maturity Date (with Prepay, FWCV)','Expected Maturity Date (with Prepay, Index Flat)') )
+and cf.analysisID in (
+	'C10F3372-0FC2-4861-A9F5-148F1F80804F',
+	'928387E0-8D5F-4387-98D3-37D8A84F038D',
+	'6B4415BB-B467-4D20-9DDA-6C016C174236',
+	'81F49F3A-C196-4E10-829E-AAF593552889',
+	'D8F8AF6D-B9C7-4015-A610-41D34941EEB5',
+	'261CA4F1-A0AF-45C1-8CF6-053DAFAAA835',
+	'45CF083B-4755-4A8C-982A-7DC6D7B8E5F2'	
+	
+	--Select analysisID from core.analysis 
+	--where [Name] in ('Default','Fully Extended (FWCV)','Expected Maturity Date (with Prepay, FWCV)','Expected Maturity Date (with Prepay, Index Flat)',
+	--	'Expected Maturity Date (with Prepay, 300BPS Pop Up)',
+	--	'Expected Maturity Date (with Prepay, FWCV Shift Downward 50bps)',
+	--	'Expected Maturity Date (with Prepay, FWCV Shift Upward 50bps)'
+	--) 
+)
 and cf.PeriodEndDate >= CAST(DateADD(year,-1,getdate())  as Date) 
 and cf.[Month] is not null 
 

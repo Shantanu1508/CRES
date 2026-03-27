@@ -19,7 +19,12 @@
     [RemitDate]                   DATE             NULL,
     [FeeTypeName]                 NVARCHAR (256)   NULL,
     [Comment]                     NVARCHAR (MAX)   NULL,
-	[PaymentDateNotAdjustedforWorkingDay]                        DATETIME         NULL
+	[PaymentDateNotAdjustedforWorkingDay]                        DATETIME         NULL,
+    IndexDeterminationDate  date,
+    [AllInCouponRate]       DECIMAL(28, 15) NULL,
+    IndexValue              DECIMAL(28, 15) NULL,
+	SpreadValue             DECIMAL(28, 15) NULL,
+	OriginalIndex           DECIMAL(28, 15) NULL,
     CONSTRAINT [PK_TransactionEntryIDStaging] PRIMARY KEY CLUSTERED ([TransactionEntryID] ASC)
 );
 

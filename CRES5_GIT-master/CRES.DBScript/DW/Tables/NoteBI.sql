@@ -215,7 +215,18 @@
     HasDSMonthlyOverride	nvarchar(100),
     FixedPIK	nvarchar(100),
     FloatingPIK	nvarchar(100),
-    FinancingSourceGroup    NVARCHAR (256)   NULL
+    FinancingSourceGroup    NVARCHAR (256)   NULL,
+
+    [ImpactCommitmentCalc] INT NULL ,
+    [ImpactCommitmentCalcBI] nvarchar(10) NULL ,
+    FirstIndexDeterminationDateOverride date null,
+
+    NoteType int,
+    EnableM61Calculations int,
+    NoteTypeBI nvarchar(256),
+    EnableM61CalculationsBI nvarchar(256),
+    RepaymentDayoftheMonth int
+
     CONSTRAINT [PK_NoteID] PRIMARY KEY CLUSTERED ([NoteID] ASC)
 );
 

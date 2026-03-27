@@ -1,12 +1,12 @@
 ﻿using CRES.DAL.IRepository;
-#pragma warning disable CS0105 // The using directive for 'CRES.DAL.IRepository' appeared previously in this namespace
-#pragma warning restore CS0105 // The using directive for 'CRES.DAL.IRepository' appeared previously in this namespace
+using CRES.DAL.IRepository;
 using CRES.DataContract;
 using CRES.Utilities;
 using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Data.SqlClient;
+using System.Linq;
 
 namespace CRES.DAL.Repository
 {
@@ -40,13 +40,29 @@ namespace CRES.DAL.Repository
                 md.StatusID = CommonHelper.ToInt32(dr["StatusID"]);
                 md.StatusIDText = Convert.ToString(dr["StatusIDtext"]);
                 md.TemplateName = Convert.ToString(dr["TemplateName"]);
+
+                md.MaturityScenarioOverrideText = Convert.ToString(dr["MaturityScenarioOverrideText"]);
+                md.IndexScenarioOverrideText = Convert.ToString(dr["IndexScenarioOverrideText"]);
+                md.ExcludedForcastedPrePaymentText = Convert.ToString(dr["ExcludedForcastedPrePaymentText"]);
+                md.UseActualsText = Convert.ToString(dr["UseActualsText"]);
+                md.CalcEngineTypeText = Convert.ToString(dr["CalcEngineTypeText"]);
+                md.AllowCalcAlongWithDefaultText = Convert.ToString(dr["AllowCalcAlongWithDefaultText"]);
+                md.ScenarioStatus = CommonHelper.ToInt32(dr["ScenarioStatus"]);
+                md.ScenarioStatusText = Convert.ToString(dr["ScenarioStatusText"]);
+                md.AllowCalcOverride = CommonHelper.ToInt32(dr["AllowCalcOverride"]);
+                md.AllowCalcOverrideText = Convert.ToString(dr["AllowCalcOverrideText"]);
+                md.IncludeProjectedPrincipalWriteoff = CommonHelper.ToInt32(dr["IncludeProjectedPrincipalWriteoff"]);
+                md.IncludeProjectedPrincipalWriteoffText = Convert.ToString(dr["IncludeProjectedPrincipalWriteoffText"]);
+                md.LastCalculatedDate = CommonHelper.ToDateTime(dr["LastCalculatedDate"]);
+                md.IncludeInDiscrepancyText = Convert.ToString(dr["IncludeInDiscrepancyText"]);
+
                 list.Add(md);
             }
 
             return list;
         }
 
-        public ScenarioParameterDataContract GetScenarioParameterByScenarioID(string scenarioID)
+        public ScenarioParameterDataContract GetScenarioParameterByScenarioID(string scenarioID, Guid userID)
         {
             try
             {
@@ -54,9 +70,9 @@ namespace CRES.DAL.Repository
                 ScenarioParameterDataContract spdc = new ScenarioParameterDataContract();
                 Helper.Helper hp = new Helper.Helper();
                 SqlParameter p1 = new SqlParameter { ParameterName = "@AnalysisID", Value = scenarioID };
-                SqlParameter[] sqlparam = new SqlParameter[] { p1 };
+                SqlParameter p2 = new SqlParameter { ParameterName = "@UserID", Value = userID };
+                SqlParameter[] sqlparam = new SqlParameter[] { p1, p2 };
                 dt = hp.ExecDataTable("dbo.usp_GetScenarioParameterByScenarioID", sqlparam);
-                //  var res = dbContext.usp_GetScenarioParameterByScenarioID(scenarioID).FirstOrDefault();
 
                 if (dt != null && dt.Rows.Count > 0)
                 {
@@ -82,6 +98,41 @@ namespace CRES.DAL.Repository
                     spdc.DisableBusinessDayAdjustment = CommonHelper.ToInt32(dt.Rows[0]["UseBusinessDayAdjustment"]);
                     spdc.DisableBusinessDayAdjustmentText = Convert.ToString(dt.Rows[0]["UseBusinessDayAdjustmentText"]);
                     spdc.JsonTemplateMasterID = CommonHelper.ToInt32(dt.Rows[0]["JsonTemplateMasterID"]);
+                    spdc.CalculationFrequency = CommonHelper.ToInt32(dt.Rows[0]["CalculationFrequency"]);
+                    spdc.CalculationFrequencyText = Convert.ToString(dt.Rows[0]["CalculationFrequencyText"]);
+                    spdc.CalcEngineType = CommonHelper.ToInt32(dt.Rows[0]["CalcEngineType"]);
+                    spdc.CalcEngineTypeText = Convert.ToString(dt.Rows[0]["CalcEngineTypeText"]);
+                    spdc.AllowCalcOverride = CommonHelper.ToInt32(dt.Rows[0]["AllowCalcOverride"]);
+                    spdc.AllowCalcAlongWithDefault = CommonHelper.ToInt32(dt.Rows[0]["AllowCalcAlongWithDefault"]);
+                    spdc.AllowCalcAlongWithDefaultText = Convert.ToString(dt.Rows[0]["AllowCalcAlongWithDefaultText"]);
+
+                    spdc.AccountingClose = CommonHelper.ToInt32(dt.Rows[0]["AccountingClose"]);
+                    spdc.AccountingCloseText = Convert.ToString(dt.Rows[0]["AccountingCloseText"]);
+                    spdc.IncludeProjectedPrincipalWriteoff = CommonHelper.ToInt32(dt.Rows[0]["IncludeProjectedPrincipalWriteoff"]);
+                    spdc.IncludeProjectedPrincipalWriteoffText = Convert.ToString(dt.Rows[0]["IncludeProjectedPrincipalWriteoffText"]);
+                    spdc.CalculateLiability = CommonHelper.ToInt32(dt.Rows[0]["CalculateLiability"]);
+                    spdc.CalculateLiabilityText = Convert.ToString(dt.Rows[0]["CalculateLiabilityText"]);
+                    spdc.ScenarioStatus = CommonHelper.ToInt32(dt.Rows[0]["ScenarioStatus"]);
+                    spdc.ScenarioStatusText = Convert.ToString(dt.Rows[0]["ScenarioStatusText"]);
+                    spdc.UseFinancingMaturityDateOverride = CommonHelper.ToInt32(dt.Rows[0]["UseFinancingMaturityDateOverride"]);
+                    spdc.UseFinancingMaturityDateOverrideText = Convert.ToString(dt.Rows[0]["UseFinancingMaturityDateOverrideText"]);
+                    spdc.UseMaturityAdjustmentMonths = CommonHelper.ToInt32(dt.Rows[0]["UseMaturityAdjustmentMonths"]);
+                    spdc.UseMaturityAdjustmentMonthsText = Convert.ToString(dt.Rows[0]["UseMaturityAdjustmentMonthsText"]);
+
+                    spdc.IncludeInDiscrepancy = CommonHelper.ToInt32(dt.Rows[0]["IncludeInDiscrepancy"]);
+                    spdc.IncludeInDiscrepancyText = Convert.ToString(dt.Rows[0]["IncludeInDiscrepancyText"]);
+
+                    spdc.LastCalculatedDate = CommonHelper.ToDateTime(dt.Rows[0]["LastCalculatedDate"]);
+
+                    spdc.OperationMode = Convert.ToString(dt.Rows[0]["OperationMode"]);
+                    spdc.EqDelayMonths = CommonHelper.ToInt32(dt.Rows[0]["EqDelayMonths"]);
+                    spdc.FinDelayMonths = CommonHelper.ToInt32(dt.Rows[0]["FinDelayMonths"]);
+                    spdc.MinEqBalForFinStart = CommonHelper.ToDouble(dt.Rows[0]["MinEqBalForFinStart"]);
+                    spdc.SublineEqApplyMonths = CommonHelper.ToInt32(dt.Rows[0]["SublineEqApplyMonths"]);
+                    spdc.SublineFinApplyMonths = CommonHelper.ToInt32(dt.Rows[0]["SublineFinApplyMonths"]);
+                    spdc.DebtCallDaysOfTheMonth = CommonHelper.ToInt32(dt.Rows[0]["DebtCallDaysOfTheMonth"]);
+                    spdc.CapitalCallDaysOfTheMonth = CommonHelper.ToInt32(dt.Rows[0]["CapitalCallDaysOfTheMonth"]);
+
                 }
                 return spdc;
             }
@@ -96,7 +147,6 @@ namespace CRES.DAL.Repository
             string result = "";
             int res = 0;
             Helper.Helper hp = new Helper.Helper();
-#pragma warning disable CS0168 // The variable 'ex' is declared but never used
             try
             {
 
@@ -108,18 +158,10 @@ namespace CRES.DAL.Repository
                 SqlParameter p4 = new SqlParameter { ParameterName = "@UserName", Value = Scenaridc.UpdatedBy };
                 SqlParameter p5 = new SqlParameter { ParameterName = "@ActionStatus", Value = Scenaridc.ActionStatus };
                 SqlParameter p6 = new SqlParameter { ParameterName = "@newScenarioID", Direction = ParameterDirection.Output, Size = int.MaxValue };
+                SqlParameter p7 = new SqlParameter { ParameterName = "@ScenarioStatus", Value = Scenaridc.ScenarioStatus };
 
-                SqlParameter[] sqlparam = new SqlParameter[] { p1, p2, p3, p4, p5, p6 };
+                SqlParameter[] sqlparam = new SqlParameter[] { p1, p2, p3, p4, p5, p6, p7 };
                 hp.ExecNonquery("dbo.usp_AddUpdateScenario", sqlparam);
-                //var res = dbContext.usp_AddUpdateScenario(
-                //    Scenaridc.AnalysisID,
-                //    Scenaridc.ScenarioName,
-                //    Scenaridc.Description,
-                //    Scenaridc.UpdatedBy,
-                //    Scenaridc.ActionStatus,
-                //    newScenarioID
-
-                // );
 
                 NewScenarioID = Convert.ToString(p6.Value);
 
@@ -144,37 +186,45 @@ namespace CRES.DAL.Repository
                     SqlParameter q11 = new SqlParameter { ParameterName = "@UseBusinessDayAdjustment", Value = Scenaridc.DisableBusinessDayAdjustment };
                     SqlParameter q12 = new SqlParameter { ParameterName = "@JsonTemplateMasterID", Value = Scenaridc.JsonTemplateMasterID };
 
-                    SqlParameter[] sqlparam1 = new SqlParameter[] { q1, q2, q3, q4, q5, q6, q7, q8, q9, q10, q11, q12 };
+                    SqlParameter q13 = new SqlParameter { ParameterName = "@CalculationFrequency", Value = Scenaridc.CalculationFrequency };
+                    SqlParameter q14 = new SqlParameter { ParameterName = "@CalcEngineType", Value = Scenaridc.CalcEngineType };
+                    SqlParameter q15 = new SqlParameter { ParameterName = "@AllowCalcOverride", Value = Scenaridc.AllowCalcOverride };
+                    SqlParameter q16 = new SqlParameter { ParameterName = "@AllowCalcAlongWithDefault", Value = Scenaridc.AllowCalcAlongWithDefault };
+                    SqlParameter q17 = new SqlParameter { ParameterName = "@AccountingClose", Value = Scenaridc.AccountingClose };
+                    SqlParameter q18 = new SqlParameter { ParameterName = "@IncludeProjectedPrincipalWriteoff", Value = Scenaridc.IncludeProjectedPrincipalWriteoff };
+                    SqlParameter q19 = new SqlParameter { ParameterName = "@CalculateLiability", Value = Scenaridc.CalculateLiability };
+                    SqlParameter q20 = new SqlParameter { ParameterName = "@UseFinancingMaturityDateOverride", Value = Scenaridc.UseFinancingMaturityDateOverride };
+                    SqlParameter q21 = new SqlParameter { ParameterName = "@UseMaturityAdjustmentMonths", Value = Scenaridc.UseMaturityAdjustmentMonths };
+                    SqlParameter q22 = new SqlParameter { ParameterName = "@IncludeInDiscrepancy", Value = Scenaridc.IncludeInDiscrepancy };
+
+                    SqlParameter q23 = new SqlParameter { ParameterName = "@OperationMode", Value = Scenaridc.OperationMode };
+                    SqlParameter q24 = new SqlParameter { ParameterName = "@EqDelayMonths", Value = Scenaridc.EqDelayMonths };
+                    SqlParameter q25 = new SqlParameter { ParameterName = "@FinDelayMonths", Value = Scenaridc.FinDelayMonths };
+                    SqlParameter q26 = new SqlParameter { ParameterName = "@MinEqBalForFinStart", Value = Scenaridc.MinEqBalForFinStart };
+                    SqlParameter q27 = new SqlParameter { ParameterName = "@SublineEqApplyMonths", Value = Scenaridc.SublineEqApplyMonths };
+                    SqlParameter q28 = new SqlParameter { ParameterName = "@SublineFinApplyMonths", Value = Scenaridc.SublineFinApplyMonths };
+                    SqlParameter q29 = new SqlParameter { ParameterName = "@DebtCallDaysOfTheMonth", Value = Scenaridc.DebtCallDaysOfTheMonth };
+                    SqlParameter q30 = new SqlParameter { ParameterName = "@CapitalCallDaysOfTheMonth", Value = Scenaridc.CapitalCallDaysOfTheMonth };
+
+                    SqlParameter[] sqlparam1 = new SqlParameter[] { q1, q2, q3, q4, q5, q6, q7, q8, q9, q10, q11, q12, q13, q14, q15, q16, q17, q18, q19, q20, q21, q22, q23, q24, q25, q26, q27, q28, q29, q30 };
                     res = hp.ExecNonquery("dbo.usp_AddUpdateScenarioParaMeters", sqlparam1);
 
-                    //   dbContext.usp_AddUpdateScenarioParaMeters(
-                    //   Scenaridc.AnalysisID,
-                    //   Scenaridc.MaturityScenarioOverrideID,
-                    //   Scenaridc.MaturityAdjustment,
-                    //   Scenaridc.UpdatedBy,
-                    //   Scenaridc.FunctionName,
-                    //   Scenaridc.IndexScenarioOverride,
-                    //   Scenaridc.CalculationMode,
-                    //   Scenaridc.ExcludedForcastedPrePayment,
-                    //    Scenaridc.AutoCalcFreq
-                    //);
+
                 }
 
                 result = res == -1 ? "TRUE" : "FALSE";
 
 
-                return result;
+                return NewScenarioID;
             }
             catch (Exception ex)
             {
                 throw;
             }
-#pragma warning restore CS0168 // The variable 'ex' is declared but never used
         }
 
         public void UpdateScenarioToInactive(string id)
         {
-#pragma warning disable CS0168 // The variable 'ex' is declared but never used
             try
             {
                 DataTable dt = new DataTable();
@@ -189,7 +239,6 @@ namespace CRES.DAL.Repository
             {
                 throw;
             }
-#pragma warning restore CS0168 // The variable 'ex' is declared but never used
         }
 
         public DataTable GetIndexByScenarioID(string headerUserID, string scenarioID, int? pageIndex, int? pageSize, out int? TotalCount)
@@ -197,7 +246,6 @@ namespace CRES.DAL.Repository
             DataTable dt = new DataTable();
             int tcount = 0;
             //  ObjectParameter totalCount = new ObjectParameter("TotalCount", typeof(int));
-#pragma warning disable CS0168 // The variable 'ex' is declared but never used
             try
             {
                 Helper.Helper hp = new Helper.Helper();
@@ -223,7 +271,6 @@ namespace CRES.DAL.Repository
             catch (Exception ex)
             {
             }
-#pragma warning restore CS0168 // The variable 'ex' is declared but never used
             TotalCount = tcount;
             return dt;
         }
@@ -235,7 +282,6 @@ namespace CRES.DAL.Repository
             DataTable newdt = new DataTable();
             int tcount = 0;
             // ObjectParameter totalCount = new ObjectParameter("TotalCount", typeof(int));
-#pragma warning disable CS0168 // The variable 'ex' is declared but never used
             try
             {
                 Helper.Helper hp = new Helper.Helper();
@@ -252,7 +298,6 @@ namespace CRES.DAL.Repository
             catch (Exception ex)
             {
             }
-#pragma warning restore CS0168 // The variable 'ex' is declared but never used
             TotalCount = tcount;
             if (dt.Rows.Count == 1)
                 return newdt;
@@ -268,7 +313,6 @@ namespace CRES.DAL.Repository
             DataTable newdt = new DataTable();
             int tcount = 0;
             //  ObjectParameter totalCount = new ObjectParameter("TotalCount", typeof(int));
-#pragma warning disable CS0168 // The variable 'ex' is declared but never used
             try
             {
                 Helper.Helper hp = new Helper.Helper();
@@ -283,7 +327,6 @@ namespace CRES.DAL.Repository
             catch (Exception ex)
             {
             }
-#pragma warning restore CS0168 // The variable 'ex' is declared but never used
             TotalCount = tcount;
             if (dt.Rows.Count == 1)
                 return newdt;
@@ -291,27 +334,6 @@ namespace CRES.DAL.Repository
                 return dt;
 
 
-        }
-
-
-        public void ResetDefaultToActiveScenario(string username)
-        {
-#pragma warning disable CS0168 // The variable 'ex' is declared but never used
-            try
-            {
-                //DataTable dt = new DataTable();
-                Helper.Helper hp = new Helper.Helper();
-                SqlParameter p1 = new SqlParameter { ParameterName = "@UserName", Value = username };
-
-                SqlParameter[] sqlparam = new SqlParameter[] { p1 };
-                hp.ExecNonquery("dbo.usp_ResetActiveToDefaultScenario", sqlparam);
-                //var res = dbContext.usp_ResetActiveToDefaultScenario(username);
-            }
-            catch (Exception ex)
-            {
-                throw;
-            }
-#pragma warning restore CS0168 // The variable 'ex' is declared but never used
         }
         public bool CheckDuplicateScenarioName(string id, string name)
         {
@@ -360,6 +382,14 @@ namespace CRES.DAL.Repository
                     spdc.DisableBusinessDayAdjustment = CommonHelper.ToInt32(dt.Rows[0]["UseBusinessDayAdjustment"]);
                     spdc.DisableBusinessDayAdjustmentText = Convert.ToString(dt.Rows[0]["UseBusinessDayAdjustmentText"]);
                     spdc.JsonTemplateMasterID = CommonHelper.ToInt32(dt.Rows[0]["JsonTemplateMasterID"]);
+                    spdc.IncludeProjectedPrincipalWriteoff = CommonHelper.ToInt32(dt.Rows[0]["IncludeProjectedPrincipalWriteoff"]);
+                    spdc.IncludeProjectedPrincipalWriteoffText = Convert.ToString(dt.Rows[0]["IncludeProjectedPrincipalWriteoffText"]);
+
+                    spdc.UseMaturityAdjustmentMonths = CommonHelper.ToInt32(dt.Rows[0]["UseMaturityAdjustmentMonths"]);
+                    spdc.UseMaturityAdjustmentMonthsText = Convert.ToString(dt.Rows[0]["UseMaturityAdjustmentMonthsText"]);
+
+
+
                 }
                 return spdc;
             }
@@ -375,7 +405,6 @@ namespace CRES.DAL.Repository
         {
             string result = "";
 
-#pragma warning disable CS0168 // The variable 'ex' is declared but never used
             try
             {
                 Helper.Helper hp = new Helper.Helper();
@@ -398,7 +427,6 @@ namespace CRES.DAL.Repository
             {
                 throw;
             }
-#pragma warning restore CS0168 // The variable 'ex' is declared but never used
         }
 
 
@@ -457,9 +485,6 @@ namespace CRES.DAL.Repository
 
             SqlParameter[] sqlparam = new SqlParameter[] { p1 };
             dt = hp.ExecDataTable("dbo.usp_GetAllScenarioDistinct", sqlparam);
-            //ObjectParameter totalCount = new ObjectParameter("TotalCount", typeof(int));
-            // var lstscenario = dbContext.usp_GetAllScenarioDistinct(userid).ToList();
-
             foreach (DataRow dr in dt.Rows)
             {
                 ScenarioUserMapDataContract md = new ScenarioUserMapDataContract();
@@ -470,10 +495,12 @@ namespace CRES.DAL.Repository
                 md.Description = Convert.ToString(dr["Description"]);
                 md.ScenarioName = Convert.ToString(dr["Name"]);
                 md.ScenarioColor = Convert.ToString(dr["ScenarioColor"]);
-
+                md.CalcEngineType = CommonHelper.ToInt32(dr["CalcEngineType"]);
                 md.CalculationModeID = CommonHelper.ToInt32(dr["CalculationMode"]);
                 md.CalculationModeText = Convert.ToString(dr["CalculationModeText"]);
                 md.AllowDebugInCalc = Convert.ToString(dr["AllowDebugInCalc"]) == "1" ? true : false;
+                md.ScenarioStatus = CommonHelper.ToInt32(dr["ScenarioStatus"]);
+                md.ScenarioStatusText = Convert.ToString(dr["ScenarioStatusText"]);
                 list.Add(md);
             }
 
@@ -486,7 +513,6 @@ namespace CRES.DAL.Repository
             DataTable newdt = new DataTable();
             int tcount = 0;
             //  ObjectParameter totalCount = new ObjectParameter("TotalCount", typeof(int));
-#pragma warning disable CS0168 // The variable 'ex' is declared but never used
             try
             {
                 Helper.Helper hp = new Helper.Helper();
@@ -501,7 +527,6 @@ namespace CRES.DAL.Repository
             catch (Exception ex)
             {
             }
-#pragma warning restore CS0168 // The variable 'ex' is declared but never used
             TotalCount = tcount;
             if (dt.Rows.Count == 1)
                 return newdt;
@@ -516,7 +541,6 @@ namespace CRES.DAL.Repository
         {
             DataTable dt = new DataTable();
             DataTable newdt = new DataTable();
-#pragma warning disable CS0168 // The variable 'ex' is declared but never used
             try
             {
                 Helper.Helper hp = new Helper.Helper();
@@ -532,7 +556,6 @@ namespace CRES.DAL.Repository
             catch (Exception ex)
             {
             }
-#pragma warning restore CS0168 // The variable 'ex' is declared but never used
 
             if (dt.Rows.Count == 1)
                 return newdt;
@@ -666,6 +689,13 @@ namespace CRES.DAL.Repository
             return result;
         }
 
+        public void InsertActivityLogDetail(DataTable ActivityLogDetail)
+        {
+            Helper.Helper hp = new Helper.Helper();
+            SqlParameter p1 = new SqlParameter { ParameterName = "@tblActivityLogDetail", Value = ActivityLogDetail };
 
+            SqlParameter[] sqlparam = new SqlParameter[] { p1 };
+            hp.ExecDataTablewithparams("dbo.usp_InsertActivityLogDetail", sqlparam);
+        }
     }
 }

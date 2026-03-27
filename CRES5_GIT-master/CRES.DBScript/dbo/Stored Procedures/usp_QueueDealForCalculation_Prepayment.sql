@@ -4,15 +4,20 @@ CREATE PROCEDURE [dbo].[usp_QueueDealForCalculation_Prepayment]
  @DealID UNIQUEIDENTIFIER,  
  @UpdatedBy nvarchar(256),  
  @AnalysisID UNIQUEIDENTIFIER,  
- @CalcType int  
+ @CalcType int  ,
+ @RequestFrom  Nvarchar(256),
+ @IsEmailSent int
 AS  
 BEGIN  
-  
-   
-Delete from Core.CalculationRequests where DealID = @DealID and  AnalysisID = @AnalysisID   
+ 
+ 
+
+Declare @DealAccountID UNIQUEIDENTIFIER = (Select AccountID from cre.deal where dealid = @DealID)
+
+Delete from Core.CalculationRequests where DealID = @DealID and  AnalysisID = @AnalysisID   and CalcType = 776
    
 INSERT INTO Core.CalculationRequests(  
-NoteId,  
+AccountId,  
 RequestTime,  
 StatusID,  
 UserName,  
@@ -20,10 +25,14 @@ PriorityID,
 AnalysisID,  
 NumberOfRetries, 
 DealID,
-CalcType)   
+CalcType,
+CalcEngineType,
+RequestFrom,
+IsEmailSent
+)   
   
 select   
-'00000000-0000-0000-0000-000000000000' as NoteId  
+@DealAccountID as AccountId  
 ,getdate()  
 ,292 as StatusID  
 ,@UpdatedBy as UserName  
@@ -32,7 +41,9 @@ select
 ,1 as NumberOfRetries 
 ,@DealID as DealID
 ,776 as CalcType  
-  
+,797 as CalcEngineType
+,@RequestFrom
+,@IsEmailSent
   
   
 END

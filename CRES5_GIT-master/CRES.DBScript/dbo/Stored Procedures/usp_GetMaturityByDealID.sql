@@ -31,6 +31,8 @@ BEGIN
 	,n.CRENoteID
 	,mat.MaturityMethodID
 	,mat.MaturityGroupName
+	,mat.ExtensionType
+	,mat.ExtensionTypeText
 	from cre.note n
 	Inner JOin core.account acc on acc.accountid = n.account_accountid
 	Inner JOin cre.deal d on d.dealid = n.dealid 
@@ -56,6 +58,8 @@ BEGIN
 		,ISNULL(nt.MaturityMethodID,723) as MaturityMethodID
 		,ISNULL(nt.MaturityGroupName,'Note level')  as MaturityGroupName
 		,LMaturityType.SortOrder
+		,mat.ExtensionType 
+		,LExtensionType.name as ExtensionTypeText
 		from [CORE].Maturity mat      
 		INNER JOIN [CORE].[Event] e on e.EventID = mat.EventId
 		INNER JOIN     
@@ -76,6 +80,7 @@ BEGIN
 		INNER JOIN [CRE].[Note] nt   on nt.Account_AccountID = sEvent.AccountID      
 		left JOIN [CORE].[Lookup] LApproved ON LApproved.LookupID = mat.Approved    
 		left JOIN [CORE].[Lookup] LMaturityType ON LMaturityType.LookupID = mat.MaturityType    
+		left JOIN [CORE].[Lookup] LExtensionType ON LExtensionType.LookupID = mat.ExtensionType    
 	
 
 	)mat on mat.Noteid = n.noteid
@@ -151,6 +156,9 @@ BEGIN
 	,n.CRENoteID
 	,n.MaturityMethodID
 	,n.MaturityGroupName
+	,mat.ExtensionType
+	,mat.ExtensionTypeText
+	
 	from cre.note n
 	Inner JOin core.account acc on acc.accountid = n.account_accountid
 	Inner JOin cre.deal d on d.dealid = n.dealid 
@@ -174,6 +182,8 @@ BEGIN
 		,nt.MaturityMethodID
 		,nt.MaturityGroupName
 		,LMaturityType.SortOrder
+		,mat.ExtensionType 
+		,LExtensionType.name as ExtensionTypeText
 		from [CORE].Maturity mat      
 		INNER JOIN [CORE].[Event] e on e.EventID = mat.EventId
 		INNER JOIN     
@@ -192,7 +202,7 @@ BEGIN
 		INNER JOIN [CRE].[Note] nt   on nt.Account_AccountID = sEvent.AccountID      
 		left JOIN [CORE].[Lookup] LApproved ON LApproved.LookupID = mat.Approved    
 		left JOIN [CORE].[Lookup] LMaturityType ON LMaturityType.LookupID = mat.MaturityType  
-
+		left JOIN [CORE].[Lookup] LExtensionType ON LExtensionType.LookupID = mat.ExtensionType    
 	)mat on mat.Noteid = n.noteid
 
 	where acc.isdeleted <> 1

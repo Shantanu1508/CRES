@@ -13,6 +13,8 @@
     [CreatedDate]        DATETIME         NULL,
     [UpdatedBy]          NVARCHAR (256)   NULL,
     [UpdatedDate]        DATETIME         NULL,   
+	[MinimumMultipleDue] Decimal (28,15)  Null,
+	[OpenPaymentDate]    DATETIME         NULL
    
     CONSTRAINT [PK_PrepayScheduleID] PRIMARY KEY CLUSTERED ([PrepayScheduleID] ASC),
 	CONSTRAINT [FK_PrepaySchedule_EventDealId] FOREIGN KEY ([EventDealID]) REFERENCES [Core].[EventDeal] ([EventDealID])

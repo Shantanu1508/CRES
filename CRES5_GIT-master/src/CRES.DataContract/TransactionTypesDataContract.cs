@@ -1,4 +1,8 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
 
 namespace CRES.DataContract
 {
@@ -6,22 +10,23 @@ namespace CRES.DataContract
     {
         public Guid? UserID { get; set; }
         public int? TransactionTypesID { get; set; }
-        public string TransactionName { get; set; }
-        public string TransactionCategory { get; set; }
-        public int? Calculated { get; set; }
-        public string CalculatedText { get; set; }
-        public int? IncludeCashflowDownload { get; set; }
-        public string IncludeCashflowDownloadText { get; set; }
-        public int? IncludeServicingReconciliation { get; set; }
-        public string IncludeServicingReconciliationText { get; set; }
-        public int? IncludeGAAPCalculations { get; set; }
-        public string IncludeGAAPCalculationsText { get; set; }
-        public int? AllowCalculationOverride { get; set; }
-        public string AllowCalculationOverrideText { get; set; }
-        public string CreatedBy { get; set; }
-        public DateTime? CreatedDate { get; set; }
-        public string UpdatedBy { get; set; }
-        public DateTime? UpdatedDate { get; set; }
-        public string TransactionGroup { get; set; }
+        public string TransactionName  { get; set; }
+		public string   TransactionCategory { get; set; }
+		public int? Calculated { get; set; }
+		public  string  CalculatedText  { get; set; }
+        public int? IncludeCashflowDownload  { get; set; }
+        public string IncludeCashflowDownloadText  { get; set; }
+        public int? IncludeServicingReconciliation  { get; set; }
+		public string IncludeServicingReconciliationText   { get; set; }
+		public int? IncludeGAAPCalculations   { get; set; }
+		public string IncludeGAAPCalculationsText  { get; set; }
+		public int? AllowCalculationOverride { get; set; }
+		public string AllowCalculationOverrideText { get; set; }
+		public string CreatedBy  { get; set; }
+		public  DateTime?  CreatedDate { get; set; }
+		public string UpdatedBy { get; set; }
+		public  DateTime? UpdatedDate { get; set; }
+		public string TransactionGroup { get; set; }
+        public Boolean? active { get; set; }
     }
 }

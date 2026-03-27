@@ -1,5 +1,6 @@
 ﻿CREATE TYPE [dbo].[TableHolidays] AS TABLE
 (
 	HolidayMasterId INT, 
-	HoliDayDate date
+	HoliDayDate date,
+	isSoftHoliday INT
 )

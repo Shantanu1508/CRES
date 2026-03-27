@@ -1,0 +1,14 @@
+﻿CREATE PROCEDURE [dbo].[usp_InsertXIRRDeleteBlobFiles]
+	@FileName nvarchar(256),
+	@Path nvarchar(256),
+	@UserID nvarchar(256)
+AS
+BEGIN
+	SET NOCOUNT ON;  
+	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED 
+
+	  INSERT INTO CRE.XIRRDeleteBlobFiles([FileName] ,[Path])	VALUES(@FileName,@Path)
+
+	SET TRANSACTION ISOLATION LEVEL READ COMMITTED 
+
+END

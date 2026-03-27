@@ -1,9 +1,15 @@
-﻿namespace CRES.DataContract
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace CRES.DataContract
 {
     public class RuleTypeDataContract
     {
         public int? RuleTypeMasterID { get; set; }
-        public string RuleTypeName { get; set; }
+        public string RuleTypeName { get; set; }        
         public int? RuleTypeDetailID { get; set; }
         public string FileName { get; set; }
         public string Type { get; set; }

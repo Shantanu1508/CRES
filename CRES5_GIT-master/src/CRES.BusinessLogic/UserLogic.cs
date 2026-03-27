@@ -1,8 +1,12 @@
-﻿using CRES.DAL.Repository;
-using CRES.DataContract;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Data;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using CRES.DAL;
+using CRES.DAL.Repository;
+using CRES.DataContract;
 
 namespace CRES.BusinessLogic
 {
@@ -13,22 +17,14 @@ namespace CRES.BusinessLogic
         public UserDataContract ValidateUser(string login, string password)
         {
 
-#pragma warning disable CS0219 // The variable 'isValid' is assigned but its value is never used
             bool isValid = false;
-#pragma warning restore CS0219 // The variable 'isValid' is assigned but its value is never used
             UserDataContract _userdatacontract = new UserDataContract();
             _userdatacontract.Login = login;
             _userdatacontract.Password = password;
             _userdatacontract = _userRepository.ValidateUser(_userdatacontract);
 
             return _userdatacontract;
-        }
-
-        //public UserDataContract GetPassword(UserDataContract Userobj)
-        //{
-        //    UserDataContract userdc = _userRepository.GetPassword(Userobj);
-        //    return userdc;
-        //}
+        }        
 
         public UserDataContract GetUserCredentialByUserID(Guid UserID, Guid? DelegatedUserID)
         {
@@ -87,7 +83,10 @@ namespace CRES.BusinessLogic
         }
 
 
-
+        public bool AddNewUser(string? email, string? createdby)
+        {
+            return _userRepository.AddNewUser(email, createdby);
+        }
 
         public int AddUpdateUser(List<UserDataContract> _userDataContract)
         {
@@ -113,6 +112,11 @@ namespace CRES.BusinessLogic
             _userdatacontractlst = _userRepository.GetUsersByRoleName(RoleName);
             return _userdatacontractlst;
         }
+        public List<UserDataContract> GetUsersInfoByRoleNameForDropDown(string RoleName)
+        {            
+            return _userRepository.GetUsersInfoByRoleNameForDropDown(RoleName);
+            
+        }       
 
         public bool ForceLogout(Guid? userID)
         {
@@ -149,9 +153,38 @@ namespace CRES.BusinessLogic
         {
             return _userRepository.UpdateIPAddressByUserID(_userDataContract);
         }
-        public bool CheckDuplicateIPAddress(Guid? UserID, string IpAddress)
+        public bool CheckDuplicateIPAddress(Guid? UserID,string IpAddress)
         {
-            return _userRepository.CheckDuplicateIPAddress(UserID, IpAddress);
+            return _userRepository.CheckDuplicateIPAddress(UserID,IpAddress);
+        }
+
+        public List<UserDataContract> GetUsersforAzureAD()
+        {
+            List<UserDataContract> _userdatacontractlst = new List<UserDataContract>();
+            _userdatacontractlst = _userRepository.GetUsersforAzureAD();
+            return _userdatacontractlst;
+        }
+
+        public bool checkIsUserActive(string UserID) {
+            return _userRepository.checkIsUserActive(UserID);
+        }
+
+        public void UpdateDeviceCode(string login, string deviceCode)
+        {
+            UserDataContract _userdatacontract = new UserDataContract();
+            _userdatacontract.Login = login;
+            _userdatacontract.DeviceCode = deviceCode;
+            _userRepository.UpdateDeviceCode(_userdatacontract);
+
+        }
+
+        public string GetDeviceCode(string login, string deviceCode)
+        {
+            UserDataContract _userdatacontract = new UserDataContract();
+            _userdatacontract.Login = login;
+            _userdatacontract.DeviceCode = deviceCode;
+            return _userRepository.GetDeviceCode(_userdatacontract);
+
         }
     }
 }

@@ -5,12 +5,15 @@ using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Data.SqlClient;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
 
 namespace CRES.DAL.Repository
 {
-    public class PortfolioRepository : IPortfolioRepository
+    public class PortfolioRepository: IPortfolioRepository
     {
-
+       
         public int AddUpdateFortfolio(PortfolioDataContract portfolio)
         {
             // bool retValue = false;
@@ -30,7 +33,7 @@ namespace CRES.DAL.Repository
             SqlParameter p9 = new SqlParameter { ParameterName = "@FinancingSourceIDs", Value = portfolio.FinancingSourceIDs };
             SqlParameter p10 = new SqlParameter { ParameterName = "@Status", Direction = ParameterDirection.Output, Size = int.MaxValue };
             SqlParameter[] sqlparam = new SqlParameter[] { p1, p2, p3, p4, p5, p6, p7, p8, p9, p10 };
-            hp.ExecuteScalar("Core.usp_AddUpdatePortfolio", sqlparam);
+             hp.ExecuteScalar("Core.usp_AddUpdatePortfolio", sqlparam);
 
             //var res = dbContext.usp_AddUpdatePortfolio(
             //            portfolio.PortfolioMasterGuid,
@@ -41,8 +44,8 @@ namespace CRES.DAL.Repository
             //            portfolio.FundIDs,
             //            portfolio.CreatedBy,
             //        StatusOut);
-            Status = Convert.ToInt32(p10.Value);
-            return Status;
+                Status = Convert.ToInt32(p10.Value);
+                return Status;
         }
 
         public PortfolioDataContract GetPortfolioDetailByID(Guid? PortfolioID)
@@ -56,14 +59,14 @@ namespace CRES.DAL.Repository
             // var _portfolio = dbContext.usp_GetPortfolioDetailByID(PortfolioID).FirstOrDefault();
             SqlParameter[] sqlparam = new SqlParameter[] { p1 };
             dt = hp.ExecDataTable("Core.usp_GetPortfolioDetailByID", sqlparam);
-            if (dt != null && dt.Rows.Count > 0)
-            {
+            if (dt != null && dt.Rows.Count>0)
+                {
                 if (Convert.ToString(dt.Rows[0]["PortfolioMasterGuid"]) != "")
                 {
                     _portfolioDC.PortfolioMasterGuid = new Guid(Convert.ToString(dt.Rows[0]["PortfolioMasterGuid"]));
                 }
                 _portfolioDC.PortfolioMasterID = Convert.ToInt32(dt.Rows[0]["PortfolioMasterID"]);
-                _portfolioDC.PortfolioName = Convert.ToString(dt.Rows[0]["PortfoliName"]);
+                _portfolioDC.PortfolioName =Convert.ToString(dt.Rows[0]["PortfoliName"]);
                 _portfolioDC.Description = Convert.ToString(dt.Rows[0]["Description"]);
                 _portfolioDC.PoolIDs = Convert.ToString(dt.Rows[0]["PoolIDs"]);
                 _portfolioDC.ClientIDs = Convert.ToString(dt.Rows[0]["ClientIDs"]);
@@ -90,15 +93,15 @@ namespace CRES.DAL.Repository
             dt = hp.ExecDataTable("Core.usp_GetAllPortfolio", sqlparam);
 
             // ObjectParameter totalCount = new ObjectParameter("TotalCount", typeof(int));
-            // var lstportfolio = dbContext.usp_GetAllPortfolio(userId, pageIndex, pageSize, totalCount).ToList();
-
+           // var lstportfolio = dbContext.usp_GetAllPortfolio(userId, pageIndex, pageSize, totalCount).ToList();
+            
             TotalCount = string.IsNullOrEmpty(Convert.ToString(p4.Value)) ? 0 : Convert.ToInt32(p4.Value);
 
             foreach (DataRow dr in dt.Rows)
             {
                 PortfolioDataContract portfolioDC = new PortfolioDataContract();
                 portfolioDC.PortfolioMasterID = Convert.ToInt32(dr["PortfolioMasterID"]);
-                if (Convert.ToString(dr["PortfolioMasterGuid"]) != "")
+                    if (Convert.ToString(dr["PortfolioMasterGuid"]) != "")
                 {
                     portfolioDC.PortfolioMasterGuid = new Guid(Convert.ToString(dr["PortfolioMasterGuid"]));
                 }

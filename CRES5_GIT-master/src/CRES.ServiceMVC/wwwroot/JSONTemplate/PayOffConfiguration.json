@@ -1,0 +1,41 @@
+{
+  "Configuration": "PayOffConfiguration",
+  "LoanServicer": "Loan Servicer (SERVICERINFORMATION):",
+  "WiringInstructions": "Loan Servicer (SERVICERINFORMATION) Wiring Instructions:",
+  "Attention": "Payoff for Loan #: SERVICERILoanID",
+  "Disclaimer": "newlineFunds must be wired to Loan Servicer prior to 2:00 PM (Eastern Standard Time) for same day credit.  Reference the loan number(s) and advise ACORE Capital and Loan Servicer (SERVICERINFORMATION) of the Federal Reserve Number.",
+  "FooterText": "PLEASE SEE THAT THE FINAL PAYMENT ARE DIRECTED TO, AND RECEIVED BY THE LOAN SERVICER (SERVICERINFORMATION) PER THE FOLLOWING INSTRUCTIONS.",
+  "Berkadia_Commercial_Mortgage": {
+    "PrimaryContact": "Christie Corallo",
+    "PrimaryPhone": "T: 215-328-1974 | M: 215-514-4678",
+    "PrimaryEmail": "christie.corallo@berkadia.com",
+    "BackupContact": "Noelle Nichols",
+    "BackupPhone": "T: 215-328-1846",
+    "BackupEmail": "noelle.nichols@berkadia.com",
+    "Bank": "TD Bank, Horsham, PA",
+    "Beneficiary": "Berkadia Commercial Mortgage, LLC",
+    "AcctName": "N/A",
+    "ABANo": "031-101-266",
+    "AcctNo": "4389190813",
+    "DisclaimerExtra": "BERKADIA REQUIRES THE INCLUSION OF THE ABOVE REFERENCE LINE AS A CONDITION OF ACCEPTING YOUR PAYMENT"
+
+
+
+  },
+  "Trimont": {
+    "PrimaryContact": "John Barkanic",
+    "PrimaryPhone": "704-715-6465",
+    "PrimaryEmail": "john.barkanic@cms.trimont.com",
+    "BackupContact": "Kevin Carton",
+    "BackupPhone": "704-410-2622",
+    "BackupEmail": "kevin.carton@cms.trimont.com",
+    "Bank": "Wells Fargo Bank, N.A. - San Francisco, CA",
+    "Beneficiary": "Trimont LLC",
+    "AcctName": "Trimont Incoming Wires",
+    "ABANo": "121000248",
+    "AcctNo": "5077594011216",
+    "DisclaimerExtra": ""
+
+  }
+
+}

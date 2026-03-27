@@ -1,16 +1,16 @@
-﻿using CRES.DAL.Repository;
-using CRES.DataContract;
-using System;
+﻿using System;
 using System.Collections.Generic;
-using System.Data;
 using System.Linq;
+using CRES.DAL.Repository;
+using CRES.DataContract;
+using System.Data;
 
 namespace CRES.BusinessLogic
 {
     public class AccountingReportLogic
     {
         private AccountingReportRepository _reportRepository = new AccountingReportRepository();
-
+               
         public List<ReportFileDataContract> GetAllReportFiles(Guid? UserID, int? pageSize, int? pageIndex, out int? TotalCount)
         {
             List<ReportFileDataContract> lstReportFiles = new List<ReportFileDataContract>();
@@ -47,8 +47,15 @@ namespace CRES.BusinessLogic
         public List<DWStatusDataContract> GetwarehouseStatus(string btnname)
         {
             List<DWStatusDataContract> lstStatus = new List<DWStatusDataContract>();
-            lstStatus = _reportRepository.GetwarehouseStatus(btnname).ToList();
+            lstStatus=_reportRepository.GetwarehouseStatus(btnname).ToList();
             return lstStatus;
+        }
+
+        public List<ReportFileDataContract> GetAllReportFilesByReportType(Guid? UserID,string ReportType, string TenantId,string GroupId, int? pageSize, int? pageIndex, out int? TotalCount)
+        {
+            List<ReportFileDataContract> lstReportFiles = new List<ReportFileDataContract>();
+            lstReportFiles = _reportRepository.GetAllReportFilesByReportType(UserID,  ReportType,  TenantId,  GroupId, pageSize, pageIndex, out TotalCount).ToList();
+            return lstReportFiles;
         }
     }
 }

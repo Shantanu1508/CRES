@@ -63,6 +63,10 @@
     [PropertyAutoID]            INT              NOT NULL,
     [DealName]                  NVARCHAR (256)   NULL,
     [CREDealID]                 NVARCHAR (256)   NULL,
-    [PropertyTypeMajorCd_F]     NVARCHAR (50)    NULL
+    [PropertyTypeMajorCd_F]     NVARCHAR (50)    NULL,
+    [PropertyBI_AutoID]         INT              IDENTITY (1, 1) NOT NULL,
+    CONSTRAINT [PK_PropertyBI_AutoID] PRIMARY KEY CLUSTERED ([PropertyBI_AutoID] ASC)
 );
+
+
 

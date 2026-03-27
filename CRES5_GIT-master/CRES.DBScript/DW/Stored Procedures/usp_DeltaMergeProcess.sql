@@ -26,13 +26,13 @@ BEGIN
 	EXEC [DW].usp_MergeExceptionsBI @BatchLogId
 	
 
-	--EXEC [DW].[usp_MergeNoteFunding] @BatchLogId
-	--EXEC [DW].[usp_MergeBSNoteFunding] @BatchLogId
+	----EXEC [DW].[usp_MergeNoteFunding] @BatchLogId
+	----EXEC [DW].[usp_MergeBSNoteFunding] @BatchLogId
 
 	EXEC [DW].[usp_MergeDealFundingSchdule] @BatchLogId
 	EXEC [DW].[usp_MergeNoteFundingSchedule] @BatchLogId
 
-	--EXEC [DW].[usp_MergeBackshopCurrentBalance] @BatchLogId
+	----EXEC [DW].[usp_MergeBackshopCurrentBalance] @BatchLogId
 	EXEC [DW].[usp_MergeFundingSequences] @BatchLogId
 
 	EXEC [DW].[usp_MergeWorkFlow] @BatchLogId
@@ -57,6 +57,15 @@ BEGIN
 
 	EXEC [DW].[usp_MergeTotalCommitmentData] @BatchLogId
 
+	EXEC [DW].[usp_MergeNoteAttributesbyDate] @BatchLogId
+
+	EXEC [DW].[usp_MergePrepayAndAdditionalFeeSchedule] @BatchLogId
+
+	EXEC [DW].usp_MergeLiabilityNote @BatchLogId
+	EXEC [DW].usp_MergeLiabilityNoteAssetMapping @BatchLogId
+	EXEC [DW].usp_MergeGeneralSetupDetailsLiabilityNote @BatchLogId
+	EXEC [DW].usp_MergeTransactionEntryLiability @BatchLogId
+	
 	------from backshop nightly
 	--EXEC [DW].usp_MergeUwDeal @BatchLogId
 	--EXEC [DW].usp_MergeUwNote @BatchLogId
@@ -72,5 +81,3 @@ BEGIN
 		WHERE BatchLogId = @BatchLogId
 	END
 END
-
-

@@ -1,11 +1,12 @@
-﻿CREATE PROCEDURE [dbo].[usp_GetDealNoteFundingDiscrepancy] 
+﻿-- Procedure
+CREATE PROCEDURE [dbo].[usp_GetDealNoteFundingDiscrepancy] 
 AS
 BEGIN
 	SET NOCOUNT ON;
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 	
 SELECT DealName as [Deal Name], 
-       CREDealID as [CREDealID], 
+       CREDealID as [Deal ID], 
 	   CONVERT(varchar, DealFundingDate, 101)  as [Deal Funding Date], 
 	   REPLACE('$' + CONVERT(varchar, CAST(DealFundingAmount AS money), 1),'$-','-$') as [Deal Funding Amount],
 	   CONVERT(varchar, NoteFundingDate, 101) as [Note Funding Date], 
@@ -55,7 +56,8 @@ FROM (
 			and acc.IsDeleted = 0
 			GROUP BY d.DealID, fs.Date
 			) notefunding ON notefunding.DealID = dd.DealID and notefunding.NoteFundingDate = df.Date
-			where dd.DealName <> 'Sizer test 01' and df.amount <> 0
+			
+			where dd.DealName <> 'Sizer test 01' and df.amount <> 0 and dd.[Status] in (323,325)
 		GROUP BY dd.DealID,dd.DealName, NoteFundingAmount,dd.credealid,NoteFundingDate, df.Date
      ) _delta
 WHERE abs(ISNULL(Delta,1))<>0
@@ -64,6 +66,7 @@ and dealid in (
 	Select Distinct d.dealid from cre.deal d
 	inner join cre.note n on n.dealid = d.dealid
 	where n.actualpayoffdate is null and d.isdeleted <> 1
+	and d.[Status] in (323,325)
 )
 order by  dealname,dealfundingdate, notefundingdate
 

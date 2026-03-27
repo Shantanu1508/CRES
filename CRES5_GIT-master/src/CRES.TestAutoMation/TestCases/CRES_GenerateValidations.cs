@@ -8,21 +8,21 @@ using CRES.TestAutoMation.Utility;
 using CRES.Utilities;
 using NUnit.Framework;
 using OpenQA.Selenium;
-using OpenQA.Selenium.Chrome;
 using OpenQA.Selenium.Interactions;
 using OpenQA.Selenium.Support.UI;
 using System;
 using System.Collections.Generic;
+using System.Drawing;
 using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
 
 namespace CRES.TestAutoMation.TestCases
 {
-    public class CRES_GenerateValidations : BaseClass
+    public class CRES_GenerateValidationsNEW : BaseClass
     {
         ExtentTest test = null;
-        public void GetAllDeal()
+        public static void GetAllDeal()
         {
 
         }
@@ -43,6 +43,8 @@ namespace CRES.TestAutoMation.TestCases
         readonly bool SendProgressEmail = BaseConfiguration.SendProgressEmail();
         readonly int SendProgressEmailDealCounter = BaseConfiguration.SendProgressEmailDealCounter();
         string ExcelDealIDTab = BaseConfiguration.ExcelDealIDTab();
+        //BaseClass baseClass = new BaseClass();
+        BrowserHelper browserHelper = new BrowserHelper();
 
         List<DealDataContract> deallist = new List<DealDataContract>();
         List<AutoMationOutputData> _autoMationOutputDatalstResult = new List<AutoMationOutputData>();
@@ -52,310 +54,35 @@ namespace CRES.TestAutoMation.TestCases
         Email SendEmail = new Email();
 
 
-        /* [Test]
-         public void generateFundingOLD()
-         {
-             test = extent.CreateTest("Generate Funding").Info("Test started");
-
-             List<AutoMationOutputData> _autoMationOutputDatalst = new List<AutoMationOutputData>();
-
-             Login login = new Login(driver);
-             Utility.Util util = new Utility.Util(driver);
-             Deal dealPage = new Deal(driver);
-             Deal FundingPage = new Deal(driver);
-             BaseUrl = env switch
-             {
-                 "QA" => BaseConfiguration.GetQAUrl(),
-                 "Integration" => BaseConfiguration.GetIntUrl(),
-                 "Staging" => BaseConfiguration.GetStagingUrl(),
-                 "Dev" => BaseConfiguration.GetDevUrl(),
-                 _ => BaseConfiguration.GetQAUrl(),
-             };
-             // string weburl = BaseConfiguration.GetURL();
-             //string username = BaseConfiguration.getusername();
-             // string password = BaseConfiguration.getpassword();
-             string subLoginUrl = BaseConfiguration.GetLoginUrlNew();
-
-             string runForAllDeal = BaseConfiguration.TestAllDealForGenerateFunding();
-             string dashboard = "https://qacres4.azurewebsites.net/#/dashboard";
-             string dealfunding = BaseConfiguration.GetURL() + BaseConfiguration.DealFunding();
-             test.Log(Status.Info, "Running on " + env);
-
-
-             if (runForAllDeal.ToString().ToLower() == "yes")
-             {
-                 test.Log(Status.Info, "Running for all deals ");
-                 //TestAllDealForGenerateFunding
-                 AutomationLogic autologic = new AutomationLogic();
-                 deallist = autologic.GetAllDeal();
-             }
-             else
-             {
-
-                 var dataTable = InputHelper.GetDataTableFromExcel(ProjectBaseConfiguration.DataDrivenFileXlsx, "Deal_List");
-                 if (dataTable != null)
-                 {
-
-                     for (int i = 0; i < dataTable.Rows.Count; i++)
-                     {
-                         if (i > 0)
-                         {
-                             DealDataContract ldc = new DealDataContract();
-                             ldc.DealName = dataTable.Rows[i].ItemArray[0].ToString();
-                             ldc.CREDealID = dataTable.Rows[i].ItemArray[1].ToString();
-                             deallist.Add(ldc);
-                         }
-                     }
-
-
-                 }
-             }
-
-             test.Log(Status.Info, "Running for sample deals ");
-             string LoginUrl = BaseUrl + subLoginUrl;
-             util.OpenUrl(LoginUrl);
-             System.Threading.Thread.Sleep(5000);
-
-
-             test.Log(Status.Info, "Login Website started ");
-             //login in web site
-             if (login.LoginWebPage())
-             {
-                 test.Log(Status.Info, "Login Website Ended ");
-                 // data = new string[deallist.Count + 1, 10];
-
-                 for (loop = 0; loop < deallist.Count; loop++)
-                 {
-                     FFSuccessMessageVisible = false;
-
-                     AutoMationOutputData _autoMationOutputData = new AutoMationOutputData();
-                     System.Diagnostics.Debug.WriteLine("Remaining Deals: " + (deallist.Count - loop));
-                     util.OpenUrl(dashboard);
-                     System.Threading.Thread.Sleep(4000);
-                     //dealPage.CheckDealPageLoaded();
-                     util.OpenUrl(dealfunding + deallist[loop].CREDealID.ToString());
-
-                     _autoMationOutputData.CREID = deallist[loop].CREDealID;
-                     _autoMationOutputData.Name = deallist[loop].DealName;
-                     TextLogger.Write(deallist[loop].CREDealID, LogFile);
-
-                     System.Threading.Thread.Sleep(8000);
-                     dealPage.CheckDealPageLoaded();
-                     test.Log(Status.Info, "Deal page Loaded ");
-                     try
-                     {
-                         System.Threading.Thread.Sleep(5000);
-                         dealPage.ClickFunding();
-                         dealPage.CheckDealPageLoaded();
-
-                         try
-                         {
-                             Actions actions = new Actions(driver);
-
-                             util.WaitForElementVisible(dealPage.tabFunding);
-                             IWebElement tabFunding = driver.FindElement(dealPage.tabFunding);
-                             actions.MoveToElement(tabFunding).Perform();
-
-                             util.WaitForElementVisible(dealPage.btnGenerateFunding);
-                             IWebElement GenerateButton = driver.FindElement(dealPage.btnGenerateFunding);
-
-                             actions.MoveToElement(GenerateButton).Perform();
-
-                             System.Threading.Thread.Sleep(2000);
-                             GenerateButton.Click();
-                             System.Threading.Thread.Sleep(2000);
-
-                             try
-                             {
-                                 WebDriverWait wait = new WebDriverWait(driver, TimeSpan.FromSeconds(10));
-                                 wait.Until(SeleniumExtras.WaitHelpers.ExpectedConditions.ElementIsVisible(dealPage.successMessage));
-                                 FFSuccessMessage = driver.FindElement(dealPage.successMessage);
-                                 FFSuccessMessageVisible = FFSuccessMessage.Displayed;
-                                 actualMessage = FFSuccessMessage.Text;
-                             }
-                             catch (Exception e)
-                             {
-                             }
-
-                             if (FFSuccessMessageVisible)
-                             {
-                                 util.captureScreenshot(deallist[loop].CREDealID + "_Generate");
-                                 String successMessage = "Funding schedule generated successfully.";
-                                 if (actualMessage.Equals(successMessage))
-                                 {
-                                     _autoMationOutputData.GenerateMessage = actualMessage;
-
-                                     if (BaseConfiguration.AllowSave())
-                                     {
-                                         _autoMationOutputData = saveDeal(_autoMationOutputData);
-                                     }
-                                 }
-                             }
-                             else
-                             {
-                                 validationPopupVisible = driver.FindElement(dealPage.validationPopUp).Displayed;
-
-                                 if (validationPopupVisible)
-                                 {
-                                     util.captureScreenshot(deallist[loop].CREDealID + "_Generate");
-                                     IList<IWebElement> Validations = driver.FindElements(dealPage.validationMessages);
-                                     numberOfValidations = Validations.Count;
-
-                                     for (int j = 1; j <= numberOfValidations; j++)
-                                     {
-                                         String validation = driver.FindElement(By.XPath("//*[@id=\"dialogboxbody\"]/p[" + j + "]")).Text;
-
-                                         //read property name dynamicly
-                                         PropertyInfo _propertyInfo = _autoMationOutputData.GetType().GetProperty("Validation" + j);
-                                         _propertyInfo.SetValue(_autoMationOutputData, validation, null);
-
-                                     }
-                                 }
-
-                             }
-                         }
-                         catch (Exception)
-                         {
-                             //System.Diagnostics.Debug.WriteLine("<USE RULE N>");
-                             _autoMationOutputData.GenerateMessage = "<USE RULE N>";
-
-                             if (BaseConfiguration.AllowSave())
-                             {
-                                 _autoMationOutputData = saveDeal(_autoMationOutputData);
-                             }
-                         }
-                         finally
-                         {
-                             _autoMationOutputDatalst.Add(_autoMationOutputData);
-                         }
-
-                     }
-                     catch (Exception e)
-                     {
-                         //System.Diagnostics.Debug.WriteLine(e);
-                         System.Diagnostics.Debug.WriteLine("Deal not loaded properly. Funding tab is not visible.");
-                     }
-
-                 }  // For Loop Close
-
-                 System.Diagnostics.Debug.WriteLine(_autoMationOutputDatalst);
-                 test.Log(Status.Info, "Create Excel started");
-                 GenerateExcelFile.CreateExcel(_autoMationOutputDatalst, "Result");
-
-                 test.Log(Status.Info, "Create Excel Ended");
-                 EndTime = DateTime.Now;
-
-                 test.Log(Status.Pass, "Completed ");
-                 System.Diagnostics.Debug.WriteLine("StartTime: " + StartTime);
-                 System.Diagnostics.Debug.WriteLine("EndTime: " + EndTime);
-
-             }  // Close (If Login successful)
-             else
-             {
-                 test.Log(Status.Info, "Login Failed ");
-                 System.Diagnostics.Debug.WriteLine("Login Failed");
-             }
-
-         } // Close GenerateFunding
-
-         public AutoMationOutputData saveDeal(AutoMationOutputData _autoMationOutputData)
-         {
-
-             Utility.Util util = new Utility.Util(driver);
-             Deal dealPage = new Deal(driver);
-             Deal FundingPage = new Deal(driver);
-
-             //System.Diagnostics.Debug.WriteLine("Save");
-             util.WaitForElementVisible(dealPage.btnSaveDeal);
-             IWebElement saveButton = driver.FindElement(dealPage.btnSaveDeal);
-             Actions actions = new Actions(driver);
-             actions.MoveToElement(saveButton).Perform();
-
-             System.Threading.Thread.Sleep(2000);
-             saveButton.Click();
-             System.Threading.Thread.Sleep(2000);
-             try
-             {
-                 IWebElement savedialogmessage = driver.FindElement(dealPage.saveDialogBox);
-                 IWebElement saveDialogBoxOkButton = driver.FindElement(dealPage.saveDialogBoxOkButton);
-                 if (savedialogmessage.Displayed)
-                 {
-                     saveDialogBoxOkButton.Click();
-                 }
-             }
-             catch (Exception e)
-             {
-             }
-
-             bool dealSaveValidationPopup = driver.FindElement(dealPage.dealSaveValidationPopup).Displayed;
-             if (dealSaveValidationPopup)
-             {
-                 IList<IWebElement> Validations = driver.FindElements(dealPage.ValidationsList);
-                 int numberOfValidations = Validations.Count;
-
-                 if (numberOfValidations != 0)
-                 {
-                     for (int j = 1; j <= numberOfValidations; j++)
-                     {
-                         // AutoMationOutputData _autoMationOutputData = new AutoMationOutputData();
-                         String msgValidation = driver.FindElement(By.XPath("//*[@id=\"dialogboxbody\"]/p[" + j + "]")).Text;
-
-                         //read property name dynamicly
-                         PropertyInfo _propertyInfo = _autoMationOutputData.GetType().GetProperty("Validation" + j);
-                         _propertyInfo.SetValue(_autoMationOutputData, msgValidation, null);
-
-                         util.captureScreenshot(deallist[loop].CREDealID + "_Save");
-                     }
-                 }
-             }
-             else
-             {
-                 try
-                 {
-                     WebDriverWait wait = new WebDriverWait(driver, TimeSpan.FromSeconds(25));
-                     wait.Until(SeleniumExtras.WaitHelpers.ExpectedConditions.ElementIsVisible(dealPage.successMessage));
-                     String dealSaveSuccessActualMessage = driver.FindElement(dealPage.successMessage).Text;
-                     _autoMationOutputData.SaveMessage = dealSaveSuccessActualMessage;
-
-                     // Take screenshot
-                     System.Threading.Thread.Sleep(1000);
-                     util.captureScreenshot(deallist[loop].CREDealID + "_Save");
-                 }
-                 catch (Exception e)
-                 {
-                     _autoMationOutputData.SaveMessage = "Error in saving the deal";
-                 }
-             }
-
-             return _autoMationOutputData;
-
-         }  // Save Close
- */
 
         [Test]
         public void GenerateValidations()
         {
+            //driver.Manage().Timeouts().ImplicitWait = TimeSpan.FromSeconds(50);
             test = extent.CreateTest("Deal Funding Validation").Info("Test started");
             BrowserHelper helper = new BrowserHelper();
-            helper.DeleteChromeDriverInstances();
+            //helper.DeleteChromeDriverInstances();
 
             string randomstring = DateTime.Now.ToString("MMddyyyyhhmmss");
             AutomationLogic autologic = new AutomationLogic();
-            wait = new WebDriverWait(driver, TimeSpan.FromSeconds(15));
-            string runForAllDeal = BaseConfiguration.TestAllDealForGenerateFunding();
+            //wait = new WebDriverWait(driver, TimeSpan.FromSeconds(15));
+            string runForAllDeal = BaseConfiguration.GetDealType();
             int browserCount = BaseConfiguration.BrowserCount();
 
-            test.Log(Status.Info, "Generate funding automation running in " + browserCount + "  browsers");
-            test.Log(Status.Info, "Generate funding automation running in " + env + "  environment");
+            test.Log(Status.Info, "Generate funding automation ran in " + browserCount + "  browser(s)");
+            test.Log(Status.Info, "Generate funding automation ran on " + env + "  environment");
 
             //AutomationLogic autologic = new AutomationLogic();
-            if (runForAllDeal.ToString().ToLower() == "yes")
+            /*f (runForAllDeal.ToString() == "All") //Run for  All Deals
             {
+                Console.WriteLine("\n Automation is running for All the deals");
                 //TestAllDealForGenerateFunding                
                 deallist = autologic.GetAllDeal();
             }
-            else
+*/
+            if (runForAllDeal.ToString() == "Excel")  // Run for Deals in Excel
             {
+               // Console.WriteLine("\n Automation is running for Excel deals");
                 var dataTable = InputHelper.GetDataTableFromExcel(ProjectBaseConfiguration.DataDrivenFileXlsx, ExcelDealIDTab);
                 if (dataTable != null)
                 {
@@ -364,23 +91,45 @@ namespace CRES.TestAutoMation.TestCases
                     {
                         if (i > 0)
                         {
-                            DealDataContract ldc = new DealDataContract();
-                            ldc.DealName = dataTable.Rows[i].ItemArray[0].ToString();
-                            ldc.CREDealID = dataTable.Rows[i].ItemArray[1].ToString();
+                            DealDataContract ldc = new DealDataContract
+                            {
+                                //DealName = dataTable.Rows[i].ItemArray[0].ToString(),
+                                //CREDealID = dataTable.Rows[i].ItemArray[1].ToString()
+                                CREDealID = dataTable.Rows[i].ItemArray[0].ToString(),
+                                DealName = dataTable.Rows[i].ItemArray[1].ToString()
+                            };
                             deallist.Add(ldc);
                         }
                     }
 
                 }
             }
+            else   // Run for All , AllFunded , Autospread , Phantom 
+            {
+                //string getDealType = BaseConfiguration.GetDealType();
+                Console.WriteLine("\n Automation is running for Autospread deals for deal type ="+ runForAllDeal);
+                deallist = autologic.GetAllAutomationDeals(runForAllDeal, env);
+                //Console.WriteLine("\nDeal List  = " + deallist);
+            }
 
-            //set count for deal generate
+            //Count number of deals to be generated and saved
             int cntDeal = deallist.Count();
             deallist = deallist.Skip(0).Take(cntDeal).ToList();
             if (deallist != null)
             {
-                test.Log(Status.Info, "Generate funding automation started for " + deallist.Count + " deals");
+                test.Log(Status.Info, "Generate funding automation ran for " + deallist.Count + " deal(s)");
             }
+
+            //set count for deal generation
+            //int dealCount = deallist.Count();
+            //deallist = deallist.Skip(0).Take(dealCount).ToList();
+           // if (deallist != null)
+           // {
+           //    test.Log(Status.Info, "Generate funding automation started for " + deallist.Count + " deals");
+           // }
+
+
+            SendEmail.SendInitializationEmail(cntDeal, StartTime, driver);
 
 
 
@@ -396,18 +145,18 @@ namespace CRES.TestAutoMation.TestCases
 
             int itemCnt = 0;
             deallist1 = deallist.Skip(itemCnt).Take(cntDeal / browserCount).ToList();
-            Console.WriteLine("\ndeallist1 = " + deallist1);
+           // Console.WriteLine("\ndeallist1 = " + deallist1);
             itemCnt += deallist1.Count();
             deallist2 = deallist.Skip(itemCnt).Take(cntDeal / browserCount).ToList();
-            Console.WriteLine("\ndeallist2 = " + deallist2);
+            //Console.WriteLine("\ndeallist2 = " + deallist2);
             itemCnt += deallist2.Count();
             deallist3 = deallist.Skip(itemCnt).Take(cntDeal / browserCount).ToList();
-            Console.WriteLine("\ndeallist3 = " + deallist3);
+           // Console.WriteLine("\ndeallist3 = " + deallist3);
             itemCnt += deallist3.Count();
 
             //last list assign all remaining deal
             deallist4 = deallist.Skip(itemCnt).Take(cntDeal - itemCnt).ToList();
-            Console.WriteLine("\ndeallist4 = " + deallist4);
+            //Console.WriteLine("\ndeallist4 = " + deallist4);
 
             List<int> integerList = Enumerable.Range(0, 5).ToList();
             var poptions = new ParallelOptions()
@@ -417,7 +166,7 @@ namespace CRES.TestAutoMation.TestCases
 
             Parallel.ForEach(integerList, poptions, i =>
             {
-                Console.WriteLine(@"value of new i = {0}", i);
+                //Console.WriteLine(@"value of new i = {0}", i);
 
                 List<DealDataContract> _lstDeal = new List<DealDataContract>();
 
@@ -443,58 +192,28 @@ namespace CRES.TestAutoMation.TestCases
                     IWebDriver _driver = null;
                     if (browser == "Chrome")
                     {
-                        ChromeOptions options = new ChromeOptions();
-                        options.AddArguments("--window-size=1366x768");
-                        if (headless.ToString().ToLower() == "yes")
-                        {
-                            options.AddArguments("headless");
-                        }
-                        options.AddArguments("--incognito");
-                        options.AddArguments("start-maximized");
-                        options.AddArguments("disable-infobars");
-                        options.AddArguments("--disable-notifications");
-                        options.AddArguments("--ignore-certificate-errors");
-                        options.AddArguments("--allow-running-insecure-content");
-                        options.AddArguments("--disable-web-security");
-                        options.AddExcludedArgument("enable-automation");
-                        options.SetLoggingPreference(LogType.Browser, LogLevel.Warning);
-                        _driver = new ChromeDriver(options);
+                        _driver = BrowserHelper.InitializeChromeDriver();
                         ((IJavaScriptExecutor)_driver).ExecuteScript("document.body.style.zoom='90%';");
+                        driver.Manage().Window.Size = new Size(1366, 786);
+
+
                     }
                     else if (browser == "Edge")
                     {
-
-                        ChromeOptions options = new ChromeOptions();
-
+                        _driver = browserHelper.InitializeEdgeDriver();
                     }
 
                     else
                     {
-                        ChromeOptions options = new ChromeOptions();
-                        options.AddArguments("--window-size=1366x768");
-                        if (headless.ToString().ToLower() == "yes")
-                        {
-                            options.AddArguments("headless");
-                        }
-                        options.AddArguments("--incognito");
-                        options.AddArguments("start-maximized");
-                        options.AddArguments("disable-infobars");
-                        options.AddArguments("--disable-notifications");
-                        options.AddArguments("--ignore-certificate-errors");
-                        options.AddArguments("--allow-running-insecure-content");
-                        options.AddArguments("--disable-web-security");
-                        options.AddExcludedArgument("enable-automation");
-                        options.SetLoggingPreference(LogType.Browser, LogLevel.Warning);
-                        _driver = new ChromeDriver(options);
+                        _driver = BrowserHelper.InitializeChromeDriver();
                         ((IJavaScriptExecutor)_driver).ExecuteScript("document.body.style.zoom='90%';");
-
                     }
 
 
                     System.Threading.Thread.Sleep(2000);
                     try
                     {
-                        generateFunding(_lstDeal, _driver, randomstring);
+                        GenerateFunding(_lstDeal, _driver, randomstring);
                     }
                     catch (Exception ex)
                     {
@@ -506,13 +225,13 @@ namespace CRES.TestAutoMation.TestCases
                         test.Fail(printMessage);
                         String Message = ex.ToString();
                         ExtentEnd();
-                       // SendEmail.MergeallFilesAndEmail(randomstring, Message, driver);  // Check Point 
+                        SendEmail.MergeallFilesAndEmail(randomstring, Message, driver);  // Check Point 
                     }
                 }
             }
             );
 
-            test.Log(Status.Pass, "Deal Funding Generated Successfully");
+            //test.Log(Status.Pass, "Deal Funding Generated Successfully");
             try
             {
                 Utility.Util util = new Utility.Util(driver);
@@ -520,20 +239,22 @@ namespace CRES.TestAutoMation.TestCases
                 test.Log(Status.Info, "Email sent with validation file attached.");
                 test.Log(Status.Info, "Ran By: " + loggedInUserName);
                 String FilePath = ExcelUtility.MergeAllFiles(randomstring);
-              // SendEmail.ValidationFile(FilePath, "", driver);               // Check Point
-                driver.Quit();
                 ExtentEnd();
+                SendEmail.ValidationFile(FilePath, "", driver);               // Check Point
+                driver.Quit();
+                
             }
             catch (Exception e)
-            {
+            { 
+                Console.WriteLine(e.ToString());
+            
             }
 
         } // Close GenerateValidations
 
-        public void generateFunding(List<DealDataContract> _lstDeal, IWebDriver driver, string randomstring)
+        public void GenerateFunding(List<DealDataContract> _lstDeal, IWebDriver driver, string randomstring)
         {
             List<AutoMationOutputData> _autoMationOutputDatalst = new List<AutoMationOutputData>();
-
             Login login = new Login(driver);
             Utility.Util util = new Utility.Util(driver);
             Deal dealPage = new Deal(driver);
@@ -550,6 +271,7 @@ namespace CRES.TestAutoMation.TestCases
                 "Demo" => BaseConfiguration.GetDemoUrl(),
                 "Dev" => BaseConfiguration.GetDevUrl(),
                 "Acore" => BaseConfiguration.GetAcoreUrl(),
+                "m61" => BaseConfiguration.Getm61Url(),
                 _ => BaseConfiguration.GetQAUrl(),
             };
             string subLoginUrl = BaseConfiguration.GetLoginUrlNew();
@@ -557,15 +279,15 @@ namespace CRES.TestAutoMation.TestCases
             string dealfunding = BaseUrl + BaseConfiguration.DealFunding();
             string dashboard = BaseUrl + BaseConfiguration.GetDashboardUrl();
 
-            System.Threading.Thread.Sleep(2000);
             util.OpenUrl(LoginUrl);
+            System.Threading.Thread.Sleep(2000);
             util.WaitForElementVisible(dealPage.loginBtn);
             // System.Threading.Thread.Sleep(5000);
 
             //login in web site
             if (login.LoginWebPageMultiBrowser(driver))
             {
-
+              
                 for (int loop = 0; loop < _lstDeal.Count; loop++)
                 {
                     FFSuccessMessageVisible = false;
@@ -574,34 +296,37 @@ namespace CRES.TestAutoMation.TestCases
                     Actions actions = new Actions(driver);
 
                     // Send a progress email after every SendProgressEmailDealCounter deals
-                     if (SendProgressEmail)
+                    if (SendProgressEmail)
                      {
                          DealsProcessed++;
                          int mod = DealsProcessed % SendProgressEmailDealCounter;
                          if (mod == 0)
                          {
-                           //  SendEmail.sendProgressEmail(deallist.Count, DealsProcessed, StartTime, driver);  //check Point 
+                             SendEmail.sendProgressEmail(deallist.Count, DealsProcessed, StartTime, driver);  //check Point 
                          }
                      } 
 
                     AutoMationOutputData _autoMationOutputData = new AutoMationOutputData();
-
                     util.OpenUrlMultiBrowser(dealfunding + _lstDeal[loop].CREDealID.ToString(), driver);
-
-                    _autoMationOutputData.CREID = _lstDeal[loop].CREDealID;
-                    _autoMationOutputData.Name = _lstDeal[loop].DealName;
-
+                    _autoMationOutputData.DealID = _lstDeal[loop].CREDealID;
+                    _autoMationOutputData.DealName = _lstDeal[loop].DealName;
+                    //util.captureScreenshotMultiBrowser("1366x768", driver);
                     System.Threading.Thread.Sleep(3000);
                     dealPage.CheckDealPageLoaded();
 
                     try
                     {
-                        // System.Threading.Thread.Sleep(2000);
+                        //System.Threading.Thread.Sleep(2000);
+                        //dealPage.DealScrollLeft();
+                      
+                        System.Threading.Thread.Sleep(2000);
                         dealPage.clickTotalCommitment();
                         System.Threading.Thread.Sleep(3000);
                         dealPage.ClickFunding();
-                        System.Threading.Thread.Sleep(1000);
+                        System.Threading.Thread.Sleep(3000);
                         dealPage.CheckDealPageLoaded();
+                        //IWebElement DealType = driver.FindElement(By.Id("dealBtntype"));
+                        //string ButtonToClick = DealType.GetAttribute("innerHTML");
                         IWebElement DealType = driver.FindElement(By.Id("dealBtntype"));
                         string ButtonToClick = DealType.GetAttribute("innerHTML");
                         //string i2 = driver.ExecuteJavaScript<string>("return arguments[0].innerHTML", DealType);
@@ -609,13 +334,12 @@ namespace CRES.TestAutoMation.TestCases
                         //string i4 = driver.ExecuteJavaScript<string>("return arguments[0].textContent", DealType);
                         //ButtonToClick = "";
 
-                        try
-                        {
-                            switch (ButtonToClick)
+
+                        switch (ButtonToClick)
                             {
 
-                                case "1":
-                                    util.WaitForElementVisible(dealPage.btnGenerateFunding);
+                                case "1": // Use Rule Y, Generate Funding
+                                util.WaitForElementVisible(dealPage.btnGenerateFunding);
                                     GenerateButton = dealPage.GenerateFutureFundingButton();
                                     actions.MoveToElement(GenerateButton).Perform();
                                     System.Threading.Thread.Sleep(2000);
@@ -623,8 +347,8 @@ namespace CRES.TestAutoMation.TestCases
                                     getValidations(driver);
                                     break;
 
-                                case "2":
-                                    System.Threading.Thread.Sleep(2000);
+                                case "2": // Use Rule N, Autospread Enabled
+                                System.Threading.Thread.Sleep(2000);
                                     util.WaitForElementVisible(dealPage.btnRepaymentAutpspread);
                                     AutospreadRepaymentButton = dealPage.AutospreadRepaymentButton();
                                     actions.MoveToElement(AutospreadRepaymentButton).Perform();
@@ -633,12 +357,12 @@ namespace CRES.TestAutoMation.TestCases
                                     getValidations(driver);
                                     break;
 
-                                case "0":
-                                    _autoMationOutputData.GenerateMessage = "<USE RULE N>";
+                                case "0":  // Use Rule N, Autospread Disabled
+                                _autoMationOutputData.GenerateMessage = "<USE RULE N>";
                                     System.Threading.Thread.Sleep(5000);
                                     if (BaseConfiguration.AllowSave())
                                     {
-                                        _autoMationOutputData = saveDeal(_autoMationOutputData, _lstDeal[loop].CREDealID, driver);
+                                        _autoMationOutputData = SaveDeal(_autoMationOutputData, _lstDeal[loop].CREDealID, driver);
                                     }
                                     break;
 
@@ -668,11 +392,11 @@ namespace CRES.TestAutoMation.TestCases
                                     catch
                                     {
                                         _autoMationOutputData.GenerateMessage = "<USE RULE N>";
-                                        // util.captureScreenshotMultiBrowser(_lstDeal[loop].CREDealID + "_UseRuleN", driver);
+                                        util.captureScreenshotMultiBrowser(_lstDeal[loop].CREDealID + "_UseRuleN", driver);
                                         //System.Threading.Thread.Sleep(2000);
                                         if (BaseConfiguration.AllowSave())
                                         {
-                                            _autoMationOutputData = saveDeal(_autoMationOutputData, _lstDeal[loop].CREDealID, driver);
+                                            _autoMationOutputData = SaveDeal(_autoMationOutputData, _lstDeal[loop].CREDealID, driver);
                                         }
                                     }
 
@@ -683,11 +407,11 @@ namespace CRES.TestAutoMation.TestCases
 
                                     break;
                             }
-                        }
-                        catch (Exception e)
-                        {
-
-                        }
+                    }
+                    catch (Exception ex)
+                    {
+                       Console.WriteLine("Deal Page Load Exception = " + ex);
+                    }
 
                         _autoMationOutputDatalst.Add(_autoMationOutputData);
 
@@ -699,100 +423,114 @@ namespace CRES.TestAutoMation.TestCases
                             _autoMationOutputDatalst.Clear();
                         }
 
-                        void getValidations(IWebDriver driver)
+                    void getValidations(IWebDriver driver)
+                    {
+                        try
                         {
-                            try
+                            System.Threading.Thread.Sleep(1000);
+                            IWebElement overrideNonCommentedRecordsPopUp = driver.FindElement(dealPage.overrideNonCommentedRecords);
+                            Boolean popupvisible = overrideNonCommentedRecordsPopUp.Displayed;
+                            if (popupvisible)
                             {
-                                try
-                                {
-                                    System.Threading.Thread.Sleep(1000);
-                                    IWebElement overrideNonCommentedRecordsPopUp = driver.FindElement(dealPage.overrideNonCommentedRecords);
-                                    Boolean popupvisible = overrideNonCommentedRecordsPopUp.Displayed;
-                                    if (popupvisible)
-                                    {
-                                        IWebElement okbutton = driver.FindElement(dealPage.btnoverrideNonCommentedRecordsOk);
-                                        okbutton.Click();
-                                    }
-                                }
-                                catch (Exception e)
-                                {
-                                    //FFSuccessMessageVisible = false;
-                                }
-
-                                //System.Threading.Thread.Sleep(1000);
-                                try
-                                {
-                                    WebDriverWait wait = new WebDriverWait(driver, TimeSpan.FromSeconds(40));
-                                    wait.Until(SeleniumExtras.WaitHelpers.ExpectedConditions.ElementIsVisible(dealPage.successMessage));
-                                    FFSuccessMessage = driver.FindElement(dealPage.successMessage);
-                                    FFSuccessMessageVisible = FFSuccessMessage.Displayed;
-                                    actualMessage = FFSuccessMessage.Text;
-                                }
-                                catch (Exception e)
-                                {
-                                    FFSuccessMessageVisible = false;
-                                }
-
-                                if (FFSuccessMessageVisible)
-                                {
-                                    // util.captureScreenshotMultiBrowser(_lstDeal[loop].CREDealID + "_Generate", driver);
-                                    String successMessage = "Funding schedule generated successfully.";
-                                    if (actualMessage.Equals(successMessage))
-                                    {
-                                        _autoMationOutputData.GenerateMessage = actualMessage;
-
-                                        System.Threading.Thread.Sleep(4000);
-
-                                    }
-                                }
-
-                                try
-                                {
-                                    validationPopupVisible = driver.FindElement(dealPage.validationPopUp).Displayed;
-                                }
-                                catch
-                                {
-                                    validationPopupVisible = false;
-                                }
-
-                                if (validationPopupVisible) // Sometimes validation comes for commitment tab even if funding schedule generates successfully.
-                                {
-                                    // util.captureScreenshotMultiBrowser(_lstDeal[loop].CREDealID + "_Generate", driver);
-                                    IList<IWebElement> Validations = driver.FindElements(dealPage.ValidationsList);
-                                    numberOfValidations = Validations.Count;
-
-                                    for (int j = 1; j <= numberOfValidations; j++)
-                                    {
-                                        String validation = driver.FindElement(By.XPath("//*[@id=\"dialogboxbody\"]/p[" + j + "]")).Text;
-
-                                        //read property name dynamicly
-                                        PropertyInfo _propertyInfo = _autoMationOutputData.GetType().GetProperty("Validation" + j);
-                                        _propertyInfo.SetValue(_autoMationOutputData, validation, null);
-
-                                    }
-
-                                    IWebElement OkButton = driver.FindElement(dealPage.btnGenerateFundingOK);
-                                    OkButton.Click();
-
-                                    System.Threading.Thread.Sleep(1000);
-                                }
-
-                                if (BaseConfiguration.AllowSave())
-                                {
-                                    _autoMationOutputData = saveDeal(_autoMationOutputData, _lstDeal[loop].CREDealID, driver);
-                                }
-                            }
-                            catch (Exception e)
-                            {
-                                _autoMationOutputData.GenerateMessage = "Timeout or error in generating funding schedule.";
-                                util.captureScreenshotMultiBrowser(_lstDeal[loop].CREDealID + "_ErrorInGenerate", driver);
+                                IWebElement okbutton = driver.FindElement(dealPage.btnoverrideNonCommentedRecordsOk);
+                                okbutton.Click();
                             }
                         }
-                    }
-                    catch (Exception e)
-                    {
-                        //System.Diagnostics.Debug.WriteLine(e);
-                        _autoMationOutputData.GenerateMessage = "Timeout or error in loading the deal.";
+                        catch (Exception e)
+                        {
+                            Console.WriteLine(e.ToString());
+                            //FFSuccessMessageVisible = false;
+                        }
+
+                        //System.Threading.Thread.Sleep(1000);
+                        try
+                        {
+                            WebDriverWait wait = new WebDriverWait(driver, TimeSpan.FromSeconds(40));
+                            FFSuccessMessage = wait.Until(SeleniumExtras.WaitHelpers.ExpectedConditions.ElementIsVisible(dealPage.successMessage));
+                            //FFSuccessMessage = driver.FindElement(dealPage.successMessage);
+                            FFSuccessMessageVisible = FFSuccessMessage.Displayed;
+                            actualMessage = FFSuccessMessage.Text;
+                           // Console.WriteLine("Generate funding Success message = " + actualMessage + " and Is this displayed = " + FFSuccessMessageVisible);
+                        }
+                        catch (Exception e)
+                        {
+                            FFSuccessMessageVisible = false;
+                            Console.WriteLine("Generate funding Success message Exception= " + e);
+                        }
+
+                        if (FFSuccessMessageVisible)
+                        {
+                            util.captureScreenshotMultiBrowser(_lstDeal[loop].CREDealID + "_Generate", driver);
+                            String successMessage = "Funding schedule generated successfully.";
+                            Console.WriteLine("Funding schedule generated successfully.");
+                            if (actualMessage.Equals(successMessage))
+                            {
+                                _autoMationOutputData.GenerateMessage = actualMessage;
+                              //  Console.WriteLine("Generate funding Success message 02 = " + actualMessage + " and Is this displayed 02= " + FFSuccessMessageVisible);
+                                System.Threading.Thread.Sleep(4000);
+
+                            }
+                        }
+
+                        else
+                        {
+                            _autoMationOutputData.GenerateMessage = "Timeout or error in generating funding schedule.";
+                            util.captureScreenshotMultiBrowser(_lstDeal[loop].CREDealID + "_ErrorInGenerate", driver);
+                            Console.WriteLine("Timeout or error in generating funding schedule.");
+                        }
+
+                        try
+                        {
+                            validationPopupVisible = driver.FindElement(dealPage.validationPopUp).Displayed;
+
+
+
+
+                            if (validationPopupVisible) // Sometimes validation comes for commitment tab even if funding schedule generates successfully.
+                            {
+                                util.captureScreenshotMultiBrowser(_lstDeal[loop].CREDealID + "_Generate", driver);
+                                IList<IWebElement> Validations = driver.FindElements(dealPage.ValidationsList);
+                                numberOfValidations = Validations.Count;
+
+                                for (int j = 1; j <= numberOfValidations; j++)
+                                {
+                                    String validation = driver.FindElement(By.XPath("//*[@id=\"dialogboxbody\"]/p[" + j + "]")).Text;
+
+                                    //read property name dynamicly
+                                    PropertyInfo _propertyInfo = _autoMationOutputData.GetType().GetProperty("Validation" + j);
+                                    _propertyInfo.SetValue(_autoMationOutputData, validation, null);
+
+                                }
+
+                                IWebElement OkButton = driver.FindElement(dealPage.btnGenerateFundingOK);
+                                OkButton.Click();
+
+                                System.Threading.Thread.Sleep(1000);
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            validationPopupVisible = false;
+                            //Console.WriteLine("validationPopupVisible Exception = " + ex);
+                        }
+
+                        try
+                        {
+
+                            if (BaseConfiguration.AllowSave())
+                            {
+                                _autoMationOutputData = SaveDeal(_autoMationOutputData, _lstDeal[loop].CREDealID, driver);
+                            }
+
+
+                        }
+                        catch (Exception ex)
+                        {
+                            //Console.WriteLine("Save Deal Exception = "+ex);
+                        }
+
+
+
                     }
                 }  // For Loop Close
 
@@ -806,14 +544,15 @@ namespace CRES.TestAutoMation.TestCases
             }  // Close (If Login successful)
             else
             {
-                System.Diagnostics.Debug.WriteLine("Login Failed");
+                //System.Diagnostics.Debug.WriteLine("Login Failed");
+                Console.WriteLine("Login Failed");
                 driver.Quit();
             }
 
         } // Close GenerateFunding
 
 
-        public AutoMationOutputData saveDeal(AutoMationOutputData _autoMationOutputData, String CREDealID, IWebDriver driver)
+        public AutoMationOutputData SaveDeal(AutoMationOutputData _autoMationOutputData, String CREDealID, IWebDriver driver)
         {
             Deal dealPage = new Deal(driver);
             Utility.Util util = new Utility.Util(driver);
@@ -823,7 +562,7 @@ namespace CRES.TestAutoMation.TestCases
             Actions actions = new Actions(driver);
             actions.MoveToElement(saveButton).Perform();
 
-            System.Threading.Thread.Sleep(2000);
+            System.Threading.Thread.Sleep(1000);
             saveButton.Click();
             System.Threading.Thread.Sleep(2000);
             try
@@ -832,19 +571,51 @@ namespace CRES.TestAutoMation.TestCases
                 IWebElement okButton = driver.FindElement(dealPage.saveDialogBoxOkButton);
                 if (savedialogmessage.Displayed)
                 {
-                    // util.captureScreenshotMultiBrowser(CREDealID + "_Warning", driver);
+                    util.captureScreenshotMultiBrowser(CREDealID + "_Warning", driver);
                     okButton.Click();
                 }
+              
             }
-            catch (Exception e)
+            catch (Exception ex)
             {
+                //Console.WriteLine("Save Deal Method exception = " + ex);
             }
+          try
+          {
+                /*  bool dealSaveSuccessMessage = driver.FindElement(dealPage.successMessage).Displayed;  change 01
 
+                  String dealSaveSuccessMessageText = driver.FindElement(dealPage.successMessage).Text;*/
+
+
+           
             bool validationPopupSaveVisible = driver.FindElement(dealPage.validationPopUp).Displayed;
-            if (validationPopupSaveVisible)
+            String dealSaveSuccessMessageText = driver.FindElement(dealPage.validationPopUp).Text;
+            //Console.WriteLine("dealSaveSuccessMessageText1  = " + dealSaveSuccessMessageText);
+
+                if (validationPopupSaveVisible)
             {
+                try
+                {    
+                   // _autoMationOutputData.SaveMessage = dealSaveSuccessMessageText;
+
+                    // Take screenshot
+                    //System.Threading.Thread.Sleep(1000);
+                      util.captureScreenshotMultiBrowser(CREDealID + "_Save", driver);
+                      //System.Threading.Thread.Sleep(1000); 
+                }
+                catch (Exception e)
+                {
+                    _autoMationOutputData.SaveMessage = "Timeout/Error in saving the deal";
+                    //Console.WriteLine("Deal success message Exception= "+e);
+                    // Take screenshot
+                    //System.Threading.Thread.Sleep(1000);
+                    util.captureScreenshotMultiBrowser(CREDealID + "_ErrorInSave", driver);
+                    //Console.WriteLine(e.ToString());
+                    }
+                        
+            
                 IList<IWebElement> Validations = driver.FindElements(dealPage.ValidationsList);
-                int numberOfValidations = Validations.Count;
+                int numberOfValidations = Validations.Count; 
 
                 if (numberOfValidations != 0)
                 {
@@ -855,37 +626,61 @@ namespace CRES.TestAutoMation.TestCases
                         PropertyInfo _propertyInfo = _autoMationOutputData.GetType().GetProperty("Validation" + j);
                         _propertyInfo.SetValue(_autoMationOutputData, msgValidation, null);
 
-                        // util.captureScreenshotMultiBrowser(CREDealID + "_Save", driver);
+                        util.captureScreenshotMultiBrowser(CREDealID + "_Save", driver);
                     }
                 }
             }
-            else
-            {
-                try
+                WebDriverWait wait = new WebDriverWait(driver, TimeSpan.FromSeconds(40));
+                wait.Until(SeleniumExtras.WaitHelpers.ExpectedConditions.ElementIsVisible(dealPage.successMessage));
+                bool dealSaveSuccessMessage = driver.FindElement(dealPage.successMessage).Displayed;
+                String dealSaveSuccessActualMessage = driver.FindElement(dealPage.successMessage).Text;
+
+                if (dealSaveSuccessMessage)
                 {
-                    WebDriverWait wait = new WebDriverWait(driver, TimeSpan.FromSeconds(200));
-                    wait.Until(SeleniumExtras.WaitHelpers.ExpectedConditions.ElementIsVisible(dealPage.successMessage));
-                    String dealSaveSuccessActualMessage = driver.FindElement(dealPage.successMessage).Text;
+
                     _autoMationOutputData.SaveMessage = dealSaveSuccessActualMessage;
-
-                    // Take screenshot
-                    /*  System.Threading.Thread.Sleep(2000);
-                      util.captureScreenshotMultiBrowser(CREDealID + "_Save", driver);
-                      System.Threading.Thread.Sleep(1000); */
+                    Console.WriteLine(dealSaveSuccessActualMessage);
+                    //Console.WriteLine("Save Deal Success message 01 = " + dealSaveSuccessActualMessage + " and Is this displayed 01 = " + dealSaveSuccessMessage);
                 }
-                catch (Exception e)
+            
+                else
                 {
-                    _autoMationOutputData.SaveMessage = "Timeout/Error in saving the deal";
-                    // Take screenshot
-                    System.Threading.Thread.Sleep(2000);
-                    //  util.captureScreenshotMultiBrowser(CREDealID + "_ErrorInSave", driver);
-                }
-            }
+                    
+                        _autoMationOutputData.SaveMessage = "Timeout/Error in saving the deal";
+                        Console.WriteLine("Deal save Time Out error");
+                        // Take screenshot
+                        System.Threading.Thread.Sleep(1000);
 
+                        /*wait.Until(SeleniumExtras.WaitHelpers.ExpectedConditions.ElementIsVisible(dealPage.successMessage));
+                        String dealSaveSuccessActualMessage = driver.FindElement(dealPage.successMessage).Text;
+                        _autoMationOutputData.SaveMessage = dealSaveSuccessActualMessage;*/
+
+                        // Take screenshot
+                        System.Threading.Thread.Sleep(1000);
+                        util.captureScreenshotMultiBrowser(CREDealID + "_Save", driver);
+                        //System.Threading.Thread.Sleep(1000);
+                        /*
+                              * var logs = driver.Manage().Logs.GetLog(LogType.Browser);
+
+                                Console.WriteLine("Browser Console Logs:");
+                                foreach (LogEntry entry in logs)
+                                {
+                                    Console.WriteLine($"{entry.Timestamp} - {entry.Level}: {entry.Message}");
+                                }
+                     */
+
+
+                }
+          }
+          catch (Exception ex)
+          {
+
+             //Console.WriteLine("success Message = " + ex);
+          }
 
             return _autoMationOutputData;
 
-        }  
+        }
         // Save Close
 
         /* [Test]
@@ -894,7 +689,7 @@ namespace CRES.TestAutoMation.TestCases
               SendEmail.TestEmail();
           }
         */
-
+        
     } // Close class
-
+   
 } // Close namespace

@@ -16,9 +16,14 @@
     [TotalRequiredEquity]              DECIMAL (28, 15) NULL,
     [TotalAdditionalEquity]            DECIMAL (28, 15) NULL,   
 	Rowno int null,
-     ExcludeFromCommitmentCalculation    bit             Null,
-     [TotalEquityatClosing]             DECIMAL (28, 15) NULL
+     [TotalEquityatClosing]             DECIMAL (28, 15) NULL,
+ 
 );
 go
 ALTER TABLE [cre].[NoteAdjustedCommitmentMaster]
 ADD CONSTRAINT PK_NoteAdjustedCommitmentMaster_NoteAdjustedCommitmentMasterID PRIMARY KEY ([NoteAdjustedCommitmentMasterID]);
+
+go
+ALTER TABLE [CRE].[NoteAdjustedCommitmentMaster] ENABLE CHANGE_TRACKING WITH (TRACK_COLUMNS_UPDATED = ON);
+GO
+

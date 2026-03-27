@@ -212,7 +212,8 @@ BEGIN
 		CreatedDate,
 		UpdatedBy,
 		UpdatedDate,
-		LegalDeal_DealFundingID
+		LegalDeal_DealFundingID,
+		AdjustmentType
 	)
 	Select 
 	(Select dealid from cre.Deal where LinkedDealID = (Select CREDealID from cre.Deal where DealID = df.DealID) and IsDeleted=0),
@@ -228,7 +229,8 @@ BEGIN
 	CreatedDate,
 	UpdatedBy,
 	UpdatedDate ,
-	df.DealFundingID
+	df.DealFundingID,
+	df.AdjustmentType
 	FROM CRE.DealFunding df
 	where DealID in (Select dealid from cre.Deal where CREDealID = @CREDealID) 
 	and df.DealFundingID in (Select Legal_DealFundingID from @tbl_Lagal_DealFundingID)
@@ -279,6 +281,26 @@ BEGIN
 	where CRE.DealFunding.dealid = a.dealid and CRE.DealFunding.[Date] = a.[Date] 
 
 	
+
+	---Update AdjustmentType from legal to phantom
+	Update CRE.DealFunding set CRE.DealFunding.AdjustmentType = a.AdjustmentType
+	From(
+		Select dfPhtm.DealID,dfPhtm.DealFundingID,dfLg.AdjustmentType 
+		from cre.DealFunding dfLg
+		Inner Join(
+			Select DealID,DealFundingID,LegalDeal_DealFundingID,AdjustmentType 
+			from cre.DealFunding df
+			where dealid= @PhtmDealid
+		)dfPhtm on dfLg.DealFundingID = dfPhtm.LegalDeal_DealFundingID
+		where dfLg.dealid= @LegalDealid
+		and dfLg.AdjustmentType is not null
+
+	)a
+	where CRE.DealFunding.dealid = a.dealid and CRE.DealFunding.DealFundingID = a.DealFundingID 
+
+
+
+
 
 	----INsert workflow for phtm deal
 	EXEC [dbo].[usp_CopyWorkFlowToPhantom] @PhtmDealid

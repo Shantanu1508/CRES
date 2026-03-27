@@ -1,8 +1,12 @@
-﻿using CRES.DAL.Repository;
+﻿using CRES.DAL;
+using CRES.DAL.Repository;
 using CRES.DataContract;
 using System;
 using System.Collections.Generic;
 using System.Data;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
 
 namespace CRES.BusinessLogic
 {
@@ -23,12 +27,7 @@ namespace CRES.BusinessLogic
         public List<DevDashBoardDataContract> UserRequestCount(Guid analysisID)
         {
             return devdrepo.UserRequestCount(analysisID);
-        }
-
-        public List<DevDashBoardDataContract> GetFastestandSlowest(Guid analysisID)
-        {
-            return devdrepo.GetFastestandSlowest(analysisID);
-        }
+        } 
 
         public DataTable GetNoteIDAndAnalysisID(string crenoteid)
         {
@@ -50,14 +49,20 @@ namespace CRES.BusinessLogic
         {
             devdrepo.CalcAllNotes(AnalysisID, username);
         }
-        public List<DevDashBoardDataContract> GetAIDashBoardData()
-        {
-            return devdrepo.GetAIDashBoardData();
-        }
-
+       
         public DataTable GetErrorLogs()
         {
             return devdrepo.GetErrorLogs();
+        }
+
+        public DataTable GetLogsForDownloadExcel(string objectID)
+        {
+            return devdrepo.GetLogsForDownloadExcel(objectID);
+        }
+
+        public DataTable GetCalculationSummary()
+        {
+            return devdrepo.GetCalculationSummary();
         }
 
         public DataTable ShowUserSummary()
@@ -65,10 +70,7 @@ namespace CRES.BusinessLogic
             return devdrepo.ShowUserSummary();
         }
 
-        public List<DevDashBoardDataContract> GetAIUserData(string username)
-        {
-            return devdrepo.GetAIUserData(username);
-        }
+        
 
         public void ImportStagingData()
         {
@@ -82,6 +84,48 @@ namespace CRES.BusinessLogic
         public DataTable GetStagingDataIntoIntegrationStatus()
         {
             return devdrepo.GetStagingDataIntoIntegrationStatus();
+        }
+
+        public DataTable GetErrorForEmail() 
+        {
+            return devdrepo.GetErrorForEmail();
+        }
+        public List<DevDashBoardDataContract> GetXIRRStatusSummaryfordevdash()
+        {
+            return devdrepo.GetXIRRStatusSummaryfordevdash();
+        }
+
+        public List<DevDashBoardDataContract> GetCalculationStatusForValuationDashBoard() 
+        {
+            return devdrepo.GetCalculationStatusForValuationDashBoard();
+        }
+
+        public List<EnvConfigDataContract> GetEnvConfig()
+        {
+            return devdrepo.GetEnvConfig();
+        }
+        public string CheckEnvConnection(EnvConfigDataContract selectedEnvConfig)
+        {
+            return devdrepo.CheckEnvConnection(selectedEnvConfig);
+        }
+        public string ImportDealFromOtherSource(EnvConfigDataContract selectedEnvConfig,string UpdatedBy)
+        {
+            return devdrepo.ImportDealFromOtherSource(selectedEnvConfig, UpdatedBy);
+        }
+
+        public DataTable GetValuationLogsForDownloadExcel()
+        {
+            return devdrepo.GetValuationLogsForDownloadExcel();
+        }
+
+        public DataTable GetValuationCalculationSummary()
+        {
+            return devdrepo.GetValuationCalculationSummary();
+        }
+
+        public void CalculateMultipleDeals(string noteids, string ScenarioID)
+        {
+            devdrepo.CalculateMultipleDeals(noteids, ScenarioID);
         }
     }
 }

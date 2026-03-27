@@ -63,7 +63,11 @@ BEGIN
 		'N'  as PartialPayments  ,
 
 		(Case when n.IOTerm > 0 then 0 
-		when n.IOTerm = 0 then (Select SUM(tr.Amount) from cre.TransactionEntry tr where tr.[Date] = n.FirstPaymentDate and  tr.[Type] in ('InterestPaid','ScheduledPrincipalPaid') and tr.NoteID = n.NoteID) else null end ) PandIconstant,  
+		when n.IOTerm = 0 then (
+		Select SUM(tr.Amount) from cre.TransactionEntry tr 
+		where tr.[Date] = n.FirstPaymentDate and  tr.[Type] in ('InterestPaid','ScheduledPrincipalPaid') 
+		and tr.accountid = n.Account_accountid
+		) else null end ) PandIconstant,  
 
 
 
@@ -291,11 +295,13 @@ BEGIN
 		left join core.lookup lPropertyType on lPropertyType.lookupid = p.PropertyType and lPropertyType.ParentID = 15
 		left join
 		(
-		Select rno,Noteid,PeriodEndDate,(allincouponrate*100) as allincouponrate
-		From(
-		Select  ROW_NUMBER() OVER (PARTITION BY  Noteid  ORDER BY Noteid,PeriodEndDate) AS rno,Noteid,PeriodEndDate,allincouponrate from cre.noteperiodiccalc 
-		)a
-		where a.rno = 1
+			Select rno,Noteid,PeriodEndDate,(allincouponrate*100) as allincouponrate
+			From(
+				Select  ROW_NUMBER() OVER (PARTITION BY  n.Noteid  ORDER BY n.Noteid,PeriodEndDate) AS rno,n.Noteid,PeriodEndDate,allincouponrate 
+				from cre.noteperiodiccalc nc
+				Inner Join cre.note n on nc.AccountID = n.Account_AccountID
+			)a
+			where a.rno = 1
 		)tblInterestRate on tblInterestRate.NoteId= n.NoteId
 
 		left join 
@@ -376,7 +382,8 @@ BEGIN
 		InitialFundingAmount as CurrentPrincipalBalance,
 		--(Select np.EndingBalance from cre.NotePeriodicCalc np where np.noteid = n.noteid and np.PeriodEndDate = DATEADD(MONTH, DATEDIFF(MONTH, -1, GETDATE())-1, -1)) as CurrentPrincipalBalance,
 
-		(Select cf.AllInCouponRate * 100 from cre.NotePeriodicCalc cf where cf.noteid  = n.noteid and cf.PeriodEndDate = EOMonth(DateAdd(Month,-1,n.InitialInterestAccrualEndDate))) as NetYield,
+		(Select cf.AllInCouponRate * 100 from cre.NotePeriodicCalc cf where cf.AccountID  = n.Account_AccountID 
+			and cf.PeriodEndDate = EOMonth(DateAdd(Month,-1,n.InitialInterestAccrualEndDate))) as NetYield,
 
 		'L' as NetYieldMethod,
 		'' as ServiceFeeRate,
@@ -733,11 +740,13 @@ BEGIN
 		left JOin core.lookup lRoundingMethod on lRoundingMethod.lookupid = n.RoundingMethod and lRoundingMethod.ParentID = 33
 		left join
 		(
-		Select rno,Noteid,PeriodEndDate,(allincouponrate*100) as allincouponrate
-		From(
-		Select  ROW_NUMBER() OVER (PARTITION BY  Noteid  ORDER BY Noteid,PeriodEndDate) AS rno,Noteid,PeriodEndDate,allincouponrate from cre.noteperiodiccalc 
-		)a
-		where a.rno = 1
+			Select rno,Noteid,PeriodEndDate,(allincouponrate*100) as allincouponrate
+			From(
+				Select  ROW_NUMBER() OVER (PARTITION BY  n.Noteid  ORDER BY n.Noteid,PeriodEndDate) AS rno,n.Noteid,PeriodEndDate,allincouponrate 
+				from cre.noteperiodiccalc nc
+				Inner join cre.note n on n.Account_AccountID = nc.AccountID
+			)a
+			where a.rno = 1
 		)tblInterestRate on tblInterestRate.NoteId= n.NoteId
 
 		left join 

@@ -1,7 +1,10 @@
-﻿using CRES.DAL.Repository;
-using CRES.DataContract;
-using System;
+﻿using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using CRES.DAL.Repository;
+using CRES.DataContract;
 using System.Data;
 
 namespace CRES.BusinessLogic
@@ -12,6 +15,11 @@ namespace CRES.BusinessLogic
         public List<ServicerDataContract> GetAllServicer()
         {
             return _transcationRepositoryRepository.GetAllServicer();
+        }
+
+        public List<ServicerDataContract> GetAllServicerLiability()
+        {
+            return _transcationRepositoryRepository.GetAllServicerLiability();
         }
 
         public string BulkInsertbyServicer(DataTable dt, JsonFileConfiguration fileConf, int Servicerid, DateTime? periodCloseDate)
@@ -30,6 +38,16 @@ namespace CRES.BusinessLogic
             _transcationRepositoryRepository.insertupdateFileBatchDetail(userid, BatchLogID, ProcessName, errmsg);
 
         }
+        public int insertupdateFileBatchLogLiability(FileBatchLogDataContract fb, string errmsg)
+        {
+            return _transcationRepositoryRepository.insertupdateFileBatchLogLiability(fb, errmsg);
+        }
+
+        public void insertupdateFileBatchDetailLiability(string userid, int BatchLogID, string ProcessName, string errmsg)
+        {
+            _transcationRepositoryRepository.insertupdateFileBatchDetailLiability(userid, BatchLogID, ProcessName, errmsg);
+
+        }
 
 
         public string insertintoTranscation(string procName, int Batchlogid, string ScenarioId)
@@ -43,9 +61,14 @@ namespace CRES.BusinessLogic
             return _transcationRepositoryRepository.GetallTranscation();
         }
 
-        public DataTable GetAllTranscationPaging(int? pageSize, int? pageIndex, out int? TotalCount)
+        public DataTable GetAllTranscationPaging(bool ShowAllTransaction, string userId, int? pageSize, int? pageIndex, out int? TotalCount)
         {
-            return _transcationRepositoryRepository.GetallTranscationPaging(pageSize, pageIndex, out TotalCount);
+            return _transcationRepositoryRepository.GetallTranscationPaging(ShowAllTransaction, userId, pageSize, pageIndex, out TotalCount);
+        }
+
+        public DataTable GetAllTranscationLiability(bool ShowAllTransaction, string userId, int? pageSize, int? pageIndex, out int? TotalCount)
+        {
+            return _transcationRepositoryRepository.GetAllTranscationLiability(ShowAllTransaction, userId, pageSize, pageIndex, out TotalCount);
         }
 
         public DataTable GetHistoricalDataforTranscationRecon()
@@ -58,6 +81,11 @@ namespace CRES.BusinessLogic
             return _transcationRepositoryRepository.UpdateTranscationRecon(dtTrans, CreatedBy);
         }
 
+        public int UpdateTranscationReconLiability(DataTable dtTrans, string CreatedBy)
+        {
+            return _transcationRepositoryRepository.UpdateTranscationReconLiability(dtTrans, CreatedBy);
+        }
+
 
         public int SaveTranscation(DataTable dtTrans, string CreatedBy)
         {
@@ -65,9 +93,9 @@ namespace CRES.BusinessLogic
         }
 
 
-        public DataTable FilterTranscation(string FilterStr)
+        public DataTable FilterTranscation(string FilterStr, string headerUserID)
         {
-            return _transcationRepositoryRepository.FilterTranscation(FilterStr);
+            return _transcationRepositoryRepository.FilterTranscation(FilterStr, headerUserID);
         }
 
         public string UnreconcileTranscation(DataTable dtTrans, string CreatedBy)
@@ -113,11 +141,18 @@ namespace CRES.BusinessLogic
         }
 
 
-
-
         public DataTable GetAllTransactionType()
         {
             return _transcationRepositoryRepository.GetAllTransactionType();
+        }
+        public DataSet GetServicerBalanceForServicerNotification()
+        {
+            return _transcationRepositoryRepository.GetServicerBalanceForServicerNotification();
+        }
+
+        public DataSet GetDiscrepancyForCalcGapBtnDefAndFullyScenario()
+        {
+            return _transcationRepositoryRepository.GetDiscrepancyForCalcGapBtnDefAndFullyScenario();
         }
     }
 }

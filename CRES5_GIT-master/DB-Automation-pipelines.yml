@@ -4,16 +4,64 @@
 # https://aka.ms/yaml
 
 trigger:
-- main
+  branches:
+    include:
+      - QA
+  paths:
+    include:
+      - CRES.DBScript/*
+
+pr: none
 
 pool:
-  vmImage: 'ubuntu-latest'
+  vmImage: 'windows-2019'
 
-steps:
-- script: echo Hello, world!
-  displayName: 'Run a one-line script'
 
-- script: |
-    echo Add other tasks to build, test, and deploy your project.
-    echo See https://aka.ms/yaml
-  displayName: 'Run a multi-line script'
+stages:
+  - stage: Build
+    jobs:
+      - job: Build
+        steps:
+          - task: VSBuild@1
+            displayName: 'Build Database'
+            inputs:
+              configuration: Release
+              solution: 'CRES.DBScript/CRES.DBScript.sqlproj'
+                
+              
+          
+          - task: CopyFiles@2
+            displayName: Copy DACPAC
+            inputs:
+              contents: '**/bin/Release/*.dacpac'
+              targetFolder: '$(Build.ArtifactStagingDirectory)'
+              flattenFolders: true
+              
+
+          - task: PublishBuildArtifacts@1
+            displayName: 'Publish Artifact'
+            inputs:
+              pathToPublish: '$(Build.ArtifactStagingDirectory)'
+
+
+  - stage: ApplyScriptInQaDB
+    jobs:
+      - deployment: DeployDatabaseQA
+        displayName: Deploy Database to QA
+        environment: qa
+        strategy: 
+          runOnce:
+            deploy:
+              steps:                    
+                - task: SqlAzureDacpacDeployment@1
+                  displayName: 'Deploy Azure SQL Database'
+                  inputs:
+                    azureSubscription:  'iTechsol(021c83fc-1e2a-4da6-92dd-8e1d74c0e1cb)'
+                    AuthenticationType: 'server'
+                    serverName: 'b0xesubcki1.database.windows.net'
+                    databaseName: 'CRES4_QA_TEST'
+                    sqlUsername: 'CREAdmin'
+                    sqlPassword: '@ah/g&6`+KwLExfs'
+                    dacpacFile: '$(Pipeline.Workspace)/**/*.dacpac' 
+                    additionalArguments: '/v: DBRefreshFileName=DBRefresh_QA /p:BlockOnPossibleDataLoss=$(isBlockDataLoss) /p:DropObjectsNotInSource=$(isDropObjectsNotInSource) /p:ExcludeObjectTypes=Users;DatabaseRoles;RoleMembership'
+                    

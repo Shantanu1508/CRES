@@ -1,5 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
 
 namespace CRES.DataContract
 {
@@ -63,6 +66,8 @@ namespace CRES.DataContract
     public class DynamicsODataCustomerInput
     {
         public string Name { get; set; }
+        public string No { get; set; }
+
         public string Name_2 { get; set; }
         public string Search_Name { get; set; }
         public string Address { get; set; }
@@ -143,7 +148,7 @@ namespace CRES.DataContract
         public string Shipping_Agent_Code { get; set; }
         public string Shipping_Agent_Service_Code { get; set; }
         public string SystemId { get; set; }
-
+        
     }
 
     public class DynamicsODataCustomerUpdate

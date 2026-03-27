@@ -7,6 +7,10 @@
     [Delta]                                  DECIMAL (28, 15) NULL,
     [MonthYear]                              DATE             NULL,
     [RollingAdjustedVarianceFromPriorPeriod] DECIMAL (28, 15) NULL,
-    [TotalExpectedPayment]                   DECIMAL (28, 15) NULL
+    [TotalExpectedPayment]                   DECIMAL (28, 15) NULL,
+    [DropDateSampleData_AutoID]              INT              IDENTITY (1, 1) NOT NULL,
+    CONSTRAINT [PK_DropDateSampleData_AutoID] PRIMARY KEY CLUSTERED ([DropDateSampleData_AutoID] ASC)
 );
+
+
 

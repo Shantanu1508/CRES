@@ -1,4 +1,10 @@
-﻿namespace CRES.DataContract
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace CRES.DataContract
 {
     public class ClientDataContract
     {
@@ -16,5 +22,6 @@
     {
         public int FundID { get; set; }
         public string FundName { get; set; }
+        public string ParentFund { get; set; }
     }
 }

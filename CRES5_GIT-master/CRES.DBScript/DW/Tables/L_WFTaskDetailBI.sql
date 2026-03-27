@@ -20,6 +20,17 @@
     [StatusDisplayName]        NVARCHAR (256) NULL,
     [DealFundingDisplayName]   NVARCHAR (256) NULL,
     [WFUnderReviewDisplayName] NVARCHAR (256) NULL,
-    [WFFinalStatus]            NVARCHAR (256) NULL
+    [WFFinalStatus]            NVARCHAR (256) NULL,
+    [L_WFTaskDetailBI_AutoID]  INT            IDENTITY (1, 1) NOT NULL,
+
+    Username nvarchar(256) null,
+    WFStatusMasterID int null,
+    FundingDate date null,
+    PurposeID int,
+    PurposeText nvarchar(256),
+    Amount decimal(28,15)
+    CONSTRAINT [PK_L_WFTaskDetailBI_AutoID] PRIMARY KEY CLUSTERED ([L_WFTaskDetailBI_AutoID] ASC)
 );
+
+
 

@@ -14,6 +14,7 @@ BEGIN
 		LogText = 'Post Calculation Start: ' +  CONVERT(VARCHAR,GETDATE(),8) + CHAR(13) + CHAR(10)
 	WHERE BatchLogId = @BatchLogId
 
+--	EXEC [DW].[usp_ImportNoteCashflowPercentageColumns]	
 
 	EXEC [DW].[usp_Calculations_CalendarPeriodBI]
 	EXEC [DW].[usp_Calculations_CalendarBI]
@@ -46,6 +47,7 @@ BEGIN
 
 
 	EXEC [DW].[usp_ImportInterimDropDate]
+	EXEC [DW].[usp_ImportTransactionActuals]
 
 	--Deactivate User delegation if past away
 	Update [App].[UserDelegateConfig] set [IsActive] = 0 where EndDate < Cast(getdate() as date)
@@ -76,8 +78,12 @@ BEGIN
 	)z
 	where z.CRENoteID = DW.NoteBI.CRENoteID
 
+	---Calc notes for DiscrepancyForDuplicatePIK_InBackshop
+	--EXEC [dbo].[usp_QueueNoteForCalc_DiscrepancyForDuplicatePIK_InBackshop]
 
 
+	/* Import for report Liability NoteCapRecon */
+		EXEC [DW].[usp_ImportNPCEndingBalanceDefaultScenario]
 	--------==============================================
 	--Declare @tblTrNote as Table (NoteID UNIQUEIDENTIFIER, [Type] nvarchar(256))
 
@@ -145,9 +151,15 @@ BEGIN
 	--and DW.noteperiodiccalcBI.AnalysisID = a.AnalysisID
 
 
+
+
+
+	exec [DW].[usp_ImportNoteCFPerFromDailyIntAccBI]
+
+
+
 	UPDATE BatchLog
 	SET LogText = LogText + ', Post Calculation End: ' +  CONVERT(VARCHAR,GETDATE(),8) + CHAR(13) + CHAR(10)
 	WHERE BatchLogId = @BatchLogId
-	
-	
+
 END

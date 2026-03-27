@@ -1,3 +1,5 @@
+using System;
+
 namespace CRES.NoteCalculatorServiceMVC.Models
 {
     public class ErrorViewModel

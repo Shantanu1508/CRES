@@ -1,5 +1,4 @@
-﻿using Microsoft.Practices.EnterpriseLibrary.Logging;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -9,6 +8,7 @@ using System.Runtime.Serialization;
 using System.Security.Principal;
 using System.Text;
 using System.Xml;
+using Microsoft.Practices.EnterpriseLibrary.Logging;
 using Ent = Microsoft.Practices.EnterpriseLibrary.Logging;
 
 
@@ -242,7 +242,7 @@ namespace CRES.Utilities
                 Write(ex.InnerException);
         }
 
-        public static void Write(string modulenName, string message, MessageLevel messageLevel, string UserId, string noteid)
+        public static void Write(string modulenName,string message, MessageLevel messageLevel, string UserId, string noteid)
         {
             //string loggerinfo = WebConfigurationManager.AppSettings["LoggerInfoEnable"];
             //string loggerException = WebConfigurationManager.AppSettings["LoggerExceptionEnable"];
@@ -255,11 +255,11 @@ namespace CRES.Utilities
             try
             {
                 Ent.LogEntry logEntry = new Ent.LogEntry();
-                logEntry.Message = message;
+                logEntry.Message = message;                
                 logEntry.MachineName = UserId;
                 logEntry.ManagedThreadName = noteid;
                 logEntry.Title = modulenName;
-
+                
                 switch (messageLevel)
                 {
                     case MessageLevel.Info:
@@ -301,8 +301,8 @@ namespace CRES.Utilities
                             Logger.Write(logEntry);
                         }
                         break;
-                }
-
+                }                 
+                 
             }
             catch (Exception ex)
             {

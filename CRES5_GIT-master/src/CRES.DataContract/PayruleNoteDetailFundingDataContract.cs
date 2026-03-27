@@ -19,7 +19,7 @@ namespace CRES.DataContract
 
         public int? Lienposition { get; set; }
         public int? Priority { get; set; }
-        public decimal? InitialFundingAmount { get; set; }
+        public decimal? InitialFundingAmount { get; set; }       
         public decimal? AdditionalBalance { get; set; }
 
         public decimal? AdditionalRepaymentBalance { get; set; }

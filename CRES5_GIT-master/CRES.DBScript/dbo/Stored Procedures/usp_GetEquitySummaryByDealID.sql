@@ -1,4 +1,7 @@
-﻿-- Procedure
+﻿--[dbo].[usp_GetEquitySummaryByDealID]   '7F088F66-B435-46D5-9059-7039A786E7E8'    
+
+
+-- Procedure
 --[dbo].[usp_GetEquitySummaryByDealID]   '702B0F01-F028-4900-A00A-0BB94B5DCAD2'  
   
 CREATE PROCEDURE [dbo].[usp_GetEquitySummaryByDealID]   
@@ -59,7 +62,7 @@ From(
   
  UNION ALL  
   
- Select d.dealid, 'FF Additional Equity' as [Type],ISNULL(tblncm_reqeq.NCM_TotalAdditionalEquity,0) as ExpectedEquity,ISNULL(tbldf_reqeq.df_TotalAdditionalEquity,0) as EquityContributedToDate, 3 as SortOrder  
+ Select d.dealid, 'FF Additional Equity' as [Type],ISNULL(tbldf_reqeq.df_TotalAdditionalEquity,0) as ExpectedEquity,ISNULL(tbldf_reqeq.df_TotalAdditionalEquity,0) as EquityContributedToDate, 3 as SortOrder  
  from cre.deal d  
  LEFT JOIN(  
   Select dealid,SUM(ISNULL(TotalAdditionalEquity,0))  as NCM_TotalAdditionalEquity  

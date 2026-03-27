@@ -16,7 +16,8 @@
     [DealFundingID]         UNIQUEIDENTIFIER NULL,
     [WF_CurrentStatus]      NVARCHAR (256)   NULL,
     [FundingScheduleAutoID] INT              IDENTITY (1, 1) NOT NULL,
-    [GeneratedBy]  INT   NULL
+    [GeneratedBy]  INT   NULL,
+    [AdjustmentType]          INT              NULL,
     CONSTRAINT [PK_FundingScheduleAutoID] PRIMARY KEY CLUSTERED ([FundingScheduleAutoID] ASC),
     CONSTRAINT [FK_FundingSchedule_EventId] FOREIGN KEY ([EventId]) REFERENCES [Core].[Event] ([EventID])
 );

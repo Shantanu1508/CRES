@@ -1,0 +1,67 @@
+# Starter pipeline
+# Start with a minimal pipeline that you can customize to build and deploy your code.
+# Add steps that build, run tests, deploy, and more:
+# https://aka.ms/yaml
+
+trigger:
+  branches:
+    include:
+      - QA 
+  paths:
+    include:
+      - src/CRES.WebClient.V1/*
+
+pool:
+  vmImage: 'windows-2019'
+
+variables:
+  buildConfiguration: 'Release'
+
+
+steps:
+
+- script: echo Hello, world!
+  displayName: 'Run script for Web'
+
+- task: UseNode@1
+  inputs:
+     version: '14.2.0'
+
+- task: Npm@1
+  displayName: 'npm install'
+  inputs:
+    workingDir: 'src/CRES.WebClient.V1/ClientApp'
+    verbose: false
+
+- task: Npm@1
+  displayName: 'npm build'
+  inputs:
+    command: custom
+    workingDir: 'src/CRES.WebClient.V1/ClientApp'
+    verbose: false
+    customCommand: 'run build'
+
+
+- task: DotNetCoreCLI@2
+  inputs:
+    command: 'publish'
+    publishWebProjects: false
+    projects: 'src/CRES.WebClient.V1/CRES.WebClient.V1.csproj'
+    workingDirectory: 'src/CRES.WebClient.V1'
+ 
+  
+- task: AzureRmWebAppDeployment@5
+  inputs:
+    ConnectionType: 'AzureRM'
+    azureSubscription: 'Microsoft Partner Network 3'
+    appType: 'webApp'
+    WebAppName: 'qacres4'
+    packageForLinux: '$(System.DefaultWorkingDirectory)/**/*.zip'
+
+# - task: AzureWebApp@1
+#   inputs:
+#     azureSubscription: 'iTechsol(9)(021c83fc-1e2a-4da6-92dd-8e1d74c0e1cb)'
+#     appType: 'webAppLinux'
+#     appName: 'qacres5'
+#     package: '$(System.DefaultWorkingDirectory)/**/*.zip'
+#

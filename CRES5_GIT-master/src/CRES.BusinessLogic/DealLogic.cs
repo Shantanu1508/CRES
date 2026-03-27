@@ -76,6 +76,12 @@ namespace CRES.BusinessLogic
             dt = _dealRepository.GetFundingRepaymentSequenceHistoryByDealID(dealID);
             return dt;
         }
+        public DataTable GetCalculatedWeightedSpreadByDealID(Guid? dealID)
+        {
+            DataTable dt = new DataTable();
+            dt = _dealRepository.GetCalculatedWeightedSpreadByDealID(dealID);
+            return dt;
+        }
         public void InsertUpdateFundingRepaymentSequence(List<PayruleNoteAMSequenceDataContract> NoteSequence, string username)
         {
             _dealRepository.InsertUpdateFundingRepaymentSequence(NoteSequence, username);
@@ -105,6 +111,10 @@ namespace CRES.BusinessLogic
             _dealRepository.InsertUpdateDealArchieveFunding(dealfunding, username);
         }
 
+        public void InsertUpdateDealArchieveFunding_Automation(List<PayruleDealFundingDataContract> dealfunding, string username)
+        {
+            _dealRepository.InsertUpdateDealArchieveFunding_Automation(dealfunding, username);
+        }
         public DealDataContract GetDealByCREDealId(string CREDealId)
         {
             DealDataContract _dealDC = new DealDataContract();
@@ -217,9 +227,15 @@ namespace CRES.BusinessLogic
             return _dealRepository.CallDealForCalculation(Dealdid, Updatedby, AnalysisID, CalcTyep);
         }
 
-        public int CallDealForPrePayCalculation(string Dealdid, string Updatedby, string AnalysisID, int CalcTyep)
+        public int QueueDealForCalculationMultipleDeals(string Dealdid, string Updatedby, string AnalysisID, int CalcTyep)
         {
-            return _dealRepository.CallDealForPrePayCalculation(Dealdid, Updatedby, AnalysisID, CalcTyep);
+            return _dealRepository.QueueDealForCalculationMultipleDeals(Dealdid, Updatedby, AnalysisID, CalcTyep);
+        }
+
+
+        public int CallDealForPrePayCalculation(string Dealdid, string Updatedby, string AnalysisID, int CalcTyep, string RequestFrom, int? IsEmailSent)
+        {
+            return _dealRepository.CallDealForPrePayCalculation(Dealdid, Updatedby, AnalysisID, CalcTyep, RequestFrom, IsEmailSent);
         }
         public DealDataContract CheckConcurrentUpdate(Guid? DeailId, string ModuleName, DateTime UpdatedDate)
         {
@@ -398,6 +414,11 @@ namespace CRES.BusinessLogic
         {
             _dealRepository.SaveProjectedPayOffDateByDealID(projectedpayoffdate, CreatedBy);
         }
+
+        public void UpdateAutoSpreadColumnByDealID(String DealID, DateTime? EarliestPossibleRepaymentDate, DateTime? LatestPossibleRepaymentDate, DateTime? ExpectedFullRepaymentDate, DateTime? AutoPrepayEffectiveDate, string UserID)
+        {
+            _dealRepository.UpdateAutoSpreadColumnByDealID(DealID, EarliestPossibleRepaymentDate, LatestPossibleRepaymentDate, ExpectedFullRepaymentDate, AutoPrepayEffectiveDate, UserID);
+        }
         public List<AutoRepaymentBalancesDataContract> GetAutospreadRepaymentBalancesDealID(Guid? DealID)
         {
             return _dealRepository.GetAutospreadRepaymentBalancesDealID(DealID);
@@ -567,25 +588,215 @@ namespace CRES.BusinessLogic
             return _dealRepository.GetDiscrepancyListOfDealForEnableAutoSpread();
         }
 
+        public DataTable GetDiscrepancyAutoSpreadDealWithNoUnderwriting()
+        {
+            return _dealRepository.GetDiscrepancyAutoSpreadDealWithNoUnderwriting();
+        }
+
+        public DataTable GetDiscrepancyAmortSchedule()
+        {
+            return _dealRepository.GetDiscrepancyAmortSchedule();
+        }
+
         public DataTable GetDiscrepancyForExportPaydown()
         {
             return _dealRepository.GetDiscrepancyForExportPaydown();
         }
 
+        public DataTable GetDiscrepancyForNetIOTransaction()
+        {
+            return _dealRepository.GetDiscrepancyForNetIOTransaction();
+        }
+
         public PrepayCalcStatusDataContract GetPrepayCalculationStatus(string DealID)
         {
             return _dealRepository.GetPrepayCalculationStatus(DealID);
-        }
-
-        public PrepayCalcStatusDataContract GetPrepayCalcStatusMessage(string DealID)
-        {
-            return _dealRepository.GetPrepayCalcStatusMessage(DealID);
-        }
+        }        
 
 
         public List<EquitySummaryDataContract> GetEquitySummaryByDealID(string DealID)
         {
             return _dealRepository.GetEquitySummaryByDealID(DealID);
+        }
+
+        public DataTable GetDiscrepancyForCommitmentDataByDealID(string DealID)
+        {
+            return _dealRepository.GetDiscrepancyForCommitmentDataByDealID(DealID);
+        }
+
+        public DataTable GetDiscrepancyForFinancingSource()
+        {
+            return _dealRepository.GetDiscrepancyForFinancingSource();
+        }
+        public DataTable GetInvoiceDiscrepancy()
+        {
+            return _dealRepository.GetInvoiceDiscrepancy();
+            //
+        }
+
+        public DataTable GetDiscrepancyForWireConfirmed()
+        {
+            return _dealRepository.GetDiscrepancyForWireConfirmed();
+            //
+        }
+
+
+        public DataTable GetDiscrepancyForBalanceM61VsBackshop()
+        {
+            return _dealRepository.GetDiscrepancyForBalanceM61VsBackshop();
+            //
+        }
+
+        public DataTable GetDiscrepancyForAdjCommitmentM61VsBackshop()
+        {
+            return _dealRepository.GetDiscrepancyForAdjCommitmentM61VsBackshop();
+            //
+        }
+
+        public DataTable GetDiscrepancyForTotalFFVsUnfundedCommitment()
+        {
+            return _dealRepository.GetDiscrepancyForTotalFFVsUnfundedCommitment();
+            //
+        }
+
+        public DataTable GetDiscrepancyForDuplicatePIK_InBackshop()
+        {
+            return _dealRepository.GetDiscrepancyForDuplicatePIK_InBackshop();
+            //
+        }
+        public DataTable GetDealFundingWLDealPotentialImpairmentByDealID(Guid? dealID, string userID)
+        {
+            return _dealRepository.GetDealFundingWLDealPotentialImpairmentByDealID(dealID, userID);
+        }
+        public DataTable GetDiscrepancyForNotesFailedInCalculation()
+        {
+            return _dealRepository.GetDiscrepancyForNotesFailedInCalculation();
+
+        }
+
+        public DataTable GetAllDataForBlobFileDelete()
+        {
+            return _dealRepository.GetAllDataForBlobFileDelete();
+        }
+
+        public List<AutoDistributeWriteoffDataContract> GetAutoDistributeWriteoffByDealID(Guid? dealID)
+        {
+            List<AutoDistributeWriteoffDataContract> lstautodistributewriteoff = new List<AutoDistributeWriteoffDataContract>();
+            lstautodistributewriteoff = _dealRepository.GetAutoDistributeWriteoffByDealID(dealID).ToList();
+            return lstautodistributewriteoff;
+        }
+
+        public void InsertUpdateAutoDistributeWriteoff(List<AutoDistributeWriteoffDataContract> _autodistributewriteoffDC, string username)
+        {
+            _dealRepository.InsertUpdateAutoDistributeWriteoff(_autodistributewriteoffDC, username);
+        }
+
+        public void InsertUpdateXIRROverride(DataTable _xirrOverride, string username)
+        {
+            _dealRepository.InsertUpdateXIRROverride(_xirrOverride, username);
+        }
+
+        public List<DealRelationshipDataContract> GetDealRelationshipByDealID(Guid? dealID)
+        {
+            List<DealRelationshipDataContract> lstDealRelationship = new List<DealRelationshipDataContract>();
+            lstDealRelationship = _dealRepository.GetDealRelationshipByDealID(dealID).ToList();
+            return lstDealRelationship;
+        }
+
+        public void SaveDealRelationship(List<DealRelationshipDataContract> _dealRelationship, string username)
+        {
+            _dealRepository.SaveDealRelationship(_dealRelationship, username);
+        }
+
+
+        public DataTable GetPrepaymentNoteSetupByDealID(Guid? dealID)
+        {
+            return _dealRepository.GetPrepaymentNoteSetupByDealID(dealID);
+        }
+
+
+        public DataTable GetPrepaymentGroupByDealID(Guid? dealID)
+        {
+            return _dealRepository.GetPrepaymentGroupByDealID(dealID);
+        }
+
+        public DataTable GetPrepaymentNoteAllocationSetup(Guid? dealID)
+        {
+            return _dealRepository.GetPrepaymentNoteAllocationSetup(dealID);
+        }
+        public void UpdateDealForPayoffStatementConfiguration(DealDataContract dealdc)
+        {
+            _dealRepository.UpdateDealForPayoffStatementConfiguration(dealdc);
+        }
+        public int InsertUpdatePrepaymentGroup(DataTable dtPrepaymentGroup, string UserID)
+        {
+            return _dealRepository.InsertUpdatePrepaymentGroup(dtPrepaymentGroup, UserID);
+        }
+
+        public int InsertUpdatePayoffStatementFees(DataTable dtPayoffStatementFees, string UserID)
+        {
+            return _dealRepository.InsertUpdatePayoffStatementFees(dtPayoffStatementFees, UserID);
+        }
+        public DataTable GetPayoffStatementFeesDetailsByDealID(Guid? dealID)
+        {
+            return _dealRepository.GetPayoffStatementFeesDetailsByDealID(dealID);
+        }
+        public int InsertUpdatePrepaymentNote(DataTable dtPrepaymentNote, string UserID)
+        {
+            return _dealRepository.InsertUpdatePrepaymentNote(dtPrepaymentNote, UserID);
+        }
+
+        public int InsertUpdatePrepaymentNoteAllocationSetup(DataTable dtPrepaymentNoteAlloc, string UserID)
+        {
+            return _dealRepository.InsertUpdatePrepaymentNoteAllocationSetup(dtPrepaymentNoteAlloc, UserID);
+        }
+        public DataTable GetCurrentSpreadfromRateSpreadSchByDealID(string dealID)
+        {
+            return _dealRepository.GetCurrentSpreadfromRateSpreadSchByDealID(dealID);
+        }
+
+        public List<ReserveAccountMasterDataContract> GetAllReserveAccountMaster(Guid? headerUserID)
+        {
+            return _dealRepository.GetAllReserveAccountMaster(headerUserID);
+        }
+
+        public DataTable GetFundingNetCapitalInvestedbyDealID(Guid? dealID)
+        {
+            return _dealRepository.GetFundingNetCapitalInvestedbyDealID(dealID);
+        }
+
+        public void UpdateReserveAccountFromBackshop(ReserveAccountSyncDataContract DealDC, string UserID)
+        {
+            _dealRepository.UpdateReserveAccountFromBackshop(DealDC, UserID);
+        }
+
+
+        public DataTable GetAccountingBasisByDealID(Guid? dealID)
+        {
+            return _dealRepository.GetAccountingBasisByDealID(dealID);
+        }
+        public DealDashDataContract GetDealDashBoardByDealId(Guid? DealId)
+        {
+            DealDashDataContract _dashDC = new DealDashDataContract();
+            _dashDC = _dealRepository.GetDealDashBoardByid(DealId);
+            return _dashDC;
+        }
+        public DataTable GetLastUpdatedforDealTabs(Guid? dealID, Guid? userID)
+        {
+            return _dealRepository.GetLastUpdatedforDealTabs(dealID, userID);
+        }
+        public DataTable GetDiscrepancyForDuplicateTransactions()
+        {
+            return _dealRepository.GetDiscrepancyForDuplicateTransactions();
+        }
+
+        public DataTable ImportDealFromBackshopByCREDealId(string creDealID, string userID)
+        {
+            return _dealRepository.ImportDealFromBackshopByCREDealId(creDealID,userID);
+        }
+        public DataTable GetFinancingCommitmentByDealID(string DealID)
+        {
+            return _dealRepository.GetFinancingCommitmentByDealID(DealID);
         }
     }
 }

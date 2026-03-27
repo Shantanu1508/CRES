@@ -1,18 +1,21 @@
-﻿using CRES.DAL.IRepository;
-using CRES.DataContract;
-using CRES.Utilities;
-using System;
+﻿using System;
 using System.Collections.Generic;
-using System.Data;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using CRES.DataContract;
+using CRES.DAL.IRepository;
 using System.Data.SqlClient;
+using System.Data;
+using CRES.Utilities;
 
 namespace CRES.DAL.Repository
 {
-    public class AccountingReportRepository : IAccountingReportRepository
-    {
+   public class AccountingReportRepository: IAccountingReportRepository
+   {
+	
 
-
-        public List<ReportFileDataContract> GetAllReportFiles(Guid? userId, int? pageSize, int? pageIndex, out int? TotalCount)
+		public List<ReportFileDataContract> GetAllReportFiles(Guid? userId, int? pageSize, int? pageIndex, out int? TotalCount)
         {
             List<ReportFileDataContract> lstReportFiles = new List<ReportFileDataContract>();
 
@@ -86,6 +89,8 @@ namespace CRES.DAL.Repository
                         reportfiledc.Status = Convert.ToInt32(dr["Status"]);
                         reportfiledc.Frequency = Convert.ToString(dr["Frequency"]);
                         reportfiledc.FrequencyStatus = Convert.ToInt32(dr["FrequencyStatus"]);
+                        reportfiledc.DownloadFileName = Convert.ToString(dr["DownloadFileName"]);
+                        
                         break;
                     }
                     if (ds.Tables[1] != null && ds.Tables[1].Rows.Count > 0)
@@ -124,7 +129,7 @@ namespace CRES.DAL.Repository
             dsreport = hp.ExecDataSet(ReportDc.DataSourceProcedure, null);
             return dsreport;
         }
-
+        
 
         public string InsertReportFileLog(ReportFileLogDataContract _reportDC)
         {
@@ -213,29 +218,82 @@ namespace CRES.DAL.Repository
         //==========Added getwarehouseStatus==========//
         public List<DWStatusDataContract> GetwarehouseStatus(string btnname)
         {
-
+           
             DataTable dt = new DataTable();
             List<DWStatusDataContract> lstStatus = new List<DWStatusDataContract>();
             Helper.Helper hp = new Helper.Helper();
             SqlParameter p1 = new SqlParameter { ParameterName = "@ButtonName", Value = btnname };
-
+          
 
             SqlParameter[] sqlparam = new SqlParameter[] { p1 };
             dt = hp.ExecDataTable("dbo.usp_GetwarehouseStatus", sqlparam);
-
-
-
+          
+        
+          
             foreach (DataRow dr in dt.Rows)
             {
                 DWStatusDataContract rfdc = new DWStatusDataContract();
-
+              
                 rfdc.BatchEndTime = CommonHelper.ToDateTime(dr["BatchEndTime"]);
-
-                rfdc.Status2 = Convert.ToString(dr["Status2"]);
+                
+                rfdc.Status2= Convert.ToString(dr["Status2"]);
                 lstStatus.Add(rfdc);
             }
 
             return lstStatus;
+        }
+
+        public List<ReportFileDataContract> GetAllReportFilesByReportType(Guid? UserID, string ReportType, string TenantId, string GroupId, int? pageSize, int? pageIndex, out int? TotalCount)
+        {
+            List<ReportFileDataContract> lstReportFiles = new List<ReportFileDataContract>();
+
+            DataTable dt = new DataTable();
+            Helper.Helper hp = new Helper.Helper();
+            SqlParameter p1 = new SqlParameter { ParameterName = "@UserID", Value = UserID };
+            SqlParameter p2 = new SqlParameter { ParameterName = "@ReportType", Value = ReportType };
+            SqlParameter p3 = new SqlParameter { ParameterName = "@TenantId", Value = TenantId };
+            SqlParameter p4 = new SqlParameter { ParameterName = "@GroupId", Value = GroupId };
+
+            SqlParameter p5 = new SqlParameter { ParameterName = "@PgeIndex", Value = pageIndex };
+            SqlParameter p6 = new SqlParameter { ParameterName = "@PageSize", Value = pageSize };
+            SqlParameter p7 = new SqlParameter { ParameterName = "@TotalCount", Direction = ParameterDirection.Output, Size = 10 };
+            SqlParameter[] sqlparam = new SqlParameter[] { p1, p2, p3, p4,p5,p6,p7 };
+            dt = hp.ExecDataTable("dbo.usp_GetAllReportFileByReportType", sqlparam);
+            TotalCount = Convert.ToInt32(p7.Value);
+
+            // var deals = dbContext.usp_GetAllDealsForTranscationsFilter();
+            foreach (DataRow dr in dt.Rows)
+            {
+                ReportFileDataContract reportfiledc = new ReportFileDataContract();
+                reportfiledc.ReportFileID = Convert.ToInt32(dr["ReportFileID"]);
+                reportfiledc.ReportFileGUID = new Guid(dr["ReportFileGUID"].ToString());
+                reportfiledc.ReportFileName = Convert.ToString(dr["ReportFileName"]);
+                //reportfiledc.SheetName = Convert.ToString(dr["SheetName"]);
+                //reportfiledc.DataSourceProcedure = Convert.ToString(dr["DataSourceProcedure"]);
+                reportfiledc.ReportFileFormat = Convert.ToString(dr["ReportFileFormat"]);
+                reportfiledc.ReportFileTemplate = Convert.ToString(dr["ReportFileTemplate"]);
+                reportfiledc.ReportFileJSON = Convert.ToString(dr["ReportFileJSON"]);
+                //reportfiledc.HeaderPosition = Convert.ToInt32(dr["HeaderPosition"]);
+                if(dr["SourceStorageTypeID"]!= DBNull.Value)
+                reportfiledc.SourceStorageTypeID = Convert.ToInt32(dr["SourceStorageTypeID"]);
+                reportfiledc.SourceStorageLocation = Convert.ToString(dr["SourceStorageLocation"]);
+                if (dr["DestinationStorageTypeID"] != DBNull.Value)
+                    reportfiledc.DestinationStorageTypeID = Convert.ToInt32(dr["DestinationStorageTypeID"]);
+                reportfiledc.DestinationStorageLocation = Convert.ToString(dr["DestinationStorageLocation"]);
+                reportfiledc.Status = Convert.ToInt32(dr["Status"]);
+                reportfiledc.Frequency = Convert.ToString(dr["Frequency"]);
+                if (dr["FrequencyStatus"] != DBNull.Value)
+                    reportfiledc.FrequencyStatus = Convert.ToInt32(dr["FrequencyStatus"]);
+                reportfiledc.DefaultAttributes = Convert.ToString(dr["DefaultAttributes"]);
+                if (dr["IsAllowInput"] != DBNull.Value)
+                    reportfiledc.IsAllowInput = Convert.ToBoolean(dr["IsAllowInput"]);
+                reportfiledc.ReportType = Convert.ToString(dr["ReportType"]);
+                reportfiledc.TenantId = Convert.ToString(dr["TenantId"]);
+
+
+                lstReportFiles.Add(reportfiledc);
+            }
+            return lstReportFiles;
         }
 
 

@@ -23,13 +23,17 @@ BEGIN
 	DECLARE @SourceAccountID varchar(256)
 	DECLARE @TargetAccountID varchar(256)
 	DECLARE @ClosingDate datetime 
+	Declare @PIKSeparateCompounding int
 	---------------------------------
 	DECLARE @Active int = (Select LookupID from Core.Lookup where name = 'Active' and ParentID = 1)
 	DECLARE @Inactive int = (Select LookupID from Core.Lookup where name = 'Inactive' and ParentID = 1)
+
 	SELECT @accountID = n.Account_AccountID FROM CRE.Note n WHERE n.CRENoteID=@creNoteID 
 	SELECT @SourceAccountID = n.Account_AccountID FROM CRE.Note n WHERE n.CRENoteID=@creSourceNoteID 
 	SELECT @TargetAccountID = n.Account_AccountID FROM CRE.Note n WHERE n.CRENoteID=@creTargetNoteID 
-	SELECT @ClosingDate = ClosingDate FROM CRE.Note n WHERE n.CRENoteID=@creNoteID 
+	
+	SELECT @ClosingDate = ClosingDate ,@PIKSeparateCompounding = PIKSeparateCompounding
+	FROM CRE.Note n WHERE n.CRENoteID=@creNoteID 
 -------------------------------------------------------------------------------------------------------------
  
 
@@ -51,7 +55,7 @@ INSERT INTO Core.Event (EffectiveStartDate, AccountID, Date, EventTypeID, Single
 	EffectiveStartDate FROM core.Event e WHERE e.EventTypeID = @PIKSchedule
 	AND e.AccountID = @accountID )
 
-INSERT INTO core.PIKSchedule (EventID,SourceAccountID,TargetAccountID,AdditionalIntRate,AdditionalSpread,IndexFloor,IntCompoundingRate,IntCompoundingSpread,StartDate,EndDate,IntCapAmt,PurBal,AccCapBal,CreatedBy, CreatedDate,UpdatedBy,UpdatedDate)
+INSERT INTO core.PIKSchedule (EventID,SourceAccountID,TargetAccountID,AdditionalIntRate,AdditionalSpread,IndexFloor,IntCompoundingRate,IntCompoundingSpread,StartDate,EndDate,IntCapAmt,PurBal,AccCapBal,CreatedBy, CreatedDate,UpdatedBy,UpdatedDate,PIKSeparateCompounding)
 	SELECT 
 	(SELECT TOP 1 EventId FROM CORE.[event] e WHERE e.[EffectiveStartDate] = CONVERT(date, @ClosingDate, 101)
 	AND e.[EventTypeID] = @PIKSchedule AND e.AccountID = @accountID ),
@@ -70,7 +74,8 @@ INSERT INTO core.PIKSchedule (EventID,SourceAccountID,TargetAccountID,Additional
 	@UpdatedBy,
 	GETDATE(),
 	@UpdatedBy,
-	GETDATE()
+	GETDATE(),
+	@PIKSeparateCompounding
 	WHERE  @ClosingDate is not null
 
 
@@ -87,7 +92,7 @@ IF EXISTS(
 	and n.CRENoteID = @creNoteID
 )
 BEGIN
-	update cre.note set PIKInterestAddedToBalanceBasedOnBusinessAdjustedDate = 3 where CRENoteID = @creNoteID and PIKInterestAddedToBalanceBasedOnBusinessAdjustedDate is null
+	update cre.note set PIKInterestAddedToBalanceBasedOnBusinessAdjustedDate = 4 where CRENoteID = @creNoteID and PIKInterestAddedToBalanceBasedOnBusinessAdjustedDate is null
 END
 
 

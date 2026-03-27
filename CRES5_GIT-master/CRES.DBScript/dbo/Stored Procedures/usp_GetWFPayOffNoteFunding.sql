@@ -26,7 +26,12 @@ DECLARE @ParentClients nvarchar(max),@FinancingSources nvarchar(max),
 @AnalysisID UNIQUEIDENTIFIER='C10F3372-0FC2-4861-A9F5-148F1F80804F',
 @ExitFee DECIMAL (28, 15)=0,
 @ExitFeePercentage DECIMAL (28, 15)=0,
-@PrepayPremium DECIMAL (28, 15)=0
+@PrepayPremium DECIMAL (28, 15)=0,
+@IndexFloor DECIMAL (28, 12) =0,
+@topCRENoteID nvarchar(256),
+@TotalCommitment decimal(28,15)=(select TotalCommitment from cre.Deal where DealID=@DealID),
+@AdjustedTotalCommitmentPik decimal(28,15),
+@AdjustedTotalCommitmentPikdelphi decimal(28,15)
 select @ExitFee=isnull(ExitFee,0),@ExitFeePercentage=isnull(ExitFeePercentage,0)*100,
 @PrepayPremium=isnull(PrepayPremium,0)
 FROM CRE.WFTaskAdditionalDetail where TaskID=@DealFundingID
@@ -45,23 +50,28 @@ declare @tblPayoffDetail as table
  AdjustedTotalCommitment decimal(28,15),
  RemainingUnfunded decimal(28,15),
  SpreadPercentage decimal(28,15),
+ PikSpreadPercentage decimal(28,15),
  ParentClient nvarchar(256),
  IsExcludeThirdParty bit,
- AdjustedTotalCommitmentPercentage decimal(28,15)
+ AdjustedTotalCommitmentPercentage decimal(28,15),
+ AdjustedTotalCommitmentPikPercentage decimal(28,15)
+
 )
 
 insert into @tblPayoffDetail
-Select NoteID,CRENoteID,Name,TaxVendorLoanNumber,FinancingSourceName,FinancingSourceID,InitialFundingAmount,EstBls as CurrentBalance,AdjustedTotalCommitment,(AdjustedTotalCommitment-EstBls) as RemainingUnfunded,SpreadPercentage,ParentClient,IsExcludeThirdParty
+Select NoteID,CRENoteID,Name,TaxVendorLoanNumber,FinancingSourceName,FinancingSourceID,InitialFundingAmount,EstBls as CurrentBalance,AdjustedTotalCommitment,(AdjustedTotalCommitment-EstBls) as RemainingUnfunded,SpreadPercentage,PikSpreadPercentage, ParentClient,IsExcludeThirdParty
 ,(AdjustedTotalCommitment*SpreadPercentage)/100
+,(AdjustedTotalCommitment*PikSpreadPercentage)/100
+
 From(
 
-	Select n.NoteID, ac.Name,ISNULL(fn.value,0) Value,(ISNULL(sprd.value,0)*100) as SpreadPercentage,ISNULL(n.TaxVendorLoanNumber,'') TaxVendorLoanNumber 
+	Select n.NoteID, ac.Name,ISNULL(fn.value,0) Value,(ISNULL(sprd.value,0)*100) as SpreadPercentage,(ISNULL(piksprd.value,0)*100) as PikSpreadPercentage,ISNULL(n.TaxVendorLoanNumber,'') TaxVendorLoanNumber 
 	,ISNULL(IsExcludeThirdParty,0) as IsExcludeThirdParty,
 	SUM (CASE WHEN ISNULL(IsExcludeThirdParty,0) = 0 THEN ISNULL(fn.value,0) ELSE 0 END) OVER (ORDER BY ISNULL(IsExcludeThirdParty,0)) AS TotalFundAmountWithExclude,
 	ISNULL((select ISNULL(FinancingSourceName,'') From cre.FinancingSourceMaster where FinancingSourceMasterID=n.FinancingSourceID),'') FinancingSourceName,
 	n.FinancingSourceID
 	,n.CRENoteID
-	,n.InitialFundingAmount
+	,isnull(nullif(n.InitialFundingAmount,0.01),0) as InitialFundingAmount
 	,n.CreatedDate
 	,n.lienposition
 	,n.Priority
@@ -110,10 +120,10 @@ From(
 		Select noteid,SUM(EndingBalance) EndingBalance
 		from
 		(
-			select n.dealid,np.noteid,PeriodEndDate,ISNULL(EndingBalance,0) EndingBalance,
-			ROW_Number() Over (Partition by n.dealid,np.noteid order by np.noteid,PeriodEndDate desc) rno
+			select n.dealid,n.noteid,PeriodEndDate, (case when isnull(n.InitialFundingAmount,0)=0.01 then ISNULL(EndingBalance,0)-0.01 else  ISNULL(EndingBalance,0) end) as EndingBalance ,
+			ROW_Number() Over (Partition by n.dealid,n.noteid order by n.noteid,PeriodEndDate desc) rno
 			 from [CRE].[NotePeriodicCalc] np  
-			 inner join cre.note n on n.noteid = np.noteid
+			 inner join cre.note n on n.Account_AccountID = np.AccountID
 			 where n.dealid = @DealID 
 			 and PeriodEndDate < CAST(@FuncdingDate as Date) 
 			 and AnalysisID = @AnalysisID
@@ -212,25 +222,92 @@ Select noteid,value From(
 	and  rs.ValueTypeID=151
 	and rs.Date<=cast(getdate() as date) 
 )a where a.rno = 1)sprd on sprd.NoteID=n.NoteID
+--
+	left join
+	(
+	
+Select noteid,value From(
+	Select n.noteid,rs.AdditionalSpread as value 
+	from [CORE].PIKSchedule rs  
+	INNER JOIN [CORE].[Event] e on e.EventID = rs.EventId  
+	INNER JOIN   
+	(          
+		Select   
+		(Select AccountID from [CORE].[Account] ac where ac.AccountID = n.Account_AccountID) AccountID ,  
+		MAX(EffectiveStartDate) EffectiveStartDate,EventTypeID from [CORE].[Event] eve  
+		INNER JOIN [CRE].[Note] n ON n.Account_AccountID = eve.AccountID  
+		INNER JOIN [CORE].[Account] acc ON acc.AccountID = n.Account_AccountID  
+		where EventTypeID = (Select LookupID from CORE.[Lookup] where Name = 'PIKSchedule')  
+		and isnull(eve.StatusID,1) = 1
+		and acc.IsDeleted = 0  
+		GROUP BY n.Account_AccountID,EventTypeID    
+	) sEvent    
+	ON sEvent.AccountID = e.AccountID and e.EffectiveStartDate = sEvent.EffectiveStartDate  and e.EventTypeID = sEvent.EventTypeID  
+	INNER JOIN [CORE].[Account] acc ON acc.AccountID = e.AccountID
+	INNER JOIN [CRE].[Note] n ON n.Account_AccountID = acc.AccountID
+	where isnull(e.StatusID,1) = 1 
+)a) piksprd on piksprd.NoteID=n.NoteID
+--
 	
 	where d.DealID =@DealID and ac.IsDeleted=0 and ac.StatusID=1
 )x
 
 order by ISNULL(x.lienposition,99999), x.Priority ,x.InitialFundingAmount desc,x.Name --, x.CreatedDate desc
 
+
 set @ParentClients =STUFF((SELECT distinct ', ' + ParentClient
-			FROM @tblPayoffDetail where IsExcludeThirdParty=0
+			FROM @tblPayoffDetail where --IsExcludeThirdParty=0
+			CurrentBalance<>0
 			FOR XML PATH('')), 1, 2, '')
 set @FinancingSources = STUFF((SELECT distinct ', ' + FinancingSourceName
-			FROM @tblPayoffDetail where IsExcludeThirdParty=0
+			FROM @tblPayoffDetail where --IsExcludeThirdParty=0
+			CurrentBalance<>0
 			FOR XML PATH('')), 1, 2, '')
 set @ThirpPartyFinancingSources = STUFF((SELECT distinct ', ' + FinancingSourceName
 			FROM @tblPayoffDetail where IsExcludeThirdParty=1
 			FOR XML PATH('')), 1, 2, '')
 
+	
+
 --get top note by liner posiion
 
-select top 1 @topNoteID=NoteID from @tblPayoffDetail order by ID
+select top 1 @topNoteID=NoteID,@topCRENoteID=CRENoteID from @tblPayoffDetail order by ID
+
+
+--get index floor of the top note
+Select @IndexFloor=Value from(                            
+  Select nn.CRENoteID,                            
+  nn.noteid,ROW_NUMBER() OVER (PARTITION BY nn.noteid  ORDER BY rs.date desc) AS RNO,                            
+  rs.date,rs.IntCalcMethodID,LValueTypeID.name,LIntCalcMethodID.value as CalcMethodIDtext,rs.Value                            
+  from [CORE].RateSpreadSchedule rs                            
+  INNER JOIN [CORE].[Event] e on e.EventID = rs.EventId                            
+ LEFT JOIN [CORE].[Lookup] LValueTypeID ON LValueTypeID.LookupID = rs.ValueTypeID                    
+  LEFT JOIN [CORE].[Lookup] LIntCalcMethodID ON LIntCalcMethodID.LookupID = rs.IntCalcMethodID                            
+  INNER JOIN                    
+   (                            
+                                  
+    Select                             
+     (Select AccountID from [CORE].[Account] ac where ac.AccountID = n.Account_AccountID) AccountID ,                       
+     MAX(EffectiveStartDate) EffectiveStartDate,EventTypeID from [CORE].[Event] eve                            
+     INNER JOIN [CRE].[Note] n ON n.Account_AccountID = eve.AccountID                            
+     INNER JOIN [CORE].[Account] acc ON acc.AccountID = n.Account_AccountID                            
+     where EventTypeID = (Select LookupID from CORE.[Lookup] where Name = 'RateSpreadSchedule')                            
+     and eve.StatusID = (Select LookupID from Core.Lookup where name = 'Active' and parentid = 1)                            
+     and acc.IsDeleted = 0  
+	 and n.crenoteid =@topCRENoteID                          
+     GROUP BY n.Account_AccountID,EventTypeID                            
+                            
+   ) sEvent                            
+                            
+  ON sEvent.AccountID = e.AccountID and e.EffectiveStartDate = sEvent.EffectiveStartDate  and e.EventTypeID = sEvent.EventTypeID                            
+  left join cre.note nn on nn.Account_AccountID = e.AccountID                            
+                            
+                            
+  where e.StatusID = 1              
+  and LValueTypeID.name in ('Index Floor')                            
+  )a                            
+  where a.RNO = 1 
+--
 --get initial maturity of top note
 
 Select  @InitialMaturityDate = mat.maturityDate
@@ -293,101 +370,145 @@ and n.noteid = tp.NoteID
 and DealFundingID=@DealFundingID
 )  as val from @tblPayoffDetail tp where IsExcludeThirdParty=1
 ) tbl2
+--select ((28741296.771000000000000+3274234.620000000000000)/(191608645.140000000000000+16371173.100000000000000+5846847.550000000000000))*100
 
+select @AdjustedTotalCommitmentPik=sum(AdjustedTotalCommitment) from @tblPayoffDetail where PikSpreadPercentage>0 and CurrentBalance<>0
 
---
+if (ISnull(@AdjustedTotalCommitmentPik,0)=0)
+BEGIN
+	set @AdjustedTotalCommitmentPik=0
+END
 
 --funding detail-additional info
 Select sum(InitialFundingAmount) as InitialFundingAmount ,@InitialMaturityDate as InitialMaturityDate,
 @LoanClosingDate as ClosingDate,
 sum(CurrentBalance) as CurrentBalance,
+@TotalCommitment as TotalCommitment,
 sum(AdjustedTotalCommitment) as AdjustedTotalCommitment, sum(RemainingUnfunded) as RemainingUnfunded,
+(@IndexFloor*100) as IndexFloor,
 SpreadPercentage=case when sum(AdjustedTotalCommitment)=0 then 0 else (sum(AdjustedTotalCommitmentPercentage)/sum(AdjustedTotalCommitment))*100 end,
+PikSpreadPercentage=case when @AdjustedTotalCommitmentPik=0 then 0 else (sum(AdjustedTotalCommitmentPikPercentage)/@AdjustedTotalCommitmentPik)*100 end,
 (case when charindex(',',reverse(@ParentClients))>0 then reverse(replace(STUFF(reverse(@ParentClients),charindex(',',reverse(@ParentClients)),0,'#'),'#,','dna ')) else @ParentClients end) as ParentClient,
 (case when charindex(',',reverse(@FinancingSources))>0 then reverse(replace(STUFF(reverse(@FinancingSources),charindex(',',reverse(@FinancingSources)),0,'#'),'#,','dna ')) else @FinancingSources end) as FinancingSourceName
 ,isnull(@ThirpPartyFinancingSources,'N/A') as ThirpPartyFinancingSources
 ,isnull(@ThirpPartyAmount,0) ThirpPartyAmount,
 @ExitFee as ExitFee ,@ExitFeePercentage as ExitFeePercentage,@PrepayPremium as PrepayPremium
-from @tblPayoffDetail where IsExcludeThirdParty=0
+from @tblPayoffDetail --where IsExcludeThirdParty=0
 
 --funding detail by parent client(investor)
 select ParentClient,InitialFundingAmount,CurrentBalance,AdjustedTotalCommitment,
 RemainingUnfunded,
 SpreadPercentage=case when RowType='Total' then (case when AdjustedTotalCommitment=0 then 0 else (AdjustedTotalCommitmentPercentage/AdjustedTotalCommitment)*100 end) else SpreadPercentage end,
-IsExcludeThirdParty,RowType
+PikSpreadPercentage=case when RowType='Total' then (case when @AdjustedTotalCommitmentPik=0 then 0 else (AdjustedTotalCommitmentPikPercentage/@AdjustedTotalCommitmentPik)*100 end) else PikSpreadPercentage end,
+
+--IsExcludeThirdParty,
+RowType
 from
 (
 select replace(ParentClient,'zzzzz','') as ParentClient,InitialFundingAmount,CurrentBalance,AdjustedTotalCommitment,
 AdjustedTotalCommitmentPercentage
+,AdjustedTotalCommitmentPikPercentage
 ,abs(RemainingUnfunded) as RemainingUnfunded,
-SpreadPercentage,IsExcludeThirdParty,RowType
+SpreadPercentage,--IsExcludeThirdParty,
+PikSpreadPercentage,
+RowType
 from
 (
 Select ParentClient,sum(InitialFundingAmount) as InitialFundingAmount ,sum(CurrentBalance) as CurrentBalance,
 sum(AdjustedTotalCommitment) as AdjustedTotalCommitment, sum(RemainingUnfunded) as RemainingUnfunded,
 SpreadPercentage=case when sum(AdjustedTotalCommitment)=0 then 0 else (sum(AdjustedTotalCommitmentPercentage)/sum(AdjustedTotalCommitment))*100 end,
-sum(AdjustedTotalCommitmentPercentage) as AdjustedTotalCommitmentPercentage,IsExcludeThirdParty,'Data' as RowType
+PikSpreadPercentage=case when @AdjustedTotalCommitmentPik=0 then 0 else (sum(AdjustedTotalCommitmentPikPercentage)/@AdjustedTotalCommitmentPik)*100 end,
+
+sum(AdjustedTotalCommitmentPercentage) as AdjustedTotalCommitmentPercentage,
+sum(AdjustedTotalCommitmentPikPercentage) as AdjustedTotalCommitmentPikPercentage,
+
+--IsExcludeThirdParty,
+'Data' as RowType
 from @tblPayoffDetail
-group by ParentClient,IsExcludeThirdParty having IsExcludeThirdParty=0
+group by ParentClient--,IsExcludeThirdParty having IsExcludeThirdParty=0
 union
 Select 'zzzzzTotal' as ParentClient,sum(InitialFundingAmount) as InitialFundingAmount ,sum(CurrentBalance) as CurrentBalance,
 sum(AdjustedTotalCommitment) as AdjustedTotalCommitment, sum(RemainingUnfunded) as RemainingUnfunded,
 sum(SpreadPercentage) as SpreadPercentage,
+sum(PikSpreadPercentage) as PikSpreadPercentage,
+
 sum(AdjustedTotalCommitmentPercentage) as AdjustedTotalCommitmentPercentage,
-0 as IsExcludeThirdParty,'Total' as RowType
+sum(AdjustedTotalCommitmentPikPercentage) as AdjustedTotalCommitmentPikPercentage,
+--0 as IsExcludeThirdParty,
+'Total' as RowType
 from 
 (
  select sum(InitialFundingAmount) as InitialFundingAmount ,sum(CurrentBalance) as CurrentBalance,
 sum(AdjustedTotalCommitment) as AdjustedTotalCommitment, sum(RemainingUnfunded) as RemainingUnfunded,
 SpreadPercentage=case when sum(AdjustedTotalCommitment)=0 then 0 else (sum(AdjustedTotalCommitmentPercentage)/sum(AdjustedTotalCommitment))*100 end,
-sum(AdjustedTotalCommitmentPercentage) as AdjustedTotalCommitmentPercentage,IsExcludeThirdParty,'Data' as RowType
+PikSpreadPercentage=case when @AdjustedTotalCommitmentPik=0 then 0 else (sum(AdjustedTotalCommitmentPikPercentage)/@AdjustedTotalCommitmentPik)*100 end,
+sum(AdjustedTotalCommitmentPercentage) as AdjustedTotalCommitmentPercentage,
+sum(AdjustedTotalCommitmentPikPercentage) as AdjustedTotalCommitmentPikPercentage,
+
+--IsExcludeThirdParty,
+'Data' as RowType
 from @tblPayoffDetail
-group by ParentClient,IsExcludeThirdParty having IsExcludeThirdParty=0
+group by ParentClient--,IsExcludeThirdParty having IsExcludeThirdParty=0
 ) tblgroup
 ) tbl
 
 )tblmain
+where CurrentBalance<>0
 order by tblmain.ParentClient
 
 
 
+select @AdjustedTotalCommitmentPikdelphi=sum(AdjustedTotalCommitment) from @tblPayoffDetail where PikSpreadPercentage>0 and CurrentBalance<>0
+and FinancingSourceName like '%delphi%' and FinancingSourceMasterID<>26
+
+if (isnull(@AdjustedTotalCommitmentPikdelphi,0)=0)
+BEGIN
+	set @AdjustedTotalCommitmentPikdelphi=0
+END
 
 --delphi funding detail by note
 select TaxVendorLoanNumber,NoteID,FinancingSourceName,Name,InitialFundingAmount,CurrentBalance,AdjustedTotalCommitment,
- abs(RemainingUnfunded) as RemainingUnfunded,SpreadPercentage,ParentClient,RowType from 
+ abs(RemainingUnfunded) as RemainingUnfunded,SpreadPercentage,PikSpreadPercentage,ParentClient,RowType from 
 (
 Select TaxVendorLoanNumber,CRENoteID as NoteID,FinancingSourceName,Name,InitialFundingAmount,CurrentBalance,AdjustedTotalCommitment,
- RemainingUnfunded,SpreadPercentage,ParentClient,'Data' as RowType
-from @tblPayoffDetail where IsExcludeThirdParty=0 and FinancingSourceName like '%delphi%' and FinancingSourceMasterID<>26
+ RemainingUnfunded,SpreadPercentage,PikSpreadPercentage,ParentClient,'Data' as RowType
+from @tblPayoffDetail where --IsExcludeThirdParty=0 and 
+FinancingSourceName like '%delphi%' and FinancingSourceMasterID<>26
 union
 Select 'Total','' as NoteID,'' as FinancingSourceName,'' as Name,sum(InitialFundingAmount) as InitialFundingAmount,
 sum(CurrentBalance) as CurrentBalance,sum(AdjustedTotalCommitment) as AdjustedTotalCommitment, 
 sum(RemainingUnfunded) as RemainingUnfunded,
 SpreadPercentage=case when sum(AdjustedTotalCommitment)=0 then 0 else (sum(AdjustedTotalCommitmentPercentage)/sum(AdjustedTotalCommitment))*100 end,
-'' as ParentClient,'Total' as RowType
-from @tblPayoffDetail where IsExcludeThirdParty=0 and FinancingSourceName like '%delphi%' and FinancingSourceMasterID<>26
-) tbl
-where exists (select 1 from @tblPayoffDetail where IsExcludeThirdParty=0 and FinancingSourceName like '%delphi%' and FinancingSourceMasterID<>26)
+PikSpreadPercentage=case when @AdjustedTotalCommitmentPikdelphi=0 then 0 else (sum(AdjustedTotalCommitmentPikPercentage)/@AdjustedTotalCommitmentPikdelphi)*100 end,
 
+'' as ParentClient,'Total' as RowType
+from @tblPayoffDetail where --IsExcludeThirdParty=0 and 
+FinancingSourceName like '%delphi%' and FinancingSourceMasterID<>26
+) tbl
+where exists (select 1 from @tblPayoffDetail where --IsExcludeThirdParty=0 and 
+FinancingSourceName like '%delphi%' and FinancingSourceMasterID<>26)
+and CurrentBalance<>0
 
 
 --all funding detail by note
 Select TaxVendorLoanNumber,NoteID,FinancingSourceName,Name,InitialFundingAmount,CurrentBalance,AdjustedTotalCommitment,
- abs(RemainingUnfunded) as RemainingUnfunded,SpreadPercentage,ParentClient,RowType
+ abs(RemainingUnfunded) as RemainingUnfunded,SpreadPercentage,PikSpreadPercentage, ParentClient,RowType
  from
  (
  Select TaxVendorLoanNumber,CRENoteID as NoteID,FinancingSourceName,Name,InitialFundingAmount,CurrentBalance,AdjustedTotalCommitment,
- RemainingUnfunded,SpreadPercentage,ParentClient,'Data' as RowType
-from @tblPayoffDetail where IsExcludeThirdParty=0
+ RemainingUnfunded,SpreadPercentage,PikSpreadPercentage,ParentClient,'Data' as RowType
+from @tblPayoffDetail --where IsExcludeThirdParty=0
 union
 Select 'Total','' as NoteID,'' as FinancingSourceName,'' as Name,sum(InitialFundingAmount) as InitialFundingAmount,
 sum(CurrentBalance) as CurrentBalance,sum(AdjustedTotalCommitment) as AdjustedTotalCommitment, 
 sum(RemainingUnfunded) as RemainingUnfunded,
 SpreadPercentage=case when sum(AdjustedTotalCommitment)=0 then 0 else (sum(AdjustedTotalCommitmentPercentage)/sum(AdjustedTotalCommitment))*100 end,
+PikSpreadPercentage=case when @AdjustedTotalCommitmentPik=0 then 0 else (sum(AdjustedTotalCommitmentPikPercentage)/@AdjustedTotalCommitmentPik)*100 end,
 '' as ParentClient,'Total' as RowType
-from @tblPayoffDetail where IsExcludeThirdParty=0 
+from @tblPayoffDetail --where IsExcludeThirdParty=0 
 ) tbl
-where exists (select 1 from @tblPayoffDetail where IsExcludeThirdParty=0)
+where CurrentBalance<>0
+--where exists (select 1 from @tblPayoffDetail where IsExcludeThirdParty=0)
 	
 	SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 END

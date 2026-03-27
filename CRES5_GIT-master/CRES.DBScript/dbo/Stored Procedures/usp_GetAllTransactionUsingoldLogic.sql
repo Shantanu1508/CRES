@@ -6,7 +6,7 @@ BEGIN
       SET NOCOUNT ON;	 
         
 
- declare @NoteId UNIQUEIDENTIFIER = '00000000-0000-0000-0000-000000000000',
+declare @NoteId UNIQUEIDENTIFIER = '00000000-0000-0000-0000-000000000000',
 @DealId UNIQUEIDENTIFIER = '00000000-0000-0000-0000-000000000000'
 
 
@@ -92,8 +92,8 @@ where acc1.IsDeleted <> 1
 	  ExitFeeStrippingExcldfromLevelYield [decimal](28, 15) NULL,
 	  AddlFeesStrippingIncldinLevelYield [decimal](28, 15) NULL,
 	  AddlFeesStrippingExcldfromLevelYield [decimal](28, 15) NULL,
-	  EndingGAAPBookValue [decimal](28, 15) NULL,
-	  TotalGAAPIncomeforthePeriod [decimal](28, 15) NULL	 
+	  EndingGAAPBookValue [decimal](28, 15) NULL
+	  --TotalGAAPIncomeforthePeriod [decimal](28, 15) NULL	 
 	);
 
 
@@ -114,11 +114,11 @@ INSERT INTO #Tempnoteperiodiccalc
 	  ExitFeeStrippingExcldfromLevelYield,
 	  AddlFeesStrippingIncldinLevelYield,
 	  AddlFeesStrippingExcldfromLevelYield,
-	  EndingGAAPBookValue,
-	  TotalGAAPIncomeforthePeriod	
+	  EndingGAAPBookValue
+	  --TotalGAAPIncomeforthePeriod	
 )
- SELECT NoteID,
-	  periodenddate,
+ SELECT n.NoteID,
+ periodenddate,
 	  principalpaid, 
 	  balloonpayment,
 	  interestpaidonpaymentdate,
@@ -131,10 +131,13 @@ INSERT INTO #Tempnoteperiodiccalc
 	  ExitFeeStrippingExcldfromLevelYield,
 	  AddlFeesStrippingIncldinLevelYield,
 	  AddlFeesStrippingExcldfromLevelYield,
-	  EndingGAAPBookValue,
-	  TotalGAAPIncomeforthePeriod	
-  FROM CRE.noteperiodiccalc np WITH (NOLOCK)        
-  where ( CASE WHEN @NoteId = '00000000-0000-0000-0000-000000000000' THEN 1 WHEN np.NoteID = @NoteId  THEN 1 ELSE 0 END ) = 1 
+	  EndingGAAPBookValue
+	  --TotalGAAPIncomeforthePeriod	
+  FROM CRE.noteperiodiccalc np WITH (NOLOCK) 
+  Inner Join core.Account acc on acc.AccountID =np.AccountID
+  Inner Join cre.note n on n.Account_AccountID = acc.AccountID
+  Where acc.IsDeleted<>1
+  --where ( CASE WHEN @NoteId = '00000000-0000-0000-0000-000000000000' THEN 1 WHEN np.NoteID = @NoteId  THEN 1 ELSE 0 END ) = 1 
 
 
 
@@ -1064,14 +1067,14 @@ Union All
 	n.crenoteid NoteID
 	,acc.name NoteName
 	,periodenddate AS [TransDate]
-	,np.TotalGAAPIncomeforthePeriod Value
+	,null Value
 	,'TotalGAAPIncomeforthePeriod' as ValueType
 	from 
 	[CORE].[Account] acc 
 	INNER JOIN [CRE].[Note] n ON n.Account_AccountID = acc.AccountID
 	inner join #Tempnoteperiodiccalc np on np.noteid = n.noteid
 	where ( CASE WHEN @NoteId = '00000000-0000-0000-0000-000000000000' THEN 1 WHEN n.NoteID = @NoteId  THEN 1 ELSE 0 END ) = 1 
-	and isnull(np.TotalGAAPIncomeforthePeriod,0)<>0
+	--and isnull(np.TotalGAAPIncomeforthePeriod,0)<>0
 	AND (CASE WHEN @DealId = '00000000-0000-0000-0000-000000000000' THEN 1 WHEN n.DealID = @DealId  THEN 1 ELSE 0 END ) = 1
 
 Union All

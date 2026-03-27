@@ -2,25 +2,22 @@
 using AventStack.ExtentReports.Reporter;
 using System;
 using System.IO;
+using System.Reflection;
 
 namespace CRES.TestAutoMationApp.Utility
 {
     public class ExtentReportsHelper
     {
         public ExtentReports extent { get; set; }
-#pragma warning disable CS0618 // 'ExtentV3HtmlReporter' is obsolete: 'ExtentV3HtmlReporter has been deprecated and will be removed in a future release'
-        public ExtentV3HtmlReporter reporter { get; set; }
-#pragma warning restore CS0618 // 'ExtentV3HtmlReporter' is obsolete: 'ExtentV3HtmlReporter has been deprecated and will be removed in a future release'
+        public ExtentSparkReporter reporter { get; set; }
         public ExtentTest test { get; set; }
         public ExtentReportsHelper()
         {
             extent = new ExtentReports();
-#pragma warning disable CS0618 // 'ExtentV3HtmlReporter' is obsolete: 'ExtentV3HtmlReporter has been deprecated and will be removed in a future release'
-            reporter = new ExtentV3HtmlReporter(Path.Combine(ProjectBaseConfiguration.ExcelReportsFolder, "ExtentReports.html"));
-#pragma warning restore CS0618 // 'ExtentV3HtmlReporter' is obsolete: 'ExtentV3HtmlReporter has been deprecated and will be removed in a future release'
+            reporter = new ExtentSparkReporter(Path.Combine(ProjectBaseConfiguration.ExcelReportsFolder, "ExtentReports.html"));
             reporter.Config.DocumentTitle = "Automation Testing Report";
             reporter.Config.ReportName = "Regression Testing";
-            reporter.Config.Theme = AventStack.ExtentReports.Reporter.Configuration.Theme.Standard;
+            //reporter.Config.Theme = AventStack.ExtentReports.Reporter.Configuration.Theme.Standard;
             extent.AttachReporter(reporter);
             extent.AddSystemInfo("Application Under Test", "nop Commerce Demo");
             extent.AddSystemInfo("Environment", "QA");

@@ -1,0 +1,281 @@
+<form #f="ngForm">
+  <div class="col-sm-12">
+    <div class="head fixheaderdiv">
+
+      <div *ngIf="_ShowSuccessmessagediv" class="alert alert-success fade in">
+        <strong>{{_ShowSuccessmessage}}</strong>
+      </div>
+      <div *ngIf="divErrorMessage" class="alert alert-danger fade in" style="margin-top:18px;">
+        <strong>{{_ShowErrorMessage}}</strong>
+      </div>
+      <h1 style="display: inline-block;margin-top: 5px;">
+        XIRR Return Detail: <a style="color: #2196f3 !important; cursor: pointer;">{{_xirrConfig.ReturnName}}</a>
+      </h1>
+
+      <span *ngIf="_isShowCancel">
+        <button type="button" style="width: 140px !important; margin-right: 30px !important;" (click)="ReturnToXirrTab()" class="custombutton">Cancel</button>
+
+      </span>
+      <span *ngIf="_isShowSave">
+        <button type="button" style="width: 140px !important;" class="custombutton" (click)="CheckDuplicateXIRRConfigAndSave()">Save</button>
+      </span>
+    </div>
+
+    <div class="fmst fixheadercontent XirrConfigMainDiv">
+      <div class="cssload-container" *ngIf="_isShowLoader">
+        <div class="cssload-whirlpool"></div>
+      </div>
+      <div class="box1a">
+
+        <div class="form-group row pD10">
+
+          <div class="col-sm-3">
+            <label class="lab1">Return Name</label>
+            <input class="ibox1" id="txtReturnName" type="text" [(ngModel)]="_xirrConfig.ReturnName" name="ReturnName" #ReturnName="ngModel">
+          </div>
+
+          <div class="col-sm-3">
+            <label class="lab1">Tags</label>
+            <wj-multi-auto-complete #theMultiAutoCompleteXIRR
+                                    [placeholder]="'Select Tags'"
+                                    [displayMemberPath]="'Name'"
+                                    [itemsSource]="lstXIRRTags"
+                                    [(ngModel)]="_xirrConfig.ListTagMasterXIRRData"
+                                    [(selectedItems)]="_xirrConfig.ListTagMasterXIRRData">
+            </wj-multi-auto-complete>
+          </div>
+
+          <div class="col-sm-3">
+            <label class="lab1">Scenario</label>
+
+            <select [(ngModel)]="_xirrConfig.AnalysisID" id="AnalysisID" name="AnalysisID" #AnalysisID="ngModel" class="ibox1">
+              <option *ngFor="let item of _lstScenario" value={{item.AnalysisID}}>
+                {{item.ScenarioName}}
+              </option>
+            </select>
+          </div>
+
+          <div class="col-sm-3">
+            <label class="lab1">Archival Requirement</label>
+
+            <select [(ngModel)]="_xirrConfig.ArchivalRequirement" name="ArchivalRequirement" id="ArchivalRequirement" #ArchivalRequirement="ngModel" class="ibox1">
+              <option value=859>3 Months</option>
+              <option value=860>6 Months</option>
+              <option value=861>9 Months</option>
+              <option value=862>12 Months</option>
+              <option value=863>2 Years</option>
+              <option value=864>3 Years</option>
+            </select>
+          </div>
+
+          <div class="clearfix"></div>
+          <div class="col-sm-3">
+            <label class="lab1">Update XIRR to Linked Deal</label>
+            <select [(ngModel)]="_xirrConfig.UpdateXIRRLinkedDeal" name="UpdateXIRRLinkedDeal" id="UpdateXIRRLinkedDeal" #UpdateXIRRLinkedDeal="ngModel" class="ibox1">
+              <option value=3>Y</option>
+              <option value=4>N</option>
+            </select>
+          </div>
+
+          <div class="col-sm-3">
+            <label class="lab1">Exclude Transaction</label>
+            <wj-multi-select #theMultiSelect
+                             class="ibox1 multiselect-dropdown display-table-cell"
+                             [placeholder]="'Select Transaction'"
+                             [showSelectAllCheckbox]="true"
+                             [showFilterInput]="false"
+                             [itemsSource]="data"                            
+                             (isDroppedDownChanged)="isDroppedDownChanged(theMultiSelect)"></wj-multi-select>
+
+          </div>
+
+          <div class="col-sm-6">
+            <label class="lab1">Description</label>
+            <input class="ibox1" id="txtComments" type="text" [(ngModel)]="_xirrConfig.Comments" name="Comments" #Comments="ngModel">
+          </div>
+          <div class="clearfix"></div>
+          <div class="col-sm-3" *ngIf="_xirrConfig.Type == 'Portfolio'">
+            <label class="lab1">Referencing Deal Level Return</label>
+            <select class="ibox1" [(ngModel)]="_xirrConfig.ReferencingDealLevelReturn" name="ReferencingDealLevelReturn" #ReferencingDealLevelReturn="ngModel" id="ReferencingDealLevelReturn" (change)="ReferencingDealLevelReturnChange($event.target.value)">
+              <option *ngFor="let name of lstReferencingDealLvRetNames" value={{name.LookupID}}>
+                {{name.Name}}
+              </option>
+            </select>
+          </div>
+
+          <div class="col-sm-3">
+            <label class="lab1">Relative Date</label>
+
+            <select [(ngModel)]="_xirrConfig.CutoffRelativeDateID" id="CutoffRelativeDateID" name="CutoffRelativeDateID" #CutoffRelativeDateID="ngModel" class="ibox1" (change)="RelativeDateChange($event.target.value)">
+              <option *ngFor="let item of _lstRelativeDate" value={{item.LookupID}}>
+                {{item.Name}}
+              </option>
+            </select>
+          </div>
+          <div class="col-sm-3" *ngIf="_isShowCutoffDateOverride">
+            <label class="lab1">Cutoff Date Override</label>
+            <wj-input-date [(value)]="_xirrConfig.CutoffDateOverride" name="CutoffDateOverride" [(ngmodal)]="CutoffDateOverride" id="CutoffDateOverride" [format]="'M/d/yyyy'" class="ibox1 rightalign" [isRequired]="false" [placeholder]="'M/d/yyyy'" [itemValidator]="validator"></wj-input-date>
+          </div>
+          <div class="col-sm-3">
+            <label class="lab1">Show Return on Deal Screen</label>
+            <select [(ngModel)]="_xirrConfig.ShowReturnonDealScreen" id="ShowReturnonDealScreen" name="ShowReturnonDealScreen" #ShowReturnonDealScreen="ngModel" class="ibox1" (change)="ShowReturnonDealScreenChange($event.target.value)">
+              <option *ngFor="let item of _lstShowReturnonDealScreen" value={{item.LookupID}}>
+                {{item.Name}}
+              </option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div class="box1a">
+        <h3>Filters</h3>
+        <div class="form-group row pD10">
+          <div class="col-sm-3">
+            <label class="lab1">Pool</label>
+            <wj-multi-select #Pool id="Pool"
+                             [placeholder]="'Select Pool'"
+                             class="ibox1 multiselect-dropdown display-table-cell"
+                             [itemsSource]="lstPool"
+                             [displayMemberPath]="'Name'"
+                             [maxHeaderItems]="7"
+                             [checkedMemberPath]="'active'">
+            </wj-multi-select>
+          </div>
+
+          <div class="col-sm-3">
+            <label class="lab1">Product Type</label>
+            <wj-multi-select #ProductType id="ProductType"
+                             [placeholder]="'Select Product Type'"
+                             class="ibox1 multiselect-dropdown display-table-cell"
+                             [itemsSource]="lstProductType"
+                             [displayMemberPath]="'Name'"
+                             [maxHeaderItems]="7"
+                             [checkedMemberPath]="'active'">
+            </wj-multi-select>
+          </div>
+
+          <div class="col-sm-3">
+            <label class="lab1">State</label>
+            <wj-multi-select #State id="State"
+                             [placeholder]="'Select State'"
+                             class="ibox1 multiselect-dropdown display-table-cell"
+                             [itemsSource]="lstState"
+                             [displayMemberPath]="'Name'"
+                             [maxHeaderItems]="20"
+                             [checkedMemberPath]="'active'">
+            </wj-multi-select>
+          </div>
+          <div class="col-sm-3">
+            <label class="lab1">Deal Type</label>
+            <wj-multi-select #DealType id="DealType"
+                             [placeholder]="'Select Deal Type'"
+                             class="ibox1 multiselect-dropdown display-table-cell"
+                             [itemsSource]="lstDealType"
+                             [displayMemberPath]="'Name'"
+                             [maxHeaderItems]="7"
+                             [checkedMemberPath]="'active'">
+            </wj-multi-select>
+          </div>
+
+
+          <div class="col-sm-3">
+            <label class="lab1">Loan Status</label>
+            <wj-multi-select #LoanStatus id="LoanStatus"
+                             [placeholder]="'Select Loan Status'"
+                             class="ibox1 multiselect-dropdown display-table-cell"
+                             [itemsSource]="lstLoanStatus"
+                             [displayMemberPath]="'Name'"
+                             [maxHeaderItems]="7"
+                             [checkedMemberPath]="'active'">
+            </wj-multi-select>
+          </div>
+          <div class="col-sm-3">
+            <label class="lab1">MSA</label>
+            <wj-multi-select #MSA id="MSA"
+                             [placeholder]="'Select MSA'"
+                             class="ibox1 multiselect-dropdown display-table-cell"
+                             [itemsSource]="lstMSA"
+                             [displayMemberPath]="'Name'"
+                             [maxHeaderItems]="7"
+                             [checkedMemberPath]="'active'">
+            </wj-multi-select>
+          </div>
+
+          <div class="col-sm-3">
+            <label class="lab1">Vintage Year</label>
+            <wj-multi-select #VintageYear id="VintageYear"
+                             [placeholder]="'Select Vintage Year'"
+                             class="ibox1 multiselect-dropdown display-table-cell"
+                             [itemsSource]="lstVintageYear"
+                             [displayMemberPath]="'Name'"
+                             [maxHeaderItems]="7"
+                             [checkedMemberPath]="'active'">
+            </wj-multi-select>
+          </div>
+        </div>
+      </div>
+
+      <div class="box1a">
+        <h3>Grouping</h3>
+        <div class="form-group row pD10">
+
+          <div class="col-sm-6">
+            <table>
+              <tr>
+                <td style="width:200px;"><span class="lab1">Return Type</span></td>
+                <td><label class="lab1">Deal Level  &nbsp;<input class="form-check-input" type="radio" id="radioDeal" name="radioReturnType" value="Deal" (click)="radiobuttonclick('Deal')"></label></td>
+                <td>
+                  <label class="lab1" style="margin-left:30px;">Portfolio Level  &nbsp;<input class="form-check-input" type="radio" id="radioPortfolio" name="radioReturnType" value="Portfolio" (click)="radiobuttonclick('Portfolio')"></label>
+                </td>
+              </tr>
+            </table>
+
+          </div>
+
+          <div class="col-sm-12" *ngIf="_isShowGrouping">
+            <table style="margin-top:10px;margin-bottom:5px;">
+              <tr>
+
+                <td style="width:200px;">
+                  <label class="lab1">1st GroupBy (Row)</label>
+                </td>
+
+                <td style="width:350px;">
+                  <select [(ngModel)]="_xirrConfig.Group1" name="Group1" #Group1="ngModel" id="Group1" (change)="Group1Change($event.target.value)" class="ibox1">
+                    <option *ngFor="let name of lstFilterNames | slice:0:7" value={{name.XIRRFilterSetupID}}>
+                      {{name.FilterName}}
+                    </option>
+                  </select>
+                  <span *ngIf="showAlert" class="alert-span" style="font-size: smaller; color: red;">{{alert}}</span>
+                </td>
+
+                <td style="width:200px;padding-left:50px !important;">
+                  <label class="lab1">2nd GroupBy (Column)</label>
+                </td>
+                <td style="width:350px;">
+                  <select [(ngModel)]="_xirrConfig.Group2" name="Group2" #Group2="ngModel" id="Group2" (change)="Group2Change($event.target.value)" class="ibox1">
+                    <option *ngFor="let name of lstFilterNames" value={{name.XIRRFilterSetupID}}>
+                      {{name.FilterName}}
+                    </option>
+                  </select>
+                </td>
+              </tr>
+
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div id="dialogoverlay"></div>
+      <div id="dialogbox">
+        <div>
+          <div id="dialogboxhead"></div>
+          <div id="dialogboxbody"></div>
+          <div id="dialogboxfoot"><span class="btn custombutton" (click)="ok()">Ok</span></div>
+        </div>
+      </div>
+
+
+    </div>
+    </div>
+    </form>

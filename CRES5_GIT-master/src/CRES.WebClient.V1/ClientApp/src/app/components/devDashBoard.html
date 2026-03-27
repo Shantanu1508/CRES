@@ -3,12 +3,16 @@
   <div *ngIf="_ShowmessagedivMsgWar" class="alert alert-info fade in">
     <strong>{{_WaringMessage}}</strong>
   </div>
+  <div class="cssload-container" *ngIf="_isNoteListFetching">
+    <div class="cssload-whirlpool"></div>
+  </div>
 
   <div class="fmst" style="background-color:#f2f6fa !important; ">
     <ul id="myTab" class="nav nav-tabs nav-tabs">
-      <li class="active"><a style="color: black;font-weight: 700;" data-target="#Calculator" (click)="ShowCalcDashBoardData()" data-toggle="tab">Calculator</a></li>
-      <li><a style="color: black;font-weight: 700;" data-target="#AIDashBoard" (click)="ShowDashBoardData()" data-toggle="tab">AI DashBoard</a></li>
-      <li><a style="color: black;font-weight: 700;" data-target="#UserAIDashBoard" (click)="ShowUserAIDashBoard()" data-toggle="tab">User AI Info</a></li>
+      <li class="active"><a style="color: black;font-weight: 700;" data-target="#Calculator" (click)="ShowCalcDashBoardData()" data-toggle="tab">Calculator</a></li>      
+      <li><a style="color: black;font-weight: 700;" data-target="#XIRRDashBoard" (click)="GetXIRRSummaryfordevdash()" data-toggle="tab">XIRR</a></li>
+      <li><a style="color: black;font-weight: 700;" data-target="#Valuation" data-toggle="tab" (click)="GetCalculationStatusForValuation()">Valuation</a></li>
+      <li><a style="color: black;font-weight: 700;" data-target="#RepairDeal" data-toggle="tab" (click)="GetEnvConfig()">Repair Deal</a></li>
     </ul>
 
     <div class="tab-content" id="myTabContent">
@@ -18,15 +22,11 @@
             <div class="col-sm-12" style="width:100% !important;">
 
               <div class="row">
-                <div class="cssload-container" *ngIf="_isNoteListFetching">
-                  <div class="cssload-whirlpool"></div>
-                </div>
-
-                <div class="info-box" style="width:180px !important;">
+                <div class="info-box devgeneratedat">
                   <div class="info-box-content">
                     <span class="info-box-text" style="text-align: left;">Dashboard generated at:</span>
                     <span class="info-box-datetime">{{CalculationRequesttime | date: 'M/d/yyyy hh:mm:ss a'}}</span>
-                    <select style="width:165px; margin-left:3px;" class="ibox1" (change)="changeScenario($event)">
+                    <select style="margin-left:3px;" class="ibox1" (change)="changeScenario($event)">
                       <option *ngFor="let item of _lstScenario" value={{item.AnalysisID}} selected="{{item.ScenarioName=='Default'?'selected':''}}">
                         {{item.ScenarioName}}
                       </option>
@@ -75,22 +75,15 @@
 
                 <div class="info-box">
                   <div class="info-box-content">
+                    <span class="info-box-text">Save Pending</span>
+                    <span class="info-box-number" style="color:orangered;">{{SavedPendinginDB}}</span>
+                  </div>
+                </div>
+
+                <div class="info-box">
+                  <div class="info-box-content">
                     <span class="info-box-text">Total Calc time</span>
                     <span class="info-box-number" style="color:cadetblue;">{{TotalCalculationtimeinmin }} <b class="smallbottonletter">Min</b></span>
-                  </div>
-                </div>
-                <div class="info-box">
-                  <div class="info-box-content">
-                    <span class="info-box-text">Slowest</span>
-                    <span class="info-box-number" style="color:aqua;">{{Fastest}}<b class="smallbottonletter">Sec</b></span>
-                    <span class="info-box-text1">{{FastestNoteID}}</span>
-                  </div>
-                </div>
-                <div class="info-box">
-                  <div class="info-box-content">
-                    <span class="info-box-text">Fastest</span>
-                    <span class="info-box-number" style="color:mediumorchid;">{{Slowest}}<b class="smallbottonletter">Sec</b></span>
-                    <span class="info-box-text1">{{SlowestNoteID}}</span>
                   </div>
                 </div>
 
@@ -126,7 +119,66 @@
                   </div>
 
                   <div class="div-3">
-                    <div style="float:left !important;width:40%!important;">
+                    <div class="card-box">
+                      <div class="cardbox-header">
+                        <span class="carbox-fonts"> <strong style="color:#a27ce6;"> Discrepancies</strong>  Summary</span>
+                        <button class="custombutton devdashboardbutton" (click)="GetDiscrepancySummary()">Show Discrepancies</button>
+                      </div>
+                      <div class="chart-container">
+                        <div class="cssload-whirlpool" *ngIf="isLoading"></div>
+                        <wj-flex-chart #DiscrepancySummary
+                                       class="chart"
+                                       style="display:block"
+                                       [itemsSource]="DiscrepancySummarylist"
+                                       [chartType]="'Bar'"
+                                       [selectionMode]="'Point'"
+                                       [bindingX]="'Item1'"
+                                       (rendered)="stSummaryRendered()"
+                                       (selectionChanged)="onChartSelectionChanged(DiscrepancySummary,$event)">
+                          <wj-flex-chart-series [name]="'Issues'" [binding]="'Item3'"></wj-flex-chart-series>
+                        </wj-flex-chart>
+
+                      </div>
+                    </div>
+                  </div>
+
+
+                  <div class="div-3">
+                    <div>
+                      <div class="card-box">
+                        <div class="chart-container">
+                          <div class="cardbox-header">
+                            <span class="carbox-fonts"> <strong style="color:#a27ce6;"> Calculation </strong> Summary</span>
+                          </div>
+                          <table style="width:99%;">
+                            <thead>
+                              <tr>
+                                <th class="table-bold-th">Scenario Name</th>
+                                <th class="table-bold-th">Running</th>
+                                <th class="table-bold-th">Processing</th>
+                                <th class="table-bold-th">Failed</th>
+                                <th class="table-bold-th">Completed</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              <tr *ngFor="let item of CalculationSummarylist">
+                                <td class="table-td">
+                                  {{item.ScenarioName}}
+                                </td>
+                                <td style="color:#18ce0f;">{{item.Running}}</td>
+                                <td style="color:#18ce0f;">{{item.Processing}}</td>
+                                <td style="color:#18ce0f;">{{item.Failed}}</td>
+                                <td style="color:#18ce0f;">{{item.Completed}}</td>
+                              </tr>
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="div-3">
+                    <div class="devdashuseractivity">
                       <div class="card-box">
                         <div class="chart-container">
                           <div class="cardbox-header">
@@ -153,28 +205,35 @@
                         </div>
                       </div>
                     </div>
-
-                    <div style="float:left !important;width:59%!important;padding-left:5px;">
+                    <div class="devdashDataimport">
                       <div class="card-box">
                         <div class="chart-container">
                           <div class="cardbox-header">
-                            <span class="carbox-fonts"> <strong style="color:#a27ce6;"> Calc Error </strong> break up</span>
+                            <span class="carbox-fonts">
+                              <strong style="color:#a27ce6;">Data import</strong> Status
+                              <button class="custombutton devdashboardbutton" style="width: 140px !important;" (click)="GetStagingDataIntoIntegrationStatus()" type="button">Refresh</button>
+                            </span>
+
                           </div>
 
                           <table style="width:99%;">
                             <thead>
                               <tr>
-                                <th class="table-bold-th">Error</th>
-                                <th class="table-bold-th">Count</th>
+                                <th class="table-bold-th">Table Name</th>
+                                <th class="table-bold-th">Status</th>
+                                <th class="table-bold-th">Start Date</th>
+                                <th class="table-bold-th">End Date</th>
 
                               </tr>
                             </thead>
                             <tbody>
-                              <tr *ngFor="let item of itemsSourceCalcInfo">
+                              <tr *ngFor="let item of lstimportdataStatus">
                                 <td class="table-td">
-                                  {{item.Name}}
+                                  {{item.TableName}}
                                 </td>
-                                <td style="color:red;">{{item.value}}</td>
+                                <td>{{item.Status}}</td>
+                                <td>{{item.StartDate}}</td>
+                                <td>{{item.EndDate}}</td>
                               </tr>
                             </tbody>
                           </table>
@@ -185,7 +244,7 @@
                 </div>
                 <div class="divcalcdashright">
                   <div class="div-3 ">
-                    <div class="card-box">
+                    <div class="card-box devdashbuttondiv">
                       <div class="cardbox-header" style="height:44px !important;">
                         <span class="carbox-fonts"> <strong style="color:#a27ce6;"> Button </strong> Shortcuts</span>
                       </div>
@@ -195,9 +254,9 @@
                           <button class="custombutton devdashboardbutton" (click)="RefreshReport()" type="button">Refresh Data Warehouse</button>
                         </div>
                         <div style="margin-right:2%;">
-                          <button class="custombutton devdashboardbutton" type="button" (click)="showDialogCustom('myModalCalculate')">Calc Notes</button>
+                          <button class="custombutton devdashboardbutton devdashmobiledisplaynon" type="button" (click)="showDialogCustom('myModalCalculate')">Calc Notes</button>
                         </div>
-                        <div>
+                        <div class="devdashmobiledisplaynon">
                           <div style="float:left;width:50%!important;">
                             <input class="ibox1" placeholder="Enter CRE NoteID" type="text" [(ngModel)]="CREnoteID" #ctrl="ngModel" required>
                           </div>
@@ -211,6 +270,17 @@
                         </div>
                         <div style="margin-right:2%;">
                           <button class="custombutton devdashboardbutton" (click)="importStagingData()" type="button">Import Staging Data</button>
+                        </div>
+                        <div>
+                          <div style="float:left;width:50%!important;" class="devdashmobiledisplaynon">
+                            <input class="ibox1" placeholder="Enter Object ID" type="text" [(ngModel)]="objectID" #ctrl="ngModel" required>
+                          </div>
+                          <div style="float:left;width:49%!important;" class="devdashmobiledisplaynon">
+                            <button style="width:165px !important;" class="custombutton devdashboardbutton" type="button" (click)="GetLogsExcel()">Download Logs</button>
+                          </div>
+                          <div style="margin-right:2%;">
+                            <button class="custombutton devdashboardbutton devdashmobiledisplaynon" type="button" (click)="showDialogCustom('myModalCalculateDeal')">Calc Deals</button>
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -240,112 +310,258 @@
           </div>
         </div>
       </div>
-      <div class="tab-pane fade in" id="AIDashBoard">
+
+      <div class="tab-pane fade in" id="XIRRDashBoard">
         <div class="box1a">
-          <div class="form-group row pD10" style="margin-top: -30px !important;min-height :800px;">
+          <div class="form-group row pD10 devdashboardheight" style="margin-top: -30px !important;">
             <div class="col-sm-12" style="width:100% !important;">
+
               <div class="row">
                 <div class="info-box">
                   <div class="info-box-content">
-                    <span class="info-box-text">Conversions</span>
-                    <span class="info-box-number" style="color:green;">{{TotalConversionsMonth}}</span>
-                    <span class="info-box-smalltext">This Month</span>
+                    <span class="info-box-text">Processing</span>
+                    <span class="info-box-number" style="color:blue;">{{XirrProcessing}}</span>
                   </div>
                 </div>
-
                 <div class="info-box">
                   <div class="info-box-content">
-                    <span class="info-box-text">Conversions</span>
-                    <span class="info-box-number" style="color:green;">{{TotalConversionsWeek}}</span>
-                    <span class="info-box-smalltext">This Week</span>
+                    <span class="info-box-text">Running</span>
+                    <span class="info-box-number" style="color:Orange;">{{XirrRunning}}</span>
                   </div>
                 </div>
-
                 <div class="info-box">
                   <div class="info-box-content">
-                    <span class="info-box-text">Conversions</span>
-                    <span class="info-box-number" style="color:green;">{{TotalConversionsToday}}</span>
-                    <span class="info-box-smalltext">Daily</span>
+                    <span class="info-box-text">Completed</span>
+                    <span class="info-box-number" style="color:green;">{{XirrCompleted}}</span>
                   </div>
                 </div>
-
                 <div class="info-box">
                   <div class="info-box-content">
-                    <span class="info-box-text">Total Sent</span>
-                    <span class="info-box-number" style="color:green;">{{TotalSentMessages}}  </span>
+                    <span class="info-box-text">Failed</span>
+                    <span class="info-box-number" style="color:red;">{{XirrFailed}}</span>
                   </div>
                 </div>
 
-                <div class="info-box" style="width:120px !important;">
-                  <div class="info-box-content">
-                    <span class="info-box-text">Total Received</span>
-                    <span class="info-box-number" style="color:green;">{{TotalReceivedMessages}} </span>
-                  </div>
-                </div>
-
-                <div class="info-box" style="width:120px !important;">
-                  <div class="info-box-content">
-                    <span class="info-box-text">Daily Average</span>
-                    <span class="info-box-number" style="color:red;">{{DailyAverage}} </span>
-                  </div>
-                </div>
-              </div>
-              <div class="row">
-                <div class="divaileft">
-                  <div class="dynamicchart">
-
-                  </div>
-                </div>
-                <div class="divairight">
-                  <div class="dynamicpie">
-                  </div>
-                </div>
               </div>
             </div>
           </div>
         </div>
       </div>
 
-      <div class="tab-pane fade in" id="UserAIDashBoard">
-        <div class="box1a">
-          <div class="form-group row pD10" style="margin-top: -30px;">
-            <div class="col-sm-12" style="width:100% !important;">
-              <div class="row" style="background: #fff; height: 50px !important;">
-                <table>
-                  <tr>
-                    <td>
-                      <wj-auto-complete #acDeal
-                                        [itemsSourceFunction]="getAutosuggestusername"
-                                        [displayMemberPath]="'DisplayName'"
-                                        [selectedValuePath]="'ValueID'"
-                                        [placeholder]="'User Name'"
-                                        [text]="text_username"
-                                        (selectedIndexChanged)="checkDroppedDownChangedUserName(acDeal, $event)" (change)="checkDroppedDownChangedUserName(acDeal, $event)" class="editableleftcontrol" style="width:100%;display: inline-block;padding-bottom:2px;">
-                      </wj-auto-complete>
-                    </td>
-                    <td>
-                      <button id="btngetuserdata" type="button" class="custombutton viewScheduleButton" (click)="showUserAIData()"> Get Data </button>
-                    </td>
-                  </tr>
-                </table>
-              </div>
-              <div class="row" style="margin-top:10px;">
-                <div class="divaileft">
-                  <div class="Userdynamicchart">
-                  </div>
+      <div class="tab-pane fade in" id="Valuation">
+        <div class="form-group row pD10 devdashboardheight">
+          <div class="col-sm-12">
+
+            <div class="row">
+
+              <div class="info-box">
+                <div class="info-box-content ">
+                  <span class="info-box-text">Processing</span>
+                  <span class="info-box-number" style="color:blue;">{{ValProcessing}}</span>
                 </div>
-                <div class="divairight">
-                  <div class="Userdynamicpie">
-                  </div>
+              </div>
+              <div class="info-box">
+                <div class="info-box-content">
+                  <span class="info-box-text">Running</span>
+                  <span class="info-box-number" style="color:Orange;">{{ValRunning}}</span>
+                </div>
+              </div>
+              <div class="info-box">
+                <div class="info-box-content">
+                  <span class="info-box-text">Completed</span>
+                  <span class="info-box-number" style="color:green;">{{ValCompleted}}</span>
+                </div>
+              </div>
+              <div class="info-box">
+                <div class="info-box-content">
+                  <span class="info-box-text">Failed</span>
+                  <span class="info-box-number" style="color:red;">{{ValFailed}}</span>
                 </div>
               </div>
 
+              <div class="info-box">
+                <div class="info-box-content">
+                  <span class="info-box-text">Total Calc time</span>
+                  <span class="info-box-number" style="color:cadetblue;">{{ValTotalCalculationtimeinmin }} <b class="smallbottonletter">Min</b></span>
+                </div>
+              </div>
+
+              <div class="info-box">
+                <div class="info-box-content">
+                  <span class="info-box-text">Deals per min</span>
+                  <span class="info-box-number" style="color:#FFC0CB;">{{ValAvgtime }} </span>
+                </div>
+              </div>
+
+            </div>
+
+            <div class="row">
+              <div class="col-sm-12">
+                <div class="div-3">
+                  <div class="devdashvaluationError">
+                    <div class="card-box">
+                      <div class="chart-container">
+                        <div class="cardbox-header">
+                          <span class="carbox-fonts"> <strong style="color:#a27ce6;"> Error </strong> Deatils</span>
+                          <button class="custombutton devdashboardbutton" style="width: 200px !important;" (click)="GetValuationLogsExcel()" type="button">Download Valuation logs</button>
+                        </div>
+                        <table style="width:99%;">
+                          <thead>
+                            <tr>
+                              <th class="table-bold-th">Error Details</th>
+                              <th class="table-bold-th">Count</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            <tr *ngFor="let item of ValErrorlist">
+                              <td class="table-td"> {{item.ErrorMessage}} </td>
+                              <td style="color:#18ce0f;">{{item.value}}</td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="devdashvaluationVMStatus">
+                    <div class="card-box">
+                      <div class="chart-container">
+                        <div class="cardbox-header">
+                          <span class="carbox-fonts">
+                            <strong style="color:#a27ce6;">Virtual Machine</strong> Status
+                            <button class="custombutton devdashboardbutton" style="width: 140px !important;" (click)="GetGetAzureVMStatus()" type="button">Refresh</button>
+                          </span>
+                        </div>
+                        <table style="width:99%;height:100% !important;">
+                          <thead>
+                            <tr>
+                              <th class="table-bold-th">Name</th>
+                              <th class="table-bold-th">Current Status</th>
+
+                            </tr>
+                          </thead>
+                          <tbody>
+                            <tr *ngFor="let item of VmStatusList">
+                              <td class="table-td">
+                                {{item.Name}}
+                              </td>
+                              <td [ngStyle]="{color: item.PowerState == 'VM deallocated'? 'red' : '#18ce0f'}">{{item.PowerState}}</td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  </div>
+
+
+                  <div class="devdashvaluationError">
+                    <div>
+                      <div class="card-box">
+                        <div class="chart-container">
+                          <div class="cardbox-header">
+                            <span class="carbox-fonts"> <strong style="color:#a27ce6;"> Valuation Server wise </strong> Summary</span>
+                          </div>
+                          <table style="width:99%;">
+                            <thead>
+                              <tr>
+                                <th class="table-bold-th">Server Name</th>
+                                <th class="table-bold-th">Running</th>
+                                <th class="table-bold-th">Processing</th>
+                                <th class="table-bold-th">Failed</th>
+                                <th class="table-bold-th">Completed</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              <tr *ngFor="let item of ValuationCalculationSummarylist">
+                                <td class="table-td">
+                                  {{item.VMName}}
+                                </td>
+                                <td style="color:#18ce0f;">{{item.Running}}</td>
+                                <td style="color:#18ce0f;">{{item.Processing}}</td>
+                                <td style="color:#18ce0f;">{{item.Failed}}</td>
+                                <td style="color:#18ce0f;">{{item.Completed}}</td>
+                              </tr>
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="devdashvaluationError">
+                    <div>
+                      <div class="card-box">
+                        <div class="chart-container">
+                          <div class="cardbox-header">
+                            <span class="carbox-fonts"> <strong style="color:#a27ce6;"> Valuation Marked date wise </strong> Summary</span>
+                          </div>
+                          <table style="width:99%;">
+                            <thead>
+                              <tr>
+                                <th class="table-bold-th">Marked Date</th>
+                                <th class="table-bold-th">Running</th>
+                                <th class="table-bold-th">Processing</th>
+                                <th class="table-bold-th">Failed</th>
+                                <th class="table-bold-th">Completed</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              <tr *ngFor="let item of ValuationMarkedDateSummarylist">
+                                <td class="table-td">
+                                  {{item.VMName}}
+                                </td>
+                                <td style="color:#18ce0f;">{{item.Running}}</td>
+                                <td style="color:#18ce0f;">{{item.Processing}}</td>
+                                <td style="color:#18ce0f;">{{item.Failed}}</td>
+                                <td style="color:#18ce0f;">{{item.Completed}}</td>
+                              </tr>
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                </div>
+              </div>
+
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="tab-pane fade in" id="RepairDeal">
+        <div class="box1a">
+          <div class="form-group row pD10 devdashboardheight" style="margin-top: -30px;">
+            <div class="col-sm-12" style="width:100% !important;">
+              <div class="row" style="background: #fff; height: 90px !important;">
+                <div class="col-sm-3">
+                  <label class="lab1">Environment Name</label>
+                  <select style="margin-left:3px;" class="ibox1" (change)="changeEnvName($event)">
+                    <option *ngFor="let item of _lstEnvConfig" value={{item.EnvName}}>
+                      {{item.EnvName}}
+                    </option>
+                  </select>
+                </div>
+
+                <div class="col-sm-3">
+                  <label class="lab1">Deal Id</label>
+                  <input class="ibox1" type="text" [(ngModel)]="_EnvConfig.DealID" id="DealID" name="DealID" #DealID="ngModel">
+                </div>
+
+                <div class="col-sm-3">
+                  <label class="lab1">Note Id</label>
+                  <input class="ibox1" type="text" [(ngModel)]="_EnvConfig.NoteID" id="NoteID" name="NoteID" #NoteID="ngModel">
+                </div>
+
+                <div class="col-sm-3">
+                  <br />
+                  <button id="btnRepairDeal" type="button" class="custombutton viewScheduleButton" (click)="RepairDeal()" style="float:left;">Repair Deal</button>
+                </div>
+              </div>
             </div>
           </div>
         </div>
       </div>
     </div>
-
 
     <div id="myModalCalculate" class="modal">
       <div class="modal-dialog" draggable="true" id="myModal-CalculateNote" style="min-height:300px; width:400px;">
@@ -370,6 +586,29 @@
       </div>
     </div>
 
+    <div id="myModalCalculateDeal" class="modal">
+      <div class="modal-dialog" draggable="true" id="myModal-CalculateDeal" style="min-height:300px; width:400px;">
+        <!-- Modal content -->
+        <div class="modal-content" style="padding:0px;border:0px;">
+          <div class="modal-header" style="background:#2196f3 !important">
+            <span class="customheading" style="color:white !important">Calculate Deal</span>
+            <span class="close" (click)="GCloseCreatePopUp('myModalCalculateDeal')">×</span>
+          </div>
+          <div class="modal-body">
+            <label class="lab1">Enter comma separated Cre Deal ID(s) to be calculated </label>
+            <textarea [(ngModel)]="multipleCREDealID" #ctrl="ngModel" style="font-family: 'Lato';font-size: inherit;white-space: pre-wrap;" class="editabletextarea input-lg" rows="5" cols="45" id="multipleCREDealID" name="multipleCREDealID"></textarea>
+
+          </div>
+          <div class="modal-footer" style="background-color:white !important;padding:5px;margin-top:10px;">
+            <button type="button" (click)="GCloseCreatePopUp('myModalCalculateDeal')" class="custombutton" style="width:100px !important">Cancel</button>
+            <button type="button" (click)="CalculateMultipleDeal()" class="custombutton" style="width:100px !important">Calc Deals</button>
+          </div>
+
+
+        </div>
+      </div>
+    </div>
+
     <div id="myModalLog" class="modal">
       <div class="modal-dialog" draggable="true" id="myModal-Log" style="min-height:500px !important;width:800px;overflow: auto">
         <!-- Modal content -->
@@ -378,8 +617,9 @@
             <span class="customheading" style="color:white !important">Log {{Logtype}}</span>
             <span class="close" (click)="GCloseCreatePopUp('myModalLog')">×</span>
           </div>
-          <div class="modal-body">
-            <wj-flex-grid #flexcalculation [itemsSource]="lstcalculationlist" [allowAddNew]="false" [allowResizing]="'Both'">
+          <div class="modal-body modalpopupscroll">
+            <wj-flex-grid #flexcalculation [itemsSource]="lstcalculationlist" [allowAddNew]="false" [allowResizing]="'Both'"
+                          [frozenRows]="2">
               <wj-flex-grid-column [header]="'ID'" [width]="80" [binding]="'CRENoteID'" [isReadOnly]="true">
                 <ng-template wjFlexGridCellTemplate [cellType]="'Cell'" let-cell="cell">
                   <div>
@@ -437,11 +677,33 @@
             <button type="button" (click)="GCloseCreatePopUp('myModalConfirmTag')" class="custombutton" style="width:100px !important" id="tagNo">No</button>
             <button type="button" (click)="CalcAllNotes()" class="custombutton" style="width:100px !important" id="tagYes">Yes</button>
           </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="myModalConfirmRepairDeal" class="modal" [hidden]="!_showConfirmationDialog">
+      <div class="modal-dialog" draggable="true" id="myModal-confirm-RepairDeal" style="min-height:300px;width:500px">
+        <!-- Modal content : Confirmation for import deal -->
+        <div class="modal-content" style="padding:0px;border:0px;">
+          <div class="modal-header" style="background:#2196f3 !important">
+            <span class="customheading" style="color:white !important">Repair Deal</span>
+            <span class="close" (click)="GCloseCreatePopUp('myModalConfirmRepairDeal')">×</span>
+          </div>
+
+          <div class="modal-body">
+            <span class="customheading" style="padding:10px;">Are you sure want to repair deal?</span>
+
+          </div>
+          <div class="modal-footer" style="background-color:white !important;">
+            <button type="button" (click)="GCloseCreatePopUp('myModalConfirmRepairDeal')" class="custombutton" style="width:100px !important" id="tagNo">No</button>
+            <button type="button" (click)="ImportDeal()" class="custombutton" style="width:100px !important" id="tagYes">Yes</button>
+          </div>
 
 
         </div>
       </div>
     </div>
+
   </div>
 
 </div>

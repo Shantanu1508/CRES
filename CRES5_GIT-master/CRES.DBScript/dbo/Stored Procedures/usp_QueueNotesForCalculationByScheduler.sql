@@ -39,7 +39,7 @@ INSERT INTO  @tmpCalcNotes(Noteid)
 SELECT 
 			  Distinct n.[NoteId]	
 			  from  CRE.Note n
-			  left join Core.CalculationRequests cr on n.NoteId=cr.NoteId and cr.AnalysisID=@AnalysisID
+			  left join Core.CalculationRequests cr on n.Account_AccountID=cr.AccountId and cr.AnalysisID=@AnalysisID
 			  left JOIN core.Account ac ON ac.AccountID = n.Account_AccountID
 			  inner join cre.Deal d on n.DealId = d.DealId			
 			  left join Core.Lookup lstaus on lstaus.LookupID = ac.StatusID and ac.IsDeleted=0 
@@ -53,7 +53,7 @@ SELECT
 			insert into @TableTypeCalculationRequests(NoteId,StatusText,UserName,PriorityText,AnalysisID,CalcType)
 			Select NoteId,'Processing',@UserName,'Real Time', @AnalysisID,775 
 			From @tmpCalcNotes
-			exec  [dbo].[usp_QueueNotesForCalculation] @TableTypeCalculationRequests,@UserName,@UserName 
+			exec  [dbo].[usp_QueueNotesForCalculation] @TableTypeCalculationRequests,@UserName,@UserName, NULL, NULL, 'Scheduler'
 
 
 
